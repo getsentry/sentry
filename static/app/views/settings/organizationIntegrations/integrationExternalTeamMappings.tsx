@@ -3,6 +3,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -11,7 +13,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,26 +25,17 @@ type Props = {
   integration: Integration;
 };
 
-function makeOrganizationTeamsExternalTeamsQueryKey(
-  organizationSlug: string,
-  query: Record<string, string>
-): ApiQueryKey {
-  return [`/organizations/${organizationSlug}/teams/`, {query}];
-}
-function makeOrganizationTeamsQueryKey(organizationSlug: string): ApiQueryKey {
-  return [`/organizations/${organizationSlug}/teams/`];
-}
-
 function IntegrationExternalTeamMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
   // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
   const [queryResults, setQueryResults] = useState<{
     [mappingKey: string]: Team[];
   }>({});
+  const ORGANIZATION_TEAMS_ENDPOINT = `/organizations/${organization.slug}/teams/`;
 
   const query = {
     ...location.query,
@@ -50,28 +43,32 @@ function IntegrationExternalTeamMappings(props: Props) {
   };
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
-    data: teams,
+    data: teams = [],
     refetch: refetchTeams,
     getResponseHeader,
-  } = useApiQuery<Team[]>(
-    makeOrganizationTeamsExternalTeamsQueryKey(organization.slug, query),
-    {staleTime: Infinity}
-  );
+    isPending: isTeamsPending,
+    isError: isTeamsError,
+  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT, {query}], {staleTime: Infinity});
   const teamsPageLinks = getResponseHeader?.('Link') ?? '';
   // We use this query as defaultOptions to reduce identical API calls
-  const {data: initialResults, refetch: refetchInitialResults} = useApiQuery<Team[]>(
-    makeOrganizationTeamsQueryKey(organization.slug),
-    {staleTime: Infinity}
-  );
-
-  if (!teams || !initialResults) {
-    return null;
-  }
+  const {
+    data: initialResults = [],
+    refetch: refetchInitialResults,
+    isPending: isInitialResultsPending,
+    isError: isInitialResultsError,
+  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT], {staleTime: Infinity});
 
   const fetchData = () => {
     refetchTeams();
     refetchInitialResults();
   };
+
+  if (isTeamsPending || isInitialResultsPending) {
+    return <LoadingIndicator />;
+  }
+  if (isTeamsError || isInitialResultsError) {
+    return <LoadingError onRetry={() => fetchData()} />;
+  }
 
   const handleDelete = async (mapping: ExternalActorMapping) => {
     try {
@@ -111,10 +108,6 @@ function IntegrationExternalTeamMappings(props: Props) {
   };
 
   const modalMappingKey = '__MODAL_RESULTS__';
-
-  const dataEndpoint = () => {
-    return `/organizations/${organization.slug}/teams/`;
-  };
 
   const sentryNamesMapper = (currTeams: Team[]) => {
     return currTeams.map(({id, slug}) => ({id, name: slug}));
@@ -168,7 +161,7 @@ function IntegrationExternalTeamMappings(props: Props) {
           <IntegrationExternalMappingForm
             type="team"
             integration={integration}
-            dataEndpoint={dataEndpoint()}
+            dataEndpoint={ORGANIZATION_TEAMS_ENDPOINT}
             getBaseFormEndpoint={map => getBaseFormEndpoint(map)}
             defaultOptions={defaultTeamOptions()}
             mapping={mapping}
@@ -191,7 +184,7 @@ function IntegrationExternalTeamMappings(props: Props) {
       type="team"
       integration={integration}
       mappings={mappings()}
-      dataEndpoint={dataEndpoint()}
+      dataEndpoint={ORGANIZATION_TEAMS_ENDPOINT}
       getBaseFormEndpoint={mapping => getBaseFormEndpoint(mapping)}
       defaultOptions={defaultTeamOptions()}
       sentryNamesMapper={sentryNamesMapper}
