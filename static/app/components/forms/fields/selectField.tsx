@@ -3,13 +3,13 @@ import {Component} from 'react';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {ControlProps} from 'sentry/components/core/select';
 import SelectControl from 'sentry/components/core/select';
+import SelectOption from 'sentry/components/core/select/option';
 import type {
   OptionsType,
   OptionTypeBase,
   ValueType,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectOption from 'sentry/components/forms/controls/selectOption';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import {Tooltip} from 'sentry/components/tooltip';
