@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
+import Duration from 'sentry/components/duration';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
@@ -22,10 +23,12 @@ import {ReleaseProjectColumn} from 'sentry/views/releases/list/releaseCard';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
+  adoption: number;
   adoption_stage: string;
   crash_free_sessions: number;
   date: string;
   error_count: number;
+  lifespan: number | undefined;
   project: ReleaseProject;
   project_id: number;
   release: string;
@@ -46,10 +49,12 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'release', name: 'version'},
   {key: 'project', name: 'project'},
   {key: 'date', name: 'date created'},
+  {key: 'adoption', name: 'adoption'},
   {key: 'adoption_stage', name: 'stage'},
   {key: 'crash_free_sessions', name: 'crash free rate'},
   {key: 'sessions', name: 'total sessions'},
   {key: 'error_count', name: 'new issues'},
+  {key: 'lifespan', name: 'lifespan'},
 ];
 
 export default function ReleaseHealthTable({
@@ -67,7 +72,6 @@ export default function ReleaseHealthTable({
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
     location,
-    paramName: 'width_health_table',
   });
 
   const organization = useOrganization();
@@ -88,7 +92,22 @@ export default function ReleaseHealthTable({
     (column: Column, dataRow: ReleaseHealthItem) => {
       const value = dataRow[column.key];
 
-      if (column.key === 'crash_free_sessions') {
+      if (column.key === 'lifespan') {
+        return value !== undefined ? (
+          <CellWrapper>
+            <Duration
+              precision="hours"
+              abbreviation
+              seconds={(value as number) * (1 / 1000)}
+            />
+          </CellWrapper>
+        ) : (
+          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
+          '--'
+        );
+      }
+
+      if (column.key === 'adoption' || column.key === 'crash_free_sessions') {
         return `${(value as number).toFixed(2)}%`;
       }
 
