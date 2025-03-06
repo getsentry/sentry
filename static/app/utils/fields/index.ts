@@ -1171,6 +1171,7 @@ type TraceFields =
   | SpanIndexedField.SPAN_GROUP
   | SpanIndexedField.SPAN_MODULE
   | SpanIndexedField.SPAN_OP
+  | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
   | SpanIndexedField.SPAN_SELF_TIME
   | SpanIndexedField.SPAN_STATUS
@@ -1186,7 +1187,14 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_DESCRIPTION]: {
-    desc: t('Parameterized and scrubbed description of the span'),
+    desc: t('Description of the span’s operation'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.NORMALIZED_DESCRIPTION]: {
+    desc: t(
+      'Parameterized and normalized description of the span, commonly used for grouping within insights'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
