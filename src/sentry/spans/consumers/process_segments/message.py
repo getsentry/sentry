@@ -136,12 +136,19 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
         job["performance_problems"] = updated_problems
 
 
-def transform_spans_to_event_dict(spans: list[SegmentSpan]) -> dict[str, Any] | None:
-    event_spans: list[dict[str, Any]] = []
+def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
+    # Iterate backwards since we usually expect the segment span to be at the end.
+    for span in reversed(spans):
+        if span.get("is_segment"):
+            return span
 
-    segment_span = next((span for span in spans if span.get("is_segment")), None)
-    if not segment_span:
-        return None
+    return None
+
+
+def transform_spans_to_event_dict(
+    segment_span: SegmentSpan, spans: list[SegmentSpan]
+) -> dict[str, Any] | None:
+    event_spans: list[dict[str, Any]] = []
 
     sentry_tags = segment_span.get("sentry_tags", {})
 
@@ -201,11 +208,12 @@ def prepare_event_for_occurrence_consumer(event):
 
 
 def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
-    event = transform_spans_to_event_dict(spans)
-    if event is None:
+    segment_span = _find_segment_span(spans)
+    if segment_span is None:
         # TODO: Handle the case of segments without a defined segment span.
-        return []
+        return spans
 
+    event = transform_spans_to_event_dict(segment_span, spans)
     event_light = prepare_event_for_occurrence_consumer(event)
 
     project_id = event["project_id"]
