@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {StylesConfig} from 'sentry/components/core/select';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
@@ -113,7 +113,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     <RowWrapper>
       <div>
         <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
-        <SelectControl
+        <Select
           id="email-addresses"
           aria-label={t('Email Addresses')}
           placeholder={t('Enter one or more emails')}

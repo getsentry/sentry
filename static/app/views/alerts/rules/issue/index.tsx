@@ -22,7 +22,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -1043,7 +1043,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         disabled={disabled}
       >
         {({onChange, onBlur}: any) => (
-          <SelectControl
+          <Select
             clearable={false}
             disabled={disabled}
             value={environment}
@@ -1082,7 +1082,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             _selectedProject;
 
           return (
-            <SelectControl
+            <Select
               disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
@@ -1149,7 +1149,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         flexibleControlStateSize
       >
         {({onChange, onBlur}: any) => (
-          <SelectControl
+          <Select
             clearable={false}
             disabled={disabled}
             value={`${frequency}`}

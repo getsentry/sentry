@@ -1,4 +1,4 @@
-import SelectAsyncControl from 'sentry/components/core/select/async';
+import {SelectAsync} from 'sentry/components/core/select/async';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 
 class SelectAsyncField extends SelectField {
@@ -26,7 +26,7 @@ class SelectAsyncField extends SelectField {
     // Callers should be able to override all props except onChange
     // FormField calls props.onChange via `setValue`
     return (
-      <SelectAsyncControl
+      <SelectAsync
         id={this.getId()}
         onResults={this.onResults}
         onQuery={this.onQuery}

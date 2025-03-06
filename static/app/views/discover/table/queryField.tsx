@@ -6,7 +6,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
 import type {ControlProps} from 'sentry/components/core/select';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -448,7 +448,7 @@ class QueryField extends Component<Props> {
         });
 
         return (
-          <SelectControl
+          <Select
             key="select"
             name="parameter"
             menuPlacement="auto"
@@ -508,7 +508,7 @@ class QueryField extends Component<Props> {
       }
       if (descriptor.kind === 'dropdown') {
         return (
-          <SelectControl
+          <Select
             key="dropdown"
             name="dropdown"
             menuPlacement="auto"
@@ -689,7 +689,7 @@ class QueryField extends Component<Props> {
         data-test-id="queryField"
       >
         {!hidePrimarySelector && (
-          <SelectControl
+          <Select
             {...selectProps}
             styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
             components={this.FieldSelectComponents}

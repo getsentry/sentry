@@ -4,7 +4,7 @@ import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {StylesConfig} from 'sentry/components/core/select';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -505,7 +505,7 @@ function ConfigUrlContainer(
   );
 }
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   margin-top: ${space(1)};
 `;
 

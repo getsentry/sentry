@@ -12,7 +12,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
@@ -376,7 +376,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             formEventTypes
           );
           return (
-            <SelectControl
+            <Select
               value={mappedValue}
               inFieldLabel={t('Events: ')}
               onChange={({value}: any) => {
@@ -441,7 +441,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             _selectedProject;
 
           return (
-            <SelectControl
+            <Select
               isDisabled={disabled || disableProjectSelector}
               value={selectedProject.id}
               options={projectOptions}
@@ -510,7 +510,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             alertType={alertType}
             required
           />
-          <SelectControl
+          <Select
             name="timeWindow"
             styles={this.selectControlStyles}
             options={this.timeWindowOptions}

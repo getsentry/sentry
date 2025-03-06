@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import type {ControlProps} from 'sentry/components/core/select';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -217,7 +217,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
             {mappedKeys.map((fieldKey, i) => (
               <Column key={fieldKey}>
                 <Control>
-                  <SelectControl
+                  <Select
                     {...(perItemMapping
                       ? mappedSelectors[itemKey]![fieldKey]
                       : mappedSelectors[fieldKey])}

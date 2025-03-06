@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -337,7 +337,7 @@ const StaffTag = styled(Tag)`
   padding: ${space(1)};
 `;
 
-const EventSelector = styled(SelectControl)`
+const EventSelector = styled(Select)`
   width: 250px;
 `;
 

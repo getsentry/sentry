@@ -11,7 +11,7 @@ import type {
   GeneralSelectValue,
   StylesConfig,
 } from 'sentry/components/core/select';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -392,7 +392,7 @@ function TeamSelector(props: Props) {
   }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <SelectControl
+    <Select
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}

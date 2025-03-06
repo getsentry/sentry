@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconGraph, IconNumber, IconTable} from 'sentry/icons';
@@ -57,7 +57,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
         inline={false}
         flexibleControlStateSize
       >
-        <SelectControl
+        <Select
           name="displayType"
           value={state.displayType}
           options={Object.keys(displayTypes).map(value => ({

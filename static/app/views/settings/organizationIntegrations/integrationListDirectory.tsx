@@ -6,7 +6,7 @@ import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
-import SelectControl from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -518,7 +518,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             title={title}
             body={
               <ActionContainer>
-                <SelectControl
+                <Select
                   name="select-categories"
                   onChange={this.onCategorySelect}
                   value={selectedCategory}

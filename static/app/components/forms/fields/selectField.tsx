@@ -2,8 +2,8 @@ import {Component} from 'react';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {ControlProps} from 'sentry/components/core/select';
-import SelectControl from 'sentry/components/core/select';
-import SelectOption from 'sentry/components/core/select/option';
+import {Select} from 'sentry/components/core/select';
+import {SelectOption} from 'sentry/components/core/select/option';
 import type {
   OptionsType,
   OptionTypeBase,
@@ -129,7 +129,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
 
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
-              <SelectControl
+              <Select
                 {...props}
                 value={showTempNoneOption ? undefined : props.value}
                 options={
