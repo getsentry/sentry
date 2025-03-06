@@ -380,6 +380,10 @@ export function importAndroidContinuousProfileChunk(
   const profiles: ContinuousProfile[] = [];
   let activeProfileIndex = input.activeProfileIndex ?? 0;
 
+  if (options.activeThreadId === undefined) {
+    options.activeThreadId = String(input.profiles[activeProfileIndex]?.threadID);
+  }
+
   for (const key in samplesByThread) {
     samplesByThread[key]!.sort((a, b) => a.timestamp - b.timestamp);
 
