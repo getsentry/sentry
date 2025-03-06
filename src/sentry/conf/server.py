@@ -1054,11 +1054,11 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
     },
-    "fetch-release-registry-data": {
+    "fetch-release-registry-data-control": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
+        "options": {"expires": 3600, "queue": "release_registry.control"},
     },
 }
 
