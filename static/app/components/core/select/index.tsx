@@ -30,6 +30,8 @@ import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
 
+import {SelectOption} from './option';
+
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
@@ -449,7 +451,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
     Menu,
-    Option,
+    Option: SelectOption,
     ...components,
   };
 
