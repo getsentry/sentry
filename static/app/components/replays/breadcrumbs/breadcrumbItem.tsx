@@ -358,7 +358,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
-    .icon-wrapper {
+    .timeline-icon-wrapper {
       background: ${p => p.theme.translucentSurface200};
     }
   }
