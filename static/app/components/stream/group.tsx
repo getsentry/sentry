@@ -838,7 +838,7 @@ const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
       display: flex;
       flex-direction: column;
       justify-content: center;
-      font-size: ${p.theme.fontSizeSmall};
+      font-size: ${p.theme.fontSizeMedium};
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
