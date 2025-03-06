@@ -42,7 +42,7 @@ class SentryAppInteractionEvent(EventLifecycleMetric):
 class SentryAppWebhookFailureReason(StrEnum):
     """Reasons why sentry app webhooks can fail"""
 
-    # Preperation fail
+    # Preparation fail
     MISSING_SENTRY_APP = "missing_sentry_app"
     MISSING_INSTALLATION = "missing_installation"
     MISSING_EVENT = "missing_event"
