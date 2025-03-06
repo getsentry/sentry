@@ -225,9 +225,11 @@ def migrate_metric_action(
         type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
-        target_display=alert_rule_trigger_action.target_display,
-        target_identifier=target_identifier,
-        target_type=alert_rule_trigger_action.target_type,
+        config={
+            "target_display": alert_rule_trigger_action.target_display,
+            "target_identifier": target_identifier,
+            "target_type": alert_rule_trigger_action.target_type,
+        },
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=action_filter.condition_group.id,
