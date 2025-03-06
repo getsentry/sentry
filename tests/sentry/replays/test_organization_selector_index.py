@@ -174,9 +174,9 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
 
     def test_get_click_filter_environment(self):
         """Test that clicks can be filtered by environment."""
-        prod_env = self.create_environment(name="prod")
-        dev_env = self.create_environment(name="dev")
-        staging_env = self.create_environment(name="staging")
+        prod_env = self.create_environment(name="prod", project=self.project)
+        dev_env = self.create_environment(name="dev", project=self.project)
+        staging_env = self.create_environment(name="staging", project=self.project)
 
         timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
         replay_id_prod = uuid.uuid4().hex
