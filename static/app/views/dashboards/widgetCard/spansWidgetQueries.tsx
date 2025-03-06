@@ -61,41 +61,49 @@ function SpansWidgetQueries({
 
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
+  const [isSampled, setIsSampled] = useState<boolean | null>(null);
 
   const afterFetchSeriesData = (result: SeriesResult) => {
     let seriesConfidence;
     let seriesSampleCount;
+    let seriesIsSampled;
 
     if (isEventsStats(result)) {
       seriesConfidence = determineSeriesConfidence(result);
-      const {sampleCount: calculatedSampleCount} = determineSeriesSampleCountAndIsSampled(
-        [
-          convertEventsStatsToTimeSeriesData(
-            widget.queries[0]?.aggregates[0] ?? '',
-            result
-          )[1],
-        ],
-        false
-      );
+      const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
+        determineSeriesSampleCountAndIsSampled(
+          [
+            convertEventsStatsToTimeSeriesData(
+              widget.queries[0]?.aggregates[0] ?? '',
+              result
+            )[1],
+          ],
+          false
+        );
       seriesSampleCount = calculatedSampleCount;
+      seriesIsSampled = calculatedIsSampled;
     } else {
       const dedupedYAxes = dedupeArray(widget.queries[0]?.aggregates ?? []);
       const seriesMap = transformToSeriesMap(result, dedupedYAxes);
       const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
-      const {sampleCount: calculatedSampleCount} = determineSeriesSampleCountAndIsSampled(
-        series,
-        Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
-          .length > 0
-      );
+      const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
+        determineSeriesSampleCountAndIsSampled(
+          series,
+          Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
+            .length > 0
+        );
       seriesSampleCount = calculatedSampleCount;
       seriesConfidence = combineConfidenceForSeries(series);
+      seriesIsSampled = calculatedIsSampled;
     }
 
     setConfidence(seriesConfidence);
     setSampleCount(seriesSampleCount);
+    setIsSampled(seriesIsSampled);
     onDataFetched?.({
       confidence: seriesConfidence,
       sampleCount: seriesSampleCount,
+      isSampled: seriesIsSampled,
     });
   };
 
@@ -118,6 +126,7 @@ function SpansWidgetQueries({
             ...props,
             confidence,
             sampleCount,
+            isSampled,
           })
         }
       </GenericWidgetQueries>

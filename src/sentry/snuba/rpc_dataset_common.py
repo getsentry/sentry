@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFormula, ResolvedFunction
+from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
@@ -23,10 +23,10 @@ from sentry.utils.snuba import process_value
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def categorize_column(column: ResolvedColumn | ResolvedFunction | ResolvedFormula) -> Column:
+def categorize_column(column: ResolvedColumn | ResolvedAggregate | ResolvedFormula) -> Column:
     if isinstance(column, ResolvedFormula):
         return Column(formula=column.proto_definition, label=column.public_alias)
-    if isinstance(column, ResolvedFunction):
+    if isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
     else:
         return Column(key=column.proto_definition, label=column.public_alias)

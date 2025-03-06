@@ -14,6 +14,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
@@ -30,7 +31,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Switch from 'sentry/components/switchButton';
 import filterGroups, {
   customFilterFields,
   getOptionsData,
@@ -314,13 +314,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                   </div>
                   <Switch
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    isActive={this.state.subfilters.has(key)}
-                    isDisabled={disabled}
+                    checked={this.state.subfilters.has(key)}
+                    disabled={disabled}
                     css={css`
                       flex-shrink: 0;
                       margin-left: 6;
                     `}
-                    toggle={this.handleToggleSubfilters.bind(this, key)}
+                    onChange={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />
                 </FilterGridItem>

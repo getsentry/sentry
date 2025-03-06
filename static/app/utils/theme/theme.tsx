@@ -915,8 +915,9 @@ const dataCategory: Record<
 };
 
 /**
- * Default colors for data usage outcomes
- * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
+ * Default colors for data usage outcomes.
+ * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
+ * which is why they don't have their own defined colors.
  */
 type OutcomeColors = Record<
   Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,

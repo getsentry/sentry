@@ -1,8 +1,11 @@
 import logging
 import uuid
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Sequence, Set
 from copy import deepcopy
-from typing import Any
+from typing import Any, cast
+
+from django.core.exceptions import ValidationError
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
 from sentry.event_manager import (
@@ -10,16 +13,17 @@ from sentry.event_manager import (
     ProjectsMapping,
     _calculate_span_grouping,
     _detect_performance_problems,
-    _get_or_create_environment_many,
-    _get_or_create_release_associated_models,
-    _get_or_create_release_many,
     _pull_out_data,
     _record_transaction_info,
 )
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 
@@ -59,7 +63,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
             )
 
 
-def build_tree(spans):
+def build_tree(spans) -> tuple[dict[str, Any], str | None]:
     span_tree = {}
     root_span_id = None
 
@@ -101,9 +105,9 @@ def dfs(visited, flattened_spans, tree, span_id):
                 stack.append(child["span_id"])
 
 
-def flatten_tree(tree, root_span_id):
+def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[SegmentSpan]:
     visited: Set[str] = set()
-    flattened_spans: list[Mapping[str, Any]] = []
+    flattened_spans: list[SegmentSpan] = []
 
     if root_span_id:
         dfs(visited, flattened_spans, tree, root_span_id)
@@ -134,48 +138,105 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
         job["performance_problems"] = updated_problems
 
 
-def transform_spans_to_event_dict(spans):
-    processed_spans: list[dict[str, Any]] = []
+def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
+    """
+    Finds the segment in the span in the list that has ``is_segment`` set to
+    ``True``.
 
-    span = spans[0]
-    sentry_tags = span.get("sentry_tags", {})
+    At most one span in the list can be marked as segment span. If more than one
+    span is marked, the function does not have defined behavior.
+
+    If there is no segment span, the function returns ``None``.
+    """
+
+    # Iterate backwards since we usually expect the segment span to be at the end.
+    for span in reversed(spans):
+        if span.get("is_segment"):
+            return span
+
+    return None
+
+
+def _create_models(segment: SegmentSpan, project: Project) -> None:
+    """
+    Creates the Environment and Release models, along with the necessary
+    relationships between them and the Project model.
+    """
+
+    # TODO: Read this from original data attributes.
+    sentry_tags = segment.get("sentry_tags", {})
+    environment_name = sentry_tags.get("environment")
+    release_name = sentry_tags.get("release")
+    dist_name = sentry_tags.get("dist")
+    date = to_datetime(segment["end_timestamp_precise"])  # type: ignore[typeddict-item]
+
+    environment = Environment.get_or_create(project=project, name=environment_name)
+
+    try:
+        release = Release.get_or_create(project=project, version=release_name, date_added=date)
+    except ValidationError:
+        logger.exception(
+            "Failed creating Release due to ValidationError",
+            extra={"project": project, "version": release_name},
+        )
+        return
+
+    if dist_name:
+        release.add_dist(dist_name)
+
+    ReleaseEnvironment.get_or_create(
+        project=project, release=release, environment=environment, datetime=date
+    )
+
+    ReleaseProjectEnvironment.get_or_create(
+        project=project, release=release, environment=environment, datetime=date
+    )
+
+
+def transform_spans_to_event_dict(
+    segment_span: SegmentSpan, spans: list[SegmentSpan]
+) -> dict[str, Any]:
+    event_spans: list[dict[str, Any]] = []
+
+    sentry_tags = segment_span.get("sentry_tags", {})
 
     event: dict[str, Any] = {"type": "transaction", "contexts": {}, "level": "info"}
-    event["event_id"] = span.get("event_id")
-    event["project_id"] = span["project_id"]
+    event["event_id"] = segment_span.get("event_id")
+    event["project_id"] = segment_span["project_id"]
     event["transaction"] = sentry_tags.get("transaction")
     event["release"] = sentry_tags.get("release")
+    event["dist"] = sentry_tags.get("dist")
     event["environment"] = sentry_tags.get("environment")
     event["platform"] = sentry_tags.get("platform")
     event["tags"] = [["environment", sentry_tags.get("environment")]]
 
     event["contexts"]["trace"] = {
-        "trace_id": span["trace_id"],
+        "trace_id": segment_span["trace_id"],
         "type": "trace",
         "op": sentry_tags.get("transaction.op"),
-        "span_id": span["span_id"],
+        "span_id": segment_span["span_id"],
     }
 
-    if (profile_id := span.get("profile_id")) is not None:
+    if (profile_id := segment_span.get("profile_id")) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
     for span in spans:
-        sentry_tags = span.get("sentry_tags", {})
+        event_span = cast(dict[str, Any], deepcopy(span))
 
-        if (op := sentry_tags.get("op")) is not None:
-            span["op"] = op
+        if (op := span.get("sentry_tags", {}).get("op")) is not None:
+            event_span["op"] = op
 
-        span["start_timestamp"] = span["start_timestamp_ms"] / 1000
-        span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
+        event_span["start_timestamp"] = span["start_timestamp_ms"] / 1000
+        event_span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
 
-        processed_spans.append(span)
+        event_spans.append(event_span)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    tree, root_span_id = build_tree(processed_spans)
+    tree, root_span_id = build_tree(event_spans)
     flattened_spans = flatten_tree(tree, root_span_id)
     event["spans"] = flattened_spans
 
@@ -195,15 +256,45 @@ def prepare_event_for_occurrence_consumer(event):
     return event_light
 
 
-def process_segment(spans: list[dict[str, Any]]):
-    event = transform_spans_to_event_dict(spans)
+def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
+    segment_span = _find_segment_span(spans)
+    if segment_span is None:
+        # TODO: Handle segments without a defined segment span once all
+        # functions are refactored to a span interface.
+        return spans
 
-    event_light = prepare_event_for_occurrence_consumer(event)
-
-    project_id = event["project_id"]
     with metrics.timer("tasks.spans.project.get_from_cache"):
-        project = Project.objects.get_from_cache(id=project_id)
+        project = Project.objects.get_from_cache(id=segment_span["project_id"])
 
+    # The original transaction pipeline ran the following operations in this
+    # exact order, where only operations marked with X are relevant to the spans
+    # consumer:
+    #
+    #  - [ ] _pull_out_data
+    #  - [X] _get_or_create_release_many               ->  _create_models
+    #  - [ ] _get_event_user_many
+    #  - [ ] _derive_plugin_tags_many
+    #  - [ ] _derive_interface_tags_many
+    #  - [X] _calculate_span_grouping
+    #  - [ ] _materialize_metadata_many
+    #  - [X] _get_or_create_environment_many           ->  _create_models
+    #  - [X] _get_or_create_release_associated_models  ->  _create_models
+    #  - [X] _tsdb_record_all_metrics
+    #  - [ ] _materialize_event_metrics
+    #  - [ ] _nodestore_save_many
+    #  - [ ] _eventstream_insert_many
+    #  - [ ] _track_outcome_accepted_many
+    #  - [X]  _detect_performance_problems
+    #  - [X]  _send_occurrence_to_platform
+    #  - [X] _record_transaction_info
+
+    _create_models(segment_span, project)
+
+    # XXX: Below are old-style functions imported from EventManager that rely on
+    # the Event schema:
+
+    event = transform_spans_to_event_dict(segment_span, spans)
+    event_light = prepare_event_for_occurrence_consumer(event)
     projects = {project.id: project}
 
     jobs: Sequence[Job] = [
@@ -216,24 +307,8 @@ def process_segment(spans: list[dict[str, Any]]):
         }
     ]
 
-    # XXX: Apply the same pipeline as in `save_transaction_events` with
-    # redundant operations removed. The disabled elements will be removed once
-    # the refactor is complete:
-
     _pull_out_data(jobs, projects)
-    _get_or_create_release_many(jobs, projects)
-    # _get_event_user_many(jobs, projects)                                 # N/A: transaction data
-    # _derive_plugin_tags_many(jobs, projects)                             # N/A: transaction data
-    # _derive_interface_tags_many(jobs)                                    # N/A: transaction data
     _calculate_span_grouping(jobs, projects)
-    # _materialize_metadata_many(jobs)                                     # N/A: writes group metadata
-    _get_or_create_environment_many(jobs, projects)
-    _get_or_create_release_associated_models(jobs, projects)
-    # _tsdb_record_all_metrics(jobs)                                       # TODO: Refactor and enable
-    # _materialize_event_metrics(jobs)                                     # N/A: transaction data
-    # _nodestore_save_many(jobs=jobs, app_feature="transactions")          # N/A: nodestore is deprecated
-    # _eventstream_insert_many(jobs)                                       # N/A: produced outside
-    # _track_outcome_accepted_many(jobs)                                   # N/A: created by outcomes consumer
 
     if options.get("standalone-spans.detect-performance-problems.enable"):
         _detect_performance_problems(jobs, projects, is_standalone_spans=True)
@@ -243,4 +318,4 @@ def process_segment(spans: list[dict[str, Any]]):
 
     _record_transaction_info(jobs, projects)
 
-    return jobs
+    return spans

@@ -50,26 +50,22 @@ function makeChonkBadgeTheme(
     case 'alpha':
       return {
         color: theme.colors.static.black,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #EE8019 0%, #FAA80A 25%, #FBB20B 50%, #FAA80A 75%, #EE8019 100%);`,
+        background: theme.colors.static.pink400,
       };
     case 'beta':
       return {
-        color: theme.colors.static.white,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #FC8B61 0%, #FC5F64 50%, #F32474 100%);`,
+        color: theme.colors.static.black,
+        background: theme.colors.static.yellow400,
       };
     case 'new':
       return {
-        color: theme.colors.static.white,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #7B51F8 0%, #F644AB 100%);`,
+        color: theme.colors.static.black,
+        background: theme.colors.static.green400,
       };
     case 'experimental':
       return {
-        color: theme.colors.static.white,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #4E2A9A 0%, #7C30A9 25%, #A737B4 50%, #F2306F 75%, #EE8019 100%);`,
+        color: theme.colors.dynamic.grayTransparent400,
+        background: theme.colors.dynamic.surface300,
       };
     // End feature badge variants
     case 'default':
@@ -77,35 +73,33 @@ function makeChonkBadgeTheme(
         background: theme.colors.dynamic.surface300,
         color: theme.colors.dynamic.grayTransparent400,
       };
+
+    // Highlight maps to info badge for now, but the highlight variant should be removed
+    case 'highlight':
     case 'info':
       return {
-        background: theme.colors.static.blue400,
-        color: theme.colors.static.white,
+        background: theme.colors.dynamic.surface300,
+        color: theme.colors.dynamic.blue400,
       };
     case 'success':
       return {
-        background: theme.colors.static.green400,
-        color: theme.colors.static.black,
+        background: theme.colors.dynamic.surface300,
+        color: theme.colors.dynamic.green400,
       };
     case 'warning':
       return {
-        background: theme.colors.static.yellow400,
-        color: theme.colors.static.black,
+        background: theme.colors.dynamic.surface300,
+        color: theme.colors.dynamic.yellow400,
       };
     case 'danger':
       return {
-        background: theme.colors.static.red400,
-        color: theme.colors.static.white,
+        background: theme.colors.dynamic.surface300,
+        color: theme.colors.dynamic.red400,
       };
     case 'promotion':
       return {
-        background: theme.colors.static.pink400,
-        color: theme.colors.static.black,
-      };
-    case 'highlight':
-      return {
-        background: theme.colors.dynamic.blue400,
-        color: theme.colors.static.white,
+        background: theme.colors.dynamic.surface300,
+        color: theme.colors.dynamic.pink400,
       };
     default:
       unreachable(p.type);

@@ -86,7 +86,7 @@ UPTIME_CHECK_VIRTUAL_CONTEXTS = {
 
 
 UPTIME_CHECK_DEFINITIONS = ColumnDefinitions(
-    functions={},
+    aggregates={},
     formulas={},
     columns=UPTIME_CHECK_ATTRIBUTE_DEFINITIONS,
     contexts=UPTIME_CHECK_VIRTUAL_CONTEXTS,

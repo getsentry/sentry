@@ -15,6 +15,7 @@ from sentry.grouping.ingest.seer import (
     maybe_check_seer_for_matching_grouphash,
     should_call_seer_for_grouping,
 )
+from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -65,6 +66,7 @@ class ShouldCallSeerTest(TestCase):
         self.stacktrace_string = get_stacktrace_string(
             get_grouping_info_from_variants(self.variants)
         )
+        self.event_grouphash = GroupHash(project_id=self.project.id, hash="908415")
 
     def test_obeys_feature_enablement_check(self) -> None:
         for backfill_completed_option, expected_result in [(None, False), (11211231, True)]:
@@ -72,7 +74,8 @@ class ShouldCallSeerTest(TestCase):
                 "sentry:similarity_backfill_completed", backfill_completed_option
             )
             assert (
-                should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                is expected_result
             ), f"Case {backfill_completed_option} failed."
 
     def test_obeys_content_filter(self) -> None:
@@ -83,21 +86,30 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     def test_obeys_global_seer_killswitch(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     def test_obeys_similarity_service_killswitch(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     def test_obeys_project_specific_killswitch(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -106,7 +118,10 @@ class ShouldCallSeerTest(TestCase):
             with override_options(
                 {"seer.similarity.grouping_killswitch_projects": blocked_projects}
             ):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     def test_obeys_global_ratelimit(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -118,7 +133,10 @@ class ShouldCallSeerTest(TestCase):
                     is_enabled if key == "seer:similarity:global-limit" else False
                 ),
             ):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     def test_obeys_project_ratelimit(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -132,7 +150,10 @@ class ShouldCallSeerTest(TestCase):
                     else False
                 ),
             ):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     def test_obeys_circuit_breaker(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -142,7 +163,10 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.CircuitBreaker.should_allow_request",
                 return_value=request_allowed,
             ):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     @with_feature({"organizations:grouping-hybrid-fingerprint-seer-usage": True})
     def test_obeys_custom_fingerprint_check_flag_on(self) -> None:
@@ -180,9 +204,11 @@ class ShouldCallSeerTest(TestCase):
             (custom_fingerprint_event, False),
             (built_in_fingerprint_event, False),
         ]:
-
+            grouphash = GroupHash(
+                project_id=self.project.id, hash=hash_from_values(event.data["fingerprint"])
+            )
             assert (
-                should_call_seer_for_grouping(event, event.get_grouping_variants())
+                should_call_seer_for_grouping(event, event.get_grouping_variants(), grouphash)
                 is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
@@ -229,9 +255,11 @@ class ShouldCallSeerTest(TestCase):
             (custom_fingerprint_event, False),
             (built_in_fingerprint_event, False),
         ]:
-
+            grouphash = GroupHash(
+                project_id=self.project.id, hash=hash_from_values(event.data["fingerprint"])
+            )
             assert (
-                should_call_seer_for_grouping(event, event.get_grouping_variants())
+                should_call_seer_for_grouping(event, event.get_grouping_variants(), grouphash)
                 is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
@@ -243,7 +271,10 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer._has_too_many_contributing_frames",
                 return_value=frame_check_result,
             ):
-                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                )
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
     def test_obeys_empty_stacktrace_string_check(
@@ -261,18 +292,50 @@ class ShouldCallSeerTest(TestCase):
             },
         )
         empty_frame_variants = empty_frame_event.get_grouping_variants()
+        empty_frame_grouphash = GroupHash(project_id=self.project.id, hash="415908")
         empty_frame_stacktrace_string = get_stacktrace_string(
             get_grouping_info_from_variants(empty_frame_variants)
         )
 
         assert self.stacktrace_string != ""
-        assert should_call_seer_for_grouping(self.event, self.variants) is True
+        assert (
+            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+        )
         mock_record_did_call_seer.assert_not_called()
 
         assert empty_frame_stacktrace_string == ""
-        assert should_call_seer_for_grouping(empty_frame_event, empty_frame_variants) is False
+        assert (
+            should_call_seer_for_grouping(
+                empty_frame_event, empty_frame_variants, empty_frame_grouphash
+            )
+            is False
+        )
         mock_record_did_call_seer.assert_any_call(
             empty_frame_event, call_made=False, blocker="empty-stacktrace-string"
+        )
+
+    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    def test_obeys_race_condition_skip(self, mock_record_did_call_seer: MagicMock) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        assert self.event.should_skip_seer is False
+        assert (
+            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+        )
+
+        self.event.should_skip_seer = True
+
+        # TODO: Replace the assert below with the commented-out assertions once we turn the skip on
+        # for real.
+        #
+        # assert (
+        #     should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
+        # )
+        # mock_record_did_call_seer.assert_any_call(
+        #     self.event, call_made=False, blocker="race_condition"
+        # )
+        assert (
+            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
         )
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
@@ -290,7 +353,6 @@ class ShouldCallSeerTest(TestCase):
 
 
 @apply_feature_flag_on_cls("organizations:grouping-hybrid-fingerprint-seer-usage")
-@apply_feature_flag_on_cls("organizations:grouphash-metadata-creation")
 class GetSeerSimilarIssuesTest(TestCase):
     def create_new_event(
         self,

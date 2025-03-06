@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -305,14 +305,24 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         return (args, kwargs)
 
 
-class FilterParams(TypedDict, total=False):
+class FilterParams(TypedDict):
     start: datetime | None
     end: datetime | None
     project_id: list[int]
     project_objects: list[Project]
     organization_id: int
-    environment: list[str] | None
-    environment_objects: list[Environment] | None
+    environment: NotRequired[list[str]]
+    environment_objects: NotRequired[list[Environment]]
+
+
+class FilterParamsDateNotNull(TypedDict):
+    start: datetime
+    end: datetime
+    project_id: list[int]
+    project_objects: list[Project]
+    organization_id: int
+    environment: NotRequired[list[str]]
+    environment_objects: NotRequired[list[Environment]]
 
 
 def _validate_fetched_projects(
@@ -461,14 +471,35 @@ class OrganizationEndpoint(Endpoint):
     ) -> list[Environment]:
         return get_environments(request, organization)
 
+    @overload
     def get_filter_params(
         self,
         request: Request,
         organization: Organization | RpcOrganization,
-        date_filter_optional: bool = False,
         project_ids: list[int] | set[int] | None = None,
         project_slugs: list[str] | set[str] | None = None,
-    ) -> FilterParams:
+    ) -> FilterParamsDateNotNull: ...
+
+    @overload
+    def get_filter_params(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: list[int] | set[int] | None = None,
+        project_slugs: list[str] | set[str] | None = None,
+        *,
+        date_filter_optional: Literal[True],
+    ) -> FilterParams: ...
+
+    def get_filter_params(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: list[int] | set[int] | None = None,
+        project_slugs: list[str] | set[str] | None = None,
+        *,
+        date_filter_optional: bool = False,
+    ) -> FilterParams | FilterParamsDateNotNull:
         """
         Extracts common filter parameters from the request and returns them
         in a standard format.
