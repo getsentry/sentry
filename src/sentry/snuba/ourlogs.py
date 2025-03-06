@@ -2,7 +2,7 @@ import logging
 
 from snuba_sdk import Column, Condition
 
-from sentry.search.eap.ourlog_columns import OURLOG_DEFINITIONS
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
