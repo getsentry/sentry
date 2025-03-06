@@ -264,6 +264,10 @@ function RequestDataCard({
       const valueMeta = meta ? meta[key] : undefined;
       contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
     });
+  } else {
+    contentItems.push({
+      item: {key: 'data', subject: 'data', value: data},
+    });
   }
 
   return (
