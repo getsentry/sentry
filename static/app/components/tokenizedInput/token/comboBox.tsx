@@ -18,7 +18,7 @@ import type {
   SelectOptionWithKey,
 } from 'sentry/components/compactSelect/types';
 import {itemIsSectionWithKey} from 'sentry/components/compactSelect/utils';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {GrowingInput} from 'sentry/components/core/input/growingInput';
 import {Overlay} from 'sentry/components/overlay';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';

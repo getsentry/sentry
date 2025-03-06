@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GrowingInput} from 'sentry/components/growingInput';
+import {GrowingInput} from 'sentry/components/core/input/growingInput';
 
 describe('GrowingInput', () => {
   it('can be controlled', () => {

@@ -27,7 +27,7 @@ import {
   getDisabledOptions,
   getHiddenOptions,
 } from 'sentry/components/compactSelect/utils';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {GrowingInput} from 'sentry/components/core/input/growingInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
