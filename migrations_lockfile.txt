@@ -23,4 +23,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0029_uptime_subscription_index_domain_cols
 
-workflow_engine: 0033_workflow_name_256_char
+workflow_engine: 0034_migrate_issue_alerts

@@ -49,7 +49,7 @@ def create_every_event_data_condition(
         type=Condition.EVERY_EVENT,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -61,7 +61,7 @@ def create_reappeared_event_data_condition(
         type=Condition.REAPPEARED_EVENT,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -73,7 +73,7 @@ def create_regression_event_data_condition(
         type=Condition.REGRESSION_EVENT,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -85,7 +85,7 @@ def create_existing_high_priority_issue_data_condition(
         type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -104,7 +104,7 @@ def create_event_attribute_data_condition(
         type=Condition.EVENT_ATTRIBUTE,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -116,7 +116,7 @@ def create_first_seen_event_data_condition(
         type=Condition.FIRST_SEEN_EVENT,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -128,7 +128,7 @@ def create_new_high_priority_issue_data_condition(
         type=Condition.NEW_HIGH_PRIORITY_ISSUE,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -141,7 +141,7 @@ def create_level_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -
         type=Condition.LEVEL,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -161,7 +161,7 @@ def create_tagged_event_data_condition(
         type=Condition.TAGGED_EVENT,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -190,7 +190,7 @@ def create_age_comparison_data_condition(
         type=Condition.AGE_COMPARISON,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -207,7 +207,7 @@ def create_assigned_to_data_condition(
         type=Condition.ASSIGNED_TO,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -223,7 +223,7 @@ def create_issue_category_data_condition(
         type=Condition.ISSUE_CATEGORY,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -239,7 +239,7 @@ def create_issue_occurrences_data_condition(
         type=Condition.ISSUE_OCCURRENCES,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -251,7 +251,7 @@ def create_latest_release_data_condition(
         type=Condition.LATEST_RELEASE,
         comparison=True,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -268,7 +268,7 @@ def create_latest_adopted_release_data_condition(
         type=Condition.LATEST_ADOPTED_RELEASE,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -296,7 +296,7 @@ def create_base_event_frequency_data_condition(
         type=type,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
 
 
@@ -381,5 +381,5 @@ def create_event_unique_user_frequency_condition_with_conditions(
         type=type,
         comparison=comparison,
         condition_result=True,
-        condition_group=dcg,
+        condition_group_id=dcg.id,
     )
