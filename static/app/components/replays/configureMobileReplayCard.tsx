@@ -13,11 +13,11 @@ function getPath(sdkName: string | null | undefined) {
   switch (sdkName) {
     case 'sentry.cocoa':
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
-    case 'sentry.cocoa.flutter':
-      return 'flutter'; // https://docs.sentry.io/platforms/flutter/session-replay/
     case 'sentry.java.android':
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/
+    case 'sentry.cocoa.flutter':
     case 'sentry.dart.flutter':
+    case 'sentry.java.android.flutter':
       return 'flutter'; // https://docs.sentry.io/platforms/flutter/session-replay/
     case 'npm:@sentry/react-native':
     case 'sentry.cocoa.react-native':
