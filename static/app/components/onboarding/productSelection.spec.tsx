@@ -9,6 +9,21 @@ import {
   ProductSelection,
 } from 'sentry/components/onboarding/productSelection';
 import ConfigStore from 'sentry/stores/configStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+
+async function waitForDefaultProductsQueryUpdate(router: InjectedRouter) {
+  // router.replace is called to apply default product selection
+  // Note: we are running an experiment and at the moment the default selection is always an empty array
+  await waitFor(() =>
+    expect(router.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          product: [],
+        }),
+      })
+    )
+  );
+}
 
 describe('Onboarding Product Selection', function () {
   const organization = OrganizationFixture({
@@ -74,7 +89,7 @@ describe('Onboarding Product Selection', function () {
     expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeEnabled();
 
-    // Uncheck sesseion replay
+    // Uncheck session replay
     await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
@@ -134,12 +149,10 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
   });
 
-  // TODO: This test does not play well with deselected products by default
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('does not render Session Replay', async function () {
-    platformProductAvailability['javascript-react'] = [
-      ProductSolution.PERFORMANCE_MONITORING,
-    ];
+  it('does not render Session Replay', async function () {
+    const platform = 'javascript-react';
+
+    platformProductAvailability[platform] = [ProductSolution.PERFORMANCE_MONITORING];
 
     const {router} = initializeOrg({
       router: {
@@ -150,7 +163,7 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+    render(<ProductSelection organization={organization} platform={platform} />, {
       router,
     });
 
@@ -158,21 +171,12 @@ describe('Onboarding Product Selection', function () {
       screen.queryByRole('checkbox', {name: 'Session Replay'})
     ).not.toBeInTheDocument();
 
-    // router.replace is called to remove session-replay from query
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            product: [ProductSolution.PERFORMANCE_MONITORING],
-          }),
-        })
-      )
-    );
+    await waitForDefaultProductsQueryUpdate(router);
   });
 
-  // TODO: This test does not play well with deselected products by default
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('render Profiling', async function () {
+  it('render Profiling', async function () {
+    const platform = 'python-django';
+
     const {router} = initializeOrg({
       router: {
         location: {
@@ -182,22 +186,13 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(<ProductSelection organization={organization} platform="python-django" />, {
+    render(<ProductSelection organization={organization} platform={platform} />, {
       router,
     });
 
     expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
 
-    // router.replace is called to add profiling from query
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-          }),
-        })
-      )
-    );
+    await waitForDefaultProductsQueryUpdate(router);
   });
 
   it('renders with non-errors features disabled for errors only self-hosted', function () {
@@ -228,37 +223,7 @@ describe('Onboarding Product Selection', function () {
     expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
   });
 
-  // TODO: This test does not play well with deselected products by default
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('selects all products per default', async function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {},
-        },
-        params: {},
-      },
-    });
-
-    render(<ProductSelection organization={organization} platform="python" />, {
-      router,
-    });
-
-    // router.replace is called to apply default product selection
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-          }),
-        })
-      )
-    );
-  });
-
-  // TODO: This test does not play well with deselected products by default
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('applies defined default product selection', async function () {
+  it('applies defined default product selection', async function () {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -272,16 +237,7 @@ describe('Onboarding Product Selection', function () {
       router,
     });
 
-    // router.replace is called to apply default product selection
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            product: [ProductSolution.PERFORMANCE_MONITORING],
-          }),
-        })
-      )
-    );
+    await waitForDefaultProductsQueryUpdate(router);
   });
 
   it('triggers onChange callback', async function () {
