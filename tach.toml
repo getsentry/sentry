@@ -1,0 +1,38 @@
+interfaces = []
+exclude = [
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/docs",
+    "**/tests",
+    "**/venv",
+]
+source_roots = [ "src",
+]
+
+[[modules ]]
+path = "social_auth"
+depends_on = ["sentry"]
+
+[[modules ]]
+path = "flagpole"
+depends_on = []
+
+[[modules ]]
+path = "bitfield"
+depends_on = []
+
+[[modules ]]
+path = "sudo"
+depends_on = []
+
+[[modules ]]
+path = "sentry"
+depends_on = ["flagpole", "social_auth", "sentry_plugins", "sudo", "bitfield", "django_picklefield"]
+
+[[modules ]]
+path = "django_picklefield"
+depends_on = []
+
+[[modules ]]
+path = "sentry_plugins"
+depends_on = ["sentry"]
