@@ -253,7 +253,6 @@ def _process_resource_change(
             if not nodedata:
                 raise SentryAppSentryError(
                     message=f"{SentryAppWebhookFailureReason.MISSING_EVENT}",
-                    webhook_context={"sender": sender, "action": action, "event_id": instance_id},
                 )
             instance = Event(
                 project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
@@ -480,8 +479,7 @@ def send_resource_change_webhook(
         installation = app_service.installation_by_id(id=installation_id)
         if not installation:
             error = SentryAppSentryError(
-                message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
-                webhook_context={"installation_id": installation_id, "event": event},
+                message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
             sentry_sdk.capture_exception(error)
             raise error
@@ -530,19 +528,14 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
     servicehook: ServiceHook
-    extras: dict[str, int | str] = {"installation_id": installation.id, "event": event}
     try:
         servicehook = ServiceHook.objects.get(
             organization_id=installation.organization_id, actor_id=installation.id
         )
     except ServiceHook.DoesNotExist:
-        raise SentryAppSentryError(
-            message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK, webhook_context=extras
-        )
+        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
     if event not in servicehook.events:
-        raise SentryAppSentryError(
-            message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK, webhook_context=extras
-        )
+        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
 
     # The service hook applies to all projects if there are no
     # ServiceHookProject records. Otherwise we want check if
