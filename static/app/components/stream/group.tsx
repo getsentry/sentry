@@ -758,9 +758,12 @@ const Wrapper = styled(PanelItem)<{
         ${CheckboxLabel} {
           ${p.theme.visuallyHidden};
         }
+      }
 
+      &:hover,
+      &:focus-within {
         ${UnreadIndicator} {
-          margin-top: ${space(1.5)};
+          ${p.theme.visuallyHidden};
         }
       }
 
@@ -1090,7 +1093,6 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
-  margin-top: ${space(4)};
   margin-left: ${space(3)};
-  position: relative;
+  margin-top: ${space(1.5)};
 `;
