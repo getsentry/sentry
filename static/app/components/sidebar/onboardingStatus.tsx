@@ -61,7 +61,7 @@ export function OnboardingStatus({
     disabled: !isActive,
   });
 
-  const {overdueTasks} = useOverdueDoneTasks({doneTasks});
+  const {overdueTasks} = useOverdueDoneTasks({allTasks, doneTasks});
 
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
