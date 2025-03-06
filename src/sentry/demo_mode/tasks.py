@@ -1,7 +1,9 @@
 from datetime import timedelta
 
+import sentry_sdk
 from django.db import router
 from django.db.models import Q
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from sentry import options
@@ -63,33 +65,36 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
 
 
 def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Organization):
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundle),
-            router.db_for_write(FileBlobOwner),
-            router.db_for_write(ProjectArtifactBundle),
-            router.db_for_write(ReleaseArtifactBundle),
-        )
-    ):
-        blobs = source_artifact_bundle.file.blobs.all()
-        for blob in blobs:
-            FileBlobOwner.objects.create(
+    try:
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundle),
+                router.db_for_write(FileBlobOwner),
+                router.db_for_write(ProjectArtifactBundle),
+                router.db_for_write(ReleaseArtifactBundle),
+            )
+        ):
+            blobs = source_artifact_bundle.file.blobs.all()
+            for blob in blobs:
+                FileBlobOwner.objects.get_or_create(
+                    organization_id=target_org.id,
+                    blob_id=blob.id,
+                )
+
+            target_artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=target_org.id,
-                blob_id=blob.id,
+                bundle_id=source_artifact_bundle.bundle_id,
+                artifact_count=source_artifact_bundle.artifact_count,
+                date_last_modified=source_artifact_bundle.date_last_modified,
+                date_uploaded=source_artifact_bundle.date_uploaded,
+                file=source_artifact_bundle.file,
+                indexing_state=source_artifact_bundle.indexing_state,
             )
 
-        target_artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=target_org.id,
-            bundle_id=source_artifact_bundle.bundle_id,
-            artifact_count=source_artifact_bundle.artifact_count,
-            date_last_modified=source_artifact_bundle.date_last_modified,
-            date_uploaded=source_artifact_bundle.date_uploaded,
-            file=source_artifact_bundle.file,
-            indexing_state=source_artifact_bundle.indexing_state,
-        )
-
-        _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
-        _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+            _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+            _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+    except IntegrityError as e:
+        sentry_sdk.capture_exception(e)
 
 
 def _sync_project_artifact_bundle(
