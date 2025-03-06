@@ -279,10 +279,37 @@ export const useOpenSolutionsDrawer = (
         ariaLabel: t('Solutions drawer'),
         shouldCloseOnInteractOutside: element => {
           const viewAllButton = buttonRef?.current;
+
+          // Check if the element is inside any autofix input element
+          const isInsideAutofixInput = () => {
+            const rethinkInputs = document.querySelectorAll(
+              '[data-autofix-input-type="rethink"]'
+            );
+            const agentCommentInputs = document.querySelectorAll(
+              '[data-autofix-input-type="agent-comment"]'
+            );
+
+            // Check if element is inside any rethink input
+            for (const input of rethinkInputs) {
+              if (input.contains(element)) {
+                return true;
+              }
+            }
+
+            // Check if element is inside any agent comment input
+            for (const input of agentCommentInputs) {
+              if (input.contains(element)) {
+                return true;
+              }
+            }
+
+            return false;
+          };
+
           if (
             viewAllButton?.contains(element) ||
             document.getElementById('sentry-feedback')?.contains(element) ||
-            document.getElementById('autofix-rethink-input')?.contains(element) ||
+            isInsideAutofixInput() ||
             document.getElementById('autofix-output-stream')?.contains(element) ||
             document.getElementById('autofix-write-access-modal')?.contains(element) ||
             element.closest('[data-overlay="true"]')
