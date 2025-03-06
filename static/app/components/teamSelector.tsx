@@ -6,13 +6,13 @@ import debounce from 'lodash/debounce';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {
   ControlProps,
   GeneralSelectValue,
   StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+} from 'sentry/components/core/select';
+import SelectControl from 'sentry/components/core/select';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';

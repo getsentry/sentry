@@ -1,4 +1,4 @@
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {

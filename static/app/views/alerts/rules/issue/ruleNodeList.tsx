@@ -2,7 +2,7 @@ import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {

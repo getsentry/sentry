@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import type {Client} from 'sentry/api';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/core/select';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';

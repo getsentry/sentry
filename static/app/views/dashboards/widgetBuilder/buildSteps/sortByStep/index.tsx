@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';

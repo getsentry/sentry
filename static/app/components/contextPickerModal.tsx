@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {StylesConfig} from 'sentry/components/core/select';
+import SelectControl from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';

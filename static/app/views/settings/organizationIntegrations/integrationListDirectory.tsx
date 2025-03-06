@@ -6,8 +6,8 @@ import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import SelectControl from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
