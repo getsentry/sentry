@@ -54,6 +54,7 @@ import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/group
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
+  ISSUE_DETAILS_TOUR_GUIDE_KEY,
   type IssueDetailsTour,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
@@ -799,6 +800,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
 
   return (
     <TourContextProvider<IssueDetailsTour>
+      tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isAvailable={location.hash === '#tour'}
       isCompleted={false}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
