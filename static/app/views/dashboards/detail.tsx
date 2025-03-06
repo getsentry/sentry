@@ -160,7 +160,9 @@ export function handleUpdateDashboardSplit({
   // because the backend has evaluated the query and stored that value
   const updatedDashboard = cloneDashboard(dashboard);
   const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget => widget.id === widgetId
+    widget =>
+      (defined(widget.id) && widget.id === widgetId) ||
+      (defined(widget.tempId) && widget.tempId === widgetId)
   );
 
   if (widgetIndex >= 0) {
@@ -352,7 +354,9 @@ class DashboardDetail extends Component<Props, State> {
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
-              w => w.id === widget.id || w.tempId === widget.tempId
+              w =>
+                (defined(widget.id) && w.id === widget.id) ||
+                (defined(widget.tempId) && w.tempId === widget.tempId)
             );
             if (widgetIndex === -1) {
               Sentry.setTag('edit_source', 'modal');
@@ -771,7 +775,9 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId} = params;
 
     const widgetIndex = currentDashboard.widgets.findIndex(
-      w => w.id === widget.id || w.tempId === widget.tempId
+      w =>
+        (defined(widget.id) && w.id === widget.id) ||
+        (defined(widget.tempId) && w.tempId === widget.tempId)
     );
     if (widgetIndex === -1) {
       Sentry.setTag('edit_source', 'context-menu');
