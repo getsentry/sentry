@@ -76,9 +76,18 @@ def schedule_organizations(
 
     batch_id = uuid.uuid4()
 
+    redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+        "weekly_reports_org_id_min"
+    )
+    minimum_organization_id = int(redis_cluster.get(f"weekly_reports_org_id_min-{timestamp}") or 1)
+
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+
     for organization in RangeQuerySetWrapper(
-        organizations, step=10000, result_value_getter=lambda item: item.id
+        organizations,
+        step=10000,
+        result_value_getter=lambda item: item.id,
+        min_id=minimum_organization_id,
     ):
         # Create a celery task per organization
         logger.info(
@@ -88,6 +97,9 @@ def schedule_organizations(
         prepare_organization_report.delay(
             timestamp, duration, organization.id, batch_id, dry_run=dry_run
         )
+        redis_cluster.set(f"weekly_reports_org_id_min-{timestamp}", organization.id)
+
+    redis_cluster.delete(f"weekly_reports_org_id_min-{timestamp}")
 
 
 # This task is launched per-organization.
