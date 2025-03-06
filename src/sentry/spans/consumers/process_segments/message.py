@@ -243,4 +243,4 @@ def process_segment(spans: list[dict[str, Any]]):
 
     _record_transaction_info(jobs, projects)
 
-    return jobs
+    return spans

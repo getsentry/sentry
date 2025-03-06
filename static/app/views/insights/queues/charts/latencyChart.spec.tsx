@@ -2,11 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('latencyChart', () => {
   const organization = OrganizationFixture();
@@ -27,6 +27,18 @@ describe('latencyChart', () => {
       method: 'GET',
       body: {
         data: [[1739378162, [{count: 1}]]],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'duration',
+            'avg(messaging.message.receive.latency)': 'duration',
+            'spm()': 'rate',
+          },
+          units: {
+            'avg(span.duration)': 'millisecond',
+            'avg(messaging.message.receive.latency)': 'millisecond',
+            'spm()': '1/second',
+          },
+        },
       },
     });
   });

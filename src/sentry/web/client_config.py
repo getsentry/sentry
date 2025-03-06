@@ -20,6 +20,7 @@ from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
@@ -41,7 +42,6 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
-from sentry.utils.demo_mode import is_demo_mode_enabled, is_demo_user
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import (

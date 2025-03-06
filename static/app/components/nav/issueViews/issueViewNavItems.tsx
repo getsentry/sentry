@@ -134,18 +134,14 @@ export function IssueViewNavItems({
     [organization.slug, updateViews]
   );
 
-  const handleReorder = useCallback(
-    (newOrder: IssueView[]) => {
-      setViews(newOrder);
-      debounceUpdateViews(newOrder);
+  const handleReorderComplete = useCallback(() => {
+    debounceUpdateViews(views);
 
-      trackAnalytics('issue_views.reordered_views', {
-        leftNav: true,
-        organization: organization.slug,
-      });
-    },
-    [debounceUpdateViews, organization.slug]
-  );
+    trackAnalytics('issue_views.reordered_views', {
+      leftNav: true,
+      organization: organization.slug,
+    });
+  }, [debounceUpdateViews, organization.slug, views]);
 
   const handleUpdateView = useCallback(
     (view: IssueView, updatedView: IssueView) => {
@@ -216,7 +212,7 @@ export function IssueViewNavItems({
       as="div"
       axis="y"
       values={views ?? []}
-      onReorder={handleReorder}
+      onReorder={newOrder => setViews(newOrder)}
       initial={false}
       ref={sectionRef}
     >
@@ -226,12 +222,13 @@ export function IssueViewNavItems({
             view={view}
             sectionRef={sectionRef}
             isActive={view.id === viewId}
+            onReorderComplete={handleReorderComplete}
+            onUpdateView={updatedView => handleUpdateView(view, updatedView)}
+            onDeleteView={() => handleDeleteView(view)}
+            onDuplicateView={() => handleDuplicateView(view)}
+            isLastView={views.length === 1}
             isDragging={isDragging}
             setIsDragging={setIsDragging}
-            updateView={updatedView => handleUpdateView(view, updatedView)}
-            deleteView={() => handleDeleteView(view)}
-            duplicateView={() => handleDuplicateView(view)}
-            isLastView={views.length === 1}
           />
         </AnimatePresence>
       ))}

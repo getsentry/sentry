@@ -47,7 +47,7 @@ def test_dlq(consumer_def) -> None:
         "ingest-profiles",
         "ingest-occurrences",
         "ingest-replay-recordings",
-        "ingest-replay-recordings-buffered",
+        "ingest-replay-recordings-two-step",
     ]
 
     consumer_name, defn = consumer_def

@@ -7,10 +7,10 @@ from sentry.api.permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
+from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.demo_mode import READONLY_SCOPES
 
 
 class PermissionsTest(DRFPermissionTestCase):
@@ -163,7 +163,7 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             organization=readonly_rpc_context,
         )
 
-        assert readonly_rpc_context.member.scopes == READONLY_SCOPES
+        assert readonly_rpc_context.member.scopes == sorted(READONLY_SCOPES)
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": []})
     def test_determine_access_no_demo_users(self):

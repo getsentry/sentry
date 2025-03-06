@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import {Input} from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -274,6 +274,7 @@ function TourProvider({
       <BlurBoundary>
         <TourContextProvider
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}
           tourContext={MyTourContext}
           {...tourProviderProps}
