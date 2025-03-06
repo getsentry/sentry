@@ -253,6 +253,7 @@ export function importSchema(
 }
 
 export function eventedProfileToSampledProfile(
+  profileTimestamp: number,
   input: ReadonlyArray<Readonly<Profiling.EventedProfile>>
 ): Pick<
   Readonly<Profiling.SentryContinousProfileChunk>['profile'],
@@ -293,10 +294,10 @@ export function eventedProfileToSampledProfile(
         samples.push({
           stack_id: stackId,
           thread_id: String(profile.threadID),
-          timestamp: profile.startValue + current.at * 1e-9,
+          timestamp: profileTimestamp + current.at * 1e-9,
         });
 
-        stacks[stackId] = stack.slice();
+        stacks[stackId] = stack.slice().reverse();
         stackId++;
         currentTimestamp = current.at;
       }
@@ -307,9 +308,9 @@ export function eventedProfileToSampledProfile(
         stack_id: stackId,
         thread_id: String(profile.threadID),
         timestamp:
-          profile.startValue + profile.events[profile.events.length - 1]!.at * 1e-9,
+          profileTimestamp + profile.events[profile.events.length - 1]!.at * 1e-9,
       });
-      stacks[stackId] = stack.slice();
+      stacks[stackId] = stack.slice().reverse();
       stackId++;
     }
   }
@@ -352,7 +353,17 @@ export function importAndroidContinuousProfileChunk(
     Profiling.SentryContinousProfileChunk['profile']['samples']
   > = {};
 
-  const convertedProfile = eventedProfileToSampledProfile(input.profiles);
+  if (!input.metadata.timestamp) {
+    throw new TypeError(
+      'No timestamp found in metadata, typestamp is required to render continuous profiles'
+    );
+  }
+  const profileTimestampInSeconds = new Date(input.metadata.timestamp).getTime() * 1e-3;
+
+  const convertedProfile = eventedProfileToSampledProfile(
+    profileTimestampInSeconds,
+    input.profiles
+  );
 
   // @todo(jonas): implement measurements
   const minTimestamp = minTimestampInChunk({...convertedProfile, frames}, {});

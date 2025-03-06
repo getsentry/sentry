@@ -138,11 +138,6 @@ function getProfileOffset(
     return Rect.Empty();
   }
 
-  // @todo(jonas): uncomment this when we figure out where to anchor android continuous profiles
-  if (profile.startedAt - startedAtMs < 0) {
-    return Rect.Empty();
-  }
-
   return new Rect(profile.startedAt - startedAtMs, 0, 0, 0);
 }
 
