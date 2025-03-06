@@ -273,7 +273,7 @@ def _process_resource_change(
             try:
                 service_hook = ServiceHook.objects.get(
                     organization_id=org.id,
-                    actor_id=installation.id,
+                    installation_id=installation.id,
                 )
             except ServiceHook.DoesNotExist:
                 logger.info(
