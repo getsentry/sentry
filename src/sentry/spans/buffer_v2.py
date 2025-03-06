@@ -179,7 +179,9 @@ class RedisSpansBufferV2:
             with self.client.pipeline(transaction=False) as p:
                 for shard in range(self.sharding_factor):
                     key = f"span-buf:q:{shard}"
-                    p.zrangebyscore(key, 0, cutoff)
+                    p.zrangebyscore(
+                        key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
+                    )
 
                 result = p.execute()
 
@@ -194,12 +196,6 @@ class RedisSpansBufferV2:
                         segment_ids.append(segment_id)
                         p.smembers(segment_id)
 
-                        if max_segments > 0 and len(segment_ids) >= max_segments:
-                            break
-
-                    if max_segments > 0 and len(segment_ids) >= max_segments:
-                        break
-
                 segments = p.execute()
 
         return_segments = {}
@@ -210,9 +206,7 @@ class RedisSpansBufferV2:
             for payload in segment:
                 return_segment.add(payload)
 
-            if return_segment:
-                return_segments[segment_id] = return_segment
-
+            return_segments[segment_id] = return_segment
         metrics.timing("sentry.spans.buffer.flush_segments.num_segments", len(return_segments))
 
         return return_segments

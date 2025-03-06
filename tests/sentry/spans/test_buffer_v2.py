@@ -201,7 +201,7 @@ def test_parent_in_other_project_first(buffer: RedisSpansBufferV2):
     assert_ttls(buffer.client)
 
     assert buffer.flush_segments(now=5) == {}
-    rv = buffer.flush_segments(now=11)
+    rv = buffer.flush_segments(now=11, max_segments=2)
     assert rv == {_segment_id(2, "a" * 32, "b" * 16): {b"D"}}
     buffer.done_flush_segments(rv)
 
