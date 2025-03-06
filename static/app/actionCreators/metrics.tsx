@@ -1,4 +1,4 @@
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
@@ -46,7 +46,7 @@ export const doReleaseHealthRequest = (
     statsPeriodEnd,
     ...dateTime
   }: DoReleaseHealthRequestOptions
-): Promise<SessionApiResponse | [SessionApiResponse, string, ResponseMeta]> => {
+): Promise<ApiResult<SessionApiResponse>> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });

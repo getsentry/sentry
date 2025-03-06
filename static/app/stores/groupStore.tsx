@@ -1,6 +1,7 @@
 import {createStore} from 'reflux';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
+import type {ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
@@ -65,7 +66,7 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
 
   onDelete: (changeId: string, itemIds: ItemIds) => void;
-  onDeleteError: (changeId: string, itemIds: ItemIds, response: RequestError) => void;
+  onDeleteError: (changeId: string, itemIds: ItemIds, response: ResponseMeta) => void;
   onDeleteSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
 
   onDiscard: (changeId: string, itemId: string) => void;

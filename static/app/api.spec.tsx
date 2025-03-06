@@ -1,96 +1,616 @@
+import type {Scope} from '@sentry/core';
+import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {Client, ResponseMeta} from 'sentry/api';
-import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
-import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
+import {waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as projectRedirect from 'sentry/actionCreators/redirectToProject';
+import {Client, resolveHostname} from 'sentry/api';
+
+import * as sudoModal from './actionCreators/sudoModal';
+import {PROJECT_MOVED, SUPERUSER_REQUIRED} from './constants/apiErrorCodes';
 import ConfigStore from './stores/configStore';
 import OrganizationStore from './stores/organizationStore';
 
 jest.unmock('sentry/api');
 
-describe('api', function () {
-  let api: Client;
+// Mimicks native AbortError class
+class AbortError extends Error {
+  name = 'AbortError';
+}
 
-  beforeEach(function () {
-    api = new MockApiClient();
-  });
+class NetworkError extends Error {
+  name = 'NetworkError';
+}
 
-  describe('Client', function () {
-    describe('cancel()', function () {
-      it('should abort any open XHR requests', function () {
-        const abort1 = jest.fn();
-        const abort2 = jest.fn();
+function makeScopeMock(): Partial<Scope> {
+  return {
+    setTags: jest.fn(),
+    setExtras: jest.fn(),
+    setFingerprint: jest.fn(),
+  };
+}
 
-        const req1 = new Request(new Promise(() => null), {
-          abort: abort1,
-        } as any);
-        const req2 = new Request(new Promise(() => null), {abort: abort2} as any);
+describe('Client', () => {
+  describe('request', function () {
+    describe('query params', function () {
+      it('appends query params to path', function () {
+        const spy = jest.spyOn(global, 'fetch');
+        const client = new Client();
 
-        api.activeRequests = {
-          1: req1,
-          2: req2,
-        };
+        client.request('/api/0/broadcasts/', {
+          query: {foo: 'bar'},
+        });
 
-        api.clear();
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('/api/0/broadcasts/?foo=bar'),
+          expect.objectContaining({
+            method: 'GET',
+          })
+        );
+      });
 
-        expect(req1.aborter?.abort).toHaveBeenCalledTimes(1);
-        expect(req2.aborter?.abort).toHaveBeenCalledTimes(1);
+      it('appends query params to existing query params', function () {
+        const spy = jest.spyOn(global, 'fetch');
+        const client = new Client();
+
+        client.request('/api/0/broadcasts/?foo=baz', {
+          query: {foo: 'bar'},
+        });
+
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('/api/0/broadcasts/?foo=baz&foo=bar'),
+          expect.objectContaining({
+            method: 'GET',
+          })
+        );
+      });
+
+      it('appends data as query params to existing query params', function () {
+        const spy = jest.spyOn(global, 'fetch');
+        const client = new Client();
+
+        client.request('/api/0/broadcasts/?foo=foo', {
+          method: 'GET',
+          data: {foo: 'bar'},
+          query: {foo: 'baz'},
+        });
+
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('/api/0/broadcasts/?foo=foo&foo=baz&foo=bar'),
+          expect.objectContaining({
+            method: 'GET',
+            body: undefined,
+          })
+        );
+      });
+
+      it('serialized options.data as query params for GET request', function () {
+        const spy = jest.spyOn(global, 'fetch');
+        const client = new Client();
+
+        client.request('/api/0/broadcasts/?foo=baz', {
+          method: 'GET',
+          data: {foo: 'bar'},
+        });
+
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('/api/0/broadcasts/?foo=baz&foo=bar'),
+          expect.objectContaining({
+            method: 'GET',
+            body: undefined,
+          })
+        );
+      });
+    });
+
+    describe('request cancellation', function () {
+      const originalAbortController = window.AbortController;
+      beforeEach(() => {
+        Object.defineProperty(window, 'AbortController', {
+          value: originalAbortController,
+        });
+      });
+
+      it('feature detects AbortController', function () {
+        const client = new Client();
+        Object.defineProperty(window, 'AbortController', {
+          value: undefined,
+        });
+        expect(() => client.request('/api/0/broadcasts/')).not.toThrow();
+      });
+
+      it('cancels request', function () {
+        const client = new Client();
+        const request = client.request('/api/0/broadcasts/');
+        const abortSpy = jest.spyOn(request.aborter!, 'abort');
+
+        request.cancel();
+
+        expect(request.alive).toBe(false);
+        expect(abortSpy).toHaveBeenCalled();
+      });
+
+      it('prevents cancellation', function () {
+        const client = new Client();
+        const request = client.request('/api/0/broadcasts/', {cancelable: false});
+
+        request.cancel();
+
+        // The old version of the client was always marking the request as not alive, but
+        // it was never actually cancelling the request. This was corrected in the new client.
+        expect(request.alive).toBe(true);
+        expect(request.aborter).toBeUndefined();
+      });
+    });
+
+    describe('request tracking', function () {
+      it('tracks requests', function () {
+        const client = new Client();
+        const request = client.request('/api/0/broadcasts/');
+
+        expect(client.activeRequests[request.id]).toBe(request);
+      });
+
+      it('stops tracking request after it resolves', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(new Response());
+
+        const client = new Client();
+        const onSuccess = jest.fn();
+        client.request('/api/0/broadcasts/', {success: onSuccess});
+        // We cannot await client.request because it does not return the entire promise chain and does not include the
+        // chain which performs async reading of response.json() or response.text(), so we will wait until the request is
+        // no longer in the activeRequests map.
+        await waitFor(() => Object.keys(client.activeRequests).length === 0);
+        expect(onSuccess).toHaveBeenCalled();
+      });
+
+      it('stops tracking request after it errors', async () => {
+        jest
+          .spyOn(global, 'fetch')
+          .mockResolvedValueOnce(new Response(null, {status: 500}));
+
+        const client = new Client();
+        const onError = jest.fn();
+        client.request('/api/0/broadcasts/', {error: onError});
+        await waitFor(() => Object.keys(client.activeRequests).length === 0);
+        expect(onError).toHaveBeenCalled();
+      });
+    });
+
+    describe('headers', function () {
+      it('respects constructor headers', function () {
+        const client = new Client({headers: {foo: 'bar'}});
+
+        let headers: Headers | undefined;
+
+        jest.spyOn(global, 'fetch').mockImplementationOnce((...args: any[]) => {
+          headers = args[1]?.headers;
+          return Promise.resolve(new Response());
+        });
+
+        client.request('/api/0/broadcasts/');
+        expect(headers?.get?.('foo')).toBe('bar');
+      });
+
+      it('merges constructor headers with request headers', function () {
+        const client = new Client({headers: {foo: 'bar'}});
+
+        let headers: Headers | undefined;
+
+        jest.spyOn(global, 'fetch').mockImplementationOnce((...args: any[]) => {
+          headers = args[1]?.headers;
+          return Promise.resolve(new Response());
+        });
+
+        client.request('/api/0/broadcasts/', {headers: {baz: 'foo'}});
+        expect(headers?.get?.('foo')).toBe('bar');
+        expect(headers?.get?.('baz')).toBe('foo');
+      });
+    });
+
+    describe('credentials', function () {
+      it('respects constructor credential options', function () {
+        const client = new Client({credentials: 'include'});
+        client.request('/api/0/broadcasts/');
+
+        const spy = jest.spyOn(global, 'fetch');
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('/api/0/broadcasts/'),
+          expect.objectContaining({credentials: 'include'})
+        );
+      });
+    });
+
+    describe('clear', function () {
+      it('clears cancelable requests', function () {
+        const client = new Client();
+        const request = client.request('/api/0/broadcasts/');
+        const cancelSpy = jest.spyOn(request, 'cancel');
+
+        client.clear();
+        expect(cancelSpy).toHaveBeenCalled();
+
+        // Assert that the request is no longer in the activeRequests map as we would have otherwise be leaking memory
+        expect(Object.keys(client.activeRequests)).toHaveLength(0);
+      });
+
+      it('does not cancel non-cancelable requests', function () {
+        const client = new Client();
+        const request = client.request('/api/0/broadcasts/', {cancelable: false});
+
+        const cancelSpy = jest.spyOn(request, 'cancel');
+        client.clear();
+
+        // The method is called, but it does not cancel the request.
+        expect(cancelSpy).toHaveBeenCalled();
+        expect(Object.keys(client.activeRequests)).toHaveLength(1);
+      });
+    });
+
+    describe('error handling', function () {
+      it('reports 200 OK response with response.text() failure to Sentry', async function () {
+        const client = new Client();
+        const scopeMock = makeScopeMock();
+
+        jest.spyOn(Sentry, 'withScope').mockImplementation((callback: any) => {
+          callback(scopeMock);
+        });
+
+        const failingResponseText = new Response(null, {status: 200});
+        failingResponseText.text = jest
+          .fn()
+          .mockResolvedValue(`<html><body>Hello</body></html>`);
+
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(failingResponseText);
+
+        const onError = jest.fn();
+        client.request('/api/0/broadcasts/', {error: onError});
+
+        await waitFor(() => expect(onError).toHaveBeenCalled());
+
+        // This is a bug with the old client, where it does not set responseText on the parsed response,
+        // which is a value we use down the line to determine if the response was a 200 OK that we failed to parse.
+        expect(scopeMock.setExtras).toHaveBeenCalledWith(
+          expect.objectContaining({
+            twoHundredErrorReason: 'Failed attempting to parse JSON from responseText',
+            errorReason: 'JSON parse error. Possibly returned HTML',
+          })
+        );
+      });
+
+      // This is a bug with the old client, where we rely on status to be 200 and presence of response.text() before logging the error
+      // However, if the request fails before we can read response.text(), we will not have a 200 status and response.text()
+      // will not be present, hence no error will be logged. The new client handles this case correctly, skip previous client logs
+      it('does not report AbortError to Sentry', async function () {
+        const client = new Client();
+        const scopeMock = makeScopeMock();
+
+        const response = new Response(null, {status: 200});
+
+        let reject: ((reason?: any) => void) | null = null;
+
+        const textPromiseMock = jest.fn().mockImplementation(() => {
+          return new Promise((_resolve, _reject) => {
+            reject = _reject;
+          });
+        });
+
+        response.text = textPromiseMock;
+
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+        jest.spyOn(Sentry, 'withScope').mockImplementation((callback: any) => {
+          callback(scopeMock);
+          return callback;
+        });
+
+        const onError = jest.fn();
+        const request = client.request('/api/0/broadcasts/', {error: onError});
+        request.cancel();
+
+        await waitFor(() => expect(textPromiseMock).toHaveBeenCalled());
+
+        if (typeof reject === 'function') {
+          // @ts-expect-error ts thinks this is never assigned
+          reject(new AbortError());
+        }
+
+        await waitFor(() => expect(onError).toHaveBeenCalled());
+        expect(scopeMock.setExtras).not.toHaveBeenCalled();
+      });
+
+      // This is a bug with the old client, where we rely on status to be 200 and presence of response.text() before logging the error
+      // However, if the request fails before we can read response.text(), we will not have a 200 status and response.text()
+      // will not be present, hence no error will be logged. The new client handles this case correctly, skip previous client logs.
+      it('does not report generic error to Sentry that does not have response.text()', async function () {
+        const client = new Client();
+        const scopeMock = makeScopeMock();
+
+        const response = new Response(null, {status: 200});
+        let reject: ((reason?: any) => void) | null = null;
+
+        const textPromiseMock = jest.fn().mockImplementation(() => {
+          return new Promise((_resolve, _reject) => {
+            reject = _reject;
+          });
+        });
+
+        response.text = textPromiseMock;
+
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+        jest.spyOn(Sentry, 'withScope').mockImplementation((callback: any) => {
+          callback(scopeMock);
+          return callback;
+        });
+
+        const onError = jest.fn();
+        const request = client.request('/api/0/broadcasts/', {error: onError});
+        request.cancel();
+
+        await waitFor(() => expect(textPromiseMock).toHaveBeenCalled());
+
+        if (typeof reject === 'function') {
+          // @ts-expect-error ts thinks this is never assigned
+          reject(new NetworkError());
+        }
+
+        await waitFor(() => expect(onError).toHaveBeenCalled());
+        expect(scopeMock.setExtras).not.toHaveBeenCalled();
+      });
+
+      it('invalid JSON parsing error', async function () {
+        const client = new Client();
+        const scopeMock = makeScopeMock();
+
+        const response = new Response(null, {
+          status: 200,
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
+        });
+
+        response.text = jest
+          .fn()
+          .mockResolvedValueOnce(JSON.stringify({response: [{x: 1, y: 2}]}).slice(0, 10));
+        response.json = jest.fn().mockRejectedValueOnce(new SyntaxError('Invalid JSON'));
+
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+        jest.spyOn(Sentry, 'withScope').mockImplementation((callback: any) => {
+          callback(scopeMock);
+          return callback;
+        });
+
+        const onError = jest.fn();
+        client.request('/api/0/broadcasts/', {error: onError});
+
+        await waitFor(() => expect(onError).toHaveBeenCalled());
+
+        expect(scopeMock.setExtras).toHaveBeenCalledWith(
+          expect.objectContaining({
+            twoHundredErrorReason: 'Failed attempting to parse JSON from responseText',
+            errorReason: 'JSON parse error',
+          })
+        );
+      });
+
+      it('invalid JSON parse error', async function () {
+        const client = new Client();
+        const scopeMock = makeScopeMock();
+
+        const response = new Response(null, {
+          status: 200,
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
+        });
+
+        response.text = jest
+          .fn()
+          .mockResolvedValueOnce(JSON.stringify({response: [{x: 1, y: 2}]}).slice(0, 10));
+        response.json = jest.fn().mockRejectedValueOnce(new SyntaxError('Invalid JSON'));
+
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+        jest.spyOn(Sentry, 'withScope').mockImplementation((callback: any) => {
+          callback(scopeMock);
+          return callback;
+        });
+
+        const onError = jest.fn();
+        client.request('/api/0/broadcasts/', {error: onError});
+
+        await waitFor(() => expect(onError).toHaveBeenCalled());
+
+        expect(scopeMock.setExtras).toHaveBeenCalledWith(
+          expect.objectContaining({
+            twoHundredErrorReason: 'Failed attempting to parse JSON from responseText',
+            errorReason: 'JSON parse error',
+          })
+        );
+      });
+
+      it('POST 200 with empty response body that expects JSON is not marked as error', async function () {
+        const client = new Client();
+        const scopeMock = makeScopeMock();
+
+        const response = new Response(null, {
+          status: 200,
+          headers: new Headers({
+            // Mismatching content type
+            'Content-Type': 'text/html',
+          }),
+        });
+
+        response.text = jest.fn().mockResolvedValueOnce(' ');
+        response.json = jest.fn().mockRejectedValueOnce(new SyntaxError('Invalid JSON'));
+
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+        jest.spyOn(Sentry, 'withScope').mockImplementation((callback: any) => {
+          callback(scopeMock);
+          return callback;
+        });
+
+        const onError = jest.fn();
+        client.request('/api/0/broadcasts/', {method: 'POST', error: onError});
+
+        await waitFor(() => expect(onError).toHaveBeenCalled());
+
+        expect(scopeMock.setExtras).toHaveBeenCalledWith(
+          expect.objectContaining({
+            twoHundredErrorReason: 'Failed attempting to parse JSON from responseText',
+            errorReason: 'JSON parse error. Possibly returned HTML',
+          })
+        );
       });
     });
   });
 
-  it('does not call success callback if 302 was returned because of a project slug change', function () {
-    const successCb = jest.fn();
-    api.activeRequests = {
-      id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
-    };
-    api.wrapCallback(
-      'id',
-      successCb
-    )({
-      responseJSON: {
-        detail: {
-          code: PROJECT_MOVED,
-          message: '...',
-          extra: {
-            slug: 'new-slug',
-          },
+  it('project redirect modal', async function () {
+    const client = new Client();
+
+    const response = new Response(null, {
+      status: 302,
+      headers: new Headers({
+        'Content-Type': 'application/json',
+      }),
+    });
+
+    const responseText = {
+      detail: {
+        code: PROJECT_MOVED,
+        extra: {
+          slug: 'new-project-slug',
         },
       },
-    });
-    expect(successCb).not.toHaveBeenCalled();
-  });
+    };
 
-  it('handles error callback', function () {
-    jest.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
-    const errorCb = jest.fn();
-    const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];
-    api.handleRequestError(
-      {
-        id: 'test',
-        path: 'test',
-        requestOptions: {error: errorCb},
-      },
-      ...args
+    response.text = jest.fn().mockResolvedValueOnce(JSON.stringify(responseText));
+    response.json = jest.fn().mockResolvedValueOnce(responseText);
+
+    jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+    jest.spyOn(projectRedirect, 'redirectToProject');
+
+    const onError = jest.fn();
+    const onSuccess = jest.fn();
+    const onComplete = jest.fn();
+    client.request('/api/0/broadcasts/', {
+      method: 'POST',
+      error: onError,
+      success: onSuccess,
+      complete: onComplete,
+    });
+
+    await waitFor(() =>
+      expect(projectRedirect.redirectToProject).toHaveBeenCalledWith('new-project-slug')
     );
 
-    expect(errorCb).toHaveBeenCalledWith(...args);
+    // None of the callbacks get called and the promise is suspended indefinitely
+    // while the timer counts down and redirects to the new project slug
+    expect(onError).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onComplete).not.toHaveBeenCalled();
   });
 
-  it('handles undefined error callback', function () {
-    expect(() =>
-      api.handleRequestError(
-        {
-          id: 'test',
-          path: 'test',
-          requestOptions: {},
+  describe('sudo modal', () => {
+    it('opens sudo modal', async function () {
+      const client = new Client();
+
+      const response = new Response(null, {
+        status: 401,
+        headers: new Headers({
+          'Content-Type': 'application/json',
+        }),
+      });
+
+      const responseText = {
+        detail: {
+          code: SUPERUSER_REQUIRED,
         },
-        {} as ResponseMeta,
-        '',
-        'test'
-      )
-    ).not.toThrow();
+      };
+
+      response.text = jest.fn().mockResolvedValueOnce(JSON.stringify(responseText));
+      response.json = jest.fn().mockResolvedValueOnce(responseText);
+
+      jest.spyOn(global, 'fetch').mockResolvedValueOnce(response);
+      jest.spyOn(sudoModal, 'openSudo');
+
+      const onError = jest.fn();
+      client.request('/api/0/broadcasts/', {method: 'POST', error: onError});
+
+      await waitFor(() =>
+        expect(sudoModal.openSudo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isSuperuser: true,
+          })
+        )
+      );
+    });
+
+    it('calls original request callback handlers', async function () {
+      const client = new Client();
+
+      const response = new Response(null, {
+        status: 401,
+        headers: new Headers({
+          'Content-Type': 'application/json',
+        }),
+      });
+
+      const responseText = {
+        detail: {
+          code: SUPERUSER_REQUIRED,
+        },
+      };
+
+      let retryRequest: (() => Promise<any>) | undefined = undefined;
+
+      jest.spyOn(sudoModal, 'openSudo').mockImplementation(props => {
+        retryRequest = props?.retryRequest;
+        return Promise.resolve();
+      });
+
+      response.text = jest.fn().mockResolvedValueOnce(JSON.stringify(responseText));
+      response.json = jest.fn().mockResolvedValueOnce(responseText);
+
+      const fetchSpy = jest.spyOn(global, 'fetch');
+
+      fetchSpy.mockResolvedValueOnce(response);
+      jest.spyOn(sudoModal, 'openSudo');
+
+      const onError = jest.fn();
+      const onSuccess = jest.fn();
+
+      client.request('/api/0/broadcasts/', {
+        method: 'POST',
+        error: onError,
+        success: onSuccess,
+      });
+
+      await waitFor(() => expect(sudoModal.openSudo).toHaveBeenCalled());
+
+      const successResponse = new Response(null, {
+        status: 200,
+        headers: new Headers({
+          'Content-Type': 'application/json',
+        }),
+      });
+
+      const successResponseJSON = {
+        detail: {
+          code: 'success',
+        },
+      };
+
+      successResponse.text = jest
+        .fn()
+        .mockResolvedValueOnce(JSON.stringify(successResponseJSON));
+      successResponse.json = jest.fn().mockResolvedValueOnce(successResponseJSON);
+
+      fetchSpy.mockResolvedValueOnce(successResponse);
+
+      await retryRequest!();
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    });
   });
 });
 
@@ -254,6 +774,6 @@ describe('isSimilarOrigin', function () {
     ['https://woof.example.io', 'https://woof.sentry.io', false],
     ['https://woof.sentry.io', 'https://sentry.woof.io', false],
   ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {
-    expect(isSimilarOrigin(target, origin)).toBe(expected);
+    expect(Client.isSimilarOrigin(target, origin)).toBe(expected);
   });
 });
