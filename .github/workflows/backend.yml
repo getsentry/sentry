@@ -15,8 +15,6 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  # Disables sentry reporting for devservices
-  DEVSERVICES_DISABLE_SENTRY: 1
   SNUBA_NO_WORKERS: 1
 
 jobs:
