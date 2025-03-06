@@ -129,7 +129,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 raise ParameterValidationError("Failed to enable monitor, please try again")
 
         # Attempt to unassign the monitor seat
-        if params["status"] == ObjectStatus.DISABLED and monitor.status != ObjectStatus.DISABLED:
+        if params["status"] == ObjectStatus.DISABLED and (
+            monitor.status != ObjectStatus.DISABLED or result.get("is_muted")
+        ):
             quotas.backend.disable_monitor_seat(monitor)
 
         # Update monitor slug in billing
