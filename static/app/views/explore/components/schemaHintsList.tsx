@@ -19,7 +19,7 @@ interface SchemaHintsListProps {
 
 const seeFullListTag: Tag = {
   key: 'seeFullList',
-  name: 'See full list',
+  name: t('See full list'),
   kind: undefined,
 };
 
@@ -100,7 +100,7 @@ function SchemaHintsList({
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map((hint, index) => (
         <SchemaHintOption key={index} data-type={hint?.key}>
-          {hint?.key === seeFullListTag.key ? t('See full list') : `${hint?.name} is ...`}
+          {hint?.key === seeFullListTag.key ? hint?.name : `${hint?.name} is ...`}
         </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
