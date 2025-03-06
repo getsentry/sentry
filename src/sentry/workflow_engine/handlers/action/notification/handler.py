@@ -67,7 +67,7 @@ class NotificationActionHandler(ActionHandler):
             },
             "target_type": {
                 "type": ["integer", "null"],
-                "enum": [at.value for at in ActionTarget] + [None],
+                "enum": [*ActionTarget] + [None],
             },
         },
     }
