@@ -117,11 +117,8 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      {group.hasSeen || !hasNewLayout ? null : (
-        <UnreadIndicator data-test-id="unread-issue-indicator" />
-      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
-        <Checkbox
+        <CheckboxWithBackground
           id={group.id}
           aria-label={t('Select Issue')}
           checked={isSelected}
@@ -129,6 +126,11 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator data-test-id="unread-issue-indicator" />
+        </Tooltip>
+      )}
     </GroupCheckBoxWrapper>
   );
 }
@@ -761,12 +763,9 @@ const Wrapper = styled(PanelItem)<{
         ${CheckboxLabel} {
           ${p.theme.visuallyHidden};
         }
-      }
 
-      &:hover,
-      &:focus-within {
         ${UnreadIndicator} {
-          ${p.theme.visuallyHidden};
+          margin-top: ${space(1.5)};
         }
       }
 
@@ -870,6 +869,10 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
     css`
       padding-top: ${space(2)};
     `}
+`;
+
+const CheckboxWithBackground = styled(Checkbox)`
+  background-color: ${p => p.theme.background};
 `;
 
 const CountsWrapper = styled('div')`
@@ -1089,8 +1092,9 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
+  margin-top: ${space(4)};
   margin-left: ${space(3)};
-  margin-top: ${space(1.5)};
+  position: relative;
 `;
 
 const LifespanFirstSeen = styled('div')`
