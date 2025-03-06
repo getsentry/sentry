@@ -1,7 +1,10 @@
+import {useEffect} from 'react';
+
 import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,6 +13,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withSubscription from 'getsentry/components/withSubscription';
 import {usePerformanceUsageStats} from 'getsentry/hooks/performance/usePerformanceUsageStats';
 import type {Subscription} from 'getsentry/types';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 const DATE_FORMAT = 'MMM DD, YYYY';
 
@@ -30,8 +34,10 @@ function getFormattedDateTime(dateTime: PageFilters['datetime']): string | null 
   return null;
 }
 
-function useQuotaExceededAlertMessage(subscription: Subscription) {
-  const organization = useOrganization();
+function useQuotaExceededAlertMessage(
+  subscription: Subscription,
+  organization: Organization
+) {
   const {selection} = usePageFilters();
 
   let hasExceededPerformanceUsageLimit: boolean | null = null;
@@ -171,11 +177,24 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
 }
 
 type Props = {
+  referrer: string;
   subscription: Subscription;
 };
 
 export function QuotaExceededAlert(props: Props) {
-  const message = useQuotaExceededAlertMessage(props.subscription);
+  const organization = useOrganization();
+  const message = useQuotaExceededAlertMessage(props.subscription, organization);
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    trackGetsentryAnalytics('performance.quota_exceeded_alert.displayed', {
+      organization,
+      referrer: props.referrer,
+    });
+  }, [message, organization, props.referrer]);
 
   if (!message) {
     return null;

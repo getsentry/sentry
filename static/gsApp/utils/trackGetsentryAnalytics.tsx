@@ -103,9 +103,11 @@ type GetsentryEventParameters = {
     previous_replays?: number;
     previous_spans?: number;
     previous_transactions?: number;
+    previous_uptime?: number;
     replays?: number;
     spans?: number;
     transactions?: number;
+    uptime?: number;
   } & Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
@@ -165,6 +167,7 @@ type GetsentryEventParameters = {
     partner: undefined | string;
   } & HasSub;
   'past_due_modal.seen': HasSub;
+  'performance.quota_exceeded_alert.displayed': {referrer: string};
   'power_icon.clicked': {
     source?: string;
   } & HasSub;
@@ -251,6 +254,8 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'quota_alert.clicked_link': 'Quota Alert: Clicked Link',
   'quota_alert.clicked_see_usage': 'Quota Alert: Clicked See Usage',
   'quota_alert.alert_displayed': 'Quota Alert: Alert Displayed',
+  'performance.quota_exceeded_alert.displayed':
+    'Performance: Quota Exceeded Alert Displayed',
   'trial_ended_notice.dismissed_understood': 'Trial Ended Notice: Dismissed understood',
   'grace_period_modal.seen': 'Grace Period Modal Seen',
   'usage_exceeded_modal.seen': 'Usage Exceeded Modal Seen',

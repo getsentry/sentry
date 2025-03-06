@@ -3,8 +3,6 @@ from __future__ import annotations
 from time import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from sentry.grouping.ingest.hashing import (
     _calculate_event_grouping,
     _calculate_secondary_hashes,
@@ -156,7 +154,6 @@ class SecondaryGroupingTest(TestCase):
             hash=hashes_by_config[LEGACY_GROUPING_CONFIG]
         ).exists()
 
-    @pytest.mark.xfail(reason="new secondary hashes not filtered if not all are new")
     def test_filters_new_secondary_hashes_when_creating_grouphashes(self):
         project = self.project
         project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)

@@ -10,6 +10,7 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
@@ -38,6 +39,8 @@ export function markEventSeen(
     },
     {}
   );
+
+  IssueListCacheStore.markGroupAsSeen(groupId);
 }
 
 export function useDefaultIssueEvent() {
@@ -131,8 +134,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return SUBSCRIPTION_REASONS[reason];
+      return SUBSCRIPTION_REASONS[reason as keyof typeof SUBSCRIPTION_REASONS];
     }
   }
 

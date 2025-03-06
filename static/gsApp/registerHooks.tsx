@@ -34,7 +34,6 @@ import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
@@ -57,6 +56,7 @@ import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
 import legacyOrganizationRedirectRoutes from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
 import MemberListHeader from 'getsentry/hooks/memberListHeader';
 import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
+import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import hookRootRoutes from 'getsentry/hooks/rootRoutes';
 import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
@@ -175,6 +175,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'onboarding-wizard:skip-help': () => OnboardingWizardHelp,
 
   /**
+   * Get list of organization roles
+   */
+  'member-invite-modal:organization-roles': getOrgRoles,
+
+  /**
    * Ensure we enable/disable Pendo when guides change
    */
   'callback:on-guide-update': handleGuideUpdate,
@@ -190,10 +195,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'spend-visibility:spike-protection-project-settings': p => (
     <SpikeProtectionProjectSettings {...p} />
   ),
-  /**
-   *   Tracing units exceeded alerts
-   */
-  'component:performance-quota-exceeded-alert': () => QuotaExceededAlert,
+
   /**
    *   Given a module name, if applicable, displays the appropriate upsell page
    */

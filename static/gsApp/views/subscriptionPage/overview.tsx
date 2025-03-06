@@ -30,6 +30,7 @@ import {hasAccessToSubscriptionOverview, isAm3DsPlan} from 'getsentry/utils/bill
 import {sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
+import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
@@ -131,6 +132,22 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
       hasAccessToSubscriptionOverview(subscription, organization)
     ) {
       openCodecovModal({organization});
+    }
+
+    // Open on-demand budget modal if hash fragment present and user has access
+    if (
+      window.location.hash === '#open-ondemand-modal' &&
+      subscription.supportsOnDemand &&
+      hasAccessToSubscriptionOverview(subscription, organization)
+    ) {
+      openOnDemandBudgetEditModal({organization, subscription});
+
+      // Clear hash to prevent modal reopening on refresh
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
     }
   }, [organization, location.query, subscription, promotionData, api]);
 

@@ -14,6 +14,8 @@ import {
   type AutofixChangesStep,
   type AutofixCodebaseChange,
   AutofixStatus,
+  type AutofixUpdateEndpointResponse,
+  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -36,6 +38,7 @@ type AutofixChangesProps = {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
+  agentCommentThread?: CommentThread;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -203,11 +206,17 @@ function CreatePRsButton({
         },
       });
     },
-    onSuccess: () => {
-      addSuccessMessage(t('Created pull requests.'));
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      setHasClickedCreatePr(false);
-      onBusyStateChange(false);
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedCreatePr(false);
+        onBusyStateChange(false);
+      } else {
+        addSuccessMessage(t('Created pull requests.'));
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+        setHasClickedCreatePr(false);
+        onBusyStateChange(false);
+      }
     },
     onError: () => {
       setHasClickedCreatePr(false);
@@ -273,7 +282,12 @@ function CreateBranchButton({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedPushToBranch(false);
+        onBusyStateChange(false);
+      }
       addSuccessMessage(t('Pushed to branches.'));
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       setHasClickedPushToBranch(false);
@@ -411,9 +425,11 @@ export function AutofixChanges({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  agentCommentThread,
 }: AutofixChangesProps) {
   const data = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
+  const iconCodeRef = useRef<HTMLDivElement>(null);
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
@@ -459,7 +475,9 @@ export function AutofixChanges({
           <ClippedBox clipHeight={408}>
             <HeaderWrapper>
               <HeaderText>
-                <IconCode size="sm" />
+                <div ref={iconCodeRef}>
+                  <IconCode size="sm" />
+                </div>
                 {t('Code Changes')}
               </HeaderText>
               {!prsMade && (
@@ -529,6 +547,23 @@ export function AutofixChanges({
                   </ScrollCarousel>
                 ))}
             </HeaderWrapper>
+            <AnimatePresence>
+              {agentCommentThread && iconCodeRef.current && (
+                <AutofixHighlightPopup
+                  selectedText="Code Changes"
+                  referenceElement={iconCodeRef.current}
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={previousDefaultStepIndex ?? 0}
+                  retainInsightCardIndex={
+                    previousInsightCount !== undefined && previousInsightCount >= 0
+                      ? previousInsightCount
+                      : null
+                  }
+                  isAgentComment
+                />
+              )}
+            </AnimatePresence>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}

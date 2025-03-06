@@ -2,19 +2,21 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -23,11 +25,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
-  CheckStatus,
-  type CheckStatusBucket,
-  type UptimeRule,
-} from 'sentry/views/alerts/rules/uptime/types';
-import {
   setUptimeRuleData,
   useUptimeRule,
 } from 'sentry/views/insights/uptime/utils/useUptimeRule';
@@ -35,6 +32,7 @@ import {
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
+import {CheckStatus, type CheckStatusBucket, type UptimeRule} from './types';
 import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
@@ -105,6 +103,12 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     }
   };
 
+  const canEdit = hasEveryAccess(['alerts:write'], {organization, project});
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
   return (
     <Layout.Page>
       <SentryDocumentTitle title={`${uptimeRule.name} — Alerts`} />
@@ -140,10 +144,14 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               uptimeRule={uptimeRule}
               onToggleStatus={status => handleUpdate({status})}
               size="sm"
+              disabled={!canEdit}
+              title={!canEdit ? permissionTooltipText : undefined}
             />
             <LinkButton
               size="sm"
               icon={<IconEdit />}
+              disabled={!canEdit}
+              title={!canEdit ? permissionTooltipText : undefined}
               to={makeAlertsPathname({
                 path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
                 organization,

@@ -86,3 +86,33 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
             assert ts.timestamp() == pytest.approx(timestamp_from_nanos, abs=5), "timestamp"
 
         assert meta["dataset"] == self.dataset
+
+    def test_free_text_wildcard_filter(self):
+        logs = [
+            self.create_ourlog(
+                {"body": "bar"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "foo"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "foo",
+                "orderby": "log.body",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["log.body"] == "foo"
+
+        assert meta["dataset"] == self.dataset

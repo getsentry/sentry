@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -116,11 +116,8 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      {group.hasSeen || !hasNewLayout ? null : (
-        <UnreadIndicator data-test-id="unread-issue-indicator" />
-      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
-        <Checkbox
+        <CheckboxWithBackground
           id={group.id}
           aria-label={t('Select Issue')}
           checked={isSelected}
@@ -128,23 +125,42 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator data-test-id="unread-issue-indicator" />
+        </Tooltip>
+      )}
     </GroupCheckBoxWrapper>
   );
 }
 
-function GroupTimestamp({date, label}: {date: string | null | undefined; label: string}) {
-  if (!date) {
+function GroupFirstLastSeen({group}: {group: Group}) {
+  if (!group.lifetime) {
     return <Placeholder height="18px" width="60px" />;
   }
 
+  if (!group.lifetime.firstSeen || !group.lifetime.lastSeen) {
+    return null;
+  }
+
   return (
-    <PositionedTimeSince
-      aria-label={label}
-      tooltipPrefix={label}
-      date={date}
-      suffix="ago"
-      unitStyle="short"
-    />
+    <Fragment>
+      <PositionedTimeSince
+        date={group.lifetime.firstSeen}
+        unitStyle="short"
+        suffix=""
+        aria-label={t('First Seen')}
+        tooltipPrefix={t('First Seen')}
+      />
+      <SeenSeparator>/</SeenSeparator>
+      <PositionedTimeSince
+        date={group.lifetime.lastSeen}
+        suffix="ago"
+        unitStyle="short"
+        aria-label={t('Last Seen')}
+        tooltipPrefix={t('Last Seen')}
+      />
+    </Fragment>
   );
 }
 
@@ -606,6 +622,12 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('firstLastSeen') && (
+        <FirstLastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_LAST_SEEN}>
+          <GroupFirstLastSeen group={group} />
+        </FirstLastSeenWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -624,7 +646,7 @@ function StreamGroup({
         ) : (
           <ChartWrapper
             narrowGroups={narrowGroups}
-            margin={withColumns.includes('firstSeen')}
+            margin={withColumns.includes('firstLastSeen')}
           >
             {issueTypeConfig.stats.enabled ? (
               <GroupStatusChart
@@ -644,16 +666,6 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
-          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
@@ -663,7 +675,7 @@ function StreamGroup({
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper
-                leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
+                leftMargin={withColumns.includes('firstLastSeen') ? undefined : '0px'}
               >
                 {issueTypeConfig.stats.enabled ? groupCount : null}
               </EventCountsWrapper>
@@ -742,7 +754,7 @@ const Wrapper = styled(PanelItem)<{
       padding: ${space(1)} 0;
       min-height: 86px;
 
-      &:not(:hover):not(:focus-within):not(:has(input:checked)) {
+      &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
         ${CheckboxLabel} {
           ${p.theme.visuallyHidden};
         }
@@ -812,13 +824,14 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
+  margin-right: ${space(1)};
   flex: 1;
   width: 66.66%;
 
   ${p =>
     p.hasNewLayout &&
     css`
+      margin-right: ${space(4)};
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -854,6 +867,10 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
     css`
       padding-top: ${space(2)};
     `}
+`;
+
+const CheckboxWithBackground = styled(Checkbox)`
+  background-color: ${p => p.theme.background};
 `;
 
 const CountsWrapper = styled('div')`
@@ -934,10 +951,12 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const TimestampWrapper = styled('div')<{breakpoint: string}>`
+const FirstLastSeenWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
+  gap: ${space(0.25)};
   align-self: center;
-  width: 75px;
+  width: 130px;
+  padding-right: ${space(1)};
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -1063,6 +1082,10 @@ const ProgressColumn = styled('div')`
 // Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
+`;
+
+const SeenSeparator = styled('span')`
+  color: ${p => p.theme.subText};
 `;
 
 const UnreadIndicator = styled('div')`

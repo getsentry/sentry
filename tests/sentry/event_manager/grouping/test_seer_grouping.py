@@ -5,12 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
+from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
 
 EMPTY_SEER_RESULTS = (
@@ -196,7 +196,6 @@ class StoredSeerMetadataTest(TestCase):
         assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
         assert metadata.seer_match_distance == expected_seer_match_distance
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_group_with_no_seer_match(self, _):
         with patch(
@@ -223,7 +222,6 @@ class StoredSeerMetadataTest(TestCase):
                 None,
             )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_group_with_seer_match(self, _):
         existing_event = save_new_event(get_event_data(), self.project)
@@ -267,7 +265,6 @@ class StoredSeerMetadataTest(TestCase):
                 seer_result_data.stacktrace_distance,
             )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     def test_event_not_sent_to_seer(self):
         with patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=False):
             event = save_new_event({"message": "Sit! Stay! Good dog!"}, self.project)
@@ -277,3 +274,42 @@ class StoredSeerMetadataTest(TestCase):
 
             assert event_grouphash and event_grouphash.metadata
             self.assert_correct_seer_metadata(event_grouphash, None, None, None, None, None)
+
+    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    def test_fills_in_missing_date_added(self, _):
+
+        # Mimic the effects of the race condition wherein two events with the same new hash race to
+        # create `GroupHash` and `GroupHashMetadata` records, and each event wins one of the races,
+        # which results in the metadata not having a `date_added` value
+        def race_condition_create_or_update_grouphash_metadata(
+            event, project, grouphash, created, grouping_config, variants
+        ):
+            create_or_update_grouphash_metadata_if_needed(
+                event, project, grouphash, created, grouping_config, variants
+            )
+            assert grouphash.metadata
+            grouphash.metadata.update(date_added=None)
+            assert not grouphash.metadata.date_added
+
+        with (
+            patch(
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=[],
+            ),
+            patch(
+                "sentry.grouping.ingest.hashing.create_or_update_grouphash_metadata_if_needed",
+                wraps=race_condition_create_or_update_grouphash_metadata,
+            ) as mock_create_or_update_grouphash_metadata,
+        ):
+            event = save_new_event(get_event_data(), self.project)
+            event_grouphash = GroupHash.objects.filter(
+                hash=event.get_primary_hash(), project_id=self.project.id
+            ).first()
+            assert event_grouphash and event_grouphash.metadata
+
+            # Our mock was called, so we know that going into the Seer call, the grouphash had no
+            # `date_added` in its metadata, because that's asserted in the mock
+            mock_create_or_update_grouphash_metadata.assert_called()
+            # Now, however, it does, and it's the same as the Seer timestamp
+            assert event_grouphash.metadata.date_added
+            assert event_grouphash.metadata.seer_date_sent == event_grouphash.metadata.date_added

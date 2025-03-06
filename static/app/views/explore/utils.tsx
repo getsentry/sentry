@@ -167,3 +167,10 @@ export function limitMaxPickableDays(organization: Organization): {
     },
   };
 }
+
+export function showConfidence(isSampled: boolean | null | undefined) {
+  if (defined(isSampled) && isSampled === false) {
+    return false;
+  }
+  return true;
+}
