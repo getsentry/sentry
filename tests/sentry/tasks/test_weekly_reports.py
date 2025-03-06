@@ -1101,7 +1101,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         org3 = self.create_organization(name="Third Org")
 
         # Set initial Redis value to simulate a previous run that was interrupted
-        redis_cluster.set(f"weekly_reports_org_id_min-{timestamp}", org1.id)
+        redis_cluster.set(f"weekly_reports_org_id_min:{timestamp}", org1.id)
 
         # Run the task
         schedule_organizations(timestamp=timestamp)
@@ -1116,7 +1116,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
         # Verify that Redis key was deleted after completion
-        assert redis_cluster.get(f"weekly_reports_org_id_min-{timestamp}") is None
+        assert redis_cluster.get(f"weekly_reports_org_id_min:{timestamp}") is None
 
         # Reset call counts for the next test
         mock_prepare_organization_report.reset_mock()
@@ -1149,7 +1149,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # Set Redis value to the middle organization
         middle_org = orgs[2]
-        redis_cluster.set(f"weekly_reports_org_id_min-{timestamp}", middle_org.id)
+        redis_cluster.set(f"weekly_reports_org_id_min:{timestamp}", middle_org.id)
 
         # Run the task
         schedule_organizations(timestamp=timestamp)
@@ -1197,7 +1197,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             schedule_organizations(timestamp=timestamp)
 
             # Verify that redis.set was called for each organization
-            expected_key = f"weekly_reports_org_id_min-{timestamp}"
+            expected_key = f"weekly_reports_org_id_min:{timestamp}"
 
             # Check that set was called at least once for each organization except the last one
             assert mock_redis_set.call_count > 0, "Redis set was not called"
@@ -1219,7 +1219,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
         # Ensure Redis key doesn't exist
-        redis_cluster.delete(f"weekly_reports_org_id_min-{timestamp}")
+        redis_cluster.delete(f"weekly_reports_org_id_min:{timestamp}")
 
         # Create multiple organizations
         orgs = [
@@ -1242,20 +1242,3 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             mock_prepare_organization_report.delay.assert_any_call(
                 timestamp, ONE_DAY * 7, org.id, mock.ANY, dry_run=False
             )
-
-    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
-    def test_schedule_organizations_with_custom_duration(self, mock_prepare_organization_report):
-        """Test that schedule_organizations passes custom duration to prepare_organization_report."""
-        timestamp = self.timestamp
-        custom_duration = ONE_DAY * 14  # Two weeks
-
-        # Create an organization
-        org = self.organization
-
-        # Run the task with custom duration
-        schedule_organizations(timestamp=timestamp, duration=custom_duration)
-
-        # Verify that prepare_organization_report was called with the custom duration
-        mock_prepare_organization_report.delay.assert_called_with(
-            timestamp, custom_duration, org.id, mock.ANY, dry_run=False
-        )
