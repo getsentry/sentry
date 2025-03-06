@@ -46,7 +46,7 @@ def emit_click_events(
             "timestamp": click.timestamp,
             "title": click.title,
         }
-        for click in click_events
+        for click in click_events[:20]
     ]
 
     payload: ReplayActionsEventPayload = {
