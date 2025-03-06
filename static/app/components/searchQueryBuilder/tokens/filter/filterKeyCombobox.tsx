@@ -47,7 +47,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     (keyName: string) => {
       const newFieldDef = getFieldDefinition(keyName);
       const newFilterValueType = getFilterValueType(token, newFieldDef);
-      const displayKey = escapeFilterKey(keyName);
 
       if (keyName === getKeyName(token.key)) {
         onCommit();
@@ -64,7 +63,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
           token,
-          key: displayKey,
+          key: escapeFilterKey(keyName),
         });
         onCommit();
         return;
@@ -73,7 +72,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text: getInitialFilterText(displayKey, newFieldDef),
+        text: getInitialFilterText(keyName, newFieldDef),
         focusOverride: {
           itemKey: item.key.toString(),
           part: 'value',
