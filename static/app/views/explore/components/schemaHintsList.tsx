@@ -5,8 +5,9 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -15,6 +16,12 @@ interface SchemaHintsListProps {
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
 }
+
+const seeFullListTag: Tag = {
+  key: 'seeFullList',
+  name: 'See full list',
+  kind: undefined,
+};
 
 function SchemaHintsList({
   supportedAggregates,
@@ -55,12 +62,13 @@ function SchemaHintsList({
       let currentWidth = 0;
       const gap = 8;
       const averageHintWidth = 250;
+      const seeFullListTagWidth = 150;
 
       const visibleItems = filterTagsSorted.filter((_hint, index) => {
         const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
         if (!element) {
-          // add in a new hint if there is enough space
-          if (containerWidth - currentWidth >= averageHintWidth) {
+          // add in a new hint if there is enough space (taking into account the 'See full list' tag)
+          if (containerWidth - seeFullListTagWidth - currentWidth >= averageHintWidth) {
             currentWidth += averageHintWidth + (index > 0 ? gap : 0);
             return true;
           }
@@ -70,10 +78,11 @@ function SchemaHintsList({
         const itemWidth = element.offsetWidth;
         currentWidth += itemWidth + (index > 0 ? gap : 0);
 
-        return currentWidth <= containerWidth;
+        // the last item is the 'See full list' tag, so we need make sure it fits in the remaining space
+        return currentWidth <= containerWidth - seeFullListTagWidth;
       });
 
-      setVisibleHints(visibleItems);
+      setVisibleHints([...visibleItems, seeFullListTag]);
     }, 100);
 
     // initial calculation
@@ -90,10 +99,9 @@ function SchemaHintsList({
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map((hint, index) => (
-        <SchemaHintOption
-          key={index}
-          data-type={hint?.key}
-        >{`${hint?.key} is ...`}</SchemaHintOption>
+        <SchemaHintOption key={index} data-type={hint?.key}>
+          {hint?.key === seeFullListTag.key ? t('See full list') : `${hint?.name} is ...`}
+        </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
   );
