@@ -1,9 +1,7 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
 
 import orjson
-import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -12,9 +10,9 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import BrokerValue, Commit, Message, Partition, Value
+from arroyo.types import Commit, Message, Partition, Value
 from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment, SegmentSpan
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -27,33 +25,31 @@ BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_topic_codec(Topic.BUFFERED
 logger = logging.getLogger(__name__)
 
 
-def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
+def _deserialize_segment(value: bytes) -> BufferedSegment:
     return BUFFERED_SEGMENT_SCHEMA.decode(value)
 
 
-def process_message(message: Message[KafkaPayload]):
+def process_message(message: Message[KafkaPayload]) -> list[SegmentSpan]:
     value = message.payload.value
     segment = _deserialize_segment(value)
     return process_segment(segment["spans"])
 
 
-def _process_message(message: Message[KafkaPayload]):
+def _process_message(message: Message[KafkaPayload]) -> list[SegmentSpan]:
     if not options.get("standalone-spans.process-segments-consumer.enable"):
-        return
-
-    assert isinstance(message.value, BrokerValue)
+        return []
 
     try:
-        with sentry_sdk.start_transaction(
-            op="process", name="spans.process_segments.process_message"
-        ):
-            sentry_sdk.set_measurement("message_size.bytes", len(message.payload.value))
-            return process_message(message)
-    except Exception:
-        sentry_sdk.capture_exception()
+        return process_message(message)
+    except Exception:  # NOQA
+        raise
+        # TODO: Implement error handling
+        # sentry_sdk.capture_exception()
+        # assert isinstance(message.value, BrokerValue)
+        # raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def explode_segment(message: tuple[list[dict[str, Any]], Mapping[Partition, int]]):
+def explode_segment(message: tuple[list[SegmentSpan], Mapping[Partition, int]]):
     spans, committable = message
     last = len(spans) - 1
     for i, span in enumerate(spans):
