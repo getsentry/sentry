@@ -24,7 +24,7 @@ export function extractSlug(hostname: string): ExtractedSlug | null {
   ] = match;
 
   const [slug, ...domainParts] = hostname.replace(matchedExpression, '').split('.');
-  const domain = domainParts.concat(matchedDomain).join('.');
+  const domain = domainParts.concat(matchedDomain!).join('.');
 
-  return {slug, domain};
+  return {slug: slug!, domain};
 }

@@ -32,6 +32,7 @@ from sentry.utils.redis import clusters
 def _set_up_request():
     request = RequestFactory().post("/auth/sso/")
     request.user = AnonymousUser()
+    request.auth = None
     request.session = Client().session
     return request
 
@@ -70,7 +71,7 @@ class AuthIdentityHandlerTest(TestCase):
             rpc_organization = serialize_rpc_organization(self.organization)
         return AuthIdentityHandler(
             self.auth_provider_inst,
-            DummyProvider(self.provider),
+            DummyProvider(),
             rpc_organization,
             self.request,
             identity,

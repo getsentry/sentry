@@ -5,7 +5,7 @@ import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-export default function DynamicAlertsFeedbackButton({}) {
+export default function DynamicAlertsFeedbackButton() {
   const openForm = useFeedbackForm();
 
   if (!openForm) {

@@ -12,6 +12,7 @@ interface Props {
   closeTag: string;
   openTag: string;
   path: string;
+  noBasePadding?: boolean;
   prefix?: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function CollapsibleValue({
   openTag,
   path,
   prefix = null,
+  noBasePadding,
 }: Props) {
   const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
   const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
@@ -32,7 +34,7 @@ export function CollapsibleValue({
 
   // Toggle buttons get placed to the left of the open tag, but if this is the
   // base level there is no room for it. So we add padding in this case.
-  const baseLevelPadding = isBaseLevel && shouldShowToggleButton;
+  const baseLevelPadding = isBaseLevel && shouldShowToggleButton && !noBasePadding;
 
   return (
     <CollapsibleDataContainer data-base-with-toggle={baseLevelPadding}>

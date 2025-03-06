@@ -9,7 +9,7 @@ from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -117,8 +117,8 @@ def generate_transaction(trace=None, span=None):
             (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
             span_start_time = start_datetime + start_delta
-            span["start_timestamp"] = timestamp_format(span_start_time)
-            span["timestamp"] = timestamp_format(span_start_time + span_length)
+            span["start_timestamp"] = span_start_time.timestamp()
+            span["timestamp"] = (span_start_time + span_length).timestamp()
             spans.append(span)
 
             if isinstance(child, dict):
@@ -135,8 +135,8 @@ def generate_transaction(trace=None, span=None):
                 (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
                 span_start_time = start_datetime + start_delta
-                span["start_timestamp"] = timestamp_format(span_start_time)
-                span["timestamp"] = timestamp_format(span_start_time + span_length)
+                span["start_timestamp"] = span_start_time.timestamp()
+                span["timestamp"] = (span_start_time + span_length).timestamp()
                 spans.append(span)
 
         return spans
@@ -183,8 +183,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_all_events_query(self, mock_now):
         now = before_now()
         mock_now.return_value = now
-        five_mins_ago = iso_format(now - timedelta(minutes=5))
-        ten_mins_ago = iso_format(now - timedelta(minutes=10))
+        five_mins_ago = (now - timedelta(minutes=5)).isoformat()
+        ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -238,7 +238,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_errors_query(self, mock_now):
         now = before_now()
         mock_now.return_value = now
-        ten_mins_ago = iso_format(now - timedelta(minutes=10))
+        ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -306,7 +306,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_event_detail_view_from_all_events(self, mock_now):
         now = before_now()
         mock_now.return_value = now
-        ten_mins_ago = iso_format(now - timedelta(minutes=10))
+        ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
 
         event_data = load_data("python")
         event_data.update(
@@ -346,7 +346,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = load_data("javascript")
         event_data.update(
             {
-                "timestamp": iso_format(now - timedelta(minutes=5)),
+                "timestamp": (now - timedelta(minutes=5)).isoformat(),
                 "event_id": "d" * 32,
                 "fingerprint": ["group-1"],
             }
@@ -646,7 +646,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_drilldown_result(self, mock_now):
         now = before_now()
         mock_now.return_value = now
-        ten_mins_ago = iso_format(now - timedelta(minutes=10))
+        ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
         events = (
             ("a" * 32, "oh no", "group-1"),
             ("b" * 32, "oh no", "group-1"),

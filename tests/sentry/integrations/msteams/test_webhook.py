@@ -12,6 +12,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
@@ -38,7 +39,7 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -397,9 +398,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -435,10 +434,7 @@ class MsTeamsWebhookTest(APITestCase):
         ].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -477,32 +473,16 @@ class MsTeamsWebhookTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "msteams"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "msteams", "status": 200},
             ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "msteams", "status": 200},
-            ),
-        ]
+        ] * 4
         assert self.metrics.incr.mock_calls == calls
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -544,9 +524,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")

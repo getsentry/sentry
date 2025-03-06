@@ -1,5 +1,4 @@
 import {useCallback, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -7,10 +6,8 @@ import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import MenuItem from 'sentry/components/menuItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -152,7 +149,7 @@ function CustomRepositories({
     const index = newRepositories.findIndex(item => item.id === repoId);
     newRepositories.splice(index, 1);
     persistData({
-      updatedItems: newRepositories as CustomRepo[],
+      updatedItems: newRepositories,
       refresh: false,
     });
   }
@@ -184,35 +181,17 @@ function CustomRepositories({
                         : undefined
                     }
                   >
-                    <DropdownAutoComplete
-                      alignMenu="right"
-                      disabled={addRepositoryButtonDisabled}
-                      onSelect={item => handleAddRepository(item.value)}
-                      items={dropDownItems.map(dropDownItem => ({
-                        ...dropDownItem,
-                        label: (
-                          <DropDownLabel
-                            aria-label={t(
-                              'Open %s custom repository modal',
-                              dropDownItem.label
-                            )}
-                          >
-                            {dropDownItem.label}
-                          </DropDownLabel>
-                        ),
+                    <DropdownMenu
+                      usePortal
+                      triggerLabel={t('Add Repository')}
+                      triggerProps={{size: 'xs'}}
+                      items={dropDownItems.map(item => ({
+                        ...item,
+                        onAction: () => handleAddRepository(item.key),
                       }))}
-                    >
-                      {({isOpen}) => (
-                        <DropdownButton
-                          isOpen={isOpen}
-                          disabled={addRepositoryButtonDisabled}
-                          size="xs"
-                          aria-label={t('Add Repository')}
-                        >
-                          {t('Add Repository')}
-                        </DropdownButton>
-                      )}
-                    </DropdownAutoComplete>
+                      isDisabled={addRepositoryButtonDisabled}
+                      position="bottom-end"
+                    />
                   </Tooltip>
                 </PanelHeader>
                 <PanelBody>
@@ -243,13 +222,3 @@ function CustomRepositories({
 }
 
 export default CustomRepositories;
-
-const DropDownLabel = styled(MenuItem)`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  text-transform: none;
-  span {
-    padding: 0;
-  }
-`;

@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -27,8 +27,6 @@ export const MAX_SCREENSHOTS_PER_PAGE = 20;
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
   eventAttachment: EventAttachment;
-  onDelete: () => void;
-  onDownload: () => void;
   projectSlug: Project['slug'];
   /**
    * Enables pagination of screenshots.
@@ -38,6 +36,8 @@ interface ScreenshotModalProps extends ModalRenderProps {
    * Enables navigation to the issue details page.
    */
   groupId?: string;
+  onDelete?: () => void;
+  onDownload?: () => void;
 }
 
 export default function ScreenshotModal({
@@ -65,20 +65,20 @@ export default function ScreenshotModal({
       if (attachments.length) {
         const newIndex = currentAttachmentIndex + delta;
         if (newIndex >= 0 && newIndex < attachments.length) {
-          setCurrentAttachment(attachments[newIndex]);
+          setCurrentAttachment(attachments[newIndex]!);
         }
       }
     },
     [attachments, currentAttachmentIndex]
   );
 
-  useHotkeys(
-    [
+  const paginateHotkeys = useMemo(() => {
+    return [
       {match: 'right', callback: () => paginateItems(1)},
       {match: 'left', callback: () => paginateItems(-1)},
-    ],
-    [paginateItems]
-  );
+    ];
+  }, [paginateItems]);
+  useHotkeys(paginateHotkeys);
 
   const {dateCreated, size, mimetype} = currentEventAttachment;
 
@@ -152,14 +152,16 @@ export default function ScreenshotModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Confirm
-            confirmText={t('Delete')}
-            message={<h6>{t('Are you sure you want to delete this screenshot?')}</h6>}
-            priority="danger"
-            onConfirm={onDelete}
-          >
-            <Button priority="danger">{t('Delete')}</Button>
-          </Confirm>
+          {onDelete && (
+            <Confirm
+              confirmText={t('Delete')}
+              message={<h6>{t('Are you sure you want to delete this screenshot?')}</h6>}
+              priority="danger"
+              onConfirm={onDelete}
+            >
+              <Button priority="danger">{t('Delete')}</Button>
+            </Confirm>
+          )}
           <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </LinkButton>

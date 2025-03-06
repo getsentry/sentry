@@ -35,7 +35,7 @@ def _load_settings(filename: str, settings: types.ModuleType) -> None:
 def install_plugin_apps(entry_point: str, settings: Any) -> None:
     # entry_points={
     #    'sentry.apps': [
-    #         'phabricator = sentry_phabricator'
+    #         'example = sentry_plugins.example.plugin'
     #     ],
     # },
     installed_apps = list(settings.INSTALLED_APPS)

@@ -18,7 +18,7 @@ class RedisBackendTestCaseBase:
 
     @property
     def cluster(self):
-        return clusters.get("default")
+        raise NotImplementedError
 
     @property
     def backend(self):

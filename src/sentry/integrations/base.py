@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import Enum, StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
@@ -175,10 +175,6 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     ],
 }
 
-INTEGRATION_PROVIDER_TO_TYPE = {
-    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
-}
-
 
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
@@ -292,7 +288,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
@@ -516,9 +512,6 @@ class IntegrationInstallation(abc.ABC):
     # NotifyBasicMixin noops
 
     def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
-        pass
-
-    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass
 
 

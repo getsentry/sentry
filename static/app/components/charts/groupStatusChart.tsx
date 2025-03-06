@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -9,7 +10,6 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -18,15 +18,15 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
   };
 }
 
-const EMPTY_STATS: ReadonlyArray<TimeseriesValue> = [];
+const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
 type Props = {
-  stats: ReadonlyArray<TimeseriesValue>;
+  stats: readonly TimeseriesValue[];
   groupStatus?: string;
   height?: number;
   hideZeros?: boolean;
   loading?: boolean;
-  secondaryStats?: ReadonlyArray<TimeseriesValue>;
+  secondaryStats?: readonly TimeseriesValue[];
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
@@ -41,6 +41,7 @@ function GroupStatusChart({
   showMarkLine = false,
   showSecondaryPoints = false,
 }: Props) {
+  const theme = useTheme();
   const graphOptions = useMemo<{
     colors: [string] | undefined;
     emphasisColors: [string] | undefined;
@@ -102,7 +103,14 @@ function GroupStatusChart({
       },
     ];
     return {colors: [theme.gray300], emphasisColors: [theme.gray300], series};
-  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
+  }, [
+    showSecondaryPoints,
+    secondaryStats,
+    showMarkLine,
+    stats,
+    theme.gray200,
+    theme.gray300,
+  ]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>

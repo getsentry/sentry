@@ -14,7 +14,6 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -23,6 +22,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
@@ -40,7 +40,7 @@ import {
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
-const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
+const COLUMN_ORDER: Array<GridColumnOrder<keyof RowWithScoreAndOpportunity>> = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
@@ -65,6 +65,7 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const moduleUrl = useModuleURL(ModuleName.VITAL);
@@ -95,7 +96,7 @@ export function PagePerformanceTable() {
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
+    opportunity: (row.opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -239,6 +240,7 @@ export function PagePerformanceTable() {
       const func = 'count_scores';
       const args = [measurement?.replace('measurements.', 'measurements.score.')];
       const countWebVitalKey = `${func}(${args.join(', ')})`;
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (measurement === undefined || countWebVital === 0) {
         return (
@@ -251,6 +253,7 @@ export function PagePerformanceTable() {
     }
     if (key === 'p75(measurements.cls)') {
       const countWebVitalKey = 'count_scores(measurements.score.cls)';
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (countWebVital === 0) {
         return (
@@ -259,13 +262,11 @@ export function PagePerformanceTable() {
           </AlignRight>
         );
       }
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return <AlignRight>{Math.round(row[key] * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
       if (row.opportunity !== undefined) {
-        return (
-          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
-        );
+        return <AlignRight>{Math.round(row.opportunity * 100) / 100}</AlignRight>;
       }
       return null;
     }
@@ -289,7 +290,7 @@ export function PagePerformanceTable() {
       query: newQuery,
       source: ModuleName.VITAL,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,

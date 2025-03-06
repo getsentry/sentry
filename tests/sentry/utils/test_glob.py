@@ -1,43 +1,50 @@
+from typing import NamedTuple, Self
+
 import pytest
 
 from sentry.utils.glob import glob_match
 
 
-class GlobInput:
-    def __init__(self, value, pat, **kwargs):
-        self.value = value
-        self.pat = pat
-        self.kwargs = kwargs
+class GlobInput(NamedTuple):
+    value: str | None
+    pat: str
+    kwargs: dict[str, bool]
+
+    @classmethod
+    def make(cls, value: str | None, pat: str, **kwargs: bool) -> Self:
+        return cls(value=value, pat=pat, kwargs=kwargs)
 
     def __call__(self):
         return glob_match(self.value, self.pat, **self.kwargs)
-
-    def __repr__(self):
-        return f"<GlobInput {self.__dict__!r}>"
 
 
 @pytest.mark.parametrize(
     "glob_input,expect",
     [
-        [GlobInput("hello.py", "*.py"), True],
-        [GlobInput("hello.py", "*.js"), False],
-        [GlobInput(None, "*.js"), False],
-        [GlobInput(None, "*"), True],
-        [GlobInput("foo/hello.py", "*.py"), True],
-        [GlobInput("foo/hello.py", "*.py", doublestar=True), False],
-        [GlobInput("foo/hello.py", "**/*.py", doublestar=True), True],
-        [GlobInput("foo/hello.PY", "**/*.py"), False],
-        [GlobInput("foo/hello.PY", "**/*.py", doublestar=True), False],
-        [GlobInput("foo/hello.PY", "**/*.py", ignorecase=True), True],
-        [GlobInput("foo/hello.PY", "**/*.py", doublestar=True, ignorecase=True), True],
-        [GlobInput("root\\foo\\hello.PY", "root/**/*.py", ignorecase=True), False],
-        [GlobInput("root\\foo\\hello.PY", "root/**/*.py", doublestar=True, ignorecase=True), False],
+        [GlobInput.make("hello.py", "*.py"), True],
+        [GlobInput.make("hello.py", "*.js"), False],
+        [GlobInput.make(None, "*.js"), False],
+        [GlobInput.make(None, "*"), True],
+        [GlobInput.make("foo/hello.py", "*.py"), True],
+        [GlobInput.make("foo/hello.py", "*.py", doublestar=True), False],
+        [GlobInput.make("foo/hello.py", "**/*.py", doublestar=True), True],
+        [GlobInput.make("foo/hello.PY", "**/*.py"), False],
+        [GlobInput.make("foo/hello.PY", "**/*.py", doublestar=True), False],
+        [GlobInput.make("foo/hello.PY", "**/*.py", ignorecase=True), True],
+        [GlobInput.make("foo/hello.PY", "**/*.py", doublestar=True, ignorecase=True), True],
+        [GlobInput.make("root\\foo\\hello.PY", "root/**/*.py", ignorecase=True), False],
         [
-            GlobInput("root\\foo\\hello.PY", "root/**/*.py", ignorecase=True, path_normalize=True),
+            GlobInput.make("root\\foo\\hello.PY", "root/**/*.py", doublestar=True, ignorecase=True),
+            False,
+        ],
+        [
+            GlobInput.make(
+                "root\\foo\\hello.PY", "root/**/*.py", ignorecase=True, path_normalize=True
+            ),
             True,
         ],
         [
-            GlobInput(
+            GlobInput.make(
                 "root\\foo\\hello.PY",
                 "root/**/*.py",
                 doublestar=True,
@@ -46,8 +53,8 @@ class GlobInput:
             ),
             True,
         ],
-        [GlobInput("foo:\nbar", "foo:*"), True],
-        [GlobInput("foo:\nbar", "foo:*", allow_newline=False), False],
+        [GlobInput.make("foo:\nbar", "foo:*"), True],
+        [GlobInput.make("foo:\nbar", "foo:*", allow_newline=False), False],
     ],
 )
 def test_glob_match(glob_input, expect):

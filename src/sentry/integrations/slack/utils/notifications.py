@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 import orjson
 import sentry_sdk
@@ -26,19 +25,14 @@ from sentry.integrations.repository.metric_alert import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import (
     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
     SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
-    SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
-    SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
+    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
-from sentry.integrations.slack.utils.errors import (
-    CHANNEL_ARCHIVED,
-    CHANNEL_NOT_FOUND,
-    unpack_slack_api_error,
-)
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 
@@ -76,8 +70,8 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    attachment: Any = SlackIncidentsMessageBuilder(
-        action, incident, new_status, metric_value, chart_url, notification_uuid
+    attachment: SlackBlock = SlackIncidentsMessageBuilder(
+        incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
@@ -144,7 +138,6 @@ def send_incident_alert_notification(
                 unfurl_links=False,
                 unfurl_media=False,
             )
-            metrics.incr(SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError as e:
             # Record the error code and details from the exception
             new_notification_message_object.error_code = e.response.status_code
@@ -165,30 +158,10 @@ def send_incident_alert_notification(
             if action.target_display:
                 log_params["channel_name"] = action.target_display
 
-            # TODO(iamrajjoshi): Remove this after we validate lifecycle
-            _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
-
-            metrics.incr(
-                SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-            )
-
             lifecycle.add_extras(log_params)
             # If the error is a channel not found or archived, we can halt the flow
             # This means that the channel was deleted or archived after the alert rule was created
-            if (
-                (reason := unpack_slack_api_error(e))
-                and reason is not None
-                and reason
-                in (
-                    CHANNEL_NOT_FOUND,
-                    CHANNEL_ARCHIVED,
-                )
-            ):
-                lifecycle.record_halt(reason.message)
-            else:
-                lifecycle.record_failure(e)
+            record_lifecycle_termination_level(lifecycle, e)
 
         else:
             success = True

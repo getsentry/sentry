@@ -2,6 +2,10 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
+// Note: This component is also used in Explore multi-query mode
+// static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
+// and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
+// and not just for PageFilters as the name indicates.
 const PageFilterBar = styled('div')<{condensed?: boolean}>`
   display: flex;
   position: relative;

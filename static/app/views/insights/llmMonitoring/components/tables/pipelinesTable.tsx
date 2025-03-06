@@ -15,7 +15,6 @@ import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -24,6 +23,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {
@@ -94,6 +94,7 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 export function EAPPipelinesTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
 
@@ -183,14 +184,14 @@ export function EAPPipelinesTable() {
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
   };
 
   const handleSearch = (newQuery: string) => {
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -242,6 +243,7 @@ export function EAPPipelinesTable() {
 }
 
 export function PipelinesTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
 
@@ -329,14 +331,14 @@ export function PipelinesTable() {
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
   };
 
   const handleSearch = (newQuery: string) => {
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,

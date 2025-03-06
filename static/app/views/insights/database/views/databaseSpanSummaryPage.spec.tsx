@@ -10,6 +10,9 @@ import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/data
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
@@ -27,7 +30,7 @@ describe('DatabaseSpanSummaryPage', function () {
         period: '10d',
         start: null,
         end: null,
-        utc: false,
+        utc: null,
       },
       environments: [],
       projects: [],
@@ -42,6 +45,14 @@ describe('DatabaseSpanSummaryPage', function () {
     state: undefined,
     action: 'PUSH',
     key: '',
+  });
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 
   beforeEach(function () {
@@ -151,9 +162,6 @@ describe('DatabaseSpanSummaryPage', function () {
         {...RouteComponentPropsFixture()}
         params={{
           groupId: '1756baf8fd19c116',
-          transaction: '',
-          transactionMethod: '',
-          transactionsSort: '',
         }}
       />,
       {organization}
@@ -230,6 +238,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -256,6 +265,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -311,7 +321,6 @@ describe('DatabaseSpanSummaryPage', function () {
           shortIdLookup: 1,
           project: [],
           statsPeriod: '10d',
-          utc: 'false',
         },
       })
     );

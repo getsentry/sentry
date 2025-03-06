@@ -106,7 +106,7 @@ class HandleStatusChangeTest(TestCase):
             self.projects,
             self.project_lookup,
             acting_user=self.user,
-            is_bulk=True,
+            is_bulk=False,
             status_details={},
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
@@ -131,7 +131,7 @@ class HandleStatusChangeTest(TestCase):
             acting_user=self.user,
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
-            is_bulk=True,
+            is_bulk=False,
             status_details={},
             sender=self,
         )
@@ -154,7 +154,7 @@ class HandleStatusChangeTest(TestCase):
             acting_user=self.user,
             new_status=GroupStatus.IGNORED,
             new_substatus=None,
-            is_bulk=True,
+            is_bulk=False,
             status_details={"ignoreDuration": 30},
             sender=self,
         )
@@ -177,7 +177,7 @@ class HandleStatusChangeTest(TestCase):
             acting_user=self.user,
             new_status=GroupStatus.IGNORED,
             new_substatus=None,
-            is_bulk=True,
+            is_bulk=False,
             status_details={"ignoreUntilEscalating": True},
             sender=self,
         )

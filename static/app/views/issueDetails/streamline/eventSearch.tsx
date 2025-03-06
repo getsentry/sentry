@@ -11,6 +11,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {joinQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {
   FieldKind,
   getFieldDefinition,
@@ -41,7 +42,7 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-export function useEventQuery({group}: {group: Group}): string {
+export function useEventQuery({groupId}: {groupId: string}): string {
   const {selection} = usePageFilters();
   const location = useLocation();
   const environments = selection.environments;
@@ -55,7 +56,7 @@ export function useEventQuery({group}: {group: Group}): string {
   }
 
   const {data = []} = useGroupTags({
-    groupId: group.id,
+    groupId,
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);
@@ -71,7 +72,7 @@ export function useEventQuery({group}: {group: Group}): string {
   // For example: "is:unresolved browser.name:firefox" -> "browser.name:firefox"
   // Note: This is _probably_ not accounting for MANY invalid filters which could come in from the
   // issue stream. Will likely have to refine this in the future.
-  const validQuery = parsedQuery.filter(token => {
+  const validQuery = parsedQuery.filter((token: any) => {
     if (token.type === Token.FREE_TEXT) {
       return false;
     }
@@ -186,6 +187,16 @@ export function EventSearch({
 
   const filterKeySections = useMemo(() => getFilterKeySections(filterKeys), [filterKeys]);
 
+  const experimentSearchSource = hasStreamlinedUI
+    ? 'new_org_issue_details_header'
+    : 'new_org_issue_events_tab';
+
+  const searchSource = defined(organization.streamlineOnly)
+    ? experimentSearchSource
+    : hasStreamlinedUI
+      ? 'issue_details_header'
+      : 'issue_events_tab';
+
   return (
     <SearchQueryBuilder
       initialQuery={query}
@@ -195,7 +206,7 @@ export function EventSearch({
       getTagValues={getTagValues}
       placeholder={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events\u2026')}
       label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
-      searchSource={hasStreamlinedUI ? 'issue_details_header' : 'issue_events_tab'}
+      searchSource={searchSource}
       className={className}
       showUnsubmittedIndicator
       {...queryBuilderProps}

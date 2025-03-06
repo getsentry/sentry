@@ -59,7 +59,17 @@ function Banner({
   return (
     <BannerWrapper backgroundImg={backgroundImg} className={className}>
       {backgroundComponent}
-      {isDismissable ? <CloseButton onClick={dismiss} aria-label={t('Close')} /> : null}
+      {isDismissable ? (
+        <CloseButton
+          type="button"
+          borderless
+          size="xs"
+          priority="link"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close')}
+        />
+      ) : null}
       <BannerContent>
         <BannerTitle>{title}</BannerTitle>
         <BannerSubtitle>{subtitle}</BannerSubtitle>
@@ -138,13 +148,5 @@ const CloseButton = styled(Button)`
   cursor: pointer;
   z-index: 1;
 `;
-
-CloseButton.defaultProps = {
-  icon: <IconClose />,
-  ['aria-label']: t('Close'),
-  priority: 'link',
-  borderless: true,
-  size: 'xs',
-};
 
 export default Banner;

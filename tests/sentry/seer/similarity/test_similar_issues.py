@@ -20,13 +20,12 @@ from sentry.seer.similarity.types import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
-from sentry.utils.types import NonNone
 
 
 class GetSimilarityDataFromSeerTest(TestCase):
     def setUp(self):
         self.similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
-        self.similar_event_hash = NonNone(self.similar_event.get_primary_hash())
+        self.similar_event_hash = self.similar_event.get_primary_hash()
         self.request_params: SimilarIssuesEmbeddingsRequest = {
             "event_id": "12312012041520130908201311212012",
             "hash": "11212012123120120415201309082013",
@@ -270,7 +269,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "stacktrace_distance": 0.01,
         }
         raw_less_similar_issue_data: RawSeerSimilarIssueData = {
-            "parent_hash": NonNone(less_similar_event.get_primary_hash()),
+            "parent_hash": less_similar_event.get_primary_hash(),
             "should_group": False,
             "stacktrace_distance": 0.05,
         }

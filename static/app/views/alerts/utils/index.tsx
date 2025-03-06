@@ -8,15 +8,13 @@ import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
-import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {
   Dataset,
   Datasource,
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
 import type {CombinedAlerts, Incident, IncidentStats} from '../types';
 import {AlertRuleStatus, CombinedAlertType} from '../types';
@@ -25,9 +23,9 @@ import {AlertRuleStatus, CombinedAlertType} from '../types';
  * Gets start and end date query parameters from stats
  */
 export function getStartEndFromStats(stats: IncidentStats) {
-  const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
+  const start = getUtcDateString(stats.eventStats.data[0]![0] * 1000);
   const end = getUtcDateString(
-    stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
+    stats.eventStats.data[stats.eventStats.data.length - 1]![0] * 1000
   );
 
   return {start, end};
@@ -112,9 +110,11 @@ export function getQueryDatasource(
   }
 
   match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
-  if (match && Datasource[match[2].toUpperCase()]) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  if (match && Datasource[match[2]!.toUpperCase()]) {
     return {
-      source: Datasource[match[2].toUpperCase()],
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      source: Datasource[match[2]!.toUpperCase()],
       query: query.replace(match[0], '').trim(),
     };
   }
@@ -126,7 +126,7 @@ export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
 
-export const SESSION_AGGREGATE_TO_FIELD = {
+export const SESSION_AGGREGATE_TO_FIELD: Record<string, SessionFieldWithOperation> = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionFieldWithOperation.SESSIONS,
   [SessionsAggregate.CRASH_FREE_USERS]: SessionFieldWithOperation.USERS,
 };
@@ -136,13 +136,13 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
-  if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
+  const type = aggregateOutputType(seriesName);
+
+  if (type === 'duration') {
+    return formatMetricUsingUnit(value, 'milliseconds');
   }
 
-  return axisLabelFormatter(value, aggregateOutputType(seriesName));
+  return axisLabelFormatter(value, type);
 }
 
 export function alertTooltipValueFormatter(
@@ -152,12 +152,6 @@ export function alertTooltipValueFormatter(
 ) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${value}%` : '\u2015';
-  }
-
-  if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));
@@ -206,4 +200,21 @@ export function getTeamParams(team?: string | string[]): string[] {
   }
 
   return toArray(team);
+}
+
+/**
+ * Normalize an alert type string
+ */
+export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
+  if (alertType === undefined) {
+    return [];
+  }
+
+  if (alertType === '') {
+    return [];
+  }
+
+  const validTypes = new Set(Object.values(CombinedAlertType));
+
+  return [...validTypes.intersection(new Set(toArray(alertType)))];
 }

@@ -1,16 +1,14 @@
 import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
-import type {Incident, MetricAlert} from 'sentry/views/alerts/types';
-import {CombinedAlertType} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 import useConfiguration from '../../hooks/useConfiguration';
@@ -86,12 +84,6 @@ function AlertListItem({item}: {item: Incident}) {
     ? {type: 'team' as Actor['type'], id: ownerId, name: ownerTeam?.name ?? ''}
     : null;
 
-  const rule: MetricAlert = {
-    type: CombinedAlertType.METRIC,
-    ...item.alertRule,
-    latestIncident: item,
-  };
-
   return (
     <div
       css={[
@@ -106,16 +98,36 @@ function AlertListItem({item}: {item: Incident}) {
         `,
       ]}
     >
-      <div css={{gridArea: 'badge'}}>
+      <div
+        css={css`
+          grid-area: badge;
+        `}
+      >
         <AlertBadge status={item.status} isIssue={false} />
       </div>
 
-      <div css={[gridFlexEndCss, xSmallCss, {gridArea: 'time', color: 'var(--gray300)'}]}>
+      <div
+        css={[
+          gridFlexEndCss,
+          xSmallCss,
+          css`
+            grid-area: time;
+            color: var(--gray300);
+          `,
+        ]}
+      >
         <TimeSince date={item.dateStarted} unitStyle="extraShort" />
       </div>
 
       <AnalyticsProvider nameVal="item" keyVal="item">
-        <TextOverflow css={[smallCss, {gridArea: 'name'}]}>
+        <TextOverflow
+          css={[
+            smallCss,
+            css`
+              grid-area: name;
+            `,
+          ]}
+        >
           <SentryAppLink
             to={{
               url: alertDetailsLink({slug: organizationSlug} as Organization, item),
@@ -126,10 +138,6 @@ function AlertListItem({item}: {item: Incident}) {
           </SentryAppLink>
         </TextOverflow>
       </AnalyticsProvider>
-
-      <div css={[smallCss, {gridArea: 'message', '> div': {flexDirection: 'row'}}]}>
-        <ActivatedMetricAlertRuleStatus rule={rule} />
-      </div>
 
       {teamActor ? (
         <div

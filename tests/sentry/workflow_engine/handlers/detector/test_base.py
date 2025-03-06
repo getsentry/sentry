@@ -10,6 +10,7 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.handlers.detector.stateful import StatefulDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
@@ -64,7 +65,7 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
     def get_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
 
-    def get_group_key_values(self, data_packet: DataPacket[dict]) -> dict[str, int]:
+    def get_group_key_values(self, data_packet: DataPacket[dict]) -> dict[str | None, int]:
         return data_packet.packet.get("group_vals", {})
 
     def build_occurrence_and_event_data(
@@ -82,6 +83,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             StatusChangeMessage, "__eq__", status_change_comparator
         )
         self.sm_comp_patcher.__enter__()
+        project_id = self.project.id
 
         class NoHandlerGroupType(GroupType):
             type_id = 1
@@ -94,6 +96,23 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 self, data_packet: DataPacket[dict]
             ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
                 return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
+
+        class MockDetectorWithUpdateHandler(DetectorHandler[dict]):
+            def evaluate(
+                self, data_packet: DataPacket[dict]
+            ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+                status_change = StatusChangeMessage(
+                    "test_update",
+                    project_id,
+                    DetectorPriorityLevel.HIGH,
+                    None,
+                )
+
+                return {
+                    None: DetectorEvaluationResult(
+                        None, True, DetectorPriorityLevel.HIGH, status_change
+                    )
+                }
 
         class HandlerGroupType(GroupType):
             type_id = 2
@@ -109,9 +128,17 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category = GroupCategory.METRIC_ALERT.value
             detector_handler = MockDetectorStateHandler
 
+        class HandlerUpdateGroupType(GroupType):
+            type_id = 4
+            slug = "handler_update"
+            description = "handler update"
+            category = GroupCategory.METRIC_ALERT.value
+            detector_handler = MockDetectorWithUpdateHandler
+
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType
         self.handler_state_type = HandlerStateGroupType
+        self.update_handler_type = HandlerUpdateGroupType
 
     def tearDown(self):
         super().tearDown()
@@ -127,7 +154,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type=type,
         )
         self.create_data_condition(
-            condition="gt",
+            type=Condition.GREATER,
             comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,

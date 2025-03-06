@@ -12,7 +12,7 @@ export function hasSpanHTTPInfo(span: RawSpanType) {
   }
 
   const [_, url] = span.description.split(' ');
-  const parsedURL = safeURL(url);
+  const parsedURL = safeURL(url!);
 
   return !!parsedURL;
 }
@@ -21,7 +21,7 @@ export function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {
     const [method, url] = span.description.split(' ');
 
-    const parsedURL = safeURL(url);
+    const parsedURL = safeURL(url!);
     const queryString = qs.parse(parsedURL?.search ?? '');
 
     if (!parsedURL) {

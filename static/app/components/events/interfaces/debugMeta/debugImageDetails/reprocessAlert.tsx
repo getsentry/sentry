@@ -1,9 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
-import AlertLink from 'sentry/components/alertLink';
+import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -60,12 +59,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
 
   if (reprocessable) {
     return (
-      <AlertLink
-        priority="warning"
-        size="small"
-        onClick={onReprocessEvent}
-        withoutMarginBottom
-      >
+      <AlertLink type="warning" onClick={onReprocessEvent}>
         {t(
           'You’ve uploaded new debug files. Reprocess events in this issue to view a better stack trace'
         )}
@@ -87,11 +81,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
     }
   }
 
-  return <StyledAlert type="info">{getAlertInfoMessage()}</StyledAlert>;
+  return <Alert type="info">{getAlertInfoMessage()}</Alert>;
 }
 
 export default ReprocessAlert;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;

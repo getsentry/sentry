@@ -3,15 +3,6 @@ import pytest
 from sentry.utils.math import ExponentialMovingAverage, nice_int
 
 
-def linspace(start, stop, n):
-    if n == 1:
-        yield stop
-    else:
-        h = (stop - start) / (n - 1)
-        for i in range(n):
-            yield start + h * i
-
-
 @pytest.mark.parametrize(
     "start,stop,expected",
     [

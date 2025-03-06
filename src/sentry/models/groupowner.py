@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, TypedDict
@@ -177,7 +178,7 @@ class GroupOwner(Model):
             cache.delete_many(cache_keys)
 
 
-def get_owner_details(group_list: list[Group], user: Any) -> dict[int, list[OwnersSerialized]]:
+def get_owner_details(group_list: Sequence[Group]) -> dict[int, list[OwnersSerialized]]:
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids).exclude(
         user_id__isnull=True, team_id__isnull=True

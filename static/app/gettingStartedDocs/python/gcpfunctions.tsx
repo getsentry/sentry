@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -10,7 +10,6 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
@@ -28,7 +27,10 @@ from sentry_sdk.integrations.gcp import GcpIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
-    integrations=[GcpIntegration()],${
+    integrations=[GcpIntegration()],
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -146,7 +148,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <AlertWithMarginBottom type="info">
+        <StyledAlert type="info">
           {tct(
             'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {
@@ -155,7 +157,7 @@ const onboarding: OnboardingConfig = {
               ),
             }
           )}
-        </AlertWithMarginBottom>
+        </StyledAlert>
       ),
     },
   ],
@@ -164,15 +166,12 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;
 
-const AlertWithMarginBottom = styled(Alert)`
+const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
-  margin-bottom: 0;
 `;

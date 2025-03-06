@@ -60,7 +60,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
                 IssueEvidence(
                     name="Failure reason", value="timeout - it timed out", important=True
                 ),
-                IssueEvidence(name="Duration", value="100", important=False),
+                IssueEvidence(name="Duration", value="100ms", important=False),
                 IssueEvidence(name="Method", value="HEAD", important=False),
                 IssueEvidence(name="Status Code", value="500", important=False),
             ],

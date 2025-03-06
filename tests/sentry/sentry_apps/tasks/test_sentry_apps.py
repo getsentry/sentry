@@ -30,7 +30,6 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
-    send_alert_event,
     send_alert_webhook,
     send_webhooks,
     workflow_notification,
@@ -41,7 +40,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -105,15 +103,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )
-
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_no_sentry_app(self, safe_urlopen):
-        event = self.store_event(data={}, project_id=self.project.id)
-        assert event.group is not None
-        group_event = GroupEvent.from_event(event, event.group)
-        send_alert_event(group_event, self.rule, 9999)
-
-        assert not safe_urlopen.called
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app_for_send_alert_event_v2(self, safe_urlopen):
@@ -250,7 +239,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
-    @override_options({"sentryapps.send_alert_event.use-eventid": 1.0})
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_groupevent(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -770,7 +758,10 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
-        assert json.loads(first_request["response_body"]) == json_content
+        assert (
+            first_request["response_body"]
+            and json.loads(first_request["response_body"]) == json_content
+        )
         assert self.integration_buffer._get_all_from_buffer() == []
         assert self.integration_buffer.is_integration_broken() is False
 

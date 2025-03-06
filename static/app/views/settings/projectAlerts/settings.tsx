@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
@@ -19,10 +19,11 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}, {}> {
+interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}> {
   canEditRule: boolean;
 }
 
@@ -61,8 +62,12 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     return (
       <LoadingError
         onRetry={() => {
-          isProjectError && refetchProject();
-          isPluginListError && refetchPluginList();
+          if (isProjectError) {
+            refetchProject();
+          }
+          if (isPluginListError) {
+            refetchPluginList();
+          }
         }}
       />
     );
@@ -103,7 +108,10 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
         action={
           <LinkButton
             to={{
-              pathname: `/organizations/${organization.slug}/alerts/rules/`,
+              pathname: makeAlertsPathname({
+                path: `/rules/`,
+                organization,
+              }),
               query: {project: project?.id},
             }}
             size="sm"
@@ -112,12 +120,18 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
           </LinkButton>
         }
       />
-      <PermissionAlert project={project} />
-      <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
-        {t(
-          'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
-        )}
-      </AlertLink>
+      <ProjectPermissionAlert project={project} />
+      <AlertLink.Container>
+        <AlertLink
+          to="/settings/account/notifications/"
+          trailingItems={<IconMail />}
+          type="info"
+        >
+          {t(
+            'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
+          )}
+        </AlertLink>
+      </AlertLink.Container>
 
       {isProjectLoading || isPluginListLoading ? (
         <LoadingIndicator />
@@ -137,13 +151,13 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
             <JsonForm
               disabled={!canEditRule}
               title={t('Email Settings')}
-              fields={[fields.subjectTemplate]}
+              fields={[fields.subjectTemplate!]}
             />
 
             <JsonForm
               title={t('Digests')}
               disabled={!canEditRule}
-              fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
+              fields={[fields.digestsMinDelay!, fields.digestsMaxDelay!]}
               renderHeader={() => (
                 <PanelAlert type="info">
                   {t(

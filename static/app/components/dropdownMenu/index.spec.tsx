@@ -266,6 +266,21 @@ describe('DropdownMenu', function () {
     });
   });
 
+  it('closes after clicking external link', async function () {
+    render(
+      <DropdownMenu
+        items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    });
+  });
+
   it('navigates to link on enter', async function () {
     const onAction = jest.fn();
     const router = RouterFixture();
@@ -319,7 +334,34 @@ describe('DropdownMenu', function () {
     // JSDOM throws an error on navigation to random urls
     expect(errorSpy).toHaveBeenCalledTimes(1);
 
-    // eslint-disable-next-line no-console
     errorSpy.mockRestore();
+  });
+
+  it('navigates to external link enter', async function () {
+    const onAction = jest.fn();
+    const router = RouterFixture();
+    const user = userEvent.setup();
+
+    render(
+      <DropdownMenu
+        items={[
+          {key: 'item1', label: 'Item One', externalHref: 'https://example.com/foo'},
+          {
+            key: 'item2',
+            label: 'Item Two',
+            externalHref: 'https://example.com/bar',
+            onAction,
+          },
+        ]}
+        triggerLabel="Menu"
+      />,
+      {router}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('{Enter}');
+
+    expect(onAction).toHaveBeenCalledTimes(1);
   });
 });

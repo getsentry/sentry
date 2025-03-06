@@ -77,7 +77,7 @@ RECURSION_COMPARISON_FIELDS = [
 ]
 
 
-def is_unhashable_module_legacy(frame: Frame, platform: str) -> bool:
+def is_unhashable_module_legacy(frame: Frame, platform: str | None) -> bool:
     # Fix for the case where module is a partial copy of the URL
     # and should not be hashed
     if (
@@ -108,12 +108,12 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
     return True
 
 
-def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str | None]:
+def remove_module_outliers_legacy(module: str, platform: str | None) -> tuple[str, str | None]:
     """Remove things that augment the module but really should not."""
     if platform == "java":
-        if module[:35] == "sun.reflect.GeneratedMethodAccessor":
+        if module.startswith("sun.reflect.GeneratedMethodAccessor"):
             return "sun.reflect.GeneratedMethodAccessor", "removed reflection marker"
-        if module[:44] == "jdk.internal.reflect.GeneratedMethodAccessor":
+        if module.startswith("jdk.internal.reflect.GeneratedMethodAccessor"):
             return "jdk.internal.reflect.GeneratedMethodAccessor", "removed reflection marker"
         old_module = module
         module = _java_reflect_enhancer_re.sub(r"\1<auto>", module)
@@ -125,7 +125,7 @@ def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str 
     return module, None
 
 
-def remove_filename_outliers_legacy(filename: str, platform: str) -> tuple[str, str | None]:
+def remove_filename_outliers_legacy(filename: str, platform: str | None) -> tuple[str, str | None]:
     """
     Attempt to normalize filenames by removing common platform outliers.
 
@@ -402,7 +402,7 @@ def frame_legacy(
 def stacktrace_legacy(
     interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    variant = context["variant"]
+    variant_name = context["variant"]
     frames = interface.frames
     contributes = None
     hint = None
@@ -417,7 +417,7 @@ def stacktrace_legacy(
     if len(frames) == 1 and not frames[0].function and frames[0].is_url():
         contributes = False
         hint = "ignored single frame stack"
-    elif variant == "app":
+    elif variant_name == "app":
         total_frames = len(frames)
         in_app_count = sum(1 if f.in_app else 0 for f in frames)
         if in_app_count == 0:
@@ -430,28 +430,28 @@ def stacktrace_legacy(
             contributes = False
             hint = "less than 10% of frames are in-app"
 
-    values = []
+    frame_components = []
     prev_frame: Frame | None = None
     frames_for_filtering = []
     for frame in frames:
         frame_component = context.get_single_grouping_component(
-            frame, event=event, variant=variant, **meta
+            frame, event=event, variant=variant_name, **meta
         )
-        if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
+        if variant_name == "app" and not frame.in_app and not all_frames_considered_in_app:
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_legacy(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
-        elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
+        elif variant_name == "app" and not frame.in_app and all_frames_considered_in_app:
             frame_component.update(hint="frame considered in-app because no frame is in-app")
-        values.append(frame_component)
+        frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv, _ = context.config.enhancements.assemble_stacktrace_component(
-        values, frames_for_filtering, event.platform
+    stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
+        variant_name, frame_components, frames_for_filtering, event.platform
     )
-    rv.update(contributes=contributes, hint=hint)
-    return {variant: rv}
+    stacktrace_component.update(contributes=contributes, hint=hint)
+    return {variant_name: stacktrace_component}
 
 
 @strategy(ids=["threads:legacy"], interface=Threads, score=1900)

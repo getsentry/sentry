@@ -25,11 +25,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useContinuousProfile} from './continuousProfileProvider';
+import {useProfiles} from './profilesProvider';
 
 function ContinuousProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
-  const profiles = useContinuousProfile();
+  const profiles = useProfiles();
   const params = useParams();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
@@ -89,7 +89,7 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
         <ProfileGroupTypeProvider
           input={profiles.type === 'resolved' ? profiles.data : null}
-          traceID={params.eventID}
+          traceID={params.eventId!}
         >
           <FlamegraphThemeProvider>
             <FlamegraphStateQueryParamSync />

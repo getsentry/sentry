@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:25.548878+00:00'
+created: '2025-02-26T00:31:53.234122+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,11 +25,12 @@ metrics with tags: {
 contributing variants:
   system*
     hash: "e4714f9479fea40111888ca143e02d8f"
+    contributing component: exception
     component:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "start"
             frame*
@@ -116,13 +117,13 @@ contributing variants:
             frame*
               function*
                 "gpusGenerateCrashLog.cold.1"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "abort"
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_sigtramp"
             frame*
@@ -179,9 +180,9 @@ contributing variants:
             frame*
               function*
                 "gpusGenerateCrashLog.cold.1"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "abort"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "__pthread_kill"

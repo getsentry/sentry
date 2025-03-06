@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
@@ -17,6 +17,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
+    ScheduleType,
 )
 from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
@@ -158,7 +159,6 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
-    type: Literal["cron_job", "unknown"]
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
@@ -245,7 +245,6 @@ class MonitorSerializer(Serializer):
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
-            "type": obj.get_type_display(),
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
@@ -277,9 +276,8 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     status: str
     duration: int
     dateCreated: datetime
-    attachmentId: str
     expectedTime: datetime
-    monitorConfig: Any
+    monitorConfig: MonitorConfigSerializerResponse
 
 
 @register(MonitorCheckIn)
@@ -333,15 +331,19 @@ class MonitorCheckInSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
+        config = obj.monitor_config.copy() if obj.monitor_config else {}
+        if "schedule_type" in config:
+            # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
+            # config saved on the check-in
+            config["schedule_type"] = ScheduleType.get_name(config["schedule_type"])
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
-            "attachmentId": obj.attachment_id,
             "expectedTime": obj.expected_time,
-            "monitorConfig": obj.monitor_config or {},
+            "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }
 
         if self._expand("groups"):

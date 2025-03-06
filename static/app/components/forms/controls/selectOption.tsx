@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import type {components as selectComponents} from 'react-select';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import MenuListItem from 'sentry/components/menuListItem';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';

@@ -4,8 +4,8 @@ import type {Location} from 'history';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -53,7 +53,7 @@ interface Props {
   widgetType: WidgetType;
   dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
 }
 
 export function FilterResultsStep({
@@ -78,7 +78,7 @@ export function FilterResultsStep({
     (queryIndex: number) => {
       return (field: string) => {
         const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
+          ...queries[queryIndex]!,
           conditions: field,
         };
 
@@ -95,7 +95,7 @@ export function FilterResultsStep({
         setQueryConditionValidity(queryConditionValidity);
         onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
         const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
+          ...queries[queryIndex]!,
           conditions: field,
         };
         onQueryChange(queryIndex, newQuery);
@@ -193,7 +193,7 @@ export function FilterResultsStep({
                     placeholder={t('Legend Alias')}
                     onChange={event => {
                       const newQuery: WidgetQuery = {
-                        ...queries[queryIndex],
+                        ...queries[queryIndex]!,
                         name: event.target.value,
                       };
                       onQueryChange(queryIndex, newQuery);
@@ -224,7 +224,7 @@ export function FilterResultsStep({
   );
 }
 
-function WidgetOnDemandQueryWarning(props: {
+export function WidgetOnDemandQueryWarning(props: {
   query: WidgetQuery;
   queryIndex: number;
   validatedWidgetResponse: Props['validatedWidgetResponse'];
@@ -258,6 +258,11 @@ function WidgetOnDemandQueryWarning(props: {
         'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
         {strong: <strong />}
       )}
+      color={
+        organization.features.includes('dashboards-widget-builder-redesign')
+          ? 'yellow300'
+          : undefined
+      }
     />
   );
 }

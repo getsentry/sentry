@@ -70,7 +70,7 @@ function EventStatisticalDetectorRegressedPerformanceMessage({
   });
 
   const transactionSummaryLink = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction,
     query: {},
     trendFunction: 'p95',

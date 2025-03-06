@@ -49,12 +49,14 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {
   getExpandedResults,
@@ -109,6 +111,7 @@ export type TableViewProps = {
 function TableView(props: TableViewProps) {
   const {projects} = useProjects();
   const routes = useRoutes();
+  const navigate = useNavigate();
   const replayLinkGenerator = generateReplayLink(routes);
 
   /**
@@ -124,6 +127,7 @@ function TableView(props: TableViewProps) {
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
 
     pushEventViewToLocation({
+      navigate,
       location,
       nextEventView,
       extraQuery: {
@@ -206,7 +210,7 @@ function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      let target;
+      let target: any;
 
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
@@ -290,7 +294,7 @@ function TableView(props: TableViewProps) {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     let titleText = isEquationAlias(column.name)
-      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]!
       : column.name;
 
     if (column.name.toLowerCase() === 'replayid') {
@@ -352,7 +356,7 @@ function TableView(props: TableViewProps) {
       queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
     if (columnKey === 'id') {
-      let target;
+      let target: any;
 
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
@@ -375,8 +379,8 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
-          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
-          timestamp: dataRow.timestamp,
+          projectSlug: (dataRow.project || dataRow['project.name']!).toString(),
+          timestamp: dataRow.timestamp!,
           organization,
           isHomepage,
           location,
@@ -460,7 +464,7 @@ function TableView(props: TableViewProps) {
 
       if (projectSlug && profileId) {
         const target = generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: String(projectSlug),
           profileId: String(profileId),
         });
@@ -580,9 +584,10 @@ function TableView(props: TableViewProps) {
 
           browserHistory.push(
             normalizeUrl({
-              pathname: `/organizations/${
-                organization.slug
-              }/releases/${encodeURIComponent(value)}/`,
+              pathname: makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(value)}/`,
+              }),
               query: {
                 ...nextView.getPageFiltersQuery(),
 
@@ -608,7 +613,7 @@ function TableView(props: TableViewProps) {
           browserHistory.push(
             normalizeUrl(
               nextView.getResultsViewUrlTarget(
-                organization.slug,
+                organization,
                 isHomepage,
                 hasDatasetSelector(organization) ? queryDataset : undefined
               )
@@ -624,8 +629,10 @@ function TableView(props: TableViewProps) {
           const unit = tableData?.meta?.units?.[column.name];
           if (typeof cellValue === 'number' && unit) {
             if (Object.keys(SIZE_UNITS).includes(unit)) {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= SIZE_UNITS[unit];
             } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= DURATION_UNITS[unit];
             }
           }
@@ -635,7 +642,7 @@ function TableView(props: TableViewProps) {
       nextView.query = query.formatString();
 
       const target = nextView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         isHomepage,
         hasDatasetSelector(organization) ? queryDataset : undefined
       );
@@ -655,7 +662,7 @@ function TableView(props: TableViewProps) {
 
     const nextView = eventView.withColumns(columns);
     const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       isHomepage,
       hasDatasetSelector(organization) ? queryDataset : undefined
     );

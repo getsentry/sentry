@@ -22,7 +22,7 @@ describe('addQueryParamsToExistingUrl', function () {
   });
 
   it('returns empty string no url is passed', function () {
-    let url;
+    let url: any;
     const newParams = {
       id: 4,
     };
@@ -33,46 +33,46 @@ describe('addQueryParamsToExistingUrl', function () {
 describe('appendTagCondition', function () {
   it('adds simple values', function () {
     const result = utils.appendTagCondition('error+text', 'color', 'red');
-    expect(result).toEqual('error+text color:red');
+    expect(result).toBe('error+text color:red');
   });
 
   it('handles array current value', function () {
     const result = utils.appendTagCondition(['', 'thing'], 'color', 'red');
-    expect(result).toEqual('thing color:red');
+    expect(result).toBe('thing color:red');
   });
 
   it('handles empty string current value', function () {
     const result = utils.appendTagCondition('', 'color', 'red');
-    expect(result).toEqual('color:red');
+    expect(result).toBe('color:red');
   });
 
   it('handles null current value', function () {
     const result = utils.appendTagCondition(null, 'color', 'red');
-    expect(result).toEqual('color:red');
+    expect(result).toBe('color:red');
   });
 
   it('wraps values with spaces', function () {
     const result = utils.appendTagCondition(null, 'color', 'purple red');
-    expect(result).toEqual('color:"purple red"');
+    expect(result).toBe('color:"purple red"');
   });
 
   it('wraps values with colon', function () {
     const result = utils.appendTagCondition(null, 'color', 'id:red');
-    expect(result).toEqual('color:"id:red"');
+    expect(result).toBe('color:"id:red"');
   });
 
   it('handles user tag values', function () {
     let result = utils.appendTagCondition('', 'user', 'something');
-    expect(result).toEqual('user:something');
+    expect(result).toBe('user:something');
 
     result = utils.appendTagCondition('', 'user', 'id:1');
-    expect(result).toEqual('user:"id:1"');
+    expect(result).toBe('user:"id:1"');
 
     result = utils.appendTagCondition('', 'user', 'email:foo@example.com');
-    expect(result).toEqual('user:"email:foo@example.com"');
+    expect(result).toBe('user:"email:foo@example.com"');
 
     result = utils.appendTagCondition('', 'user', 'name:jill jones');
-    expect(result).toEqual('user:"name:jill jones"');
+    expect(result).toBe('user:"name:jill jones"');
   });
 });
 
@@ -83,7 +83,7 @@ describe('appendExcludeTagValuesCondition', function () {
       'blue',
       'green',
     ]);
-    expect(result).toEqual('!color:[red, blue, green]');
+    expect(result).toBe('!color:[red, blue, green]');
   });
   it('excludes tag values on an existing query', function () {
     const result = utils.appendExcludeTagValuesCondition('user.id:123', 'color', [
@@ -91,7 +91,7 @@ describe('appendExcludeTagValuesCondition', function () {
       'blue',
       'green',
     ]);
-    expect(result).toEqual('user.id:123 !color:[red, blue, green]');
+    expect(result).toBe('user.id:123 !color:[red, blue, green]');
   });
   it('wraps double quotes when a space exists in the tag value', function () {
     const result = utils.appendExcludeTagValuesCondition(null, 'color', [
@@ -100,32 +100,32 @@ describe('appendExcludeTagValuesCondition', function () {
       '"green"',
       '"sky blue"',
     ]);
-    expect(result).toEqual('!color:[red, "ocean blue", "\\"green\\"", "\\"sky blue\\""]');
+    expect(result).toBe('!color:[red, "ocean blue", "\\"green\\"", "\\"sky blue\\""]');
   });
 });
 
 describe('decodeScalar()', function () {
   it('unwraps array values', function () {
-    expect(utils.decodeScalar(['one', 'two'])).toEqual('one');
+    expect(utils.decodeScalar(['one', 'two'])).toBe('one');
   });
 
   it('handles strings', function () {
-    expect(utils.decodeScalar('one')).toEqual('one');
+    expect(utils.decodeScalar('one')).toBe('one');
   });
 
   it('handles falsey values', function () {
     expect(utils.decodeScalar(undefined)).toBeUndefined();
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeScalar(false)).toBeUndefined();
     expect(utils.decodeScalar('')).toBeUndefined();
   });
 
   it('uses fallback values', function () {
-    expect(utils.decodeScalar('value', 'default')).toEqual('value');
-    expect(utils.decodeScalar('', 'default')).toEqual('default');
-    expect(utils.decodeScalar(null, 'default')).toEqual('default');
-    expect(utils.decodeScalar(undefined, 'default')).toEqual('default');
-    expect(utils.decodeScalar([], 'default')).toEqual('default');
+    expect(utils.decodeScalar('value', 'default')).toBe('value');
+    expect(utils.decodeScalar('', 'default')).toBe('default');
+    expect(utils.decodeScalar(null, 'default')).toBe('default');
+    expect(utils.decodeScalar(undefined, 'default')).toBe('default');
+    expect(utils.decodeScalar([], 'default')).toBe('default');
   });
 });
 
@@ -140,7 +140,7 @@ describe('decodeList()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeList(undefined)).toEqual([]);
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeList(false)).toEqual([]);
     expect(utils.decodeList('')).toEqual([]);
   });
@@ -148,26 +148,26 @@ describe('decodeList()', function () {
 
 describe('decodeInteger()', function () {
   it('handles integer strings', function () {
-    expect(utils.decodeInteger('1')).toEqual(1);
-    expect(utils.decodeInteger('1.2')).toEqual(1);
-    expect(utils.decodeInteger('1.9')).toEqual(1);
-    expect(utils.decodeInteger('foo')).toEqual(undefined);
-    expect(utils.decodeInteger('foo', 2020)).toEqual(2020);
+    expect(utils.decodeInteger('1')).toBe(1);
+    expect(utils.decodeInteger('1.2')).toBe(1);
+    expect(utils.decodeInteger('1.9')).toBe(1);
+    expect(utils.decodeInteger('foo')).toBeUndefined();
+    expect(utils.decodeInteger('foo', 2020)).toBe(2020);
   });
 
   it('handles arrays', function () {
-    expect(utils.decodeInteger(['1', 'foo'])).toEqual(1);
-    expect(utils.decodeInteger(['1.2', 'foo'])).toEqual(1);
-    expect(utils.decodeInteger(['1.9', 'foo'])).toEqual(1);
-    expect(utils.decodeInteger(['foo', '1'])).toEqual(undefined);
-    expect(utils.decodeInteger(['foo'], 2020)).toEqual(2020);
+    expect(utils.decodeInteger(['1', 'foo'])).toBe(1);
+    expect(utils.decodeInteger(['1.2', 'foo'])).toBe(1);
+    expect(utils.decodeInteger(['1.9', 'foo'])).toBe(1);
+    expect(utils.decodeInteger(['foo', '1'])).toBeUndefined();
+    expect(utils.decodeInteger(['foo'], 2020)).toBe(2020);
   });
 
   it('handles falsey values', function () {
-    expect(utils.decodeInteger(undefined, 2020)).toEqual(2020);
-    // @ts-expect-error
-    expect(utils.decodeInteger(false, 2020)).toEqual(2020);
-    expect(utils.decodeInteger('', 2020)).toEqual(2020);
+    expect(utils.decodeInteger(undefined, 2020)).toBe(2020);
+    // @ts-expect-error type false is not assignable to QueryValue
+    expect(utils.decodeInteger(false, 2020)).toBe(2020);
+    expect(utils.decodeInteger('', 2020)).toBe(2020);
   });
 });
 
@@ -210,10 +210,10 @@ describe('decodeSorts', () => {
 
 describe('decodeBoolean', function () {
   it('handles boolean strings', function () {
-    expect(utils.decodeBoolean('true')).toEqual(true);
-    expect(utils.decodeBoolean('false')).toEqual(false);
-    expect(utils.decodeBoolean('foo')).toEqual(undefined);
-    expect(utils.decodeBoolean('foo', true)).toEqual(true);
-    expect(utils.decodeBoolean('foo', false)).toEqual(false);
+    expect(utils.decodeBoolean('true')).toBe(true);
+    expect(utils.decodeBoolean('false')).toBe(false);
+    expect(utils.decodeBoolean('foo')).toBeUndefined();
+    expect(utils.decodeBoolean('foo', true)).toBe(true);
+    expect(utils.decodeBoolean('foo', false)).toBe(false);
   });
 });

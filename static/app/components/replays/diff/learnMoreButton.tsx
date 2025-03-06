@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -58,17 +58,19 @@ function Buttons() {
   );
 }
 
-export default function LearnMoreButton() {
+export default function LearnMoreButton(
+  hoverCardProps: Partial<ComponentProps<typeof Hovercard>>
+) {
   return (
     <ClassNames>
       {({css}) => (
         <AnalyticsArea name="learn-more">
           <Hovercard
+            {...hoverCardProps}
             body={<Buttons />}
             bodyClassName={css`
               padding: ${space(1)};
             `}
-            position="top-end"
           >
             <Button
               size="sm"

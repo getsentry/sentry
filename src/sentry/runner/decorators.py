@@ -1,9 +1,8 @@
 import os
 from collections.abc import Callable
-from typing import Concatenate, TypeVar
+from typing import Concatenate, ParamSpec, TypeVar
 
 import click
-from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R")

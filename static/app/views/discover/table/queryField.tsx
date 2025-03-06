@@ -1,14 +1,14 @@
 import {Component, createRef} from 'react';
-import type {SingleValueProps} from 'react-select';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
+import type {InputProps} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
+import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -36,7 +36,7 @@ type FieldOptions = Record<string, FieldValueOption>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
-type ParameterDescription =
+export type ParameterDescription =
   | {
       dataType: ColumnType;
       kind: 'value';
@@ -53,7 +53,7 @@ type ParameterDescription =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       value: string;
       placeholder?: string;
@@ -246,7 +246,7 @@ class QueryField extends Component<Props> {
     this.triggerChange(newColumn);
   };
 
-  handleFieldParameterChange = ({value}) => {
+  handleFieldParameterChange = ({value}: any) => {
     const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
       newColumn.function[1] = value.meta.name;
@@ -577,6 +577,7 @@ class QueryField extends Component<Props> {
       default:
         text = kind;
     }
+    // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 
@@ -664,7 +665,9 @@ class QueryField extends Component<Props> {
         gridColumnsQuantity = 1;
       } else {
         const operation =
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           AGGREGATIONS[fieldValue.function[0]] ??
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           SESSIONS_OPERATIONS[fieldValue.function[0]];
         if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {
@@ -698,7 +701,7 @@ class QueryField extends Component<Props> {
   }
 }
 
-function validateColumnTypes(
+export function validateColumnTypes(
   columnTypes: ValidateColumnTypes,
   input: FieldValueColumns
 ): boolean {
@@ -739,7 +742,7 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends Component<BufferedInputProps, InputState> {
+export class BufferedInput extends Component<BufferedInputProps, InputState> {
   constructor(props: BufferedInputProps) {
     super(props);
     this.input = createRef();

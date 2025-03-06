@@ -16,7 +16,7 @@ type Props = {
 };
 
 type State = {
-  data: [number, number][] | null;
+  data: Array<[number, number]> | null;
   error: boolean;
   loading: boolean;
 };

@@ -3,7 +3,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -14,7 +13,6 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -32,9 +30,13 @@ const initialStyles = {
 
 type Props = {
   onAddWidget: (dataset: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder?: (
+    dataset: DataSet,
+    openWidgetTemplates?: boolean
+  ) => void;
 };
 
-function AddWidget({onAddWidget}: Props) {
+function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -48,6 +50,19 @@ function AddWidget({onAddWidget}: Props) {
   )
     ? DataSet.ERRORS
     : DataSet.EVENTS;
+
+  const addWidgetDropdownItems: MenuItemProps[] = [
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, true),
+    },
+  ];
 
   return (
     <Feature features="dashboards-edit">
@@ -71,12 +86,18 @@ function AddWidget({onAddWidget}: Props) {
           duration: 0.25,
         }}
       >
-        {hasCustomMetrics(organization) ? (
-          <InnerWrapper>
-            <AddWidgetButton
-              onAddWidget={onAddWidget}
-              aria-label={t('Add Widget')}
+        {organization.features.includes('dashboards-widget-builder-redesign') ? (
+          <InnerWrapper onClick={() => onAddWidgetFromNewWidgetBuilder?.(defaultDataset)}>
+            <DropdownMenu
+              items={addWidgetDropdownItems}
               data-test-id="widget-add"
+              triggerProps={{
+                'aria-label': t('Add Widget'),
+                size: 'md',
+                showChevron: false,
+                icon: <IconAdd isCircled size="lg" color="inactive" />,
+                borderless: true,
+              }}
             />
           </InnerWrapper>
         ) : (
@@ -154,22 +175,6 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
       details: t('Sessions, Crash rates, etc.'),
       onAction: () => handleAction(DataSet.RELEASES),
     });
-
-    if (hasCustomMetrics(organization)) {
-      menuItems.push({
-        key: DataSet.METRICS,
-        label: t('Metrics'),
-        onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: (
-          <FeatureBadge
-            type="beta"
-            title={
-              'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
-            }
-          />
-        ),
-      });
-    }
 
     return menuItems;
   }, [handleAction, organization]);

@@ -1,7 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -41,11 +41,21 @@ function ExceptionWithMeta(params = {}) {
   };
 }
 
+function renderMockRequests({orgSlug}: {orgSlug: string}) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/projects/`,
+    method: 'GET',
+    body: [],
+  });
+}
+
 describe('CrashContent', function () {
   const exc = ExceptionWithMeta();
   const proxiedExc = withMeta(exc);
 
-  it('renders with meta data', function () {
+  it('renders with meta data', async function () {
+    renderMockRequests({orgSlug: ProjectFixture().organization.slug});
+
     render(
       <CrashContent
         stackView={StackView.FULL}
@@ -56,5 +66,7 @@ describe('CrashContent', function () {
         projectSlug={ProjectFixture().slug}
       />
     );
+
+    expect(await screen.findByTestId('exception-value')).toBeInTheDocument();
   });
 });

@@ -1,6 +1,8 @@
+import hashlib
+import hmac
 import ipaddress
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
@@ -15,8 +17,11 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.exceptions import SentryAPIException
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
+from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -30,17 +35,48 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket"
 
 
-class Webhook(ABC):
+def is_valid_signature(body: bytes, secret: str, signature: str) -> bool:
+    hash_object = hmac.new(
+        secret.encode("utf-8"),
+        msg=body,
+        digestmod=hashlib.sha256,
+    )
+    expected_signature = hash_object.hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        logger.info(
+            "%s.webhook.invalid-signature",
+            PROVIDER_NAME,
+            extra={"expected": expected_signature, "given": signature},
+        )
+        return False
+    return True
+
+
+class WebhookMissingSignatureException(SentryAPIException):
+    status_code = 400
+    code = f"{PROVIDER_NAME}.webhook.missing-signature"
+    message = "Missing webhook signature"
+
+
+class WebhookUnsupportedSignatureMethodException(SentryAPIException):
+    status_code = 400
+    code = f"{PROVIDER_NAME}.webhook.unsupported-signature-method"
+    message = "Signature method is not supported"
+
+
+class WebhookInvalidSignatureException(SentryAPIException):
+    status_code = 400
+    code = f"{PROVIDER_NAME}.webhook.invalid-signature"
+    message = "Webhook signature is invalid"
+
+
+class BitbucketWebhook(SCMWebhook, ABC):
     @property
-    @abstractmethod
-    def event_type(self) -> IntegrationWebhookEventType:
-        raise NotImplementedError
+    def provider(self) -> str:
+        return "bitbucket"
 
-    @abstractmethod
-    def __call__(self, organization: Organization, event: Mapping[str, Any]):
-        raise NotImplementedError
-
-    def update_repo_data(self, repo, event):
+    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -68,24 +104,20 @@ class Webhook(ABC):
             )
 
 
-class PushEventWebhook(Webhook):
+class PushEventWebhook(BitbucketWebhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
 
     @property
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, organization: Organization, event: Mapping[str, Any]):
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         authors = {}
 
-        try:
-            repo = Repository.objects.get(
-                organization_id=organization.id,
-                provider=PROVIDER_NAME,
-                external_id=str(event["repository"]["uuid"]),
-            )
-        except Repository.DoesNotExist:
-            raise Http404()
+        if not (repo := kwargs.get("repo")):
+            raise ValueError("Missing repo")
+        if not (organization := kwargs.get("organization")):
+            raise ValueError("Missing organization")
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -131,9 +163,9 @@ class BitbucketWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
-    _handlers: dict[str, type[Webhook]] = {"repo:push": PushEventWebhook}
+    _handlers: dict[str, type[BitbucketWebhook]] = {"repo:push": PushEventWebhook}
 
-    def get_handler(self, event_type) -> type[Webhook] | None:
+    def get_handler(self, event_type) -> type[BitbucketWebhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
@@ -200,13 +232,36 @@ class BitbucketWebhookEndpoint(Endpoint):
             )
             return HttpResponse(status=400)
 
+        try:
+            repo = Repository.objects.get(
+                organization_id=organization.id,
+                provider=PROVIDER_NAME,
+                external_id=str(event["repository"]["uuid"]),
+            )
+        except Repository.DoesNotExist:
+            raise Http404()
+
+        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        if integration and "webhook_secret" in integration.metadata:
+            secret = integration.metadata["webhook_secret"]
+            try:
+                method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
+            except (IndexError, KeyError, ValueError):
+                raise WebhookMissingSignatureException()
+
+            if method != "sha256":
+                raise WebhookUnsupportedSignatureMethodException()
+
+            if not is_valid_signature(request.body, secret, signature):
+                raise WebhookInvalidSignatureException()
+
         event_handler = handler()
 
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key="bitbucket",
+            provider_key=event_handler.provider,
         ).capture():
-            event_handler(organization, event)
+            event_handler(event, repo=repo, organization=organization)
 
         return HttpResponse(status=204)

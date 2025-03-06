@@ -38,7 +38,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
     const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
     const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    const maxHeight = ['left', 'right'].includes(basePlacement)
+    const maxHeight = ['left', 'right'].includes(basePlacement!)
       ? // If the main axis is horizontal, then maxHeight = the boundary's height
         height - overflow.top - overflow.bottom
       : // Otherwise, set max height unless there is enough space on the other side to
@@ -47,7 +47,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
 
     // If there is enough space on the other side, then allow the popper to flip
     // without constraining its size
-    const maxWidth = ['top', 'bottom'].includes(basePlacement)
+    const maxWidth = ['top', 'bottom'].includes(basePlacement!)
       ? // If the main axis is vertical, then maxWidth = the boundary's width
         width - overflow.left - overflow.right
       : // Otherwise, set max width unless there is enough space on the other side to
@@ -61,25 +61,25 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
   },
 };
 
-const applyMaxSize: Modifier<'applyMaxSize', {}> = {
+const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
   name: 'applyMaxSize',
   phase: 'beforeWrite',
   requires: ['maxSize'],
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
     const {width, height} = state.modifiersData.maxSize;
-    state.styles.popper.maxHeight = height;
-    state.styles.popper.maxWidth = width;
+    state.styles.popper!.maxHeight = height;
+    state.styles.popper!.maxWidth = width;
   },
 };
 
-const applyMinWidth: Modifier<'applyMinWidth', {}> = {
+const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
   name: 'applyMinWidth',
   phase: 'beforeWrite',
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
     const {reference} = state.rects;
-    state.styles.popper.minWidth = `${reference.width}px`;
+    state.styles.popper!.minWidth = `${reference.width}px`;
   },
 };
 
@@ -151,7 +151,9 @@ function useOverlay({
     isOpen,
     defaultOpen,
     onOpenChange: open => {
-      open && popperUpdate?.();
+      if (open) {
+        popperUpdate?.();
+      }
       onOpenChange?.(open);
     },
   });

@@ -16,11 +16,12 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
-export const ALL_CATEGORY_VALUE = '__all' as const;
-export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches' as const;
+export const ALL_CATEGORY_VALUE = '__all';
+export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
 
 export const ALL_CATEGORY = {value: ALL_CATEGORY_VALUE, label: t('All')};
 export const RECENT_SEARCH_CATEGORY = {
@@ -31,7 +32,7 @@ export const RECENT_SEARCH_CATEGORY = {
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
 
-function trimQuotes(value) {
+function trimQuotes(value: any) {
   return value.replace(/^"+|"+$/g, '');
 }
 
@@ -70,9 +71,14 @@ export function createSection(
     key: section.value,
     value: section.value,
     label: section.label,
-    options: section.children.map(key =>
-      createItem(keys[key], getFieldDefinition(key), section)
-    ),
+    options: section.children
+      .map(key => {
+        if (!keys[key]) {
+          return null;
+        }
+        return createItem(keys[key], getFieldDefinition(key), section);
+      })
+      .filter(defined),
     type: 'section',
   };
 }

@@ -31,7 +31,7 @@ five`
 
 describe('utils.explodeSlug', function () {
   it('replaces slug special chars with whitespace', function () {
-    expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
+    expect(explodeSlug('test--slug__replace-')).toBe('test slug replace');
   });
 });
 
@@ -61,7 +61,7 @@ describe('utils.escapeDoubleQuotes', function () {
 
     for (const testCase of cases) {
       const [input, expected] = testCase;
-      expect(escapeDoubleQuotes(input)).toBe(expected);
+      expect(escapeDoubleQuotes(input!)).toBe(expected);
     }
 
     // should return the same input as the output

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -122,7 +123,11 @@ function SwitchOrganization({canCreateOrganization}: Props) {
                 })}
               </OrganizationList>
               {organizations && !!organizations.length && canCreateOrganization && (
-                <Divider css={{marginTop: 0}} />
+                <Divider
+                  css={css`
+                    margin-top: 0;
+                  `}
+                />
               )}
               <CreateOrganization canCreateOrganization={canCreateOrganization} />
             </SwitchOrganizationMenu>
@@ -162,8 +167,9 @@ const SwitchOrganizationMenuActor = styled('span')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 -${p => p.theme.sidebar.menuSpacing};
-  padding: 0 ${p => p.theme.sidebar.menuSpacing};
+  /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */
+  margin: 0 -15px;
+  padding: 0 15px;
 `;
 
 const SwitchOrganizationMenu = styled('div')`

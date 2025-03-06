@@ -9,6 +9,7 @@ import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {TagFacetsList} from 'sentry/components/group/tagFacets';
 import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
@@ -155,15 +156,17 @@ class Tags extends Component<Props, State> {
     const {generateUrl, onTagValueClick, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
-      segment.url = generateUrl(tag.key, segment.value);
-
-      return segment;
+      return {
+        ...segment,
+        name: formatTag(tag.key, segment.value),
+        url: generateUrl(tag.key, segment.value),
+      };
     });
     // Ensure we don't show >100% if there's a slight mismatch between the facets
     // endpoint and the totals endpoint
     const maxTotalValues =
       segments.length > 0
-        ? Math.max(Number(totalValues), segments[0].count)
+        ? Math.max(Number(totalValues), segments[0]!.count)
         : totalValues;
     return (
       <li key={tag.key} aria-label={tag.key}>
@@ -244,6 +247,13 @@ class Tags extends Component<Props, State> {
       </Fragment>
     );
   }
+}
+
+function formatTag(key: string, value: string): string {
+  if (key === 'device') {
+    return deviceNameMapper(value) || value;
+  }
+  return value;
 }
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

@@ -6,9 +6,9 @@ import {
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -97,37 +97,39 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   };
 
   return (
-    <Alert
-      type="warning"
-      showIcon
-      trailingItems={
-        <ButtonBar gap={1}>
-          <LinkButton
-            to={{
-              pathname: `/organizations/${organization.slug}/alerts/metric-rules/${
-                project?.slug ?? rule?.projects?.[0]
-              }/${rule.id}/`,
-              query: {migration: '1'},
-            }}
-            size="xs"
-            icon={<IconEdit />}
-          >
-            {t('Exclude archived issues')}
-          </LinkButton>
-          <DismissButton
-            priority="link"
-            icon={<IconClose />}
-            onClick={dismissPrompt}
-            aria-label={t('Dismiss Alert')}
-            title={t('Dismiss Alert')}
-          />
-        </ButtonBar>
-      }
-    >
-      {t(
-        "Alert rules can now exclude errors associated with archived issues. Please make sure to review the rule's alert thresholds after editing."
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert
+        type="warning"
+        showIcon
+        trailingItems={
+          <ButtonBar gap={1}>
+            <LinkButton
+              to={{
+                pathname: `/organizations/${organization.slug}/alerts/metric-rules/${
+                  project?.slug ?? rule?.projects?.[0]
+                }/${rule.id}/`,
+                query: {migration: '1'},
+              }}
+              size="xs"
+              icon={<IconEdit />}
+            >
+              {t('Exclude archived issues')}
+            </LinkButton>
+            <DismissButton
+              priority="link"
+              icon={<IconClose />}
+              onClick={dismissPrompt}
+              aria-label={t('Dismiss Alert')}
+              title={t('Dismiss Alert')}
+            />
+          </ButtonBar>
+        }
+      >
+        {t(
+          "Alert rules can now exclude errors associated with archived issues. Please make sure to review the rule's alert thresholds after editing."
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

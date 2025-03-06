@@ -26,7 +26,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
   const area = useAnalyticsArea();
 
   // TODO: should handling of current event + other events look different
-  if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
+  if (timelineEvents.length === 1 && timelineEvents[0]!.id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
   }
 

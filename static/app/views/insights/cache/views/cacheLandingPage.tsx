@@ -3,7 +3,6 @@ import keyBy from 'lodash/keyBy';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -15,20 +14,13 @@ import {
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
-import {ThroughputChart} from 'sentry/views/insights/cache/components/charts/throughputChart';
 import {CacheSamplePanel} from 'sentry/views/insights/cache/components/samplePanel';
 import {
   isAValidSort,
   TransactionsTable,
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
-import {
-  BASE_FILTERS,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -42,9 +34,12 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -71,6 +66,12 @@ export function CacheLandingPage() {
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
+  useSamplesDrawer({
+    Component: <CacheSamplePanel />,
+    moduleName: ModuleName.CACHE,
+    requiredParams: ['transaction'],
+  });
+
   const {
     isPending: isCacheMissRateLoading,
     data: cacheMissRateData,
@@ -79,6 +80,7 @@ export function CacheLandingPage() {
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART
   );
@@ -91,6 +93,7 @@ export function CacheLandingPage() {
     {
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
       yAxis: ['spm()'],
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_THROUGHPUT_CHART
   );
@@ -168,7 +171,7 @@ export function CacheLandingPage() {
     transactionsList?.map(transaction => ({
       ...transaction,
       'avg(transaction.duration)':
-        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)']!,
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
@@ -177,18 +180,7 @@ export function CacheLandingPage() {
 
   return (
     <React.Fragment>
-      <BackendHeader
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Fragment>
-        }
-        module={ModuleName.CACHE}
-      />
+      <BackendHeader module={ModuleName.CACHE} />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.CACHE}>
         <Layout.Body>
@@ -200,18 +192,17 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <CacheHitMissChart
-                    series={{
-                      seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
-                      data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
-                    }}
+                  <InsightsLineChartWidget
+                    title={DataTitles[`cache_miss_rate()`]}
+                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
                     isLoading={isCacheMissRateLoading}
                     error={cacheMissRateError}
                   />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('cache.get_item')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />
@@ -233,7 +224,6 @@ export function CacheLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-      <CacheSamplePanel />
     </React.Fragment>
   );
 }

@@ -19,6 +19,12 @@ export const DEFAULT_RESOURCE_TYPES = [
   ResourceSpanOps.IMAGE,
 ];
 
+export const FIELD_ALIASES = {
+  'avg(http.decoded_response_content_length)': t('Avg Decoded Size'),
+  'avg(http.response_transfer_size)': t('Avg Transfer Size'),
+  'avg(http.response_content_length)': t('Avg Encoded Size'),
+};
+
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/frontend/assets/';
 
 export const MODULE_FEATURES = ['insights-initial-modules'];

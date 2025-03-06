@@ -10,12 +10,18 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Controls if the opacity is increased when the element is in a
    * selected or expanded state (aria-selected='true' or aria-expanded='true')
+   *
+   * @default true
    */
   hasSelectedBackground?: boolean;
   higherOpacity?: boolean;
   isHovered?: boolean;
   isPressed?: boolean;
 }
+
+const defaultProps = {
+  hasSelectedBackground: true,
+};
 
 const InteractionStateLayer = styled(
   (props: StateLayerProps) => {
@@ -41,7 +47,10 @@ const InteractionStateLayer = styled(
   box-sizing: content-box;
   border-radius: inherit;
   border: inherit;
-  color: ${p => (p.color ? p.theme[p.color] ?? p.color : 'currentcolor')};
+  color: ${p =>
+    p.color
+      ? (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color
+      : 'currentcolor'};
   background-color: currentcolor;
   border-color: currentcolor;
   pointer-events: none;
@@ -74,7 +83,7 @@ const InteractionStateLayer = styled(
           *:active > && {
             opacity: ${p.higherOpacity ? 0.12 : 0.09};
           }
-          ${p.hasSelectedBackground &&
+          ${(p.hasSelectedBackground ?? defaultProps.hasSelectedBackground) &&
           css`
             *[aria-expanded='true'] > &&,
             *[aria-selected='true'] > && {
@@ -89,9 +98,5 @@ const InteractionStateLayer = styled(
     opacity: 0;
   }
 `;
-
-InteractionStateLayer.defaultProps = {
-  hasSelectedBackground: true,
-};
 
 export default InteractionStateLayer;

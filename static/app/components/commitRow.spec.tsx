@@ -11,7 +11,7 @@ jest.mock('sentry/components/hovercard', () => {
   return {
     Header: ({children}: {children: React.ReactNode}) => children,
     Body: ({children}: {children: React.ReactNode}) => children,
-    Hovercard: ({body}) => {
+    Hovercard: ({body}: any) => {
       return body;
     },
   };

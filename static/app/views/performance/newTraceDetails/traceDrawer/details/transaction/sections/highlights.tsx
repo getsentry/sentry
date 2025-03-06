@@ -63,7 +63,7 @@ export function TransactionHighlights(props: HighlightProps) {
     <BodyContentWrapper>
       <Link
         to={transactionSummaryRouteWithQuery({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           transaction: props.node.value.transaction,
           // Omit the query from the target url, as we dont know where it may have came from
           // and if its syntax is supported on the target page. In this example, txn search does
@@ -73,7 +73,7 @@ export function TransactionHighlights(props: HighlightProps) {
         })}
       >
         <StyledIconGraph type="area" size="xs" />
-        {t('View transaction summary')}
+        {t('View Summary')}
       </Link>
     </BodyContentWrapper>
   );

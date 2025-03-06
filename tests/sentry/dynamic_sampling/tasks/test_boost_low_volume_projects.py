@@ -65,6 +65,36 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
+    def test_deleted_projects_are_not_queried(self):
+        context = TaskContext("rebalancing", 20)
+        org1 = self.create_organization("test-org")
+        p1 = self.create_project(organization=org1)
+        p2 = self.create_project(organization=org1)
+
+        for p in [p1, p2]:
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": "keep"},
+                minutes_before_now=30,
+                value=1,
+                project_id=p.id,
+                org_id=org1.id,
+            )
+
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": "drop"},
+                minutes_before_now=30,
+                value=3,
+                project_id=p.id,
+                org_id=org1.id,
+            )
+        p2.delete()
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
+        )
+        assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
+
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
     def test_simple_one_org_one_project_task_sliding_window_sample_rate(self):
         org1 = self.create_organization("test-org")

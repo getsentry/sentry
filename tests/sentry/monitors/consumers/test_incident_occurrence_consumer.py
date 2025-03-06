@@ -173,7 +173,7 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
         # Raises a message rejected and does not send the occurrence
         with pytest.raises(MessageRejected):
             send_incident_occurrence(consumer, ts, message)
-            assert mock_send_incident_occurrence.call_count == 0
+        assert mock_send_incident_occurrence.call_count == 0
 
         # Tick decision resolves to OK
         mock_memoized_tick_decision.return_value = TickAnomalyDecision.NORMAL

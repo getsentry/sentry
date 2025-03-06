@@ -7,6 +7,7 @@ import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoRepl
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useTouchEventsCheck from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -58,7 +59,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * Is the data inside the `replay` complete, or are we waiting for more.
    */
-  isFetching;
+  isFetching: any;
 
   /**
    * Set to true when the replay finish event is fired
@@ -340,7 +341,6 @@ export function Provider({
         }
       }
 
-      // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
@@ -357,12 +357,12 @@ export function Provider({
         speed: initialPrefsRef.current.playbackSpeed,
       });
 
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      // @ts-expect-error TS(2345): Argument of type '(dimension: Dimensions) => void'... Remove this comment to see the full error message
       inst.on(ReplayerEvents.Resize, (dimension: Dimensions) => {
         setDimensions(dimension);
       });
       inst.on(ReplayerEvents.Finish, setReplayFinished);
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      // @ts-expect-error TS(2345): Argument of type '(e: {    speed: number;}) => voi... Remove this comment to see the full error message
       inst.on(ReplayerEvents.SkipStart, (e: {speed: number}) => {
         setFFSpeed(e.speed);
       });
@@ -373,7 +373,7 @@ export function Provider({
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
+      // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
 
       applyInitialOffset();
@@ -388,6 +388,8 @@ export function Provider({
       theme.purple200,
     ]
   );
+
+  useTouchEventsCheck({replay: isFetching ? null : replay});
 
   const initVideoRoot = useCallback(
     (root: RootElem) => {
@@ -429,18 +431,13 @@ export function Provider({
         // rrweb specific
         theme,
         eventsWithSnapshots: replay?.getRRWebFramesWithSnapshots() ?? [],
-        touchEvents: replay?.getRRwebTouchEvents() ?? [],
         // common to both
         root,
-        context: {
-          sdkName: replay?.getReplay().sdk.name,
-          sdkVersion: replay?.getReplay().sdk.version,
-        },
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
+      // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
       applyInitialOffset();
       return inst;
@@ -546,7 +543,7 @@ export function Provider({
     return () => {
       if (rootEl && replayerRef.current) {
         replayerRef.current.destroy();
-        // @ts-expect-error Cleaning up
+        // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
         replayerRef.current = null;
       }
     };

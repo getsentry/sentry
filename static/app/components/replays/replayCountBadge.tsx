@@ -1,8 +1,8 @@
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 
 function ReplayCountBadge({count}: {count: undefined | number}) {
   const display = count && count > 50 ? '50+' : count ?? null;
-  return <Badge text={display} />;
+  return <Badge type="default">{display}</Badge>;
 }
 
 export default ReplayCountBadge;

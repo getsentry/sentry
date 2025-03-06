@@ -7,6 +7,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {fetchPlugins} from 'sentry/actionCreators/plugins';
@@ -19,7 +20,7 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectReleaseTracking', function () {
-  const {organization: org, project, routerProps} = initializeOrg();
+  const {organization: org, project} = initializeOrg();
   const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
   beforeEach(function () {
@@ -43,17 +44,18 @@ describe('ProjectReleaseTracking', function () {
     jest.clearAllMocks();
   });
 
-  it('renders with token', function () {
+  it('renders with token', async function () {
     render(
       <ProjectReleaseTracking
         organization={org}
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
-        {...routerProps}
       />
     );
 
-    expect(screen.getByRole('textbox')).toHaveValue('token token token');
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('token token token');
+    });
   });
 
   it('can regenerate token', async function () {
@@ -62,29 +64,31 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
-        {...routerProps}
       />
     );
+    renderGlobalModal();
 
     const mock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
       body: {
         webhookUrl: 'webhook-url',
-        token: 'token token token',
+        token: 'token2 token2 token2',
       },
     });
 
     // Click Regenerate Token
-    await userEvent.click(screen.getByRole('button', {name: 'Regenerate Token'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Regenerate Token'}));
 
-    renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('token2 token2 token2');
+    });
     expect(mock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -96,7 +100,7 @@ describe('ProjectReleaseTracking', function () {
     );
   });
 
-  it('fetches new plugins when project changes', function () {
+  it('fetches new plugins when project changes', async function () {
     const newProject = ProjectFixture({slug: 'new-project'});
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${newProject.slug}/releases/token/`,
@@ -108,25 +112,16 @@ describe('ProjectReleaseTracking', function () {
     });
 
     const {rerender} = render(
-      <ProjectReleaseTrackingContainer
-        organization={org}
-        project={project}
-        {...routerProps}
-      />
+      <ProjectReleaseTrackingContainer organization={org} project={project} />
     );
-    expect(fetchPlugins).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(fetchPlugins).toHaveBeenCalled();
+    });
 
     jest.mocked(fetchPlugins).mockClear();
 
     // For example, this happens when we switch to a new project using settings breadcrumb
-    rerender(
-      <ProjectReleaseTrackingContainer
-        organization={org}
-        project={newProject}
-        {...routerProps}
-        params={{projectId: 'new-project'}}
-      />
-    );
+    rerender(<ProjectReleaseTrackingContainer organization={org} project={newProject} />);
 
     expect(fetchPlugins).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -134,17 +129,35 @@ describe('ProjectReleaseTracking', function () {
       })
     );
 
-    jest.mocked(fetchPlugins).mockClear();
+    await waitFor(() => {
+      jest.mocked(fetchPlugins).mockClear();
+    });
 
     // Does not call fetchPlugins if slug is the same
-    rerender(
-      <ProjectReleaseTrackingContainer
+    rerender(<ProjectReleaseTrackingContainer organization={org} project={newProject} />);
+    await waitFor(() => {
+      expect(fetchPlugins).not.toHaveBeenCalled();
+    });
+  });
+
+  it('renders placeholders on 403', async function () {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      status: 403,
+      body: undefined,
+    });
+
+    render(
+      <ProjectReleaseTracking
         organization={org}
-        project={newProject}
-        {...routerProps}
-        params={{projectId: 'new-project'}}
+        project={project}
+        plugins={{loading: false, plugins: PluginsFixture()}}
       />
     );
-    expect(fetchPlugins).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('YOUR_TOKEN');
+    });
   });
 });

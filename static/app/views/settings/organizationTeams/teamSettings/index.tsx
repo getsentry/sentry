@@ -4,9 +4,9 @@ import cloneDeep from 'lodash/cloneDeep';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -20,17 +20,17 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Team} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
+interface TeamSettingsProps extends RouteComponentProps<{teamId: string}> {
   team: Team;
 }
 
 function TeamSettings({team, params}: TeamSettingsProps) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const api = useApi();
 
@@ -40,16 +40,16 @@ function TeamSettings({team, params}: TeamSettingsProps) {
     updateTeamSuccess(team.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
-      browserHistory.replace(
-        normalizeUrl(`/settings/${organization.slug}/teams/${resp.slug}/settings/`)
-      );
+      navigate(`/settings/${organization.slug}/teams/${resp.slug}/settings/`, {
+        replace: true,
+      });
     }
   };
 
   const handleRemoveTeam = async () => {
     try {
       await removeTeam(api, {orgId: organization.slug, teamId: params.teamId});
-      browserHistory.replace(normalizeUrl(`/settings/${organization.slug}/teams/`));
+      navigate(`/settings/${organization.slug}/teams/`, {replace: true});
     } catch {
       // removeTeam already displays an error message
     }
@@ -73,7 +73,7 @@ function TeamSettings({team, params}: TeamSettingsProps) {
       help: `The unique identifier for this team. It cannot be modified.`,
     };
 
-    formsConfig[0].fields = [...formsConfig[0].fields, teamIdField];
+    formsConfig[0]!.fields = [...formsConfig[0]!.fields, teamIdField];
 
     return formsConfig;
   }, [team]);
@@ -82,13 +82,15 @@ function TeamSettings({team, params}: TeamSettingsProps) {
     <Fragment>
       <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
 
-      <PermissionAlert access={['team:write']} team={team} />
+      <ProjectPermissionAlert access={['team:write']} team={team} />
       {isIdpProvisioned && (
-        <Alert type="warning" showIcon>
-          {t(
-            "This team is managed through your organization's identity provider. These settings cannot be modified."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {t(
+              "This team is managed through your organization's identity provider. These settings cannot be modified."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
 
       <Form

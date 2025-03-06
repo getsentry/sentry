@@ -5,8 +5,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,7 +29,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.event_examples import EventExamples
-from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
@@ -68,27 +67,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
             GlobalParams.ENVIRONMENT,
-            OpenApiParameter(
-                name="full",
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="sample",
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="query",
-                location=OpenApiParameter.QUERY,
-                type=OpenApiTypes.STR,
-                description="An optional search query for filtering events.",
-                required=False,
-            ),
+            EventParams.FULL_PAYLOAD,
+            EventParams.SAMPLE,
+            EventParams.QUERY,
         ],
         responses={
             200: inline_sentry_response_serializer(

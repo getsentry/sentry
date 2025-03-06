@@ -14,7 +14,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('PerformanceScoreBreakdownChart', function () {
   const organization = OrganizationFixture();
-  let eventsStatsMock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -64,7 +64,7 @@ describe('PerformanceScoreBreakdownChart', function () {
       key: '',
     });
     render(<PerformanceScoreBreakdownChart />, {organization});
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -72,11 +72,6 @@ describe('PerformanceScoreBreakdownChart', function () {
         method: 'GET',
         query: expect.objectContaining({
           yAxis: [
-            'weighted_performance_score(measurements.score.lcp)',
-            'weighted_performance_score(measurements.score.fcp)',
-            'weighted_performance_score(measurements.score.cls)',
-            'weighted_performance_score(measurements.score.inp)',
-            'weighted_performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
             'performance_score(measurements.score.cls)',
@@ -101,7 +96,6 @@ describe('PerformanceScoreBreakdownChart', function () {
           total: [],
         },
         ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
-        false,
         ['lcp', 'fcp', 'inp', 'cls', 'ttfb']
       );
       expect(result).toEqual([

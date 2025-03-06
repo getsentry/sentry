@@ -70,7 +70,9 @@ async function fetchTraceMetaInBatches(
     performance_issues: 0,
     projects: 0,
     transactions: 0,
-    transactiontoSpanChildrenCount: {},
+    transaction_child_count_map: {},
+    span_count: 0,
+    span_count_map: {},
   };
 
   const apiErrors: Error[] = [];
@@ -94,10 +96,15 @@ async function fetchTraceMetaInBatches(
         // Turn the transaction_child_count_map array into a map of transaction id to child count
         // for more efficient lookups.
         result.value.transaction_child_count_map.forEach(
-          ({'transaction.id': id, count}) => {
-            acc.transactiontoSpanChildrenCount[id] = count;
+          ({'transaction.id': id, count}: any) => {
+            acc.transaction_child_count_map[id] = count;
           }
         );
+
+        acc.span_count += result.value.span_count;
+        Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
+          acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
+        });
       } else {
         apiErrors.push(new Error(result?.reason));
       }
@@ -124,7 +131,6 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     return normalizeDateTimeParams(query, {
       allowAbsolutePageDatetime: true,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // demo has the format ${projectSlug}:${eventId}
@@ -172,7 +178,9 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         performance_issues: 0,
         projects: 1,
         transactions: 1,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       },
       errors: [],
       status: 'success' as QueryStatus,

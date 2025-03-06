@@ -46,6 +46,8 @@ describe('VersionHoverCard', () => {
     await userEvent.hover(screen.getByText(release.version));
 
     expect(await screen.findByText(deploy.environment)).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Package'})).toBeInTheDocument();
+    expect(screen.getByText(release.version.split('@')[0]!)).toBeInTheDocument();
   });
 
   it('renders authors without ids', async () => {

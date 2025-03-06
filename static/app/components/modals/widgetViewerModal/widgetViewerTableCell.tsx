@@ -33,7 +33,6 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -80,7 +79,7 @@ export const renderIssueGridHeaderCell = ({
       <SortLink
         align={align}
         title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
-        direction={widget.queries[0].orderby === sortField ? 'desc' : undefined}
+        direction={widget.queries[0]!.orderby === sortField ? 'desc' : undefined}
         canSort={!!sortField}
         generateSortLink={() => ({
           ...location,
@@ -118,14 +117,14 @@ export const renderDiscoverGridHeaderCell = ({
     column: TableColumn<keyof TableDataRow>,
     _columnIndex: number
   ): React.ReactNode {
-    const {orderby} = widget.queries[0];
+    const {orderby} = widget.queries[0]!;
     // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
     const aggregateAliasOrderBy = `${
       orderby.startsWith('-') ? '-' : ''
     }${getAggregateAlias(trimStart(orderby, '-'))}`;
     const eventView = eventViewFromWidget(
       widget.title,
-      {...widget.queries[0], orderby: aggregateAliasOrderBy},
+      {...widget.queries[0]!, orderby: aggregateAliasOrderBy},
       selection
     );
     const tableMeta = tableData?.meta;
@@ -205,12 +204,16 @@ export const renderGridBodyCell = ({
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
       case WidgetType.ERRORS:
-      default:
+      default: {
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];
-        cell = getCustomEventsFieldRenderer(columnKey, tableData.meta)(dataRow, {
+        cell = getCustomEventsFieldRenderer(
+          columnKey,
+          tableData.meta,
+          widget
+        )(dataRow, {
           organization,
           location,
           eventView,
@@ -231,6 +234,7 @@ export const renderGridBodyCell = ({
           );
         }
         break;
+      }
     }
 
     if (columnKey === 'transaction' && dataRow.transaction) {
@@ -291,7 +295,7 @@ export const renderPrependColumns =
     const eventSlug = generateEventSlug(dataRow);
 
     const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
+      organization,
       eventSlug,
       eventView,
     });
@@ -318,7 +322,7 @@ export const renderReleaseGridHeaderCell = ({
   ): React.ReactNode {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
-    const widgetOrderBy = widget.queries[0].orderby;
+    const widgetOrderBy = widget.queries[0]!.orderby;
     const sort: Sort = {
       kind: widgetOrderBy.startsWith('-') ? 'desc' : 'asc',
       field: widgetOrderBy.startsWith('-') ? widgetOrderBy.slice(1) : widgetOrderBy,
@@ -365,30 +369,10 @@ export const renderReleaseGridHeaderCell = ({
     );
   };
 
-export const renderMetricGridHeaderCell = () =>
-  function (
-    column: TableColumn<keyof TableDataRow>,
-    _columnIndex: number
-  ): React.ReactNode {
-    const align = parseField(column.name) ? 'right' : 'left';
-    const titleText = formatMRIField(column.name);
-
-    return (
-      <StyledTooltip skipWrapper showOnlyOnOverflow title={titleText}>
-        <AlignedText align={align}>{titleText}</AlignedText>
-      </StyledTooltip>
-    );
-  };
-
 const StyledTooltip = styled(Tooltip)`
   display: initial;
 `;
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const AlignedText = styled('div')<{align: string}>`
-  width: 100%;
-  text-align: ${p => p.align};
 `;

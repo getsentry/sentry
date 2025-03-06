@@ -273,7 +273,7 @@ function GroupActivityItem({
         return tct('[author] marked this issue as resolved due to inactivity', {
           author,
         });
-      case GroupActivityType.SET_RESOLVED_IN_RELEASE:
+      case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
         // Resolved in the next release
         if ('current_release_version' in activity.data) {
           const currentVersion = activity.data.current_release_version;
@@ -305,7 +305,8 @@ function GroupActivityItem({
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
             });
-      case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+      }
+      case GroupActivityType.SET_RESOLVED_IN_COMMIT: {
         const deployedReleases = (activity.data.commit?.releases || [])
           .filter(r => r.dateReleased !== null)
           .sort(
@@ -326,7 +327,7 @@ function GroupActivityItem({
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />
@@ -350,7 +351,7 @@ function GroupActivityItem({
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />
@@ -371,6 +372,7 @@ function GroupActivityItem({
           });
         }
         return tct('[author] marked this issue as resolved in a commit', {author});
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
@@ -474,6 +476,13 @@ function GroupActivityItem({
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
+        if (data.new === true) {
+          return tct('[author] linked this issue to [issue] on [provider]', {
+            author,
+            issue: <ExternalLink href={data.location}>{data.title}</ExternalLink>,
+            provider: data.provider,
+          });
+        }
         return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,

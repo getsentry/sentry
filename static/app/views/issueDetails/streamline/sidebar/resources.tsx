@@ -18,7 +18,9 @@ export default function Resources({configResources, eventPlatform, group}: Props
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,
-    ...(configResources.linksByPlatform[eventPlatform ?? ''] ?? []),
+    ...(configResources.linksByPlatform[
+      (eventPlatform ?? '') as keyof typeof configResources.linksByPlatform
+    ] ?? []),
   ];
 
   return (

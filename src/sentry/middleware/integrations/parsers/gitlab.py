@@ -8,7 +8,7 @@ import orjson
 from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
-from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
+from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, get_gitlab_external_id
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -20,7 +20,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
+class GitlabRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITLAB]
     webhook_identifier = WebhookProviderIdentifier.GITLAB
     _integration: Integration | None = None
@@ -35,7 +35,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
             # AppPlatformEvents also hit this API
             "event-type": self.request.META.get("HTTP_X_GITLAB_EVENT"),
         }
-        return super()._get_external_id(request=self.request, extra=extra)
+        return get_gitlab_external_id(request=self.request, extra=extra)
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:

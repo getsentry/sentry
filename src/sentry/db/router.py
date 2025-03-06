@@ -73,6 +73,7 @@ class SiloRouter:
         "sentry_notificationsetting": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
         "authidentity_duplicate": SiloMode.CONTROL,
+        "sentry_alertruleactivations": SiloMode.REGION,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments

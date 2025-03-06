@@ -143,6 +143,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
       return {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         label: groupLabels[key],
         options: createSelectOptions(values),
       };
@@ -161,7 +162,7 @@ class RuleNodeList extends Component<Props> {
     itemIdx: number
   ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
-    const node = nodes?.find(n => {
+    const node = nodes?.find((n: any) => {
       if ('sentryAppInstallationUuid' in n) {
         // Match more than just the id for sentryApp actions, they share the same id
         return (
@@ -184,7 +185,7 @@ class RuleNodeList extends Component<Props> {
       return node;
     }
 
-    const item = items[itemIdx];
+    const item = items[itemIdx]!;
 
     let changeAlertNode: IssueAlertGenericConditionConfig = {
       ...(node as IssueAlertGenericConditionConfig),
@@ -211,6 +212,7 @@ class RuleNodeList extends Component<Props> {
         ...changeAlertNode,
         label: changeAlertNode.label.replace(
           '{comparisonType}',
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]
         ),
       };
@@ -262,9 +264,9 @@ class RuleNodeList extends Component<Props> {
       incompatibleBanner,
     } = this.props;
 
-    const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
+    const enabledNodes = nodes ? nodes.filter(({enabled}: any) => enabled) : [];
 
-    let options;
+    let options: any[];
     if (selectType === 'grouped') {
       options = groupSelectOptions(enabledNodes);
       if (additionalAction) {
@@ -306,10 +308,12 @@ class RuleNodeList extends Component<Props> {
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
-          onChange={obj => {
-            additionalAction && obj === additionalAction.option
-              ? additionalAction.onClick()
-              : onAddRow(obj.value);
+          onChange={(obj: any) => {
+            if (additionalAction && obj === additionalAction.option) {
+              additionalAction.onClick();
+            } else {
+              onAddRow(obj.value);
+            }
           }}
           options={options}
           disabled={disabled}

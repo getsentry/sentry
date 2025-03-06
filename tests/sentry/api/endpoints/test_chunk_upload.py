@@ -1,3 +1,4 @@
+import math
 from hashlib import sha1
 
 import pytest
@@ -56,6 +57,13 @@ class ChunkUploadTest(APITestCase):
             )
 
             assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
+
+        assert math.log2(response.data["chunkSize"]) % 1 == 0, (
+            "chunkSize is not a power of two. This change will break Sentry CLI versions ≤2.39.1, "
+            "since these versions only support chunk sizes which are a power of two. Chunk uploads "
+            "will error in these versions when the CLI receives a chunk size which is not a power "
+            "of two from the server, and there is no way for users to work around the error."
+        )
 
     def test_relative_url_support(self):
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls

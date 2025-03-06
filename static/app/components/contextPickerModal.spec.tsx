@@ -65,6 +65,7 @@ describe('ContextPickerModal', function () {
     render(getComponent());
 
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
     expect(screen.queryByText('Select a Project to continue')).not.toBeInTheDocument();
   });
 
@@ -102,8 +103,8 @@ describe('ContextPickerModal', function () {
 
     await waitFor(() => {
       expect(fetchProjectsForOrg).toHaveBeenCalled();
-      expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
     });
+    expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
   });
 
   it('selects an org and calls `onFinish` with URL with organization slug', async function () {
@@ -144,6 +145,7 @@ describe('ContextPickerModal', function () {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
+    expect(screen.getByRole('textbox')).toHaveFocus();
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
@@ -164,7 +166,7 @@ describe('ContextPickerModal', function () {
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,
-      body: organizations[1].projects,
+      body: organizations[1]!.projects,
     });
 
     OrganizationsStore.load(organizations);
@@ -180,6 +182,7 @@ describe('ContextPickerModal', function () {
 
     // Should not have anything selected
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
 
     // Select org2
     await selectEvent.select(screen.getByText('Select an Organization'), org2.slug);

@@ -61,7 +61,7 @@ ATTR_CHOICES = {
     "stacktrace.filename": Columns.STACK_FILENAME,
     "stacktrace.abs_path": Columns.STACK_ABS_PATH,
     "stacktrace.package": Columns.STACK_PACKAGE,
-    "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
+    "unreal.crash_type": Columns.UNREAL_CRASH_TYPE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
@@ -90,7 +90,6 @@ class EventAttributeCondition(EventCondition):
     """
 
     id = "sentry.rules.conditions.event_attribute.EventAttributeCondition"
-    form_cls = EventAttributeForm
     label = "The event's {attribute} value {match} {value}"
 
     form_fields = {
@@ -188,6 +187,9 @@ class EventAttributeCondition(EventCondition):
             raise NotImplementedError
         columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
         return columns
+
+    def get_form_instance(self) -> EventAttributeForm:
+        return EventAttributeForm(self.data)
 
 
 # Register attribute handlers

@@ -1,23 +1,31 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {useFetchEventAttachments} from 'sentry/actionCreators/events';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
   getContextSummary,
   getContextTitle,
 } from 'sentry/components/events/contexts/utils';
+import ScreenshotModal, {
+  modalCss,
+} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
+import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconReleases, IconWindow} from 'sentry/icons';
+import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
@@ -27,9 +35,21 @@ interface HighlightsIconSummaryProps {
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
   const organization = useOrganization();
+
+  // Project slug and project id are pull out because group is not always available
+  const projectSlug = group?.project.slug ?? event.projectSlug;
+  const projectId = group?.project.id ?? event.projectID;
+  const projectPlatform = group?.project.platform;
+
+  const {data: attachments = []} = useFetchEventAttachments({
+    orgSlug: organization.slug,
+    projectSlug,
+    eventId: event.id,
+  });
+  const screenshot = attachments.find(({name}) => SCREENSHOT_NAMES.includes(name));
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
-    isMobilePlatform(event.platform) || isNativePlatform(event.platform);
+    isMobilePlatform(projectPlatform) || isNativePlatform(projectPlatform);
   // For now, highlight icons are only interpretted from context. We should extend this to tags
   // eventually, but for now, it'll match the previous expectations.
   const items = getOrderedContextItems(event)
@@ -58,10 +78,39 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const releaseTag = event.tags?.find(tag => tag.key === 'release');
   const environmentTag = event.tags?.find(tag => tag.key === 'environment');
 
-  return items.length ? (
+  return items.length || screenshot ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel gap={3} aria-label={t('Icon highlights')}>
+        <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
+          {screenshot && group && (
+            <Fragment>
+              <ScreenshotButton
+                type="button"
+                borderless
+                size="zero"
+                icon={<IconAttachment color="subText" />}
+                title={t('View Screenshot')}
+                onClick={() => {
+                  const downloadUrl = `/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/attachments/${screenshot.id}/`;
+                  openModal(
+                    modalProps => (
+                      <ScreenshotModal
+                        {...modalProps}
+                        projectSlug={group.project.slug}
+                        eventAttachment={screenshot}
+                        downloadUrl={downloadUrl}
+                        attachments={attachments}
+                      />
+                    ),
+                    {modalCss}
+                  );
+                }}
+              >
+                <IconDescription>{t('Screenshot')}</IconDescription>
+              </ScreenshotButton>
+              {items.length > 0 && <Divider />}
+            </Fragment>
+          )}
           {items.map((item, index) => (
             <IconContainer key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
@@ -75,24 +124,19 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               </IconDescription>
             </IconContainer>
           ))}
-          {releaseTag && (
+          {releaseTag && projectSlug && projectId && (
             <IconContainer key="release">
               <IconWrapper>
                 <IconReleases size="sm" color="subText" />
               </IconWrapper>
               <IconDescription aria-label={t('Event release')}>
-                {group && releaseTag && (
-                  <VersionHoverCard
-                    organization={organization}
-                    projectSlug={group.project.slug}
-                    releaseVersion={releaseTag.value}
-                  >
-                    <StyledVersion
-                      version={releaseTag.value}
-                      projectId={group.project.id}
-                    />
-                  </VersionHoverCard>
-                )}
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={projectSlug}
+                  releaseVersion={releaseTag.value}
+                >
+                  <StyledVersion version={releaseTag.value} projectId={projectId} />
+                </VersionHoverCard>
               </IconDescription>
             </IconContainer>
           )}
@@ -115,7 +159,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
 
 const IconBar = styled('div')`
   position: relative;
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: 0 ${space(0.5)};
 `;
 
 const IconContainer = styled('div')`
@@ -123,6 +167,7 @@ const IconContainer = styled('div')`
   gap: ${space(1)};
   align-items: center;
   flex-shrink: 0;
+  min-height: 24px;
 `;
 
 const IconDescription = styled('div')`
@@ -147,4 +192,8 @@ const StyledVersion = styled(Version)`
   &:hover {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const ScreenshotButton = styled(Button)`
+  font-weight: normal;
 `;

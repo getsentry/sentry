@@ -9,9 +9,9 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RuleActionsCategories} from 'sentry/types/alerts';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -42,6 +42,7 @@ function SnoozeAlert({
   const organization = useOrganization();
   const api = useApi();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [disabled, setDisabled] = useState(false);
 
@@ -62,10 +63,13 @@ function SnoozeAlert({
         );
 
         if (autoMute) {
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {...location.query, mute: undefined},
-          });
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {...location.query, mute: undefined},
+            },
+            {replace: true}
+          );
         }
 
         setDisabled(false);
@@ -87,6 +91,7 @@ function SnoozeAlert({
     },
     [
       api,
+      navigate,
       isSnoozed,
       location.pathname,
       location.query,
@@ -197,12 +202,14 @@ export default SnoozeAlert;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusRight};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   border-left: none;
 `;
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
   border-radius: ${p =>
-    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
+    p.hasDropdown
+      ? `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`
+      : p.theme.borderRadius};
 `;

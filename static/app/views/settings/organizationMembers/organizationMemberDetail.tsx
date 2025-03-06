@@ -199,7 +199,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       return;
     }
 
-    newTeamRoles[i] = {...newTeamRoles[i], role};
+    newTeamRoles[i] = {...newTeamRoles[i]!, role};
     setTeamRoles(newTeamRoles);
   };
 

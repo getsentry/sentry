@@ -35,7 +35,11 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
   return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
 }
 
-function objectMatchesSubset(obj?: object, other?: object, deep?: boolean): boolean {
+function objectMatchesSubset(
+  obj?: Record<PropertyKey, unknown>,
+  other?: Record<PropertyKey, unknown>,
+  deep?: boolean
+): boolean {
   let k: string;
 
   if (obj === other) {

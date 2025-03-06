@@ -13,9 +13,7 @@ const anomaly_low: Anomaly['anomaly'] = {
 
 describe('anomalyChart', () => {
   it('should return an empty array for empty anomalies', () => {
-    const input: Anomaly[] = [];
-    const output = [];
-    expect(getAnomalyMarkerSeries(input)).toEqual(output);
+    expect(getAnomalyMarkerSeries([])).toEqual([]);
   });
 
   it('should not create anomaly values', () => {

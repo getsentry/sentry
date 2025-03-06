@@ -32,22 +32,22 @@ interface EventPayloadWithProjectDetails {
 
 export type ProfilingEventParameters = {
   // ui interactions
-  'profiling_ui_events.transaction_hovercard_view': {};
+  'profiling_ui_events.transaction_hovercard_view': Record<string, unknown>;
   // views & nav
-  'profiling_views.give_feedback_action': {};
+  'profiling_views.give_feedback_action': Record<string, unknown>;
   'profiling_views.go_to_flamegraph': {source: ProfilingEventSource};
   'profiling_views.go_to_transaction': {
     source: ProfilingEventSource;
   };
-  'profiling_views.landing': {};
-  'profiling_views.onboarding': {};
+  'profiling_views.landing': Record<string, unknown>;
+  'profiling_views.onboarding': Record<string, unknown>;
   'profiling_views.onboarding_action': {
     action: 'done' | 'dismissed';
   };
   'profiling_views.profile_details': EventPayloadWithProjectDetails;
   'profiling_views.profile_flamegraph': EventPayloadWithProjectDetails;
   'profiling_views.profile_summary': EventPayloadWithProjectDetails;
-  'profiling_views.visit_discord_channel': {};
+  'profiling_views.visit_discord_channel': Record<string, unknown>;
 };
 
 type EventKey = keyof ProfilingEventParameters;

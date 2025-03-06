@@ -35,6 +35,7 @@ class SnQLTest(TestCase, SnubaTestCase):
                     "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {"received": time.mktime(ts.timetuple())},
                 },
+                {},
             )
         )
         return event_id

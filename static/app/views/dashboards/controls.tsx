@@ -7,6 +7,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -15,12 +16,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -34,6 +33,10 @@ type Props = {
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder: (
+    dataset: DataSet,
+    openWidgetTemplates: boolean
+  ) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -56,6 +59,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
+  onAddWidgetFromNewWidgetBuilder,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
 
@@ -151,23 +155,33 @@ function Controls({
     ? DataSet.ERRORS
     : DataSet.EVENTS;
 
-  let hasEditAccess = true;
-  if (organization.features.includes('dashboards-edit-access')) {
-    hasEditAccess = checkUserHasEditAccess(
-      currentUser,
-      userTeams,
-      organization,
-      dashboard.permissions,
-      dashboard.createdBy
-    );
-  }
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
+
+  const addWidgetDropdownItems: MenuItemProps[] = [
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
+    },
+  ];
 
   return (
     <StyledButtonBar gap={1} key="controls">
+      <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <FeedbackWidgetButton />
             <Feature features="dashboards-import">
               <Button
                 data-test-id="dashboard-export"
@@ -182,40 +196,47 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
-            <Feature features="dashboards-favourite">
-              <Button
-                size="sm"
-                aria-label={'dashboards-favourite'}
-                icon={
-                  <IconStar
-                    color={isFavorited ? 'yellow300' : 'gray300'}
-                    isSolid={isFavorited}
-                    aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                  />
-                }
-                onClick={async () => {
-                  try {
-                    setIsFavorited(!isFavorited);
-                    await updateDashboardFavorite(
-                      api,
-                      organization.slug,
-                      dashboard.id,
-                      !isFavorited
-                    );
-                  } catch (error) {
-                    // If the api call fails, revert the state
-                    setIsFavorited(isFavorited);
+            {dashboard.id !== 'default-overview' && (
+              <Feature features="dashboards-favourite">
+                <Button
+                  size="sm"
+                  aria-label={'dashboards-favourite'}
+                  icon={
+                    <IconStar
+                      color={isFavorited ? 'yellow300' : 'gray300'}
+                      isSolid={isFavorited}
+                      aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
+                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    />
                   }
-                }}
-              />
-            </Feature>
-            <Feature features="dashboards-edit-access">
+                  onClick={async () => {
+                    try {
+                      setIsFavorited(!isFavorited);
+                      await updateDashboardFavorite(
+                        api,
+                        organization.slug,
+                        dashboard.id,
+                        !isFavorited
+                      );
+                      trackAnalytics('dashboards_manage.toggle_favorite', {
+                        organization,
+                        dashboard_id: dashboard.id,
+                        favorited: !isFavorited,
+                      });
+                    } catch (error) {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    }
+                  }}
+                />
+              </Feature>
+            )}
+            {dashboard.id !== 'default-overview' && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
               />
-            </Feature>
+            )}
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -241,13 +262,19 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                {hasCustomMetrics(organization) ? (
-                  <AddWidgetButton
-                    onAddWidget={onAddWidget}
-                    aria-label={t('Add Widget')}
-                    priority="primary"
-                    data-test-id="add-widget-library"
-                    disabled={widgetLimitReached}
+                {organization.features.includes('dashboards-widget-builder-redesign') ? (
+                  <DropdownMenu
+                    items={addWidgetDropdownItems}
+                    isDisabled={widgetLimitReached || !hasEditAccess}
+                    triggerLabel={t('Add Widget')}
+                    triggerProps={{
+                      'aria-label': t('Add Widget'),
+                      size: 'sm',
+                      showChevron: true,
+                      icon: <IconAdd isCircled size="sm" />,
+                      priority: 'primary',
+                    }}
+                    position="bottom-end"
                   />
                 ) : (
                   <Button
@@ -284,7 +311,7 @@ function DashboardEditFeature({
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
 }) {
-  const renderDisabled = p => (
+  const renderDisabled = (p: any) => (
     <Hovercard
       body={
         <FeatureDisabled

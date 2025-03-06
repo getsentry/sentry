@@ -13,9 +13,12 @@ import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventF
 import {
   EMPTY_STATE_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS,
+  MOCK_DATA_SECTION_PROPS_MANY_FLAGS,
+  MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
   NO_FLAG_CONTEXT_SECTION_PROPS_CTA,
   NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA,
+  NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS_NO_CTA,
 } from 'sentry/components/events/featureFlags/testUtils';
 
 // Needed to mock useVirtualizer lists.
@@ -54,17 +57,17 @@ describe('EventFeatureFlagList', function () {
       body: TagsFixture(),
     });
   });
-  it('renders a list of feature flags with a button to view all', async function () {
-    render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
+  it('renders a list of feature flags with a button to view more flags', async function () {
+    render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
 
     for (const {flag, result} of MOCK_FLAGS) {
       if (result) {
-        expect(screen.getByText(flag)).toBeInTheDocument();
+        expect(screen.getAllByText(flag)[0]).toBeInTheDocument();
       }
     }
 
     // When expanded, all should be visible
-    const viewAllButton = screen.getByRole('button', {name: 'View All'});
+    const viewAllButton = screen.getByRole('button', {name: 'View 1 More Flag'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'Feature flags drawer'});
     expect(drawer).toBeInTheDocument();
@@ -75,9 +78,9 @@ describe('EventFeatureFlagList', function () {
     }
   });
 
-  it('toggles the drawer when view all is clicked', async function () {
-    render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
-    const viewAllButton = screen.getByRole('button', {name: 'View All'});
+  it('toggles the drawer when `view n flags` is clicked', async function () {
+    render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_MANY_FLAGS} />);
+    const viewAllButton = screen.getByRole('button', {name: 'View 3 More Flags'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'Feature flags drawer'});
     expect(drawer).toBeInTheDocument();
@@ -176,8 +179,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be preceding webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     const sortControl = screen.getByRole('button', {
@@ -189,8 +192,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be following webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
     await userEvent.click(sortControl);
@@ -199,8 +202,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be preceding webVitalsFlag, A-Z sort by default
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     await userEvent.click(sortControl);
@@ -209,8 +212,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be following webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 
@@ -223,7 +226,7 @@ describe('EventFeatureFlagList', function () {
     expect(search).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
     expect(
-      screen.queryByText('No feature flags were found for this event')
+      screen.getByText('No feature flags were found for this event')
     ).toBeInTheDocument();
   });
 
@@ -245,6 +248,26 @@ describe('EventFeatureFlagList', function () {
     // wait for the CTA to be rendered
     expect(await screen.findByText('Set Up Feature Flags')).toBeInTheDocument();
     expect(screen.getByText('Feature Flags')).toBeInTheDocument();
+  });
+
+  it('renders empty state if event.contexts.flags is not set but should not show cta - flags already sent', function () {
+    const org = OrganizationFixture({features: ['feature-flag-cta']});
+
+    render(
+      <EventFeatureFlagList {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS_NO_CTA} />,
+      {
+        organization: org,
+      }
+    );
+
+    const control = screen.queryByRole('button', {name: 'Sort Flags'});
+    expect(control).not.toBeInTheDocument();
+    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
+    expect(search).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
+    expect(
+      screen.getByText('No feature flags were found for this event')
+    ).toBeInTheDocument();
   });
 
   it('renders nothing if event.contexts.flags is not set and should not show cta - wrong platform', async function () {

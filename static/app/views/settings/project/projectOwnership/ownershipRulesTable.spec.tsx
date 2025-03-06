@@ -131,7 +131,7 @@ describe('OwnershipRulesTable', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     expect(screen.getByText('filepath')).toBeInTheDocument();
-    expect(screen.queryByText('mytag')).toBeInTheDocument();
+    expect(screen.getByText('mytag')).toBeInTheDocument();
   });
 
   it('preserves selected teams when rules are updated', async () => {

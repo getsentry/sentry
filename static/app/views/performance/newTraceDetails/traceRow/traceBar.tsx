@@ -238,7 +238,7 @@ interface AutogroupedTraceBarProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
-  node_spaces: [number, number][];
+  node_spaces: Array<[number, number]>;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;

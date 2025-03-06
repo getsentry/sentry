@@ -23,6 +23,7 @@ import {
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -77,7 +78,7 @@ type Props = {
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
-  source?: string;
+  source?: TraceViewSources;
 };
 
 export function SpanSamplesTable({
@@ -116,59 +117,63 @@ export function SpanSamplesTable({
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
-        <Link
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={generateLinkToEventInTraceView({
+              eventId: row['transaction.id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
+              organization,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row['transaction.id'].slice(0, 8)}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row['transaction.id'].slice(0, 8)}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
     if (column.key === 'span_id') {
       return (
-        <Link
-          onClick={() =>
-            trackAnalytics('performance_views.sample_spans.span_clicked', {
+        <OverflowEllipsisTextContainer>
+          <Link
+            onClick={() =>
+              trackAnalytics('performance_views.sample_spans.span_clicked', {
+                organization,
+                source: moduleName,
+              })
+            }
+            to={generateLinkToEventInTraceView({
+              eventId: row['transaction.id'],
+              timestamp: row.timestamp,
+              traceSlug: row.trace,
+              projectSlug: row.project,
               organization,
-              source: moduleName,
-            })
-          }
-          to={generateLinkToEventInTraceView({
-            eventId: row['transaction.id'],
-            timestamp: row.timestamp,
-            traceSlug: row.trace,
-            projectSlug: row.project,
-            organization,
-            location: {
-              ...location,
-              query: {
-                ...location.query,
-                groupId,
+              location: {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId,
+                },
               },
-            },
-            spanId: row.span_id,
-            source,
-            view,
-          })}
-        >
-          {row.span_id}
-        </Link>
+              spanId: row.span_id,
+              source,
+              view,
+            })}
+          >
+            {row.span_id}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
@@ -178,6 +183,7 @@ export function SpanSamplesTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return <FilenameCell url={row[SPAN_DESCRIPTION]} />;
     }
 
@@ -215,6 +221,7 @@ export function SpanSamplesTable({
       );
     }
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <span>{row[column.key]}</span>;
   }
 

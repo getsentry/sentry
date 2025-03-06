@@ -10,7 +10,6 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -39,7 +38,7 @@ export function ErrorNodeDetails(
   }
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasTraceNewUi}>
+    <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.LegacyTitleText>
@@ -47,7 +46,8 @@ export function ErrorNodeDetails(
               {t('Error')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              text={`ID: ${props.node.value.event_id}`}
+              subTitle={`ID: ${props.node.value.event_id}`}
+              clipboardText={props.node.value.event_id}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
@@ -57,22 +57,15 @@ export function ErrorNodeDetails(
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
-      <Description>
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
         {t(
           'This error is related to an ongoing issue. For details about how many users this affects and more, go to the issue below.'
         )}
-      </Description>
-      <IssueList issues={issues} node={node} organization={organization} />
+        <IssueList issues={issues} node={node} organization={organization} />
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-const Description = styled('div')`
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  line-height: 1.5;
-  text-align: left;
-`;
 
 function LegacyErrorNodeDetails({
   node,
@@ -153,34 +146,35 @@ function LegacyErrorNodeDetails({
           </LinkButton>
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.LegacyHeaderContainer>
+      <TraceDrawerComponents.BodyContainer>
+        <IssueList issues={issues} node={node} organization={organization} />
 
-      <IssueList issues={issues} node={node} organization={organization} />
+        <TraceDrawerComponents.SectionCard
+          items={[
+            {
+              key: 'stack_trace',
+              subject: t('Stack Trace'),
+              subjectNode: null,
+              value:
+                stackTrace && data ? (
+                  <StackTraceWrapper>
+                    <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+                  </StackTraceWrapper>
+                ) : (
+                  t('No stack trace has been reported with this error')
+                ),
+            },
+          ]}
+          title={t('Stack Trace')}
+        />
 
-      <TraceDrawerComponents.SectionCard
-        items={[
-          {
-            key: 'stack_trace',
-            subject: t('Stack Trace'),
-            subjectNode: null,
-            value:
-              stackTrace && data ? (
-                <StackTraceWrapper>
-                  <StackTracePreviewContent event={data} stacktrace={stackTrace} />
-                </StackTraceWrapper>
-              ) : (
-                t('No stack trace has been reported with this error')
-              ),
-          },
-        ]}
-        title={t('Stack Trace')}
-      />
+        <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
 
-      <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
-
-      <TraceDrawerComponents.EventTags
-        projectSlug={node.value.project_slug}
-        event={data}
-      />
+        <TraceDrawerComponents.EventTags
+          projectSlug={node.value.project_slug}
+          event={data}
+        />
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   ) : null;
 }

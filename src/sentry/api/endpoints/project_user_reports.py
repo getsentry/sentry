@@ -17,7 +17,6 @@ from sentry.api.serializers import UserReportWithGroupSerializer, serialize
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
-from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.utils.dates import epoch
 
@@ -48,14 +47,14 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Return a list of user feedback items within this project.
 
-        *This list does not include submissions from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). This is because it is based on an older format called User Reports - read more [here](https://develop.sentry.dev/application/feedback-architecture/#user-reports).*
+        *This list does not include submissions from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). This is because it is based on an older format called User Reports - read more [here](https://develop.sentry.dev/application/feedback-architecture/#user-reports). To return a list of user feedback items from the widget, please use the [issue API](https://docs.sentry.io/api/events/list-a-projects-issues/) with the filter `issue.category:feedback`.*
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         """
         # we don't allow read permission with DSNs
-        if isinstance(request.auth, ProjectKey):
+        if request.auth is not None and request.auth.kind == "project_key":
             return self.respond(status=401)
 
         paginate_kwargs: _PaginateKwargs = {}
@@ -119,7 +118,11 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string email: user's email address
         :param string comments: comments supplied by user
         """
-        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
+        if (
+            request.auth is not None
+            and request.auth.project_id is not None
+            and project.id != request.auth.project_id
+        ):
             return self.respond(status=401)
 
         serializer = UserReportSerializer(data=request.data)
@@ -134,7 +137,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Conflict as e:
             return self.respond({"detail": str(e)}, status=409)
 
-        if isinstance(request.auth, ProjectKey):
+        if request.auth is not None and request.auth.kind == "project_key":
             return self.respond(status=200)
 
         return self.respond(

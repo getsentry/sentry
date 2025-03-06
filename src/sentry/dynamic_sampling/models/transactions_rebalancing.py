@@ -54,7 +54,10 @@ class TransactionsRebalancingModel(
         if total is None:
             total = total_explicit
 
-        if total_num_classes is None:
+        # invariant violation: total number of classes should be at least the number of specified classes
+        # sometimes (maybe due to running the queries at slightly different times), the totals number might be less.
+        # in this case we should use the number of specified classes as the total number of classes
+        if total_num_classes is None or total_num_classes < len(classes):
             total_num_classes = len(classes)
 
         # total count for the unspecified classes

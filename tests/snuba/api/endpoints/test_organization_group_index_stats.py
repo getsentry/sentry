@@ -2,8 +2,7 @@ import uuid
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header, with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -14,20 +13,8 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def _parse_links(self, header):
-        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
-        links = {}
-        for url, attrs in parse_link_header(header).items():
-            links[attrs["rel"]] = attrs
-            attrs["href"] = url
-        return links
-
     def get_response(self, *args, **kwargs):
-        if not args:
-            org = self.project.organization.slug
-        else:
-            org = args[0]
-        return super().get_response(org, **kwargs)
+        return super().get_response(self.project.organization.slug, **kwargs)
 
     def test_simple(self):
         self.store_event(
@@ -64,9 +51,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "userCount" in response_data[0]
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
-        assert "isUnhandled" not in response_data[0]
 
-    @with_feature("organizations:issue-stream-performance")
     def test_unhandled(self):
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -221,9 +206,34 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.login_as(user=self.user)
         response = self.get_response(
-            query=f"timestamp:>{before_now(seconds=3)} timestamp:<{iso_format(before_now(seconds=1))}",
+            query=f"timestamp:>{before_now(seconds=3)} timestamp:<{before_now(seconds=1).isoformat()}",
             groups=[group_a.id, group_c.id],
         )
 
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_simple_flags(self):
+        group_a = self.store_event(
+            data={
+                "timestamp": before_now(seconds=500).isoformat(),
+                "fingerprint": ["group-a"],
+                "contexts": {"flags": {"values": [{"flag": "flag", "result": True}]}},
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-a"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(query="is:unresolved flags[flag]:true", groups=[group_a.id])
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
+
+        assert response.status_code == 200
+        assert len(response_data) == 1
+        assert int(response_data[0]["id"]) == group_a.id
+        assert response_data[0]["count"] == "2"
+        assert response_data[0]["filtered"]["count"] == "1"
+        assert response_data[0]["lifetime"]["count"] == "1"

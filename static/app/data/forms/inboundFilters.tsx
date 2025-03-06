@@ -12,7 +12,7 @@ const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
 });
 
-export const getOptionsData = (data: object) => ({options: data});
+export const getOptionsData = (data: Record<PropertyKey, unknown>) => ({options: data});
 
 const formGroups: JsonFormObject[] = [
   {
@@ -77,7 +77,8 @@ export const customFilterFields: Field[] = [
     help: (
       <Fragment>
         {t('Filter events by error messages. ')}
-        {newLineHelpText} {globHelpText}
+        {newLineHelpText} {globHelpText}{' '}
+        {t('Exceptions are matched on "<type>: <message>", for example "TypeError: *".')}
       </Fragment>
     ),
     getData: getOptionsData,

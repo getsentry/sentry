@@ -8,6 +8,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -118,7 +119,7 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringSegmentColors = getChartColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (
@@ -187,7 +188,9 @@ export function PageOverviewSidebar({
               top: 10,
               bottom: -10,
             }}
-            yAxis={{axisLabel: {formatter: number => formatAbbreviatedNumber(number)}}}
+            yAxis={{
+              axisLabel: {formatter: (number: any) => formatAbbreviatedNumber(number)},
+            }}
             tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
           />
         )}
@@ -230,7 +233,7 @@ export function PageOverviewSidebar({
               bottom: -10,
             }}
             yAxis={{
-              axisLabel: {formatter: number => formatAbbreviatedNumber(number)},
+              axisLabel: {formatter: (number: any) => formatAbbreviatedNumber(number)},
             }}
             tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
           />

@@ -18,7 +18,7 @@ describe('ScreenLoadEventSamples', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  let mockEventsRequest;
+  let mockEventsRequest!: jest.Mock;
   beforeEach(function () {
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
@@ -40,6 +40,24 @@ describe('ScreenLoadEventSamples', function () {
       primaryRelease: 'com.example.vu.android@2.10.5',
       isLoading: false,
       secondaryRelease: 'com.example.vu.android@2.10.3+42',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
@@ -78,6 +96,9 @@ describe('ScreenLoadEventSamples', function () {
           },
         ],
       },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.starfish.mobile-startup-event-samples'}),
+      ],
     });
   });
 

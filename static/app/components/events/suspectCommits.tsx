@@ -173,10 +173,16 @@ const StreamlinedPanel = styled(Panel)`
   overflow: hidden;
   margin-bottom: 0;
   width: 100%;
-  min-width: 85%;
+  min-width: 65%;
+  &:last-child {
+    margin-right: ${space(2)};
+  }
+  &:first-child {
+    margin-left: ${space(2)};
+  }
 `;
 
 const SuspectCommitWrapper = styled('div')`
-  margin-right: 0;
-  margin-left: 0;
+  margin-right: -${space(2)};
+  margin-left: -${space(2)};
 `;

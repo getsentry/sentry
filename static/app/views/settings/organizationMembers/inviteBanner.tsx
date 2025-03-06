@@ -83,7 +83,8 @@ export function InviteBanner({
         }
       );
       const githubMissingMembers = data?.filter(
-        integrationMissingMembers => integrationMissingMembers.integration === 'github'
+        (integrationMissingMembers: any) =>
+          integrationMissingMembers.integration === 'github'
       )[0];
       setMissingMembers(githubMissingMembers?.users || []);
     } catch (err) {

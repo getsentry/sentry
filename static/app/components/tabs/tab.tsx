@@ -78,7 +78,7 @@ export const BaseTab = forwardRef(
 
     const ref = useObjectRef(forwardedRef);
     const InnerWrap = useCallback(
-      ({children}) =>
+      ({children}: any) =>
         to ? (
           <TabLink
             to={to}

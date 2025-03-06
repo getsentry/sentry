@@ -11,7 +11,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -28,7 +27,6 @@ class BitbucketServerAPIPath:
     repository_hook = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
     repository_hooks = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
     repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
-    repository_commit_details = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}"
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
 
@@ -256,8 +254,10 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         )
         return values
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         raise IntegrationFeatureNotImplementedError
 
-    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         raise IntegrationFeatureNotImplementedError

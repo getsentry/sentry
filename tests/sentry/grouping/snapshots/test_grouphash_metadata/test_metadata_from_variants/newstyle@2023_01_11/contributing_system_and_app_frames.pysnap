@@ -1,0 +1,64 @@
+---
+created: '2025-02-26T00:32:03.705182+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "161ce02ecc5d6685a72e8e520ab726b3"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame* (marked in-app by stack trace rule (function:playFetch +app +group))
+              filename*
+                "dogpark.js"
+              function*
+                "playFetch"
+              context-line*
+                "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+          type*
+            "FailedToFetchError"
+  system*
+    hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "router.js"
+              function*
+                "handleRequest"
+              context-line*
+                "return handler(request);"
+            frame*
+              filename*
+                "dogpark.js"
+              function*
+                "playFetch"
+              context-line*
+                "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+          type*
+            "FailedToFetchError"

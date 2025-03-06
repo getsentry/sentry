@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 import pytest
-from django.urls import reverse
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Function, Op
 
@@ -10,56 +9,11 @@ from sentry.release_health.metrics_sessions_v2 import (
     SessionStatus,
     _extract_status_filter_from_conditions,
 )
-from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
-
-
-@freeze_time(MOCK_DATETIME)
-class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
-    def setUp(self):
-        super().setUp()
-        self.setup_fixture()
-
-    def setup_fixture(self):
-        self.organization1 = self.organization
-        self.project1 = self.project
-        self.project2 = self.create_project(
-            name="teletubbies", slug="teletubbies", teams=[self.team], fire_project_created=True
-        )
-
-        self.release1 = self.create_release(project=self.project1, version="hello")
-        self.release2 = self.create_release(project=self.project1, version="hola")
-        self.release3 = self.create_release(project=self.project2, version="hallo")
-
-        self.environment1 = self.create_environment(self.project1, name="development")
-        self.environment2 = self.create_environment(self.project1, name="production")
-        self.environment3 = self.create_environment(self.project2, name="testing")
-
-    def do_request(self, query, user=None, org=None):
-        self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-sessions",
-            kwargs={"organization_id_or_slug": (org or self.organization1).slug},
-        )
-        return self.client.get(url, query, format="json")
-
-    def get_sessions_data(self, groupby: list[str], interval):
-        response = self.do_request(
-            {
-                "organization_id_or_slug": [self.organization1],
-                "project": [self.project1.id],
-                "field": ["sum(session)"],
-                "groupBy": groupby,
-                "interval": interval,
-            }
-        )
-        assert response.status_code == 200
-        return response.data
 
 
 @pytest.mark.parametrize(

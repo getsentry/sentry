@@ -2,7 +2,7 @@
 
 import marked, {limitedMarked} from 'sentry/utils/marked';
 
-function expectMarkdown(test) {
+function expectMarkdown(test: any) {
   expect(marked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
 }
 
@@ -74,7 +74,7 @@ describe('marked', function () {
       ['![alt](http://example.com/rick.gif)', 'http://example.com/rick.gif'],
       ['[click me](http://example.com)', 'http://example.com'],
     ]) {
-      expect(limitedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
+      expect(limitedMarked(test[0]!)).toEqual('<p>' + test[1] + '</p>\n');
     }
   });
 });

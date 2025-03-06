@@ -55,7 +55,7 @@ const storeConfig: AlertStoreDefinition = {
         // Remove any objects that have passed their mute duration.
         const now = Math.floor(new Date().valueOf() / 1000);
         for (const key in expirations) {
-          if (expirations.hasOwnProperty(key) && expirations[key] < now) {
+          if (expirations.hasOwnProperty(key) && expirations[key]! < now) {
             delete expirations[key];
           }
         }

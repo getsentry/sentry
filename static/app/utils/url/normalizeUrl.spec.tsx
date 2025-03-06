@@ -6,7 +6,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', function () {
   let configState: Config;
-  let result;
+  let result: any;
 
   beforeEach(function () {
     configState = ConfigStore.getState();
@@ -111,35 +111,35 @@ describe('normalizeUrl', function () {
       ],
     ];
     for (const [input, expected] of cases) {
-      result = normalizeUrl(input);
+      result = normalizeUrl(input!);
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, location);
+      result = normalizeUrl(input!, location);
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, {forceCustomerDomain: false});
+      result = normalizeUrl(input!, {forceCustomerDomain: false});
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, location, {forceCustomerDomain: false});
+      result = normalizeUrl(input!, location, {forceCustomerDomain: false});
       expect(result).toEqual(expected);
     }
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
     ConfigStore.set('customerDomain', null);
     for (const [input, expected] of cases) {
-      result = normalizeUrl(input, {forceCustomerDomain: true});
+      result = normalizeUrl(input!, {forceCustomerDomain: true});
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, location, {forceCustomerDomain: true});
+      result = normalizeUrl(input!, location, {forceCustomerDomain: true});
       expect(result).toEqual(expected);
     }
 
     ConfigStore.set('customerDomain', null);
     for (const [input, _expected] of cases) {
-      result = normalizeUrl(input);
+      result = normalizeUrl(input!);
       expect(result).toEqual(input);
 
-      result = normalizeUrl(input, location);
+      result = normalizeUrl(input!, location);
       expect(result).toEqual(input);
     }
   });
@@ -147,18 +147,18 @@ describe('normalizeUrl', function () {
   it('replaces pathname in objects', function () {
     const location = LocationFixture();
     result = normalizeUrl({pathname: '/settings/acme/'}, location);
-    expect(result.pathname).toEqual('/settings/organization/');
+    expect(result.pathname).toBe('/settings/organization/');
 
     result = normalizeUrl({pathname: '/settings/acme/'}, location, {
       forceCustomerDomain: false,
     });
-    expect(result.pathname).toEqual('/settings/organization/');
+    expect(result.pathname).toBe('/settings/organization/');
 
     result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
-    expect(result.pathname).toEqual('/settings/members');
+    expect(result.pathname).toBe('/settings/members');
 
     result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
-    expect(result.pathname).toEqual('/issues');
+    expect(result.pathname).toBe('/issues');
 
     result = normalizeUrl(
       {
@@ -167,7 +167,7 @@ describe('normalizeUrl', function () {
       },
       location
     );
-    expect(result.pathname).toEqual('/profiling/profile/sentry/abc123/');
+    expect(result.pathname).toBe('/profiling/profile/sentry/abc123/');
 
     result = normalizeUrl(
       {
@@ -176,14 +176,14 @@ describe('normalizeUrl', function () {
       },
       location
     );
-    expect(result.pathname).toEqual('/issues');
+    expect(result.pathname).toBe('/issues');
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
     ConfigStore.set('customerDomain', null);
     result = normalizeUrl({pathname: '/settings/acme/'}, location, {
       forceCustomerDomain: true,
     });
-    expect(result.pathname).toEqual('/settings/organization/');
+    expect(result.pathname).toBe('/settings/organization/');
 
     result = normalizeUrl(
       {
@@ -195,6 +195,6 @@ describe('normalizeUrl', function () {
         forceCustomerDomain: true,
       }
     );
-    expect(result.pathname).toEqual('/issues');
+    expect(result.pathname).toBe('/issues');
   });
 });

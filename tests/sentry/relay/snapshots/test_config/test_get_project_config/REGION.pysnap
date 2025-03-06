@@ -1,5 +1,5 @@
 ---
-created: '2024-07-19T07:45:13.262472+00:00'
+created: '2025-02-12T13:41:06.264032+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -86,6 +86,7 @@ config:
       - '*/health{/,}'
       - '*/healthy{/,}'
       - '*/healthz{/,}'
+      - '*/health_check{/,}'
       - '*/_health{/,}'
       - '*/\[_health\]{/,}'
       - '*/live{/,}'
@@ -116,20 +117,6 @@ config:
     - id: spans
       limit: 10000
       namespace: spans
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: custom
-      limit: 10000
-      namespace: custom
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: profiles
-      limit: 10000
-      namespace: profiles
       scope: organization
       window:
         granularitySeconds: 600

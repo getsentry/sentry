@@ -12,9 +12,9 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssue;
@@ -45,7 +45,10 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
   // or other options are passed, which breaks the copy-paste.
   const feedbackUrl =
     window.location.origin +
-    normalizeUrl(`/organizations/${organization.slug}/feedback/`) +
+    makeFeedbackPathname({
+      path: '/',
+      organization,
+    }) +
     queryString.stringifyUrl({
       url: '?',
       query: {

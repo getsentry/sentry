@@ -161,7 +161,7 @@ function DropdownMenuList({
       return null;
     }
 
-    const trigger = triggerProps => (
+    const trigger = (triggerProps: any) => (
       <DropdownMenuItem
         renderAs="div"
         node={node}
@@ -201,7 +201,7 @@ function DropdownMenuList({
   };
 
   // Render a collection of menu items
-  const renderCollection = (collection: Node<MenuItemProps>[]) =>
+  const renderCollection = (collection: Array<Node<MenuItemProps>>) =>
     collection.map((node, i) => {
       const isLastNode = collection.length - 1 === i;
       const showSeparator =

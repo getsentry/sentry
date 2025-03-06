@@ -51,7 +51,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
           trackAnalytics('one_other_related_trace_issue.clicked', {
             organization,
             group_id: issueId,
-            area: area,
+            area,
           });
         }}
       >
@@ -101,7 +101,7 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
   try {
     if (event['event.type'] === 'error') {
       if (title[title.length - 1] !== ':') {
-        title = event.title.split(':')[0];
+        title = event.title.split(':')[0]!;
       }
       // It uses metadata.value which could differ depending on what error.value is used in the event manager
       // TODO: Add support for chained exceptions since we grab the value from the first stack trace

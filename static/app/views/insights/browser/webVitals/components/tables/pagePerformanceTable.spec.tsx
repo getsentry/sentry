@@ -115,15 +115,15 @@ describe('PagePerformanceTable', function () {
     render(<PagePerformanceTable />, {router, organization});
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
-      expect(eventsMock).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('transaction:"*/issues/\\**"'),
-          }),
-        })
-      );
     });
+    expect(eventsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: expect.stringContaining('transaction:"*/issues/\\**"'),
+        }),
+      })
+    );
   });
 
   it('renders a list of pages', async function () {

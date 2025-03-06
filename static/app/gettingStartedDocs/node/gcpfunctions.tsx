@@ -10,7 +10,6 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
 
@@ -43,15 +42,6 @@ exports.helloEvents = Sentry.wrapCloudEventFunction(
 const getVerifySnippet = () => `
 exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   throw new Error("oh, hello there!");
-});`;
-
-const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Only needed for SDK versions < 8.0.0
-  // _experiments: {
-  //   metricsAggregator: true,
-  // },
 });`;
 
 const onboarding: OnboardingConfig = {
@@ -114,38 +104,6 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [code:8.0.0] of [code:@sentry/google-cloud-serverless]:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: '@sentry/google-cloud-serverless',
-      }),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'With the default snippet in place, there is no need for any further configuration.'
-      ),
-      configurations: [
-        {
-          code: getMetricsConfigureSnippet(params),
-          language: 'javascript',
-        },
-      ],
-    },
-  ],
-  verify: getJSServerMetricsOnboarding().verify,
-};
-
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
@@ -163,7 +121,6 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding,
   crashReportOnboarding,
 };
 

@@ -57,7 +57,7 @@ export function InvalidTokenTooltip({
       skipWrapper
       forceVisible={getForceVisible({isFocused, isInvalid, hasWarning, forceVisible})}
       position="bottom"
-      title={invalid?.reason ?? warning ?? t('This token is invalid')}
+      title={warning ?? invalid?.reason ?? t('This token is invalid')}
       {...tooltipProps}
     >
       {children}

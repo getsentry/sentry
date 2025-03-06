@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any, TypeGuard
+from typing import TYPE_CHECKING, Any, TypedDict, TypeGuard
 
 from django.db.models import Subquery
 
@@ -74,10 +74,15 @@ def validate(type: NotificationSettingEnum, value: NotificationSettingsOptionEnu
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
+class SubscriptionDetails(TypedDict, total=False):
+    disabled: bool
+    reason: str
+
+
 def get_subscription_from_attributes(
     attrs: Mapping[str, Any]
-) -> tuple[bool, Mapping[str, str | bool] | None]:
-    subscription_details: Mapping[str, str | bool] | None = None
+) -> tuple[bool, SubscriptionDetails | None]:
+    subscription_details: SubscriptionDetails | None = None
     is_disabled, is_subscribed, subscription = attrs["subscription"]
     if is_disabled:
         subscription_details = {"disabled": True}

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -7,6 +7,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
@@ -15,6 +16,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {
+  DisabledImages,
+  LOCAL_STORAGE_SHOW_LINKS,
+  MissingImage,
+} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {
   MissingFrame,
@@ -25,13 +33,16 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 import type {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {TraceDrawerComponents} from '../../styles';
+import {getSearchInExploreTarget, TraceDrawerActionKind} from '../../utils';
 import SpanSummaryLink from '../components/spanSummaryLink';
 
 const formatter = new SQLishFormatter();
@@ -67,7 +78,7 @@ export function SpanDescription({
 }) {
   const hasTraceNewUi = useHasTraceNewUi();
   const span = node.value;
-
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
@@ -106,43 +117,66 @@ export function SpanDescription({
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+  const showAction = hasTraceDrawerAction ? !!span.description : !!span.op && !!span.hash;
   const averageSpanDuration: number | undefined =
     span['span.averageResults']?.['avg(span.duration)'];
 
-  const actions =
-    !span.op || !span.hash ? null : (
-      <BodyContentWrapper
-        padding={
-          resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
+  const actions = !showAction ? null : (
+    <BodyContentWrapper
+      padding={
+        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
+      }
+    >
+      <SpanSummaryLink event={node.event!} organization={organization} span={span} />
+      <Link
+        to={
+          hasTraceDrawerAction
+            ? getSearchInExploreTarget(
+                organization,
+                location,
+                node.event?.projectID,
+                SpanIndexedField.SPAN_DESCRIPTION,
+                span.description!,
+                TraceDrawerActionKind.INCLUDE
+              )
+            : spanDetailsRouteWithQuery({
+                organization,
+                transaction: node.event?.title ?? '',
+                query: location.query,
+                spanSlug: {op: span.op!, group: groupHash},
+                projectID: node.event?.projectID,
+              })
         }
+        onClick={() => {
+          if (hasTraceDrawerAction) {
+            traceAnalytics.trackExploreSearch(
+              organization,
+              SpanIndexedField.SPAN_DESCRIPTION,
+              span.description!,
+              TraceDrawerActionKind.INCLUDE,
+              'drawer'
+            );
+          } else if (hasNewSpansUIFlag) {
+            trackAnalytics('trace.trace_layout.view_span_summary', {
+              organization,
+              module: resolvedModule,
+            });
+          } else {
+            trackAnalytics('trace.trace_layout.view_similar_spans', {
+              organization,
+              module: resolvedModule,
+              source: 'span_description',
+            });
+          }
+        }}
       >
-        <SpanSummaryLink event={node.event!} organization={organization} span={span} />
-        <Link
-          to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: node.event?.title ?? '',
-            query: location.query,
-            spanSlug: {op: span.op, group: groupHash},
-            projectID: node.event?.projectID,
-          })}
-          onClick={() => {
-            hasNewSpansUIFlag
-              ? trackAnalytics('trace.trace_layout.view_span_summary', {
-                  organization,
-                  module: resolvedModule,
-                })
-              : trackAnalytics('trace.trace_layout.view_similar_spans', {
-                  organization,
-                  module: resolvedModule,
-                  source: 'span_description',
-                });
-          }}
-        >
-          <StyledIconGraph type="area" size="xs" />
-          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
-        </Link>
-      </BodyContentWrapper>
-    );
+        <StyledIconGraph type="scatter" size="xs" />
+        {hasNewSpansUIFlag || hasTraceDrawerAction
+          ? t('More Samples')
+          : t('View Similar Spans')}
+      </Link>
+    </BodyContentWrapper>
+  );
 
   const value =
     resolvedModule === ModuleName.DB ? (
@@ -167,6 +201,8 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </CodeSnippetWrapper>
+    ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
+      <ResourceImageDescription formattedDescription={formattedDescription} node={node} />
     ) : (
       <DescriptionWrapper>
         {formattedDescription ? (
@@ -200,6 +236,127 @@ export function SpanDescription({
     />
   );
 }
+
+function getImageSrc(span: TraceTree.Span) {
+  let src = span.description ?? '';
+
+  // Account for relative URLs
+  if (src.startsWith('/')) {
+    const urlScheme = span.data?.['url.scheme'];
+    const serverAddress = span.data?.['server.address'];
+
+    if (urlScheme && serverAddress) {
+      src = `${urlScheme}://${serverAddress}${src}`;
+    }
+  }
+
+  return src;
+}
+
+function ResourceImageDescription({
+  formattedDescription,
+  node,
+}: {
+  formattedDescription: string;
+  node: TraceTreeNode<TraceTree.Span>;
+}) {
+  const projectID = node.event?.projectID ? Number(node.event?.projectID) : undefined;
+  const span = node.value;
+
+  const {data: settings, isPending: isSettingsLoading} =
+    usePerformanceGeneralProjectSettings(Number(projectID));
+  const isImagesEnabled = settings?.enable_images ?? false;
+
+  const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
+  const size = span?.data?.['http.decoded_response_content_length'];
+
+  return (
+    <StyledDescriptionWrapper>
+      {isSettingsLoading ? (
+        <LoadingIndicator size={30} />
+      ) : !isImagesEnabled ? (
+        <DisabledImages
+          onClickShowLinks={() => setShowLinks(true)}
+          projectSlug={span.project_slug}
+        />
+      ) : (
+        <ResourceImage
+          fileName={formattedDescription}
+          showImage={!showLinks}
+          size={size}
+          src={getImageSrc(span)}
+        />
+      )}
+    </StyledDescriptionWrapper>
+  );
+}
+
+function ResourceImage(props: {
+  fileName: string;
+  showImage: boolean;
+  size: number;
+  src: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const {fileName, size, src, showImage = true} = props;
+
+  return (
+    <ImageContainer>
+      <FilenameContainer>
+        <span>
+          {fileName} (<ResourceSize bytes={size} />)
+        </span>
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          iconSize="xs"
+          text={fileName}
+          title={t('Copy file name')}
+        />
+      </FilenameContainer>
+      {showImage && !hasError ? (
+        <ImageWrapper>
+          <img
+            data-test-id="sample-image"
+            onError={() => setHasError(true)}
+            src={src}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+            }}
+          />
+        </ImageWrapper>
+      ) : (
+        <MissingImage />
+      )}
+    </ImageContainer>
+  );
+}
+
+const FilenameContainer = styled('div')`
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: ${space(1)};
+  justify-content: space-between;
+`;
+
+const ImageWrapper = styled('div')`
+  width: 200px;
+  height: 180px;
+  margin: auto;
+`;
+
+const ImageContainer = styled('div')`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
 
 const CodeSnippetWrapper = styled('div')`
   display: flex;
@@ -253,26 +410,28 @@ function LegacySpanDescription({
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: node.event?.title ?? '',
             query: location.query,
             spanSlug: {op: span.op, group: groupHash},
             projectID: node.event?.projectID,
           })}
           onClick={() => {
-            hasNewSpansUIFlag
-              ? trackAnalytics('trace.trace_layout.view_span_summary', {
-                  organization,
-                  module: resolvedModule,
-                })
-              : trackAnalytics('trace.trace_layout.view_similar_spans', {
-                  organization,
-                  module: resolvedModule,
-                  source: 'span_description',
-                });
+            if (hasNewSpansUIFlag) {
+              trackAnalytics('trace.trace_layout.view_span_summary', {
+                organization,
+                module: resolvedModule,
+              });
+            } else {
+              trackAnalytics('trace.trace_layout.view_similar_spans', {
+                organization,
+                module: resolvedModule,
+                source: 'span_description',
+              });
+            }
           }}
         >
-          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
+          {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}
         </LinkButton>
       </ButtonGroup>
     );
@@ -362,4 +521,9 @@ const DescriptionWrapper = styled('div')`
   gap: ${space(0.5)};
   word-break: break-word;
   padding: ${space(1)};
+`;
+
+const StyledDescriptionWrapper = styled(DescriptionWrapper)`
+  padding: ${space(1)};
+  justify-content: center;
 `;

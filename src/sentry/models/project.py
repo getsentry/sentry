@@ -64,8 +64,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
-    "cloudflare-pages",
-    "cloudflare-workers",
     "cordova",
     "dart",
     "deno",
@@ -119,6 +117,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node",
     "node-awslambda",
     "node-azurefunctions",
+    "node-cloudflare-pages",
+    "node-cloudflare-workers",
     "node-connect",
     "node-express",
     "node-fastify",
@@ -253,6 +253,9 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
+    # external_id for the projects managed/provisioned through the 3rd party
+    external_id = models.CharField(max_length=256, null=True)
+
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
         # bitfield flags are dependent on their order and inserting/removing
@@ -335,6 +338,9 @@ class Project(Model, PendingDeletionMixin):
         # This Project has sent insight llm monitoring spans
         has_insights_llm_monitoring: bool
 
+        # This Project has sent feature flags
+        has_flags: bool
+
         bitfield_default = 10
         bitfield_null = True
 
@@ -344,7 +350,7 @@ class Project(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_project"
-        unique_together = (("organization", "slug"),)
+        unique_together = (("organization", "slug"), ("organization", "external_id"))
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 

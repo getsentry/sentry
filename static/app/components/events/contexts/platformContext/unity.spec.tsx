@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
 
-export const MOCK_UNITY_CONTEXT = {
+const MOCK_UNITY_CONTEXT = {
   type: 'unity' as const,
   copy_texture_support: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
   editor_version: '2022.1.23f1',
@@ -17,7 +17,7 @@ export const MOCK_UNITY_CONTEXT = {
   unknown_key: 123,
 };
 
-export const MOCK_REDACTION = {
+const MOCK_REDACTION = {
   install_mode: {
     '': {
       rem: [['organization:0', 'x']],

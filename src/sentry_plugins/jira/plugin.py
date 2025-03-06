@@ -60,10 +60,10 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             return False
         return True
 
-    def get_group_description(self, request: Request, group, event):
+    def get_group_description(self, group, event):
         # mostly the same as parent class, but change ``` to {code}
         output = [absolute_uri(group.get_absolute_url(params={"referrer": "jira_plugin"}))]
-        body = self.get_group_body(request, group, event)
+        body = self.get_group_body(group, event)
         if body:
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
@@ -652,7 +652,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return True
 
-    def post_process(self, group, event, is_new, **kwargs):
+    def post_process(self, *, group, event, is_new, **kwargs):
         if not self.should_create(group, event, is_new):
             return
 

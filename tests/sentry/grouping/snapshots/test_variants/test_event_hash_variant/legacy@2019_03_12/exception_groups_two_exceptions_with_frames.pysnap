@@ -1,10 +1,11 @@
 ---
-created: '2024-11-19T00:26:20.128888+00:00'
+created: '2024-12-17T22:46:37.256253+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       chained-exception (ignored because hash matches system variant)
@@ -56,6 +57,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "b8e05ed0c06d6bc6c6052bb9dae6d6eb"
+  contributing component: chained-exception
   component:
     system*
       chained-exception*

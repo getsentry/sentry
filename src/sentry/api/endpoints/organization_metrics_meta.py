@@ -11,7 +11,6 @@ from sentry.search.events.fields import get_function_alias
 from sentry.snuba import metrics_performance
 
 COUNT_UNPARAM = "count_unparameterized_transactions()"
-COUNT_HAS_TXN = "count_has_transaction_name()"
 COUNT_NULL = "count_null_transactions()"
 
 

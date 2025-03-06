@@ -1,4 +1,5 @@
 import {useId} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -85,29 +86,29 @@ function SamplingModeSwitchModal({
         <Header>
           <h5>
             {samplingMode === 'organization'
-              ? t('Switch to Automatic Mode')
-              : t('Switch to Manual Mode')}
+              ? t('Deactivate Advanced Mode')
+              : t('Activate Advanced Mode')}
           </h5>
         </Header>
         <Body>
           <p>
             {samplingMode === 'organization'
               ? tct(
-                  'Switching to automatic mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [link:Learn more]',
+                  'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
                   {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                    learnMoreLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
                     ),
                   }
                 )
               : tct(
-                  'Switching to manual mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [link:Learn more]',
+                  'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
                   {
                     prioritiesLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
                     ),
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                    learnMoreLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
                     ),
                   }
                 )}
@@ -116,12 +117,12 @@ function SamplingModeSwitchModal({
           <p>
             {samplingMode === 'organization'
               ? tct(
-                  'By switching [strong:you will lose your manually configured sample rates].',
+                  'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
                   {
                     strong: <strong />,
                   }
                 )
-              : t('You can switch back to automatic mode at any time.')}
+              : t('You can deactivate advanced mode at any time.')}
           </p>
         </Body>
         <Footer>
@@ -134,7 +135,7 @@ function SamplingModeSwitchModal({
               disabled={isPending || !formState.isValid}
               onClick={handleSubmit}
             >
-              {t('Switch Mode')}
+              {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
             </Button>
           </ButtonWrapper>
         </Footer>
@@ -150,7 +151,9 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
   return (
     <FieldGroup
       label={t('Global Target Sample Rate')}
-      css={{paddingBottom: space(0.5)}}
+      css={css`
+        padding-bottom: ${space(0.5)};
+      `}
       inline={false}
       showHelpInTooltip
       flexibleControlStateSize

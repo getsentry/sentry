@@ -26,12 +26,10 @@ const inlineStyle = (p: FieldDescriptionProps) =>
         margin-bottom: ${space(1)};
       `;
 
-const FieldDescription = styled('label')<FieldDescriptionProps>`
+export const FieldDescription = styled('label')<FieldDescriptionProps>`
   font-weight: ${p => p.theme.fontWeightNormal};
   display: ${p => (p.displayNone ? 'none' : 'inline')};
   margin-bottom: 0;
 
   ${inlineStyle};
 `;
-
-export default FieldDescription;

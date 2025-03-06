@@ -7,8 +7,8 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -27,9 +27,7 @@ import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profil
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -129,7 +127,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
     props.project &&
     props.transaction &&
     transactionSummaryRouteWithQuery({
-      orgSlug: props.organization.slug,
+      organization: props.organization,
       transaction: props.transaction,
       projectID: props.project.id,
       query: {query: props.query},
@@ -160,7 +158,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         <StyledHeaderActions>
           <FeedbackWidgetButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
-            {t('View Transaction Summary')}
+            {t('View Summary')}
           </LinkButton>
         </StyledHeaderActions>
       )}
@@ -231,23 +229,12 @@ function ProfileFilters(props: ProfileFiltersProps) {
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      {props.organization.features.includes('search-query-builder-performance') ? (
-        <TransactionSearchQueryBuilder
-          projects={projectIds}
-          initialQuery={props.query}
-          onSearch={handleSearch}
-          searchSource="transaction_profiles"
-        />
-      ) : (
-        <SearchBar
-          searchSource="profile_summary"
-          organization={props.organization}
-          projectIds={projectIds}
-          query={props.query}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
-      )}
+      <TransactionSearchQueryBuilder
+        projects={projectIds}
+        initialQuery={props.query}
+        onSearch={handleSearch}
+        searchSource="transaction_profiles"
+      />
     </ActionBar>
   );
 }
@@ -536,7 +523,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
+  const frameSelectOptions: Array<SelectOption<'system' | 'application' | 'all'>> =
     useMemo(() => {
       return [
         {value: 'system', label: t('System Frames')},
@@ -644,6 +631,7 @@ const ProfileDigestScrollContainer = styled('div')`
   flex-direction: column;
 `;
 
+// @ts-expect-error TS(7008): Member 'hideRegressions' implicitly has an 'any' t... Remove this comment to see the full error message
 const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
   display: grid;
   /* false positive for grid layout */
@@ -722,7 +710,7 @@ function ProfileDigest(props: ProfileDigestProps) {
   const flamegraphTarget =
     project && profile
       ? generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profileId: profile?.['profile.id'] as string,
         })

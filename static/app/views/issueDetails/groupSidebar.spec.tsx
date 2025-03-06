@@ -84,6 +84,14 @@ describe('GroupSidebar', function () {
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
   });
 
   afterEach(function () {
@@ -238,7 +246,7 @@ describe('GroupSidebar', function () {
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Expand Participants'})[0]
+      screen.getAllByRole('button', {name: 'Expand Participants'})[0]!
     );
 
     await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());

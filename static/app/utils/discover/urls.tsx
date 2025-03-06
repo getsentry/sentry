@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {Organization} from 'sentry/types/organization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
@@ -28,12 +29,15 @@ export function generateEventSlug(eventData: EventData): string {
  */
 export function eventDetailsRoute({
   eventSlug,
-  orgSlug,
+  organization,
 }: {
   eventSlug: string;
-  orgSlug: string;
+  organization: Organization;
 }): string {
-  return normalizeUrl(`/organizations/${orgSlug}/discover/${eventSlug}/`);
+  return makeDiscoverPathname({
+    path: `/${eventSlug}/`,
+    organization,
+  });
 }
 
 /**
@@ -68,7 +72,7 @@ export function generateLinkToEventInTraceView({
   demo?: string;
   eventView?: EventView;
   isHomepage?: boolean;
-  source?: string;
+  source?: TraceViewSources;
   spanId?: string;
   // targetId represents the span id of the transaction. It will replace eventId once all links
   // to trace view are updated to use spand ids of transactions instead of event ids.
@@ -112,14 +116,13 @@ export function generateLinkToEventInTraceView({
       eventSlug,
       transactionName,
       location.query,
-      spanId,
-      view
+      spanId
     );
   }
 
   const target: LocationDescriptorObject = {
     pathname: eventDetailsRoute({
-      orgSlug: organization.slug,
+      organization,
       eventSlug,
     }),
     query: {..._eventView.generateQueryStringObject(), homepage: isHomepage},
@@ -136,18 +139,18 @@ export function generateLinkToEventInTraceView({
  * Create a URL target to event details with an event view in the query string.
  */
 export function eventDetailsRouteWithEventView({
-  orgSlug,
+  organization,
   eventSlug,
   eventView,
   isHomepage,
 }: {
   eventSlug: string;
   eventView: EventView;
-  orgSlug: string;
+  organization: Organization;
   isHomepage?: boolean;
 }) {
   const pathname = eventDetailsRoute({
-    orgSlug,
+    organization,
     eventSlug,
   });
 
@@ -161,13 +164,22 @@ export function eventDetailsRouteWithEventView({
  * Get the URL for the discover entry page which changes based on organization
  * feature flags.
  */
-export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
+export function getDiscoverLandingUrl(organization: Organization): string {
   if (organization.features.includes('discover-query')) {
-    return `/organizations/${organization.slug}/discover/homepage/`;
+    return makeDiscoverPathname({
+      path: `/homepage/`,
+      organization,
+    });
   }
-  return `/organizations/${organization.slug}/discover/results/`;
+  return makeDiscoverPathname({
+    path: `/results/`,
+    organization,
+  });
 }
 
-export function getDiscoverQueriesUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/discover/queries/`;
+export function getDiscoverQueriesUrl(organization: Organization): string {
+  return makeDiscoverPathname({
+    path: `/queries/`,
+    organization,
+  });
 }

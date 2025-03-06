@@ -17,17 +17,16 @@ describe('useDispatchingReducer', () => {
     jest.useRealTimers();
   });
   it('initializes state with initializer', () => {
-    const reducer = jest.fn().mockImplementation(s => s) as () => {};
+    const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     expect(result.current[0]).toBe(initialState);
   });
   it('initializes state with fn initializer arg', () => {
-    const reducer = jest.fn().mockImplementation(s => s) as () => {};
+    const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() =>
-      // @ts-expect-error force undfined
       useDispatchingReducer(reducer, undefined, () => initialState)
     );
 
@@ -53,8 +52,8 @@ describe('useDispatchingReducer', () => {
 
       await waitFor(() => {
         expect(reducer).toHaveBeenCalledTimes(1);
-        expect(result.current[0]).toEqual({type: 'action'});
       });
+      expect(result.current[0]).toEqual({type: 'action'});
     });
     it('calls before action with state and action args', () => {
       const initialState = {type: 'initial'};
@@ -167,7 +166,7 @@ describe('useDispatchingReducer', () => {
     const initialState = {};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
-    result.current[2].on('before action', (_state, action) => {
+    result.current[2].on('before action', (_state: any, action: any) => {
       if (action === 'a') {
         result.current[1]('b');
       }

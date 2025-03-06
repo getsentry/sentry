@@ -13,9 +13,9 @@ import moment from 'moment-timezone';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {inputStyles} from 'sentry/components/input';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
@@ -228,7 +228,7 @@ const TimeInput = forwardRef(
     }, [time]);
 
     return (
-      <Input
+      <StyledInput
         ref={mergeRefs([ref, timeInputRef])}
         aria-label={t('Time')}
         disabled={disabled}
@@ -275,8 +275,7 @@ const SearchBarDatePickerOverlay = styled(Overlay)`
   cursor: default;
 `;
 
-const Input = styled('input')`
-  ${inputStyles};
+const StyledInput = styled(Input)`
   resize: none;
 `;
 

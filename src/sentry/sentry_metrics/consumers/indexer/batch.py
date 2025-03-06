@@ -1,7 +1,7 @@
 import logging
 import random
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -18,7 +18,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
-from sentry.features.rollout import in_random_rollout
+from sentry.options.rollout import in_random_rollout
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
@@ -247,27 +247,6 @@ class IndexerBatch:
                 },
             )
             raise ValueError(f"Invalid metric tags: {tags}")
-
-    @metrics.wraps("process_messages.filter_messages")
-    def filter_messages(self, keys_to_remove: Sequence[BrokerMeta]) -> None:
-        # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
-        for broker_meta in keys_to_remove:
-            if _should_sample_debug_log():
-                sentry_sdk.set_tag(
-                    "sentry_metrics.organization_id",
-                    self.parsed_payloads_by_meta[broker_meta]["org_id"],
-                )
-                sentry_sdk.set_tag(
-                    "sentry_metrics.metric_name", self.parsed_payloads_by_meta[broker_meta]["name"]
-                )
-                logger.error(
-                    "process_messages.dropped_message",
-                    extra={
-                        "reason": "cardinality_limit",
-                    },
-                )
-
-        self.filtered_msg_meta.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, set[str]]]:

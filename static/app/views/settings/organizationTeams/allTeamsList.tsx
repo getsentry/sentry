@@ -14,7 +14,7 @@ type Props = {
   access: Record<string, any>;
   openMembership: boolean;
   organization: Organization;
-  teamList: Array<Team>;
+  teamList: Team[];
 };
 
 function AllTeamsList({organization, openMembership, teamList, access}: Props) {

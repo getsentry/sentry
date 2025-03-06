@@ -67,15 +67,15 @@ function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowPro
     >
       <BreadcrumbRow
         style={style}
-        error={parent.props.breadcrumbs[index].breadcrumb.type === BreadcrumbType.ERROR}
+        error={parent.props.breadcrumbs[index]!.breadcrumb.type === BreadcrumbType.ERROR}
       >
         <Breadcrumb
           index={index}
           cache={cache}
           style={style}
           parent={parent}
-          meta={parent.props.breadcrumbs[index].meta}
-          breadcrumb={parent.props.breadcrumbs[index].breadcrumb}
+          meta={parent.props.breadcrumbs[index]!.meta}
+          breadcrumb={parent.props.breadcrumbs[index]!.breadcrumb}
           organization={parent.props.organization}
           searchTerm={parent.props.searchTerm}
           event={parent.props.event}
@@ -328,7 +328,7 @@ const PanelDragHandle = styled('div')`
     content: '';
     height: 5px;
     width: 100%;
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
     transition: background 100ms ease-in-out;
   }
 

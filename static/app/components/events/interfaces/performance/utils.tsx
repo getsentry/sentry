@@ -54,8 +54,8 @@ export function getSpanInfoFromTransactionEvent(
   const causeSpanIDs = perfEvidenceData?.causeSpanIds ?? [];
   return {
     parentSpan: spansById[parentSpanIDs[0]],
-    offendingSpans: offendingSpanIDs.map(spanID => spansById[spanID]),
-    causeSpans: causeSpanIDs.map(spanID => spansById[spanID]),
+    offendingSpans: offendingSpanIDs.map((spanID: any) => spansById[spanID]),
+    causeSpans: causeSpanIDs.map((spanID: any) => spansById[spanID]),
   };
 }
 

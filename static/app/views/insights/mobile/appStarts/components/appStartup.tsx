@@ -1,8 +1,8 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
@@ -43,7 +43,6 @@ type Props = {
 };
 
 function AppStartup({additionalFilters, chartHeight}: Props) {
-  const theme = useTheme();
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
@@ -157,11 +156,13 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
-      <Alert type="warning" showIcon>
-        {t(
-          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -176,7 +177,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     yAxes: Y_AXES,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: getChartColorPalette(TOP_SCREENS - 2),
     releaseEvents,
     topTransactions,
   });
@@ -199,7 +200,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
               title: countTopScreens > 1 ? pluralTopScreenTitle : singularTopScreenTitle,
               yAxis,
               xAxisLabel: topTransactions,
-              series: Object.values(transformedReleaseEvents[yAxis]),
+              series: Object.values(transformedReleaseEvents[yAxis]!),
               subtitle: primaryRelease
                 ? t(
                     '%s v. %s',
@@ -233,7 +234,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screen')}
         additionalConditions={
           new MutableSearch(

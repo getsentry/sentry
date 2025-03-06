@@ -6,7 +6,11 @@ export function getPlatformPath(platform: PlatformIntegration) {
     return `${platform.language}/${platform.language}`;
   }
 
-  const framework = platform.id.split('-')[1];
+  // splits the platform.id into language and framework, framework can have multiple words so we
+  // only want to split it at the first hyphen
+  const hyphenIndex = platform.id.indexOf('-');
+  const framework =
+    hyphenIndex !== -1 ? platform.id.substring(hyphenIndex + 1) : undefined;
 
   if (framework) {
     return `${platform.language}/${framework}`;

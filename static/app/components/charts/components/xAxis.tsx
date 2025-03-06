@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
+import type {TimeAxisLabelFormatterOption} from 'echarts/types/src/coord/axisCommonTypes';
 import merge from 'lodash/merge';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -33,7 +34,7 @@ function XAxis({
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {
-  const AxisLabelFormatter = (value: string, index: number) => {
+  const AxisLabelFormatter = (value: string | number, index: number) => {
     const firstItem = index === 0;
     // Always show the date of the first item. Otherwise check the interval duration
     const showDate = firstItem ? true : !computeShortInterval({start, end, period});
@@ -51,7 +52,7 @@ function XAxis({
     }
 
     if (props.truncate) {
-      return truncationFormatter(value, props.truncate);
+      return truncationFormatter(value as string, props.truncate);
     }
 
     return undefined;
@@ -84,8 +85,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      // @ts-expect-error formatter type is missing
-      formatter: AxisLabelFormatter,
+      formatter: AxisLabelFormatter as TimeAxisLabelFormatterOption,
     },
     axisPointer: {
       show: true,

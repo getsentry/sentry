@@ -140,8 +140,8 @@ async function fetchMembers(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next?.results;
-    nextCursor = paginationObject?.next?.cursor;
+    hasMore = paginationObject?.next?.results ?? null;
+    nextCursor = paginationObject?.next?.cursor ?? null;
   }
 
   return {results: data as Member[], hasMore, nextCursor};

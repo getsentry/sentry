@@ -31,6 +31,7 @@ import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView as TraceViewModel} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import type {TraceReducerState} from './traceState';
@@ -133,11 +134,25 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     [organization, projects, traceDispatch]
   );
 
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit,
+        'issue_details'
+      );
+    }
+
     // Construct the visual representation of the tree
     props.tree.build();
 
@@ -190,11 +205,38 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       nodes?.find(n => isSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n));
 
+    const index = node ? props.tree.list.indexOf(node) : -1;
+
     if (node) {
-      props.tree.collapseList([node]);
+      const preserveNodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
+
+      let start = index;
+      while (--start > 0) {
+        if (
+          isTraceErrorNode(props.tree.list[start]!) ||
+          node.errors.size > 0 ||
+          node.performance_issues.size > 0
+        ) {
+          preserveNodes.push(props.tree.list[start]!);
+          break;
+        }
+      }
+
+      start = index;
+      while (++start < props.tree.list.length) {
+        if (
+          isTraceErrorNode(props.tree.list[start]!) ||
+          node.errors.size > 0 ||
+          node.performance_issues.size > 0
+        ) {
+          preserveNodes.push(props.tree.list[start]!);
+          break;
+        }
+      }
+
+      props.tree.collapseList(preserveNodes);
     }
 
-    const index = node ? props.tree.list.indexOf(node) : -1;
     if (index === -1 || !node) {
       const hasScrollComponent = !!props.event.eventID;
       if (hasScrollComponent) {
@@ -217,7 +259,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         }
         viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
         if (viewManager.isOutsideOfView(node)) {
-          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         }
       }
       viewManager.scrollToRow(index, 'center');
@@ -238,6 +280,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree,
     props.organization,
     props.event,
+    isLoadingSubscriptionDetails,
+    hasExceededPerformanceUsageLimit,
   ]);
 
   useTraceTimelineChangeSync({
@@ -276,6 +320,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       >
         <IssuesPointerDisabled>
           <Trace
+            metaQueryResults={props.meta}
             trace={props.tree}
             rerender={rerender}
             trace_id={props.traceSlug}
@@ -310,7 +355,7 @@ const IssuesPointerDisabled = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-const HEADER_HEIGHT = 28;
+const HEADER_HEIGHT = 38;
 const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 

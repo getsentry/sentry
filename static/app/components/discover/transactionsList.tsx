@@ -54,7 +54,7 @@ export type DropdownOption = {
   /**
    * override the eventView query
    */
-  query?: [string, string][];
+  query?: Array<[string, string]>;
   /**
    * Included if the option is for a trend
    */
@@ -318,7 +318,7 @@ class _TransactionsList extends Component<Props> {
               <LinkButton
                 onClick={handleOpenAllEventsClick}
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   {
                     showTransactions: mapShowTransactionToPercentile(showTransactions),
                     breakdown,
@@ -336,7 +336,7 @@ class _TransactionsList extends Component<Props> {
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   false,
                   hasDatasetSelector(organization)
                     ? SavedQueryDatasets.TRANSACTIONS

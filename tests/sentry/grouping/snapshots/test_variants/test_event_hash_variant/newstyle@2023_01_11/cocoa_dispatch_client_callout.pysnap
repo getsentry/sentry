@@ -1,10 +1,11 @@
 ---
-created: '2024-03-22T11:58:02.240343+00:00'
+created: '2025-02-26T00:33:57.364760+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "7c8a196d16b94be382add324be2605ee"
+  contributing component: threads
   component:
     app*
       threads*
@@ -12,7 +13,7 @@ app:
           frame*
             function*
               "unicorn"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "UIApplicationMain"
           frame (non app frame)
@@ -57,6 +58,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (threads of app/system take precedence)
       message (threads of app/system take precedence)
@@ -64,6 +66,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "cd7f51d716fd57adc1a5ce1c112e538f"
+  contributing component: threads
   component:
     system*
       threads*
@@ -92,7 +95,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame*
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
           frame*

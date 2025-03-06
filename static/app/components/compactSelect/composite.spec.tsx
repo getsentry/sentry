@@ -310,4 +310,29 @@ describe('CompactSelect', function () {
     await userEvent.keyboard('{ArrowDown>2}');
     expect(screen.getByRole('row', {name: 'Choice One'})).toHaveFocus();
   });
+
+  it('can use numbers as values', async function () {
+    const onChange = jest.fn();
+    render(
+      <CompositeSelect>
+        <CompositeSelect.Region
+          label="Region 1"
+          defaultValue={1}
+          onChange={onChange}
+          options={[
+            {value: 1, label: 'One'},
+            {value: 2, label: 'Two'},
+          ]}
+        />
+      </CompositeSelect>
+    );
+
+    // Open the menu
+    await userEvent.click(screen.getByRole('button'));
+
+    // Select 2
+    await userEvent.click(screen.getByRole('option', {name: 'Two'}));
+
+    expect(onChange).toHaveBeenCalledWith({value: 2, label: 'Two'});
+  });
 });

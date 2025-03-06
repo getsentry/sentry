@@ -346,8 +346,6 @@ def generate_incident_trigger_email_context(
 ):
     trigger = alert_rule_trigger
     alert_rule = trigger.alert_rule
-    activation = incident.activation
-    assert alert_rule.snuba_query is not None
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
@@ -445,9 +443,4 @@ def generate_incident_trigger_email_context(
         "timezone": tz,
         "snooze_alert": snooze_alert,
         "snooze_alert_url": snooze_alert_url,
-        "monitor_type": alert_rule.monitor_type,  # 0 = continuous, 1 = activated
-        "activator": (activation.activator if activation else ""),
-        "condition_type": (
-            activation.condition_type if activation else None
-        ),  # 0 = release creation, 1 = deploy creation
     }

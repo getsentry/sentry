@@ -132,9 +132,7 @@ class BaseQueryBuilder:
 
         if "project_objects" in params:
             projects = params["project_objects"]
-        elif "project_id" in params and (
-            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
-        ):
+        elif "project_id" in params and isinstance(params["project_id"], (list, tuple)):
             projects = list(Project.objects.filter(id__in=params["project_id"]))
         else:
             projects = []
@@ -202,6 +200,7 @@ class BaseQueryBuilder:
         array_join: str | None = None,
         entity: Entity | None = None,
     ):
+        sentry_sdk.set_tag("querybuilder.name", type(self).__name__)
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
@@ -317,6 +316,9 @@ class BaseQueryBuilder:
         if not col.startswith("tags[") and column_name.startswith("tags["):
             self.prefixed_to_tag_map[f"tags_{col}"] = col
             self.tag_to_prefixed_map[col] = f"tags_{col}"
+        elif not col.startswith("flags[") and column_name.startswith("flags["):
+            self.prefixed_to_tag_map[f"flags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"flags_{col}"
         return column_name
 
     def resolve_query(
@@ -684,7 +686,13 @@ class BaseQueryBuilder:
         dataset and return the Snql Column
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
-        field = tag_match.group("tag") if tag_match else raw_field
+        flag_match = constants.FLAG_KEY_RE.search(raw_field)
+        if tag_match:
+            field = tag_match.group("tag")
+        elif flag_match:
+            field = flag_match.group("flag")
+        else:
+            field = raw_field
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
@@ -978,7 +986,7 @@ class BaseQueryBuilder:
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
         try:
-            result: Sequence[MetricMeta] = get_custom_measurements(
+            result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
                 start=datetime.today() - timedelta(days=90),
@@ -1182,9 +1190,9 @@ class BaseQueryBuilder:
 
     def resolve_measurement_value(self, unit: str, value: float) -> float:
         if unit in constants.SIZE_UNITS:
-            return constants.SIZE_UNITS[unit] * value
+            return constants.SIZE_UNITS[cast(constants.SizeUnit, unit)] * value
         elif unit in constants.DURATION_UNITS:
-            return constants.DURATION_UNITS[unit] * value
+            return constants.DURATION_UNITS[cast(constants.DurationUnit, unit)] * value
         return value
 
     def convert_aggregate_filter_to_condition(
@@ -1320,7 +1328,13 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
+            if is_context and name in self.config.nullable_context_keys:
+                return Condition(
+                    Function("has", [Column("contexts.key"), lhs.key]),
+                    Op(search_filter.operator),
+                    0,
+                )
+            elif is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             elif is_measurement(name):
                 # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check
@@ -1349,40 +1363,26 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            kind = (
-                search_filter.value.classify_wildcard()
-                if self.config.optimize_wildcard_searches
-                else "other"
-            )
+            if self.config.optimize_wildcard_searches:
+                kind, value_o = search_filter.value.classify_and_format_wildcard()
+            else:
+                kind, value_o = "other", search_filter.value.value
+
             if kind == "prefix":
                 condition = Condition(
-                    Function(
-                        "startsWith",
-                        [
-                            Function("lower", [lhs]),
-                            search_filter.value.format_wildcard(kind).lower(),
-                        ],
-                    ),
+                    Function("startsWith", [Function("lower", [lhs]), value_o]),
                     Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                     1,
                 )
             elif kind == "suffix":
                 condition = Condition(
-                    Function(
-                        "endsWith",
-                        [
-                            Function("lower", [lhs]),
-                            search_filter.value.format_wildcard(kind).lower(),
-                        ],
-                    ),
+                    Function("endsWith", [Function("lower", [lhs]), value_o]),
                     Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                     1,
                 )
             elif kind == "infix":
                 condition = Condition(
-                    Function(
-                        "positionCaseInsensitive", [lhs, search_filter.value.format_wildcard(kind)]
-                    ),
+                    Function("positionCaseInsensitive", [lhs, value_o]),
                     Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                     0,
                 )

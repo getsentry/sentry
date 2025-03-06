@@ -2,9 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
@@ -35,13 +35,13 @@ import type {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
@@ -50,7 +50,7 @@ import TraceNotFound from './traceNotFound';
 import TraceViewDetailPanel from './traceViewDetailPanel';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
-type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
   error: QueryError | null;
   isLoading: boolean;
@@ -135,9 +135,10 @@ function NewTraceDetailsContent(props: Props) {
                 tooltipText=""
                 bodyText={
                   <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/replays/${replay_id}/`
-                    )}
+                    to={makeReplaysPathname({
+                      path: `/${replay_id}/`,
+                      organization,
+                    })}
                   >
                     <ReplayLinkBody>
                       {getShortEventId(replay_id)}
@@ -250,47 +251,55 @@ function NewTraceDetailsContent(props: Props) {
     switch (traceType) {
       case TraceShape.NO_ROOT:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-              {t(
-                'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-              )}
-            </ExternalLink>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+                {t(
+                  'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+                )}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
         );
         break;
       case TraceShape.BROKEN_SUBTRACES:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-              {t(
-                'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-              )}
-            </ExternalLink>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+                {t(
+                  'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+                )}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
         );
         break;
       case TraceShape.MULTIPLE_ROOTS:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
-              {t('Multiple root transactions have been found with this trace ID.')}
-            </ExternalLink>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
+                {t('Multiple root transactions have been found with this trace ID.')}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
         );
         break;
       case TraceShape.ONLY_ERRORS:
         warning = (
-          <Alert type="info" showIcon>
-            {tct(
-              "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
-              {
-                tracingLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-                ),
-              }
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {tct(
+                "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
+                {
+                  tracingLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
         );
         break;
       default:
@@ -305,6 +314,7 @@ function NewTraceDetailsContent(props: Props) {
     const transactionsCount = meta?.transactions ?? traceInfo?.transactions.size ?? 0;
     const totalNumOfEvents = transactionsCount + orphanErrorsCount;
     const webVitals = Object.keys(rootEvent?.measurements ?? {})
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -319,10 +329,7 @@ function NewTraceDetailsContent(props: Props) {
           <div style={{flex: 1}}>
             <Tags
               generateUrl={(key: string, value: string) => {
-                const url = traceEventView.getResultsViewUrlTarget(
-                  organization.slug,
-                  false
-                );
+                const url = traceEventView.getResultsViewUrlTarget(organization, false);
                 url.query = generateQueryWithTag(url.query, {
                   key: formatTagKey(key),
                   value,
@@ -441,7 +448,7 @@ function NewTraceDetailsContent(props: Props) {
           <ButtonBar gap={1}>
             <DiscoverButton
               size="sm"
-              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              to={traceEventView.getResultsViewUrlTarget(organization)}
               onClick={() => {
                 trackAnalytics('performance_views.trace_view.open_in_discover', {
                   organization,

@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 // Autofix requires the event to have stack trace frames in order to work correctly.
-export function hasStacktraceWithFrames(event: Event) {
+function hasStacktraceWithFrames(event: Event) {
   for (const entry of event.entries) {
     if (entry.type === EntryType.EXCEPTION) {
       if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
@@ -43,33 +43,30 @@ export const useAiConfig = (
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures &&
-    getRegionDataFromOrganization(organization)?.name !== 'de';
+    getRegionDataFromOrganization(organization)?.name !== 'de' &&
+    organization.features.includes('gen-ai-features');
 
   const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
   const isAutofixEnabled = issueTypeConfig.autofix;
-  const hasResources = issueTypeConfig.resources;
+  const hasResources = !!issueTypeConfig.resources;
 
   const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? organization.genAIConsent;
 
   const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
   const hasAutofix =
     isAutofixEnabled && areAiFeaturesAllowed && hasStacktrace && !isSampleError;
+  const hasGithubIntegration = autofixSetupData?.integration.ok;
 
   const needsGenAIConsent =
     !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
-
-  const needsAutofixSetup =
-    isAutofixEnabled &&
-    !isAutofixSetupLoading &&
-    (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok) &&
-    areAiFeaturesAllowed;
 
   return {
     hasSummary,
     hasAutofix,
     needsGenAIConsent,
-    needsAutofixSetup,
     hasResources,
     isAutofixSetupLoading,
+    areAiFeaturesAllowed,
+    hasGithubIntegration,
   };
 };

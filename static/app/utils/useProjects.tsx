@@ -135,8 +135,9 @@ async function fetchProjects(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next?.results || paginationObject?.previous?.results;
-    nextCursor = paginationObject?.next?.cursor;
+    hasMore =
+      (paginationObject?.next?.results || paginationObject?.previous?.results) ?? null;
+    nextCursor = paginationObject?.next?.cursor ?? null;
   }
 
   return {results: data, hasMore, nextCursor};

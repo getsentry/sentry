@@ -170,7 +170,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.login_as(user=self.superuser, superuser=True)
 
         app = self.create_sentry_app(name="Sample", organization=self.org)
-        self.get_error_response(self.org.slug, slug=app.slug, status_code=404)
+        self.get_error_response(self.org.slug, slug=app.slug, status_code=403)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})

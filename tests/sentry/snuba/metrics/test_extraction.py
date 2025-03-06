@@ -82,8 +82,6 @@ def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
 @pytest.mark.parametrize(
     "agg, query, result",
     [
-        ("sum(c:custom/page_load@millisecond)", "release:a", False),
-        ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
         ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
         ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", False),
         ("p95(d:spans/duration@millisecond)", "release:a", False),
@@ -736,15 +734,6 @@ def test_spec_apdex_without_condition(_get_satisfactory_metric, default_project)
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
-
-
-@django_db_all
-def test_spec_is_dependent_on_project(default_project) -> None:
-    spec = OnDemandMetricSpec("apdex(10)", "")
-    assert spec.is_project_dependent() is True
-
-    spec = OnDemandMetricSpec("failure_rate()", "")
-    assert spec.is_project_dependent() is False
 
 
 def test_spec_custom_tag() -> None:

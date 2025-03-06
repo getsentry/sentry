@@ -203,6 +203,29 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             notification_uuid=ANY,
         )
 
+    @mock.patch("sentry.mail.notifications.get_context")
+    @mock.patch("sentry.analytics.record")
+    def test_email_with_reply_to(self, mock_record, mock_context):
+        mock_context.return_value = {"reply_to": "reply@example.com"}
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
+
+        msg = mail.outbox[0]
+        assert msg.message()["Reply-To"] == "reply@example.com"
+
     def test_notification_with_environment(self):
         environment = self.create_environment(self.project, name="production")
         event = self.store_event(

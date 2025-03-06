@@ -131,7 +131,6 @@ def update_rule_data(
                 continue
             setattr(alert_rule.snuba_query, k, v)
 
-        assert alert_rule.snuba_query
         handle_send_historical_data_to_seer(
             alert_rule,
             alert_rule.snuba_query,

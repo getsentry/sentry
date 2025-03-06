@@ -6,7 +6,7 @@ import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -52,7 +52,7 @@ class Item extends Component<Props, State> {
     this.listener?.();
   }
 
-  listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
+  listener = GroupingStore.listen((data: any) => this.onGroupChange(data), undefined);
 
   handleToggle = () => {
     const {issue} = this.props;
@@ -82,7 +82,7 @@ class Item extends Component<Props, State> {
     // This is controlled via row click instead of only Checkbox
   };
 
-  onGroupChange = ({mergeState}) => {
+  onGroupChange = ({mergeState}: any) => {
     if (!mergeState) {
       return;
     }
@@ -96,7 +96,7 @@ class Item extends Component<Props, State> {
     }
 
     Object.keys(stateForId).forEach(key => {
-      if (stateForId[key] === this.state[key]) {
+      if (stateForId[key] === this.state[key as keyof State]) {
         return;
       }
       this.setState(prevState => ({
@@ -110,9 +110,8 @@ class Item extends Component<Props, State> {
     const {aggregate, scoresByInterface, issue, hasSimilarityEmbeddingsFeature} =
       this.props;
     const {visible, busy} = this.state;
-    const similarInterfaces = hasSimilarityEmbeddingsFeature
-      ? ['exception']
-      : ['exception', 'message'];
+    const similarInterfaces: Array<'exception' | 'message'> =
+      hasSimilarityEmbeddingsFeature ? ['exception'] : ['exception', 'message'];
 
     if (!visible) {
       return null;
@@ -160,7 +159,7 @@ class Item extends Component<Props, State> {
             // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
             if (hasSimilarityEmbeddingsFeature) {
               for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
-                if (scoreValue <= similarityEmbeddingScoreValues[i]) {
+                if (scoreValue <= similarityEmbeddingScoreValues[i]!) {
                   scoreValue = i;
                   break;
                 }

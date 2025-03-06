@@ -1,27 +1,31 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useRouter from 'sentry/utils/useRouter';
-
-import type {TimeWindow} from '../timeline/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface Props {
   className?: string;
 }
 
 export function ResolutionSelector({className}: Props) {
-  const {replace, location} = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const handleResolutionChange = useCallback(
-    (value: TimeWindow) => {
-      replace({...location, query: {...location.query, timeWindow: value}});
-    },
-    [location, replace]
+    (value: TimeWindow) =>
+      navigate(
+        {...location, query: {...location.query, timeWindow: value}},
+        {replace: true}
+      ),
+    [location, navigate]
   );
 
-  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
+  const timeWindow = (location.query?.timeWindow as TimeWindow) ?? '24h';
 
   return (
     <ListFilters className={className}>

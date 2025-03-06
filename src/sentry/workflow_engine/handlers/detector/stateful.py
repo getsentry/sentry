@@ -18,7 +18,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorStateData,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 T = TypeVar("T")
@@ -54,7 +54,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_group_key_values(self, data_packet: DataPacket[T]) -> dict[str, int]:
+    def get_group_key_values(self, data_packet: DataPacket[T]) -> dict[DetectorGroupKey, int]:
         """
         Extracts the values for all the group keys that exist in the given data packet,
         and returns then as a dict keyed by group_key.
@@ -70,6 +70,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
     def build_fingerprint(self, group_key) -> list[str]:
         """
         Builds a fingerprint to uniquely identify a detected issue
+
+        TODO - Take into account the data source / query that triggered the detector,
+        we'll want to create a new issue if the query changes.
         """
         return [f"{self.detector.id}{':' + group_key if group_key is not None else ''}"]
 
@@ -84,13 +87,17 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         group_key_detectors = self.bulk_get_detector_state(group_keys)
         dedupe_keys = [self.build_dedupe_value_key(gk) for gk in group_keys]
         pipeline = get_redis_client().pipeline()
+
         for dk in dedupe_keys:
             pipeline.get(dk)
+
         group_key_dedupe_values = {
             gk: int(dv) if dv else 0 for gk, dv in zip(group_keys, pipeline.execute())
         }
+
         pipeline.reset()
         counter_updates = {}
+
         if self.counter_names:
             counter_keys = [
                 self.build_counter_value_key(gk, name)
@@ -117,7 +124,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     else DetectorPriorityLevel.OK
                 ),
                 dedupe_value=group_key_dedupe_values[gk],
-                counter_updates=counter_updates[gk],
+                counter_updates=counter_updates.get(gk, {}),
             )
         return results
 
@@ -170,9 +177,10 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
         # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
         # level, but usually we want to set this at a higher level.
+        # TODO 2: Validate that we will never have slow conditions here.
         new_status = DetectorPriorityLevel.OK
-        is_group_condition_met, condition_results = evaluate_condition_group(
-            self.condition_group, value
+        (is_group_condition_met, condition_results), _ = process_data_condition_group(
+            self.condition_group.id, value
         )
 
         if is_group_condition_met:

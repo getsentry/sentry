@@ -14,6 +14,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Sparklines} from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import {Tooltip} from 'sentry/components/tooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -33,7 +34,6 @@ import type {
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
@@ -308,7 +308,7 @@ function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
   const width = 150;
   const height = 24;
-  const lineColor = theme.charts.getColorPalette(1)[0];
+  const lineColor = getChartColorPalette(1)[0];
   return (
     <SparklineContainer data-test-id="sparkline" width={width} height={height}>
       <Sparklines data={data} width={width} height={height}>
@@ -397,7 +397,7 @@ export function VitalBar(props: VitalBarProps) {
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
     (Object.keys(counts) as Array<keyof typeof counts>).forEach(
-      countKey => (counts[countKey] += c[countKey])
+      countKey => (counts[countKey] += (c as any)[countKey])
     );
   });
 

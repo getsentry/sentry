@@ -42,15 +42,15 @@ export function RecursiveStructuredData({
   withOnlyFormattedText = false,
 }: Props) {
   let i = 0;
-
-  const formattedObjectKey = objectKey ? (
-    <Fragment>
-      <ValueObjectKey>
-        {config?.renderObjectKeys?.(objectKey) ?? objectKey}
-      </ValueObjectKey>
-      <span>{': '}</span>
-    </Fragment>
-  ) : null;
+  const formattedObjectKey =
+    objectKey !== undefined ? (
+      <Fragment>
+        <ValueObjectKey>
+          {config?.renderObjectKeys?.(objectKey) ?? objectKey}
+        </ValueObjectKey>
+        <span>{': '}</span>
+      </Fragment>
+    ) : null;
 
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
@@ -207,7 +207,7 @@ export function RecursiveStructuredData({
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
   for (i = 0; i < keys.length; i++) {
-    const key = keys[i];
+    const key = keys[i]!;
 
     children.push(
       <div key={key}>

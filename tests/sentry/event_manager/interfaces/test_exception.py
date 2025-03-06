@@ -11,7 +11,7 @@ def make_exception_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"exception": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("exception")
 

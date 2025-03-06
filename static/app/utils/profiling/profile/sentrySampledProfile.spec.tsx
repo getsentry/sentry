@@ -1,75 +1,8 @@
-import merge from 'lodash/merge';
-
-import type {DeepPartial} from 'sentry/types/utils';
-
 import {Frame} from '../frame';
 
-import {makeTestingBoilerplate} from './profile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
+import {makeSentrySampledProfile, makeTestingBoilerplate} from './testUtils';
 import {createSentrySampleProfileFrameIndex} from './utils';
-
-export const makeSentrySampledProfile = (
-  profile?: DeepPartial<Profiling.SentrySampledProfile>
-) => {
-  return merge(
-    {
-      event_id: '1',
-      version: '1',
-      os: {
-        name: 'iOS',
-        version: '16.0',
-        build_number: '19H253',
-      },
-      device: {
-        architecture: 'arm64e',
-        is_emulator: false,
-        locale: 'en_US',
-        manufacturer: 'Apple',
-        model: 'iPhone14,3',
-      },
-      timestamp: '2022-09-01T09:45:00.000Z',
-      platform: 'cocoa',
-      profile: {
-        samples: [
-          {
-            stack_id: 0,
-            thread_id: '0',
-            elapsed_since_start_ns: 0,
-          },
-          {
-            stack_id: 1,
-            thread_id: '0',
-            elapsed_since_start_ns: 1000,
-          },
-        ],
-        frames: [
-          {
-            function: 'main',
-            instruction_addr: '',
-            lineno: 1,
-            colno: 1,
-            file: 'main.c',
-          },
-          {
-            function: 'foo',
-            instruction_addr: '',
-            lineno: 2,
-            colno: 2,
-            file: 'main.c',
-          },
-        ],
-        stacks: [[1, 0], [0]],
-      },
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 0,
-        trace_id: '1',
-      },
-    },
-    profile
-  ) as Profiling.SentrySampledProfile;
-};
 
 describe('SentrySampledProfile', () => {
   it('constructs a profile', () => {
@@ -91,8 +24,8 @@ describe('SentrySampledProfile', () => {
       ['foo', 'close'],
       ['main', 'close'],
     ]);
-    expect(profile.startedAt).toEqual(0);
-    expect(profile.endedAt).toEqual(1000);
+    expect(profile.startedAt).toBe(0);
+    expect(profile.endedAt).toBe(1000);
   });
 
   it('tracks discarded samples', () => {
@@ -211,7 +144,7 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.rawWeights.length).toBe(2);
+    expect(profile.rawWeights).toHaveLength(2);
   });
 
   it('derives a profile name from the transaction.name and thread_id', () => {
@@ -464,8 +397,8 @@ describe('SentrySampledProfile', () => {
       {type: 'flamegraph'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(2);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(2);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 
   it('filters frames', () => {
@@ -510,8 +443,8 @@ describe('SentrySampledProfile', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
-    expect(profile.callTree.children[0].children).toHaveLength(0);
+    expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });
 });

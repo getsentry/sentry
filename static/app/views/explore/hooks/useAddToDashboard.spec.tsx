@@ -1,41 +1,41 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  PageParamsProvider,
+  useSetExploreMode,
+  useSetExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 jest.mock('sentry/actionCreators/modal');
-jest.mock('sentry/views/explore/hooks/useVisualizes');
-jest.mock('sentry/views/explore/hooks/useResultsMode');
-
-function TestPage({visualizeIndex}: {visualizeIndex: number}) {
-  const {addToDashboard} = useAddToDashboard();
-  return <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>;
-}
 
 describe('AddToDashboardButton', () => {
+  let setMode: ReturnType<typeof useSetExploreMode>;
+  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
+
+  function TestPage({visualizeIndex}: {visualizeIndex: number}) {
+    setMode = useSetExploreMode();
+    setVisualizes = useSetExploreVisualizes();
+    const {addToDashboard} = useAddToDashboard();
+    return (
+      <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>
+    );
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
-
-    jest.mocked(useVisualizes).mockReturnValue([
-      [
-        {
-          yAxes: ['avg(span.duration)'],
-          chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
-        },
-      ],
-      jest.fn(),
-    ]);
-
-    jest.mocked(useResultMode).mockReturnValue(['samples', jest.fn()]);
   });
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {
-    render(<TestPage visualizeIndex={0} />);
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={0} />
+      </PageParamsProvider>
+    );
 
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
@@ -44,7 +44,7 @@ describe('AddToDashboardButton', () => {
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -66,22 +66,22 @@ describe('AddToDashboardButton', () => {
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
             'id',
-            'project',
             'span.op',
             'span.description',
             'span.duration',
+            'transaction',
             'timestamp',
           ],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
           field: [
             'id',
-            'project',
             'span.op',
             'span.description',
             'span.duration',
+            'transaction',
             'timestamp',
           ],
         }),
@@ -90,24 +90,26 @@ describe('AddToDashboardButton', () => {
   });
 
   it('opens the dashboard modal with the correct query based on the visualize index', async () => {
-    // Mock a second visualize object
-    jest.mocked(useVisualizes).mockReturnValue([
-      [
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={1} />
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    act(() =>
+      setVisualizes([
         {
           yAxes: ['avg(span.duration)'],
           chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
         },
         {
           yAxes: ['max(span.duration)'],
           chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
         },
-      ],
-      jest.fn(),
-    ]);
+      ])
+    );
 
-    render(<TestPage visualizeIndex={1} />);
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
     // The group by and the yAxes are encoded as the fields for the defaultTableQuery
@@ -115,7 +117,7 @@ describe('AddToDashboardButton', () => {
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -137,22 +139,22 @@ describe('AddToDashboardButton', () => {
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
             'id',
-            'project',
             'span.op',
             'span.description',
             'span.duration',
+            'transaction',
             'timestamp',
           ],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
           field: [
             'id',
-            'project',
             'span.op',
             'span.description',
             'span.duration',
+            'transaction',
             'timestamp',
           ],
         }),
@@ -161,16 +163,22 @@ describe('AddToDashboardButton', () => {
   });
 
   it('uses the yAxes for the aggregate mode', async () => {
-    jest.mocked(useResultMode).mockReturnValue(['aggregate', jest.fn()]);
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={0} />
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
 
-    render(<TestPage visualizeIndex={0} />);
+    act(() => setMode(Mode.AGGREGATE));
+
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -190,21 +198,28 @@ describe('AddToDashboardButton', () => {
         // For Open in Widget Builder
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
-          defaultTableColumns: ['avg(span.duration)'],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTableColumns: ['span.op', 'avg(span.duration)'],
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['avg(span.duration)'],
+          field: ['span.op', 'avg(span.duration)'],
         }),
       })
     );
   });
 
   it('takes the first 3 yAxes', async () => {
-    jest.mocked(useResultMode).mockReturnValue(['aggregate', jest.fn()]);
-    jest.mocked(useVisualizes).mockReturnValue([
-      [
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={0} />
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    act(() => setMode(Mode.AGGREGATE));
+    act(() =>
+      setVisualizes([
         {
           yAxes: [
             'avg(span.duration)',
@@ -213,20 +228,17 @@ describe('AddToDashboardButton', () => {
             'p90(span.duration)',
           ],
           chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
         },
-      ],
-      jest.fn(),
-    ]);
+      ])
+    );
 
-    render(<TestPage visualizeIndex={0} />);
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -251,15 +263,21 @@ describe('AddToDashboardButton', () => {
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
+            'span.op',
             'avg(span.duration)',
             'max(span.duration)',
             'min(span.duration)',
           ],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&columns=&fields=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
+          field: [
+            'span.op',
+            'avg(span.duration)',
+            'max(span.duration)',
+            'min(span.duration)',
+          ],
         }),
       })
     );

@@ -6,9 +6,9 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -35,17 +35,21 @@ export default function ScreensTemplate({
   additionalSelectors,
   content,
 }: ScreensTemplateProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const handleProjectChange = useCallback(() => {
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+    navigate(
+      {
+        ...location,
+        query: {
+          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+        },
       },
-    });
-  }, [location]);
+      {replace: true}
+    );
+  }, [location, navigate]);
 
   return (
     <Layout.Page>

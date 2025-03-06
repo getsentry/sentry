@@ -44,9 +44,9 @@ function getParameterAtCursorPosition(
 
   let characterCount = 0;
   for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
+    characterCount += items[i]!.length + 1;
     if (characterCount > cursorPosition) {
-      return {parameterIndex: i, textValue: items[i].trim()};
+      return {parameterIndex: i, textValue: items[i]!.trim()};
     }
   }
 
@@ -58,7 +58,7 @@ function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number)
   const charactersBefore =
     items.slice(0, parameterIndex).join('').length + parameterIndex;
 
-  return charactersBefore + items[parameterIndex].length;
+  return charactersBefore + items[parameterIndex]!.length;
 }
 
 function useSelectionIndex({
@@ -93,7 +93,7 @@ function useParameterSuggestions({
 }: {
   parameterIndex: number;
   token: AggregateFilter;
-}): SelectOptionWithKey<string>[] {
+}): Array<SelectOptionWithKey<string>> {
   const {getFieldDefinition, filterKeys} = useSearchQueryBuilder();
   const fieldDefinition = getFieldDefinition(token.key.name.text);
 
@@ -177,10 +177,18 @@ export function SearchQueryBuilderParametersCombobox({
 }: ParametersComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilder();
-  const [inputValue, setInputValue] = useState(() => getInitialInputValue(token));
+  const initialValue = getInitialInputValue(token);
+  const [inputValue, setInputValue] = useState('');
+  const [inputChanged, setInputChanged] = useState(false);
+
+  function updateInputValue(value: string) {
+    setInputValue(value);
+    setInputChanged(true);
+  }
+
   const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
     inputRef,
-    inputValue,
+    inputValue: initialValue,
   });
 
   const {parameterIndex, textValue: filterValue} = getParameterAtCursorPosition(
@@ -202,11 +210,17 @@ export function SearchQueryBuilderParametersCombobox({
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
-      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token, value});
+      if (inputChanged) {
+        dispatch({
+          type: 'UPDATE_AGGREGATE_ARGS',
+          token,
+          value,
+        });
 
-      onCommit();
+        onCommit();
+      }
     },
-    [dispatch, onCommit, token]
+    [inputChanged, dispatch, onCommit, token]
   );
 
   const handleOptionSelected = useCallback(
@@ -222,7 +236,7 @@ export function SearchQueryBuilderParametersCombobox({
         token,
         value: newValue,
       });
-      setInputValue(newValue);
+      updateInputValue(newValue);
       const newCursorPosition = getCursorPositionAtEndOfParameter(
         newValue,
         parameterIndex
@@ -239,6 +253,7 @@ export function SearchQueryBuilderParametersCombobox({
     <SearchQueryBuilderCombobox
       ref={inputRef}
       items={items}
+      placeholder={initialValue}
       onOptionSelected={handleOptionSelected}
       onCustomValueBlurred={handleInputValueConfirmed}
       onCustomValueCommitted={handleInputValueConfirmed}
@@ -247,7 +262,7 @@ export function SearchQueryBuilderParametersCombobox({
       filterValue={filterValue}
       token={token}
       inputLabel={t('Edit function parameters')}
-      onInputChange={e => setInputValue(e.target.value)}
+      onInputChange={e => updateInputValue(e.target.value)}
       onKeyDown={onKeyDown}
       onKeyUp={updateSelectionIndex}
       onClick={updateSelectionIndex}

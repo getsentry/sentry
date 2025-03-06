@@ -13,11 +13,20 @@ import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomain
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock;
+  let throughputRequestMock!: jest.Mock;
+  let durationRequestMock!: jest.Mock;
+  let statusRequestMock!: jest.Mock;
+
+  let domainTransactionsListRequestMock: jest.Mock;
+  let domainMetricsRibbonRequestMock: jest.Mock;
+  let regionFilterRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -46,8 +55,35 @@ describe('HTTPSummaryPage', function () {
     key: '',
   });
 
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
+
   beforeEach(function () {
     jest.clearAllMocks();
+
+    regionFilterRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
+    });
 
     domainTransactionsListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -55,17 +91,109 @@ describe('HTTPSummaryPage', function () {
       body: {
         data: [],
       },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-transactions-list',
+        }),
+      ],
     });
 
-    domainChartsRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    domainMetricsRibbonRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
-        'spm()': {
-          data: [
-            [1699907700, [{count: 7810.2}]],
-            [1699908000, [{count: 1216.8}]],
-          ],
+        data: [],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+        }),
+      ],
+    });
+
+    throughputRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-throughput-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [1699907700, [{count: 7810.2}]],
+          [1699908000, [{count: 1216.8}]],
+        ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/second',
+          },
+        },
+      },
+    });
+
+    durationRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-duration-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [1699907700, [{count: 710.2}]],
+          [1699908000, [{count: 116.8}]],
+        ],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'rate',
+          },
+          units: {
+            'avg(span.duration)': '1/second',
+          },
+        },
+      },
+    });
+
+    statusRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-response-code-chart',
+        }),
+      ],
+      body: {
+        'http_response_rate(3)': {
+          data: [[1699908000, [{count: 0.2}]]],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'percentage',
+            },
+            units: {},
+          },
+        },
+        'http_response_rate(4)': {
+          data: [[1699908000, [{count: 0.1}]]],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'percentage',
+            },
+            units: {},
+          },
+        },
+        'http_response_rate(5)': {
+          data: [[1699908000, [{count: 0.3}]]],
+          meta: {
+            fields: {
+              'http_response_rate(5)': 'percentage',
+            },
+            units: {},
+          },
         },
       },
     });
@@ -79,7 +207,7 @@ describe('HTTPSummaryPage', function () {
     render(<HTTPDomainSummaryPage />, {organization});
 
     await waitFor(() => {
-      expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
+      expect(throughputRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events-stats/`,
         expect.objectContaining({
@@ -100,13 +228,14 @@ describe('HTTPSummaryPage', function () {
             statsPeriod: '10d',
             topEvents: undefined,
             yAxis: 'spm()',
+            transformAliasToInputFormat: '1',
           },
         })
       );
     });
 
-    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
-      2,
+    expect(durationRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',
@@ -126,12 +255,13 @@ describe('HTTPSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
 
-    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
-      3,
+    expect(statusRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',
@@ -155,11 +285,12 @@ describe('HTTPSummaryPage', function () {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          transformAliasToInputFormat: '1',
         },
       })
     );
 
-    expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
+    expect(domainMetricsRibbonRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
@@ -186,7 +317,7 @@ describe('HTTPSummaryPage', function () {
     );
 
     expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
-      2,
+      1,
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         method: 'GET',
@@ -211,6 +342,24 @@ describe('HTTPSummaryPage', function () {
           query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           sort: '-time_spent_percentage()',
           referrer: 'api.performance.http.domain-summary-transactions-list',
+          statsPeriod: '10d',
+        },
+      })
+    );
+
+    expect(regionFilterRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['user.geo.subregion', 'count()'],
+          per_page: 50,
+          project: [],
+          query: 'has:user.geo.subregion',
+          sort: '-count()',
+          referrer: 'api.insights.user-geo-subregion-selector',
           statsPeriod: '10d',
         },
       })

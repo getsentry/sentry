@@ -1,4 +1,4 @@
-import {createRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {Observer} from 'mobx-react';
@@ -37,7 +37,6 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
-  MetricsBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
@@ -64,7 +63,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import type {
@@ -133,8 +131,8 @@ function NewTraceDetailsTransactionBar(props: Props) {
     isHighlighted || highlightEmbeddedSpan
   );
   const [isIntersecting, setIntersecting] = useState(false);
-  const transactionRowDOMRef = createRef<HTMLDivElement>();
-  const transactionTitleRef = createRef<HTMLDivElement>();
+  const transactionRowDOMRef = useRef<HTMLDivElement>(null);
+  const transactionTitleRef = useRef<HTMLDivElement>(null);
   let spanContentRef: HTMLDivElement | null = null;
   const navigate = useNavigate();
 
@@ -173,7 +171,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
   useEffect(() => {
     const {transaction, isBarScrolledTo} = props;
     const observer = new IntersectionObserver(([entry]) =>
-      setIntersecting(entry.isIntersecting)
+      setIntersecting(entry!.isIntersecting)
     );
 
     if (transactionRowDOMRef.current) {
@@ -326,7 +324,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     return (
       <Fragment>
         {Array.from(measurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -371,7 +369,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingDepths.map(
+    const connectorBars: React.ReactNode[] = continuingDepths.map(
       ({depth, isOrphanDepth}) => {
         if (generation - depth <= 1) {
           // If the difference is less than or equal to 1, then it means that the continued
@@ -485,7 +483,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
             <ProfilesProvider
               orgSlug={organization.slug}
               projectSlug={embeddedChildren.projectSlug ?? ''}
-              profileId={profileId || ''}
+              profileMeta={profileId || ''}
             >
               <ProfileContext.Consumer>
                 {profiles => (
@@ -767,22 +765,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
     return <ErrorBadge />;
   };
 
-  const renderMetricsBadge = () => {
-    const {organization} = props;
-    const hasMetrics = Object.keys(embeddedChildren?._metrics_summary ?? {}).length > 0;
-
-    if (
-      !hasMetricsExperimentalFeature(organization) ||
-      isTraceRoot(transaction) ||
-      isTraceError(transaction) ||
-      !hasMetrics
-    ) {
-      return null;
-    }
-
-    return <MetricsBadge />;
-  };
-
   const renderRectangle = () => {
     const {transaction, traceInfo, barColor} = props;
 
@@ -814,7 +796,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
           <ErrorBadge />
         ) : (
           <Fragment>
-            {renderMetricsBadge()}
             {renderErrorBadge()}
             <DurationPill
               durationDisplay={getDurationDisplay({
@@ -840,8 +821,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const rows: React.ReactElement[] = [];
     // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(transaction.timestamp - transaction.start_timestamp) || 1;
-    for (let i = 0; i < transaction.performance_issues.length; i++) {
-      const issue = transaction.performance_issues[i];
+    for (const issue of transaction.performance_issues) {
       const startPosition = Math.abs(issue.start - transaction.start_timestamp);
       const startPercentage = startPosition / delta;
       const duration = Math.abs(issue.end - issue.start);
@@ -948,7 +928,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
   );
 }
 
-function getOffset(generation) {
+function getOffset(generation: any) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 

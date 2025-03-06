@@ -14,6 +14,7 @@ from sentry.models.project import Project
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class MergedGroup(TypedDict):
@@ -24,7 +25,7 @@ class MergedGroup(TypedDict):
 def handle_merge(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
 ) -> MergedGroup:
     """
     Merge a list of groups into a single group.

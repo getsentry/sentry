@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
+import type {ReplayRecordingMode} from '@sentry/core';
 import type {replayIntegration} from '@sentry/react';
-import type {ReplayRecordingMode} from '@sentry/types';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -26,7 +26,7 @@ function getReplayInternal(
   replay: ReturnType<typeof replayIntegration>
 ): ReplayInternalAPI {
   // While the toolbar is internal, we can use the private API for added functionality and reduced dependence on SDK release versions
-  // @ts-ignore:next-line
+  // @ts-expect-error TS(2341): Property '_replay' is private and only accessible ... Remove this comment to see the full error message
   return replay._replay;
 }
 

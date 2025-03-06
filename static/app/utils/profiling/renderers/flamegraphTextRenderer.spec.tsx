@@ -55,7 +55,7 @@ describe('TextRenderer', () => {
     textRenderer.maybeInvalidateCache();
     textRenderer.maybeInvalidateCache();
 
-    expect(textRenderer.textCache.test).toBe(undefined);
+    expect(textRenderer.textCache.test).toBeUndefined();
     expect(textRenderer.textCache).toEqual({
       'Who knows if this changed, font-display: swap wont tell me': {
         width: 20,

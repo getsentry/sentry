@@ -36,7 +36,7 @@ class SegmentPluginTest(PluginTestCase):
         )
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
 
         request = responses.calls[0].request
         payload = orjson.loads(request.body)

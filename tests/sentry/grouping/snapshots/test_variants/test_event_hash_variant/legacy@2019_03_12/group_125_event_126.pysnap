@@ -1,10 +1,11 @@
 ---
-created: '2021-04-02T09:10:50.505122Z'
+created: '2025-02-26T00:33:46.336940+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
@@ -144,14 +145,15 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "c470859cd6d1e38f3bd089877a7b8b97"
+  contributing component: exception
   component:
     system*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "start"
           frame
@@ -258,22 +260,22 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "_CFBundleDlfcnLoadBundle"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dlopen"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dlopen_internal"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dyld::link"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "ImageLoader::link"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "ImageLoader::recursiveRebase"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "ImageLoaderMachOCompressed::rebase"
         type*

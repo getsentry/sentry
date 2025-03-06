@@ -62,6 +62,7 @@ export type ApiQueryKey =
         Record<string, any>,
         Record<string, any>
       >,
+      additionalKey?: string,
     ];
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
@@ -147,7 +148,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
 export function useApiQueries<TResponseData, TError = RequestError>(
   queryKeys: ApiQueryKey[],
   options: UseApiQueryOptions<TResponseData, TError>
-): UseApiQueryResult<TResponseData, TError>[] {
+): Array<UseApiQueryResult<TResponseData, TError>> {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 
@@ -284,7 +285,15 @@ function parsePageParam(dir: 'previous' | 'next') {
  *
  * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
  */
-export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
+export function useInfiniteApiQuery<TResponseData>({
+  queryKey,
+  enabled,
+  staleTime,
+}: {
+  queryKey: ApiQueryKey;
+  enabled?: boolean;
+  staleTime?: number;
+}) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const query = useInfiniteQuery({
     queryKey,
@@ -292,6 +301,8 @@ export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQue
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
+    enabled: enabled ?? true,
+    staleTime,
   });
 
   return query;
@@ -329,5 +340,4 @@ export function fetchMutation(api: Client) {
   };
 }
 
-// eslint-disable-next-line import/export
 export * from '@tanstack/react-query';

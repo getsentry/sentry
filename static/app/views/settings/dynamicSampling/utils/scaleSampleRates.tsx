@@ -48,7 +48,7 @@ export function scaleSampleRates<T extends ScalingItem>({
   let remainingSampleCount = newSampled;
   let remainingOldSampleCount = totalSpans * oldSampleRate;
 
-  const sortedItems = items.toSorted((a, b) => a.count - b.count);
+  const sortedItems = items.toSorted((a: any, b: any) => a.count - b.count);
 
   const scaledItems: T[] = [];
   for (const item of sortedItems) {

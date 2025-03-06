@@ -22,7 +22,7 @@ repos:
       - id: pyupgrade
         name: pyupgrade
         entry: pyupgrade
-        args: ['--py312-plus']
+        args: ['--py313-plus']
         language: system
         types: [python]
       # Configuration for black exists in pyproject.toml,
@@ -117,7 +117,7 @@ repos:
       - id: eslint
         name: eslint
         language: system
-        files: \.[jt]sx?$
+        files: \.(ts|js|tsx|jsx|mjs)$
         entry: ./node_modules/.bin/eslint --quiet --fix
 
       - id: stylelint

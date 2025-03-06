@@ -11,7 +11,11 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.grouping.utils import get_rule_bool
+from sentry.grouping.utils import (
+    DEFAULT_FINGERPRINT_VARIABLE,
+    bool_from_string,
+    is_default_fingerprint_var,
+)
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.event_frames import find_stack_frames
@@ -143,7 +147,7 @@ class FingerprintRuleMatch(NamedTuple):
     attributes: FingerprintRuleAttributes
 
 
-class EventAccess:
+class EventDatastore:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
         self._exceptions: list[_ExceptionInfo] | None = None
@@ -156,7 +160,13 @@ class EventAccess:
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
 
-    def get_messages(self) -> list[_MessageInfo]:
+    def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
+        return getattr(self, "_get_" + match_type)()
+
+    def _get_messages(self) -> list[_MessageInfo]:
         if self._messages is None:
             self._messages = []
             message = get_path(self.event, "logentry", "formatted", filter=True)
@@ -164,7 +174,7 @@ class EventAccess:
                 self._messages.append({"message": message})
         return self._messages
 
-    def get_log_info(self) -> list[_LogInfo]:
+    def _get_log_info(self) -> list[_LogInfo]:
         if self._log_info is None:
             log_info: _LogInfo = {}
             logger = get_path(self.event, "logger", filter=True)
@@ -179,7 +189,7 @@ class EventAccess:
                 self._log_info = []
         return self._log_info
 
-    def get_exceptions(self) -> list[_ExceptionInfo]:
+    def _get_exceptions(self) -> list[_ExceptionInfo]:
         if self._exceptions is None:
             self._exceptions = []
             for exc in get_path(self.event, "exception", "values", filter=True) or ():
@@ -191,7 +201,7 @@ class EventAccess:
                 )
         return self._exceptions
 
-    def get_frames(self) -> list[_FrameInfo]:
+    def _get_frames(self) -> list[_FrameInfo]:
         if self._frames is None:
             self._frames = frames = []
 
@@ -212,35 +222,32 @@ class EventAccess:
             find_stack_frames(self.event, _push_frame)
         return self._frames
 
-    def get_toplevel(self) -> list[_MessageInfo | _ExceptionInfo]:
+    def _get_toplevel(self) -> list[_MessageInfo | _ExceptionInfo]:
         if self._toplevel is None:
-            self._toplevel = [*self.get_messages(), *self.get_exceptions()]
+            self._toplevel = [*self._get_messages(), *self._get_exceptions()]
         return self._toplevel
 
-    def get_tags(self) -> list[dict[str, str]]:
+    def _get_tags(self) -> list[dict[str, str]]:
         if self._tags is None:
             self._tags = [
                 {"tags.%s" % k: v for (k, v) in get_path(self.event, "tags", filter=True) or ()}
             ]
         return self._tags
 
-    def get_sdk(self) -> list[_SdkInfo]:
+    def _get_sdk(self) -> list[_SdkInfo]:
         if self._sdk is None:
             self._sdk = [{"sdk": normalized_sdk_tag_from_event(self.event)}]
         return self._sdk
 
-    def get_family(self) -> list[_FamilyInfo]:
+    def _get_family(self) -> list[_FamilyInfo]:
         self._family = self._family or [
             {"family": get_behavior_family_for_platform(self.event.get("platform"))}
         ]
         return self._family
 
-    def get_release(self) -> list[_ReleaseInfo]:
+    def _get_release(self) -> list[_ReleaseInfo]:
         self._release = self._release or [{"release": self.event.get("release")}]
         return self._release
-
-    def get_values(self, match_group: str) -> list[dict[str, Any]]:
-        return getattr(self, "get_" + match_group)()
 
 
 class FingerprintingRules:
@@ -271,11 +278,11 @@ class FingerprintingRules:
     ) -> None | FingerprintRuleMatch:
         if not (self.bases or self.rules):
             return None
-        access = EventAccess(event)
+        event_datastore = EventDatastore(event)
         for rule in self.iter_rules():
-            new_values = rule.get_fingerprint_values_for_event_access(access)
-            if new_values is not None:
-                return FingerprintRuleMatch(rule, new_values.fingerprint, new_values.attributes)
+            match = rule.test_for_match_with_event(event_datastore)
+            if match is not None:
+                return FingerprintRuleMatch(rule, match.fingerprint, match.attributes)
         return None
 
     @classmethod
@@ -374,8 +381,13 @@ MATCHERS = {
 }
 
 
-class FingerprintMatch:
-    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
+class FingerprintMatcher:
+    def __init__(
+        self,
+        key: str,  # The event attribute on which to match
+        pattern: str,  # The value to match (or to not match, depending on `negated`)
+        negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+    ) -> None:
         if key.startswith("tags."):
             self.key = key
         else:
@@ -387,7 +399,7 @@ class FingerprintMatch:
         self.negated = negated
 
     @property
-    def match_group(self) -> str:
+    def match_type(self) -> str:
         if self.key == "message":
             return "toplevel"
         if self.key in ("logger", "level"):
@@ -404,11 +416,9 @@ class FingerprintMatch:
             return "release"
         return "frames"
 
-    def matches(self, values: dict[str, Any]) -> bool:
-        rv = self._positive_match(values)
-        if self.negated:
-            rv = not rv
-        return rv
+    def matches(self, event_values: dict[str, Any]) -> bool:
+        match_found = self._positive_match(event_values)
+        return not match_found if self.negated else match_found
 
     def _positive_path_match(self, value: str | None) -> bool:
         if value is None:
@@ -421,50 +431,42 @@ class FingerprintMatch:
             return True
         return False
 
-    def _positive_match(self, values: dict[str, Any]) -> bool:
-        # path is special in that it tests against two values (abs_path and path)
+    def _positive_match(self, event_values: dict[str, Any]) -> bool:
+        # Handle cases where `self.key` isn't 1-to-1 with the corresponding key in `event_values`
         if self.key == "path":
-            value = values.get("abs_path")
-            if self._positive_path_match(value):
-                return True
-            alt_value = values.get("filename")
-            if alt_value != value:
-                if self._positive_path_match(value):
-                    return True
-            return False
+            return any(
+                self._positive_path_match(value)
+                # Use a set so that if the values match, we don't needlessly check both
+                for value in {event_values.get("abs_path"), event_values.get("filename")}
+            )
 
-        # message tests against value as well as this is what users expect
         if self.key == "message":
-            for key in ("message", "value"):
-                value = values.get(key)
-                if value is not None and glob_match(value, self.pattern, ignorecase=True):
-                    return True
-            return False
+            return any(
+                value is not None and glob_match(value, self.pattern, ignorecase=True)
+                # message tests against exception value also, as this is what users expect
+                for value in [event_values.get("message"), event_values.get("value")]
+            )
 
-        value = values.get(self.key)
+        # For the rest, `self.key` matches the key in `event_values`
+        value = event_values.get(self.key)
+
         if value is None:
             return False
-        elif self.key == "package":
-            if self._positive_path_match(value):
-                return True
-        elif self.key == "family":
+
+        if self.key in ["package", "release"]:
+            return self._positive_path_match(value)
+
+        if self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "sdk":
-            flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "release":
-            if self._positive_path_match(value):
-                return True
-        elif self.key == "app":
-            ref_val = get_rule_bool(self.pattern)
-            if ref_val is not None and ref_val == value:
-                return True
-        elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
-            return True
-        return False
+            return "all" in flags or value in flags
+
+        if self.key == "app":
+            return value == bool_from_string(self.pattern)
+
+        if self.key in ["level", "value"]:
+            return glob_match(value, self.pattern, ignorecase=True)
+
+        return glob_match(value, self.pattern, ignorecase=False)
 
     def _to_config_structure(self) -> list[str]:
         key = self.key
@@ -473,19 +475,18 @@ class FingerprintMatch:
         return [key, self.pattern]
 
     @classmethod
-    def _from_config_structure(cls, obj: list[str]) -> Self:
-        key = obj[0]
-        if key.startswith("!"):
-            key = key[1:]
-            negated = True
-        else:
-            negated = False
-        return cls(key, obj[1], negated)
+    def _from_config_structure(cls, matcher: list[str]) -> Self:
+        key, pattern = matcher
+
+        negated = key.startswith("!")
+        key = key.lstrip("!")
+
+        return cls(key, pattern, negated)
 
     @property
     def text(self) -> str:
         return '{}{}:"{}"'.format(
-            self.negated and "!" or "",
+            "!" if self.negated else "",
             self.key,
             self.pattern,
         )
@@ -494,7 +495,7 @@ class FingerprintMatch:
 class FingerprintRule:
     def __init__(
         self,
-        matchers: Sequence[FingerprintMatch],
+        matchers: Sequence[FingerprintMatcher],
         fingerprint: list[str],
         attributes: FingerprintRuleAttributes,
         is_builtin: bool = False,
@@ -504,16 +505,16 @@ class FingerprintRule:
         self.attributes = attributes
         self.is_builtin = is_builtin
 
-    def get_fingerprint_values_for_event_access(
-        self, event_access: EventAccess
+    def test_for_match_with_event(
+        self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        by_match_group: dict[str, list[FingerprintMatch]] = {}
+        matchers_by_match_type: dict[str, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
-            by_match_group.setdefault(matcher.match_group, []).append(matcher)
+            matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
-        for match_group, matchers in by_match_group.items():
-            for values in event_access.get_values(match_group):
-                if all(x.matches(values) for x in matchers):
+        for match_type, matchers in matchers_by_match_type.items():
+            for event_values in event_datastore.get_values(match_type):
+                if all(matcher.matches(event_values) for matcher in matchers):
                     break
             else:
                 return None
@@ -534,12 +535,12 @@ class FingerprintRule:
         return config_structure
 
     @classmethod
-    def _from_config_structure(cls, obj: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
+    def _from_config_structure(cls, config: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
         return cls(
-            [FingerprintMatch._from_config_structure(x) for x in obj["matchers"]],
-            obj["fingerprint"],
-            obj.get("attributes") or {},
-            obj.get("is_builtin") or False,
+            [FingerprintMatcher._from_config_structure(x) for x in config["matchers"]],
+            config["fingerprint"],
+            config.get("attributes") or {},
+            config.get("is_builtin") or False,
         )
 
     def to_json(self) -> FingerprintRuleJSON:
@@ -581,15 +582,17 @@ class FingerprintingVisitor(NodeVisitorBase):
         changelog = []
         rules = []
         in_header = True
+
         for child in children:
             if isinstance(child, str):
-                if in_header and child[:2] == "##":
+                if in_header and child.startswith("##"):
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False
             elif child is not None:
                 rules.append(child)
                 in_header = False
+
         return FingerprintingRules(
             rules=rules,
             changelog=inspect.cleandoc("\n".join(changelog)).rstrip() or None,
@@ -609,7 +612,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         self,
         _: object,
         children: tuple[
-            object, list[FingerprintMatch], object, object, object, FingerprintWithAttributes
+            object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
         ],
     ) -> FingerprintRule:
         _, matcher, _, _, _, (fingerprint, attributes) = children
@@ -617,9 +620,9 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
-    ) -> FingerprintMatch:
-        _, negation, ty, _, argument = children
-        return FingerprintMatch(ty, argument, bool(negation))
+    ) -> FingerprintMatcher:
+        _, negation, key, _, pattern = children
+        return FingerprintMatcher(key, pattern, bool(negation))
 
     def visit_matcher_type(self, _: object, children: list[str]) -> str:
         return children[0]
@@ -646,6 +649,9 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_fp_value(self, _: object, children: tuple[object, str, object, object]) -> str:
         _, argument, _, _ = children
+        # Normalize variations of `{{ default }}`
+        if isinstance(argument, str) and is_default_fingerprint_var(argument):
+            return DEFAULT_FINGERPRINT_VARIABLE
         return argument
 
     def visit_fp_attribute(self, _: object, children: tuple[str, object, str]) -> tuple[str, str]:

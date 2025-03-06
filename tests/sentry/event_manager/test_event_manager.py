@@ -10,7 +10,6 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
-import responses
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
@@ -19,14 +18,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from fixtures.github import (
-    COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
-    EARLIER_COMMIT_SHA,
-    GET_COMMIT_EXAMPLE,
-    GET_LAST_2_COMMITS_EXAMPLE,
-    GET_PRIOR_COMMIT_EXAMPLE,
-    LATER_COMMIT_SHA,
-)
 from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
@@ -46,14 +37,13 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import load_grouping_config
+from sentry.grouping.api import GroupingConfig, load_grouping_config
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -72,7 +62,6 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
-from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
@@ -88,7 +77,6 @@ from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -1121,7 +1109,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ).exists()
 
         # ensure we're not erroring on second creation
-        event = self.make_release_event("1.0", project_id)
+        self.make_release_event("1.0", project_id)
 
     def test_group_release_with_env(self) -> None:
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
@@ -1174,16 +1162,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ).id
         assert query(TSDBModel.project, project.id, environment_id=environment_id) == 1
         assert query(TSDBModel.group, event.group.id, environment_id=environment_id) == 1
-
-    @pytest.mark.xfail
-    def test_record_frequencies(self) -> None:
-        project = self.project
-        manager = EventManager(make_event())
-        event = manager.save(project.id)
-
-        assert tsdb.backend.get_most_frequent(
-            TSDBModel.frequent_issues_by_project, (event.project.id,), event.datetime
-        ) == {event.project.id: [(event.group_id, 1.0)]}
 
     def test_event_user(self) -> None:
         event_id = uuid.uuid4().hex
@@ -1541,7 +1519,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     def test_transaction_sampler_and_receive(self) -> None:
         # make sure with the option on we don't get any errors
         manager = EventManager(
@@ -1600,16 +1577,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     @patch("sentry.event_manager.record_event_processed")
-    @patch("sentry.event_manager.record_user_context_received")
     @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
         self,
         mock_record_sample: mock.MagicMock,
         mock_record_release: mock.MagicMock,
-        mock_record_user: mock.MagicMock,
         mock_record_event: mock.MagicMock,
     ) -> None:
         manager = EventManager(
@@ -1669,7 +1643,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         mock_record_event.assert_called_once_with(self.project, event)
-        mock_record_user.assert_called_once_with(self.project, event)
         mock_record_release.assert_called_once_with(self.project, event)
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
@@ -1891,9 +1864,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(
-                            self.project.id, cache_key=cache_key, has_attachments=True
-                        )
+                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -2115,14 +2086,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
         )
 
-    def test_checksum_rehashed(self) -> None:
+    def test_invalid_checksum_gets_hashed(self) -> None:
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
         manager.normalize()
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
+        assert len(hashes) == 1
+        assert hashes[0] == hash_from_values(checksum)
 
     def test_legacy_attributes_moved(self) -> None:
         event_params = make_event(
@@ -2274,7 +2246,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
+        grouping_config: GroupingConfig = {
+            "id": DEFAULT_GROUPING_CONFIG,
+            "enhancements": enhancements_str,
+        }
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2618,69 +2593,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
 
-class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
-    def setUp(self) -> None:
-        super().setUp()
-        self.repo_name = "example"
-        self.project = self.create_project(name="foo")
-        with assume_test_silo_mode_of(Integration):
-            self.org_integration = self.integration.add_organization(
-                self.project.organization, self.user
-            )
-        self.repo = self.create_repo(
-            project=self.project,
-            name=self.repo_name,
-            provider="integrations:github",
-            integration_id=self.integration.id,
-        )
-        self.repo.update(config={"name": self.repo_name})
-        self.create_code_mapping(
-            project=self.project,
-            repo=self.repo,
-            organization_integration=self.org_integration,
-            stack_root="/stack/root",
-            source_root="/source/root",
-            default_branch="main",
-        )
-        responses.add(
-            "GET",
-            f"https://api.github.com/repos/{self.repo_name}/commits/{LATER_COMMIT_SHA}",
-            json=json.loads(GET_COMMIT_EXAMPLE),
-        )
-        responses.add(
-            "GET",
-            f"https://api.github.com/repos/{self.repo_name}/commits/{EARLIER_COMMIT_SHA}",
-            json=json.loads(GET_PRIOR_COMMIT_EXAMPLE),
-        )
-        self.dummy_commit_sha = "a" * 40
-        responses.add(
-            responses.GET,
-            f"https://api.github.com/repos/{self.repo_name}/compare/{self.dummy_commit_sha}...{LATER_COMMIT_SHA}",
-            json=json.loads(COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE),
-        )
-        responses.add(
-            responses.GET,
-            f"https://api.github.com/repos/{self.repo_name}/commits?sha={LATER_COMMIT_SHA}",
-            json=json.loads(GET_LAST_2_COMMITS_EXAMPLE),
-        )
-
-    def _create_first_release_commit(self) -> None:
-        # Create a release
-        release = self.create_release(project=self.project, version="abcabcabc")
-        # Create a commit
-        commit = self.create_commit(
-            repo=self.repo,
-            key=self.dummy_commit_sha,
-        )
-        # Make a release head commit
-        ReleaseHeadCommit.objects.create(
-            organization_id=self.project.organization.id,
-            repository_id=self.repo.id,
-            release=release,
-            commit=commit,
-        )
-
-
 class ReleaseIssueTest(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project()
@@ -2688,18 +2600,6 @@ class ReleaseIssueTest(TestCase):
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))
-
-    def make_event(self, **kwargs: Any) -> dict[str, Any]:
-        result = {
-            "event_id": "a" * 32,
-            "message": "foo",
-            "timestamp": self.timestamp + 0.23,
-            "level": logging.ERROR,
-            "logger": "default",
-            "tags": [],
-        }
-        result.update(kwargs)
-        return result
 
     def make_release_event(
         self,

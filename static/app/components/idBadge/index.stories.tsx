@@ -13,7 +13,7 @@ import SideBySide from '../stories/sideBySide';
 import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';
 
-export default storyBook(IdBadge, story => {
+export default storyBook('IdBadge', story => {
   story('Props', () => {
     const org = useOrganization();
 
@@ -42,7 +42,7 @@ export default storyBook(IdBadge, story => {
       return <LoadingIndicator />;
     }
 
-    return <IdBadge team={teams[0]} />;
+    return <IdBadge team={teams[0]!} />;
   });
 
   story('Project', () => {
@@ -53,7 +53,7 @@ export default storyBook(IdBadge, story => {
       return <LoadingIndicator />;
     }
 
-    return <IdBadge project={myProject[0]} />;
+    return <IdBadge project={myProject[0]!} />;
   });
 
   story('User', () => {
@@ -89,7 +89,7 @@ export default storyBook(IdBadge, story => {
       teamRoleList: [],
       teamRoles: [],
       teams: [],
-      user: user,
+      user,
       flags: {
         'idp:provisioned': false,
         'idp:role-restricted': false,
@@ -116,8 +116,8 @@ export default storyBook(IdBadge, story => {
 
     const teamActor: Actor = {
       type: 'team',
-      id: teams[0].id,
-      name: teams[0].name,
+      id: teams[0]!.id,
+      name: teams[0]!.name,
     };
 
     return (

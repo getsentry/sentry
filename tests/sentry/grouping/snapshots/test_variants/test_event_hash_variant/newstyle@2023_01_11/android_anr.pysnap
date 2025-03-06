@@ -1,15 +1,16 @@
 ---
-created: '2024-10-24T14:16:43.547735+00:00'
+created: '2025-02-26T00:33:56.483613+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             module*
               "com.android.internal.os.ZygoteInit"
             filename (module takes precedence)
@@ -788,6 +789,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "2552498cfe69a6ddf1dcdde5440ce9c3"
+  contributing component: exception
   component:
     system*
       exception*
@@ -806,14 +808,14 @@ system:
               "zygoteinit.java"
             function*
               "run"
-          frame (marked out of app by stack trace rule (module:java.* -app))
+          frame
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (marked out of app by stack trace rule (module:java.* -app))
+          frame
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)

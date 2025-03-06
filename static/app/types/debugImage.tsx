@@ -157,7 +157,7 @@ export type Image = {
   features: ImageFeatures;
   type: string;
   arch?: string;
-  candidates?: Array<ImageCandidate>;
+  candidates?: ImageCandidate[];
   code_file?: string | null;
   code_id?: string;
   debug_file?: string;

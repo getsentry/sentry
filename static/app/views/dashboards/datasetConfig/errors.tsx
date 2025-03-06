@@ -1,10 +1,10 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -16,6 +16,7 @@ import {
   ERROR_FIELDS,
   ERRORS_AGGREGATION_FUNCTIONS,
   getAggregations,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -25,11 +26,13 @@ import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSe
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {eventViewFromWidget} from '../utils';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
@@ -41,26 +44,29 @@ import {
   getTimeseriesSortOptions,
   renderEventIdAsLinkable,
   renderTraceAsLinkable,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count_unique(user)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count_unique(user)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count_unique(user)',
 };
 
-export type SeriesWithOrdering = [order: number, series: Series];
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count_unique', 'user', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
 
 export const ErrorsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
@@ -122,6 +128,7 @@ function getEventsTableFieldOptions(
     aggregations: Object.keys(aggregates)
       .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
       .reduce((obj, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         obj[key] = aggregates[key];
         return obj;
       }, {}),
@@ -129,13 +136,17 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
 
   if (field === 'trace') {
-    return renderTraceAsLinkable;
+    return renderTraceAsLinkable(widget);
   }
 
   return getFieldRenderer(field, meta, false);

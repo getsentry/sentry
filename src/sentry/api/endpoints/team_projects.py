@@ -1,4 +1,5 @@
 import time
+from typing import TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -23,6 +24,8 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import project_is_seer_eligible
@@ -82,6 +85,12 @@ class TeamProjectPermission(TeamPermission):
         "PUT": ["project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+
+
+class AuditData(TypedDict):
+    request: Request
+    organization: Organization
+    target_object: int
 
 
 @extend_schema(tags=["Teams"])
@@ -177,11 +186,20 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        if (
-            team.organization.flags.disable_member_project_creation
-            and not request.access.has_scope("org:write")
+
+        if team.organization.flags.disable_member_project_creation and not (
+            request.access.has_scope("org:write")
         ):
-            return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
+            requester_admin_teams = set(
+                OrganizationMemberTeam.objects.filter(
+                    organizationmember__user_id=request.user.id,
+                    organizationmember__organization=team.organization,
+                    role="admin",
+                ).values_list("team__id", flat=True)
+            )
+            # Only allow project creation if the user is an admin of the team
+            if team.id not in requester_admin_teams:
+                return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
         with transaction.atomic(router.db_for_write(Project)):
@@ -206,18 +224,34 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
             set_default_symbol_sources(project)
 
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_ADD"),
-                data=project.get_audit_log_data(),
-            )
+            common_audit_data: AuditData = {
+                "request": request,
+                "organization": team.organization,
+                "target_object": project.id,
+            }
+
+            origin = request.data.get("origin")
+            if origin:
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
+                    data={
+                        **project.get_audit_log_data(),
+                        "origin": origin,
+                    },
+                )
+            else:
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_ADD"),
+                    data={**project.get_audit_log_data()},
+                )
 
             project_created.send(
                 project=project,
                 user=request.user,
                 default_rules=result.get("default_rules", True),
+                origin=origin,
                 sender=self,
             )
 

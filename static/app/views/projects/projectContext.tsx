@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {setActiveProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,7 +17,10 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import FeatureObserver from 'sentry/utils/featureObserver';
+import {
+  addProjectFeaturesHandler,
+  buildSentryFeaturesHandler,
+} from 'sentry/utils/featureFlags';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -181,8 +184,9 @@ class ProjectContextProvider extends Component<Props, State> {
 
         // assuming here that this means the project is considered the active project
         setActiveProject(project);
-        FeatureObserver.singleton({}).observeProjectFlags({
+        addProjectFeaturesHandler({
           project,
+          handler: buildSentryFeaturesHandler('feature.projects:'),
         });
       } catch (error) {
         this.setState({
@@ -249,9 +253,11 @@ class ProjectContextProvider extends Component<Props, State> {
         // TODO(chrissy): use scale for margin values
         return (
           <Layout.Page withPadding>
-            <Alert type="warning">
-              {t('The project you were looking for was not found.')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {t('The project you were looking for was not found.')}
+              </Alert>
+            </Alert.Container>
           </Layout.Page>
         );
       case ErrorTypes.MISSING_MEMBERSHIP:

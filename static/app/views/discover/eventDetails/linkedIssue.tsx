@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Alert} from 'sentry/components/core/alert';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -40,9 +40,11 @@ function LinkedIssue({eventId, groupId}: Props) {
 
     if (hasNotFound) {
       return (
-        <Alert type="warning" showIcon>
-          {t('The linked issue cannot be found. It may have been deleted, or merged.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {t('The linked issue cannot be found. It may have been deleted, or merged.')}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -51,12 +53,12 @@ function LinkedIssue({eventId, groupId}: Props) {
 
   const issueUrl = `${group.permalink}events/${eventId}/`;
 
-  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
-    ? group.filtered.stats?.['30d']
-    : group.stats?.['30d'];
+  const groupStats: readonly TimeseriesValue[] = group.filtered
+    ? group.filtered.stats?.['30d']!
+    : group.stats?.['30d']!;
 
-  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
-    ? group.stats?.['30d']
+  const groupSecondaryStats: readonly TimeseriesValue[] = group.filtered
+    ? group.stats?.['30d']!
     : [];
 
   return (

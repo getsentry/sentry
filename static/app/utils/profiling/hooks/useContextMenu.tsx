@@ -146,7 +146,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
-      const contentRect = entries[0].contentRect;
+      const contentRect = entries[0]!.contentRect;
       setMenuCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
     });
 
@@ -164,7 +164,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
-      const contentRect = entries[0].contentRect;
+      const contentRect = entries[0]!.contentRect;
       setContainerCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
     });
 

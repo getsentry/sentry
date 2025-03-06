@@ -12,8 +12,8 @@ type WaitingActivityProps = React.ComponentProps<typeof WaitingActivity>;
 
 type Props = {
   disabled: boolean;
-  relayActivities: Array<RelayActivity>;
-  relays: Array<Relay>;
+  relayActivities: RelayActivity[];
+  relays: Relay[];
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
@@ -22,7 +22,7 @@ function List({relays, relayActivities, onRefresh, onDelete, onEdit, disabled}: 
 
   const relaysByPublicKey = getRelaysByPublicKey(orderedRelays, relayActivities);
 
-  const renderCardContent = (activities: Array<RelayActivity>) => {
+  const renderCardContent = (activities: RelayActivity[]) => {
     if (!activities.length) {
       return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
     }
@@ -34,7 +34,7 @@ function List({relays, relayActivities, onRefresh, onDelete, onEdit, disabled}: 
     <div>
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
         const {name, description, created, activities} =
-          relaysByPublicKey[relayByPublicKey];
+          relaysByPublicKey[relayByPublicKey]!;
         return (
           <div key={relayByPublicKey}>
             <CardHeader

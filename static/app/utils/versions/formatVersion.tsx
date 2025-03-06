@@ -1,16 +1,16 @@
-import {Release} from '@sentry/release-parser';
+import {parseVersion} from './parseVersion';
 
 export const formatVersion = (rawVersion: string, withPackage = false) => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    const versionToDisplay = parsedVersion.describe();
-
-    if (versionToDisplay.length) {
-      return `${versionToDisplay}${withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''}`;
-    }
-
-    return rawVersion;
-  } catch {
+  const parsedVersion = parseVersion(rawVersion);
+  if (!parsedVersion) {
     return rawVersion;
   }
+
+  const versionToDisplay = parsedVersion.describe();
+
+  if (versionToDisplay.length) {
+    return `${versionToDisplay}${withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''}`;
+  }
+
+  return rawVersion;
 };

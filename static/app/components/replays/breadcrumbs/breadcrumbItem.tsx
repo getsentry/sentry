@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {isValidElement, memo, useCallback} from 'react';
+import {forwardRef, isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -40,6 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -56,18 +57,21 @@ interface Props {
   style?: CSSProperties;
 }
 
-function BreadcrumbItem({
-  className,
-  extraction,
-  frame,
-  expandPaths,
-  onClick,
-  onInspectorExpanded,
-  onMouseEnter,
-  onMouseLeave,
-  startTimestampMs,
-  style,
-}: Props) {
+const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem(
+  {
+    className,
+    extraction,
+    frame,
+    expandPaths,
+    onClick,
+    onInspectorExpanded,
+    onMouseEnter,
+    onMouseLeave,
+    startTimestampMs,
+    style,
+  },
+  ref
+) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
@@ -141,6 +145,7 @@ function BreadcrumbItem({
 
   return (
     <StyledTimelineItem
+      ref={ref}
       icon={icon}
       title={title}
       colorConfig={{title: color, icon: color, iconBorder: color}}
@@ -171,7 +176,7 @@ function BreadcrumbItem({
       </ErrorBoundary>
     </StyledTimelineItem>
   );
-}
+});
 
 function WebVitalData({
   selectors,
@@ -190,26 +195,26 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    const layoutShifts: Array<{[x: string]: ReactNode[]}> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
         attr.nodeIds.forEach(nodeId => {
-          selectors.get(nodeId)
-            ? elements.push(
-                <span
-                  key={nodeId}
-                  onMouseEnter={() => onMouseEnter(frame, nodeId)}
-                  onMouseLeave={() => onMouseLeave(frame, nodeId)}
-                >
-                  <ValueObjectKey>{t('element')}</ValueObjectKey>
-                  <span>{': '}</span>
-                  <span>
-                    <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
-                  </span>
+          if (selectors.get(nodeId)) {
+            elements.push(
+              <span
+                key={nodeId}
+                onMouseEnter={() => onMouseEnter(frame, nodeId)}
+                onMouseLeave={() => onMouseLeave(frame, nodeId)}
+              >
+                <ValueObjectKey>{t('element')}</ValueObjectKey>
+                <span>{': '}</span>
+                <span>
+                  <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
                 </span>
-              )
-            : null;
+              </span>
+            );
+          }
         });
       }
       // if we can't find the elements associated with the layout shift, we still show the score with element: unknown
@@ -225,10 +230,12 @@ function WebVitalData({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}
@@ -269,16 +276,20 @@ function CrumbHydrationButton({
   frame: HydrationErrorFrame;
   replay: ReplayReader;
 }) {
-  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+  const {frameOrEvent, leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(
+    replay,
+    frame
+  );
 
   return (
     <div>
       <OpenReplayComparisonButton
+        frameOrEvent={frameOrEvent}
+        initialLeftOffsetMs={leftOffsetMs}
+        initialRightOffsetMs={rightOffsetMs}
         replay={replay}
-        leftOffsetMs={leftOffsetMs}
-        rightOffsetMs={rightOffsetMs}
-        surface="replay-breadcrumbs"
         size="xs"
+        surface="replay-breadcrumbs"
       >
         {t('Open Hydration Diff')}
       </OpenReplayComparisonButton>
@@ -309,7 +320,10 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
         to={
           isFeedbackFrame(frame)
             ? {
-                pathname: `/organizations/${organization.slug}/feedback/`,
+                pathname: makeFeedbackPathname({
+                  path: '/',
+                  organization,
+                }),
                 query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
               }
             : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
@@ -406,4 +420,4 @@ const Wrapper = styled('div')`
   }
 `;
 
-export default memo(BreadcrumbItem);
+export default BreadcrumbItem;

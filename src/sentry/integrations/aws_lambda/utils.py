@@ -9,9 +9,12 @@ from django.utils.translation import gettext_lazy as _
 from sentry import options
 from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 
 SUPPORTED_RUNTIMES = [
+    "nodejs22.x",
+    "nodejs20.x",
     "nodejs18.x",
     "nodejs16.x",
     "nodejs14.x",
@@ -24,6 +27,8 @@ SUPPORTED_RUNTIMES = [
     "python3.9",
     "python3.10",
     "python3.11",
+    "python3.12",
+    "python3.13",
 ]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"
@@ -108,6 +113,17 @@ def get_option_value(function, option):
     cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
     key = f"aws-layer:{prefix}"
     cache_value = cache_options.get(key)
+
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_context(
+                "aws_lambda_cache",
+                {
+                    "cache_options": cache_options,
+                    "key": key,
+                },
+            )
+            sentry_sdk.capture_message("Fetching aws layer from cache")
 
     if cache_value is None:
         raise IntegrationError(f"Could not find cache value with key {key}")
@@ -204,6 +220,35 @@ def get_dsn_for_project(organization_id, project_id):
     return enabled_dsn.dsn_public
 
 
+def get_node_options_for_layer(layer_name: str, layer_version: int | None) -> str:
+    """
+    Depending on the SDK major our Lambda Layer represents, a different SDK
+    package has to be used when setting `NODE_OPTIONS`.
+    This helper generates the correct options for all the layers we support.
+    """
+    # Lambda layers for v7 of our AWS SDK use the older `@sentry/serverless` SDK
+    #
+    # These are specifically
+    # - `SentryNodeServerlessSDKv7`
+    # - `SentryNodeServerlessSDK:235` and lower
+    if layer_name == "SentryNodeServerlessSDKv7" or (
+        layer_name == "SentryNodeServerlessSDK"
+        and layer_version is not None
+        and layer_version <= 235
+    ):
+        return "-r @sentry/serverless/dist/awslambda-auto"
+
+    # Lambda layers for v8 and above of our AWS SDK use
+    # the newer `@sentry/aws-serverless` SDK
+    #
+    # These are specifically
+    # - `SentryNodeServerlessSDK:236` and above
+    # - `SentryNodeServerlessSDKv8`
+    # - and any other layer with a version suffix above, e.g.
+    #   `SentryNodeServerlessSDKv9`
+    return "-r @sentry/aws-serverless/awslambda-auto"
+
+
 def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_left=3):
     # find the latest layer for this function
     layer_arn = get_latest_layer_for_function(function)
@@ -226,6 +271,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
 
     if runtime.startswith("nodejs"):
         # note the env variables would be different for non-Node runtimes
+        layer_name = get_option_value(function, OPTION_LAYER_NAME)
         version = get_option_value(function, OPTION_VERSION)
         try:
             parsed_version = int(version)
@@ -233,24 +279,12 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
             sentry_sdk.capture_message("Invariant: Unable to parse AWS lambda version")
             parsed_version = None
 
-        if (
-            # Lambda layer version 235 was the latest version using `@sentry/serverless` before we switched to `@sentry/aws-serverless`
-            parsed_version is not None
-            and parsed_version <= 235
-        ):
-            env_variables.update(
-                {
-                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
-                    **sentry_env_variables,
-                }
-            )
-        else:
-            env_variables.update(
-                {
-                    "NODE_OPTIONS": "-r @sentry/aws-serverless/awslambda-auto",
-                    **sentry_env_variables,
-                }
-            )
+        env_variables.update(
+            {
+                "NODE_OPTIONS": get_node_options_for_layer(layer_name, parsed_version),
+                **sentry_env_variables,
+            }
+        )
 
     elif runtime.startswith("python"):
         # Check if we are trying to re-enable an already enabled python, and if

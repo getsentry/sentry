@@ -17,10 +17,10 @@ type Props = {
 };
 
 type ButtonProps = {
-  disabled?;
-  priority?;
-  size?;
-  style?;
+  disabled?: any;
+  priority?: any;
+  size?: any;
+  style?: any;
 } | null;
 
 function IntegrationButton({
@@ -40,12 +40,7 @@ function IntegrationButton({
 
   if (!userHasAccess) {
     return (
-      <RequestIntegrationButton
-        organization={organization}
-        name={provider.name}
-        slug={provider.slug}
-        type={type}
-      />
+      <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
   }
   if (provider.canAdd) {

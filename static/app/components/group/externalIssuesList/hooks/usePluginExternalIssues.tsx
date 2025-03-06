@@ -22,8 +22,7 @@ export function usePluginExternalIssues({
 
   const result: GroupIntegrationIssueResult = {integrations: [], linkedIssues: []};
 
-  const combinedPlugins = [...group.pluginIssues, ...group.pluginActions];
-  for (const plugin of combinedPlugins) {
+  for (const plugin of group.pluginIssues) {
     const displayIcon = getIntegrationIcon(plugin.id, 'sm');
     const displayName = plugin.name || plugin.title;
     if (plugin.issue) {
@@ -95,6 +94,24 @@ export function usePluginExternalIssues({
         ],
       });
     }
+  }
+
+  for (const [title, action] of group.pluginActions) {
+    result.integrations.push({
+      key: `${title}-${action}`,
+      displayName: title,
+      displayIcon: getIntegrationIcon(title, 'sm'),
+      actions: [
+        {
+          id: `${title}-${action}`,
+          name: action,
+          href: action,
+          onClick: () => {
+            // Do nothing
+          },
+        },
+      ],
+    });
   }
 
   return result;

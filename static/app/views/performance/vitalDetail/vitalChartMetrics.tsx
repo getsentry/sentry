@@ -10,11 +10,11 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -24,6 +24,20 @@ import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import type {ViewProps} from '../types';
 
 import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
+
+type MetricsApiResponse = {
+  end: string;
+  groups: MetricsGroup[];
+  intervals: string[];
+  query: string;
+  start: string;
+};
+
+type MetricsGroup = {
+  by: Record<string, string>;
+  series: Record<string, Array<number | null>>;
+  totals: Record<string, number | null>;
+};
 
 type Props = Omit<ViewProps, 'query' | 'start' | 'end'> & {
   end: DateString | null;
@@ -102,11 +116,11 @@ function VitalChartMetrics({
               seriesName: field,
               data: response.intervals.map((intervalValue, intervalIndex) => ({
                 name: moment(intervalValue).valueOf(),
-                value: group.series ? group.series[field][intervalIndex] : 0,
+                value: group.series ? group.series[field]![intervalIndex] : 0,
               })),
             })) as Series[] | undefined;
 
-            const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
+            const colors = (data && getChartColorPalette(data.length - 2)) || [];
             const {smoothedResults} = transformEventStatsSmoothed(data);
 
             const smoothedSeries = smoothedResults

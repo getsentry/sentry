@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
@@ -70,7 +71,7 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
 
 def split_conditions_and_filters(
     rule_condition_list,
-) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     condition_list = []
     filter_list = []
     for rule_cond in rule_condition_list:
@@ -212,7 +213,7 @@ class RuleProcessor:
 
     def condition_matches(
         self,
-        condition: MutableMapping[str, Any],
+        condition: dict[str, Any],
         state: EventState,
         rule: Rule,
     ) -> bool | None:
@@ -237,8 +238,8 @@ class RuleProcessor:
         )
 
     def group_conditions_by_speed(
-        self, conditions: list[MutableMapping[str, Any]]
-    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        self, conditions: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, str]], list[EventFrequencyConditionData]]:
         fast_conditions = []
         slow_conditions: list[EventFrequencyConditionData] = []
 
@@ -251,10 +252,11 @@ class RuleProcessor:
         return fast_conditions, slow_conditions
 
     def enqueue_rule(self, rule: Rule) -> None:
-        logger.info(
-            "rule_processor.rule_enqueued",
-            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
-        )
+        if random.random() < 0.01:
+            logger.info(
+                "rule_processor.rule_enqueued",
+                extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+            )
         buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(

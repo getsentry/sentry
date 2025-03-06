@@ -13,6 +13,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
@@ -55,15 +56,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
-        <ErrorBoundary mini>
-          <SolutionsSection group={group} project={project} event={event} />
-          <StyledBreak />
-        </ErrorBoundary>
+        <SolutionsSection group={group} project={project} event={event} />
       )}
       {event && (
         <ErrorBoundary mini>
           <ExternalIssueList group={group} event={event} project={project} />
-          <StyledBreak style={{marginBottom: space(0.5)}} />
         </ErrorBoundary>
       )}
       <StreamlinedActivitySection group={group} />
@@ -89,6 +86,12 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <MergedIssuesSidebarSection />
         </Fragment>
       )}
+      {issueTypeConfig.detector.enabled && (
+        <Fragment>
+          <StyledBreak />
+          <DetectorSection group={group} project={project} />
+        </Fragment>
+      )}
     </Side>
   );
 }
@@ -107,4 +110,7 @@ export const SidebarSectionTitle = styled(SidebarSection.Title)`
 const Side = styled(Layout.Side)`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;

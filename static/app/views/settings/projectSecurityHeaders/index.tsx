@@ -66,11 +66,11 @@ function ProjectSecurityHeaders() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Security Headers'), projectId, false)}
+        title={routeTitleGen(t('Security Headers'), projectId!, false)}
       />
       <SettingsPageHeader title={t('Security Header Reports')} />
 
-      <ReportUri keyList={keyList} projectId={projectId} orgId={organization.slug} />
+      <ReportUri keyList={keyList} projectId={projectId!} orgId={organization.slug} />
 
       <Panel>
         <PanelHeader>{t('Additional Configuration')}</PanelHeader>

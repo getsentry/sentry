@@ -42,12 +42,12 @@ describe('AvatarList', () => {
     ];
 
     renderComponent({users});
-    expect(screen.getByText(users[0].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[1].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[2].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[3].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[5].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[0]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[1]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[2]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[3]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[4]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[5]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
   });
 
@@ -63,12 +63,12 @@ describe('AvatarList', () => {
     ];
 
     renderComponent({users});
-    expect(screen.getByText(users[0].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[1].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[2].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[3].name.charAt(0))).toBeInTheDocument();
-    expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
-    expect(screen.queryByText(users[5].name.charAt(0))).not.toBeInTheDocument();
+    expect(screen.getByText(users[0]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[1]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[2]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[3]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[4]!.name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[5]!.name.charAt(0))).not.toBeInTheDocument();
     expect(screen.getByTestId('avatarList-collapsedavatars')).toBeInTheDocument();
   });
 

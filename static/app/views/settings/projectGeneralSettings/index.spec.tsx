@@ -17,14 +17,13 @@ import selectEvent from 'sentry-test/selectEvent';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/organizations/pageFilters/persistence');
 
-function getField(role, name) {
+function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
 }
 
@@ -40,13 +39,13 @@ describe('projectGeneralSettings', function () {
     verifySSL: true,
   });
   const groupingConfigs = GroupingConfigsFixture();
-  let putMock;
+  let putMock: jest.Mock;
 
   const router = RouterFixture();
   const routerProps = {
     location: LocationFixture(),
     routes: router.routes,
-    route: router.routes[0],
+    route: router.routes[0]!,
     router,
     routeParams: router.params,
   };
@@ -298,7 +297,7 @@ describe('projectGeneralSettings', function () {
           params={params}
         />
       </ProjectContextProvider>,
-      {organization}
+      {organization, router}
     );
 
     await userEvent.type(
@@ -313,7 +312,7 @@ describe('projectGeneralSettings', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     // Redirects the user
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 

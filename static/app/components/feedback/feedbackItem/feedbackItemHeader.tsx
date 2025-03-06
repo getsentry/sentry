@@ -49,6 +49,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
           eventData={eventData}
           feedbackItem={feedbackItem}
           size={dimensionsToSize(dimensions)}
+          style={{lineHeight: 1}}
         />
       </Flex>
 

@@ -22,7 +22,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -48,8 +47,7 @@ export type GroupListColumn =
   | 'priority'
   | 'assignee'
   | 'lastTriggered'
-  | 'lastSeen'
-  | 'firstSeen';
+  | 'lifespan';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -216,12 +214,12 @@ class GroupList extends Component<Props, State> {
     return queryParams;
   }
 
-  handleCursorChange(
+  handleCursorChange = (
     cursor: string | undefined,
     path: string,
     query: Record<string, any>,
     pageDiff: number
-  ) {
+  ) => {
     const queryPageInt = parseInt(query.page, 10);
     let nextPage: number | undefined = isNaN(queryPageInt)
       ? pageDiff
@@ -235,11 +233,11 @@ class GroupList extends Component<Props, State> {
       nextPage = undefined;
     }
 
-    browserHistory.push({
+    this.props.router.push({
       pathname: path,
       query: {...query, cursor, page: nextPage},
     });
-  }
+  };
 
   onGroupChange() {
     const groups = GroupStore.getAllItems() as Group[];
@@ -311,7 +309,7 @@ class GroupList extends Component<Props, State> {
                   ),
                 ].map((_, i) => (
                   <GroupPlaceholder key={i}>
-                    <Placeholder height="3rem" />
+                    <Placeholder height="50px" />
                   </GroupPlaceholder>
                 ))
               : groups.map(({id, project}) => {

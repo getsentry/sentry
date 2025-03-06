@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
@@ -27,7 +27,7 @@ function BaseEnvironmentPageFilterTrigger(
   // Show 2 environments only if the combined string's length does not exceed 25.
   // Otherwise show only 1 environment.
   const envsToShow =
-    value[0]?.length + value[1]?.length <= 23 ? value.slice(0, 2) : value.slice(0, 1);
+    value[0]?.length! + value[1]?.length! <= 23 ? value.slice(0, 2) : value.slice(0, 1);
 
   // e.g. "production, staging"
   const enumeratedLabel = envsToShow.map(env => trimSlug(env, 25)).join(', ');
@@ -47,7 +47,9 @@ function BaseEnvironmentPageFilterTrigger(
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
-      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+      {remainingCount > 0 && (
+        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+      )}
     </DropdownButton>
   );
 }

@@ -13,8 +13,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
-  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
-    color[2] * 255
+  return `rgba(${Math.floor(color[0]! * 255)}, ${Math.floor(color[1]! * 255)}, ${Math.floor(
+    color[2]! * 255
   )}, ${color[3] ?? 1})`;
 }
 
@@ -30,8 +30,8 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
   ) {
     super(canvas, flamegraph, theme, options);
 
-    // @ts-expect-error we are mocking the ctx so that
     // safe renderer initialization does not skip the renderer
+    // @ts-expect-error TS(2740): Type '{}' is missing the following properties from... Remove this comment to see the full error message
     this.ctx = {};
 
     const newContainer = document.createElement('div');

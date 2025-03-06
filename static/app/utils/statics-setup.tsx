@@ -1,7 +1,7 @@
 /* eslint no-native-reassign:0 */
 
 // biome-ignore lint/style/noVar: Not required
-declare var __webpack_public_path__: string;
+declare var __webpack_public_path__: string; // eslint-disable-line no-var
 
 /**
  * Set the webpack public path at runtime. This is necessary so that imports

@@ -1,10 +1,10 @@
 import pytest
 import responses
 
-from sentry.coreapi import APIUnauthorized
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -60,7 +60,7 @@ class TestIssueLinkCreator(TestCase):
         assert external_issue.display_name == "Projectname#issue-1"
 
     def test_invalid_action(self):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppSentryError):
             IssueLinkCreator(
                 install=self.install,
                 group=self.group,

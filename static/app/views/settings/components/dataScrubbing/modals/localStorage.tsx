@@ -8,7 +8,7 @@ const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 
 type StorageValue = {
   eventId: string;
-  sourceSuggestions: Array<SourceSuggestion>;
+  sourceSuggestions: SourceSuggestion[];
 };
 
 // TODO(Priscila): add the method below in app/utils

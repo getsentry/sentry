@@ -1,33 +1,37 @@
 import {Fragment, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
-import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {
+  ProjectionSamplePeriod,
+  ProjectSampleCount,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const {useFormField} = organizationSamplingForm;
 
 interface Props {
+  actions: React.ReactNode;
   isLoading: boolean;
+  period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
 }
 
-export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
-  const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
-    useFormField('targetSampleRate');
+export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}: Props) {
+  const sampleRateField = useFormField('targetSampleRate');
 
   const debouncedTargetSampleRate = useDebouncedValue(
-    targetSampleRate,
+    sampleRateField.value,
     // For longer lists we debounce the input to avoid too many re-renders
     sampleCounts.length > 100 ? 200 : 0
   );
@@ -51,62 +55,75 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
     });
   }, [debouncedTargetSampleRate, balancingItems]);
 
-  const initialSampleRateById = useMemo(() => {
-    const targetRate = parsePercent(initialTargetSampleRate);
+  const initialSampleRatesById = useMemo(() => {
+    const targetRate = parsePercent(sampleRateField.initialValue);
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate,
       items: balancingItems,
     });
-    return initialBalancedItems.reduce((acc, item) => {
-      acc[item.id] = item.sampleRate;
-      return acc;
-    }, {});
-  }, [initialTargetSampleRate, balancingItems]);
+
+    return mapArrayToObject({
+      array: initialBalancedItems,
+      keySelector: item => item.id,
+      valueSelector: item => item.sampleRate,
+    });
+  }, [sampleRateField.initialValue, balancingItems]);
 
   const itemsWithFormattedNumbers = useMemo(() => {
     return balancedItems.map(item => ({
       ...item,
       sampleRate: formatPercent(item.sampleRate),
-      initialSampleRate: formatPercent(initialSampleRateById[item.id]),
+      initialSampleRate: formatPercent(initialSampleRatesById[item.id]!),
     }));
-  }, [balancedItems, initialSampleRateById]);
+  }, [balancedItems, initialSampleRatesById]);
 
-  const breakdownSampleRates = balancedItems.reduce((acc, item) => {
-    acc[item.id] = item.sampleRate;
-    return acc;
-  }, {});
+  const breakdownSampleRates = useMemo(
+    () =>
+      mapArrayToObject({
+        array: balancedItems,
+        keySelector: item => item.id,
+        valueSelector: item => item.sampleRate,
+      }),
+    [balancedItems]
+  );
 
   return (
     <Fragment>
-      <BreakdownPanel>
-        {isLoading ? (
-          <LoadingIndicator
-            css={css`
-              margin: ${space(4)} 0;
-            `}
-          />
-        ) : (
-          <SamplingBreakdown
-            sampleCounts={sampleCounts}
-            sampleRates={breakdownSampleRates}
-          />
-        )}
-      </BreakdownPanel>
-
-      <ProjectsTable
-        stickyHeaders
-        rateHeader={t('Estimated Rate')}
-        inputTooltip={t('To edit project sample rates, switch to manual sampling mode.')}
-        emptyMessage={t('No active projects found in the selected period.')}
-        isEmpty={!sampleCounts.length}
+      <SamplingBreakdown
+        sampleCounts={sampleCounts}
+        sampleRates={breakdownSampleRates}
         isLoading={isLoading}
-        items={itemsWithFormattedNumbers}
       />
+      <Panel>
+        <OrganizationSampleRateInput
+          value={sampleRateField.value}
+          onChange={sampleRateField.onChange}
+          previousValue={sampleRateField.initialValue}
+          showPreviousValue={sampleRateField.hasChanged}
+          error={sampleRateField.error}
+          label={t('Target Sample Rate')}
+          help={t(
+            'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
+          )}
+        />
+        <ProjectsTable
+          rateHeader={t('Target Rate')}
+          canEdit={false}
+          emptyMessage={t('No active projects found in the selected period.')}
+          period={period}
+          isLoading={isLoading}
+          items={itemsWithFormattedNumbers}
+        />
+        <Footer>{actions}</Footer>
+      </Panel>
     </Fragment>
   );
 }
 
-const BreakdownPanel = styled(Panel)`
-  margin-bottom: ${space(3)};
-  padding: ${space(2)};
+const Footer = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 `;

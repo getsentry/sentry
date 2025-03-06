@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {space} from 'sentry/styles/space';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
@@ -25,6 +26,7 @@ function VitalCard({
   return (
     <Fragment>
       <MeterBarContainer clickable={onClick !== undefined} onClick={onClick}>
+        {onClick && <InteractionStateLayer />}
         <MeterBarBody>
           {description && (
             <StyledQuestionTooltip
@@ -36,7 +38,10 @@ function VitalCard({
           <MeterHeader>{title}</MeterHeader>
           <MeterValueText>{formattedValue ?? '-'}</MeterValueText>
         </MeterBarBody>
-        <MeterBarFooter label={statusLabel} status={status} />
+        <MeterBarFooter
+          label={statusLabel}
+          status={status as keyof typeof PERFORMANCE_SCORE_COLORS}
+        />
       </MeterBarContainer>
     </Fragment>
   );
@@ -80,7 +85,7 @@ function MeterBarFooter({
   status,
 }: {
   label: string | undefined;
-  status: string | undefined;
+  status: keyof typeof PERFORMANCE_SCORE_COLORS | undefined;
 }) {
   return (
     <MeterBarFooterContainer status={status || 'none'}>
@@ -89,7 +94,9 @@ function MeterBarFooter({
   );
 }
 
-const MeterBarFooterContainer = styled('div')<{status: string}>`
+const MeterBarFooterContainer = styled('div')<{
+  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p =>

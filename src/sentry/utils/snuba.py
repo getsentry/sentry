@@ -170,6 +170,8 @@ SPAN_COLUMN_MAP = {
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
     "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "messaging.operation.name": "sentry_tags[messaging.operation.name]",
+    "messaging.operation.type": "sentry_tags[messaging.operation.type]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
     "user.geo.subregion": "sentry_tags[user.geo.subregion]",
@@ -215,6 +217,10 @@ SPAN_EAP_COLUMN_MAP = {
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
     # Copy paste, unsure if this is truth in production
+    "cache.item_size": "attr_num[cache.item_size]",
+    "messaging.message.body.size": "attr_num[messaging.message.body.size]",
+    "messaging.message.receive.latency": "attr_num[messaging.message.receive.latency]",
+    "messaging.message.retry.count": "attr_num[messaging.message.retry.count]",
     "messaging.destination.name": "attr_str[sentry.messaging.destination.name]",
     "messaging.message.id": "attr_str[sentry.messaging.message.id]",
     "span.status_code": "attr_str[sentry.status_code]",
@@ -311,8 +317,6 @@ DATASET_FIELDS = {
     Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
 }
 
-SNUBA_OR = "or"
-SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
     "LIKE": "like",
     "NOT LIKE": "notLike",
@@ -500,6 +504,17 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
+        if error:
+            # Setting a tag here cause I don't want to spam errors, but trying to narrow down why we're retrying on
+            # timeouts
+            try:
+                error_class = error.__class__
+                module = error_class.__module__
+                name = error_class.__name__
+                sentry_sdk.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+            except Exception:
+                pass
+
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise error.with_traceback(_stacktrace)
 
@@ -562,6 +577,15 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
+
+    if name.startswith("flags["):
+        # Flags queries are valid for the events dataset only. For other datasets we
+        # query the tags expecting to find nothing. We can't return `None` or otherwise
+        # short-circuit a query or filter that wouldn't be valid in its context.
+        if dataset == Dataset.Events:
+            return name
+        else:
+            return f"tags[{name.replace("[", "").replace("]", "").replace('"', "")}]"
 
     measurement_name = get_measurement_name(name)
     span_op_breakdown_name = get_span_op_breakdown_name(name)
@@ -935,7 +959,6 @@ class SnubaRequest:
         return headers
 
 
-LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
 # TODO: Would be nice to make this a concrete structure
 ResultSet = list[Mapping[str, Any]]
 
@@ -1175,6 +1198,9 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
+            bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
+            if bytes_scanned is not None:
+                span.set_measurement(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
@@ -1483,6 +1509,16 @@ def resolve_column(dataset) -> Callable:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
         if dataset == Dataset.EventsAnalyticsPlatform:
             return f"attr_str[{col}]"
+
+        if col.startswith("flags["):
+            # Flags queries are valid for the events dataset only. For other datasets we
+            # query the tags expecting to find nothing. We can't return `None` or otherwise
+            # short-circuit a query or filter that wouldn't be valid in its context.
+            if dataset == Dataset.Events:
+                return col
+            else:
+                return f"tags[{col.replace("[", "").replace("]", "").replace('"', "")}]"
+
         return f"tags[{col}]"
 
     return _resolve_column
@@ -1938,6 +1974,7 @@ def is_duration_measurement(key):
         "measurements.time_to_full_display",
         "measurements.time_to_initial_display",
         "measurements.inp",
+        "measurements.messaging.message.receive.latency",
     ]
 
 

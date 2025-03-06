@@ -12,7 +12,6 @@ from sentry.users.models.user import User
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
 from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED
-from tests.sentry.backup.test_sanitize import SANITIZATION_TESTED
 from tests.sentry.users.models.test_user import ORG_MEMBER_MERGE_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
@@ -87,13 +86,6 @@ def test_exportable_final_derivations_of_sentry_model_are_exhaustively_tested():
     assert not {
         str(u) for u in untested
     }, "The aforementioned models are not covered in the backup tests; please go to `tests/sentry/backup/test_exhaustive.py` and make sure at least one test in the suite contains covers each of the missing models."
-
-
-def test_exportable_final_derivations_of_sentry_model_are_sanitization_tested_at_head():
-    untested = ALL_EXPORTABLE_MODELS - SANITIZATION_TESTED
-    assert not {
-        str(u) for u in untested
-    }, "The aforementioned models are not covered in the `SANITIZATION` backup tests; please go to `tests/sentry/backup/test_sanitize.py` and make sure at least one test in the suite contains covers each of the missing models."
 
 
 def test_exportable_final_derivations_of_sentry_model_are_uniqueness_tested():

@@ -48,7 +48,7 @@ describe('Framework suggestion modal', function () {
       screen.getByRole('heading', {name: 'Do you use a framework?'})
     ).toBeInTheDocument();
 
-    expect(screen.getByText(languageDescriptions.javascript)).toBeInTheDocument();
+    expect(screen.getByText(languageDescriptions.javascript!)).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: `Nope, Vanilla`})).toBeChecked();
 

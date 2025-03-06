@@ -8,7 +8,7 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture();
-  let fieldsMock;
+  let fieldsMock: any;
 
   beforeEach(() => {
     fieldsMock = MockApiClient.addMockResponse({

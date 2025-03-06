@@ -1,4 +1,4 @@
-import {createRef, Fragment, memo, useEffect, useState} from 'react';
+import {Fragment, memo, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -59,7 +59,7 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type Props = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
   onRowClick: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   organization: Organization;
@@ -253,7 +253,7 @@ function NewTraceView({
             }}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             generateBounds={generateBounds(traceInfo)}
@@ -273,8 +273,8 @@ function NewTraceView({
     };
   }
 
-  const traceViewRef = createRef<HTMLDivElement>();
-  const virtualScrollbarContainerRef = createRef<HTMLDivElement>();
+  const traceViewRef = useRef<HTMLDivElement>(null);
+  const virtualScrollbarContainerRef = useRef<HTMLDivElement>(null);
 
   if (!hasTraceData(traces, orphanErrors)) {
     return (
@@ -302,13 +302,13 @@ function NewTraceView({
     transactionGroups: [],
   };
 
-  let lastIndex: number = 0;
+  let lastIndex = 0;
   const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
     (acc, trace, index) => {
       const isLastTransaction = index === traces.length - 1;
       const hasChildren = trace.children.length > 0;
       const isNextChildOrphaned =
-        !isLastTransaction && traces[index + 1].parent_span_id !== null;
+        !isLastTransaction && traces[index + 1]!.parent_span_id !== null;
 
       const result = renderTransaction(trace, {
         ...acc,
@@ -371,7 +371,7 @@ function NewTraceView({
             generateBounds={generateBounds(traceInfo)}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             continuingDepths={[]}
@@ -389,8 +389,8 @@ function NewTraceView({
 
   const bounds = generateBounds(traceInfo);
   const measurements =
-    traces.length > 0 && Object.keys(traces[0].measurements ?? {}).length > 0
-      ? getMeasurements(traces[0], bounds)
+    traces.length > 0 && Object.keys(traces[0]!.measurements ?? {}).length > 0
+      ? getMeasurements(traces[0]!, bounds)
       : undefined;
 
   const traceView = (

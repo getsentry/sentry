@@ -6,6 +6,7 @@ import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {
@@ -82,7 +83,7 @@ function Chart({
     return null;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4);
+  const colors = chartColors ?? getChartColorPalette(4);
 
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
@@ -115,7 +116,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[0].seriesName),
+                aggregateOutputType(data[0]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -134,7 +135,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[0].seriesName),
+                aggregateOutputType(data[0]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -151,7 +152,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[1].seriesName),
+                aggregateOutputType(data[1]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -193,12 +194,12 @@ function Chart({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]] as string[],
+    colors: [colors[0], colors[1]!],
     tooltip: {
-      valueFormatter: (value, seriesName) => {
+      valueFormatter: (value: any, seriesName: any) => {
         return tooltipFormatter(
           value,
-          aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+          aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {

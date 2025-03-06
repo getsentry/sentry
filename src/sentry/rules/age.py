@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import operator
+from enum import StrEnum
 
 
-class ModelAgeType:
+class ModelAgeType(StrEnum):
     OLDEST = "oldest"
     NEWEST = "newest"
 
@@ -11,7 +12,7 @@ class ModelAgeType:
 model_age_choices = [(ModelAgeType.OLDEST, "oldest"), (ModelAgeType.NEWEST, "newest")]
 
 
-class AgeComparisonType:
+class AgeComparisonType(StrEnum):
     OLDER = "older"
     NEWER = "newer"
 

@@ -1,4 +1,5 @@
 import type {Project} from 'sentry/types/project';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -6,7 +7,10 @@ import {ModuleName} from 'sentry/views/insights/types';
 const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
-  ModuleName.MOBILE_SCREENS,
+  ModuleName.MOBILE_VITALS,
+  ModuleName.CRONS,
+  ModuleName.UPTIME,
+  ModuleName.SESSIONS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
@@ -44,6 +48,7 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   }
 
   if (projects) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return projects.some(p => p[modulePropertyMap[module]] === true);
   }
 
@@ -52,6 +57,9 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   //  - [] empty list represents "My Projects"
   //  - [-1] represents "All Projects"
   //  - [.., ..] otherwise, represents a list of project IDs
+  if (pageFilters.selection.projects.length === 0 && isActiveSuperuser()) {
+    selectedProjects = allProjects; // when superuser is enabled, My Projects isn't applicable, and in reality all projects are selected when projects.length === 0
+  }
   if (pageFilters.selection.projects.length === 0) {
     selectedProjects = allProjects.filter(p => p.isMember);
   } else if (
@@ -65,5 +73,6 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
     );
   }
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return selectedProjects.some(p => p[modulePropertyMap[module]] === true);
 }

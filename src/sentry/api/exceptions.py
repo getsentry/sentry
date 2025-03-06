@@ -109,10 +109,10 @@ class SudoRequired(SentryAPIException):
         super().__init__(username=user.username)
 
 
-class EmailVerificationRequired(SentryAPIException):
+class PrimaryEmailVerificationRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    code = "email-verification-required"
-    message = "Email verification required."
+    code = "primary-email-verification-required"
+    message = "Primary email verification required."
 
     def __init__(self, user):
         super().__init__(username=user.username)

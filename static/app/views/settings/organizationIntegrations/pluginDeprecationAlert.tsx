@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -13,7 +13,7 @@ type Props = {
   plugin: PluginWithProjectList;
 };
 
-type State = {};
+type State = Record<string, unknown>;
 
 class PluginDeprecationAlert extends Component<Props, State> {
   render() {
@@ -30,27 +30,29 @@ class PluginDeprecationAlert extends Component<Props, State> {
     }referrer=directory_upgrade_now`;
     return (
       <div>
-        <Alert
-          type="warning"
-          showIcon
-          trailingItems={
-            <UpgradeNowButton
-              href={`${upgradeUrl}${queryParams}`}
-              size="xs"
-              onClick={() =>
-                trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-                  integration_type: 'plugin',
-                  integration: plugin.slug,
-                  organization,
-                })
-              }
-            >
-              {t('Upgrade Now')}
-            </UpgradeNowButton>
-          }
-        >
-          {`This integration is being deprecated on ${plugin.deprecationDate}. Please upgrade to avoid any disruption.`}
-        </Alert>
+        <Alert.Container>
+          <Alert
+            type="warning"
+            showIcon
+            trailingItems={
+              <UpgradeNowButton
+                href={`${upgradeUrl}${queryParams}`}
+                size="xs"
+                onClick={() =>
+                  trackIntegrationAnalytics('integrations.resolve_now_clicked', {
+                    integration_type: 'plugin',
+                    integration: plugin.slug,
+                    organization,
+                  })
+                }
+              >
+                {t('Upgrade Now')}
+              </UpgradeNowButton>
+            }
+          >
+            {`This integration is being deprecated on ${plugin.deprecationDate}. Please upgrade to avoid any disruption.`}
+          </Alert>
+        </Alert.Container>
       </div>
     );
   }

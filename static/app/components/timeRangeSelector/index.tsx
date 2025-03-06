@@ -187,37 +187,39 @@ export function TimeRangeSelector({
   });
 
   const getOptions = useCallback(
-    (items: Item[]): SelectOption<string>[] => {
-      // Return the default options if there's nothing in search
-      if (!search) {
-        return items.map(item => {
-          if (item.value === 'absolute') {
-            return {
-              value: item.value,
-              // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
-              // TODO: Remove SelectorItemLabel & OptionLabel
-              label: <OptionLabel>{item.label}</OptionLabel>,
-              details:
-                start && end ? (
-                  <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
-                ) : null,
-              trailingItems: ({isFocused, isSelected}) => (
-                <IconArrow
-                  direction="right"
-                  size="xs"
-                  color={isFocused || isSelected ? undefined : 'subText'}
-                />
-              ),
-              textValue: item.searchKey,
-            };
-          }
-
+    (items: Item[]): Array<SelectOption<string>> => {
+      const makeOption = (item: Item): SelectOption<string> => {
+        if (item.value === 'absolute') {
           return {
             value: item.value,
+            // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
+            // TODO: Remove SelectorItemLabel & OptionLabel
             label: <OptionLabel>{item.label}</OptionLabel>,
+            details:
+              start && end ? (
+                <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
+              ) : null,
+            trailingItems: ({isFocused, isSelected}) => (
+              <IconArrow
+                direction="right"
+                size="xs"
+                color={isFocused || isSelected ? undefined : 'subText'}
+              />
+            ),
             textValue: item.searchKey,
           };
-        });
+        }
+
+        return {
+          value: item.value,
+          label: <OptionLabel>{item.label}</OptionLabel>,
+          textValue: item.searchKey,
+        };
+      };
+
+      // Return the default options if there's nothing in search
+      if (!search) {
+        return items.map(makeOption);
       }
 
       const filteredItems = disallowArbitraryRelativeRanges
@@ -229,11 +231,7 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map<SelectOption<string>>(item => ({
-        value: item.value,
-        label: item.label,
-        textValue: item.searchKey,
-      }));
+      return filteredItems.map(makeOption);
     },
     [
       start,
@@ -247,7 +245,9 @@ export function TimeRangeSelector({
   );
 
   const commitChanges = useCallback(() => {
-    showRelative && setShowAbsoluteSelector(false);
+    if (showRelative) {
+      setShowAbsoluteSelector(false);
+    }
     setSearch('');
 
     if (!hasChanges) {

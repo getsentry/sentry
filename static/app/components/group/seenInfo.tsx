@@ -101,7 +101,7 @@ function SeenInfo({
   );
 }
 
-const dateTimeCss = p => css`
+const dateTimeCss = (p: any) => css`
   color: ${p.theme.gray300};
   font-size: ${p.theme.fontSizeMedium};
   display: flex;

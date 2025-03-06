@@ -41,7 +41,7 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
   return (
     <CompactSelect
       triggerLabel={
-        option.items.find(v => v.value === value)?.label ?? option.items[0].label
+        option.items.find(v => v.value === value)?.label ?? option.items[0]!.label
       }
       value={value}
       onChange={onChange}
@@ -81,7 +81,7 @@ export function PlatformOptionDropdown({
       <OptionControl
         key="platformOption"
         option={platforms}
-        value={urlOptionValues.siblingOption ?? platforms.items[0]?.label}
+        value={urlOptionValues.siblingOption ?? platforms.items[0]?.label!}
         onChange={v => handleChange('siblingOption', v.value)}
         disabled={disabled}
       />

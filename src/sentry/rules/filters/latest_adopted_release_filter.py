@@ -49,9 +49,34 @@ class LatestAdoptedReleaseForm(forms.Form):
         return environment
 
 
+def get_first_last_release_for_env(
+    event: GroupEvent, release_age_type: str, order_type: LatestReleaseOrders
+) -> Release | None:
+    """
+    Fetches the first/last release for the group associated with this group
+    """
+    group = event.group
+    cache_key = get_first_last_release_for_group_cache_key(group.id, release_age_type, order_type)
+    release = cache.get(cache_key)
+    if release is None:
+
+        try:
+            release = get_first_last_release_for_group(
+                group, order_type, release_age_type == ModelAgeType.NEWEST
+            )
+        except Release.DoesNotExist:
+            release = None
+
+        if release:
+            cache.set(cache_key, release, 600)
+        else:
+            cache.set(cache_key, False, 600)
+
+    return release
+
+
 class LatestAdoptedReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
-    form_cls = LatestAdoptedReleaseForm
     label = "The {oldest_or_newest} adopted release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
 
     form_fields = {
@@ -87,33 +112,6 @@ class LatestAdoptedReleaseFilter(EventFilter):
                 cache.set(cache_key, False, 600)
         return latest_release
 
-    def get_first_last_release_for_env(
-        self, event: GroupEvent, release_age_type: str, order_type: LatestReleaseOrders
-    ) -> Release | None:
-        """
-        Fetches the first/last release for the group associated with this group
-        """
-        group = event.group
-        cache_key = get_first_last_release_for_group_cache_key(
-            group.id, release_age_type, order_type
-        )
-        release = cache.get(cache_key)
-        if release is None:
-
-            try:
-                release = get_first_last_release_for_group(
-                    group, order_type, release_age_type == ModelAgeType.NEWEST
-                )
-            except Release.DoesNotExist:
-                release = None
-
-            if release:
-                cache.set(cache_key, release, 600)
-            else:
-                cache.set(cache_key, False, 600)
-
-        return release
-
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         release_age_type = self.get_option("oldest_or_newest")
         age_comparison = self.get_option("older_or_newer")
@@ -135,7 +133,7 @@ class LatestAdoptedReleaseFilter(EventFilter):
         if not latest_project_release:
             return False
 
-        release = self.get_first_last_release_for_env(event, release_age_type, order_type)
+        release = get_first_last_release_for_env(event, release_age_type, order_type)
         if not release:
             return False
 
@@ -146,9 +144,8 @@ class LatestAdoptedReleaseFilter(EventFilter):
 
         return False
 
-    def get_form_instance(self) -> forms.Form:
-        form: forms.Form = self.form_cls(self.project, self.data)
-        return form
+    def get_form_instance(self) -> LatestAdoptedReleaseForm:
+        return LatestAdoptedReleaseForm(self.project, self.data)
 
 
 def is_newer_release(

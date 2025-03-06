@@ -21,7 +21,7 @@ describe('RuleNode', () => {
     enabled: true,
   };
 
-  const formNode = label => ({
+  const formNode = (label: string) => ({
     label,
     id: 'sentry.rules.form_mock',
     enabled: true,
@@ -108,7 +108,7 @@ describe('RuleNode', () => {
     },
   };
 
-  const renderRuleNode = (node, data = {}, org = organization) => {
+  const renderRuleNode = (node: any, data = {}, org = organization) => {
     return render(
       <RuleNode
         index={index}
@@ -130,7 +130,7 @@ describe('RuleNode', () => {
     );
   };
 
-  const labelReplacer = (label, values) => {
+  const labelReplacer = (label: string, values: any) => {
     return label.replace(/{\w+}/gm, placeholder => values[placeholder]);
   };
 

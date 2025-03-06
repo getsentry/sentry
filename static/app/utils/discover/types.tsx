@@ -19,6 +19,7 @@ export enum DiscoverDatasets {
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',
+  OURLOGS = 'ourlogs',
   SPANS_EAP = 'spans',
   SPANS_EAP_RPC = 'spansRpc',
   SPANS_INDEXED = 'spansIndexed',
@@ -54,7 +55,7 @@ export const INTERVAL_DISPLAY_MODES: string[] = [
   DisplayModes.BAR,
 ];
 
-export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
+export const DISPLAY_MODE_OPTIONS: Array<SelectValue<string>> = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},

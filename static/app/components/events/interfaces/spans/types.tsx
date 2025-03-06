@@ -1,4 +1,3 @@
-import type {MRI} from 'sentry/types/metrics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {SpanBarProps} from './spanBar';
@@ -30,25 +29,12 @@ interface SpanDatabaseAttributes {
   'db.user'?: string;
 }
 
-export interface MetricsSummaryItem {
-  count: number | null;
-  max: number | null;
-  min: number | null;
-  sum: number | null;
-  tags: Record<string, string> | null;
-}
-
-export interface MetricsSummary {
-  [mri: MRI]: MetricsSummaryItem[] | null;
-}
-
 export type RawSpanType = {
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
-  _metrics_summary?: MetricsSummary;
   data?: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   description?: string;
   exclusive_time?: number;
@@ -102,7 +88,6 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'tags',
   'hash',
   'exclusive_time',
-  '_metrics_summary',
 ]);
 
 export type OrphanSpanType = RawSpanType & {
@@ -135,7 +120,7 @@ export type SpanSiblingGroupProps = {
 };
 
 type CommonEnhancedProcessedSpanType = {
-  continuingTreeDepths: Array<TreeDepthType>;
+  continuingTreeDepths: TreeDepthType[];
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isLastSibling: boolean;
@@ -175,20 +160,20 @@ export type EnhancedProcessedSpanType =
       type: 'out_of_view';
     }
   | ({
-      continuingTreeDepths: Array<TreeDepthType>;
+      continuingTreeDepths: TreeDepthType[];
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
     } & SpanGroupProps)
   | ({
-      continuingTreeDepths: Array<TreeDepthType>;
+      continuingTreeDepths: TreeDepthType[];
       span: SpanType;
       treeDepth: number;
       type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
+export type SpanChildrenLookupType = {[span_id: string]: SpanType[]};
 
 export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;
@@ -250,7 +235,7 @@ export type IndexedFusedSpan = {
 };
 
 export type FilterSpans = {
-  results: Fuse.FuseResult<IndexedFusedSpan>[];
+  results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
 };
 

@@ -2,8 +2,8 @@ import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
+import type {InputProps} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -24,6 +24,7 @@ type DropdownOptionGroup = {
 
 type DefaultProps = {
   options: Column[];
+  className?: string;
 };
 
 type Props = DefaultProps &
@@ -104,7 +105,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     // TODO: add support for when there are no spaces
 
     const matches = [...query.substring(0, currentPosition).matchAll(/\s|^/g)];
-    const match = matches[matches.length - 1];
+    const match = matches[matches.length - 1]!;
     const startOfTerm = match[0] === '' ? 0 : (match.index || 0) + 1;
 
     const cursorOffset = query.slice(currentPosition).search(/\s|$/);
@@ -146,7 +147,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         continue;
       }
 
-      return group.options[selection];
+      return group.options[selection]!;
     }
 
     return null;
@@ -169,7 +170,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         return;
       }
 
-      let newSelection;
+      let newSelection: any;
       if (!startedSelection) {
         newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       } else {
@@ -180,7 +181,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       }
       // This is modifying the `active` value of the references so make sure to
       // use `newOptionGroups` at the end.
-      flattenedOptions[newSelection].active = true;
+      flattenedOptions[newSelection]!.active = true;
 
       this.setState({
         activeSelection: newSelection,
@@ -259,11 +260,11 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   }
 
   render() {
-    const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
+    const {onUpdate: _onUpdate, options: _options, className, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
 
     return (
-      <Container isOpen={dropdownVisible}>
+      <Container isOpen={dropdownVisible} className={className}>
         <Input
           {...props}
           ref={this.input}
@@ -317,7 +318,7 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
             return (
               <Fragment key={title}>
                 <ListItem>
-                  <DropdownTitle>{title}</DropdownTitle>
+                  <DropdownTitle aria-label={title}>{title}</DropdownTitle>
                 </ListItem>
                 {options.map(option => {
                   return (

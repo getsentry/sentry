@@ -5,13 +5,12 @@ import omit from 'lodash/omit';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -20,6 +19,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -167,16 +167,18 @@ function VitalDetailContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error}
+        </Alert>
+      </Alert.Container>
     );
   }
 
   function renderContent(vital: WebVital) {
     const {location, organization, eventView, projects} = props;
 
-    const {fields, start, end, statsPeriod, environment, project} = eventView;
+    const {start, end, statsPeriod, environment, project} = eventView;
 
     const query = decodeScalar(location.query.query, '');
     const orgSlug = organization.slug;
@@ -197,14 +199,14 @@ function VitalDetailContent(props: Props) {
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
-          <SearchBar
-            searchSource="performance_vitals"
-            organization={organization}
-            projectIds={project}
-            query={query}
-            fields={fields}
-            onSearch={handleSearch}
-          />
+          <StyledSearchBarWrapper>
+            <TransactionSearchQueryBuilder
+              projects={project}
+              initialQuery={query}
+              onSearch={handleSearch}
+              searchSource="performance_vitals"
+            />
+          </StyledSearchBarWrapper>
         </FilterActions>
         <VitalChart
           organization={organization}
@@ -329,5 +331,17 @@ const FilterActions = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
+  }
+`;
+
+const StyledSearchBarWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 1;
+    grid-column: 1/6;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    order: initial;
+    grid-column: auto;
   }
 `;

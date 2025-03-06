@@ -8,11 +8,11 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -27,10 +27,15 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -41,13 +46,9 @@ import {
 import type {ChildProps} from '../pageLayout';
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from '../transactionVitals/constants';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
-import SummaryContent from './content';
+import SummaryContent, {OTelSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
 // as React.ReactText
@@ -73,6 +74,8 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+
   return (
     <MEPSettingProvider>
       <PageLayout
@@ -82,7 +85,7 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={CardinalityLoadingWrapper}
+        childComponent={isEAP ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper}
       />
     </MEPSettingProvider>
   );
@@ -98,6 +101,116 @@ function CardinalityLoadingWrapper(props: ChildProps) {
   return <OverviewContentWrapper {...props} />;
 }
 
+function EAPCardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OTelOverviewContentWrapper {...props} />;
+}
+
+function OTelOverviewContentWrapper(props: ChildProps) {
+  const {
+    location,
+    organization,
+    eventView,
+    projectId,
+    transactionName,
+    transactionThreshold,
+    transactionThresholdMetric,
+  } = props;
+
+  const navigate = useNavigate();
+
+  const mepContext = useMEPDataContext();
+
+  const queryData = useDiscoverQuery({
+    eventView: getEAPTotalsEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+    options: {
+      refetchOnWindowFocus: false,
+    },
+  });
+
+  // Count has to be total indexed events count because it's only used
+  // in indexed events contexts
+  const totalCountQueryData = useDiscoverQuery({
+    eventView: getTotalCountEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+  });
+
+  useEffect(() => {
+    const isMetricsData = getIsMetricsDataFromResults(queryData.data);
+    mepContext.setIsMetricsData(isMetricsData);
+  }, [mepContext, queryData.data]);
+
+  const {data: tableData, isPending, error} = queryData;
+  const {
+    data: totalCountTableData,
+    isPending: isTotalCountQueryLoading,
+    error: totalCountQueryError,
+  } = totalCountQueryData;
+
+  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
+
+  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+    trackAnalytics('performance_views.filter_dropdown.selection', {
+      organization,
+      action: newFilter as string,
+    });
+
+    const nextQuery: Location['query'] = {
+      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
+      ...filterToLocationQuery(newFilter),
+    };
+
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
+      delete nextQuery.breakdown;
+    }
+
+    navigate({
+      pathname: location.pathname,
+      query: nextQuery,
+    });
+  };
+
+  let totals: TotalValues | null =
+    (tableData?.data?.[0] as {
+      [k: string]: number;
+    }) ?? null;
+  const totalCountData: TotalValues | null =
+    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+
+  // Count is always a count of indexed events,
+  // while other fields could be either metrics or index based
+  totals = {...totals, ...totalCountData};
+
+  return (
+    <OTelSummaryContent
+      location={location}
+      organization={organization}
+      eventView={eventView}
+      projectId={projectId}
+      transactionName={transactionName}
+      isLoading={isPending || isTotalCountQueryLoading}
+      error={error || totalCountQueryError}
+      totalValues={totals}
+      onChangeFilter={onChangeFilter}
+      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+    />
+  );
+}
+
 function OverviewContentWrapper(props: ChildProps) {
   const {
     location,
@@ -108,6 +221,8 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
+
+  const navigate = useNavigate();
 
   const mepContext = useMEPDataContext();
   const mepSetting = useMEPSettingContext();
@@ -171,7 +286,7 @@ function OverviewContentWrapper(props: ChildProps) {
       delete nextQuery.breakdown;
     }
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: nextQuery,
     });
@@ -217,6 +332,7 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
+  organization,
   transactionName,
 }: {
   location: Location;
@@ -225,10 +341,21 @@ function generateEventView({
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
+
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  conditions.setFilterValues('event.type', ['transaction']);
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  if (isEAP) {
+    conditions.setFilterValues('is_transaction', ['true']);
+    conditions.setFilterValues(
+      'transaction.method',
+      conditions.getFilterValues('http.method')
+    );
+    conditions.removeFilter('http.method');
+  } else {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
@@ -237,7 +364,18 @@ function generateEventView({
     }
   });
 
-  const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
+  const fields = isEAP
+    ? [
+        'id',
+        'user.email',
+        'user.username',
+        'user.id',
+        'user.ip',
+        'span.duration',
+        'trace',
+        'timestamp',
+      ]
+    : ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {
@@ -247,6 +385,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
+      dataset: isEAP ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );
@@ -318,6 +457,24 @@ function getTotalsEventView(
         }) as Column
     ),
   ]);
+}
+
+function getEAPTotalsEventView(
+  _organization: Organization,
+  eventView: EventView
+): EventView {
+  const totalsColumns: QueryFieldValue[] = [
+    {
+      kind: 'function',
+      function: ['p95', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['count_unique', 'user', undefined, undefined],
+    },
+  ];
+
+  return eventView.withColumns([...totalsColumns]);
 }
 
 export default withPageFilters(withProjects(withOrganization(TransactionOverview)));

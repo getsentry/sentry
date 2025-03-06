@@ -22,6 +22,8 @@ export function NewIssueExperienceButton() {
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
+  const hasNewUIOnly = organization.streamlineOnly;
+
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
@@ -30,12 +32,19 @@ export function NewIssueExperienceButton() {
     mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
-      organization: organization,
+      organization,
     });
   }, [mutate, organization, hasStreamlinedUI]);
 
-  // We hide the toggle if the org doesn't have the 'opt-in' flag, or has the 'remove opt-out' flag.
-  if (!hasStreamlinedUIFlag || hasEnforceStreamlinedUIFlag) {
+  // We hide the toggle if the org...
+  if (
+    // doesn't have the 'opt-in' flag,
+    !hasStreamlinedUIFlag ||
+    // has the 'remove opt-out' flag,
+    hasEnforceStreamlinedUIFlag ||
+    // has access to only the updated experience through the experiment
+    hasNewUIOnly
+  ) {
     return null;
   }
 
@@ -43,40 +52,38 @@ export function NewIssueExperienceButton() {
     const label = hasStreamlinedUI
       ? t('Switch to the old issue experience')
       : t('Switch to the new issue experience');
+    const text = hasStreamlinedUI ? null : t('Try New UI');
 
     return (
-      <ToggleButtonWrapper>
-        <ToggleButton
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          icon={
-            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+      <ToggleButton
+        enabled={hasStreamlinedUI}
+        size={hasStreamlinedUI ? 'xs' : 'sm'}
+        icon={
+          defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+            <IconLab isSolid={hasStreamlinedUI} />
+          ) : (
+            <motion.div
+              style={{height: 14}}
+              animate={{
+                rotate: [null, 6, -6, 12, -12, 6, -6, 0],
+              }}
+              transition={{
+                duration: 1,
+                delay: 1,
+                repeatDelay: 3,
+                repeat: 3,
+              }}
+            >
               <IconLab isSolid={hasStreamlinedUI} />
-            ) : (
-              <motion.div
-                style={{height: 14}}
-                animate={{
-                  rotate: [null, 6, -6, 12, -12, 6, -6, 0],
-                }}
-                transition={{
-                  duration: 1,
-                  delay: 1,
-                  repeatDelay: 3,
-                  repeat: 3,
-                }}
-              >
-                <IconLab isSolid={hasStreamlinedUI} />
-              </motion.div>
-            )
-          }
-          title={label}
-          aria-label={label}
-          borderless={!hasStreamlinedUI}
-          onClick={handleToggle}
-        >
-          <ToggleBorder />
-        </ToggleButton>
-      </ToggleButtonWrapper>
+            </motion.div>
+          )
+        }
+        title={label}
+        aria-label={label}
+        onClick={handleToggle}
+      >
+        {text}
+      </ToggleButton>
     );
   }
 
@@ -128,46 +135,11 @@ const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
   }
 `;
 
-const ToggleButtonWrapper = styled('div')`
-  overflow: hidden;
-  margin: 0 -1px;
-  border-radius: 7px;
-`;
-
 const ToggleButton = styled(Button)<{enabled: boolean}>`
-  position: relative;
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
+  background: ${p =>
+    p.enabled ? 'inherit' : `linear-gradient(90deg, #3468D8, #248574)`};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
   }
-  &:after {
-    position: absolute;
-    content: '';
-    inset: 0;
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
-  }
-  span {
-    z-index: 1;
-    margin: 0;
-  }
-`;
-
-const ToggleBorder = styled('div')`
-  @keyframes rotating {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  position: absolute;
-  content: '';
-  z-index: -1;
-  width: 46px;
-  height: 46px;
-  border-radius: 7px;
-  background: ${p => p.theme.badge.beta.background};
-  animation: rotating 10s linear infinite;
 `;

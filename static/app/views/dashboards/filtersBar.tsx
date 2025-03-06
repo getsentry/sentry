@@ -37,6 +37,7 @@ type FiltersBarProps = {
   dashboardPermissions?: DashboardPermissions;
   onCancel?: () => void;
   onSave?: () => void;
+  shouldBusySaveButton?: boolean;
 };
 
 export default function FiltersBar({
@@ -50,21 +51,19 @@ export default function FiltersBar({
   onCancel,
   onDashboardFilterChange,
   onSave,
+  shouldBusySaveButton,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  let hasEditAccess = true;
-  if (organization.features.includes('dashboards-edit-access')) {
-    hasEditAccess = checkUserHasEditAccess(
-      currentUser,
-      userTeams,
-      organization,
-      dashboardPermissions,
-      dashboardCreator
-    );
-  }
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboardPermissions,
+    dashboardCreator
+  );
 
   const selectedReleases =
     (defined(location.query?.[DashboardFilterKeys.RELEASE])
@@ -127,10 +126,13 @@ export default function FiltersBar({
               priority="primary"
               onClick={onSave}
               disabled={!hasEditAccess}
+              busy={shouldBusySaveButton}
             >
               {t('Save')}
             </Button>
-            <Button onClick={onCancel}>{t('Cancel')}</Button>
+            <Button data-test-id={'filter-bar-cancel'} onClick={onCancel}>
+              {t('Cancel')}
+            </Button>
           </FilterButtons>
         )}
       </Fragment>

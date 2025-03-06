@@ -19,10 +19,10 @@ class CursorPoller {
 
   api = new Client();
   options: Options;
-  pollingEndpoint: string = '';
+  pollingEndpoint = '';
   timeoutId: number | null = null;
   lastRequest: Request | null = null;
-  active: boolean = true;
+  active = true;
 
   reqsWithoutData = 0;
 
@@ -94,7 +94,7 @@ class CursorPoller {
         const hitsHeader = resp?.getResponseHeader('X-Hits') ?? null;
         const queryCount = defined(hitsHeader) ? parseInt(hitsHeader, 10) || 0 : 0;
         const links = parseLinkHeader(linksHeader);
-        this.setEndpoint(links.previous.href);
+        this.setEndpoint(links.previous!.href);
 
         this.options.success(data, {queryCount});
       },

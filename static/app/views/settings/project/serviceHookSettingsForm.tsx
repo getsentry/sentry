@@ -66,7 +66,7 @@ export default class ServiceHookSettingsForm extends Component<Props> {
               inline={false}
               help={t('The event types you wish to subscribe to.')}
             >
-              {({name, value, onChange}) => (
+              {({name, value, onChange}: any) => (
                 <MultipleCheckbox onChange={onChange} value={value} name={name}>
                   {EVENT_CHOICES.map(event => (
                     <MultipleCheckbox.Item key={event} value={event}>

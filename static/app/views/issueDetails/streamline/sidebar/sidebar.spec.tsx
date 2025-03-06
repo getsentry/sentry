@@ -32,7 +32,7 @@ describe('StreamlinedSidebar', function () {
         id: 'note-1',
         data: {text: activityContent},
         dateCreated: '2020-01-01T00:00:00',
-        user: user,
+        user,
         project,
       },
     ],
@@ -58,6 +58,13 @@ describe('StreamlinedSidebar', function () {
         genAIConsent: {ok: false},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/`,
+      body: {
+        steps: [],
       },
     });
 
@@ -101,7 +108,7 @@ describe('StreamlinedSidebar', function () {
     expect(screen.getByText('Last seen')).toBeInTheDocument();
     expect(mockFirstLastRelease).toHaveBeenCalled();
 
-    expect(screen.getByRole('heading', {name: 'Issue Tracking'})).toBeInTheDocument();
+    expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: issueTrackingKey})
     ).toBeInTheDocument();

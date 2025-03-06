@@ -22,7 +22,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 const EVENT = 'event';
 const SPANS = 'spans';
 
-export function SamplesTables({transactionName}) {
+export function SamplesTables({transactionName}: any) {
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const organization = useOrganization();

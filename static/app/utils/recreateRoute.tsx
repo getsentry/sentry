@@ -41,9 +41,11 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
   // TODO(ts): typescript things
   if (typeof to !== 'string') {
     routeIndex = routes.indexOf(to) + 1;
-    lastRootIndex = paths.slice(0, routeIndex).findLastIndex(path => path[0] === '/');
+    lastRootIndex = paths
+      .slice(0, routeIndex)
+      .findLastIndex((path: any) => path[0] === '/');
   } else {
-    lastRootIndex = paths.findLastIndex(path => path[0] === '/');
+    lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
   }
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);

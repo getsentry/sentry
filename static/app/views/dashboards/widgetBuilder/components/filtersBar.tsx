@@ -14,6 +14,7 @@ function WidgetBuilderFilterBar() {
   const {selection} = usePageFilters();
   return (
     <PageFiltersContainer
+      skipLoadLastUsed
       disablePersistence
       defaultSelection={{
         datetime: {

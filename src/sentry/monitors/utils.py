@@ -5,6 +5,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
+from sentry import audit_log
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.group import Group
@@ -20,6 +21,7 @@ from sentry.signals import (
     first_cron_monitor_created,
 )
 from sentry.users.models.user import User
+from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
 
 
@@ -42,11 +44,22 @@ def check_and_signal_first_monitor_created(project: Project, user, from_upsert: 
         )
 
 
-def signal_monitor_created(project: Project, user, from_upsert: bool):
+def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: Monitor, request):
     cron_monitor_created.send_robust(
         project=project, user=user, from_upsert=from_upsert, sender=Project
     )
     check_and_signal_first_monitor_created(project, user, from_upsert)
+
+    create_audit_log = create_system_audit_entry if from_upsert else create_audit_entry
+    kwargs = {
+        "organization": project.organization,
+        **({"request": request} if not from_upsert else {}),
+        "target_object": monitor.id,
+        "event": audit_log.get_event_id("MONITOR_ADD"),
+        "data": {"upsert": from_upsert, **monitor.get_audit_log_data()},
+    }
+
+    create_audit_log(**kwargs)
 
 
 def get_max_runtime(max_runtime: int | None) -> timedelta:
@@ -60,7 +73,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
-    monitor_config: dict, status: CheckInStatus, date_added: datetime | None
+    monitor_config: dict | None, status: CheckInStatus, date_added: datetime | None
 ) -> datetime | None:
     if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(

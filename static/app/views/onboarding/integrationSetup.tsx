@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -114,9 +114,11 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
   );
 
   const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
+    <Alert.Container>
+      <Alert type="warning">
+        Platform documentation is not rendered in for tests in CI
+      </Alert>
+    </Alert.Container>
   );
 
   const renderIntegrationInstructions = () => {
@@ -158,7 +160,11 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
           <AddInstallationInstructions />
         </motion.div>
 
-        <DocsWrapper>
+        <motion.div
+          initial={{opacity: 0, y: 40}}
+          animate={{opacity: 1, y: 0}}
+          exit={{opacity: 0, y: 40}}
+        >
           <AddIntegrationButton
             provider={provider}
             onAddIntegration={() => setInstalled(true)}
@@ -168,7 +174,7 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
             analyticsParams={{view: 'onboarding', already_installed: false}}
             modalParams={{projectId: project.id}}
           />
-        </DocsWrapper>
+        </motion.div>
       </Fragment>
     );
   };
@@ -253,14 +259,6 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
     </Fragment>
   );
 }
-
-const DocsWrapper = styled(motion.div)``;
-
-DocsWrapper.defaultProps = {
-  initial: {opacity: 0, y: 40},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0},
-};
 
 const Divider = styled('hr')`
   height: 1px;

@@ -2,28 +2,28 @@ export type DDMEventParameters = {
   'ddm.add-to-dashboard': {
     source: 'global' | 'widget';
   };
-  'ddm.code-location': {};
+  'ddm.code-location': Record<string, unknown>;
   'ddm.create-alert': {
     source: 'global' | 'widget';
   };
   'ddm.open-onboarding': {
     source: 'onboarding_panel' | 'header' | 'banner';
   };
-  'ddm.page-view': {};
-  'ddm.remove-default-query': {};
+  'ddm.page-view': Record<string, unknown>;
+  'ddm.remove-default-query': Record<string, unknown>;
   'ddm.sample-table-interaction': {
     target: 'event-id' | 'description' | 'trace-id' | 'profile';
   };
-  'ddm.set-default-query': {};
-  'ddm.span-metric.create.cancel': {};
+  'ddm.set-default-query': Record<string, unknown>;
+  'ddm.span-metric.create.cancel': Record<string, unknown>;
   'ddm.span-metric.create.open': {
     source: string;
   };
   'ddm.span-metric.create.success': {
     hasFilters: boolean;
   };
-  'ddm.span-metric.delete': {};
-  'ddm.span-metric.edit.cancel': {};
+  'ddm.span-metric.delete': Record<string, unknown>;
+  'ddm.span-metric.edit.cancel': Record<string, unknown>;
   'ddm.span-metric.edit.open': {
     hasFilters: boolean;
     source: string;
@@ -31,19 +31,19 @@ export type DDMEventParameters = {
   'ddm.span-metric.edit.success': {
     hasFilters: boolean;
   };
-  'ddm.span-metric.form.add-filter': {};
-  'ddm.span-metric.form.remove-filter': {};
-  'ddm.view_performance_metrics': {};
+  'ddm.span-metric.form.add-filter': Record<string, unknown>;
+  'ddm.span-metric.form.remove-filter': Record<string, unknown>;
+  'ddm.view_performance_metrics': Record<string, unknown>;
   'ddm.widget.add': {
     type: 'query' | 'equation';
   };
-  'ddm.widget.condition': {};
-  'ddm.widget.duplicate': {};
-  'ddm.widget.filter': {};
-  'ddm.widget.group': {};
-  'ddm.widget.metric': {};
-  'ddm.widget.metric-settings': {};
-  'ddm.widget.operation': {};
+  'ddm.widget.condition': Record<string, unknown>;
+  'ddm.widget.duplicate': Record<string, unknown>;
+  'ddm.widget.filter': Record<string, unknown>;
+  'ddm.widget.group': Record<string, unknown>;
+  'ddm.widget.metric': Record<string, unknown>;
+  'ddm.widget.metric-settings': Record<string, unknown>;
+  'ddm.widget.operation': Record<string, unknown>;
   'ddm.widget.sort': {
     by: string;
     order: string;

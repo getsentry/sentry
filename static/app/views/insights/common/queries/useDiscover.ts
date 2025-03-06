@@ -4,12 +4,14 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {
   EAPSpanProperty,
   EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
+  SpanIndexedField,
   SpanIndexedProperty,
   SpanIndexedResponse,
   SpanMetricsProperty,
@@ -31,20 +33,35 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseMetricsOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscover<Fields, SpanIndexedResponse>(
+  // Indexed spans dataset always returns an `id`
+  return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
     DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
 };
 
-export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+export const useOurlogs = <Fields extends OurLogFieldKey[]>(
   options: UseMetricsOptions<Fields> = {},
   referrer: string
 ) => {
+  const {data, ...rest} = useDiscover<Fields, OurLogsResponseItem>(
+    options,
+    DiscoverDatasets.OURLOGS,
+    referrer
+  );
+  const castData = data as OurLogsResponseItem[];
+  return {...rest, data: castData};
+};
+
+export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string,
+  useRpc?: boolean
+) => {
   return useDiscover<Fields, EAPSpanResponse>(
     options,
-    DiscoverDatasets.SPANS_EAP,
+    useRpc ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_EAP,
     referrer
   );
 };
@@ -71,7 +88,7 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   );
 };
 
-const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
+const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseMetricsOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
@@ -107,7 +124,7 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
-  const data = (result?.data ?? []) as Pick<ResponseType, T[number]>[];
+  const data = (result?.data ?? []) as Array<Pick<ResponseType, T[number]>>;
 
   return {
     ...result,

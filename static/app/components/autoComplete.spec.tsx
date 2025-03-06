@@ -23,7 +23,7 @@ const items = [
  * "controlled" props where <AutoComplete> does not handle state
  */
 describe('AutoComplete', function () {
-  let input;
+  let input: HTMLInputElement;
   let autoCompleteState: any[] = [];
   const mocks = {
     onSelect: jest.fn(),
@@ -36,12 +36,30 @@ describe('AutoComplete', function () {
     autoCompleteState = [];
   });
 
-  function List({registerItemCount, itemCount, ...props}) {
+  function List({
+    registerItemCount,
+    itemCount,
+    ...props
+  }: {
+    children: React.ReactNode;
+    itemCount: number;
+    registerItemCount: (count?: number) => void;
+  }) {
     useEffect(() => void registerItemCount(itemCount), [itemCount, registerItemCount]);
     return <ul {...props} />;
   }
 
-  function Item({registerVisibleItem, item, index, ...props}) {
+  function Item({
+    registerVisibleItem,
+    item,
+    index,
+    ...props
+  }: {
+    children: React.ReactNode;
+    index: number;
+    item: {name?: string};
+    registerVisibleItem: (index: number, item: any) => () => void;
+  }) {
     useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
     return <li {...props} />;
   }
@@ -198,7 +216,7 @@ describe('AutoComplete', function () {
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      fireEvent.click(screen.getByText(items[1].name));
+      fireEvent.click(screen.getByText(items[1]!.name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),
@@ -401,7 +419,7 @@ describe('AutoComplete', function () {
       createWrapper({isOpen: true});
       expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      fireEvent.click(screen.getByText(items[1].name));
+      fireEvent.click(screen.getByText(items[1]!.name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),

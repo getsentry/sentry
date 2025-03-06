@@ -1,0 +1,518 @@
+---
+created: '2025-02-12T13:05:28.325360+00:00'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+config:
+  allowedDomains:
+  - '*'
+  breakdownsV2:
+    span_ops:
+      matches:
+      - http
+      - db
+      - browser
+      - resource
+      - ui
+      type: spanOperations
+  datascrubbingSettings:
+    excludeFields: []
+    scrubData: true
+    scrubDefaults: true
+    sensitiveFields: []
+  filterSettings:
+    csp:
+      disallowedSources:
+      - about
+      - ms-browser-extension
+      - chrome://*
+      - chrome-extension://*
+      - chromeinvokeimmediate://*
+      - chromenull://*
+      - data:text/html,chromewebdata
+      - safari-extension://*
+      - safari-web-extension://*
+      - mxaddon-pkg://*
+      - jar://*
+      - webviewprogressproxy://*
+      - ms-browser-extension://*
+      - tmtbff://*
+      - mbinit://*
+      - symres://*
+      - resource://*
+      - moz-extension://*
+      - '*.metrext.com'
+      - static.image2play.com
+      - '*.tlscdn.com'
+      - 73a5b0806e464be8bd4e694c744624f0.com
+      - 020dfefc4ac745dab7594f2f771c1ded.com
+      - '*.superfish.com'
+      - addons.mozilla.org
+      - v.zilionfast.in
+      - widgets.amung.us
+      - '*.superfish.com'
+      - xls.searchfun.in
+      - istatic.datafastguru.info
+      - v.zilionfast.in
+      - localhost
+      - resultshub-a.akamaihd.net
+      - pulseadnetwork.com
+      - gateway.zscalertwo.net
+      - www.passpack.com
+      - middlerush-a.akamaihd.net
+      - www.websmartcenter.com
+      - a.linkluster.com
+      - saveyoutime.ru
+      - cdncache-a.akamaihd.net
+      - x.rafomedia.com
+      - savingsslider-a.akamaihd.net
+      - injections.adguard.com
+      - icontent.us
+      - amiok.org
+      - connectionstrenth.com
+      - siteheart.net
+      - netanalitics.space
+      - printapplink.com
+      - godlinkapp.com
+      - devappstor.com
+      - hoholikik.club
+      - smartlink.cool
+      - promfflinkdev.com
+    ignoreTransactions:
+      isEnabled: true
+      patterns:
+      - '*healthcheck*'
+      - '*heartbeat*'
+      - '*/health{/,}'
+      - '*/healthy{/,}'
+      - '*/healthz{/,}'
+      - '*/health_check{/,}'
+      - '*/_health{/,}'
+      - '*/\[_health\]{/,}'
+      - '*/live{/,}'
+      - '*/livez{/,}'
+      - '*/ready{/,}'
+      - '*/readyz{/,}'
+      - '*/ping{/,}'
+      - '*/up{/,}'
+  groupingConfig:
+    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
+    id: newstyle:2023-01-11
+  metrics:
+    cardinalityLimits:
+    - id: transactions
+      limit: 10000
+      namespace: transactions
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+    - id: sessions
+      limit: 10000
+      namespace: sessions
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+    - id: spans
+      limit: 10000
+      namespace: spans
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+  performanceScore:
+    profiles:
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Chrome
+      name: Chrome
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Firefox
+      name: Firefox
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Safari
+      name: Safari
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.0
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge
+      name: Edge
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera
+      name: Opera
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Chrome
+        - name: event.contexts.browser.name
+          op: eq
+          value: Google Chrome
+        op: or
+      name: Chrome INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge
+      name: Edge INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera
+      name: Opera INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Chrome Mobile
+      name: Chrome Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Firefox Mobile
+      name: Firefox Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: true
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Mobile Safari
+      name: Safari Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.0
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: true
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge Mobile
+      name: Edge Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera Mobile
+      name: Opera Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Chrome Mobile
+        op: or
+      name: Chrome Mobile INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge Mobile
+      name: Edge Mobile INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera Mobile
+      name: Opera Mobile INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        inner: []
+        op: and
+      name: Default
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        inner: []
+        op: and
+      name: Default INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+  piiConfig:
+    applications:
+      $string:
+      - organization:remove_ips_and_macs
+      - project:remove_ips_and_macs
+    rules:
+      organization:remove_ips_and_macs:
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+      project:remove_ips_and_macs:
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+  sessionMetrics:
+    version: 1
+  trustedRelays: []
+disabled: false
+slug: bar

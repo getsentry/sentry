@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   // biome-ignore lint/style/useLiteralEnumMembers: Disable for maintenance cost.
-  PRIORITIZED = DEFAULT_QUERY,
+  PRIORITIZED = DEFAULT_QUERY, // eslint-disable-line @typescript-eslint/prefer-literal-enum-member
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -163,7 +163,7 @@ export function isForReviewQuery(query: string | undefined) {
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
-type QueryCount = {
+export type QueryCount = {
   count: number;
   hasMore: boolean;
 };

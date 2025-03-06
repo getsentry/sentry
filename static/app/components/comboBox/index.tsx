@@ -16,8 +16,8 @@ import {
   getHiddenOptions,
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
+import {Input} from 'sentry/components/core/input';
 import {GrowingInput} from 'sentry/components/growingInput';
-import Input from 'sentry/components/input';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -251,7 +251,7 @@ function ControlledComboBox<Value extends string>({
   ComboBoxProps<Value>,
   'items' | 'defaultItems' | 'children' | 'hasSearch' | 'hiddenOptions'
 > & {
-  options: ComboBoxOptionOrSection<Value>[];
+  options: Array<ComboBoxOptionOrSection<Value>>;
   defaultValue?: Value;
   filterOption?: (option: ComboBoxOption<Value>, inputValue: string) => boolean;
   onChange?: (value: ComboBoxOption<Value>) => void;
@@ -278,7 +278,7 @@ function ControlledComboBox<Value extends string>({
   }, [value, options]);
 
   const items = useMemo(() => {
-    return getItemsWithKeys(options) as ComboBoxOptionOrSectionWithKey<Value>[];
+    return getItemsWithKeys(options) as Array<ComboBoxOptionOrSectionWithKey<Value>>;
   }, [options]);
 
   const hiddenOptions = useMemo(

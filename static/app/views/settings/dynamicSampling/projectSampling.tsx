@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -8,15 +8,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
-import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
@@ -58,7 +56,7 @@ export function ProjectSampling() {
   const initialValues = useMemo(() => ({projectRates}), [projectRates]);
 
   const formState = useFormState({
-    initialValues: initialValues,
+    initialValues,
     enableReInitialize: true,
   });
 
@@ -87,20 +85,16 @@ export function ProjectSampling() {
     });
   };
 
-  // TODO(aknaus): This calculation + stiching of the two requests is repeated in a few places
-  // and should be moved to a shared utility function.
   const initialTargetRate = useMemo(() => {
     const sampleRates = sampleRatesQuery.data ?? [];
     const spanCounts = sampleCountsQuery.data ?? [];
     const totalSpanCount = spanCounts.reduce((acc, item) => acc + item.count, 0);
 
-    const spanCountsById = spanCounts.reduce(
-      (acc, item) => {
-        acc[item.project.id] = item.count;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const spanCountsById = mapArrayToObject({
+      array: spanCounts,
+      keySelector: item => item.project.id,
+      valueSelector: item => item.count,
+    });
 
     return (
       sampleRates.reduce((acc, item) => {
@@ -125,53 +119,45 @@ export function ProjectSampling() {
             locationChange.nextLocation.pathname && formState.hasChanged
         }
       />
-      <form onSubmit={event => event.preventDefault()} noValidate>
-        <Panel>
-          <PanelHeader>{t('General Settings')}</PanelHeader>
-          <PanelBody>
-            <SamplingModeField initialTargetRate={initialTargetRate} />
-          </PanelBody>
-        </Panel>
-        <HeadingRow>
-          <h4>{t('Customize Projects')}</h4>
-          <ProjectionPeriodControl period={period} onChange={setPeriod} />
-        </HeadingRow>
-        <p>
-          {t(
-            'Configure sample rates for each of your projects. These rates stay fixed if volumes change, which can lead to a change in the overall sample rate of your organization.'
-          )}
-        </p>
-        <p>
-          {t(
-            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
-          )}
-        </p>
-        {sampleCountsQuery.isError ? (
-          <LoadingError onRetry={sampleCountsQuery.refetch} />
-        ) : (
-          <ProjectsEditTable
-            editMode={editMode}
-            onEditModeChange={setEditMode}
-            isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-            sampleCounts={sampleCountsQuery.data}
-          />
-        )}
-        <FormActions>
-          <Button disabled={isFormActionDisabled} onClick={handleReset}>
-            {t('Reset')}
-          </Button>
-          <Button
-            priority="primary"
-            disabled={isFormActionDisabled || !formState.isValid}
-            onClick={handleSubmit}
-          >
-            {t('Apply Changes')}
-          </Button>
-        </FormActions>
-      </form>
+      <MainControlBar>
+        <ProjectionPeriodControl period={period} onChange={setPeriod} />
+        <SamplingModeSwitch initialTargetRate={initialTargetRate} />
+      </MainControlBar>
+      {sampleCountsQuery.isError ? (
+        <LoadingError onRetry={sampleCountsQuery.refetch} />
+      ) : (
+        <ProjectsEditTable
+          period={period}
+          editMode={editMode}
+          onEditModeChange={setEditMode}
+          isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+          sampleCounts={sampleCountsQuery.data}
+          actions={
+            <Fragment>
+              <Button disabled={isFormActionDisabled} onClick={handleReset}>
+                {t('Reset')}
+              </Button>
+              <Button
+                priority="primary"
+                disabled={isFormActionDisabled || !formState.isValid}
+                onClick={handleSubmit}
+              >
+                {t('Apply Changes')}
+              </Button>
+            </Fragment>
+          }
+        />
+      )}
+      <FormActions />
     </FormProvider>
   );
 }
+
+const MainControlBar = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1.5)};
+`;
 
 const FormActions = styled('div')`
   display: grid;
@@ -179,16 +165,4 @@ const FormActions = styled('div')`
   gap: ${space(1)};
   justify-content: flex-end;
   padding-bottom: ${space(4)};
-`;
-
-const HeadingRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: ${space(3)};
-  padding-bottom: ${space(1.5)};
-
-  & > * {
-    margin: 0;
-  }
 `;

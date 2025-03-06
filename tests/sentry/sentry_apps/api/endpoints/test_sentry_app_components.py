@@ -4,6 +4,7 @@ from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -160,7 +161,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_component_prep_errors_are_isolated(self, run):
-        run.side_effect = [APIError(), self.component2]
+        run.side_effect = [SentryAppIntegratorError(message="whoops"), self.component2]
 
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
@@ -186,6 +187,45 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "type": self.component2.type,
                 "schema": self.component2.schema,
                 "error": False,
+                "sentryApp": {
+                    "uuid": self.sentry_app2.uuid,
+                    "slug": self.sentry_app2.slug,
+                    "name": self.sentry_app2.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
+                },
+            },
+        ]
+
+        assert response.data == expected
+
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_component_prep_errors_dont_bring_down_everything(self, run):
+        run.side_effect = [APIError(), SentryAppSentryError(message="kewl")]
+
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
+
+        # self.component1 data contains an error, because it raised an exception
+        # during preparation.
+        expected = [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": True,
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
+            {
+                "uuid": str(self.component2.uuid),
+                "type": self.component2.type,
+                "schema": self.component2.schema,
+                "error": True,
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,

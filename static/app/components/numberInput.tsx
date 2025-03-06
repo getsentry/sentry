@@ -7,8 +7,8 @@ import {useNumberField} from '@react-aria/numberfield';
 import {useNumberFieldState} from '@react-stately/numberfield';
 
 import {Button} from 'sentry/components/button';
-import type {InputStylesProps} from 'sentry/components/input';
-import {InputGroup} from 'sentry/components/inputGroup';
+import type {InputStylesProps} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';

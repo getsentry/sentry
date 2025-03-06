@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
-import {RouteContext} from 'sentry/views/routeContext';
+import {useTestRouteContext} from 'sentry/utils/useRouteContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -29,7 +29,7 @@ jest.mock('sentry/constants', () => {
 describe('useParams', () => {
   describe('when the path has no params', () => {
     it('returns an empty object', () => {
-      let params;
+      let params: any;
       function HomePage() {
         params = useParams();
         return null;
@@ -43,9 +43,9 @@ describe('useParams', () => {
       };
 
       render(
-        <RouteContext.Provider value={routeContext}>
+        <TestRouteContext.Provider value={routeContext}>
           <HomePage />
-        </RouteContext.Provider>
+        </TestRouteContext.Provider>
       );
 
       expect(params).toEqual({});
@@ -54,7 +54,7 @@ describe('useParams', () => {
 
   describe('when the path has some params', () => {
     it('returns an object of the URL params', () => {
-      let params;
+      let params: any;
       function HomePage() {
         params = useParams();
         return null;
@@ -68,9 +68,9 @@ describe('useParams', () => {
       };
 
       render(
-        <RouteContext.Provider value={routeContext}>
+        <TestRouteContext.Provider value={routeContext}>
           <HomePage />
-        </RouteContext.Provider>
+        </TestRouteContext.Provider>
       );
       expect(params).toEqual({slug: 'sentry'});
     });
@@ -85,11 +85,11 @@ describe('useParams', () => {
       mockUsingCustomerDomain.mockReturnValue(true);
       mockCustomerDomain.mockReturnValue('albertos-apples');
 
-      let originalParams;
-      let useParamsValue;
+      let originalParams: any;
+      let useParamsValue: any;
 
       function Component() {
-        const {params} = useRouteContext()!;
+        const {params} = useTestRouteContext()!;
         originalParams = params;
         useParamsValue = useParams();
         return (
@@ -105,9 +105,9 @@ describe('useParams', () => {
       };
 
       render(
-        <RouteContext.Provider value={routeContext}>
+        <TestRouteContext.Provider value={routeContext}>
           <Component />
-        </RouteContext.Provider>
+        </TestRouteContext.Provider>
       );
 
       expect(
@@ -123,11 +123,11 @@ describe('useParams', () => {
       mockUsingCustomerDomain.mockReturnValue(false);
       mockCustomerDomain.mockReturnValue(undefined);
 
-      let originalParams;
-      let useParamsValue;
+      let originalParams: any;
+      let useParamsValue: any;
 
       function Component() {
-        const {params} = useRouteContext()!;
+        const {params} = useTestRouteContext()!;
         originalParams = params;
         useParamsValue = useParams();
         return (
@@ -143,9 +143,9 @@ describe('useParams', () => {
       };
 
       render(
-        <RouteContext.Provider value={routeContext}>
+        <TestRouteContext.Provider value={routeContext}>
           <Component />
-        </RouteContext.Provider>
+        </TestRouteContext.Provider>
       );
 
       expect(

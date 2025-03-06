@@ -29,9 +29,17 @@ interface Props {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   query?: string;
+  skipHeader?: boolean;
 }
 
-function RelatedIssues({rule, organization, projects, query, timePeriod}: Props) {
+function RelatedIssues({
+  rule,
+  organization,
+  projects,
+  query,
+  timePeriod,
+  skipHeader,
+}: Props) {
   const router = useRouter();
 
   // Add environment to the query parameters to be picked up by GlobalSelectionLink
@@ -96,19 +104,20 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
 
   return (
     <Fragment>
-      <ControlsWrapper>
-        <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-        <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
-          {t('Open in Issues')}
-        </LinkButton>
-      </ControlsWrapper>
+      {!skipHeader && (
+        <ControlsWrapper>
+          <SectionHeading>{t('Related Issues')}</SectionHeading>
+          <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
+            {t('Open in Issues')}
+          </LinkButton>
+        </ControlsWrapper>
+      )}
 
       <TableWrapper>
         <GroupList
           orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
-          query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
           canSelectGroups={false}
           renderEmptyMessage={renderEmptyMessage}
           renderErrorMessage={renderErrorMessage}
@@ -123,11 +132,6 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
     </Fragment>
   );
 }
-
-const StyledSectionHeading = styled(SectionHeading)`
-  display: flex;
-  align-items: center;
-`;
 
 const ControlsWrapper = styled('div')`
   display: flex;

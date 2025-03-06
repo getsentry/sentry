@@ -112,7 +112,7 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(3)};
 
   background-color: ${p => p.theme.surface100};
 `;

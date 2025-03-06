@@ -30,13 +30,16 @@ export default function FeedbackActions({
   size,
   style,
 }: Props) {
+  if (!eventData) {
+    return null;
+  }
+
   return (
-    <Flex gap={space(1)} align="center" className={className} style={style}>
+    <Flex gap={space(1)} align="flex-end" className={className} style={style}>
       <ErrorBoundary mini>
         <FeedbackAssignedTo
           feedbackIssue={feedbackItem as any as Group}
           feedbackEvent={eventData}
-          showActorName={['medium', 'large'].includes(size)}
         />
       </ErrorBoundary>
 

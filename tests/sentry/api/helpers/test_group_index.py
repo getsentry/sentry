@@ -8,6 +8,7 @@ from django.http import QueryDict
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import delete_groups
 from sentry.api.helpers.group_index.update import (
+    get_group_list,
     handle_assigned_to,
     handle_has_seen,
     handle_is_bookmarked,
@@ -106,10 +107,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "unresolved", "substatus": "ongoing"}
         request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         resolved_group.refresh_from_db()
 
@@ -129,10 +128,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "resolved", "substatus": None}
         request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         unresolved_group.refresh_from_db()
 
@@ -151,10 +148,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "ignored", "substatus": "archived_forever"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -183,10 +178,8 @@ class UpdateGroupsTest(TestCase):
         }
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -227,9 +220,10 @@ class UpdateGroupsTest(TestCase):
             request.data = data["request_data"]
             request.GET = QueryDict(query_string=f"id={group.id}")
 
-            update_groups(
-                request, request.GET.getlist("id"), [self.project], self.organization.id, Mock()
+            group_list = get_group_list(
+                self.organization.id, [self.project], request.GET.getlist("id")
             )
+            update_groups(request, group_list)
 
             group.refresh_from_db()
 
@@ -247,10 +241,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"inbox": False}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -267,10 +259,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "ignored", "substatus": "archived_until_escalating"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -278,6 +268,29 @@ class UpdateGroupsTest(TestCase):
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+
+    @patch("sentry.signals.issue_resolved.send_robust")
+    def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(
+            user=self.user,
+            method="GET",
+            # The UI calls the endpoint with the short ID, not the group ID
+            GET={"id": group.qualified_short_id},
+        )
+        request.data = {"status": "resolved", "substatus": None}
+
+        assert request.GET.getlist("id")[0] == group.qualified_short_id
+        assert request.GET.getlist("id")[0].isdigit() is False
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        assert group_list == [group]
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.RESOLVED
+        assert send_robust.called
 
 
 class MergeGroupsTest(TestCase):
@@ -291,7 +304,8 @@ class MergeGroupsTest(TestCase):
         request.data = {"merge": 1}
         request.GET = {"id": group_ids, "project": [project.id]}
 
-        update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+        group_list = get_group_list(self.organization.id, [project], group_ids)
+        update_groups(request, group_list)
 
         call_args = mock_handle_merge.call_args.args
 
@@ -318,9 +332,8 @@ class MergeGroupsTest(TestCase):
         request.data = {"merge": 1}
         request.GET = {"id": group_ids, "project": project_ids}
 
-        response = update_groups(
-            request, group_ids, projects, self.organization.id, search_fn=Mock()
-        )
+        group_list = get_group_list(self.organization.id, projects, group_ids)
+        response = update_groups(request, group_list)
 
         assert response.data == {"detail": "Merging across multiple projects is not supported"}
         assert response.status_code == 400
@@ -342,7 +355,8 @@ class MergeGroupsTest(TestCase):
         # we're passing multiple project ids
         request.GET = {"id": group_ids, "project": project_ids}
 
-        update_groups(request, group_ids, projects, self.organization.id)
+        group_list = get_group_list(self.organization.id, projects, group_ids)
+        update_groups(request, group_list)
 
         call_args = mock_handle_merge.call_args.args
 
@@ -364,7 +378,8 @@ class MergeGroupsTest(TestCase):
         request.data = {"merge": 1}
         request.GET = {"id": group_ids}
 
-        update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+        group_list = get_group_list(self.organization.id, [project], group_ids)
+        update_groups(request, group_list)
 
         call_args = mock_handle_merge.call_args.args
 
@@ -415,7 +430,8 @@ class MergeGroupsTest(TestCase):
             request.META = {"HTTP_REFERER": referer}
 
             with patch("sentry.api.helpers.group_index.update.metrics.incr") as mock_metrics_incr:
-                update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+                group_list = get_group_list(self.organization.id, [project], group_ids)
+                update_groups(request, group_list)
 
                 mock_metrics_incr.assert_any_call(
                     "grouping.merge_issues",
@@ -1125,8 +1141,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        search_fn = Mock()
-        delete_groups(request, [self.project], self.organization.id, search_fn)
+        delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1158,8 +1173,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        search_fn = Mock()
-        delete_groups(request, [self.project], self.organization.id, search_fn)
+        delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())

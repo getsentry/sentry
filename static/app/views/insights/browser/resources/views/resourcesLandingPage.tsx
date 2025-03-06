@@ -2,17 +2,12 @@ import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import ResourceView from 'sentry/views/insights/browser/resources/components/resourceView';
-import {
-  DEFAULT_RESOURCE_TYPES,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/browser/resources/settings';
+import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -36,18 +31,7 @@ function ResourcesLandingPage() {
   return (
     <React.Fragment>
       <PageAlertProvider>
-        <FrontendHeader
-          headerTitle={
-            <Fragment>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Fragment>
-          }
-          module={ModuleName.RESOURCE}
-        />
+        <FrontendHeader module={ModuleName.RESOURCE} />
         <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -59,6 +43,7 @@ function ResourcesLandingPage() {
                     extraFilters={
                       <Fragment>
                         <DomainSelector
+                          domainAlias={t('Domain')}
                           moduleName={ModuleName.RESOURCE}
                           emptyOptionLocation="top"
                           value={filters[SPAN_DOMAIN] || ''}

@@ -5,10 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from botocore.exceptions import ClientError
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics, options
 from sentry.integrations.base import (
@@ -22,7 +21,7 @@ from sentry.integrations.mixins import ServerlessMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
@@ -198,7 +197,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [
             AwsLambdaProjectSelectPipelineView(),
             AwsLambdaCloudFormationPipelineView(),
@@ -257,7 +256,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -283,7 +282,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
@@ -345,7 +344,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -373,7 +372,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
 
 class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 

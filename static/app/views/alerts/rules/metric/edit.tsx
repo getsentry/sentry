@@ -1,7 +1,7 @@
 import {useCallback, useEffect} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -9,11 +9,11 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 
 type RouteParams = {
   projectId: string;
@@ -25,7 +25,7 @@ type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 export function MetricRulesEdit({
   organization,
@@ -42,12 +42,12 @@ export function MetricRulesEdit({
     isError,
     data: rule,
     error,
-  } = useApiQuery<MetricRule>(
-    [`/organizations/${organization.slug}/alert-rules/${params.ruleId}/`],
+  } = useMetricRule(
     {
-      staleTime: 0,
-      retry: false,
-    }
+      orgSlug: organization.slug,
+      ruleId: params.ruleId,
+    },
+    {refetchOnMount: true}
   );
 
   useEffect(() => {
@@ -73,10 +73,13 @@ export function MetricRulesEdit({
     metric.endSpan({name: 'saveAlertRule'});
     navigate(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/details/${params.ruleId}/`,
+        pathname: makeAlertsPathname({
+          path: `/rules/details/${params.ruleId}/`,
+          organization,
+        }),
       })
     );
-  }, [params.ruleId, navigate, organization.slug]);
+  }, [navigate, params.ruleId, organization]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -85,9 +88,11 @@ export function MetricRulesEdit({
   if (isError) {
     if (error?.status === 404) {
       return (
-        <Alert type="error" showIcon>
-          {t('This alert rule could not be found.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('This alert rule could not be found.')}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -97,6 +102,9 @@ export function MetricRulesEdit({
   return (
     <RuleForm
       {...props}
+      // HACK: gnarly workaround to force the component to re-render when rule updates
+      // Remove this once the RuleForm component is refactored to use `react-query`
+      key={JSON.stringify(rule)}
       params={params}
       project={project}
       userTeamIds={userTeamIds}

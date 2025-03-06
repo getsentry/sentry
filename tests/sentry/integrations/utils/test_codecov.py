@@ -41,7 +41,7 @@ class TestCodecovIntegration(APITestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_no_codecov_integration(self, mock_get_repositories):
@@ -57,7 +57,7 @@ class TestCodecovIntegration(APITestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_has_codecov_integration(self, mock_get_repositories):

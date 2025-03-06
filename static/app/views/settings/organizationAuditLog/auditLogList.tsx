@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Link from 'sentry/components/links/link';
@@ -189,6 +189,7 @@ function AuditNote({
                 {entry.data.slug}
               </Link>
             ),
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
@@ -207,6 +208,7 @@ function AuditNote({
                 {entry.data.slug}
               </Link>
             ),
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
@@ -263,7 +265,7 @@ function AuditLogList({
       value={eventType}
       placeholder={t('Select Action: ')}
       options={getEventOptions(eventTypes)}
-      onChange={options => {
+      onChange={(options: any) => {
         onEventSelect(options?.value);
       }}
     />

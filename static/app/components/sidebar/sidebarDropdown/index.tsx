@@ -2,16 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import Avatar from 'sentry/components/avatar';
 import {Chevron} from 'sentry/components/chevron';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import {RollbackBanner} from 'sentry/components/sidebar/rollback/banner';
-import {RollbackNotificationDot} from 'sentry/components/sidebar/rollback/notificationDot';
-import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
@@ -57,13 +54,6 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
   const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
-  const {onOpenOrgDropdown, shouldShowDropdownBanner, shouldShowDot} = useRollbackPrompts(
-    {
-      collapsed: collapsed || orientation === 'top',
-      organization: org,
-    }
-  );
-
   function handleLogout() {
     logout(api);
   }
@@ -85,7 +75,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
     );
 
   return (
-    <DeprecatedDropdownMenu onOpen={onOpenOrgDropdown}>
+    <DeprecatedDropdownMenu>
       {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
         <SidebarDropdownRoot {...getRootProps()}>
           <SidebarDropdownActor
@@ -93,10 +83,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
             data-test-id="sidebar-dropdown"
             {...getActorProps({})}
           >
-            <AvatarWrapper>
-              {avatar}
-              {shouldShowDot ? <RollbackNotificationDot /> : null}
-            </AvatarWrapper>
+            <AvatarWrapper>{avatar}</AvatarWrapper>
             {!collapsed && orientation !== 'top' && (
               <OrgAndUserWrapper>
                 <OrgOrUserName>
@@ -115,9 +102,6 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
               {hasOrganization && (
                 <Fragment>
                   <SidebarOrgSummary organization={org} projectCount={projects.length} />
-                  {org && shouldShowDropdownBanner ? (
-                    <RollbackBanner organization={org} />
-                  ) : null}
                   {!hideOrgLinks && (
                     <Fragment>
                       {hasOrgRead && (
@@ -145,49 +129,47 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                   )}
 
                   {!config.singleOrganization && (
-                    <DemoModeGate>
+                    <DisableInDemoMode>
                       <SidebarMenuItem>
                         <SwitchOrganization canCreateOrganization={canCreateOrg} />
                       </SidebarMenuItem>
-                    </DemoModeGate>
+                    </DisableInDemoMode>
                   )}
                 </Fragment>
               )}
 
-              <DemoModeGate>
-                {hasOrganization && user && <Divider />}
-                {!!user && (
-                  <Fragment>
-                    <UserSummary to="/settings/account/details/">
-                      <UserBadgeNoOverflow user={user} avatarSize={32} />
-                    </UserSummary>
+              {hasOrganization && user && <Divider />}
+              {!!user && (
+                <Fragment>
+                  <UserSummary to="/settings/account/details/">
+                    <UserBadgeNoOverflow user={user} avatarSize={32} />
+                  </UserSummary>
 
-                    <div>
-                      <SidebarMenuItem to="/settings/account/">
-                        {t('User settings')}
-                      </SidebarMenuItem>
-                      <SidebarMenuItem to="/settings/account/api/">
-                        {t('User auth tokens')}
-                      </SidebarMenuItem>
-                      {hasOrganization && (
-                        <Hook
-                          name="sidebar:organization-dropdown-menu-bottom"
-                          organization={org}
-                        />
-                      )}
-                      {user.isSuperuser && (
-                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                      )}
-                      <SidebarMenuItem
-                        data-test-id="sidebar-signout"
-                        onClick={handleLogout}
-                      >
-                        {t('Sign out')}
-                      </SidebarMenuItem>
-                    </div>
-                  </Fragment>
-                )}
-              </DemoModeGate>
+                  <div>
+                    <SidebarMenuItem to="/settings/account/">
+                      {t('User settings')}
+                    </SidebarMenuItem>
+                    <SidebarMenuItem to="/settings/account/api/">
+                      {t('User auth tokens')}
+                    </SidebarMenuItem>
+                    {hasOrganization && (
+                      <Hook
+                        name="sidebar:organization-dropdown-menu-bottom"
+                        organization={org}
+                      />
+                    )}
+                    {user.isSuperuser && (
+                      <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                    )}
+                    <SidebarMenuItem
+                      data-test-id="sidebar-signout"
+                      onClick={handleLogout}
+                    >
+                      {t('Sign out')}
+                    </SidebarMenuItem>
+                  </div>
+                </Fragment>
+              )}
             </OrgAndUserMenu>
           )}
         </SidebarDropdownRoot>

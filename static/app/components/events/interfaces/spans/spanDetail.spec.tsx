@@ -118,7 +118,7 @@ describe('SpanDetail', function () {
       ).toBeInTheDocument();
 
       expect(
-        screen.queryByRole('button', {name: 'View Query Summary'})
+        screen.queryByRole('button', {name: 'View Summary'})
       ).not.toBeInTheDocument();
     });
 
@@ -145,10 +145,8 @@ describe('SpanDetail', function () {
       expect(
         screen.getByRole('button', {name: 'View Similar Spans'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'View Query Summary'})
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'View Query Summary'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'View Summary'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'View Summary'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/backend/database/spans/span/a7ebd21614897/?project=2'
       );

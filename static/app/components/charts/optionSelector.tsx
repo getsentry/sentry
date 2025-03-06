@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {
   MultipleSelectProps,
   SelectOption,
@@ -9,6 +8,7 @@ import type {
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
@@ -67,7 +67,7 @@ function OptionSelector({
         multiple,
         value: selected,
         defaultValue,
-        onChange: (sel: SelectOption<string>[]) => {
+        onChange: (sel: Array<SelectOption<string>>) => {
           onChange?.(sel.map(o => o.value));
         },
         closeOnSelect,
@@ -78,7 +78,7 @@ function OptionSelector({
       multiple,
       value: selected,
       defaultValue,
-      onChange: opt => onChange?.(opt.value),
+      onChange: (opt: any) => onChange?.(opt.value),
       closeOnSelect,
     };
   }, [multiple, selected, defaultValue, onChange, closeOnSelect]);

@@ -19,6 +19,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks = {
   missRateChart: jest.fn(),
@@ -79,6 +82,14 @@ describe('CacheLandingPage', function () {
     initiallyLoaded: false,
   });
 
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
+
   beforeEach(function () {
     jest.clearAllMocks();
     setRequestMocks(organization);
@@ -93,29 +104,6 @@ describe('CacheLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.missRateChart).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-stats/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          cursor: undefined,
-          dataset: 'spansMetrics',
-          environment: [],
-          excludeOther: 0,
-          field: [],
-          interval: '30m',
-          orderby: undefined,
-          partial: 1,
-          per_page: 50,
-          project: [],
-          query: 'span.op:[cache.get_item,cache.get] project.id:1',
-          referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
-          statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'cache_miss_rate()',
-        },
-      })
-    );
     expect(requestMocks.throughputChart).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -136,6 +124,7 @@ describe('CacheLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -347,6 +336,7 @@ const setRequestMocks = (organization: Organization) => {
           time: 'date',
           cache_miss_rate: 'percentage',
         },
+        units: {},
       },
     },
   });
@@ -369,6 +359,7 @@ const setRequestMocks = (organization: Organization) => {
           time: 'date',
           cache_miss_rate: 'percentage',
         },
+        units: {},
       },
     },
   });
@@ -391,6 +382,7 @@ const setRequestMocks = (organization: Organization) => {
           time: 'date',
           spm_14400: 'rate',
         },
+        units: {},
       },
     },
   });

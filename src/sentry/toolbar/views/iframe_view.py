@@ -3,8 +3,10 @@ from typing import Any
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
+from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.toolbar.utils.url import is_origin_allowed
 from sentry.web.frontend.base import ProjectView, region_silo_view
 
@@ -61,13 +63,15 @@ class IframeView(ProjectView):
                 "logging": self.request.GET.get("logging", ""),
                 "organization_slug": self.organization_slug,
                 "project_id_or_slug": self.project_id_or_slug,
+                "organization_url": generate_organization_url(self.organization_slug),
+                "region_url": generate_region_url(),
             },
         )
 
         referrer = _get_referrer(self.request) or ""
 
         # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
-        response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}  # type: ignore[attr-defined]
+        response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}
         response["X-Frame-Options"] = "DENY" if referrer == "" else "ALLOWALL"
 
         return response

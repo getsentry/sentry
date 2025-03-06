@@ -10,6 +10,7 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
 import {
@@ -77,7 +78,7 @@ function Content({
     );
   }
 
-  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
+  const colors = (data && getChartColorPalette(data.length - 2)) || [];
 
   // Create a list of series based on the order of the fields,
   // We need to flip it at the end to ensure the series stack right.
@@ -109,7 +110,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value, _label) => tooltipFormatter(value, 'duration'),
+      valueFormatter: (value: any, _label: any) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {

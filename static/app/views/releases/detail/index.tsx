@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,6 +34,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import type {ReleaseBounds} from '../utils';
 import {getReleaseBounds, searchReleaseVersion} from '../utils';
@@ -56,7 +57,7 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> &
+type Props = RouteComponentProps<RouteParams> &
   WithRouteAnalyticsProps & {
     children: React.ReactNode;
     organization: Organization;
@@ -158,7 +159,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
         },
       },
       {
-        allowError: error => error.status === 400,
+        allowError: (error: any) => error.status === 400,
       },
     ]);
 
@@ -172,7 +173,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     ]);
   }
 
-  renderError(...args) {
+  renderError(...args: any[]) {
     const possiblyWrongProject = Object.values(this.state.errors).find(
       e => e?.status === 404 || e?.status === 403
     );
@@ -180,9 +181,11 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     if (possiblyWrongProject) {
       return (
         <Layout.Page>
-          <Alert type="error" showIcon>
-            {t('This release may not be in your selected project.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {t('This release may not be in your selected project.')}
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       );
     }
@@ -304,16 +307,18 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
     }
   }
 
-  renderError(...args) {
+  renderError(...args: any[]) {
     const has404Errors = Object.values(this.state.errors).find(e => e?.status === 404);
 
     if (has404Errors) {
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
         <Layout.Page withPadding>
-          <Alert type="error" showIcon>
-            {t('This release could not be found.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {t('This release could not be found.')}
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       );
     }
@@ -366,7 +371,10 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
               params.release
             )}/`,
           }}
-          noProjectRedirectPath={`/organizations/${organization.slug}/releases/`}
+          noProjectRedirectPath={makeReleasesPathname({
+            organization,
+            path: '/',
+          })}
         />
       );
     }
@@ -375,7 +383,9 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
       <PageFiltersContainer
         shouldForceProject={projects.length === 1}
         forceProject={
-          projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
+          projects.length === 1
+            ? {...projects[0]!, id: String(projects[0]!.id)}
+            : undefined
         }
         specificProjectSlugs={projects.map(p => p.slug)}
       >

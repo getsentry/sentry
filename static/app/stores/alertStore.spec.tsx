@@ -20,8 +20,8 @@ describe('AlertStore', function () {
       });
 
       expect(AlertStore.getState()).toHaveLength(2);
-      expect(AlertStore.getState()[0].key).toEqual(0);
-      expect(AlertStore.getState()[1].key).toEqual(1);
+      expect(AlertStore.getState()[0]!.key).toBe(0);
+      expect(AlertStore.getState()[1]!.key).toBe(1);
     });
 
     it('should not add duplicates when noDuplicates is set', function () {
@@ -54,7 +54,7 @@ describe('AlertStore', function () {
       }
 
       expect(AlertStore.getState()).toHaveLength(3);
-      AlertStore.closeAlert(AlertStore.getState()[1]);
+      AlertStore.closeAlert(AlertStore.getState()[1]!);
 
       const newState = AlertStore.getState();
       expect(newState).toHaveLength(2);

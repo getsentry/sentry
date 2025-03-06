@@ -13,7 +13,7 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   filename: string;
   lineNo: number | null;
 };

@@ -3,7 +3,7 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -135,7 +135,7 @@ const CollapsedProjects = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const AvatarStyle = p => css`
+const AvatarStyle = (p: any) => css`
   border: 2px solid ${p.theme.background};
   margin-right: -8px;
   cursor: default;
@@ -269,11 +269,11 @@ export function TraceBreakdownRenderer({
             offset={index}
             onMouseEnter={() => {
               setHoveredIndex(index);
-              breakdown.project
-                ? setHighlightedSliceName(
-                    getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
-                  )
-                : null;
+              if (breakdown.project) {
+                setHighlightedSliceName(
+                  getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
+                );
+              }
             }}
           />
         );
@@ -482,7 +482,7 @@ export function TransactionRenderer({
   const {projects} = useProjects({slugs: [projectSlug]});
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction,
     query: {
       ...location.query,
@@ -534,6 +534,7 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
 };
 
 function statusToTagType(status: string) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return STATUS_TO_TAG_TYPE[status];
 }
 
@@ -553,7 +554,7 @@ export function StatusTag({status, onClick}: {status: string; onClick?: () => vo
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick} borderStyle="solid">
+    <StyledTag type={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );

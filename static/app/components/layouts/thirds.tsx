@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import NavTabs from 'sentry/components/navTabs';
+import {Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -25,14 +25,25 @@ export const Page = styled('main')<{withPadding?: boolean}>`
 export const Header = styled('header')<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;
+  /**
+   * Whether to use the unified header variant. Unified headers have the
+   * same background color as the main content area and no border, thus
+   * "unifying" the two areas.
+   */
+  unified?: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
     !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background-color: transparent;
-  border-bottom: 1px ${p => p.borderStyle ?? 'solid'} ${p => p.theme.border};
+  background-color: ${p => (p.unified ? p.theme.background : 'transparent')};
+
+  ${p =>
+    !p.unified &&
+    `
+      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
@@ -44,7 +55,7 @@ export const Header = styled('header')<{
  * Use HeaderContent to create horizontal regions in the header
  * that contain a heading/breadcrumbs and a button group.
  */
-export const HeaderContent = styled('div')`
+export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
@@ -55,6 +66,12 @@ export const HeaderContent = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: ${space(1)};
   }
+
+  ${p =>
+    p.unified &&
+    `
+      margin-bottom: 0;
+    `}
 `;
 
 /**
@@ -82,9 +99,11 @@ export const HeaderActions = styled('div')`
  */
 export const Title = styled('h1')<{withMargins?: boolean}>`
   ${p => p.theme.overflowEllipsis};
-  ${p => p.theme.text.pageTitle};
-  color: ${p => p.theme.headingColor};
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0;
+  color: ${p => p.theme.headingColor};
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
   line-height: 40px;
@@ -95,27 +114,11 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
 `;
 
 /**
- * Styled Nav Tabs for use inside a Layout.Header component
+ * Styled Tabs for use inside a Layout.Header component
  */
-export const HeaderNavTabs = styled(NavTabs)`
-  margin: 0;
-  border-bottom: 0 !important;
-
-  & > li {
-    margin-right: ${space(3)};
-  }
-  & > li > a {
-    display: flex;
-    align-items: center;
-    height: 1.25rem;
-    padding: ${space(1)} 0;
-    margin-bottom: 4px;
-    box-sizing: content-box;
-  }
-  & > li.active > a {
-    margin-bottom: 0;
-  }
-`;
+export const HeaderTabs = styled(Tabs)`
+  grid-column: 1 / -1;
+` as typeof Tabs;
 
 /**
  * Base container for 66/33 containers.

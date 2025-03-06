@@ -1,18 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  findAllByTestId,
-  render,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
-import ProfilesAndTransactionProvider from 'sentry/views/profiling/profilesProvider';
+import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
 
 jest.mock('sentry/utils/useParams', () => ({
   useParams: jest.fn(),
@@ -165,12 +159,12 @@ describe('Flamegraph', function () {
       {organization: initializeOrg().organization}
     );
 
-    const frames = await findAllByTestId(document.body, 'flamegraph-frame', undefined, {
+    const frames = await screen.findAllByTestId('flamegraph-frame', undefined, {
       timeout: 5000,
     });
 
     // 1 for main view and 1 for minimap
-    expect(frames.length).toBe(2);
+    expect(frames).toHaveLength(2);
   });
 
   it('reads preferences from qs', async function () {

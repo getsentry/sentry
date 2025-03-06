@@ -25,7 +25,7 @@ function ErrorFilters({
       <CompactSelect
         disabled={!projectOptions.length}
         multiple
-        onChange={setFilters as (selection: SelectOption<string>[]) => void}
+        onChange={setFilters as (selection: Array<SelectOption<string>>) => void}
         options={projectOptions}
         size="sm"
         triggerLabel={selectValue?.length === 0 ? t('Any') : null}

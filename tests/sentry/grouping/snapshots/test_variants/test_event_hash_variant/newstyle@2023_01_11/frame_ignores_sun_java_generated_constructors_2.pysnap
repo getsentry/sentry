@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:19:07.714331+00:00'
+created: '2025-02-26T00:34:03.878371+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because it contains no in-app frames)
@@ -16,10 +17,11 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "09e0efcab18f545166318118ed4e0292"
+  contributing component: stacktrace
   component:
     system*
       stacktrace*
-        frame* (marked out of app by stack trace rule (module:sun.* -app))
+        frame*
           module* (removed codegen marker)
             "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*

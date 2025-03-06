@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import GenericSAML2Provider
 
-        register("saml2", GenericSAML2Provider)
+        register(GenericSAML2Provider)

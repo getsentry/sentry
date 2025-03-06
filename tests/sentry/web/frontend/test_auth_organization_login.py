@@ -17,7 +17,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
@@ -880,9 +880,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_basic_auth_flow_as_invited_user(self):
+    def test_basic_auth_flow_as_not_invited_user(self):
         user = self.create_user("foor@example.com")
-        self.create_member(organization=self.organization, email="foor@example.com")
 
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
@@ -896,9 +895,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
 
-    def test_basic_auth_flow_as_invited_user_not_single_org_mode(self):
+    def test_basic_auth_flow_as_not_invited_user_not_single_org_mode(self):
         user = self.create_user("u2@example.com")
-        self.create_member(organization=self.organization, email="u2@example.com")
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
@@ -993,7 +991,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        invitation_link = "/" + member.get_invite_link().split("/", 3)[-1]
+        assert resp.redirect_chain == [(invitation_link, 302)]
 
     def test_correct_redirect_as_2fa_user_invited(self):
         user = self.create_user("foor@example.com")
@@ -1012,7 +1011,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        invitation_link = "/" + member.get_invite_link().split("/", 3)[-1]
+        assert resp.redirect_chain == [(invitation_link, 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
@@ -1261,3 +1261,50 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert resp.redirect_chain == [
             (reverse("sentry-2fa-dialog"), 302),
         ]
+
+
+@control_silo_test
+class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
+
+    def setUp(self):
+        self.demo_user = self.create_user(id=1)
+        self.demo_org = self.create_organization(id=1, owner=self.demo_user)
+
+        self.normal_user = self.create_user(id=2)
+        self.normal_org = self.create_organization(id=2, owner=self.normal_user)
+
+    def is_logged_in_to_org(self, response, org):
+        return response.status_code == 200 and response.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org.slug}/issues/", 302),
+        ]
+
+    def fetch_org_login_page(self, org):
+        return self.client.get(
+            reverse("sentry-auth-organization", args=[org.slug]),
+            follow=True,
+        )
+
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [1], "demo-mode.orgs": [1]})
+    def test_auto_login_demo_mode_disabled(self):
+        resp = self.fetch_org_login_page(self.demo_org)
+        assert not self.is_logged_in_to_org(resp, self.demo_org)
+
+        resp = self.fetch_org_login_page(self.normal_org)
+        assert not self.is_logged_in_to_org(resp, self.normal_org)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [1], "demo-mode.orgs": [1]})
+    def test_auto_login_demo_mode(self):
+        resp = self.fetch_org_login_page(self.demo_org)
+        assert self.is_logged_in_to_org(resp, self.demo_org)
+
+        resp = self.fetch_org_login_page(self.normal_org)
+        assert not self.is_logged_in_to_org(resp, self.normal_org)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [], "demo-mode.orgs": []})
+    def test_auto_login_not_demo_org(self):
+        resp = self.fetch_org_login_page(self.demo_org)
+        assert not self.is_logged_in_to_org(resp, self.demo_org)
+
+        resp = self.fetch_org_login_page(self.normal_org)
+        assert not self.is_logged_in_to_org(resp, self.normal_org)

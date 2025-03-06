@@ -23,10 +23,6 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
     This test is also very similar to those in the Metrics Layer.
     """
 
-    @property
-    def now(self):
-        return BaseMetricsLayerTestCase.MOCK_DATETIME
-
     def test_count_query(self):
         generic_metrics_backend.distribution(
             self.use_case_id,

@@ -5,7 +5,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ViewCodeOwnerModal from './viewCodeOwnerModal';
 
 describe('ViewCodeOwnerModal', () => {
-  const mockComponent: any = ({children}) => <div>{children}</div>;
+  const mockComponent: any = ({children}: {children: React.ReactNode}) => (
+    <div>{children}</div>
+  );
 
   it('should display parsed codeowners file', () => {
     const ownershipSyntax = `codeowners:/src/sentry/migrations/ #developer-infrastructure\n`;

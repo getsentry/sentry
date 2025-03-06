@@ -135,7 +135,9 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
     e => {
       const continueCallback = keyDownHandler?.(e);
       // Prevent list box from clearing value on Escape key press
-      continueCallback && e.key !== 'Escape' && listBoxProps.onKeyDown?.(e);
+      if (continueCallback && e.key !== 'Escape') {
+        listBoxProps.onKeyDown?.(e);
+      }
     },
     [keyDownHandler, listBoxProps]
   );

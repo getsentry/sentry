@@ -57,7 +57,7 @@ function parsePlatform(platform: string): ParsedPlatform {
   // For example: dotnet-google-cloud-functions, we want to split it into
   // platformName: dotnet, framework: google-cloud-functions
   if (platformParts.length >= 3) {
-    return {platformName: platformParts[0], framework: platformParts.slice(1).join('-')};
+    return {platformName: platformParts[0]!, framework: platformParts.slice(1).join('-')};
   }
 
   // With some exceptions, all other project platforms have the following two structures:
@@ -66,18 +66,18 @@ function parsePlatform(platform: string): ParsedPlatform {
   const [platformName, framework] = platformParts;
 
   if (platform === 'react-native') {
-    return {platformName};
+    return {platformName: platformName!};
   }
 
   if (platform.includes('awslambda')) {
-    return {platformName, framework: 'aws-lambda'};
+    return {platformName: platformName!, framework: 'aws-lambda'};
   }
 
   if (platform.includes('gcpfunctions')) {
-    return {platformName, framework: 'gcp-functions'};
+    return {platformName: platformName!, framework: 'gcp-functions'};
   }
 
-  return {platformName, framework};
+  return {platformName: platformName!, framework: framework!};
 }
 
 export function getCustomInstrumentationLink(project: Project | undefined): string {

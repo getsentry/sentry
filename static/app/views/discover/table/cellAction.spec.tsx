@@ -16,11 +16,9 @@ const defaultData: TableDataRow = {
   release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
   'measurements.fcp': 1234,
   'percentile(measurements.fcp, 0.5)': 1234,
-  // TODO: Fix this type
-  // @ts-ignore
+  // @ts-expect-error TODO: Fix this type
   'error.handled': [null],
-  // TODO: Fix this type
-  // @ts-ignore
+  // @ts-expect-error TODO: Fix this type
   'error.type': [
     'ServerException',
     'ClickhouseError',
@@ -47,7 +45,7 @@ function renderComponent({
   return render(
     <CellAction
       dataRow={data}
-      column={eventView.getColumns()[columnIndex]}
+      column={eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
     >
       <strong>some content</strong>
@@ -92,7 +90,7 @@ describe('Discover -> CellAction', function () {
   describe('hover menu button', function () {
     it('shows no menu by default', function () {
       renderComponent({eventView: view});
-      expect(screen.queryByRole('button', {name: 'Actions'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
     });
   });
 
@@ -221,8 +219,7 @@ describe('Discover -> CellAction', function () {
         columnIndex: 7,
         data: {
           ...defaultData,
-          // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error TODO: Fix this type
           'error.handled': ['0'],
         },
       });
@@ -312,8 +309,7 @@ describe('Discover -> CellAction', function () {
         eventView: view,
         handleCellAction,
         columnIndex: 3,
-        // TODO: Fix this type
-        // @ts-ignore
+        // @ts-expect-error TODO: Fix this type
         data: {...defaultData, release: null},
       });
       await openMenu();
@@ -348,8 +344,7 @@ describe('Discover -> CellAction', function () {
         columnIndex: 5,
         data: {
           ...defaultData,
-          // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error TODO: Fix this type
           'measurements.fcp': null,
         },
       });
@@ -388,8 +383,7 @@ describe('Discover -> CellAction', function () {
         columnIndex: 6,
         data: {
           ...defaultData,
-          // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error TODO: Fix this type
           'percentile(measurements.fcp, 0.5)': null,
         },
       });
@@ -425,82 +419,78 @@ describe('updateQuery()', function () {
 
   it('modifies the query with has/!has', function () {
     let results = new MutableSearch([]);
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, null);
-    expect(results.formatString()).toEqual('!has:a');
-    // TODO: Fix this type
-    // @ts-ignore
+    expect(results.formatString()).toBe('!has:a');
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.EXCLUDE, columnA, null);
-    expect(results.formatString()).toEqual('has:a');
-    // TODO: Fix this type
-    // @ts-ignore
+    expect(results.formatString()).toBe('has:a');
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, null);
-    expect(results.formatString()).toEqual('!has:a');
+    expect(results.formatString()).toBe('!has:a');
 
     results = new MutableSearch([]);
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     updateQuery(results, Actions.ADD, columnA, [null]);
-    expect(results.formatString()).toEqual('!has:a');
+    expect(results.formatString()).toBe('!has:a');
   });
 
   it('modifies the query with additions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
-    expect(results.formatString()).toEqual('a:1');
+    expect(results.formatString()).toBe('a:1');
     updateQuery(results, Actions.ADD, columnB, '1');
-    expect(results.formatString()).toEqual('a:1 b:1');
+    expect(results.formatString()).toBe('a:1 b:1');
     updateQuery(results, Actions.ADD, columnA, '2');
-    expect(results.formatString()).toEqual('b:1 a:2');
+    expect(results.formatString()).toBe('b:1 a:2');
     updateQuery(results, Actions.ADD, columnA, ['1', '2', '3']);
-    expect(results.formatString()).toEqual('b:1 a:2 a:1 a:3');
+    expect(results.formatString()).toBe('b:1 a:2 a:1 a:3');
   });
 
   it('modifies the query with exclusions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.EXCLUDE, columnA, '1');
-    expect(results.formatString()).toEqual('!a:1');
+    expect(results.formatString()).toBe('!a:1');
     updateQuery(results, Actions.EXCLUDE, columnB, '1');
-    expect(results.formatString()).toEqual('!a:1 !b:1');
+    expect(results.formatString()).toBe('!a:1 !b:1');
     updateQuery(results, Actions.EXCLUDE, columnA, '2');
-    expect(results.formatString()).toEqual('!b:1 !a:1 !a:2');
+    expect(results.formatString()).toBe('!b:1 !a:1 !a:2');
     updateQuery(results, Actions.EXCLUDE, columnA, ['1', '2', '3']);
-    expect(results.formatString()).toEqual('!b:1 !a:1 !a:2 !a:3');
+    expect(results.formatString()).toBe('!b:1 !a:1 !a:2 !a:3');
   });
 
   it('modifies the query with a mix of additions and exclusions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
-    expect(results.formatString()).toEqual('a:1');
+    expect(results.formatString()).toBe('a:1');
     updateQuery(results, Actions.ADD, columnB, '2');
-    expect(results.formatString()).toEqual('a:1 b:2');
+    expect(results.formatString()).toBe('a:1 b:2');
     updateQuery(results, Actions.EXCLUDE, columnA, '3');
-    expect(results.formatString()).toEqual('b:2 !a:3');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3');
     updateQuery(results, Actions.EXCLUDE, columnB, '4');
-    expect(results.formatString()).toEqual('!a:3 !b:4');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4');
     results.addFilterValues('!a', ['*dontescapeme*'], false);
-    expect(results.formatString()).toEqual('!a:3 !b:4 !a:*dontescapeme*');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4 !a:*dontescapeme*');
     updateQuery(results, Actions.EXCLUDE, columnA, '*escapeme*');
-    expect(results.formatString()).toEqual(
-      '!b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
+    expect(results.formatString()).toBe(
+      'a:1 b:2 !b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
     );
     updateQuery(results, Actions.ADD, columnA, '5');
-    expect(results.formatString()).toEqual('!b:4 a:5');
+    expect(results.formatString()).toBe('b:2 !b:4 a:5');
     updateQuery(results, Actions.ADD, columnB, '6');
-    expect(results.formatString()).toEqual('a:5 b:6');
+    expect(results.formatString()).toBe('a:5 b:6');
   });
 
   it('modifies the query with greater/less than', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
-    expect(results.formatString()).toEqual('a:>1');
+    expect(results.formatString()).toBe('a:>1');
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 2);
-    expect(results.formatString()).toEqual('a:>2');
+    expect(results.formatString()).toBe('a:>2');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnA, 3);
-    expect(results.formatString()).toEqual('a:<3');
+    expect(results.formatString()).toBe('a:<3');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnA, 4);
-    expect(results.formatString()).toEqual('a:<4');
+    expect(results.formatString()).toBe('a:<4');
   });
 
   it('modifies the query with greater/less than on duration fields', function () {
@@ -511,13 +501,13 @@ describe('updateQuery()', function () {
 
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 1);
-    expect(results.formatString()).toEqual('a:>1.00ms');
+    expect(results.formatString()).toBe('a:>1.00ms');
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 2);
-    expect(results.formatString()).toEqual('a:>2.00ms');
+    expect(results.formatString()).toBe('a:>2.00ms');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnADuration, 3);
-    expect(results.formatString()).toEqual('a:<3.00ms');
+    expect(results.formatString()).toBe('a:<3.00ms');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnADuration, 4.1234);
-    expect(results.formatString()).toEqual('a:<4.12ms');
+    expect(results.formatString()).toBe('a:<4.12ms');
   });
 
   it('does not error for special actions', function () {
@@ -528,8 +518,7 @@ describe('updateQuery()', function () {
 
   it('errors for unknown actions', function () {
     const results = new MutableSearch([]);
-    // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error TODO: Fix this type
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });
 });

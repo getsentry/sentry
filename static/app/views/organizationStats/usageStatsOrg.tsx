@@ -12,6 +12,7 @@ import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
+import {Switch} from 'sentry/components/core/switch';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -19,7 +20,6 @@ import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
-import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -512,11 +512,11 @@ class UsageStatsOrganization<
           {(this.chartData.chartStats.clientDiscard ?? []).length > 0 && (
             <Flex align="center" gap={space(1)}>
               <strong>{t('Show client-discarded data:')}</strong>
-              <SwitchButton
-                toggle={() => {
+              <Switch
+                onChange={() => {
                   handleChangeState({clientDiscard: !clientDiscard});
                 }}
-                isActive={clientDiscard}
+                checked={clientDiscard}
               />
             </Flex>
           )}

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class RpcApiKey(RpcModel):
     id: int = -1
     organization_id: int = -1
-    key: str = ""
+    key: str = Field(repr=False, default="")
     status: int = 0
     allowed_origins: list[str] = Field(default_factory=list)
     label: str = ""
@@ -35,8 +35,8 @@ class RpcApiToken(RpcModel):
     organization_id: int | None = None
     application_id: int | None = None
     application_is_active: bool = False
-    token: str = ""
-    hashed_token: str | None = None
+    token: str = Field(repr=False, default="")
+    hashed_token: str | None = Field(repr=False, default=None)
     expires_at: datetime.datetime | None = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)
@@ -62,6 +62,7 @@ class AuthenticatedToken(RpcModel):
     user_id: int | None = None  # only relevant for ApiToken
     organization_id: int | None = None
     application_id: int | None = None  # only relevant for ApiToken
+    project_id: int | None = None  # only relevant for ProjectKey
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id
@@ -73,12 +74,14 @@ class AuthenticatedToken(RpcModel):
         from sentry.models.apikey import ApiKey
         from sentry.models.apitoken import ApiToken
         from sentry.models.orgauthtoken import OrgAuthToken
+        from sentry.models.projectkey import ProjectKey
 
         return {
             "system": frozenset([SystemToken]),
             "api_token": frozenset([ApiToken, ApiTokenReplica]),
             "org_auth_token": frozenset([OrgAuthToken, OrgAuthTokenReplica]),
             "api_key": frozenset([ApiKey, ApiKeyReplica]),
+            "project_key": frozenset((ProjectKey,)),
         }
 
     @classmethod
@@ -109,6 +112,7 @@ class AuthenticatedToken(RpcModel):
             user_id=getattr(token, "user_id", None),
             organization_id=getattr(token, "organization_id", None),
             application_id=getattr(token, "application_id", None),
+            project_id=getattr(token, "project_id", None),
         )
 
     def get_audit_log_data(self) -> Mapping[str, Any]:
@@ -143,7 +147,7 @@ class AuthenticationContext(RpcModel):
         return self.user or AnonymousUser()
 
     @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[Any, None, None]:
+    def applied_to_request(self, request: Any = None) -> Generator[Any]:
         """
         Some code still reaches for the global 'env' object when determining user or auth behaviors.  This bleeds the
         current request context into that code, but makes it difficult to carry RPC authentication context in an

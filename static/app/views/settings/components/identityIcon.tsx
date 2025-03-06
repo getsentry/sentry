@@ -47,27 +47,28 @@ export const ICON_PATHS: Record<string, string> = {
 };
 
 type Props = {
+  /**
+   * @default '_default'
+   */
   providerId?: string;
+  /**
+   * @default 36
+   */
   size?: number;
 };
 
 const IdentityIcon = styled('div')<Props>`
   position: relative;
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
+  height: ${p => p.size ?? 36}px;
+  width: ${p => p.size ?? 36}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${p =>
-    (p.providerId !== undefined && ICON_PATHS[p.providerId]) || DEFAULT_ICON});
+  background-image: url(${({providerId = '_default'}) =>
+    (providerId !== undefined && ICON_PATHS[providerId]) || DEFAULT_ICON});
 `;
-
-IdentityIcon.defaultProps = {
-  providerId: '_default',
-  size: 36,
-};
 
 export default IdentityIcon;

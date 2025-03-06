@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-__all__ = ("Plugin",)
-
 import logging
 from collections.abc import Sequence
 from threading import local
@@ -13,16 +11,15 @@ from django.urls import reverse
 from sentry.auth import access
 from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
-from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
-from sentry.plugins.status import PluginStatusMixin
 from sentry.projects.services.project import RpcProject
-from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
+
+__all__ = ("Plugin",)
 
 
 class PluginMount(type):
@@ -39,7 +36,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
+class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -72,10 +69,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     conf_title: str | _StrPromise | None = None
 
     project_conf_form: Any = None
-    project_conf_template = "sentry/plugins/project_configuration.html"
-
-    site_conf_form: Any = None
-    site_conf_template = "sentry/plugins/site_configuration.html"
 
     # Global enabled state
     enabled = True
@@ -186,62 +179,14 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
             return self.get_conf_title().lower().replace(" ", "_")
         return self.conf_key
 
-    def get_conf_form(self, project=None):
-        """
-        Returns the Form required to configure the plugin.
-
-        >>> plugin.get_conf_form(project)
-        """
-        if project is not None:
-            return self.project_conf_form
-        return self.site_conf_form
-
-    def get_conf_template(self, project=None):
-        """
-        Returns the template required to render the configuration page.
-
-        >>> plugin.get_conf_template(project)
-        """
-        if project is not None:
-            return self.project_conf_template
-        return self.site_conf_template
-
-    def get_conf_options(self, project=None):
-        """
-        Returns a dict of all of the configured options for a project.
-
-        >>> plugin.get_conf_options(project)
-        """
-        return default_plugin_options(self, project)
-
-    def get_conf_version(self, project):
-        """
-        Returns a version string that represents the current configuration state.
-
-        If any option changes or new options added, the version will change.
-
-        >>> plugin.get_conf_version(project)
-        """
-        options = self.get_conf_options(project)
-        return md5_text("&".join(sorted("%s=%s" % o for o in options.items()))).hexdigest()[:3]
-
     def get_conf_title(self):
         """
         Returns a string representing the title to be shown on the configuration page.
         """
         return self.conf_title or self.get_title()
 
-    def has_site_conf(self):
-        return self.site_conf_form is not None
-
     def has_project_conf(self):
         return self.project_conf_form is not None
-
-    def has_plugin_conf(self):
-        """
-        Checks if the plugin should be returned in the ProjectPluginsEndpoint
-        """
-        return self.has_project_conf()
 
     def can_enable_for_projects(self):
         """
@@ -270,9 +215,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
-    def get_form_initial(self, project=None):
-        return {}
-
     # The following methods are specific to web requests
 
     def get_title(self) -> str | _StrPromise:
@@ -293,19 +235,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_description()
         """
         return self.description
-
-    def get_resource_links(self) -> Sequence[tuple[str, str]]:
-        """
-        Returns a list of tuples pointing to various resources for this plugin.
-
-        >>> def get_resource_links(self):
-        >>>     return [
-        >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
-        >>>     ]
-        """
-        return self.resource_links
 
     def get_view_response(self, request, group):
         self.selected = request.path == self.get_url(group)
@@ -350,25 +279,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>>     return self.render('myplugin/about.html')
         """
 
-    def before_events(self, request, group_list, **kwargs):
-        """
-        Allows preprocessing of groups in the list view.
-
-        This is generally useful if you need to cache lookups
-        for something like ``tags`` which would otherwise do
-        multiple queries.
-
-        If you use this **at all** you should ensure it's already
-        reset on each execution.
-
-        As an example, here's how we might get a reference to ticket ids we were
-        storing per event, in an efficient O(1) manner.
-
-        >>> def before_events(self, request, event_list, **kwargs):
-        >>>     prefix = self.get_conf_key()
-        >>>     GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
-        """
-
     def tags(self, request, group, tag_list, **kwargs):
         """
         Modifies the tag list for a grouped message.
@@ -384,7 +294,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         return tag_list
 
-    def actions(self, request, group, action_list, **kwargs):
+    def actions(self, group, action_list, **kwargs):
         """
         Modifies the action list for a grouped message.
 
@@ -394,27 +304,11 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         This must return ``action_list``.
 
-        >>> def actions(self, request, group, action_list, **kwargs):
+        >>> def actions(self, group, action_list, **kwargs):
         >>>     action_list.append(('Google', 'http://google.com'))
         >>>     return action_list
         """
         return action_list
-
-    def panels(self, request, group, panel_list, **kwargs):
-        """
-        Modifies the panel list for a grouped message.
-
-        A panel is a tuple containing two elements:
-
-        ('Panel Label', '/uri/to/panel/')
-
-        This must return ``panel_list``.
-
-        >>> def panels(self, request, group, action_list, **kwargs):
-        >>>     panel_list.append((self.get_title(), self.get_url(group)))
-        >>>     return panel_list
-        """
-        return panel_list
 
     def widget(self, request, group, **kwargs):
         """
@@ -425,14 +319,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
 
     # Server side signals which do not have request context
-
-    def has_perm(self, user, perm, *objects, **kwargs):
-        # DEPRECATED: No longer used.
-        pass
-
-    def missing_perm_response(self, request, perm, *args, **objects):
-        # DEPRECATED: No longer used.
-        pass
 
     def is_regression(self, group, event, **kwargs):
         """
@@ -450,7 +336,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>>     return event_version not in seen_versions
         """
 
-    def post_process(self, group, event, is_new, **kwargs):
+    def post_process(self, *, group, event, is_new, **kwargs) -> None:
         """
         Post processes an event after it has been saved.
 
@@ -473,17 +359,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>>     return [('tag-name', 'tag-value')]
         """
 
-    def get_notification_forms(self, **kwargs):
-        """
-        Provides additional UserOption forms for the Notification Settings page.
-
-        Must return an iterable.
-
-        >>> def get_notification_forms(self, **kwargs):
-        >>>     return [MySettingsForm]
-        """
-        return []
-
     def is_testable(self, **kwargs):
         """
         Returns True if this plugin is able to be tested.
@@ -497,10 +372,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         We use this to hide plugins as they are replaced with integrations.
         """
         return self.slug in HIDDEN_PLUGINS
-
-    def configure(self, request, project=None):
-        """Configures the plugin."""
-        return default_plugin_config(self, project, request)
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""

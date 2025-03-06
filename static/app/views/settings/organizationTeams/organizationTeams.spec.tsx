@@ -251,7 +251,7 @@ describe('OrganizationTeams', function () {
       createWrapper({
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
-      await userEvent.click(screen.getAllByLabelText('Approve')[0]);
+      await userEvent.click(screen.getAllByLabelText('Approve')[0]!);
 
       await tick();
 
@@ -277,7 +277,7 @@ describe('OrganizationTeams', function () {
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
 
-      await userEvent.click(screen.getAllByLabelText('Deny')[0]);
+      await userEvent.click(screen.getAllByLabelText('Deny')[0]!);
 
       await tick();
 

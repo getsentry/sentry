@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -19,7 +20,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -68,7 +68,7 @@ const onboarding: OnboardingConfig = {
       configurations: getConfigStep(params),
     },
   ],
-  configure: () => [
+  configure: params => [
     {
       title: t('Manual Configuration'),
       collapsible: true,
@@ -110,6 +110,9 @@ const onboarding: OnboardingConfig = {
               </ListItem>
             </List>
           ),
+        },
+        {
+          description: <CopyDsnField params={params} />,
         },
       ],
     },
@@ -254,9 +257,9 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

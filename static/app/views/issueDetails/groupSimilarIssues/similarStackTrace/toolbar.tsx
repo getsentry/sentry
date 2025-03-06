@@ -36,7 +36,7 @@ class SimilarToolbar extends Component<Props, State> {
     this.listener?.();
   }
 
-  onGroupChange = ({mergeList}) => {
+  onGroupChange = ({mergeList}: any) => {
     if (!mergeList?.length) {
       this.setState({mergeCount: 0});
       return;

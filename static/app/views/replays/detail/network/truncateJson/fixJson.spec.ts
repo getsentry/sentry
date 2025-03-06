@@ -69,8 +69,8 @@ describe('Unit  | coreHandlers | util | truncateJson | fixJson', () => {
   });
 
   test.each(['1', '2'])('it works for fixture %s', fixture => {
-    const input = fixtures[fixture].incompleteJson.trim();
-    const expected = fixtures[fixture].completeJson.trim();
+    const input = fixtures[fixture as keyof typeof fixtures].incompleteJson.trim();
+    const expected = fixtures[fixture as keyof typeof fixtures].completeJson.trim();
 
     const actual = fixJson(input);
     expect(actual).toEqual(expected);

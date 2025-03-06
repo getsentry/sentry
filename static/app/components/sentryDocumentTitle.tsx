@@ -25,6 +25,10 @@ const DEFAULT_PAGE_TITLE = 'Sentry';
 
 const DocumentTitleContext = createContext(DEFAULT_PAGE_TITLE);
 
+export function useDocumentTitle() {
+  return useContext(DocumentTitleContext);
+}
+
 /**
  * Assigns the document title. The deepest nested version of this title will be
  * the one which is assigned.

@@ -22,7 +22,7 @@ window.ResizeObserver = ResizeObserver;
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
   const {organization, project} = initializeData({
-    features: ['profiling', 'issue-details-always-show-trace'],
+    features: ['profiling'],
   });
   const group = GroupFixture();
   const event = EventFixture({
@@ -47,6 +47,11 @@ describe('EventTraceView', () => {
 
   it('renders a trace', async () => {
     MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
       body: {
@@ -57,6 +62,8 @@ describe('EventTraceView', () => {
         transaction_child_count_map: new Array(20)
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({
@@ -103,6 +110,32 @@ describe('EventTraceView', () => {
   });
 
   it('still renders trace link for performance issues', async () => {
+    const oneOtherIssueEvent: TraceEventResponse = {
+      data: [
+        {
+          // In issuePlatform, the message contains the title and the transaction
+          message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+          timestamp: '2024-01-24T09:09:03+00:00',
+          'issue.id': 1000,
+          project: project.slug,
+          'project.name': project.name,
+          title: 'Slow DB Query',
+          id: 'abc',
+          transaction: 'n/a',
+          culprit: '/api/slow/',
+          'event.type': '',
+        },
+      ],
+      meta: {fields: {}, units: {}},
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: oneOtherIssueEvent,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
     const perfGroup = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
     const perfEvent = EventFixture({
       occurrence: {
@@ -125,13 +158,18 @@ describe('EventTraceView', () => {
     render(
       <EventTraceView group={perfGroup} event={perfEvent} organization={organization} />
     );
-    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', {name: 'View Full Trace'})
+      screen.getByText('One other issue appears in the same trace.')
     ).toBeInTheDocument();
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
+    MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
@@ -141,6 +179,8 @@ describe('EventTraceView', () => {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({
@@ -153,9 +193,6 @@ describe('EventTraceView', () => {
 
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('link', {name: 'View Full Trace'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
   });
 });

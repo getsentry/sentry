@@ -46,7 +46,7 @@ function UserAvatar({
 
   const type = getType(user, gravatar);
   let tooltip: React.ReactNode = null;
-  if (isRenderFunc<RenderTooltipFunc>(renderTooltip)) {
+  if (isRenderFunc(renderTooltip)) {
     tooltip = renderTooltip(user);
   } else if (props.tooltip) {
     tooltip = props.tooltip;

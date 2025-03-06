@@ -12,7 +12,7 @@ import jsonschema
 from django.conf import settings
 from django.db import models
 from django.db.models import Case, IntegerField, Q, Value, When
-from django.db.models.signals import post_delete, pre_save
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -195,12 +195,14 @@ class MonitorType:
     # monitors. But for now we just have CRON_JOB style monitors.
     UNKNOWN = 0
     CRON_JOB = 3
+    UPTIME = 4
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNKNOWN, "unknown"),
             (cls.CRON_JOB, "cron_job"),
+            (cls.UPTIME, "uptime"),
         )
 
     @classmethod
@@ -230,8 +232,6 @@ class Monitor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
 
-    # TODO(epurkhiser): Muted is moving to its own boolean column, this should
-    # become object status again
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
@@ -475,7 +475,7 @@ class MonitorCheckIn(Model):
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     """
     XXX(epurkhiser): Currently unused
@@ -501,6 +501,25 @@ class MonitorCheckIn(Model):
     Represents the time the checkin was made. This CAN BE back-dated in some
     cases, and does not necessarily represent the insertion time of the row in
     the database.
+
+    This date comes from the time relay reiceved the envelope containing the
+    check-in.
+    """
+
+    date_clock = models.DateTimeField(null=True)
+    """
+    Represents the "clock time" that this check in was recorded at. Since the
+    stream of check-ins is processed within the context of a clock that only
+    moves forward as we process kafka messages, this time represents the time
+    at which we processed this check-in, in relation to all other tasks (such
+    as detecting misses)
+    """
+
+    date_created = models.DateTimeField(default=timezone.now, null=True)
+    """
+    Represents when the check-in was actually recorded into the database. This
+    is a real wall-clock time and is not tied to the "clock" time that
+    check-ins are processed in the contenxt of.
     """
 
     date_updated = models.DateTimeField(default=timezone.now)
@@ -532,8 +551,6 @@ class MonitorCheckIn(Model):
     Trace ID associated during this check-in. Useful to find associated events
     that occurred during the check-in.
     """
-
-    attachment_id = BoundedBigIntegerField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
@@ -582,16 +599,6 @@ class MonitorCheckIn(Model):
     # what we want to happen, so kill it here
     def _update_timestamps(self):
         pass
-
-
-def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
-    if file_id := instance.attachment_id:
-        from sentry.models.files import File
-
-        File.objects.filter(id=file_id).delete()
-
-
-post_delete.connect(delete_file_for_monitorcheckin, sender=MonitorCheckIn)
 
 
 @region_silo_model

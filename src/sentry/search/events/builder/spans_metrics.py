@@ -8,6 +8,13 @@ from sentry.search.events.builder.metrics import (
 )
 from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import SelectType
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
+
+SIZE_FIELDS = {
+    "http.decoded_response_content_length": "byte",
+    "http.response_content_length": "byte",
+    "http.response_transfer_size": "byte",
+}
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
@@ -15,6 +22,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     spans_metrics_builder = True
     has_transaction = False
     config_class = SpansMetricsDatasetConfig
+    size_fields = SIZE_FIELDS
 
     column_remapping = {
         # We want to remap `message` to `span.description` for the free
@@ -32,6 +40,15 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
             return self.meta_resolver_map[field]
         if field in ["span.duration", "span.self_time"]:
             return "duration"
+
+        if unit := self.size_fields.get(field):
+            return unit
+
+        mri = constants.SPAN_METRICS_MAP.get(field)
+        if mri is not None:
+            parsed_mri = parse_mri(mri)
+            if parsed_mri is not None and parsed_mri.unit in constants.RESULT_TYPES:
+                return parsed_mri.unit
 
         return None
 

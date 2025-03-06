@@ -83,8 +83,8 @@ describe('OrganizationJoinRequest', function () {
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
-      expect(addErrorMessage).toHaveBeenCalled();
     });
+    expect(addErrorMessage).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });

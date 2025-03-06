@@ -19,6 +19,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
@@ -36,7 +37,7 @@ type RouteParams = {
   projectId?: string;
 };
 
-type AlertWizardProps = RouteComponentProps<RouteParams, {}> & {
+type AlertWizardProps = RouteComponentProps<RouteParams> & {
   organization: Organization;
   projectId: string;
 };
@@ -57,6 +58,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
 
   function renderCreateAlertButton() {
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
@@ -72,7 +74,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
       metricRuleTemplate = {...metricRuleTemplate, query: 'is:unresolved'};
     }
 
-    const renderNoAccess = p => (
+    const renderNoAccess = (p: any) => (
       <Hovercard
         body={
           <FeatureDisabled
@@ -115,13 +117,18 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               disabled={!hasFeature}
               priority="primary"
               to={{
-                pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert
-                    ? AlertRuleType.METRIC
-                    : alertOption === 'uptime_monitor'
-                      ? AlertRuleType.UPTIME
-                      : AlertRuleType.ISSUE
-                }/`,
+                pathname: makeAlertsPathname({
+                  organization,
+                  path: `/new/${
+                    isMetricAlert
+                      ? AlertRuleType.METRIC
+                      : alertOption === 'uptime_monitor'
+                        ? AlertRuleType.UPTIME
+                        : alertOption === 'crons_monitor'
+                          ? AlertRuleType.CRONS
+                          : AlertRuleType.ISSUE
+                  }/`,
+                }),
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
                   project: projectSlug,
@@ -158,14 +165,16 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
           <WizardBody>
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
-                ({categoryHeading, options}) => (
+                ({categoryHeading, options}: any) => (
                   <div key={categoryHeading}>
                     <CategoryTitle>{categoryHeading} </CategoryTitle>
                     <WizardGroupedOptions
-                      choices={options.map(alertType => {
+                      choices={options.map((alertType: any) => {
                         return [
                           alertType,
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardAlertNames[alertType],
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardExtraContent[alertType],
                         ];
                       })}
@@ -236,6 +245,7 @@ const WizardOptions = styled('div')`
 
 const WizardImage = styled('img')`
   max-height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`

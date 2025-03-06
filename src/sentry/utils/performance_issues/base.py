@@ -240,8 +240,6 @@ def total_span_time(span_list: list[dict[str, Any]]) -> float:
     return total_duration * 1000
 
 
-PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
-
 PARAMETERIZED_URL_REGEX = re.compile(
     r"""(?x)
     (?P<uuid>

@@ -23,14 +23,15 @@ class AuthOrganizationLoginView(AuthLoginView):
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request: Request, organization: RpcOrganization, auth_provider):
-        referrer = request.GET.get("referrer")
         if request.method == "POST":
             helper = AuthHelper(
                 request=request,
                 organization=organization,
                 auth_provider=auth_provider,
                 flow=AuthHelper.FLOW_LOGIN,
-                referrer=referrer,  # TODO: get referrer from the form submit - not the query parms
+                referrer=request.GET.get(
+                    "referrer"
+                ),  # TODO: get referrer from the form submit - not the query parms
             )
 
             if request.POST.get("init"):
@@ -47,13 +48,10 @@ class AuthOrganizationLoginView(AuthLoginView):
 
         provider = auth_provider.get_provider()
 
-        context = {
-            "CAN_REGISTER": False,
-            "organization": organization,
+        context = self.get_default_context(request, organization=organization) | {
             "provider_key": provider.key,
             "provider_name": provider.name,
             "authenticated": request.user.is_authenticated,
-            "referrer": referrer,
         }
 
         return self.respond("sentry/organization-login.html", context)

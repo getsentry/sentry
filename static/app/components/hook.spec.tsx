@@ -5,7 +5,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
 
-function HookWrapper(props) {
+function HookWrapper(props: any) {
   return (
     <div data-test-id="hook-wrapper">
       {props.children}

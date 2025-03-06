@@ -33,7 +33,7 @@ import {
 
 import VitalDetailContent from './vitalDetailContent';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   api: Client;
   loadingProjects: boolean;
   organization: Organization;
@@ -47,19 +47,13 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(
-      this.props.location,
-      this.props.organization
-    ),
+    eventView: generatePerformanceVitalDetailView(this.props.location),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(
-        nextProps.location,
-        nextProps.organization
-      ),
+      eventView: generatePerformanceVitalDetailView(nextProps.location),
     };
   }
 

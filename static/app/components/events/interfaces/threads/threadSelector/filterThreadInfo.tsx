@@ -9,7 +9,7 @@ import getRelevantFrame from './getRelevantFrame';
 import getThreadException from './getThreadException';
 import getThreadStacktrace from './getThreadStacktrace';
 
-type ThreadInfo = {
+export type ThreadInfo = {
   crashedInfo?: EntryData;
   filename?: string;
   label?: string;

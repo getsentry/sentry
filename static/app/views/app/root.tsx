@@ -3,8 +3,8 @@ import {useEffect} from 'react';
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**
  * This view is used when a user lands on the route `/` which historically
@@ -19,6 +19,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
  */
 function AppRoot() {
   const {lastOrganization} = useLegacyStore(ConfigStore);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!lastOrganization) {
@@ -28,8 +29,8 @@ function AppRoot() {
     const orgSlug = lastOrganization;
     const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug});
 
-    browserHistory.replace(url);
-  }, [lastOrganization]);
+    navigate(url, {replace: true});
+  }, [lastOrganization, navigate]);
 
   return null;
 }

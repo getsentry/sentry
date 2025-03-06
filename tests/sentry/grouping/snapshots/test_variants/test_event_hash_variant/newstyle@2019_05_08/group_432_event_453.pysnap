@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:22:50.079646+00:00'
+created: '2025-02-26T00:33:27.470796+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -130,6 +131,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "50325a901e2db771dca1291283d8b54e"
+  contributing component: exception
   component:
     system*
       exception*
@@ -174,12 +176,12 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "xtree"
             function*
               "std::_Tree<T>::insert<T>"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "xtree"
             function*

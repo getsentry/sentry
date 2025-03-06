@@ -11,16 +11,16 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.relocations.index import (
-    get_autopause_value,
-    validate_relocation_uniqueness,
-)
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organization import OrganizationStatus
-from sentry.models.relocation import Relocation
-from sentry.tasks.relocation import uploading_start
+from sentry.relocation.api.endpoints.index import (
+    get_autopause_value,
+    validate_relocation_uniqueness,
+)
+from sentry.relocation.models.relocation import Relocation
+from sentry.relocation.tasks.process import uploading_start
 from sentry.types.region import get_local_region
 from sentry.utils.db import atomic_transaction
 

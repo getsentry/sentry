@@ -13,6 +13,7 @@ from sentry.security.utils import capture_security_activity
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
+from sentry.web.frontend.twofactor import reset_2fa_rate_limits
 
 
 class UserPasswordSerializer(serializers.Serializer[User]):
@@ -89,4 +90,7 @@ class UserPasswordEndpoint(UserEndpoint):
             ip_address=request.META["REMOTE_ADDR"],
             send_email=True,
         )
+
+        reset_2fa_rate_limits(user.id)
+
         return Response(status=status.HTTP_204_NO_CONTENT)

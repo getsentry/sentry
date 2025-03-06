@@ -256,7 +256,7 @@ export class MockSpan {
 
     for (let i = 0; i < depth; i++) {
       currentSpan.addChild(currentSpan.getOpts());
-      currentSpan = currentSpan.children[0];
+      currentSpan = currentSpan.children[0]!;
     }
 
     return this;

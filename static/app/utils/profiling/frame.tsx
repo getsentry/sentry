@@ -26,9 +26,9 @@ export class Frame {
 
   readonly isRoot: boolean;
 
-  totalWeight: number = 0;
-  selfWeight: number = 0;
-  aggregateDuration: number = 0;
+  totalWeight = 0;
+  selfWeight = 0;
+  aggregateDuration = 0;
 
   static Root = new Frame({
     key: ROOT_KEY,
@@ -118,7 +118,7 @@ export class Frame {
           if (match?.groups) {
             const {maybeScopeOrPackage, maybePackage} = match.groups;
 
-            if (maybeScopeOrPackage.startsWith('@')) {
+            if (maybeScopeOrPackage!.startsWith('@')) {
               this.module = `${maybeScopeOrPackage}/${maybePackage}`;
             } else {
               this.module = match.groups.maybeScopeOrPackage;

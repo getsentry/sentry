@@ -18,7 +18,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.asserts import assert_mock_called_once_with_partial, assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -223,6 +223,7 @@ class StatusActionTest(APITestCase):
         assert activity.data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
+            "assigneeName": self.team.name,
             "assigneeType": "team",
             "integration": ActivityIntegration.MSTEAMS.value,
         }
@@ -242,14 +243,12 @@ class StatusActionTest(APITestCase):
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
+            "assigneeName": self.user.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.MSTEAMS.value,
         }
 
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

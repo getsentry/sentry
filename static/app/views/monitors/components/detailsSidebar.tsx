@@ -32,7 +32,7 @@ interface Props {
   showUnknownLegend?: boolean;
 }
 
-export default function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) {
+export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) {
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
   const {onClick, label} = useCopyToClipboard({text: monitor.slug});
 
@@ -155,6 +155,10 @@ const CheckIns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const Schedule = styled('div')`

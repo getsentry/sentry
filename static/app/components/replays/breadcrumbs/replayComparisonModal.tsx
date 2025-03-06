@@ -1,45 +1,58 @@
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
+import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {type HydrationErrorFrame, isHydrateCrumb} from 'sentry/utils/replays/types';
 
 interface Props extends ModalRenderProps {
-  leftOffsetMs: number;
+  frameOrEvent: HydrationErrorFrame | Event;
+  initialLeftOffsetMs: number;
+  initialRightOffsetMs: number;
   organization: Organization;
   replay: ReplayReader;
-  rightOffsetMs: number;
 }
 
 export default function ReplayComparisonModal({
   Body,
   Header,
-  leftOffsetMs,
-  organization,
+  frameOrEvent,
+  initialLeftOffsetMs,
+  initialRightOffsetMs,
   replay,
-  rightOffsetMs,
 }: Props) {
   // Callbacks set by GlobalModal on-render.
   // We need these to interact with feedback opened while a modal is active.
   const {focusTrap} = useGlobalModal();
 
-  const isSameTimestamp = leftOffsetMs === rightOffsetMs;
+  const isSameTimestamp = initialLeftOffsetMs === initialRightOffsetMs;
 
   return (
-    <OrganizationContext.Provider value={organization}>
-      <AnalyticsArea name="hydration-error-modal">
+    <AnalyticsArea name="hydration-error-modal">
+      <DiffCompareContextProvider
+        replay={replay}
+        frameOrEvent={frameOrEvent}
+        initialLeftOffsetMs={initialLeftOffsetMs}
+        initialRightOffsetMs={initialRightOffsetMs}
+      >
         <Header closeButton>
           <ModalHeader>
             <Title>
@@ -60,40 +73,63 @@ export default function ReplayComparisonModal({
                 <IconInfo />
               </Tooltip>
             </Title>
-            <LearnMoreButton />
-            {focusTrap ? (
-              <FeedbackWidgetButton
-                optionOverrides={{
-                  onFormOpen: () => {
-                    focusTrap.pause();
-                  },
-                  onFormClose: () => {
-                    focusTrap.unpause();
-                  },
-                }}
-              />
-            ) : null}
+            <Flex gap={space(1)}>
+              {isHydrateCrumb(frameOrEvent) ? (
+                <AutoWideHovercard
+                  body={<DiffTimestampPicker />}
+                  onHover={() => focusTrap?.pause()}
+                  onBlur={() => focusTrap?.unpause()}
+                >
+                  <Button
+                    aria-label={t('Adjust diff')}
+                    icon={<IconSliders size="md" direction="up" />}
+                    borderless
+                  />
+                </AutoWideHovercard>
+              ) : null}
+              {focusTrap ? (
+                <FeedbackWidgetButton
+                  optionOverrides={{
+                    onFormOpen: () => {
+                      focusTrap.pause();
+                    },
+                    onFormClose: () => {
+                      focusTrap.unpause();
+                    },
+                  }}
+                />
+              ) : null}
+            </Flex>
           </ModalHeader>
         </Header>
         <Body>
           {isSameTimestamp ? (
-            <Alert type="warning" showIcon>
-              {t(
-                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning" showIcon>
+                {t(
+                  "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
+                )}
+              </Alert>
+            </Alert.Container>
           ) : null}
-
-          <ReplayDiffChooser
-            replay={replay}
-            leftOffsetMs={leftOffsetMs}
-            rightOffsetMs={rightOffsetMs}
-          />
+          <RelativePosition>
+            <ReplayDiffChooser />
+            <AbsoluteTopRight>
+              <LearnMoreButton
+                onHover={() => focusTrap?.pause()}
+                onBlur={() => focusTrap?.unpause()}
+              />
+            </AbsoluteTopRight>
+          </RelativePosition>
         </Body>
-      </AnalyticsArea>
-    </OrganizationContext.Provider>
+      </DiffCompareContextProvider>
+    </AnalyticsArea>
   );
 }
+
+const AutoWideHovercard = styled(Hovercard)`
+  width: auto;
+`;
 
 const ModalHeader = styled('div')`
   display: flex;
@@ -115,4 +151,15 @@ export const Before = styled('span')`
 export const After = styled('span')`
   color: ${p => p.theme.green300};
   font-weight: bold;
+`;
+
+const RelativePosition = styled('div')`
+  position: relative;
+  height: 100%;
+`;
+
+const AbsoluteTopRight = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;

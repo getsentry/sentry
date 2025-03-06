@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -7,10 +8,9 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler
+from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
@@ -29,16 +29,29 @@ class Action(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
     __repr__ = sane_repr("id", "type")
 
-    class Type(models.TextChoices):
-        NOTIFICATION = "notification"
+    class Type(StrEnum):
+        SLACK = "slack"
+        MSTEAMS = "msteams"
+        DISCORD = "discord"
+
+        PAGERDUTY = "pagerduty"
+        OPSGENIE = "opsgenie"
+
+        GITHUB = "github"
+        GITHUB_ENTERPRISE = "github_enterprise"
+        JIRA = "jira"
+        JIRA_SERVER = "jira_server"
+        AZURE_DEVOPS = "azure_devops"
+
+        EMAIL = "email"
+        SENTRY_APP = "sentry_app"
+
+        PLUGIN = "plugin"
         WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
-    type = models.TextField(choices=Type.choices)
+    type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)
-
-    # TODO - finish removing this field
-    required = models.BooleanField(default=False, null=True)
 
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
     # This allows us to map the way we're saving the notification channels to the action.
@@ -59,7 +72,7 @@ class Action(DefaultFieldsModel):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, evt: GroupEvent, detector: Detector) -> None:
+    def trigger(self, job: WorkflowJob, detector: Detector) -> None:
         # get the handler for the action type
         handler = self.get_handler()
-        handler.execute(evt, self, detector)
+        handler.execute(job, self, detector)

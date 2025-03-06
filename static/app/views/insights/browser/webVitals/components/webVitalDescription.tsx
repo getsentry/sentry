@@ -1,8 +1,9 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -40,22 +41,89 @@ const WEB_VITAL_FULL_NAME_MAP = {
   ttfb: t('Time to First Byte'),
 };
 
-const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
-  [WebVital.FCP]: t(
-    'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.'
-  ),
-  [WebVital.CLS]: t(
-    'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.'
-  ),
-  [WebVital.LCP]: t(
-    'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.'
-  ),
-  [WebVital.TTFB]: t(
-    'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
-  ),
-  [WebVital.INP]: t(
-    "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all click, tap, and keyboard interactions that occur throughout the lifespan of a user's visit to a page. The final INP value is the longest interaction observed, ignoring outliers."
-  ),
+export const VITAL_DESCRIPTIONS: Partial<
+  Record<
+    WebVital,
+    {longDescription: string; shortDescription: string; link?: React.ReactNode}
+  >
+> = {
+  [WebVital.FCP]: {
+    shortDescription: t(
+      'Time for first DOM content to render. Bad FCP makes users feel like the page isn’t responding or loading.'
+    ),
+    longDescription: t(
+      'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.'
+    ),
+    link: (
+      <ExternalLink
+        openInNewTab
+        href="https://blog.sentry.io/how-to-make-your-web-page-faster-before-it-even-loads/"
+      >
+        How can I fix my FCP?
+      </ExternalLink>
+    ),
+  },
+  [WebVital.CLS]: {
+    shortDescription: t(
+      'Measures content ‘shifting’ during load. Bad CLS indicates a janky website, degrading UX and trust.'
+    ),
+    longDescription: t(
+      'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.'
+    ),
+    link: (
+      <ExternalLink
+        openInNewTab
+        href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/"
+      >
+        How can I fix my CLS?
+      </ExternalLink>
+    ),
+  },
+  [WebVital.LCP]: {
+    shortDescription: t(
+      'Time to render the largest item in the viewport. Bad LCP frustrates users because the website feels slow to load.'
+    ),
+    longDescription: t(
+      'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.'
+    ),
+    link: (
+      <ExternalLink
+        openInNewTab
+        href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/"
+      >
+        How can I fix my LCP?
+      </ExternalLink>
+    ),
+  },
+  [WebVital.TTFB]: {
+    shortDescription: t(
+      'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
+    ),
+    longDescription: t(
+      'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
+    ),
+    link: (
+      <ExternalLink
+        openInNewTab
+        href="https://blog.sentry.io/how-i-fixed-my-brutal-ttfb/"
+      >
+        How can I fix my TTFB?
+      </ExternalLink>
+    ),
+  },
+  [WebVital.INP]: {
+    shortDescription: t(
+      'Latency between user input and visual response. Bad INP makes users feel like the site is laggy, outdated, and unresponsive. '
+    ),
+    longDescription: t(
+      "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all click, tap, and keyboard interactions that occur throughout the lifespan of a user's visit to a page. The final INP value is the longest interaction observed, ignoring outliers."
+    ),
+    link: (
+      <ExternalLink openInNewTab href="https://blog.sentry.io/what-is-inp/">
+        How can I fix my INP?
+      </ExternalLink>
+    ),
+  },
 };
 
 type WebVitalDetailHeaderProps = {
@@ -66,9 +134,8 @@ type WebVitalDetailHeaderProps = {
 };
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
-  const theme = useTheme();
-  const colors = theme.charts.getColorPalette(3);
-  const dotColor = colors[ORDER.indexOf(webVital)];
+  const colors = getChartColorPalette(3);
+  const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (
@@ -96,8 +163,7 @@ export function WebVitalTagsDetailHeader({
   tag,
   isProjectScoreCalculated,
 }: WebVitalDetailHeaderProps) {
-  const theme = useTheme();
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringSegmentColors = getChartColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
   const title =
     tag.key === 'geo.country_code' ? COUNTRY_CODE_TO_NAME_MAP[tag.name] : tag.name;
@@ -136,11 +202,17 @@ export function WebVitalTagsDetailHeader({
 }
 
 export function WebVitalDescription({score, value, webVital}: Props) {
-  const description: string = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const {longDescription, link} = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
+
   return (
     <div>
       <WebVitalDetailHeader score={score} value={value} webVital={webVital} />
-      <p>{description}</p>
+      <DescriptionWrapper>
+        {longDescription}
+        {link}
+      </DescriptionWrapper>
+
       <p>
         <b>
           {tct(
@@ -152,9 +224,9 @@ export function WebVitalDescription({score, value, webVital}: Props) {
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
           <BrowserItem key={browser}>
-            {vitalSupportedBrowsers[WebVital[webVital.toUpperCase()]]?.includes(
-              browser
-            ) ? (
+            {vitalSupportedBrowsers[
+              WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
+            ]?.includes(browser) ? (
               <IconCheckmark color="successText" size="sm" />
             ) : (
               <IconClose color="dangerText" size="sm" />
@@ -185,6 +257,12 @@ const Header = styled('span')`
   margin-bottom: ${space(3)};
 `;
 
+const DescriptionWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: ${space(2)};
+`;
+
 const Value = styled('h2')`
   display: flex;
   align-items: center;
@@ -194,7 +272,6 @@ const Value = styled('h2')`
 
 const WebVitalName = styled('h4')`
   margin-bottom: ${space(1)};
-  margin-top: 40px;
   max-width: 400px;
   ${p => p.theme.overflowEllipsis}
 `;
@@ -212,7 +289,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
 `;
 
-const ScoreBadge = styled('div')<{status: string}>`
+const ScoreBadge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   display: flex;
   justify-content: center;
   align-items: center;

@@ -9,10 +9,9 @@ from sentry.integrations.discord.client import USERS_GUILD_URL, DiscordClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -28,19 +27,14 @@ class DiscordUninstallTest(APITestCase):
     def setUp(self) -> None:
         self.integration = self.create_discord_integration(self.organization, self.user)
         self.login_as(self.user)
-        return
 
     def create_discord_integration(
         self,
         organization: Organization,
-        user: RpcUser | User | None,
+        user: RpcUser | User,
         guild_id: str = GUILD_ID,
         **kwargs: Any,
     ):
-        if user is None:
-            with assume_test_silo_mode(SiloMode.REGION):
-                user = organization.get_default_owner()
-
         integration = Factories.create_integration(
             provider="discord",
             name="Cool server",

@@ -78,16 +78,22 @@ class ReactMixin:
 
     def dns_prefetch(self) -> list[str]:
         regions = find_all_multitenant_region_names()
-        domains = []
         if len(regions) < 2:
-            return domains
-        for region_name in regions:
-            region = get_region_by_name(region_name)
-            domains.append(generate_region_url(region.name))
-        return domains
+            return []
+        return [
+            generate_region_url(get_region_by_name(region_name).name) for region_name in regions
+        ]
 
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
         org_context = getattr(self, "active_organization", None)
+        react_config = get_client_config(request, org_context)
+
+        user_theme = ""
+        if react_config.get("user", None) and react_config["user"].get("options", {}).get(
+            "theme", None
+        ):
+            user_theme = f"theme-{react_config['user']['options']['theme']}"
+
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -100,7 +106,8 @@ class ReactMixin:
             # Since we already have it here from the OrganizationMixin, we can
             # save some work and render it faster.
             "org_context": org_context,
-            "react_config": get_client_config(request, org_context),
+            "react_config": react_config,
+            "user_theme": user_theme,
         }
 
         # Force a new CSRF token to be generated and set in user's

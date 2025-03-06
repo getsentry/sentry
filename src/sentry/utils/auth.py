@@ -24,6 +24,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.demo_mode import is_demo_mode_enabled, is_demo_user
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
@@ -417,6 +418,8 @@ class EmailAuthBackend(ModelBackend):
         if users:
             for user in users:
                 try:
+                    if is_demo_mode_enabled() and is_demo_user(user):
+                        return user
                     if user.password:
                         # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
                         # password checking as a mechanism to drop old password hashers immediately and

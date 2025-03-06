@@ -95,7 +95,7 @@ export function getRelativeDateSuggestions(
   }
 
   const [, value] = match;
-  const intValue = parseInt(value, 10);
+  const intValue = parseInt(value!, 10);
 
   if (isNaN(intValue)) {
     return makeDefaultDateSuggestions(token);

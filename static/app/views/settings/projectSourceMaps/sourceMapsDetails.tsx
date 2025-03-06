@@ -2,8 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -21,7 +21,7 @@ import type {Artifact} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -99,10 +99,7 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = RouteComponentProps<
-  {bundleId: string; orgId: string; projectId: string},
-  {}
-> & {
+type Props = RouteComponentProps<{bundleId: string; orgId: string; projectId: string}> & {
   project: Project;
 };
 
@@ -122,12 +119,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
     project.slug
   }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/`;
 
-  // debug id bundles tab url
-  const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/${params.bundleId}/`
-  );
-
-  const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
+  const isDebugIdBundle = isUUID(params.bundleId);
 
   const {
     data: artifactsData,
@@ -143,7 +135,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
     {
       staleTime: 0,
       placeholderData: keepPreviousData,
-      enabled: !tabDebugIdBundlesActive,
+      enabled: !isDebugIdBundle,
     }
   );
 
@@ -161,7 +153,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
     {
       staleTime: 0,
       placeholderData: keepPreviousData,
-      enabled: tabDebugIdBundlesActive,
+      enabled: isDebugIdBundle,
     }
   );
 
@@ -193,37 +185,31 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
   return (
     <Fragment>
       <SettingsPageHeader
-        title={tabDebugIdBundlesActive ? params.bundleId : t('Release Bundle')}
+        title={isDebugIdBundle ? params.bundleId : t('Release Bundle')}
         action={
-          tabDebugIdBundlesActive && (
+          isDebugIdBundle && (
             <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
           )
         }
         subtitle={
-          !tabDebugIdBundlesActive && (
-            <VersionAndDetails>{params.bundleId}</VersionAndDetails>
-          )
+          !isDebugIdBundle && <VersionAndDetails>{params.bundleId}</VersionAndDetails>
         }
       />
-      {tabDebugIdBundlesActive && debugIdBundlesArtifactsData && (
+      {isDebugIdBundle && debugIdBundlesArtifactsData && (
         <DetailsPanel>
           <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
         </DetailsPanel>
       )}
       <SearchBarWithMarginBottom
-        placeholder={
-          tabDebugIdBundlesActive ? t('Filter by Path or ID') : t('Filter by Path')
-        }
+        placeholder={isDebugIdBundle ? t('Filter by Path or ID') : t('Filter by Path')}
         onSearch={handleSearch}
         query={query}
       />
       <StyledPanelTable
-        hasTypeColumn={tabDebugIdBundlesActive}
+        hasTypeColumn={isDebugIdBundle}
         headers={[
           t('Artifact'),
-          ...(tabDebugIdBundlesActive
-            ? [<TypeColumn key="type">{t('Type')}</TypeColumn>]
-            : []),
+          ...(isDebugIdBundle ? [<TypeColumn key="type">{t('Type')}</TypeColumn>] : []),
           <SizeColumn key="file-size">{t('File Size')}</SizeColumn>,
           '',
         ]}
@@ -233,16 +219,14 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
             : t('There are no artifacts in this upload.')
         }
         isEmpty={
-          (tabDebugIdBundlesActive
+          (isDebugIdBundle
             ? debugIdBundlesArtifactsData?.files ?? []
             : artifactsData ?? []
           ).length === 0
         }
-        isLoading={
-          tabDebugIdBundlesActive ? debugIdBundlesArtifactsLoading : artifactsLoading
-        }
+        isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
       >
-        {tabDebugIdBundlesActive
+        {isDebugIdBundle
           ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
@@ -297,12 +281,14 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
                       </TimeWrapper>
-                      <StyledTag
-                        type={data.dist ? 'info' : undefined}
-                        tooltipText={data.dist ? undefined : t('No distribution set')}
+                      <Tooltip
+                        title={data.dist ? undefined : t('No distribution set')}
+                        skipWrapper
                       >
-                        {data.dist ?? t('none')}
-                      </StyledTag>
+                        <StyledTag type={data.dist ? 'info' : undefined}>
+                          {data.dist ?? t('none')}
+                        </StyledTag>
+                      </Tooltip>
                     </TimeAndDistWrapper>
                   }
                 />
@@ -311,7 +297,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       </StyledPanelTable>
       <Pagination
         pageLinks={
-          tabDebugIdBundlesActive
+          isDebugIdBundle
             ? debugIdBundlesArtifactsHeaders?.('Link') ?? ''
             : artifactsHeaders?.('Link') ?? ''
         }

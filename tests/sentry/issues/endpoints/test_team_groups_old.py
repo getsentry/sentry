@@ -12,7 +12,7 @@ pytestmark = [requires_snuba]
 class TeamGroupsOldTest(APITestCase):
     endpoint = "sentry-api-0-team-oldest-issues"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(
@@ -51,7 +51,7 @@ class TeamGroupsOldTest(APITestCase):
         response = self.get_success_response(self.organization.slug, self.team.slug)
         assert [group["id"] for group in response.data] == [str(group2.id), str(group1.id)]
 
-    def test_filter_by_environment(self):
+    def test_filter_by_environment(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         environment = self.create_environment(name="prod", project=project1)
         self.create_environment(name="dev", project=project1)

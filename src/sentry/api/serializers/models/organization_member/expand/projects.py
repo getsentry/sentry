@@ -2,11 +2,14 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, cast
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import TeamStatus
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithProjectsResponse
@@ -19,7 +22,10 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         super().__init__(*args, **kwargs)
 
     def get_attrs(
-        self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
+        self,
+        item_list: Sequence[OrganizationMember],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 

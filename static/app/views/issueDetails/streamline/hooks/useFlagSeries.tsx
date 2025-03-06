@@ -39,6 +39,14 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
     evaluatedFlagNames?.includes(f.name)
   );
 
+  if (!intersectionFlags.length) {
+    return {
+      seriesName: t('Feature Flags'),
+      markLine: {},
+      data: [],
+    };
+  }
+
   // create a markline series using hydrated flag data
   const markLine = MarkLine({
     animation: false,

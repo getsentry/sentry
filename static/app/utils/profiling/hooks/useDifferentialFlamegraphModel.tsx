@@ -43,7 +43,7 @@ export function useDifferentialFlamegraphModel(
       'flamegraph',
       props.frameFilter
     );
-    return new Flamegraph(profile.profiles[0], {
+    return new Flamegraph(profile.profiles[0]!, {
       sort: flamegraphPreferences.sorting,
       inverted: flamegraphPreferences.view === 'bottom up',
     });
@@ -59,13 +59,7 @@ export function useDifferentialFlamegraphModel(
       return null;
     }
 
-    return importProfile(
-      props.after.data,
-      '',
-      null,
-      'flamegraph',
-      props.frameFilter
-    ) as ProfileGroup;
+    return importProfile(props.after.data, '', null, 'flamegraph', props.frameFilter);
   }, [props.after.data, props.frameFilter]);
 
   const afterFlamegraph = useMemo(() => {
@@ -73,7 +67,7 @@ export function useDifferentialFlamegraphModel(
       return null;
     }
 
-    return new Flamegraph(afterProfileGroup.profiles[0], {
+    return new Flamegraph(afterProfileGroup.profiles[0]!, {
       sort: flamegraphPreferences.sorting,
       inverted: flamegraphPreferences.view === 'bottom up',
     });

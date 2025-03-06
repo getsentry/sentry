@@ -39,7 +39,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
         return event
 
     @patch("boto3.client")

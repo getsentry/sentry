@@ -65,6 +65,30 @@ const mockSeries: UsageSeries = {
         'sum(quantity)': [1, 1, 1],
       },
     },
+    {
+      by: {
+        outcome: 'filtered',
+        reason: 'react-hydration-errors',
+      },
+      totals: {
+        'sum(quantity)': 6,
+      },
+      series: {
+        'sum(quantity)': [5, 0, 1],
+      },
+    },
+    {
+      by: {
+        outcome: 'filtered',
+        reason: 'chunk-load-error',
+      },
+      totals: {
+        'sum(quantity)': 2,
+      },
+      series: {
+        'sum(quantity)': [1, 0, 1],
+      },
+    },
   ],
 };
 
@@ -104,6 +128,24 @@ describe('mapSeriesToChart func', function () {
           {name: '2021-01-01T00:00:00Z', value: 2},
           {name: '2021-01-02T00:00:00Z', value: 3},
           {name: '2021-01-03T00:00:00Z', value: 4},
+        ],
+      },
+      {
+        parentLabel: 'Filtered',
+        label: 'React Hydration Errors',
+        data: [
+          {name: '2021-01-01T00:00:00Z', value: 5},
+          {name: '2021-01-02T00:00:00Z', value: 0},
+          {name: '2021-01-03T00:00:00Z', value: 1},
+        ],
+      },
+      {
+        parentLabel: 'Filtered',
+        label: 'Chunk Load Error',
+        data: [
+          {name: '2021-01-01T00:00:00Z', value: 1},
+          {name: '2021-01-02T00:00:00Z', value: 0},
+          {name: '2021-01-03T00:00:00Z', value: 1},
         ],
       },
     ]);
@@ -173,6 +215,6 @@ describe('mapSeriesToChart func', function () {
     });
 
     // sums up rate limited, abuse, and cardinality limited
-    expect(mappedSeries.cardStats.rateLimited).toEqual('11');
+    expect(mappedSeries.cardStats.rateLimited).toBe('11');
   });
 });

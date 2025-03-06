@@ -24,9 +24,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         super().setUp()
 
     def build_data_packet(self, **kwargs):
-        query_id = "1234"
+        source_id = "1234"
         return DataPacket[dict](
-            query_id, {"query_id": query_id, "group_vals": {"group_1": 6}, **kwargs}
+            source_id, {"source_id": source_id, "group_vals": {"group_1": 6}, **kwargs}
         )
 
     def test(self):
@@ -121,9 +121,16 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     def test_no_issue_type(self):
-        detector = self.create_detector(type="invalid slug")
+        detector = self.create_detector(type=self.handler_state_type.slug)
         data_packet = self.build_data_packet()
-        with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
+        with (
+            mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger,
+            mock.patch(
+                "sentry.workflow_engine.models.Detector.group_type",
+                return_value=None,
+                new_callable=mock.PropertyMock,
+            ),
+        ):
             results = process_detectors(data_packet, [detector])
             assert mock_logger.error.call_args[0][0] == "No registered grouptype for detector"
         assert results == []
@@ -138,6 +145,38 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 == "Registered grouptype for detector has no detector_handler"
             )
         assert results == []
+
+    def test_sending_metric_before_evaluating(self):
+        detector = self.create_detector(type=self.handler_type.slug)
+        data_packet = self.build_data_packet()
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_detectors(data_packet, [detector])
+
+            mock_incr.assert_called_once_with(
+                "workflow_engine.process_detector",
+                tags={"detector_type": detector.type},
+            )
+
+    def test_sending_metric_with_results(self):
+        detector = self.create_detector(type=self.update_handler_type.slug)
+        data_packet = self.build_data_packet()
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_detectors(data_packet, [detector])
+
+            mock_incr.assert_any_call(
+                "workflow_engine.process_detector.triggered",
+                tags={"detector_type": detector.type},
+            )
+
+    def test_doesnt_send_metric(self):
+        detector = self.create_detector(type=self.no_handler_type.slug)
+        data_packet = self.build_data_packet()
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_detectors(data_packet, [detector])
+            mock_incr.assert_not_called()
 
 
 class TestKeyBuilders(unittest.TestCase):
@@ -326,7 +365,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
         }
 
     def test_no_condition_group(self):
-        detector = self.create_detector()
+        detector = self.create_detector(type=self.handler_type.slug)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"

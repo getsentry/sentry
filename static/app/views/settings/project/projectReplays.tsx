@@ -12,12 +12,12 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };
@@ -73,7 +73,7 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
           </LinkButton>
         }
       />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <ReplaySettingsAlert />
 
       <Form

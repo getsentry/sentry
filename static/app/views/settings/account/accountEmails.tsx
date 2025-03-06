@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import AlertLink from 'sentry/components/alertLink';
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -32,13 +32,24 @@ const ENDPOINT = '/users/me/emails/';
 function AccountEmails() {
   const queryClient = useQueryClient();
 
-  const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (_change, model, id) => {
+  const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (response, model, id) => {
     queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
 
-    if (id === undefined) {
-      return;
+    if (id !== undefined) {
+      model.setValue(id, '');
     }
-    model.setValue(id, '');
+
+    if (response?.detail) {
+      addSuccessMessage(response.detail);
+    }
+  };
+
+  const handleSubmitError: FormProps['onSubmitError'] = (error, _model, _id) => {
+    const errorMessage = error?.responseJSON?.detail;
+
+    if (errorMessage) {
+      addErrorMessage(errorMessage);
+    }
   };
 
   return (
@@ -52,13 +63,20 @@ function AccountEmails() {
         saveOnBlur
         allowUndo={false}
         onSubmitSuccess={handleSubmitSuccess}
+        onSubmitError={handleSubmitError}
       >
         <JsonForm forms={accountEmailsFields} />
       </Form>
 
-      <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
-        {t('Want to change how many emails you get? Use the notifications panel.')}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink
+          to="/settings/account/notifications"
+          trailingItems={<IconStack />}
+          type="info"
+        >
+          {t('Want to change how many emails you get? Use the notifications panel.')}
+        </AlertLink>
+      </AlertLink.Container>
     </Fragment>
   );
 }

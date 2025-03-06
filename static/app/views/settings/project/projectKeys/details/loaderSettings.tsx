@@ -162,7 +162,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               label,
             }))}
             value={values.browserSdkVersion}
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({browserSdkVersion: value});
             }}
             disabledReason={
@@ -185,7 +185,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? values.hasPerformance
                 : false
             }
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({hasPerformance: value});
             }}
             disabled={
@@ -223,7 +223,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? values.hasReplay
                 : false
             }
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({hasReplay: value});
             }}
             disabled={
@@ -266,7 +266,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             label={t('Enable Debug Bundles & Logging')}
             name={`${keyId}-has-logging`}
             value={values.hasDebug}
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({hasDebug: value});
             }}
             disabled={!hasAccess || requestPending}
@@ -283,5 +283,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 }
 
 function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
-  return sdkVersion === 'latest' || sdkVersion === '7.x' || sdkVersion === '8.x';
+  return (
+    sdkVersion === 'latest' ||
+    sdkVersion === '7.x' ||
+    sdkVersion === '8.x' ||
+    sdkVersion === '9.x'
+  );
 }

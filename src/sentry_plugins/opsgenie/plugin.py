@@ -73,9 +73,6 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("api_key", "alert_url"))
 
-    def get_form_initial(self, project=None):
-        return {"alert_url": "https://api.opsgenie.com/v2/alerts"}
-
     @staticmethod
     def build_payload(group, event, triggering_rules):
         return {

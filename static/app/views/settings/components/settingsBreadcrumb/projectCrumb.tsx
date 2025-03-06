@@ -6,9 +6,9 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
@@ -17,7 +17,7 @@ import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}, {}> & {
+type Props = RouteComponentProps<{projectId?: string}> & {
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -31,6 +31,7 @@ function ProjectCrumb({
   route,
   ...props
 }: Props) {
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const handleSelect = (item: {value: string}) => {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
@@ -47,7 +48,7 @@ function ProjectCrumb({
       return;
     }
 
-    browserHistory.push(
+    navigate(
       recreateRoute(returnTo, {routes, params: {...params, projectId: item.value}})
     );
   };

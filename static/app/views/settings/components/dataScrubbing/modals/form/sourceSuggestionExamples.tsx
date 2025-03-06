@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
-  examples: Array<string>;
+  examples: string[];
   sourceName: string;
 };
 

@@ -7,12 +7,12 @@ import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import Radio from 'sentry/components/radio';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -91,7 +91,7 @@ const topJavaFrameworks: PlatformKey[] = [
   'java-log4j2',
 ];
 
-export const languageDescriptions = {
+export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   [SupportedLanguages.JAVASCRIPT]: t(
     'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
   ),
@@ -275,7 +275,7 @@ export function FrameworkSuggestionModal({
                       }
                     >
                       <RadioBox
-                        radioSize="small"
+                        size="sm"
                         checked={selectedFramework?.key === platform.id}
                         readOnly
                       />
@@ -313,7 +313,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
     <TopFrameworksImageWrapper>
       <TopFrameworkIcon
         size={84}
-        platform={top3[1].id}
+        platform={top3[1]!.id}
         angle={-34}
         radius={8}
         offset={-74}
@@ -321,7 +321,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[2].id}
+        platform={top3[2]!.id}
         angle={34}
         radius={8}
         offset={+74}
@@ -329,7 +329,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[0].id}
+        platform={top3[0]!.id}
         angle={0}
         radius={8}
         offset={0}

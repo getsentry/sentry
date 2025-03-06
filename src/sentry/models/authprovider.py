@@ -11,13 +11,7 @@ from bitfield import TypedClassBitField
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedPositiveIntegerField,
-    Model,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.hybridcloud.models.outbox import ControlOutbox
@@ -32,20 +26,6 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
     "integration. It is needed to provide the token used to provision members and teams. If this integration is "
     "deleted, your SCIM integration will stop working!"
 )
-
-
-@control_silo_model
-class AuthProviderDefaultTeams(Model):
-    # Completely defunct model.
-    __relocation_scope__ = RelocationScope.Excluded
-
-    authprovider_id = BoundedBigIntegerField()
-    team_id = BoundedBigIntegerField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_authprovider_default_teams"
-        unique_together = ()
 
 
 @control_silo_model

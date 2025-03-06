@@ -1,6 +1,6 @@
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -27,7 +27,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
     }
@@ -73,7 +73,7 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -113,11 +113,12 @@ export async function updateDashboardFavorite(
         },
       }
     );
+    addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse = response?.responseJSON ?? null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
     } else if (isFavorited) {
       addErrorMessage(t('Unable to favorite dashboard'));
     } else {
@@ -144,7 +145,7 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -191,7 +192,7 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -217,7 +218,7 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }
@@ -269,7 +270,7 @@ export function updateDashboardPermissions(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
     } else {
       addErrorMessage(t('Unable to update dashboard permissions'));
     }

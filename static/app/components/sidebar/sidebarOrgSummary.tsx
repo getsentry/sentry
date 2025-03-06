@@ -18,7 +18,9 @@ type Props = {
 const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props) => (
   <div {...props}>
     {organization.status.id === 'pending_deletion' ? (
-      <PendingDeletionAvatar data-test-id="pending-deletion-icon" />
+      <PendingDeletionAvatar data-test-id="pending-deletion-icon">
+        <IconWarning size="sm" color="gray200" />
+      </PendingDeletionAvatar>
     ) : (
       <OrganizationAvatar organization={organization} size={36} />
     )}
@@ -36,7 +38,8 @@ const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props)
   grid-template-columns: max-content minmax(0, 1fr);
   gap: ${space(1)};
   align-items: center;
-  padding: ${space(1)} ${p => p.theme.sidebar.menuSpacing};
+  /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */
+  padding: ${space(1)} 15px;
 `;
 
 const Name = styled('div')<{pendingDeletion: boolean}>`
@@ -64,9 +67,5 @@ const PendingDeletionAvatar = styled('div')`
   border: 2px dashed ${p => p.theme.gray200};
   border-radius: 4px;
 `;
-
-PendingDeletionAvatar.defaultProps = {
-  children: <IconWarning size="sm" color="gray200" />,
-};
 
 export default SidebarOrgSummary;

@@ -1,8 +1,8 @@
-import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -93,9 +93,9 @@ function Content({
     return null;
   }
 
-  const colors = (theme: Theme) =>
+  const colors = () =>
     currentFilter === SpanOperationBreakdownFilter.NONE
-      ? theme.charts.getColorPalette(1)
+      ? getChartColorPalette(1)
       : [filterToColor(currentFilter)];
 
   return <Chart series={transformData(chartData.data, false)} colors={colors} />;

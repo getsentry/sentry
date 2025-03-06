@@ -22,7 +22,11 @@ export default class EventDispatcher implements EventTarget {
   public dispatchEvent(event: Event): boolean {
     this.callbacks.get(event.type)?.forEach(cb => {
       try {
-        'handleEvent' in cb ? cb.handleEvent(event) : cb(event);
+        if ('handleEvent' in cb) {
+          cb.handleEvent(event);
+        } else {
+          cb(event);
+        }
       } catch (err) {
         // TODO: A callback failed, but we need to keep going
       }

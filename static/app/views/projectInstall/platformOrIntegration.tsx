@@ -11,7 +11,7 @@ import GettingStarted from './gettingStarted';
 import {ProjectInstallPlatform} from './platform';
 import {PlatformIntegrationSetup} from './platformIntegrationSetup';
 
-type Props = RouteComponentProps<{projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}>;
 
 function PlatformOrIntegration({params}: Props) {
   const organization = useOrganization();
@@ -31,6 +31,7 @@ function PlatformOrIntegration({params}: Props) {
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   const integrationSlug: string | undefined =
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     platformToIntegrationMap[currentPlatformKey];
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
 
@@ -48,7 +49,7 @@ function PlatformOrIntegration({params}: Props) {
 
   return (
     <OnboardingContextProvider>
-      <GettingStarted>
+      <GettingStarted withPadding>
         <ProjectInstallPlatform
           project={project}
           loading={loadingProjects}

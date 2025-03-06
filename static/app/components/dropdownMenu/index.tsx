@@ -32,7 +32,7 @@ function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
 /**
  * Recursively finds and returns disabled items
  */
-function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
+function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   return source.reduce<string[]>((acc, cur) => {
     if (cur.disabled) {
       // If an item is disabled, then its children will be inaccessible, so we
@@ -65,6 +65,7 @@ export interface DropdownMenuProps
       | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'shouldApplyMinWidth'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -155,6 +156,7 @@ function DropdownMenu({
   preventOverflowOptions,
   flipOptions,
   portalContainerRef,
+  shouldApplyMinWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -179,6 +181,7 @@ function DropdownMenu({
     preventOverflowOptions,
     flipOptions,
     onOpenChange,
+    shouldApplyMinWidth,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -238,7 +241,7 @@ function DropdownMenu({
             return (
               <Section key={item.key} title={item.label} items={item.children}>
                 {sectionItem => (
-                  <Item size={size} {...sectionItem}>
+                  <Item size={size} {...sectionItem} key={sectionItem.key}>
                     {sectionItem.label}
                   </Item>
                 )}
@@ -246,7 +249,7 @@ function DropdownMenu({
             );
           }
           return (
-            <Item size={size} {...item}>
+            <Item size={size} {...item} key={item.key}>
               {item.label}
             </Item>
           );

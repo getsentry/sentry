@@ -212,7 +212,7 @@ describe('ReplayReader', () => {
         method: 'getSDKOptions',
         expected: optionsFrame,
       },
-    ])('Calling $method will filter frames', ({method, expected}) => {
+    ] as const)('Calling $method will filter frames', ({method, expected}) => {
       const replay = ReplayReader.factory({
         attachments,
         errors: [],
@@ -221,7 +221,7 @@ describe('ReplayReader', () => {
       });
 
       const exec = replay?.[method];
-      expect(exec()).toStrictEqual(expected);
+      expect(exec?.()).toStrictEqual(expected);
     });
   });
 
@@ -450,7 +450,7 @@ describe('ReplayReader', () => {
 
     it('should adjust the end time and duration for the clip window', () => {
       // Duration should be between the clip start time and end time
-      expect(replay?.getDurationMs()).toEqual(10_000);
+      expect(replay?.getDurationMs()).toBe(10_000);
       // Start offset should be set
       expect(replay?.getStartOffsetMs()).toEqual(
         clipStartTimestamp.getTime() - replayStartedAt.getTime()

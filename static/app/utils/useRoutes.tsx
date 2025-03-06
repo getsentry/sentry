@@ -3,15 +3,15 @@ import {useMatches} from 'react-router-dom';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
-import {useRouteContext} from './useRouteContext';
+import {useTestRouteContext} from './useRouteContext';
 
-export function useRoutes(): PlainRoute<any>[] {
+export function useRoutes(): Array<PlainRoute<any>> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const legacyRouterContext = useRouteContext();
+  const testRouteContext = useTestRouteContext();
 
-  if (legacyRouterContext) {
-    return legacyRouterContext.routes;
+  if (testRouteContext) {
+    return testRouteContext.routes;
   }
 
   // eslint-disable-next-line react-hooks/rules-of-hooks

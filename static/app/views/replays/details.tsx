@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 
-import Alert from 'sentry/components/alert';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,10 +16,10 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -32,7 +32,6 @@ import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTr
 
 type Props = RouteComponentProps<
   {replaySlug: string},
-  {},
   any,
   TimeOffsetLocationQueryParams
 >;
@@ -55,7 +54,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     replay,
     replayId,
     replayRecord,
-  } = useReplayReader({
+  } = useLoadReplayReader({
     replaySlug,
     orgSlug,
   });
@@ -121,12 +120,14 @@ function ReplayDetails({params: {replaySlug}}: Props) {
         replayErrors={replayErrors}
       >
         <Layout.Page>
-          <Alert system type="warning" data-test-id="replay-deleted">
-            <Flex gap={space(0.5)}>
-              <IconDelete color="gray500" size="sm" />
-              {t('This replay has been deleted.')}
-            </Flex>
-          </Alert>
+          <Alert.Container>
+            <Alert system type="warning" data-test-id="replay-deleted">
+              <Flex gap={space(0.5)}>
+                <IconDelete color="gray500" size="sm" />
+                {t('This replay has been deleted.')}
+              </Flex>
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       </Page>
     );

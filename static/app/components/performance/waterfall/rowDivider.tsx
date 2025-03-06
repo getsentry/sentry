@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {IconAdd, IconFire, IconGraph, IconProfiling, IconSubtract} from 'sentry/icons';
+import {IconAdd, IconFire, IconProfiling, IconSubtract} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Aliases, Color} from 'sentry/utils/theme';
 
@@ -71,14 +71,6 @@ export function ErrorBadge() {
   return (
     <BadgeBorder color="error">
       <IconFire color="errorText" size="xs" />
-    </BadgeBorder>
-  );
-}
-
-export function MetricsBadge() {
-  return (
-    <BadgeBorder color="pink400">
-      <IconGraph color="pink400" size="xs" />
     </BadgeBorder>
   );
 }

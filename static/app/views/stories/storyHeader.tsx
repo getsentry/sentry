@@ -1,19 +1,44 @@
-import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import Link from 'sentry/components/links/link';
 import ThemeSwitcher from 'sentry/components/stories/themeSwitcher';
-import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-interface Props extends ComponentProps<'div'> {}
-
-export default function StoryHeader({style}: Props) {
+function SentryGradientLogo() {
   return (
-    <Flex as="header" justify="space-between" gap={space(2)} style={style}>
-      <H1>
-        <IconSentry size="xl" /> Component Library
-      </H1>
+    <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="500" height="500" rx="53" fill="url(#paint0_linear_0_22)" />
+      <path
+        d="M277.351 112.292C274.466 107.504 270.392 103.543 265.525 100.793C260.658 98.0433 255.163 96.5984 249.573 96.5984C243.983 96.5984 238.488 98.0433 233.621 100.793C228.754 103.543 224.68 107.504 221.795 112.292L176.101 190.556C211.01 207.984 240.752 234.241 262.376 266.718C283.999 299.196 296.751 336.765 299.365 375.694H267.282C264.672 342.324 253.394 310.214 234.564 282.541C215.734 254.868 190.004 232.592 159.92 217.917L117.629 291.042C134.541 298.626 149.274 310.341 160.475 325.11C171.675 339.878 178.983 357.225 181.726 375.556H108.045C107.172 375.494 106.327 375.215 105.588 374.746C104.848 374.276 104.237 373.629 103.81 372.865C103.383 372.1 103.153 371.241 103.141 370.365C103.128 369.489 103.334 368.624 103.74 367.847L124.157 333.125C117.239 327.354 109.334 322.883 100.823 319.931L80.6149 354.653C78.5111 358.261 77.1453 362.252 76.5969 366.393C76.0485 370.534 76.3284 374.742 77.4204 378.774C78.5123 382.806 80.3945 386.58 82.9576 389.878C85.5208 393.177 88.7137 395.932 92.351 397.986C97.1433 400.686 102.545 402.12 108.045 402.153H208.948C210.822 379.028 206.693 355.812 196.96 334.751C187.226 313.691 172.22 295.502 153.393 281.944L169.434 254.167C193.194 270.486 212.288 292.718 224.832 318.67C237.376 344.622 242.935 373.396 240.962 402.153H326.448C328.439 358.59 318.962 315.268 298.964 276.516C278.966 237.763 249.148 204.938 212.49 181.319L244.92 125.764C245.643 124.553 246.815 123.677 248.18 123.326C249.546 122.974 250.995 123.177 252.212 123.889C255.893 125.903 393.115 365.347 395.684 368.125C396.137 368.937 396.367 369.853 396.352 370.783C396.337 371.712 396.076 372.621 395.597 373.417C395.118 374.213 394.437 374.869 393.623 375.318C392.809 375.766 391.891 375.992 390.962 375.972H357.907C358.323 384.815 358.323 393.634 357.907 402.431H391.101C395.316 402.458 399.495 401.649 403.395 400.051C407.296 398.453 410.84 396.097 413.824 393.12C416.808 390.142 419.172 386.603 420.778 382.706C422.385 378.809 423.203 374.632 423.184 370.417C423.188 364.849 421.702 359.382 418.879 354.583L277.351 112.292Z"
+        fill="white"
+      />
+      <defs>
+        <linearGradient
+          id="paint0_linear_0_22"
+          x1="282.585"
+          y1="-24.8338"
+          x2="557.555"
+          y2="430.917"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#FC8B61" />
+          <stop offset="0.5" stopColor="#FC5F64" />
+          <stop offset="1" stopColor="#F32474" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+export function StoryHeader() {
+  return (
+    <Flex justify="space-between" align="center" gap={space(2)}>
+      <Link to="/stories">
+        <H1>
+          <SentryGradientLogo /> Component Library
+        </H1>
+      </Link>
       <ThemeSwitcher />
     </Flex>
   );
@@ -21,8 +46,15 @@ export default function StoryHeader({style}: Props) {
 
 const H1 = styled('h1')`
   margin: 0;
-
   display: flex;
   gap: ${space(1)};
   align-items: center;
+  font-size: 24px;
+  color: ${p => p.theme.textColor};
+
+  svg {
+    width: 36px;
+    height: 36px;
+    margin-right: ${space(0.5)};
+  }
 `;

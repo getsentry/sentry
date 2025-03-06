@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:29.160875+00:00'
+created: '2025-02-26T00:31:58.393479+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,6 +25,7 @@ metrics with tags: {
 contributing variants:
   system*
     hash: "69d066e455243e7c5762b7522b430ca9"
+    contributing component: exception
     component:
       system*
         exception*
@@ -32,18 +33,18 @@ contributing variants:
             frame*
               function*
                 "application_frame"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "malloc_zone_malloc"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "nanov2_malloc"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "nanov2_allocate"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "nanov2_allocate_from_block"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "nanov2_allocate_from_block.cold.1"

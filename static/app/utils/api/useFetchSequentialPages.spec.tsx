@@ -166,7 +166,7 @@ describe('useFetchSequentialPages', () => {
       'results starting at 0',
       'results starting at 10',
     ]);
-    expect(result.current.error).toEqual(undefined);
+    expect(result.current.error).toBeUndefined();
   });
 
   it('should stop fetching if there is an error', async () => {

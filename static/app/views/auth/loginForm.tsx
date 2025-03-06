@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -90,7 +90,11 @@ function LoginForm({authConfig}: Props) {
           </LostPasswordLink>
         }
       >
-        {error && <Alert type="error">{error}</Alert>}
+        {error && (
+          <Alert.Container>
+            <Alert type="error">{error}</Alert>
+          </Alert.Container>
+        )}
         <TextField
           name="username"
           placeholder={t('username or email')}

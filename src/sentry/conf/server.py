@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -27,8 +26,10 @@ from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
+from sentry.conf.types.taskworker import ScheduleConfigMap
+from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
-from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
+from sentry.utils.celery import make_split_task_queues
 from sentry.utils.types import Type, type_from_value
 
 
@@ -107,10 +108,10 @@ ENFORCE_PAGINATION = True if DEBUG else False
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-INTERNAL_IPS = ()
+INTERNAL_IPS: tuple[str, ...] = ()
 
 # List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS = ()
+SENTRY_DISALLOWED_IPS: tuple[str, ...] = ()
 
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
@@ -405,6 +406,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
+    "sentry.tempest",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -426,6 +428,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.issues.apps.Config",
     "sentry.feedback",
     "sentry.hybridcloud",
+    "sentry.relocation",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
@@ -525,7 +528,7 @@ STATIC_URL = "/_static/{version}/"
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # URL origin from where the static files are served.
-STATIC_ORIGIN = None
+STATIC_ORIGIN: str | None = None
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -771,6 +774,8 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -797,16 +802,15 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
-    "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.tempest.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.rules.processing.delayed_processing",
@@ -816,13 +820,14 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.dynamic_sampling.tasks.utils",
     "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.tasks.derive_code_mappings",
+    "sentry.tasks.auto_source_code_config",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.statistical_detectors",
+    "sentry.tempest.tasks",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
@@ -833,10 +838,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
+    "sentry.demo_mode.tasks",
 )
-
-# tmp(michal): Default configuration for post_process* queues split
-SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 
 # Enable split queue routing
 CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
@@ -854,7 +857,14 @@ CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
             "total": 3,
             "in_use": 3,
         },
-    }
+    },
+    "sentry.profiles.task.process_profile": {
+        "default_queue": "profiles.process",
+        "queues_config": {
+            "total": 3,
+            "in_use": 3,
+        },
+    },
 }
 CELERY_SPLIT_TASK_QUEUES_REGION = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION)
 
@@ -885,6 +895,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
+    Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -965,6 +976,7 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue("tempest", routing_key="tempest"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
@@ -973,7 +985,7 @@ CELERY_QUEUES_REGION = [
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
-    Queue("derive_code_mappings", routing_key="derive_code_mappings"),
+    Queue("auto_source_code_config", routing_key="auto_source_code_config"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
@@ -986,6 +998,7 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue("demo_mode", routing_key="demo_mode"),
 ]
 
 from celery.schedules import crontab
@@ -1032,7 +1045,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
-        "schedule": crontab_with_minute_jitter(hour="*/6"),
+        "schedule": crontab(hour="*/6", minute="0"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "deliver-webhooks-control": {
@@ -1040,6 +1053,12 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         # Run every 10 seconds as integration webhooks are delivered by this task
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
+    },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+        "options": {"expires": 3600},
     },
 }
 
@@ -1107,8 +1126,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
-        # Run every 3 hours
-        "schedule": crontab_with_minute_jitter(hour=3),
+        # 19:00 PDT, 22:00 EDT, 3:00 UTC
+        "schedule": crontab(hour="3", minute="0"),
         "options": {"expires": 3600 * 24},
     },
     "deliver-from-outbox": {
@@ -1181,6 +1200,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
     },
+    "poll_tempest": {
+        "task": "sentry.tempest.tasks.poll_tempest",
+        # Run every minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         # Run every 1 hour at minute 17
@@ -1225,8 +1250,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        # Run every 6 hours
-        "schedule": crontab(minute="0", hour="*/6"),
+        # Run once a day at 00:00
+        "schedule": crontab(minute="0", hour="0"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
@@ -1260,6 +1285,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.uptime.detectors.tasks.schedule_detections",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
+    },
+    "demo_mode_sync_artifact_bundles": {
+        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+        # Run every hour
+        "schedule": crontab(minute="0", hour="*/1"),
     },
 }
 
@@ -1329,12 +1359,21 @@ BGTASKS = {
 }
 
 # Taskworker settings #
+# Shared secret used to sign RPC requests to taskbrokers
+TASKWORKER_SHARED_SECRET: str | None = None
+
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
-TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_IMPORTS: tuple[str, ...] = (
+    # Used for tests
+    "sentry.taskworker.tasks.examples",
+)
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
+
+# Schedules for taskworker tasks to be spawned on.
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -1461,7 +1500,18 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
+        "SERVERS": [
+            {
+                "url": "https://{region}.sentry.io",
+                "variables": {
+                    "region": {
+                        "default": "us",
+                        "description": "The data-storage-location for an organization",
+                        "enum": ["us", "de"],
+                    },
+                },
+            },
+        ],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -1735,6 +1785,10 @@ SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
+# Flag storage backend
+SENTRY_FLAGSTORE = os.environ.get("SENTRY_FLAGSTORE", "sentry.tagstore.snuba.SnubaFlagStorage")
+SENTRY_FLAGSTORE_OPTIONS: dict[str, Any] = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
@@ -1777,8 +1831,6 @@ SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.Pos
 SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1  # relative to SENTRY_BACKEND_APM_SAMPLING
-
-SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
 SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
@@ -1851,9 +1903,6 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
-
-# Secret key for OpenAI
-OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
@@ -2208,6 +2257,11 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # The chunk size for files in the chunk upload. This is used for native debug
 # files and source maps, and directly translates to the chunk size in blob
 # store. MUST be a power of two.
+#
+# Note: Even if the power of two restriction is lifted in Sentry, Sentry CLI
+# versions ≤2.39.1 will error if the chunkSize returned by the server is
+# not a power of two. Changing this value to a non-power-of-two is therefore
+# a breaking API change.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
 # This flag tell DEVSERVICES to start the ingest-metrics-consumer in order to work on
@@ -2232,6 +2286,9 @@ SENTRY_USE_GROUP_ATTRIBUTES = True
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
+# This flag activates the taskbroker in devservices
+SENTRY_USE_TASKBROKER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2252,12 +2309,6 @@ SENTRY_USE_UPTIME = False
 #     )
 # }
 
-
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-# ubuntu: aarch64
-ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
@@ -2412,6 +2463,21 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "platform": "linux/amd64",
         }
     ),
+    "taskbroker": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/taskbroker:latest",
+            "ports": {"50051/tcp": 50051},
+            "environment": {
+                "TASKBROKER_KAFKA_CLUSTER": (
+                    "sentry_kafka"
+                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
+                    else "kafka-kafka-1"
+                ),
+            },
+            "only_if": settings.SENTRY_USE_TASKBROKER,
+            "platform": "linux/amd64",
+        }
+    ),
     "bigtable": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",
@@ -2493,7 +2559,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.11.1"
+SELF_HOSTED_STABLE_VERSION = "25.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2688,7 +2754,11 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:nuget",
         "name": "NuGet.org",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["portablepdb"]},
+        # We mark this source as "requires checksum" so that downloads of
+        # portable PDB fies that don't have a debug checksum won't even be
+        # attempted. Such downloads always fail with a 403 error. See
+        # https://github.com/getsentry/team-ingest/issues/643.
+        "filters": {"filetypes": ["portablepdb"], "requires_checksum": True},
         "url": "https://symbols.nuget.org/download/symbols/",
         "is_public": True,
     },
@@ -2701,15 +2771,21 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "is_public": True,
-    },
+    # Right now Symbolicator is not able to successfully download from
+    # the Intel source because the source doesn't accept custom user agents.
+    # Until we are confident we can spoof Symbolicator's user agent without
+    # abusing the source, we are disabling it. See
+    # https://github.com/getsentry/team-ingest/issues/642.
+    #
+    # "intel": {
+    #     "type": "http",
+    #     "id": "sentry:intel",
+    #     "name": "Intel",
+    #     "layout": {"type": "symstore"},
+    #     "filters": {"filetypes": ["pe", "pdb"]},
+    #     "url": "https://software.intel.com/sites/downloads/symbols/",
+    #     "is_public": True,
+    # },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -2890,6 +2966,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-attachments-dlq": "default",
     "ingest-transactions": "default",
     "ingest-transactions-dlq": "default",
+    "ingest-transactions-backlog": "default",
+    "ingest-spans": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
@@ -2907,6 +2985,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
+    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -2915,6 +2994,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "task-worker": "default",
+    "snuba-ourlogs": "default",
 }
 
 
@@ -2940,6 +3020,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "remote_subscriptions",
     "uptime",
     "workflow_engine",
+    "tempest",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -2980,6 +3061,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
+    "sentry.uptime.endpoints",
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
@@ -3033,9 +3115,6 @@ SENTRY_REPROCESSING_PAGE_SIZE = 10
 # How many event IDs to buffer up in Redis before sending them to Snuba. This
 # is about "remaining events" exclusively.
 SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
-
-# XXX(meredith): Temporary metrics indexer
-SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with
@@ -3114,6 +3193,8 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
+
+SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
@@ -3354,7 +3435,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integrations",
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
-    "sentry-api-0-group-participants",
     "sentry-api-0-shared-group-details",
     # Unscoped profiling URLs
     "sentry-api-0-profiling-project-profile",
@@ -3385,9 +3465,6 @@ APIGATEWAY_PROXY_SKIP_RELAY = False
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
-# Disable DDM entirely
-SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
-
 SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
@@ -3406,15 +3483,29 @@ SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 SEER_ANOMALY_DETECTION_VERSION = "v1"
 SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
-SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
+UPTIME_REGIONS = [
+    UptimeRegionConfig(
+        slug="default",
+        name="Default Region",
+        config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
+    ),
+]
+UPTIME_CONFIG_PARTITIONS = 128
+
+MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
+MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
+MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
+MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
-    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["system:multi-region"] = True
+    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+
+    # No multi-region in non-siloed ngrok dev.
+    SENTRY_FEATURES["system:multi-region"] = False
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
@@ -3469,3 +3560,9 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+if ngrok_host and SILO_DEVSERVER:
+    # In siloed mode + ngrok we enable multi-region so that
+    # the region API URL template is set to the ngrok host.
+    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_FEATURES["system:multi-region"] = True

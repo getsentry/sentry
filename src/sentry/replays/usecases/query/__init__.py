@@ -37,7 +37,9 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
+from sentry import options
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
+from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
@@ -46,8 +48,13 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
+VIEWED_BY_KEYS = ["viewed_by_me", "seen_by_me", "viewed_by_id", "seen_by_id"]
 NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
 DEFAULT_SORT_FIELD = "started_at"
+
+VIEWED_BY_DENYLIST_MSG = (
+    "Viewed by search has been disabled for your project due to a data irregularity."
+)
 
 PREFERRED_SOURCE = Literal["aggregated", "scalar"]
 
@@ -103,14 +110,19 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
+
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
                 if condition is None:
                     raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
-            except CouldNotParseValue:
-                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+            except CouldNotParseValue as e:
+                err_msg = f"Could not parse value for `{search_filter.key.name}`."
+                if e.args and e.args[0]:
+                    # avoid using str(e) as it may expose stack trace info
+                    err_msg += f" Detail: {e.args[0]}"
+                raise ParseError(err_msg)
 
             if look_back == "AND":
                 look_back = None
@@ -195,6 +207,15 @@ class QueryResponse:
     source: str
 
 
+def _has_viewed_by_filter(search_filter: SearchFilter | str | ParenExpression):
+    if isinstance(search_filter, SearchFilter):
+        return search_filter.key.name in VIEWED_BY_KEYS
+    if isinstance(search_filter, ParenExpression):
+        return any([_has_viewed_by_filter(child) for child in search_filter.children])
+
+    return False  # isinstance(search_filter, str) - not parseable
+
+
 def query_using_optimized_search(
     fields: list[str],
     search_filters: Sequence[SearchFilter | str | ParenExpression],
@@ -218,8 +239,15 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
-    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
+    viewed_by_denylist = options.get("replay.viewed-by.project-denylist")
+    if any([project_id in viewed_by_denylist for project_id in project_ids]):
+        # Skip all viewed by filters if in denylist
+        for search_filter in search_filters:
+            if _has_viewed_by_filter(search_filter):
+                raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
+    else:
+        # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+        search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     if preferred_source == "aggregated":
         query, referrer, source = _query_using_aggregated_strategy(

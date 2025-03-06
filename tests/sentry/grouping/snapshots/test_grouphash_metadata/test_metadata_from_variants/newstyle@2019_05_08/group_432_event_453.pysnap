@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:26.165742+00:00'
+created: '2025-02-26T00:31:53.511969+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,6 +25,7 @@ metrics with tags: {
 contributing variants:
   system*
     hash: "50325a901e2db771dca1291283d8b54e"
+    contributing component: exception
     component:
       system*
         exception*
@@ -60,12 +61,12 @@ contributing variants:
             frame*
               function*
                 "stripped_application_code"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "xtree"
               function*
                 "std::_Tree<T>::insert<T>"
-            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            frame*
               filename*
                 "xtree"
               function*

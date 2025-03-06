@@ -24,6 +24,15 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         label: t('Open Team Membership'),
         help: t('Allow organization members to freely join any team'),
+        confirm: {
+          isDangerous: true,
+          true: t(
+            'This will allow any members of your organization to freely join any team and access any project of your organization. Do you want to continue?'
+          ),
+          false: t(
+            'This will disallow free access to any team and project within your organization. Do you want to continue?'
+          ),
+        },
       },
       {
         name: 'allowMemberInvite',
@@ -32,13 +41,24 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Allow organization members to invite other members via email without needing org owner or manager approval.'
         ),
-        visible: ({features}) => features.has('members-invite-teammates'),
+        confirm: {
+          isDangerous: true,
+          true: t(
+            'This will allow any members of your organization to invite other members via email without needing org owner or manager approval. Do you want to continue?'
+          ),
+        },
       },
       {
         name: 'allowMemberProjectCreation',
         type: 'boolean',
         label: t('Let Members Create Projects'),
         help: t('Allow organization members to create and configure new projects.'),
+        confirm: {
+          isDangerous: true,
+          true: t(
+            'This will allow any members of your organization to create and configure new projects. Do you want to continue?'
+          ),
+        },
       },
       {
         name: 'eventsMemberAdmin',
@@ -47,6 +67,12 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
         ),
+        confirm: {
+          isDangerous: true,
+          true: t(
+            'This will allow any members of your organization to delete events. Do you want to continue?'
+          ),
+        },
       },
       {
         name: 'alertsMemberWrite',
@@ -55,6 +81,12 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
         ),
+        confirm: {
+          isDangerous: true,
+          true: t(
+            'This will allow any members of your organization to create, edit, and delete alert rules in all projects. Do you want to continue?'
+          ),
+        },
       },
       {
         name: 'attachmentsRole',

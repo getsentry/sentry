@@ -10,16 +10,6 @@ import click
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
-_DEV_METRICS_INDEXER_ARGS = [
-    # We don't really need more than 1 process.
-    "--processes",
-    "1",
-    # Avoid Offset out of range errors.
-    "--auto-offset-reset",
-    "latest",
-    "--no-strict-offset-reset",
-]
-
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
 #     daemons += [_get_daemon("my_new_daemon")]
@@ -30,6 +20,8 @@ _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
+    "taskworker": ["sentry", "run", "taskworker"],
+    "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -138,6 +130,16 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     type=click.Choice(["control", "region"]),
     help="The silo mode to run this devserver instance in. Choices are control, region, none",
 )
+@click.option(
+    "--taskworker/--no-taskworker",
+    default=False,
+    help="Run kafka-based task workers",
+)
+@click.option(
+    "--taskworker-scheduler/--no-taskworker-scheduler",
+    default=False,
+    help="Run periodic task scheduler for taskworkers.",
+)
 @click.argument(
     "bind",
     default=None,
@@ -164,6 +166,8 @@ def devserver(
     client_hostname: str,
     ngrok: str | None,
     silo: str | None,
+    taskworker: bool,
+    taskworker_scheduler: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -286,6 +290,12 @@ def devserver(
         click.echo("--ingest was provided, implicitly enabling --workers")
         workers = True
 
+    if taskworker:
+        daemons.append(_get_daemon("taskworker"))
+
+    if taskworker_scheduler:
+        daemons.append(_get_daemon("taskworker-scheduler"))
+
     if workers and not celery_beat:
         click.secho(
             "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
@@ -347,17 +357,26 @@ def devserver(
             if settings.SENTRY_USE_SPANS_BUFFER:
                 kafka_consumers.add("process-spans")
                 kafka_consumers.add("ingest-occurrences")
-                kafka_consumers.add("detect-performance-issues")
+                kafka_consumers.add("process-segments")
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        kafka_container_name = (
-            "kafka-kafka-1" if os.environ.get("USE_NEW_DEVSERVICES") == "1" else "sentry_kafka"
+        use_old_devservices = os.environ.get("USE_OLD_DEVSERVICES") == "1"
+        valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
+        kafka_container_name = "sentry_kafka" if use_old_devservices else "kafka-kafka-1"
+        kafka_container_warning_message = (
+            f"""
+Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
+Please run `sentry devservices up kafka` to start it."""
+            if use_old_devservices
+            else f"""
+Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+Please run `devservices up` to start it."""
         )
-        if kafka_container_name not in containers:
+        if not any(name in containers for name in valid_kafka_container_names):
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka
@@ -373,7 +392,7 @@ or:
 
     SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 
-and run `sentry devservices up kafka`.
+{kafka_container_warning_message}
 
 Alternatively, run without --workers.
         """

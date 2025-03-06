@@ -104,7 +104,7 @@ export class TagValueTable extends Component<Props, State> {
     columns: TagsTableColumn[]
   ) => {
     return (column: TableColumn<TagsTableColumnKeys>, index: number): React.ReactNode =>
-      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
+      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
@@ -171,6 +171,7 @@ export class TagValueTable extends Component<Props, State> {
     column: TableColumn<TagsTableColumnKeys>,
     dataRow: TableDataRow
   ): React.ReactNode => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const value = dataRow[column.key];
     const {location, eventView, organization} = parentProps;
 

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Button} from 'sentry/components/button';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,7 @@ type Props<V extends Values, K extends keyof V> = {
   onChange: (field: K, value: string) => void;
   onUpdateEventId: (eventId: string) => void;
   onValidate: (field: K) => () => void;
-  sourceSuggestions: Array<SourceSuggestion>;
+  sourceSuggestions: SourceSuggestion[];
   values: V;
 };
 

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 event_time = before_now(days=3)
@@ -29,7 +29,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "oh no",
                 "level": "error",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,

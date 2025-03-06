@@ -4,6 +4,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
 import useOrganization from 'sentry/utils/useOrganization';
+import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
@@ -46,7 +47,9 @@ export function ModulePageProviders({
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
         <Layout.Page>
-          <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+          <NoProjectMessage organization={organization}>
+            <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
+          </NoProjectMessage>
         </Layout.Page>
       </SentryDocumentTitle>
     </PageFiltersContainer>

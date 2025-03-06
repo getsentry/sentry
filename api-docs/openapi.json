@@ -15,10 +15,14 @@
   },
   "servers": [
     {
-      "url": "https://us.sentry.io/"
-    },
-    {
-      "url": "https://de.sentry.io/"
+      "url": "https://{region}.sentry.io",
+      "variables": {
+        "region": {
+          "default": "us",
+          "description": "The data-storage-location for an organization",
+          "enum": ["us", "de"]
+        }
+      }
     }
   ],
   "tags": [
@@ -102,7 +106,7 @@
     "/api/0/organizations/{organization_id_or_slug}/repos/{repo_id}/commits/": {
       "$ref": "paths/organizations/repo-commits.json"
     },
-    "/api/0/organizations/{organization_id_or_slug}/shortids/{short_id}/": {
+    "/api/0/organizations/{organization_id_or_slug}/shortids/{issue_id}/": {
       "$ref": "paths/organizations/shortid.json"
     },
     "/api/0/projects/": {

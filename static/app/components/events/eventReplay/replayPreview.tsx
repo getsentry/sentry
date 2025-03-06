@@ -1,11 +1,11 @@
 import type {ComponentProps} from 'react';
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import type {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Alert} from 'sentry/components/core/alert';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,7 +60,7 @@ function ReplayPreview({
   orgSlug,
   replaySlug,
 }: Props) {
-  const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
+  const {fetching, replay, replayRecord, fetchError, replayId} = useLoadReplayReader({
     orgSlug,
     replaySlug,
   });
@@ -79,22 +79,29 @@ function ReplayPreview({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
 
+  useEffect(() => {
+    if (fetchError) {
+      trackAnalytics('replay.render-missing-replay-alert', {
+        organization,
+        surface: 'issue details - old preview',
+      });
+    }
+  }, [organization, fetchError]);
+
   if (replayRecord?.is_archived) {
     return (
-      <Alert type="warning" data-test-id="replay-error">
-        <Flex gap={space(0.5)}>
-          <IconDelete color="gray500" size="sm" />
-          {t('The replay for this event has been deleted.')}
-        </Flex>
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" data-test-id="replay-error">
+          <Flex gap={space(0.5)}>
+            <IconDelete color="gray500" size="sm" />
+            {t('The replay for this event has been deleted.')}
+          </Flex>
+        </Alert>
+      </Alert.Container>
     );
   }
 
   if (fetchError) {
-    trackAnalytics('replay.render-missing-replay-alert', {
-      organization,
-      surface: 'issue details - old preview',
-    });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 

@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:20.094923+00:00'
+created: '2025-02-26T00:31:43.250561+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,6 +25,7 @@ metrics with tags: {
 contributing variants:
   app*
     hash: "ff6c4ee7c54f118a9647ee86f0c2b0b0"
+    contributing component: threads
     component:
       app*
         threads*
@@ -37,14 +38,15 @@ contributing variants:
                 "__99+[Something else]_block_invoke_2"
   system*
     hash: "cff360e554b4acecd9fd2534d9051870"
+    contributing component: threads
     component:
       system*
         threads*
           stacktrace*
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame*
               function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame*
               function*
                 "__99+[Something else]_block_invoke_2"
             frame*

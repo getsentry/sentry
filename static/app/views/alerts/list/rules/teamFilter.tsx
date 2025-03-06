@@ -4,29 +4,26 @@ import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import Badge from 'sentry/components/badge/badge';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Badge} from 'sentry/components/core/badge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {useTeams} from 'sentry/utils/useTeams';
 
 interface Props {
   handleChangeFilter: (activeFilters: string[]) => void;
   selectedTeams: string[];
   /**
-   * only show teams user is a member of
+   * hide other teams suggestion
    */
-  showIsMemberTeams?: boolean;
+  hideOtherTeams?: boolean;
   /**
-   * show My Teams as the default dropdown description
+   * hide unassigned suggestion
    */
-  showMyTeamsDescription?: boolean;
-  /**
-   * show suggested options (My Teams and Unassigned)
-   */
-  showSuggestedOptions?: boolean;
+  hideUnassigned?: boolean;
 }
 
 const suggestedOptions = [
@@ -49,11 +46,10 @@ const makeTeamOption = (team: Team) => ({
 function TeamFilter({
   selectedTeams,
   handleChangeFilter,
-  showIsMemberTeams = false,
-  showSuggestedOptions = true,
-  showMyTeamsDescription = false,
+  hideUnassigned = false,
+  hideOtherTeams = false,
 }: Props) {
-  const {teams, onSearch, fetching} = useTeams({provideUserTeams: showIsMemberTeams});
+  const {teams, onSearch, fetching} = useTeams();
 
   const [myTeams, otherTeams] = partition(teams, team => team.isMember);
   const myTeamOptions = myTeams.map(makeTeamOption);
@@ -77,25 +73,29 @@ function TeamFilter({
       ];
     }
 
-    return [
-      <IconUser key={0} />,
-      showMyTeamsDescription ? t('My Teams') : t('All Teams'),
-    ];
-  }, [selectedTeams, teams, showMyTeamsDescription]);
+    return [<IconUser key={0} />, t('All Teams')];
+  }, [selectedTeams, teams]);
 
   return (
     <CompactSelect
       multiple
       clearable
       searchable
+      disabled={isDemoModeEnabled()}
       loading={fetching}
       menuTitle={t('Filter teams')}
       options={[
-        ...(showSuggestedOptions
-          ? [{value: '_suggested', label: t('Suggested'), options: suggestedOptions}]
-          : []),
+        {
+          value: '_suggested',
+          label: t('Suggested'),
+          options: suggestedOptions.filter(
+            opt => !hideUnassigned || opt.value !== 'unassigned'
+          ),
+        },
         {value: '_my_teams', label: t('My Teams'), options: myTeamOptions},
-        {value: '_teams', label: t('Other Teams'), options: otherTeamOptions},
+        ...(hideOtherTeams
+          ? []
+          : [{value: '_teams', label: t('Other Teams'), options: otherTeamOptions}]),
       ]}
       value={selectedTeams}
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
@@ -110,7 +110,7 @@ function TeamFilter({
         <Fragment>
           {triggerLabel}
           {selectedTeams.length > 1 && (
-            <StyledBadge text={`+${selectedTeams.length - 1}`} />
+            <StyledBadge type="default">{`+${selectedTeams.length - 1}`}</StyledBadge>
           )}
         </Fragment>
       }

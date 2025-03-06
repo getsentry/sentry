@@ -103,7 +103,7 @@ describe('GroupHeader', () => {
         query: {},
       });
 
-      expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
   });
 

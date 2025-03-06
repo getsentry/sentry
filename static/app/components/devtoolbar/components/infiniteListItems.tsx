@@ -79,7 +79,7 @@ export default function InfiniteListItems<Data>({
                   ? hasNextPage
                     ? loadingMoreMessage()
                     : loadingCompleteMessage()
-                  : itemRenderer({item})}
+                  : itemRenderer({item: item!})}
               </li>
             );
           })}

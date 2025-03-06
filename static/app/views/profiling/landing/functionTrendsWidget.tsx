@@ -34,6 +34,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
+import {MAX_FUNCTIONS} from './constants';
 import {
   Accordion,
   AccordionItem,
@@ -45,7 +46,6 @@ import {
   WidgetContainer,
 } from './styles';
 
-const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'fnTrendCursor';
 
 interface FunctionTrendsWidgetProps {
@@ -75,7 +75,7 @@ export function FunctionTrendsWidget({
   );
 
   const handleCursor = useCallback(
-    (cursor, pathname, query) => {
+    (cursor: any, pathname: any, query: any) => {
       browserHistory.push({
         pathname,
         query: {...query, [cursorName]: cursor},
@@ -242,11 +242,11 @@ function FunctionTrendsEntry({
     // the same bucket as the breakpoint.
 
     const beforeTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
-      reference: beforeExamples[beforeExamples.length - 2][1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      reference: beforeExamples[beforeExamples.length - 2]![1],
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     before = (
@@ -256,11 +256,11 @@ function FunctionTrendsEntry({
     );
 
     const afterTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
-      reference: afterExamples[afterExamples.length - 2][1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      reference: afterExamples[afterExamples.length - 2]![1],
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     after = (
@@ -272,7 +272,7 @@ function FunctionTrendsEntry({
 
   return (
     <Fragment>
-      <StyledAccordionItem>
+      <AccordionItem>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
@@ -300,7 +300,7 @@ function FunctionTrendsEntry({
             {after}
           </DurationChange>
         </Tooltip>
-      </StyledAccordionItem>
+      </AccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
@@ -324,6 +324,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       data: func.stats.data.map(([timestamp, data]) => {
         return {
           name: timestamp * 1e3,
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value: data[0].count / 1e6,
         };
       }),
@@ -331,9 +332,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       color: getTrendLineColor(func.change, theme),
     };
 
-    const seriesStart = func.stats.data[0][0] * 1e3;
+    const seriesStart = func.stats.data[0]![0] * 1e3;
     const seriesMid = func.breakpoint * 1e3;
-    const seriesEnd = func.stats.data[func.stats.data.length - 1][0] * 1e3;
+    const seriesEnd = func.stats.data[func.stats.data.length - 1]![0] * 1e3;
 
     const dividingLine = {
       data: [],
@@ -484,11 +485,6 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const StyledAccordionItem = styled(AccordionItem)`
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

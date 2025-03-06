@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -12,20 +12,22 @@ type Props = {
 
 function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (
-    <Alert type="warning">
-      {multi
-        ? t('These releases have been archived.')
-        : t('This release has been archived.')}
+    <Alert.Container>
+      <Alert type="warning">
+        {multi
+          ? t('These releases have been archived.')
+          : t('This release has been archived.')}
 
-      {!multi && onRestore && (
-        <Fragment>
-          {' '}
-          <UnarchiveButton size="zero" priority="link" onClick={onRestore}>
-            {t('Restore this release')}
-          </UnarchiveButton>
-        </Fragment>
-      )}
-    </Alert>
+        {!multi && onRestore && (
+          <Fragment>
+            {' '}
+            <UnarchiveButton size="zero" priority="link" onClick={onRestore}>
+              {t('Restore this release')}
+            </UnarchiveButton>
+          </Fragment>
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

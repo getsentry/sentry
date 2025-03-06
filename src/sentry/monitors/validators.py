@@ -244,12 +244,16 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-@extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
+@extend_schema_serializer(exclude_fields=["alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
-    project = ProjectField(scope="project:read")
+    project = ProjectField(
+        scope="project:read",
+        required=True,
+        help_text="The project slug to associate the monitor to.",
+    )
     name = serializers.CharField(
         max_length=128,
-        help_text="Name of the monitor. Used for notifications.",
+        help_text="Name of the monitor. Used for notifications. If not set the slug will be derived from your monitor name.",
     )
     slug = SentrySerializerSlugField(
         max_length=DEFAULT_SLUG_MAX_LENGTH,
@@ -270,8 +274,12 @@ class MonitorValidator(CamelSnakeSerializer):
         required=False,
         help_text="Disable creation of monitor incidents",
     )
-    type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
-    config = ConfigValidator()
+    type = serializers.ChoiceField(
+        choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())),
+        required=False,
+        default="cron_job",
+    )
+    config = ConfigValidator(help_text="The configuration for the monitor.")
     alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):

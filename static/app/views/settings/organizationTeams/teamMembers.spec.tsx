@@ -19,7 +19,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('TeamMembers', function () {
-  let createMock;
+  let createMock: jest.Mock;
 
   const organization = OrganizationFixture();
   const team = TeamFixture();
@@ -31,16 +31,12 @@ describe('TeamMembers', function () {
     name: 'Sentry 9 Name',
   });
 
-  const router = RouterFixture();
-
-  const routerProps = {
-    router,
-    routes: router.routes,
-    params: router.params,
-    routeParams: router.params,
-    route: router.routes[0],
-    location: router.location,
-  };
+  const router = RouterFixture({
+    params: {
+      orgId: organization.slug,
+      teamId: team.slug,
+    },
+  });
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -73,96 +69,61 @@ describe('TeamMembers', function () {
 
   it('can add member to team with open membership', async function () {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(createMock).toHaveBeenCalled();
   });
 
   it('can add multiple members with one click on dropdown', async function () {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
 
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
     expect(createMock).toHaveBeenCalled();
     expect(screen.getAllByTestId('add-member-menu')[0]).toBeVisible();
   });
 
   it('can add member to team with team:admin permission', async function () {
     const org = OrganizationFixture({access: ['team:admin'], openMembership: false});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(createMock).toHaveBeenCalled();
   });
 
   it('can add member to team with org:write permission', async function () {
     const org = OrganizationFixture({access: ['org:write'], openMembership: false});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(createMock).toHaveBeenCalled();
   });
 
   it('can request access to add member to team without permission', async function () {
     const org = OrganizationFixture({access: [], openMembership: false});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(openTeamAccessRequestModal).toHaveBeenCalled();
   });
@@ -174,18 +135,10 @@ describe('TeamMembers', function () {
         openMembership: false,
       }),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -199,18 +152,10 @@ describe('TeamMembers', function () {
         openMembership: true,
       }),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -221,18 +166,10 @@ describe('TeamMembers', function () {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: true}),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -243,18 +180,10 @@ describe('TeamMembers', function () {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: false}),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -263,22 +192,15 @@ describe('TeamMembers', function () {
 
   it('can remove member from team', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${team.slug}/`,
+      url: `/organizations/${organization.slug}/members/${members[0]!.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={organization}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization});
 
     await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -300,14 +222,7 @@ describe('TeamMembers', function () {
     });
     const organizationMember = OrganizationFixture({access: []});
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={organizationMember}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: organizationMember});
 
     await screen.findAllByRole('button', {name: 'Add Member'});
 
@@ -336,14 +251,7 @@ describe('TeamMembers', function () {
       body: [...members, owner],
     });
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={organization}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization});
 
     const admins = await screen.findAllByText('Team Admin');
     expect(admins).toHaveLength(3);
@@ -366,14 +274,7 @@ describe('TeamMembers', function () {
 
     const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={orgWithTeamRoles}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: orgWithTeamRoles});
 
     const admins = await screen.findAllByText('Team Admin');
     expect(admins).toHaveLength(3);
@@ -392,14 +293,6 @@ describe('TeamMembers', function () {
       id: '123',
       email: 'foo@example.com',
       role: 'owner',
-      flags: {
-        'idp:provisioned': true,
-        'idp:role-restricted': false,
-        'member-limit:restricted': false,
-        'partnership:restricted': false,
-        'sso:invalid': false,
-        'sso:linked': false,
-      },
     });
     const idpMembers = members.map(teamMember => ({
       ...teamMember,
@@ -423,18 +316,53 @@ describe('TeamMembers', function () {
       body: team2,
     });
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team2.slug}}
-        organization={organization}
-        team={team2}
-      />
-    );
+    render(<TeamMembers team={team2} />, {router, organization});
 
     expect(
       (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
     ).toBeDisabled();
     expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeDisabled();
+  });
+
+  it('can add or remove members if non-idp team', async function () {
+    const team2 = TeamFixture({
+      flags: {
+        'idp:provisioned': false,
+      },
+    });
+
+    const me = MemberFixture({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'owner',
+    });
+    const idpMembers = members.map(teamMember => ({
+      ...teamMember,
+      flags: {...teamMember.flags, 'idp:provisioned': true},
+    }));
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [...idpMembers, me],
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/members/`,
+      method: 'GET',
+      body: idpMembers,
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/`,
+      method: 'GET',
+      body: team2,
+    });
+
+    render(<TeamMembers team={team2} />, {router, organization});
+
+    expect(
+      (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
+    ).toBeEnabled();
+    expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeEnabled();
   });
 });

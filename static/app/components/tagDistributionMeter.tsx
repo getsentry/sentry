@@ -55,7 +55,7 @@ function TagDistributionMeter({
       );
     }
 
-    const largestSegment = segments[0];
+    const largestSegment = segments[0]!;
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
     const renderLabel = () => {
@@ -140,7 +140,7 @@ function TagDistributionMeter({
                 {value.isOther ? (
                   <OtherSegment
                     aria-label={t('Other')}
-                    color={colors[colors.length - 1]}
+                    color={colors[colors.length - 1]!}
                   />
                 ) : (
                   <Segment
@@ -149,7 +149,7 @@ function TagDistributionMeter({
                       title,
                       value.value
                     )}
-                    color={colors[index]}
+                    color={colors[index]!}
                     {...segmentProps}
                   />
                 )}

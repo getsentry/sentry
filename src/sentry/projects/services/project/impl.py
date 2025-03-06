@@ -17,7 +17,8 @@ from sentry.projects.services.project import (
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.projects.services.project.serial import serialize_project
+from sentry.projects.services.project.model import ProjectUpdateArgs
+from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
 
@@ -39,6 +40,15 @@ class DatabaseBackedProjectService(ProjectService):
     def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
         project: Project | None = Project.objects.filter(
             slug=slug, organization=organization_id
+        ).first()
+        if project:
+            return serialize_project(project)
+        return None
+
+    def get_by_external_id(self, *, organization_id: int, external_id: str) -> RpcProject | None:
+        project: Project | None = Project.objects.filter(
+            organization=organization_id,
+            external_id=external_id,
         ).first()
         if project:
             return serialize_project(project)
@@ -107,12 +117,14 @@ class DatabaseBackedProjectService(ProjectService):
         platform: str,
         user_id: int,
         add_org_default_team: bool | None = False,
+        external_id: str | None = None,
     ) -> RpcProject:
         with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(
                 name=project_name,
                 organization_id=organization_id,
                 platform=platform,
+                external_id=external_id,
             )
 
             if add_org_default_team:
@@ -146,11 +158,13 @@ class DatabaseBackedProjectService(ProjectService):
         platform: str,
         user_id: int,
         add_org_default_team: bool | None = False,
+        external_id: str | None = None,
     ) -> RpcProject:
         project_query = Project.objects.filter(
             organization_id=organization_id,
             name=project_name,
             platform=platform,
+            external_id=external_id,
             status=ObjectStatus.ACTIVE,
         ).order_by("date_added")
 
@@ -163,4 +177,27 @@ class DatabaseBackedProjectService(ProjectService):
             platform=platform,
             user_id=user_id,
             add_org_default_team=add_org_default_team,
+            external_id=external_id,
         )
+
+    def update_project(
+        self,
+        *,
+        organization_id: int,
+        project_id: int,
+        attrs: ProjectUpdateArgs,
+    ) -> RpcProject:
+        project: Project = Project.objects.get(
+            id=project_id,
+            organization_id=organization_id,
+        )
+
+        serializer = ProjectUpdateArgsSerializer(data=attrs)
+        serializer.is_valid(raise_exception=True)
+
+        if serializer.validated_data:
+            for key, value in serializer.validated_data.items():
+                setattr(project, key, value)
+            project.save()
+
+        return serialize_project(project)

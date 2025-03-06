@@ -32,7 +32,7 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  const promises: Promise<any>[] = [];
+  const promises: Array<Promise<any>> = [];
   for (const transaction of transactions) {
     promises.push(tree.zoom(transaction, true, options));
   }
@@ -82,7 +82,6 @@ export function useTraceOnLoad(
     }
 
     let cancel = false;
-
     setStatus('pending');
     initializedRef.current = true;
 
@@ -92,15 +91,25 @@ export function useTraceOnLoad(
       preferences: traceStatePreferencesRef.current,
     };
 
-    // Node path has higher specificity than eventId. If neither are provided, we check if the
-    // trace should be automatically expanded
-    const promise = pathToNodeOrEventId?.path
-      ? TraceTree.ExpandToPath(tree, pathToNodeOrEventId.path, expandOptions)
-      : pathToNodeOrEventId?.eventId
-        ? TraceTree.ExpandToEventID(tree, pathToNodeOrEventId.eventId, expandOptions)
-        : maybeAutoExpandTrace(tree, expandOptions);
+    // If eligible, auto-expand the trace
+    maybeAutoExpandTrace(tree, expandOptions)
+      .then(() => {
+        if (cancel) {
+          return Promise.resolve();
+        }
 
-    promise
+        // Node path has higher specificity than eventId
+        const {path, eventId} = pathToNodeOrEventId || {};
+        if (path) {
+          return TraceTree.ExpandToPath(tree, path, expandOptions);
+        }
+
+        if (eventId) {
+          return TraceTree.ExpandToEventID(tree, eventId, expandOptions);
+        }
+
+        return Promise.resolve();
+      })
       .then(() => {
         if (cancel) {
           return;

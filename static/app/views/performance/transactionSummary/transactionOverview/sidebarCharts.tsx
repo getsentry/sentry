@@ -13,6 +13,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -80,7 +81,7 @@ function SidebarCharts({
           data-test-id="apdex-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals['apdex()'], 4) : null}
+          value={totals ? formatFloat(totals['apdex()']!, 4) : null}
         />
       </ChartLabel>
 
@@ -97,7 +98,7 @@ function SidebarCharts({
           data-test-id="failure-rate-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatPercentage(totals['failure_rate()']) : null}
+          value={totals ? formatPercentage(totals['failure_rate()']!) : null}
         />
       </ChartLabel>
 
@@ -147,7 +148,7 @@ function SidebarChartsContainer({
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(2);
+  const colors = getChartColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -229,7 +230,7 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]],
+    colors: [colors[0]!, colors[1]!],
     tooltip: {
       trigger: 'axis',
       truncate: 80,

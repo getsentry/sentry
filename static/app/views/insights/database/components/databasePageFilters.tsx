@@ -20,7 +20,10 @@ type Props = {
 export function DatabasePageFilters(props: Props) {
   const {system, databaseCommand, table} = props;
 
-  const additionalQuery = useMemo(() => [`span.system:${system}`], [system]);
+  const additionalQuery = useMemo(
+    () => (system ? [`span.system:${system}`] : []),
+    [system]
+  );
 
   return (
     <PageFilterWrapper>

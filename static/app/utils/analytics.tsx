@@ -1,5 +1,5 @@
+import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import type {Span} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
@@ -13,6 +13,7 @@ import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -131,6 +132,7 @@ const allEventMap: Record<string, string | null> = {
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,
+  ...navigationAnalyticsEventMap,
 };
 
 /**
@@ -197,7 +199,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Additional data that will be sent with measure()
      * This is useful if you want to track initial state
      */
-    data?: object;
+    data?: Record<PropertyKey, unknown>;
   }) => void;
 
   measure: (opts: {
@@ -205,7 +207,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Additional data to send with metric event.
      * If a key collide with the data in mark(), this will overwrite them
      */
-    data?: object;
+    data?: Record<PropertyKey, unknown>;
     /**
      * Name of ending mark
      */
@@ -239,7 +241,7 @@ type RecordMetric = Hooks['metrics:event'] & {
 /**
  * Used to pass data between metric.mark() and metric.measure()
  */
-const metricDataStore = new Map<string, object>();
+const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
 
 /**
  * Record metrics.

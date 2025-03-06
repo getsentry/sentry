@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -16,6 +17,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
@@ -30,10 +32,7 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {isContinuousProfileReference} from 'sentry/utils/profiling/guards/profile';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
-import type {
-  ContinuousProfileGroup,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -68,7 +67,7 @@ export interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
-  profileGroup: ProfileGroup | ContinuousProfileGroup | null;
+  profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
 }
@@ -142,7 +141,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
-                organizationSlug={organization.slug}
+                organization={organization}
                 projectSlug={project?.slug}
                 subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
@@ -389,7 +388,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
-                organizationSlug={organization.slug}
+                organization={organization}
                 projectSlug={project?.slug}
                 subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
@@ -522,6 +521,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> {
   const table: Record<number, Project> = {};
   for (const project of projects) {
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     table[project.id] = project;
   }
   return table;
@@ -530,7 +530,7 @@ function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
   framePackage: string | undefined;
-  organizationSlug: string;
+  organization: Organization;
   profileIds: Profiling.ProfileReference[];
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
@@ -606,7 +606,12 @@ function ProfileIdsSubMenu(props: {
       {isOpen &&
         props.subMenuPortalRef &&
         createPortal(
-          <ProfilingContextMenu style={popper.styles.popper} css={{maxHeight: 250}}>
+          <ProfilingContextMenu
+            style={popper.styles.popper}
+            css={css`
+              max-height: 250px;
+            `}
+          >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
               {props.profileIds.map((profileId, i) => {
@@ -620,7 +625,7 @@ function ProfileIdsSubMenu(props: {
                 }
 
                 const to = generateProfileRouteFromProfileReference({
-                  orgSlug: props.organizationSlug,
+                  organization: props.organization,
                   projectSlug,
                   reference: profileId,
                   frameName: props.frameName,
@@ -632,7 +637,12 @@ function ProfileIdsSubMenu(props: {
                     key={i}
                     {...props.contextMenu.getMenuItemProps({})}
                   >
-                    <Link to={to} css={{color: 'unset'}}>
+                    <Link
+                      to={to}
+                      css={css`
+                        color: unset;
+                      `}
+                    >
                       {getShortEventId(
                         typeof profileId === 'string'
                           ? profileId

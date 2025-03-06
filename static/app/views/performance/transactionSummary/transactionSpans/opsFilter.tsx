@@ -20,7 +20,7 @@ type Props = {
   transactionName: string;
 };
 
-function getMenuOptions({spanOps, isLoading, error}) {
+function getMenuOptions({spanOps, isLoading, error}: any) {
   if (isLoading) {
     return [{value: 'isLoading', disabled: true, label: t('Loading…')}];
   }
@@ -36,7 +36,7 @@ function getMenuOptions({spanOps, isLoading, error}) {
     ];
   }
 
-  return spanOps.map(spanOp => ({
+  return spanOps.map((spanOp: any) => ({
     value: spanOp.op,
     label: spanOp.op,
     leadingItems: <OperationDot backgroundColor={pickBarColor(spanOp.op)} />,

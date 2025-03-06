@@ -48,7 +48,7 @@ type FIDDataRow = BaseDataRow & {
 export type TableDataRow = LCPDataRow | FCPDataRow | CLSDataRow | FIDDataRow;
 
 export type TableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: EventsMetaType;
 };
 

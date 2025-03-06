@@ -71,22 +71,22 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         data = {
-            "name": request.json_body.get("name"),
+            "name": request.data.get("name"),
             "user": request.user,
-            "author": request.json_body.get("author"),
+            "author": request.data.get("author"),
             "organization": organization,
-            "webhookUrl": request.json_body.get("webhookUrl"),
-            "redirectUrl": request.json_body.get("redirectUrl"),
-            "isAlertable": request.json_body.get("isAlertable"),
-            "isInternal": request.json_body.get("isInternal"),
-            "verifyInstall": request.json_body.get("verifyInstall"),
-            "scopes": request.json_body.get("scopes", []),
-            "events": request.json_body.get("events", []),
-            "schema": request.json_body.get("schema", {}),
-            "overview": request.json_body.get("overview"),
-            "allowedOrigins": request.json_body.get("allowedOrigins", []),
+            "webhookUrl": request.data.get("webhookUrl"),
+            "redirectUrl": request.data.get("redirectUrl"),
+            "isAlertable": request.data.get("isAlertable"),
+            "isInternal": request.data.get("isInternal"),
+            "verifyInstall": request.data.get("verifyInstall"),
+            "scopes": request.data.get("scopes", []),
+            "events": request.data.get("events", []),
+            "schema": request.data.get("schema", {}),
+            "overview": request.data.get("overview"),
+            "allowedOrigins": request.data.get("allowedOrigins", []),
             "popularity": (
-                request.json_body.get("popularity") if is_active_superuser(request) else None
+                request.data.get("popularity") if is_active_superuser(request) else None
             ),
         }
 
@@ -166,7 +166,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         return queryset.filter(owner_id__in=owner_ids)
 
     def _has_hook_events(self, request: Request):
-        if not request.json_body.get("events"):
+        if not request.data.get("events"):
             return False
 
-        return "error" in request.json_body["events"]
+        return "error" in request.data["events"]

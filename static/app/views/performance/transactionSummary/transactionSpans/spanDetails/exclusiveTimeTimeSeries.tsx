@@ -12,10 +12,10 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -23,6 +23,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const {organization, eventView, spanSlug, withoutZerofill} = props;
 
@@ -58,7 +60,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
     'percentileArray(spans_exclusive_time, 0.99)',
   ];
 
-  const handleLegendSelectChanged = legendChange => {
+  const handleLegendSelectChanged = (legendChange: any) => {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
@@ -69,7 +71,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
         unselectedSeries: unselected,
       },
     };
-    browserHistory.push(to);
+    navigate(to);
   };
 
   return (
@@ -120,14 +122,14 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   top: '40px',
                   bottom: '0px',
                 },
-                colors: theme.charts.getColorPalette(yAxis.length - 2),
+                colors: getChartColorPalette(yAxis.length - 2),
                 seriesOptions: {
                   showSymbol: false,
                 },
                 tooltip: {
                   trigger: 'axis' as const,
                   // p50() coerces the axis to be time based
-                  valueFormatter: (value, _seriesName) =>
+                  valueFormatter: (value: any, _seriesName: any) =>
                     tooltipFormatter(value, 'duration'),
                 },
                 xAxis: timeframe

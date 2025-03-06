@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
@@ -86,7 +86,7 @@ function ThresholdTypeForm({
               }),
             }}
             value={comparisonDelta}
-            onChange={({value}) => onComparisonDeltaChange(value)}
+            onChange={({value}: any) => onComparisonDeltaChange(value)}
             options={COMPARISON_DELTA_OPTIONS}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
@@ -102,8 +102,10 @@ function ThresholdTypeForm({
         {t('Anomaly: whenever values are outside of expected bounds')}
         <FeatureBadge
           type="alpha"
-          title="Anomaly detection is in alpha and may produce inaccurate results"
-          tooltipProps={{isHoverable: true}}
+          tooltipProps={{
+            title: t('Anomaly detection is in alpha and may produce inaccurate results'),
+            isHoverable: true,
+          }}
         />
       </ComparisonContainer>,
     ] as RadioOption);

@@ -22,5 +22,3 @@ window.console.warn = (message: any, ...args: any[]) => {
 
   originalConsoleWarn(message, ...args);
 };
-
-export const silencedWarn = window.console.warn;

@@ -1,69 +1,40 @@
-import {useCallback, useEffect, useState} from 'react';
+import type React from 'react';
+import {useMemo} from 'react';
 
-import storiesContext from 'sentry/views/stories/storiesContext';
-import type {ResolvedStoryModule} from 'sentry/views/stories/types';
+import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 
-interface Props {
+const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
+
+export interface StoryDescriptor {
+  exports: Record<string, React.ComponentType | any>;
   filename: string;
 }
 
-interface EmptyState {
-  error: undefined;
-  filename: undefined | string;
-  resolved: undefined;
+export function useStoryBookFiles() {
+  return useMemo(() => context.keys().map(file => file.replace(/^\.\//, 'app/')), []);
 }
 
-interface ResolvedState {
-  error: undefined;
-  filename: string;
-  resolved: ResolvedStoryModule;
-}
+async function importStory(filename: string): Promise<StoryDescriptor> {
+  const story = await context(filename.replace(/^app\//, './'));
 
-interface ErrorState {
-  error: Error;
-  filename: undefined | string;
-  resolved: undefined;
-}
-
-type State = EmptyState | ResolvedState | ErrorState;
-
-export default function useStoriesLoader({filename}: Props) {
-  const [mod, setMod] = useState<State>({
-    error: undefined,
+  return {
+    exports: story,
     filename,
-    resolved: undefined,
+  };
+}
+
+interface UseStoriesLoaderOptions {
+  files: string[];
+}
+
+export function useStoriesLoader(
+  options: UseStoriesLoaderOptions
+): UseQueryResult<StoryDescriptor[], Error> {
+  return useQuery({
+    queryKey: [options.files],
+    queryFn: (): Promise<StoryDescriptor[]> => {
+      return Promise.all(options.files.map(importStory));
+    },
+    enabled: !!options.files,
   });
-
-  const asyncImportStory = useCallback(async () => {
-    if (!filename) {
-      return;
-    }
-    try {
-      setMod({
-        error: undefined,
-        filename,
-        resolved: undefined,
-      });
-      const resolved = await storiesContext().importStory(filename);
-      setMod({
-        error: undefined,
-        filename,
-
-        resolved,
-      });
-    } catch (error) {
-      setMod({
-        error,
-        filename,
-
-        resolved: undefined,
-      });
-    }
-  }, [filename]);
-
-  useEffect(() => {
-    asyncImportStory();
-  }, [asyncImportStory]);
-
-  return mod;
 }

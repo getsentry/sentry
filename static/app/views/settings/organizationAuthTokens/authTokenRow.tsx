@@ -39,7 +39,7 @@ function LastUsed({
             />
           ),
           project: (
-            <Link to={`/settings/${organization.slug}/${projectLastUsed.slug}/`}>
+            <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
             </Link>
           ),
@@ -144,9 +144,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 
       <Actions>
         <Tooltip
-          title={t(
-            'You must be an organization owner, manager or admin to revoke a token.'
-          )}
+          title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}
         >
           <Confirm

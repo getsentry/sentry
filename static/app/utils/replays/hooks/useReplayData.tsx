@@ -7,9 +7,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -77,7 +77,6 @@ function useReplayData({
   segmentsPerPage = 100,
 }: Options): Result {
   const hasFetchedAttachments = useRef(false);
-  const projects = useProjects();
   const queryClient = useQueryClient();
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -98,15 +97,10 @@ function useReplayData({
     [replayData?.data]
   );
 
-  const projectSlug = useMemo(() => {
-    if (!replayRecord) {
-      return null;
-    }
-    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug ?? null;
-  }, [replayRecord, projects.projects]);
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
   const getAttachmentsQueryKey = useCallback(
-    ({cursor, per_page}): ApiQueryKey => {
+    ({cursor, per_page}: any): ApiQueryKey => {
       return [
         `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
         {
@@ -137,7 +131,7 @@ function useReplayData({
   });
 
   const getErrorsQueryKey = useCallback(
-    ({cursor, per_page}): ApiQueryKey => {
+    ({cursor, per_page}: any): ApiQueryKey => {
       // Clone the `finished_at` time and bump it up one second because finishedAt
       // has the `ms` portion truncated, while replays-events-meta operates on
       // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
@@ -164,7 +158,7 @@ function useReplayData({
   );
 
   const getPlatformErrorsQueryKey = useCallback(
-    ({cursor, per_page}): ApiQueryKey => {
+    ({cursor, per_page}: any): ApiQueryKey => {
       // Clone the `finished_at` time and bump it up one second because finishedAt
       // has the `ms` portion truncated, while replays-events-meta operates on
       // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`

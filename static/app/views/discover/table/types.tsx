@@ -24,8 +24,8 @@ export type TableColumn<K> = GridColumnOrder<K> & {
 export type TableColumnSort<K> = GridColumnSortBy<K>;
 
 export type TableState = {
-  columnOrder: TableColumn<keyof TableDataRow>[];
-  columnSortBy: TableColumnSort<keyof TableDataRow>[];
+  columnOrder: Array<TableColumn<keyof TableDataRow>>;
+  columnSortBy: Array<TableColumnSort<keyof TableDataRow>>;
 };
 
 export enum FieldValueKind {

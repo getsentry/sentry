@@ -37,9 +37,9 @@ describe('SentryAppDetailedView', function () {
   });
 
   describe('Published Sentry App', function () {
-    let createRequest;
-    let deleteRequest;
-    let sentryAppInteractionRequest;
+    let createRequest: jest.Mock;
+    let deleteRequest: jest.Mock;
+    let sentryAppInteractionRequest: jest.Mock;
 
     beforeEach(() => {
       sentryAppInteractionRequest = MockApiClient.addMockResponse({
@@ -221,7 +221,7 @@ describe('SentryAppDetailedView', function () {
   });
 
   describe('Unpublished Sentry App without Redirect Url', function () {
-    let createRequest;
+    let createRequest: jest.Mock;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -312,7 +312,7 @@ describe('SentryAppDetailedView', function () {
   });
 
   describe('Unpublished Sentry App with Redirect Url', function () {
-    let createRequest;
+    let createRequest: jest.Mock;
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/go-to-google/interaction/`,

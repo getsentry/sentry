@@ -5,8 +5,7 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from functools import reduce
-from typing import Any, Literal, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -25,7 +24,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -136,6 +135,9 @@ text_filter = negation? text_key sep operator? search_value
 
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+explicit_flag_key       = "flags" open_bracket search_key closed_bracket
+explicit_string_flag_key = "flags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key = "flags" open_bracket search_key spaces comma spaces "number" closed_bracket
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
@@ -144,9 +146,8 @@ function_args          = aggregate_param (spaces comma spaces !comma aggregate_p
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = explicit_number_tag_key / key / quoted_key
-search_type            = "number" / "string"
-text_key               = explicit_tag_key / explicit_string_tag_key / search_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -224,6 +225,50 @@ def translate_wildcard(pat: str) -> str:
         else:
             res += c
     return "^" + res + "$"
+
+
+def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
+    """
+    Translate a wildcard pattern to clickhouse pattern.
+
+    See https://clickhouse.com/docs/en/sql-reference/functions/string-search-functions#like
+    """
+    chars: list[str] = []
+
+    i = 0
+    n = len(pattern)
+
+    while i < n:
+        c = pattern[i]
+        i += 1
+        if c == "\\" and i < n:
+            c = pattern[i]
+            if c not in {"*"}:
+                raise InvalidSearchQuery(f"Unexpected escape character: {c}")
+            chars.append(c)
+            i += 1
+        elif c == "*":
+            # sql uses % as the wildcard character
+            chars.append("%")
+        elif c in {"%", "_"}:
+            # these are special characters and need to be escaped
+            chars.append("\\")
+            chars.append(c)
+        else:
+            chars.append(c)
+
+    return "".join(chars)
+
+
+def wrap_free_text(string: str, autowrap: bool) -> str:
+    if not autowrap:
+        return string
+    # Free text already had wildcarding on it, leave it alone
+    if string.startswith("*") or string.endswith("*"):
+        return string
+    # Otherwise always wrap it with wildcarding
+    else:
+        return f"*{string}*"
 
 
 def translate_escape_sequences(string: str) -> str:
@@ -346,7 +391,7 @@ class SearchKey(NamedTuple):
 
     @property
     def is_tag(self) -> bool:
-        return TAG_KEY_RE.match(self.name) or (
+        return bool(TAG_KEY_RE.match(self.name)) or (
             self.name not in SEARCH_MAP
             and self.name not in FIELD_ALIASES
             and not self.is_measurement
@@ -362,12 +407,18 @@ class SearchKey(NamedTuple):
         return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
 
 
+def _is_wildcard(raw_value: object) -> TypeIs[str]:
+    if not isinstance(raw_value, str):
+        return False
+    return bool(WILDCARD_CHARS.search(raw_value))
+
+
 class SearchValue(NamedTuple):
-    raw_value: str | int | datetime | Sequence[int] | Sequence[str]
+    raw_value: str | float | datetime | Sequence[float] | Sequence[str]
 
     @property
     def value(self):
-        if self.is_wildcard():
+        if _is_wildcard(self.raw_value):
             return translate_wildcard(self.raw_value)
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
@@ -377,22 +428,26 @@ class SearchValue(NamedTuple):
         # for any sequence (but not string) we want to iterate over the items
         # we do that because a simple str() would not be usable for strings
         # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
-        if type(self.raw_value) in [list, tuple]:
-            ret_val = reduce(lambda acc, elm: f"{acc}, {elm}", self.raw_value)
-            ret_val = "[" + ret_val + "]"
+        if isinstance(self.raw_value, (list, tuple)):
+            ret_val = ", ".join(str(x) for x in self.raw_value)
+            ret_val = f"[{ret_val}]"
             return ret_val
-        if isinstance(self.raw_value, datetime):
+        elif isinstance(self.raw_value, datetime):
             return self.raw_value.isoformat()
-        return str(self.value)
+        else:
+            return str(self.value)
 
     def is_wildcard(self) -> bool:
-        if not isinstance(self.raw_value, str):
-            return False
-        return bool(WILDCARD_CHARS.search(self.raw_value))
+        return _is_wildcard(self.raw_value)
 
-    def classify_wildcard(self) -> Literal["prefix", "infix", "suffix", "other"]:
-        if not self.is_wildcard():
-            return "other"
+    def classify_and_format_wildcard(
+        self,
+    ) -> (
+        tuple[Literal["prefix", "infix", "suffix"], str]
+        | tuple[Literal["other"], str | float | datetime | Sequence[float] | Sequence[str]]
+    ):
+        if not _is_wildcard(self.raw_value):
+            return "other", self.value
 
         ret = WILDCARD_CHARS.finditer(self.raw_value)
 
@@ -419,30 +474,20 @@ class SearchValue(NamedTuple):
 
         if not middle_wildcard:
             if leading_wildcard and trailing_wildcard:
-                return "infix"
+                # If it's an infix wildcard, we strip off the first and last character
+                # which is always a `*` and match on the rest.
+                # no lower() here because we can use `positionCaseInsensitive`
+                return "infix", translate_escape_sequences(self.raw_value[1:-1])
             elif leading_wildcard:
-                return "suffix"
+                # If it's a suffix wildcard, we strip off the first character
+                # which is always a `*` and match on the rest.
+                return "suffix", translate_escape_sequences(self.raw_value[1:]).lower()
             elif trailing_wildcard:
-                return "prefix"
+                # If it's a prefix wildcard, we strip off the last character
+                # which is always a `*` and match on the rest.
+                return "prefix", translate_escape_sequences(self.raw_value[:-1]).lower()
 
-        return "other"
-
-    def format_wildcard(self, kind: Literal["prefix", "infix", "suffix", "other"]) -> str:
-        if kind == "prefix":
-            # If it's a prefix wildcard, we strip off the last character
-            # which is always a `*` and match on the rest.
-            return translate_escape_sequences(self.raw_value[:-1])
-        elif kind == "infix":
-            # If it's an infix wildcard, we strip off the first and last character
-            # which is always a `*` and match on the rest.
-            return translate_escape_sequences(self.raw_value[1:-1])
-        elif kind == "suffix":
-            # If it's a suffix wildcard, we strip off the first character
-            # which is always a `*` and match on the rest.
-            return translate_escape_sequences(self.raw_value[1:])
-
-        # Fall back to the usual formatting that includes formatting escape values.
-        return self.value
+        return "other", self.value
 
     def is_event_id(self) -> bool:
         """Return whether the current value is a valid event id
@@ -506,13 +551,26 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-class AggregateFilter(NamedTuple):
-    key: AggregateKey
-    operator: str
-    value: SearchValue
+# https://github.com/python/mypy/issues/18520
+# without this mypy thinks that AggregateFilter and SearchFilter are
+# structurally equivalent and will refuse to narrow them
+if TYPE_CHECKING:
 
-    def __str__(self):
-        return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    class AggregateFilter(NamedTuple):
+        key: AggregateKey
+        operator: str
+        value: SearchValue
+        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+
+else:  # real implementation here!
+
+    class AggregateFilter(NamedTuple):
+        key: AggregateKey
+        operator: str
+        value: SearchValue
+
+        def __str__(self) -> str:
+            return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass
@@ -529,10 +587,6 @@ class SearchConfig:
 
     # Keys which are considered valid for duration filters
     duration_keys: set[str] = field(default_factory=set)
-
-    # Keys considered valid for the percentage aggregate and may have
-    # percentage search values
-    percentage_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for numeric filter types
     numeric_keys: set[str] = field(default_factory=set)
@@ -561,6 +615,9 @@ class SearchConfig:
     # Which key we should return any free text under
     free_text_key = "message"
 
+    # Whether to wrap free_text_keys in asterisks
+    wildcard_free_text: bool = False
+
     @classmethod
     def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
@@ -575,7 +632,7 @@ class SearchVisitor(NodeVisitor):
     def __init__(
         self,
         config=None,
-        params=None,
+        params: ParamsType | None = None,
         builder=None,
         get_field_type=None,
         get_function_result_type=None,
@@ -621,8 +678,9 @@ class SearchVisitor(NodeVisitor):
             key in self.config.numeric_keys
             or is_measurement(key)
             or is_span_op_breakdown(key)
-            or self.get_field_type(key) == "number"
+            or self.get_field_type(key) in ["number", "integer"]
             or self.is_duration_key(key)
+            or self.is_size_key(key)
         )
 
     def is_duration_key(self, key):
@@ -642,9 +700,6 @@ class SearchVisitor(NodeVisitor):
 
     def is_boolean_key(self, key):
         return key in self.config.boolean_keys
-
-    def is_percentage_key(self, key):
-        return key in self.config.percentage_keys
 
     def visit_search(self, node, children):
         return flatten(remove_space(children[1]))
@@ -666,13 +721,22 @@ class SearchVisitor(NodeVisitor):
     def visit_free_text(self, node, children):
         if not children[0]:
             return None
-        return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(children[0]))
+        # Free text searches need to be treated like they were wildcards
+        return SearchFilter(
+            SearchKey(self.config.free_text_key),
+            "=",
+            SearchValue(wrap_free_text(children[0], self.config.wildcard_free_text)),
+        )
 
     def visit_paren_group(self, node, children):
         if not self.config.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
+            return SearchFilter(
+                SearchKey(self.config.free_text_key),
+                "=",
+                SearchValue(wrap_free_text(node.text, self.config.wildcard_free_text)),
+            )
 
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
@@ -754,17 +818,17 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_date_key(search_key.name):
             try:
-                from_val, to_val = parse_datetime_range(value.text)
+                dt_range = parse_datetime_range(value.text)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
 
             # TODO: Handle negations
-            if from_val is not None:
+            if dt_range[0] is not None:
                 operator = ">="
-                search_value = from_val[0]
+                search_value = dt_range[0][0]
             else:
                 operator = "<="
-                search_value = to_val[0]
+                search_value = dt_range[1][0]
             return SearchFilter(search_key, operator, SearchValue(search_value))
 
         return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
@@ -875,7 +939,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
+            result_type = self.get_function_result_type(search_key.name)
 
             if result_type == "duration" or result_type in DURATION_UNITS:
                 aggregate_value = parse_duration(*search_value)
@@ -916,7 +980,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
+            result_type = self.get_function_result_type(search_key.name)
             if result_type == "percentage":
                 aggregate_value = parse_percentage(search_value)
         except ValueError:
@@ -963,16 +1027,16 @@ class SearchVisitor(NodeVisitor):
         is_date_aggregate = any(key in search_key.name for key in self.config.date_keys)
         if is_date_aggregate:
             try:
-                from_val, to_val = parse_datetime_range(search_value.text)
+                dt_range = parse_datetime_range(search_value.text)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
 
-            if from_val is not None:
+            if dt_range[0] is not None:
                 operator = ">="
-                search_value = from_val[0]
+                search_value = dt_range[0][0]
             else:
                 operator = "<="
-                search_value = to_val[0]
+                search_value = dt_range[1][0]
 
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
@@ -1071,8 +1135,14 @@ class SearchVisitor(NodeVisitor):
     def visit_explicit_number_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name},number]")
 
-    def visit_search_type(self, node, children):
-        return node.text
+    def visit_explicit_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name}]")
+
+    def visit_explicit_string_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},string]")
+
+    def visit_explicit_number_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},number]")
 
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
@@ -1226,7 +1296,6 @@ class SearchVisitor(NodeVisitor):
 
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
-    percentage_keys={"percentage"},
     text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     # do not put aggregate functions in this list
     numeric_keys={

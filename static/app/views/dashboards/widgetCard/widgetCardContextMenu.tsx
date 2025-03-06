@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
@@ -28,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  getWidgetMetricsUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
@@ -123,7 +122,9 @@ function WidgetCardContextMenu({
         {({setData}) => (
           <ContextWrapper>
             {indexedEventsWarning ? (
-              <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+              <Tooltip title={indexedEventsWarning} skipWrapper>
+                <SampledTag>{t('Indexed')}</SampledTag>
+              </Tooltip>
             ) : null}
             {title && (
               <Tooltip
@@ -171,7 +172,7 @@ function WidgetCardContextMenu({
               size="xs"
               icon={<IconExpand />}
               onClick={() => {
-                (seriesData || tableData) &&
+                if (seriesData || tableData) {
                   setData({
                     seriesData,
                     tableData,
@@ -179,6 +180,7 @@ function WidgetCardContextMenu({
                     totalIssuesCount,
                     seriesResultsType,
                   });
+                }
                 openWidgetViewerPath(index);
               }}
             />
@@ -209,7 +211,9 @@ function WidgetCardContextMenu({
       {({setData}) => (
         <ContextWrapper>
           {indexedEventsWarning ? (
-            <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+            <Tooltip title={indexedEventsWarning} skipWrapper>
+              <SampledTag>{t('Indexed')}</SampledTag>
+            </Tooltip>
           ) : null}
           {title && (
             <Tooltip
@@ -271,7 +275,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
-  hasEditAccess: boolean = true,
+  hasEditAccess = true,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -347,16 +351,6 @@ export function getMenuOptions(
       key: 'open-in-issues',
       label: t('Open in Issues'),
       to: issuesLocation,
-    });
-  }
-
-  if (widget.widgetType === WidgetType.METRICS) {
-    const metricsLocation = getWidgetMetricsUrl(widget, selection, organization);
-
-    menuOptions.push({
-      key: 'open-in-metrics',
-      label: t('Open in Metrics'),
-      to: metricsLocation,
     });
   }
 

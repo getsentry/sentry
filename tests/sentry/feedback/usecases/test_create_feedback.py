@@ -190,7 +190,6 @@ def test_fix_for_issue_platform():
     fixed_event = fix_for_issue_platform(event)
     validate_issue_platform_event_schema(fixed_event)
     assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
-    assert fixed_event["tags"]["user.email"] == "josh.ferge@sentry.io"
     assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",
@@ -662,58 +661,6 @@ def test_create_feedback_spam_detection_project_option_false(
 
 
 @django_db_all
-def test_create_feedback_adds_associated_event_id(
-    default_project, mock_produce_occurrence_to_kafka
-):
-    event = {
-        "project_id": default_project.id,
-        "request": {
-            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-            "headers": {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-            },
-        },
-        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-        "timestamp": 1698255009.574,
-        "received": "2021-10-24T22:23:29.574000+00:00",
-        "environment": "prod",
-        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
-        "user": {
-            "ip_address": "72.164.175.154",
-            "email": "josh.ferge@sentry.io",
-            "id": 880461,
-            "isStaff": False,
-            "name": "Josh Ferge",
-        },
-        "contexts": {
-            "feedback": {
-                "contact_email": "josh.ferge@sentry.io",
-                "name": "Josh Ferge",
-                "message": "great website",
-                "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
-                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-                "associated_event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-            },
-        },
-        "breadcrumbs": [],
-        "platform": "javascript",
-    }
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-
-    associated_event_id_evidence = [
-        evidence.value
-        for evidence in mock_produce_occurrence_to_kafka.call_args.kwargs[
-            "occurrence"
-        ].evidence_display
-        if evidence.name == "associated_event_id"
-    ]
-    associated_event_id = associated_event_id_evidence[0] if associated_event_id_evidence else None
-    assert associated_event_id == "56b08cf7852c42cbb95e4a6998c66ad6"
-
-
-@django_db_all
 def test_create_feedback_spam_detection_set_status_ignored(
     default_project,
     monkeypatch,
@@ -772,50 +719,124 @@ def test_create_feedback_spam_detection_set_status_ignored(
 
 
 @django_db_all
-def test_create_feedback_large_message_truncated(
-    default_project, mock_produce_occurrence_to_kafka, set_sentry_option
+def test_create_feedback_adds_associated_event_id(
+    default_project, mock_produce_occurrence_to_kafka
 ):
-    """Large messages are truncated before producing to kafka."""
-    with set_sentry_option("feedback.message.max-size", 4096):
-        event = mock_feedback_event(default_project.id, datetime.now(UTC))
-        event["contexts"]["feedback"]["message"] = "a" * 7007
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+    event = {
+        "project_id": default_project.id,
+        "request": {
+            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+            },
+        },
+        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+        "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
+        "environment": "prod",
+        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+        "user": {
+            "ip_address": "72.164.175.154",
+            "email": "josh.ferge@sentry.io",
+            "id": 880461,
+            "isStaff": False,
+            "name": "Josh Ferge",
+        },
+        "contexts": {
+            "feedback": {
+                "contact_email": "josh.ferge@sentry.io",
+                "name": "Josh Ferge",
+                "message": "great website",
+                "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                "associated_event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+            },
+        },
+        "breadcrumbs": [],
+        "platform": "javascript",
+    }
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    kwargs = mock_produce_occurrence_to_kafka.call_args[1]
-    assert len(kwargs["occurrence"].subtitle) == 4096
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+
+    associated_event_id_evidence = [
+        evidence.value
+        for evidence in mock_produce_occurrence_to_kafka.call_args.kwargs[
+            "occurrence"
+        ].evidence_display
+        if evidence.name == "associated_event_id"
+    ]
+    associated_event_id = associated_event_id_evidence[0] if associated_event_id_evidence else None
+    assert associated_event_id == "56b08cf7852c42cbb95e4a6998c66ad6"
 
 
 @django_db_all
-def test_create_feedback_large_message_skips_spam_detection(
-    default_project, set_sentry_option, monkeypatch
-):
-    """If spam is enabled, large messages are marked as spam without making an LLM request."""
-    with (
-        Feature(
-            {
-                "organizations:user-feedback-spam-filter-actions": True,
-                "organizations:user-feedback-spam-filter-ingest": True,
-            }
-        ),
-        set_sentry_option("feedback.message.max-size", 4096),
-    ):
+def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
+    """We want to surface these tags in the UI. We also use user.email for alert conditions."""
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event["user"]["email"] = "josh.ferge@sentry.io"
+    event["contexts"]["feedback"]["contact_email"] = "andrew@sentry.io"
+    event["contexts"]["trace"] = {"trace_id": "abc123"}
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
+    assert tags["user.email"] == "josh.ferge@sentry.io"
+    assert tags["trace.id"] == "abc123"
+
+    # Uses feedback contact_email if user context doesn't have one
+    del event["user"]["email"]
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 2  # includes last feedback
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
+    assert tags["user.email"] == "andrew@sentry.io"
+
+
+@django_db_all
+def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occurrence_to_kafka):
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event["user"].pop("email", None)
+    event["contexts"]["feedback"].pop("contact_email", None)
+    event["contexts"].pop("trace", None)
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
+    assert "user.email" not in tags
+    assert "trace.id" not in tags
+
+
+@django_db_all
+@pytest.mark.parametrize("spam_enabled", (True, False))
+def test_create_feedback_filters_large_message(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch, set_sentry_option, spam_enabled
+):
+    """Large messages are filtered before spam detection and producing to kafka."""
+    features = (
+        {
+            "organizations:user-feedback-spam-filter-actions": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
+        }
+        if spam_enabled
+        else {}
+    )
+
+    mock_complete_prompt = Mock()
+    monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
+
+    with Feature(features), set_sentry_option("feedback.message.max-size", 4096):
         event = mock_feedback_event(default_project.id, datetime.now(UTC))
         event["contexts"]["feedback"]["message"] = "a" * 7007
-
-        mock_complete_prompt = Mock()
-        monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
-
         create_feedback_issue(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
-        assert mock_complete_prompt.call_count == 0
 
-        group = Group.objects.get()
-        assert group.status == GroupStatus.IGNORED
-        assert group.substatus == GroupSubStatus.FOREVER
+    assert mock_complete_prompt.call_count == 0
+    assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
 """

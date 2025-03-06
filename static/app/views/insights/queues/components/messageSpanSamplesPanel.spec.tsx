@@ -223,7 +223,7 @@ describe('messageSpanSamplesPanel', () => {
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
-    expect(screen.getByText('Consumer')).toBeInTheDocument();
+    expect(screen.getByText(/Consumer/)).toBeInTheDocument();
     // Metrics Ribbon
     expect(screen.getByText('Processed')).toBeInTheDocument();
     expect(screen.getByText('Error Rate')).toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('messageSpanSamplesPanel', () => {
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
-    expect(screen.getByText('Producer')).toBeInTheDocument();
+    expect(screen.getByText(/Producer/)).toBeInTheDocument();
     // Metrics Ribbon
     expect(screen.getByText('Published')).toBeInTheDocument();
     expect(screen.getByText('Error Rate')).toBeInTheDocument();

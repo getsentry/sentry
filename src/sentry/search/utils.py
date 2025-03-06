@@ -44,19 +44,21 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
 
 
 def parse_status_value(status: str | int) -> int:
-    if status in STATUS_QUERY_CHOICES:
-        return int(STATUS_QUERY_CHOICES[status])
-    if status in STATUS_QUERY_CHOICES.values():
-        return int(status)
-    raise ValueError("Invalid status value")
+    if isinstance(status, str) and status in STATUS_QUERY_CHOICES:
+        return STATUS_QUERY_CHOICES[status]
+    elif isinstance(status, int) and status in STATUS_QUERY_CHOICES.values():
+        return status
+    else:
+        raise ValueError(f"Invalid status value: {status!r}")
 
 
 def parse_substatus_value(substatus: str | int) -> int:
-    if substatus in SUBSTATUS_UPDATE_CHOICES:
-        return int(SUBSTATUS_UPDATE_CHOICES[substatus])
-    if substatus in SUBSTATUS_UPDATE_CHOICES.values():
-        return int(substatus)
-    raise ValueError("Invalid substatus value")
+    if isinstance(substatus, str) and substatus in SUBSTATUS_UPDATE_CHOICES:
+        return SUBSTATUS_UPDATE_CHOICES[substatus]
+    elif isinstance(substatus, int) and substatus in SUBSTATUS_UPDATE_CHOICES.values():
+        return substatus
+    else:
+        raise ValueError(f"Invalid substatus value: {substatus!r}")
 
 
 def parse_duration(value: str, interval: str) -> float:
@@ -253,7 +255,7 @@ def parse_datetime_comparison(
     raise InvalidQuery(f"{value} is not a valid datetime query")
 
 
-def parse_datetime_value(value: str) -> tuple[ParsedDatetime, ParsedDatetime]:
+def parse_datetime_value(value: str) -> tuple[tuple[datetime, bool], tuple[datetime, bool]]:
     result = None
 
     # A value that only specifies the date (without a time component) should be
@@ -321,7 +323,7 @@ def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> l
 
 
 def parse_actor_value(
-    projects: Sequence[Project], value: str, user: RpcUser | User
+    projects: Sequence[Project], value: str, user: User | RpcUser | AnonymousUser
 ) -> RpcUser | Team:
     if value.startswith("#"):
         return parse_team_value(projects, value)
@@ -329,25 +331,31 @@ def parse_actor_value(
 
 
 def parse_actor_or_none_value(
-    projects: Sequence[Project], value: str, user: User
+    projects: Sequence[Project], value: str, user: User | RpcUser | AnonymousUser
 ) -> RpcUser | Team | None:
     if value == "none":
         return None
     return parse_actor_value(projects, value, user)
 
 
-def parse_user_value(value: str, user: User | RpcUser) -> RpcUser:
+# XXX(dcramer): hacky way to avoid showing any results when
+# an invalid user is entered
+_HACKY_INVALID_USER = RpcUser(id=0)
+
+
+def parse_user_value(value: str, user: User | RpcUser | AnonymousUser) -> RpcUser:
     if value == "me":
         if isinstance(user, User):
             return serialize_rpc_user(user)
-        return user
+        elif isinstance(user, RpcUser):
+            return user
+        else:
+            return _HACKY_INVALID_USER
 
     try:
         return user_service.get_by_username(username=value)[0]
     except IndexError:
-        # XXX(dcramer): hacky way to avoid showing any results when
-        # an invalid user is entered
-        return RpcUser(id=0)
+        return _HACKY_INVALID_USER
 
 
 class LatestReleaseOrders(Enum):
@@ -360,7 +368,7 @@ def get_latest_release(
     environments: Sequence[Environment] | None,
     organization_id: int | None = None,
     adopted=False,
-) -> Sequence[str]:
+) -> list[str]:
     if organization_id is None:
         project = projects[0]
         if isinstance(project, Project):
@@ -369,7 +377,7 @@ def get_latest_release(
             return []
 
     # Convert projects to ids so that we can work with them more easily
-    project_ids = [getattr(project, "id", project) for project in projects]
+    project_ids = [project.id if isinstance(project, Project) else project for project in projects]
 
     semver_project_ids = []
     date_project_ids = []
@@ -402,7 +410,7 @@ def get_latest_release(
     if not versions:
         raise Release.DoesNotExist()
 
-    return list(sorted(versions))
+    return sorted(versions)
 
 
 def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> tuple[str, str]:
@@ -462,7 +470,7 @@ def _run_latest_release_query(
         WHERE rank = 1
     """
     cursor = connections[router.db_for_read(Release, replica=True)].cursor()
-    query_args = [organization_id, tuple(project_ids)]
+    query_args: list[int | tuple[int, ...]] = [organization_id, tuple(project_ids)]
     if environments:
         query_args.append(tuple(e.id for e in environments))
     cursor.execute(query, query_args)
@@ -507,7 +515,7 @@ def parse_release(
     projects: Sequence[Project | int],
     environments: Sequence[Environment] | None,
     organization_id: int | None = None,
-) -> Sequence[str]:
+) -> list[str]:
     if value == "latest":
         try:
             return get_latest_release(projects, environments, organization_id)
@@ -707,7 +715,7 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
 def parse_query(
     projects: Sequence[Project],
     query: str,
-    user: User | AnonymousUser,
+    user: User | RpcUser | AnonymousUser,
     environments: Sequence[Environment],
 ) -> dict[str, Any]:
     """| Parses the query string and returns a dict of structured query term values:

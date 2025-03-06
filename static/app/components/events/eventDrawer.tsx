@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
@@ -47,6 +47,9 @@ export const EventDrawerHeader = styled(DrawerHeader)`
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 `;
 
 export const EventNavigator = styled('div')`

@@ -144,7 +144,7 @@ function renderDropdownHeader({
   onCreateTeam,
 }: {
   organization: Organization;
-  onCreateTeam?: (team) => void;
+  onCreateTeam?: (team: any) => void;
   project?: Project;
 }) {
   const canCreateTeam = hasEveryAccess(['org:write'], {organization, project});

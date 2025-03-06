@@ -52,7 +52,7 @@ type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 
 type Props = Pick<ExceptionProps, 'groupingCurrentLevel'> & {
   data: {
-    values?: Array<Thread>;
+    values?: Thread[];
   };
   event: Event;
   group: Group | undefined;
@@ -243,7 +243,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   function handleChangeThread(direction: 'previous' | 'next') {
-    const currentIndex = threads.findIndex(thread => thread.id === activeThreadId);
+    const currentIndex = threads.findIndex((thread: any) => thread.id === activeThreadId);
     let nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1;
     if (nextIndex < 0) {
       nextIndex = threads.length - 1;

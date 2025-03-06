@@ -96,7 +96,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHES,
       'java-spring'
     );
-    expect(crashesSessionTerm).toEqual(
+    expect(crashesSessionTerm).toBe(
       'A request that resulted in an unhandled exception and hence a Server Error response'
     );
 
@@ -156,7 +156,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHES,
       'dotnet-aspnetcore'
     );
-    expect(crashesSessionTerm).toEqual(
+    expect(crashesSessionTerm).toBe(
       'A request that resulted in an unhandled exception and hence a Server Error response'
     );
 
@@ -217,7 +217,7 @@ describe('Release Health Session Term', function () {
 
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, 'android');
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'An unhandled exception that resulted in the application crashing'
     );
 
@@ -265,7 +265,7 @@ describe('Release Health Session Term', function () {
 
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, 'cordova');
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'An unhandled exception that resulted in the application crashing'
     );
 
@@ -319,7 +319,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHED,
       'react-native'
     );
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'An unhandled exception that resulted in the application crashing'
     );
 
@@ -373,7 +373,7 @@ describe('Release Health Session Term', function () {
 
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, 'flutter');
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'An unhandled exception that resulted in the application crashing'
     );
 
@@ -427,9 +427,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHED,
       'apple-macos'
     );
-    expect(crashedSessionTerm).toEqual(
-      'An error that resulted in the application crashing'
-    );
+    expect(crashedSessionTerm).toBe('An error that resulted in the application crashing');
 
     // Crash Free Users
     const crashFreeUsersSessionTerm = getSessionTermDescription(
@@ -487,7 +485,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHED,
       'node-express'
     );
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'During the session an unhandled global error/promise rejection occurred.'
     );
 
@@ -510,23 +508,21 @@ describe('Release Health Session Term', function () {
       SessionTerm.ABNORMAL,
       'node-express'
     );
-    expect(abnormalSessionTerm).toEqual('Non applicable for Javascript.');
+    expect(abnormalSessionTerm).toBe('Non applicable for Javascript.');
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(
       SessionTerm.HEALTHY,
       'node-express'
     );
-    expect(healthySessionTerm).toEqual(
-      'No errors were captured during session life-time.'
-    );
+    expect(healthySessionTerm).toBe('No errors were captured during session life-time.');
 
     // Errored
     const erroredSessionTerm = getSessionTermDescription(
       SessionTerm.ERRORED,
       'node-express'
     );
-    expect(erroredSessionTerm).toEqual(
+    expect(erroredSessionTerm).toBe(
       'During the session at least one handled error occurred.'
     );
 
@@ -535,7 +531,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.UNHANDLED,
       'node-express'
     );
-    expect(unhandledSessionTerm).toEqual(
+    expect(unhandledSessionTerm).toBe(
       "An error was captured by the global 'onerror' or 'onunhandledrejection' handler."
     );
   });
@@ -553,7 +549,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHED,
       'javascript'
     );
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'During the session an unhandled global error/promise rejection occurred.'
     );
 
@@ -576,23 +572,21 @@ describe('Release Health Session Term', function () {
       SessionTerm.ABNORMAL,
       'javascript'
     );
-    expect(abnormalSessionTerm).toEqual('Non applicable for Javascript.');
+    expect(abnormalSessionTerm).toBe('Non applicable for Javascript.');
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(
       SessionTerm.HEALTHY,
       'javascript'
     );
-    expect(healthySessionTerm).toEqual(
-      'No errors were captured during session life-time.'
-    );
+    expect(healthySessionTerm).toBe('No errors were captured during session life-time.');
 
     // Errored
     const erroredSessionTerm = getSessionTermDescription(
       SessionTerm.ERRORED,
       'javascript'
     );
-    expect(erroredSessionTerm).toEqual(
+    expect(erroredSessionTerm).toBe(
       'During the session at least one handled error occurred.'
     );
 
@@ -601,7 +595,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.UNHANDLED,
       'javascript'
     );
-    expect(unhandledSessionTerm).toEqual(
+    expect(unhandledSessionTerm).toBe(
       "An error was captured by the global 'onerror' or 'onunhandledrejection' handler."
     );
   });
@@ -613,7 +607,7 @@ describe('Release Health Session Term', function () {
 
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, 'rust');
-    expect(crashedSessionTerm).toEqual(
+    expect(crashedSessionTerm).toBe(
       'The application had an unrecoverable error (a panic)'
     );
 
@@ -802,9 +796,7 @@ describe('Release Health Session Term', function () {
 
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, 'python');
-    expect(crashedSessionTerm).toEqual(
-      'Number of users who experienced an unhandled error'
-    );
+    expect(crashedSessionTerm).toBe('Number of users who experienced an unhandled error');
 
     // Crash Free Users
     const crashFreeUsersSessionTerm = getSessionTermDescription(
@@ -822,7 +814,7 @@ describe('Release Health Session Term', function () {
 
     // Abnormal
     const abnormalSessionTerm = getSessionTermDescription(SessionTerm.ABNORMAL, 'python');
-    expect(abnormalSessionTerm).toEqual('An unknown session exit');
+    expect(abnormalSessionTerm).toBe('An unknown session exit');
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(SessionTerm.HEALTHY, 'python');
@@ -847,9 +839,7 @@ describe('Release Health Session Term', function () {
 
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, null);
-    expect(crashedSessionTerm).toEqual(
-      'Number of users who experienced an unhandled error'
-    );
+    expect(crashedSessionTerm).toBe('Number of users who experienced an unhandled error');
 
     // Crash Free Users
     const crashFreeUsersSessionTerm = getSessionTermDescription(
@@ -867,7 +857,7 @@ describe('Release Health Session Term', function () {
 
     // Abnormal
     const abnormalSessionTerm = getSessionTermDescription(SessionTerm.ABNORMAL, null);
-    expect(abnormalSessionTerm).toEqual('An unknown session exit');
+    expect(abnormalSessionTerm).toBe('An unknown session exit');
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(SessionTerm.HEALTHY, null);

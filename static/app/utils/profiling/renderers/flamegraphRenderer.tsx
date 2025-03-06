@@ -17,14 +17,12 @@ export const DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS: FlamegraphRendererOptions = {
   draw_border: false,
 };
 
-export interface FlamegraphRendererConstructor {
-  new (
-    canvas: HTMLCanvasElement,
-    flamegraph: Flamegraph,
-    theme: FlamegraphTheme,
-    options?: FlamegraphRendererOptions
-  ): FlamegraphRenderer;
-}
+export type FlamegraphRendererConstructor = new (
+  canvas: HTMLCanvasElement,
+  flamegraph: Flamegraph,
+  theme: FlamegraphTheme,
+  options?: FlamegraphRendererOptions
+) => FlamegraphRenderer;
 
 export abstract class FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
@@ -33,13 +31,13 @@ export abstract class FlamegraphRenderer {
   theme: FlamegraphTheme;
   options: FlamegraphRendererOptions;
 
-  frames: ReadonlyArray<FlamegraphFrame>;
-  roots: ReadonlyArray<FlamegraphFrame>;
+  frames: readonly FlamegraphFrame[];
+  roots: readonly FlamegraphFrame[];
 
-  colorBuffer: Array<number>;
+  colorBuffer: number[];
   colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
 
-  isDifferentialFlamegraph: boolean = false;
+  isDifferentialFlamegraph = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -117,13 +115,14 @@ export abstract class FlamegraphRenderer {
       }
 
       // Descend into the rest of the children
-      for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
+      for (const child of frame.children) {
+        queue.push(child);
       }
     }
     return hoveredNode;
   }
 
+  // @ts-expect-error TS(7010): 'setSearchResults', which lacks return-type annota... Remove this comment to see the full error message
   abstract setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -108,35 +109,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "string"}
-            )
-            assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-
-    def test_tags_list_str_processed(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                tags={tag: tag},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(
                 features=features, query={"dataset": "spans", "type": "string", "process": 1}
             )
             assert response.status_code == 200, response.data
@@ -150,35 +122,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ]
 
     def test_tags_list_nums(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                measurements={tag: 0},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "number"}
-            )
-            assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-
-    def test_tags_list_nums_processed(self):
         for tag in [
             "foo",
             "bar",
@@ -840,6 +783,34 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert response.data == []
 
+    @mock.patch(
+        "sentry.api.endpoints.organization_spans_fields.EAPSpanFieldValuesAutocompletionExecutor.execute",
+        side_effect=InvalidSearchQuery,
+    )
+    @mock.patch(
+        "sentry.api.endpoints.organization_spans_fields.SpanFieldValuesAutocompletionExecutor.execute",
+        side_effect=InvalidSearchQuery,
+    )
+    def test_invalid_query(self, mock_executor_1, mock_executor_2):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=timestamp,
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"tag": "foo"},
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request("tag")
+        assert response.status_code == 400, response.data
+
 
 class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
     is_eap = True
@@ -863,3 +834,28 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
                 format="json",
                 **kwargs,
             )
+
+    def test_boolean_autocomplete(self):
+        keys = ["is_transaction"]
+        self.project
+        for key in keys:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "false",
+                    "name": "false",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "true",
+                    "name": "true",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+            ]

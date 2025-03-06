@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
@@ -14,7 +15,7 @@ export enum StepType {
   VERIFY = 'verify',
 }
 
-export const StepTitle = {
+export const StepTitles = {
   [StepType.INSTALL]: t('Install'),
   [StepType.CONFIGURE]: t('Configure SDK'),
   [StepType.VERIFY]: t('Verify'),
@@ -53,8 +54,8 @@ export function TabbedCodeSnippet({
   onSelectAndCopy,
   partialLoading,
 }: TabbedCodeSnippetProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0].value);
-  const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0];
+  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0]!.value);
+  const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = selectedTab;
 
   return (
@@ -210,49 +211,47 @@ export function Step({
   onOptionalToggleClick,
   collapsible = false,
   codeHeader,
-}: StepProps) {
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
-    <Fragment>
+    <ContentWrapper>
       {description && <Description>{description}</Description>}
 
-      {!!configurations?.length && (
-        <Configurations>
-          {configurations.map((configuration, index) => {
-            if (configuration.configurations) {
-              return (
-                <Fragment key={index}>
-                  {getConfiguration(configuration)}
-                  {configuration.configurations.map(
-                    (nestedConfiguration, nestedConfigurationIndex) => (
-                      <Fragment key={nestedConfigurationIndex}>
-                        {nestedConfigurationIndex ===
-                        (configuration.configurations?.length ?? 1) - 1
-                          ? codeHeader
-                          : null}
-                        {getConfiguration(nestedConfiguration)}
-                      </Fragment>
-                    )
-                  )}
-                </Fragment>
-              );
-            }
+      {!!configurations?.length &&
+        configurations.map((configuration, index) => {
+          if (configuration.configurations) {
             return (
               <Fragment key={index}>
-                {index === configurations.length - 1 ? codeHeader : null}
                 {getConfiguration(configuration)}
+                {configuration.configurations.map(
+                  (nestedConfiguration, nestedConfigurationIndex) => (
+                    <Fragment key={nestedConfigurationIndex}>
+                      {nestedConfigurationIndex ===
+                      (configuration.configurations?.length ?? 1) - 1
+                        ? codeHeader
+                        : null}
+                      {getConfiguration(nestedConfiguration)}
+                    </Fragment>
+                  )
+                )}
               </Fragment>
             );
-          })}
-        </Configurations>
-      )}
+          }
+          return (
+            <Fragment key={index}>
+              {index === configurations.length - 1 ? codeHeader : null}
+              {getConfiguration(configuration)}
+            </Fragment>
+          );
+        })}
       {additionalInfo && <GeneralAdditionalInfo>{additionalInfo}</GeneralAdditionalInfo>}
-    </Fragment>
+    </ContentWrapper>
   );
 
   return collapsible ? (
-    <div>
+    <div {...props}>
       <OptionalConfigWrapper
         expanded={showOptionalConfig}
         onClick={() => {
@@ -260,7 +259,7 @@ export function Step({
           setShowOptionalConfig(!showOptionalConfig);
         }}
       >
-        <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
+        <StepTitle>{title ?? StepTitles[type]}</StepTitle>
         <ToggleButton
           priority="link"
           borderless
@@ -272,21 +271,31 @@ export function Step({
       {showOptionalConfig ? config : null}
     </div>
   ) : (
-    <div>
-      <h4>{title ?? StepTitle[type]}</h4>
+    <div {...props}>
+      <StepTitle>{title ?? StepTitles[type]}</StepTitle>
       {config}
     </div>
   );
 }
 
-const Configuration = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+// NOTE: We intentionally avoid using flex or grid here
+// as it leads to weird text selection behavior in Safari
+// see https://github.com/getsentry/sentry/issues/79958
+
+const CONTENT_SPACING = space(2);
+
+const ContentWrapper = styled('div')`
+  margin-top: ${CONTENT_SPACING};
 `;
 
-const Configurations = styled(Configuration)`
-  margin-top: ${space(2)};
+const StepTitle = styled('h4')`
+  margin-bottom: 0 !important;
+`;
+
+const Configuration = styled('div')`
+  :not(:last-child) {
+    margin-bottom: ${CONTENT_SPACING};
+  }
 `;
 
 const Description = styled('div')`
@@ -294,18 +303,26 @@ const Description = styled('div')`
     color: ${p => p.theme.pink400};
   }
 
+  :not(:last-child) {
+    margin-bottom: ${CONTENT_SPACING};
+  }
+
   && > p,
   && > h4,
   && > h5,
   && > h6 {
-    margin-bottom: ${space(1)};
+    &:not(:last-child) {
+      margin-bottom: ${CONTENT_SPACING};
+    }
   }
 `;
 
-const AdditionalInfo = styled(Description)``;
+const AdditionalInfo = styled(Description)`
+  margin-top: ${CONTENT_SPACING};
+`;
 
 const GeneralAdditionalInfo = styled(Description)`
-  margin-top: ${space(2)};
+  margin-top: ${CONTENT_SPACING};
 `;
 
 const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`

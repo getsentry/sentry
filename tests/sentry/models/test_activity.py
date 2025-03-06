@@ -1,6 +1,8 @@
 import logging
+from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
+from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
@@ -319,3 +321,26 @@ class ActivityTest(TestCase):
         for pair in chunked(act_for_group[:-1], 2):
             assert pair[0].type == ActivityType.SET_IGNORED.value
             assert pair[1].type == ActivityType.SET_UNRESOLVED.value
+
+    @patch("sentry.tasks.activity.send_activity_notifications.delay")
+    def test_skips_status_change_notifications_if_disabled(
+        self, mock_send_activity_notifications: MagicMock
+    ):
+        project = self.create_project(name="test_activities_group")
+        group = self.create_group(project)
+
+        # Create an activity that would normally trigger a notification
+        activity = Activity.objects.create_group_activity(
+            group=group, type=ActivityType.SET_UNRESOLVED, data=None, send_notification=True
+        )
+
+        mock_send_activity_notifications.assert_called_once_with(activity.id)
+        mock_send_activity_notifications.reset_mock()
+
+        group.type = MetricIssuePOC.type_id
+        group.save()
+        _ = Activity.objects.create_group_activity(
+            group=group, type=ActivityType.SET_RESOLVED, data=None, send_notification=True
+        )
+
+        mock_send_activity_notifications.assert_not_called()
