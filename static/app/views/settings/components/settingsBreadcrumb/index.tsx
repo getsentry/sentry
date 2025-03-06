@@ -1,6 +1,6 @@
+import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -69,7 +69,11 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
   );
 }
 
-const CrumbLink = styled(Link)`
+// Uses Link directly from react-router-dom to avoid the URL normalization
+// that happens in the internal Link component. It is unncessary because we
+// get routes from the router, and will actually cause issues because the
+// routes do not have organization information.
+const CrumbLink = styled(RouterLink)`
   display: block;
 
   color: ${p => p.theme.subText};

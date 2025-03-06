@@ -212,6 +212,6 @@ const TimeCell = styled(Cell)`
 
 const TraceCell = styled(Cell)`
   display: grid;
-  grid-template-columns: 65px auto;
+  grid-template-columns: 65px max-content;
   gap: ${space(1)};
 `;
