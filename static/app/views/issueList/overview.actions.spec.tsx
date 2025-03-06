@@ -155,7 +155,17 @@ describe('IssueListOverview (actions)', function () {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {organization});
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved'},
+          },
+        },
+      });
       renderGlobalModal();
 
       await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
