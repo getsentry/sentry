@@ -60,7 +60,7 @@ type InfiniteApiQueryKey = readonly [
     Record<string, any>,
     Record<string, any>
   >,
-  additionalKey: string,
+  additionalKey: 'infinite',
 ];
 export type ApiQueryKey =
   | readonly [url: string]
