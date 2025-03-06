@@ -219,14 +219,12 @@ class GitlabIssuesTest(GitLabTestCase):
         project_id = 10
         project_name = "This_is / a_project"
         assert self.installation.org_integration is not None
-        org_integration = integration_service.update_organization_integration(
+        self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
             },
         )
-        assert org_integration is not None
-        self.installation.org_integration = org_integration
 
         responses.add(
             responses.GET,
@@ -288,14 +286,12 @@ class GitlabIssuesTest(GitLabTestCase):
         project_id = 10
         project_name = "This_is / a_project"
         assert self.installation.org_integration is not None
-        org_integration = integration_service.update_organization_integration(
+        self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
             },
         )
-        assert org_integration is not None
-        self.installation.org_integration = org_integration
 
         responses.add(
             responses.GET,
