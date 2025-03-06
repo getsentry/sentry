@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as SchemaSpan
 
 from sentry import options
 from sentry.event_manager import (
@@ -28,6 +28,13 @@ from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
+
+
+class Span(SchemaSpan, total=False):
+    start_timestamp_precise: float  # Missing in schema
+    end_timestamp_precise: float  # Missing in schema
+    op: str | None  # Added in enrichment
+    hash: str | None  # Added in enrichment
 
 
 @metrics.wraps("save_event.send_occurrence_to_platform")
@@ -105,9 +112,9 @@ def dfs(visited, flattened_spans, tree, span_id):
                 stack.append(child["span_id"])
 
 
-def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[SegmentSpan]:
+def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[Span]:
     visited: Set[str] = set()
-    flattened_spans: list[SegmentSpan] = []
+    flattened_spans: list[Span] = []
 
     if root_span_id:
         dfs(visited, flattened_spans, tree, root_span_id)
@@ -138,7 +145,7 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
         job["performance_problems"] = updated_problems
 
 
-def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
+def _find_segment_span(spans: list[Span]) -> Span | None:
     """
     Finds the segment in the span in the list that has ``is_segment`` set to
     ``True``.
@@ -157,7 +164,7 @@ def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
     return None
 
 
-def _enrich_spans(segment: SegmentSpan | None, spans: list[SegmentSpan]) -> None:
+def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     for span in spans:
         if (op := span.get("sentry_tags", {}).get("op")) is not None:
             span["op"] = op
@@ -170,7 +177,7 @@ def _enrich_spans(segment: SegmentSpan | None, spans: list[SegmentSpan]) -> None
     groupings.write_to_spans(spans)
 
 
-def _create_models(segment: SegmentSpan, project: Project) -> None:
+def _create_models(segment: Span, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
@@ -181,7 +188,7 @@ def _create_models(segment: SegmentSpan, project: Project) -> None:
     environment_name = sentry_tags.get("environment")
     release_name = sentry_tags.get("release")
     dist_name = sentry_tags.get("dist")
-    date = to_datetime(segment["end_timestamp_precise"])  # type: ignore[typeddict-item]
+    date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -206,9 +213,7 @@ def _create_models(segment: SegmentSpan, project: Project) -> None:
     )
 
 
-def transform_spans_to_event_dict(
-    segment_span: SegmentSpan, spans: list[SegmentSpan]
-) -> dict[str, Any]:
+def transform_spans_to_event_dict(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
     event_spans: list[dict[str, Any]] = []
 
     sentry_tags = segment_span.get("sentry_tags", {})
@@ -265,7 +270,7 @@ def prepare_event_for_occurrence_consumer(event):
     return event_light
 
 
-def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
+def process_segment(spans: list[Span]) -> list[Span]:
     segment_span = _find_segment_span(spans)
     if segment_span is None:
         # TODO: Handle segments without a defined segment span once all
