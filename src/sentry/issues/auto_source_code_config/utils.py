@@ -10,6 +10,11 @@ def supported_platform(platform: str) -> bool:
     return platform in PLATFORMS_CONFIG
 
 
+def get_supported_languages() -> list[str]:
+    """Return a list of all supported languages"""
+    return list(PLATFORMS_CONFIG.keys())
+
+
 # This is used by repo_trees.py to determine which files to keep in the cache
 def get_supported_extensions() -> list[str]:
     """Return a list of all supported extensions across all languages"""
