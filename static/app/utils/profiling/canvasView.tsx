@@ -54,7 +54,9 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.model = model;
     this.canvas = canvas;
     this.depthOffset = options.depthOffset ?? 0;
-    this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 1;
+    this.barHeight = options.barHeight ? 
+      Math.max(0.1, options.barHeight * window.devicePixelRatio) : 
+      1;
 
     // This is a transformation matrix that is applied to the configView, it allows us to
     // transform an entire view and render it without having to recompute the models.
@@ -130,7 +132,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
         return;
       }
       case 'anchorBottom': {
-        const newHeight = this.maxHeight || canvas.physicalSpace.height / this.barHeight;
+        const newHeight = this.maxHeight || canvas.physicalSpace.height / Math.max(0.1, this.barHeight);
         const newY = Math.max(0, Math.ceil(space.y - (newHeight - space.height)));
         this.setConfigView(Rect.From(space).withHeight(newHeight).withY(newY));
         return;
@@ -138,7 +140,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
       case 'anchorTop': {
         this.setConfigView(
           Rect.From(space).withHeight(
-            this.maxHeight || canvas.physicalSpace.height / this.barHeight
+            this.maxHeight || canvas.physicalSpace.height / Math.max(0.1, this.barHeight)
           )
         );
         return;
