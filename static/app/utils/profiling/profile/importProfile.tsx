@@ -293,7 +293,7 @@ export function eventedProfileToSampledProfile(
         samples.push({
           stack_id: stackId,
           thread_id: String(profile.threadID),
-          timestamp: current.at * 1e-9,
+          timestamp: profile.startValue + current.at * 1e-9,
         });
 
         stacks[stackId] = stack.slice();
@@ -306,7 +306,8 @@ export function eventedProfileToSampledProfile(
       samples.push({
         stack_id: stackId,
         thread_id: String(profile.threadID),
-        timestamp: profile.events[profile.events.length - 1]!.at * 1e-9,
+        timestamp:
+          profile.startValue + profile.events[profile.events.length - 1]!.at * 1e-9,
       });
       stacks[stackId] = stack.slice();
       stackId++;
@@ -363,14 +364,12 @@ export function importAndroidContinuousProfileChunk(
     samplesByThread[sample.thread_id]!.push(sample);
   }
 
-  for (const key in samplesByThread) {
-    samplesByThread[key]!.sort((a, b) => a.timestamp - b.timestamp);
-  }
-
   const profiles: ContinuousProfile[] = [];
   let activeProfileIndex = input.activeProfileIndex ?? 0;
 
   for (const key in samplesByThread) {
+    samplesByThread[key]!.sort((a, b) => a.timestamp - b.timestamp);
+
     const profile: Profiling.ContinuousProfile = {
       ...convertedProfile,
       frames,
@@ -442,14 +441,11 @@ export function importSentryContinuousProfileChunk(
     samplesByThread[sample.thread_id]!.push(sample);
   }
 
-  for (const key in samplesByThread) {
-    samplesByThread[key]!.sort((a, b) => a.timestamp - b.timestamp);
-  }
-
   const profiles: ContinuousProfile[] = [];
   let activeProfileIndex = 0;
 
   for (const key in samplesByThread) {
+    samplesByThread[key]!.sort((a, b) => a.timestamp - b.timestamp);
     const profile: Profiling.ContinuousProfile = {
       ...input,
       ...input.profile,
