@@ -2,12 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
-import {IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
@@ -37,7 +34,6 @@ export default function ListContent() {
   });
 
   const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
-  const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
 
   const [widgetIsOpen, setWidgetIsOpen] = useState(true);
 
@@ -97,17 +93,6 @@ export default function ListContent() {
           )}
         </SearchWrapper>
       </FiltersContainer>
-      {allMobileProj && mobileBetaOrg ? (
-        <Alert type="info" icon={<IconInfo />} showIcon>
-          {tct(
-            `[strong:Mobile Replay is now generally available.] Since your org participated in the beta, you'll have a two month grace period of unlimited usage until March 6. After that, we will only accept replay events that are included in your plan. If you'd like to increase your reserved replay quota, go to your [link:Subscription Settings] or speak to your organization owner.`,
-            {
-              strong: <strong />,
-              link: <Link to={`/settings/${organization.slug}/billing/overview/`} />,
-            }
-          )}
-        </Alert>
-      ) : null}
       {widgetIsOpen && !allMobileProj ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
