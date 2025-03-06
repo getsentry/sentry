@@ -14,18 +14,9 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
-
-
-def literal_validator(values: list[Any]) -> Callable[[str], bool]:
-    def _validator(input: str) -> bool:
-        if input in values:
-            return True
-        raise InvalidSearchQuery(f"Invalid parameter {input}. Must be one of {values}")
-
-    return _validator
+from sentry.search.eap.utils import literal_validator
 
 
 def http_response_rate(code: int) -> Column.BinaryFormula:
