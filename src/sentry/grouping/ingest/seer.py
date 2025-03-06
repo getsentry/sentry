@@ -63,8 +63,8 @@ def should_call_seer_for_grouping(
 
     if (
         has_blocked_fingerprint
-        or _is_race_condition_skipped_event(event, event_grouphash)
         or _has_too_many_contributing_frames(event, variants)
+        or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
