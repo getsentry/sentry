@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
@@ -10,7 +10,6 @@ import {
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   FlagControlOptions,
   OrderBy,
@@ -20,7 +19,7 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconEllipsis, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconEllipsis, IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -110,8 +109,6 @@ export function EventFeatureFlagList({
     },
     [organization, queryParams]
   );
-
-  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
     suspectFlags,
@@ -240,15 +237,14 @@ export function EventFeatureFlagList({
     <ButtonBar gap={1}>
       {feedbackButton}
       <Fragment>
-        <Button
-          aria-label={t('Set Up Integration')}
+        <LinkButton
+          aria-label={t('Go to Feature Flag Settings')}
           size="xs"
-          onClick={mouseEvent => {
-            activateSidebarSkipConfigure(mouseEvent, project.id);
-          }}
+          title="Go to Settings"
+          to={`/settings/${organization.slug}/feature-flags/`}
         >
-          {t('Set Up Integration')}
-        </Button>
+          <IconSettings />
+        </LinkButton>
         {hasFlags && (
           <Fragment>
             <Button

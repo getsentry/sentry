@@ -8,7 +8,6 @@ import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
-import {FLAG_HASH_SKIP_CONFIG} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   SdkProviderEnum,
   WebhookProviderEnum,
@@ -196,7 +195,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const ORIGINAL_HASH = useMemo(() => {
     return window.location.hash;
   }, []);
-  const skipEvalTracking = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
 
   // First dropdown: OpenFeature providers
   const openFeatureProviderOptions = Object.values(WebhookProviderEnum).map(provider => {
@@ -373,7 +371,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       {radioButtons}
       <FeatureFlagOnboardingLayout
-        skipEvalTracking={skipEvalTracking}
         docsConfig={docs}
         dsn={dsn}
         projectKeyId={projectKeyId}

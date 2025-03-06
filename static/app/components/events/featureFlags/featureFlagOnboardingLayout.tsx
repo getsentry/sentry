@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalInfo';
+import Link from 'sentry/components/links/link';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -32,7 +32,7 @@ export function FeatureFlagOnboardingLayout({
   projectKeyId,
   configType = 'onboarding',
   integration = '',
-  skipEvalTracking,
+  skipEvalTracking = false,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -118,7 +118,17 @@ export function FeatureFlagOnboardingLayout({
           </Steps>
         )}
         <Divider />
-        <OnboardingAdditionalFeatures organization={organization} />
+        <h4 style={{marginTop: '40px'}}>{t('Additional Features')}</h4>
+        {tct(
+          '[link:Change Tracking]: Configure Sentry to listen for additions, removals, and modifications to your feature flags.',
+          {
+            link: (
+              <Link
+                to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+              />
+            ),
+          }
+        )}
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
