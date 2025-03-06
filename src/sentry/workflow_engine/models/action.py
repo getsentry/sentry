@@ -83,9 +83,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
 @receiver(pre_save, sender=Action)
 def enforce_config_schema(sender, instance: Action, **kwargs):
-    """
-    Add a default receiver that
-    """
     handler = instance.get_handler()
     schema = handler.config_schema
 
