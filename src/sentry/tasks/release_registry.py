@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.net.http import Session
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -37,12 +38,7 @@ def _fetch_registry_url(relative_url):
         return response.json()
 
 
-@instrumented_task(
-    name="sentry.tasks.release_registry.fetch_release_registry_data",
-    time_limit=65,
-    soft_time_limit=60,
-)
-def fetch_release_registry_data(**kwargs):
+def _fetch_release_registry_data(**kwargs):
     """
     Fetch information about the latest SDK version from the release registry.
 
@@ -77,3 +73,25 @@ def fetch_release_registry_data(**kwargs):
         extra={"layer_cache": cache.get(LAYER_INDEX_CACHE_KEY)},
     )
     sentry_sdk.capture_message("Fetching release registry")
+
+
+@instrumented_task(
+    name="sentry.tasks.release_registry.fetch_release_registry_data",
+    time_limit=65,
+    soft_time_limit=60,
+    queue="release_registry",
+    silo_mode=SiloMode.REGION,
+)
+def fetch_release_registry_data(**kwargs):
+    _fetch_release_registry_data(**kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.release_registry.fetch_release_registry_data_control",
+    time_limit=65,
+    soft_time_limit=60,
+    queue="release_registry.control",
+    silo_mode=SiloMode.CONTROL,
+)
+def fetch_release_registry_data_control(**kwargs):
+    _fetch_release_registry_data(**kwargs)

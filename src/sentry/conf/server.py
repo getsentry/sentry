@@ -896,6 +896,11 @@ CELERY_QUEUES_CONTROL = [
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
     Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
+    Queue(
+        "release_registry.control",
+        routing_key="release_registry.control",
+        exchange=control_exchange,
+    ),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -999,6 +1004,7 @@ CELERY_QUEUES_REGION = [
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
     Queue("demo_mode", routing_key="demo_mode"),
+    Queue("release_registry", routing_key="release_registry"),
 ]
 
 from celery.schedules import crontab
@@ -1054,11 +1060,11 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
     },
-    "fetch-release-registry-data": {
-        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+    "fetch-release-registry-data-control": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
+        "options": {"expires": 3600, "queue": "release_registry.control"},
     },
 }
 
@@ -1187,7 +1193,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
+        "options": {"expires": 3600, "queue": "release_registry"},
     },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
