@@ -56,9 +56,10 @@ const StyledTextArea = styled(Input.withComponent(TextAreaControl), {
 
 export const TextArea = withChonk(
   StyledTextArea,
-  /* re-set height to let it be determined by the rows prop */
   chonkStyled(StyledTextArea)`
+    /* re-set height to let it be determined by the rows prop */
     height: unset;
+    /* this calculation reduces padding to account for the line-height, which ensures text is still correctly centered. */
     ${({theme, size = 'md'}) => `padding-top: calc(
       (${theme.form[size].height} -
         (${theme.form[size].fontSize} * ${theme.text.lineHeightBody})
