@@ -435,6 +435,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     AlertRule = apps.get_model("sentry", "AlertRule")
     AlertRuleTrigger = apps.get_model("sentry", "AlertRuleTrigger")
     AlertRuleActivity = apps.get_model("sentry", "AlertRuleActivity")
+    Organization = apps.get_model("sentry", "Organization")
     RuleSnooze = apps.get_model("sentry", "RuleSnooze")
 
     AlertRuleDetector = apps.get_model("workflow_engine", "AlertRuleDetector")
@@ -444,97 +445,110 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     Workflow = apps.get_model("workflow_engine", "Workflow")
 
     # MAIN MIGRATION LOOP STARTS HERE
-    for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(
-        AlertRule.objects_with_snapshots.all()
-    ):
-        if alert_rule.status in [AlertRuleStatus.DISABLED.value, AlertRuleStatus.SNAPSHOT.value]:
-            logger.info(
-                "Skipping disabled/deleted alert rule", extra={"alert_rule_id": alert_rule.id}
+    for organization in RangeQuerySetWrapperWithProgressBarApprox(Organization.objects.all()):
+        organization_id = organization.id
+
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            alert_rules = AlertRule.objects_with_snapshots.select_for_update().filter(
+                organization=organization
             )
-            continue
-        if alert_rule.detection_type == "dynamic":
-            logger.info(
-                "anomaly detection alert rule, skipping", extra={"alert_rule_id": alert_rule.id}
-            )
-            continue
+            for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(alert_rules):
+                if alert_rule.status in [
+                    AlertRuleStatus.DISABLED.value,
+                    AlertRuleStatus.SNAPSHOT.value,
+                ]:
+                    logger.info(
+                        "Skipping disabled/deleted alert rule",
+                        extra={"alert_rule_id": alert_rule.id},
+                    )
+                    continue
+                if alert_rule.detection_type == "dynamic":
+                    logger.info(
+                        "anomaly detection alert rule, skipping",
+                        extra={"alert_rule_id": alert_rule.id},
+                    )
+                    continue
 
-        if AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists():
-            # in case we need to restart the migration for some reason, skip rules
-            # that have already been migrated
-            logger.info("Alert rule already migrated", extra={"alert_rule_id": alert_rule.id})
-            continue
+                if AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists():
+                    # in case we need to restart the migration for some reason, skip rules
+                    # that have already been migrated
+                    logger.info(
+                        "Alert rule already migrated", extra={"alert_rule_id": alert_rule.id}
+                    )
+                    continue
 
-        organization_id = alert_rule.organization_id
-
-        try:
-            with transaction.atomic(router.db_for_write(AlertRule)):
-                project = alert_rule.projects.get()
-                snoozed = None
                 try:
-                    snoozed = RuleSnooze.objects.get(alert_rule_id=alert_rule.id, user_id=None)
-                except RuleSnooze.DoesNotExist:
-                    pass
-                enabled = True if snoozed is None else False
+                    with transaction.atomic(router.db_for_write(AlertRule)):
+                        project = alert_rule.projects.get()
+                        snoozed = None
+                        try:
+                            snoozed = RuleSnooze.objects.get(
+                                alert_rule_id=alert_rule.id, user_id=None
+                            )
+                        except RuleSnooze.DoesNotExist:
+                            pass
+                        enabled = True if snoozed is None else False
 
-                create_activity = AlertRuleActivity.objects.get(
-                    alert_rule_id=alert_rule.id, type=AlertRuleActivityType.CREATED.value
-                )
+                        create_activity = AlertRuleActivity.objects.get(
+                            alert_rule_id=alert_rule.id, type=AlertRuleActivityType.CREATED.value
+                        )
 
-                # create data source
-                data_source = _create_data_source(apps, alert_rule)
+                        # create data source
+                        data_source = _create_data_source(apps, alert_rule)
 
-                # create detector DCG
-                data_condition_group = DataConditionGroup.objects.create(
-                    organization_id=organization_id,
-                )
-                # create detector
-                detector = _create_detector(
-                    apps,
-                    alert_rule,
-                    project,
-                    data_condition_group,
-                    create_activity,
-                    enabled,
-                )
-                # create workflow
-                workflow = Workflow.objects.create(
-                    name=alert_rule.name,
-                    organization_id=organization_id,
-                    when_condition_group=None,
-                    enabled=True,
-                    created_by_id=create_activity.user_id,
-                    config={},
-                )
+                        # create detector DCG
+                        data_condition_group = DataConditionGroup.objects.create(
+                            organization_id=organization_id,
+                        )
+                        # create detector
+                        detector = _create_detector(
+                            apps,
+                            alert_rule,
+                            project,
+                            data_condition_group,
+                            create_activity,
+                            enabled,
+                        )
+                        # create workflow
+                        workflow = Workflow.objects.create(
+                            name=alert_rule.name,
+                            organization_id=organization_id,
+                            when_condition_group=None,
+                            enabled=True,
+                            created_by_id=create_activity.user_id,
+                            config={},
+                        )
 
-                data_source.detectors.set([detector])
+                        data_source.detectors.set([detector])
 
-                # create detector state
-                _create_detector_state(apps, alert_rule, project, detector)
-                # create lookup tables
-                AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
-                alert_rule_workflow = AlertRuleWorkflow.objects.create(
-                    alert_rule=alert_rule, workflow=workflow
-                )
-                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+                        # create detector state
+                        _create_detector_state(apps, alert_rule, project, detector)
+                        # create lookup tables
+                        AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
+                        alert_rule_workflow = AlertRuleWorkflow.objects.create(
+                            alert_rule=alert_rule, workflow=workflow
+                        )
+                        DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
 
-                # migrate triggers
-                triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
-                for trigger in triggers:
-                    # migrates the trigger and its associated actions
-                    _migrate_trigger(apps, trigger, detector, alert_rule_workflow)
+                        # migrate triggers
+                        triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
+                        for trigger in triggers:
+                            # migrates the trigger and its associated actions
+                            _migrate_trigger(apps, trigger, detector, alert_rule_workflow)
 
-                # migrate resolve threshold
-                _migrate_resolve_threshold(apps, alert_rule, detector)
+                        # migrate resolve threshold
+                        _migrate_resolve_threshold(apps, alert_rule, detector)
 
-                logger.info(
-                    "Successfully migrated alert rule", extra={"alert_rule_id": alert_rule.id}
-                )
-        except Exception as e:
-            logger.info(
-                "error when migrating alert rule",
-                extra={"error": str(e), "alert_rule_id": alert_rule.id},
-            )
-            continue
+                        logger.info(
+                            "Successfully migrated alert rule",
+                            extra={"alert_rule_id": alert_rule.id},
+                        )
+                except Exception as e:
+                    logger.info(
+                        "error when migrating alert rule",
+                        extra={"error": str(e), "alert_rule_id": alert_rule.id},
+                    )
+                    continue
 
 
 class Migration(CheckedMigration):
