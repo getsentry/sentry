@@ -160,18 +160,17 @@ def create_or_update_grouphash_metadata_if_needed(
             event.should_skip_seer = True
             return
 
-        # TODO: Temporary log to investigate race condition. Restricted to grouphashes without an
-        # assigned group because those are the only ones which might get sent to Seer.
-        if not grouphash.group_id:
-            logger.info(
-                "grouphash_metadata.creation_race_condition.no_group_id",
-                extra={
-                    "grouphash_id": grouphash.id,
-                    "grouphash_is_new": grouphash_is_new,
-                    "event_id": event.event_id,
-                    "hash": grouphash.hash,
-                },
-            )
+        # TODO: Temporary log to investigate race condition.
+        logger.info(
+            "grouphash_metadata.creation_race_condition.new_record",
+            extra={
+                "grouphash_id": grouphash.id,
+                "grouphash_is_new": grouphash_is_new,
+                "grouphash_has_group": bool(grouphash.group_id),
+                "event_id": event.event_id,
+                "hash": grouphash.hash,
+            },
+        )
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 
