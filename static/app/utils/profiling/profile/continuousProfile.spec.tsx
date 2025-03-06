@@ -84,6 +84,9 @@ describe('ContinuousProfile', () => {
   describe('android continuous profile chunk', () => {
     it('imports the base properties', () => {
       const trace = makeSentryAndroidContinuousProfileChunk({
+        metadata: {
+          timestamp: '2021-01-01T00:00:00.000Z',
+        },
         shared: {
           frames: [
             {name: 'foo', line: 0},
@@ -115,13 +118,16 @@ describe('ContinuousProfile', () => {
         profileIds: undefined,
       });
 
-      expect(profile.profiles[0]!.duration).toBe(3000);
+      expect(profile.profiles[0]!.duration).toBe(0);
       expect(profile.profiles[0]!.startedAt).toBe(0);
-      expect(profile.profiles[0]!.endedAt).toBe(3000);
+      expect(profile.profiles[0]!.endedAt).toBe(0);
     });
 
     it('assigns stacks', () => {
       const trace = makeSentryAndroidContinuousProfileChunk({
+        metadata: {
+          timestamp: '2021-01-01T00:00:00.000Z',
+        },
         shared: {
           frames: [
             {name: 'foo', line: 0},
@@ -146,8 +152,13 @@ describe('ContinuousProfile', () => {
         ],
       });
 
-      const profile = eventedProfileToSampledProfile(trace.profiles);
-      expect(profile.stacks).toEqual([[0], [0, 1], [0], []]);
+      const profile = eventedProfileToSampledProfile(0, trace.profiles);
+      expect(profile.stacks).toEqual([[0], [1, 0], [0], []]);
+      expect(profile.samples).toHaveLength(4);
+      expect(profile.samples[0]!.stack_id).toBe(0);
+      expect(profile.samples[1]!.stack_id).toBe(1);
+      // We do not deduplicate stacks, so the third sample has a different stack_id
+      expect(profile.samples[2]!.stack_id).toBe(2);
     });
   });
 });

@@ -272,9 +272,19 @@ export function eventedProfileToSampledProfile(
       name: profile.name,
     };
 
-    let currentTimestamp = profile.events[0]!.at;
+    stack.push(profile.events[0]!.frame);
+    samples.push({
+      stack_id: stackId,
+      thread_id: String(profile.threadID),
+      timestamp: profileTimestamp + profile.events[0]!.at * 1e-9,
+    });
+    stacks[stackId] = stack.slice().reverse();
+    stackId++;
 
-    for (const current of profile.events) {
+    for (let i = 1; i < profile.events.length; i++) {
+      const current = profile.events[i]!;
+      const previous = profile.events[i - 1] ?? current;
+
       if (current.type === 'O') {
         stack.push(current.frame);
       } else if (current.type === 'C') {
@@ -290,7 +300,7 @@ export function eventedProfileToSampledProfile(
         throw new TypeError('Unknown event type, expected O or C, got ' + current.type);
       }
 
-      if (current.at !== currentTimestamp) {
+      if (current.at !== previous.at) {
         samples.push({
           stack_id: stackId,
           thread_id: String(profile.threadID),
@@ -299,7 +309,6 @@ export function eventedProfileToSampledProfile(
 
         stacks[stackId] = stack.slice().reverse();
         stackId++;
-        currentTimestamp = current.at;
       }
     }
 
