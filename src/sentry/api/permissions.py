@@ -16,6 +16,7 @@ from sentry.auth import access
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.demo_mode.utils import get_readonly_scopes, is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.organizations.services.organization import (
@@ -23,7 +24,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.utils import auth, demo_mode
+from sentry.utils import auth
 
 if TYPE_CHECKING:
     from rest_framework.views import APIView
@@ -300,9 +301,9 @@ class DemoSafePermission(SentryPermission):
 
         assert org_context is not None, "Failed to fetch organization in determine_access"
 
-        if demo_mode.is_demo_user(request.user):
-            if org_context.member and demo_mode.is_demo_mode_enabled():
-                readonly_scopes = demo_mode.get_readonly_scopes()
+        if is_demo_user(request.user):
+            if org_context.member and is_demo_mode_enabled():
+                readonly_scopes = get_readonly_scopes()
                 org_context.member.scopes = sorted(readonly_scopes)
                 request.access = access.from_request_org_and_scopes(
                     request=request,
@@ -315,15 +316,15 @@ class DemoSafePermission(SentryPermission):
         return super().determine_access(request, org_context)
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        if demo_mode.is_demo_user(request.user):
-            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in SAFE_METHODS:
                 return False
 
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
-        if demo_mode.is_demo_user(request.user):
-            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in SAFE_METHODS:
                 return False
 
         return super().has_object_permission(request, view, obj)
@@ -335,13 +336,13 @@ class SentryIsAuthenticated(IsAuthenticated):
     """
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        if demo_mode.is_demo_user(request.user):
+        if is_demo_user(request.user):
             return False
 
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
-        if demo_mode.is_demo_user(request.user):
+        if is_demo_user(request.user):
             return False
 
         return super().has_object_permission(request, view, obj)
