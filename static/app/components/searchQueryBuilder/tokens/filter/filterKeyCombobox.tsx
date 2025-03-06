@@ -5,7 +5,10 @@ import type {Node} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  escapeFilterKey,
+  getFilterValueType,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -44,6 +47,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     (keyName: string) => {
       const newFieldDef = getFieldDefinition(keyName);
       const newFilterValueType = getFilterValueType(token, newFieldDef);
+      const displayKey = escapeFilterKey(keyName);
 
       if (keyName === getKeyName(token.key)) {
         onCommit();
@@ -60,7 +64,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
           token,
-          key: keyName,
+          key: displayKey,
         });
         onCommit();
         return;
@@ -69,7 +73,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text: getInitialFilterText(keyName, newFieldDef),
+        text: getInitialFilterText(displayKey, newFieldDef),
         focusOverride: {
           itemKey: item.key.toString(),
           part: 'value',

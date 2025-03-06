@@ -9,6 +9,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {escapeFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
@@ -411,14 +412,14 @@ function SearchQueryBuilderInputInternal({
           }
 
           const value = option.value;
-
+          const displayValue = escapeFilterKey(value);
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
             text: replaceFocusedWordWithFilter(
               inputValue,
               selectionIndex,
-              value,
+              displayValue,
               getFieldDefinition
             ),
             focusOverride: calculateNextFocusForFilter(state),

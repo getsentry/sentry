@@ -16,7 +16,8 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 
-const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
+const SHOULD_ESCAPE_VALUE_REGEX = /[\s"(),]/;
+const SHOULD_ESCAPE_KEY_REGEX = /[:]/;
 
 export function isAggregateFilterToken(
   token: TokenResult<Token.FILTER>
@@ -70,7 +71,7 @@ export function escapeTagValue(value: string): string {
   }
 
   // Wrap in quotes if there is a space or parens
-  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
+  return SHOULD_ESCAPE_VALUE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
@@ -143,4 +144,8 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
     default:
       return FieldValueType.STRING;
   }
+}
+
+export function escapeFilterKey(key: string): string {
+  return key && SHOULD_ESCAPE_KEY_REGEX.test(key) ? `"${key}"` : key;
 }
