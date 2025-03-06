@@ -27,7 +27,7 @@ const config: TransformOptions = {
     [
       '@babel/plugin-transform-runtime',
       {
-        corejs: '3.37',
+        corejs: 3,
         helpers: true,
         regenerator: true,
         useESModules: true,
