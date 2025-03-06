@@ -382,7 +382,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           // whole additional axis tick. This makes charts looks stupid, because
           // the Y axis will be from 0% to 120%, instead of from 0% to 100%. To
           // prevent this case, if the maximum value is _just slightly above 1_,
-          // force it to be exactly 1. Only for percnetages!
+          // force it to be exactly 1. Only for percentages!
           if (
             yAxisFieldType === 'percentage' &&
             value.max - 1 < Y_AXIS_INTEGER_TOLERANCE
