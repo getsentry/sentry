@@ -79,6 +79,8 @@ def _fetch_release_registry_data(**kwargs):
     name="sentry.tasks.release_registry.fetch_release_registry_data",
     time_limit=65,
     soft_time_limit=60,
+    queue="release_registry",
+    silo_mode=SiloMode.REGION,
 )
 def fetch_release_registry_data(**kwargs):
     _fetch_release_registry_data(**kwargs)
