@@ -20,3 +20,5 @@ export const emptyTourContext = {
   dispatch: jest.fn(),
   handleStepRegistration: jest.fn(),
 };
+
+export const mockTour = () => emptyTourContext;

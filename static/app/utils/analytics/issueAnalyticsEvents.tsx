@@ -372,6 +372,8 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
+  'tour-guide.close': {id?: string};
+  'tour-guide.open': {id?: string};
   'whats_new.link_clicked': Pick<Broadcast, 'title'> &
     Partial<Pick<Broadcast, 'category'>>;
 };
@@ -527,5 +529,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.comment_created': 'Issue Details: Comment Created',
   'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
   'issue_details.comment_updated': 'Issue Details: Comment Updated',
+  'tour-guide.open': 'Tour Guide: Opened',
+  'tour-guide.close': 'Tour Guide: Closed',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };
