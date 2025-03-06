@@ -194,9 +194,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
-        title={t('Compare different events')}
+        title={t('Compare different examples')}
         description={t(
-          'You can quickly navigate between different events in this issue to find their similarities (and differences).'
+          'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
         )}
       >
         <NavigationWrapper>

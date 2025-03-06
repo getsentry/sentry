@@ -72,9 +72,9 @@ export function GroupDetailsLayout({
           <TourElement<IssueDetailsTour>
             tourContext={IssueDetailsTourContext}
             id={IssueDetailsTour.EVENT_DETAILS}
-            title={t('Explore event details')}
+            title={t('Explore details')}
             description={t(
-              'Here we capture everything we know about this error event, including the stack trace, breadcrumbs, replay, trace, context, and tags.'
+              'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
             )}
             position="top"
           >

@@ -85,7 +85,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             id={IssueDetailsTour.FILTERS}
             title={t('Narrow your focus')}
             description={t(
-              'Filtering events to a specific user, tag value, environment, or timeframe can speed up debugging and identifying the root cause.'
+              'Filtering data to a specific environment, timeframe, tag value, or user can speed up debugging.'
             )}
             position="bottom-start"
           >
