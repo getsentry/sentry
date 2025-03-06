@@ -83,14 +83,30 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         # Convert single string to list to simplify logic
         builds = [build] if isinstance(build, str) else build
 
+        if operator == "in":
+            build_numbers = []
+            build_codes = []
+            for b in builds:
+                if isinstance(b, str) and b.isdecimal() and validate_bigint(int(b)):
+                    build_numbers.append(int(b))
+                else:
+                    build_codes.append(b)
+            if build_numbers:
+                qs = qs.filter(build_number__in=build_numbers)
+            if build_codes:
+                qs = qs.filter(build_code__in=build_codes)
+            return qs
+
         build_number_filters = Q()
         build_code_filters = Q()
         for b in builds:
-            if b.isdecimal() and validate_bigint(int(b)):
+            if isinstance(b, str) and b.isdecimal() and validate_bigint(int(b)):
                 build_number_filters |= Q(**{f"build_number__{operator}": int(b)})
             else:
-                if not b or b.endswith("*"):
-                    build_code_filters |= Q(build_code__startswith=b[:-1])
+                if not b or (isinstance(b, str) and b.endswith("*")):
+                    build_code_filters |= Q(
+                        build_code__startswith=b[:-1] if isinstance(b, str) else ""
+                    )
                 else:
                     build_code_filters |= Q(build_code=b)
 
@@ -99,19 +115,6 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         if build_code_filters:
             qs = getattr(qs, query_func)(build_code_filters)
 
-        if operator == "in":
-            return qs.filter(
-                Q(
-                    build_number__in=[
-                        int(b) for b in builds if b.isdecimal() and validate_bigint(int(b))
-                    ]
-                )
-                | Q(
-                    build_code__in=[
-                        b for b in builds if not b.isdecimal() or not validate_bigint(int(b))
-                    ]
-                )
-            )
         return qs
 
     def filter_by_semver(
