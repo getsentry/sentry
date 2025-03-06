@@ -14,6 +14,7 @@ export const TestTourContext = createContext<TourContextType<TestTour> | null>(n
 export const emptyTourContext = {
   currentStepId: null,
   isAvailable: true,
+  isCompleted: false,
   isRegistered: false,
   orderedStepIds: [],
   dispatch: jest.fn(),

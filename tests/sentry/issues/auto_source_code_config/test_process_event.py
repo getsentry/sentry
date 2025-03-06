@@ -13,6 +13,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -77,7 +78,9 @@ class BaseDeriveCodeMappings(TestCase):
             code_mapping = code_mappings[0]
             assert code_mapping.stack_root == expected_stack_root
             assert code_mapping.source_root == expected_source_root
-            mock_incr.assert_called_with("code_mappings.created", tags={"platform": event.platform})
+            mock_incr.assert_called_with(
+                key="code_mappings.created", tags={"platform": event.platform}, sample_rate=1.0
+            )
 
     def _process_and_assert_no_code_mapping(
         self,
@@ -178,7 +181,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         file_in_repo = "src/foo/bar.py"
         with (
             patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
-            patch(f"{CODE_ROOT}.task.DRY_RUN_PLATFORMS", ["other"]),
+            patch(f"{CODE_ROOT}.task.is_dry_run_platform", return_value=True),
         ):
             # No code mapping will be stored, however, we get what would have been created
             code_mappings = self._process_and_assert_no_code_mapping(
@@ -469,3 +472,37 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             expected_stack_root="",
             expected_source_root="",
         )
+
+
+class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
+    option = {"issues.auto_source_code_config.dry-run-platforms": ["java"]}
+    platform = "java"
+
+    def test_very_short_module_name(self) -> None:
+        with override_options(self.option):
+            # No code mapping will be stored, however, we get what would have been created
+            code_mappings = self._process_and_assert_no_code_mapping(
+                repo_files=["src/a/SomeShortPackageNameClass.java"],
+                frames=[
+                    {
+                        "module": "a.SomeShortPackageNameClass",
+                        "abs_path": "SomeShortPackageNameClass.java",
+                    }
+                ],
+                platform=self.platform,
+            )
+            assert len(code_mappings) == 1
+            assert code_mappings[0].stacktrace_root == "a/"
+            assert code_mappings[0].source_path == "src/a/"
+
+    def test_handles_dollar_sign_in_module(self) -> None:
+        with override_options(self.option):
+            # No code mapping will be stored, however, we get what would have been created
+            code_mappings = self._process_and_assert_no_code_mapping(
+                repo_files=["src/com/example/foo/Bar.kt"],
+                frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
+                platform=self.platform,
+            )
+            assert len(code_mappings) == 1
+            assert code_mappings[0].stacktrace_root == "com/example/foo/"
+            assert code_mappings[0].source_path == "src/com/example/foo/"

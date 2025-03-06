@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -13,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
+import {useOpenSolutionsDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 
 interface Props {
   aiConfig: {
@@ -37,34 +36,15 @@ export function SolutionsSectionCtaButton({
   hasStreamlinedUI,
 }: Props) {
   const openButtonRef = useRef<HTMLButtonElement>(null);
-  const {openDrawer} = useDrawer();
+
   const {autofixData} = useAiAutofix(group, event);
 
-  const openSolutionsDrawer = () => {
-    if (!event) {
-      return;
-    }
-    openDrawer(
-      () => <SolutionsHubDrawer group={group} project={project} event={event} />,
-      {
-        ariaLabel: t('Solutions drawer'),
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = openButtonRef.current;
-          if (
-            viewAllButton?.contains(element) ||
-            document.getElementById('sentry-feedback')?.contains(element) ||
-            document.getElementById('autofix-rethink-input')?.contains(element) ||
-            document.getElementById('autofix-output-stream')?.contains(element) ||
-            document.getElementById('autofix-write-access-modal')?.contains(element) ||
-            element.closest('[data-overlay="true"]')
-          ) {
-            return false;
-          }
-          return true;
-        },
-      }
-    );
-  };
+  const openSolutionsDrawer = useOpenSolutionsDrawer(
+    group,
+    project,
+    event,
+    openButtonRef
+  );
 
   const showCtaButton =
     aiConfig.needsGenAIConsent ||
