@@ -1,8 +1,7 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
-import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
@@ -412,13 +411,10 @@ function AutofixSolutionDisplay({
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, _setIsEditing] = useState(false);
-  const [userCustomSolution, setUserCustomSolution] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [lastUsedSolution, setLastUsedSolution] =
-    useState<AutofixSolutionTimelineEvent[]>(solution);
-  const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>(
+  const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
     () => {
-      // Initialize is_active to true for all items that don't have it set
+      // Initialize is_active to true for all items that don't have it set for backwards compatibility
       return solution.map(item => ({
         ...item,
         is_active: item.is_active === undefined ? true : item.is_active,
@@ -426,12 +422,6 @@ function AutofixSolutionDisplay({
     }
   );
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isEqual(solution, lastUsedSolution)) {
-      setLastUsedSolution(solution);
-    }
-  }, [solution, lastUsedSolution]);
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -595,56 +585,39 @@ function AutofixSolutionDisplay({
           </ButtonBar>
         </HeaderWrapper>
         <Content>
-          {isEditing ? (
-            <TextAreaWrapper>
-              <StyledTextarea
-                name="custom-solution"
-                placeholder={t('Provide your own solution here...')}
-                value={userCustomSolution}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  setUserCustomSolution(e.target.value)
+          <SolutionDescription
+            solution={solutionItems}
+            groupId={groupId}
+            runId={runId}
+            description={description}
+            previousDefaultStepIndex={previousDefaultStepIndex}
+            previousInsightCount={previousInsightCount}
+            onDeleteItem={handleDeleteItem}
+            onToggleActive={handleToggleActive}
+          />
+          <AddInstructionWrapper>
+            <InstructionsInputWrapper>
+              <InstructionsInput
+                type="text"
+                name="additional-instructions"
+                placeholder={t('Add additional instructions for Autofix...')}
+                value={instructions}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setInstructions(e.target.value)
                 }
-                rows={6}
-                autoFocus
+                onKeyDown={handleKeyDown}
               />
-            </TextAreaWrapper>
-          ) : (
-            <Fragment>
-              <SolutionDescription
-                solution={solutionItems}
-                groupId={groupId}
-                runId={runId}
-                description={description}
-                previousDefaultStepIndex={previousDefaultStepIndex}
-                previousInsightCount={previousInsightCount}
-                onDeleteItem={handleDeleteItem}
-                onToggleActive={handleToggleActive}
-              />
-              <AddInstructionWrapper>
-                <InstructionsInputWrapper>
-                  <InstructionsInput
-                    type="text"
-                    name="additional-instructions"
-                    placeholder={t('Add additional instructions for Autofix...')}
-                    value={instructions}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setInstructions(e.target.value)
-                    }
-                    onKeyDown={handleKeyDown}
-                  />
-                  <AddStepButton
-                    size="xs"
-                    onClick={handleAddInstruction}
-                    disabled={!instructions.trim()}
-                    aria-label={t('Add to solution')}
-                    icon={<IconAdd size="xs" />}
-                  >
-                    <span>{t('Add')}</span>
-                  </AddStepButton>
-                </InstructionsInputWrapper>
-              </AddInstructionWrapper>
-            </Fragment>
-          )}
+              <AddStepButton
+                size="xs"
+                onClick={handleAddInstruction}
+                disabled={!instructions.trim()}
+                aria-label={t('Add to solution')}
+                icon={<IconAdd size="xs" />}
+              >
+                <span>{t('Add')}</span>
+              </AddStepButton>
+            </InstructionsInputWrapper>
+          </AddInstructionWrapper>
         </Content>
       </ClippedBox>
     </SolutionContainer>
@@ -718,34 +691,6 @@ const SolutionDescriptionWrapper = styled('div')`
 
 const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
-`;
-
-const TextAreaWrapper = styled('div')`
-  width: 100%;
-  min-height: 150px;
-  border: none;
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.4;
-  resize: none;
-  overflow: hidden;
-  &:focus {
-    outline: none;
-  }
-`;
-
-const StyledTextarea = styled('textarea')`
-  width: 100%;
-  min-height: 150px;
-  resize: none;
-  border: none;
-  padding: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.4;
-
-  &:focus {
-    outline: none;
-  }
 `;
 
 const CustomSolutionPadding = styled('div')`
