@@ -896,6 +896,11 @@ CELERY_QUEUES_CONTROL = [
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
     Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
+    Queue(
+        "release_registry.control",
+        routing_key="release_registry.control",
+        exchange=control_exchange,
+    ),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
