@@ -206,10 +206,12 @@ class RedisSpansBufferV2:
 
         for segment_id, segment in zip(segment_ids, segments):
             return_segment = set()
+            metrics.timing("sentry.spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
                 return_segment.add(payload)
 
-            return_segments[segment_id] = return_segment
+            if return_segment:
+                return_segments[segment_id] = return_segment
 
         metrics.timing("sentry.spans.buffer.flush_segments.num_segments", len(return_segments))
 

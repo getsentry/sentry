@@ -2,8 +2,9 @@ import dataclasses
 import logging
 import time
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
+from functools import partial
 from typing import Any
 
 import orjson
@@ -316,9 +317,18 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
             unbatch = UnbatchStep(next_step=produce)
 
+            flush_fn: Callable[[Message[int]], ValuesBatch[FilteredPayload | KafkaPayload]] = (
+                partial(flush_segments_v2, max_segments=self.max_batch_size)
+            )
+
+            flusher = RunTask(
+                function=flush_fn,
+                next_step=unbatch,
+            )
+
             run_task = run_task_with_multiprocessing(
                 function=process_batch_v2,
-                next_step=unbatch,
+                next_step=flusher,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
                 pool=self.__pool,
@@ -371,7 +381,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__pool.close()
 
 
-def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[KafkaPayload]:
+def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> int:
     # TODO config
     buffer = RedisSpansBufferV2()
 
@@ -390,10 +400,21 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
 
     now = int(time.time())
     buffer.process_spans(spans, now=now)
-    # TODO: make max segments during flushing configurable
-    flushed_segments = buffer.flush_segments(max_segments=len(values.payload), now=now)
+    return now
 
-    segment_messages: list[BaseValue[KafkaPayload]] = []
+
+def flush_segments_v2(
+    message: Message[int], max_segments: int
+) -> ValuesBatch[KafkaPayload | FilteredPayload]:
+    # TODO config
+    buffer = RedisSpansBufferV2()
+
+    now = message.payload
+
+    # TODO: make max segments during flushing configurable
+    flushed_segments = buffer.flush_segments(max_segments=max_segments, now=now)
+
+    segment_messages: list[BaseValue[KafkaPayload | FilteredPayload]] = []
 
     for segment_id, spans_set in flushed_segments.items():
         # TODO: Check if this is correctly placed
@@ -414,11 +435,16 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> ValuesBatch[
             payload=KafkaPayload(
                 None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
             ),
-            # TODO: wrong commit condition
-            committable=values.committable,
+            committable={},
         )
 
         segment_messages.append(value)
+
+    if segment_messages:
+        # TODO: remove once https://github.com/getsentry/arroyo/pull/427 lands
+        segment_messages[-1] = Value(
+            payload=segment_messages[-1].payload, committable=message.committable
+        )
 
     # TODO: call done_flush_segments after commit, not here
     # figure out how to flush when consumer is inactive
