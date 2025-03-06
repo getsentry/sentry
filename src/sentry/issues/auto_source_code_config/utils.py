@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry import options
 
 from .constants import PLATFORMS_CONFIG
@@ -17,14 +19,15 @@ def get_supported_extensions() -> list[str]:
     return list(extensions)
 
 
-def is_dry_run_platform(platform: str) -> bool:
-    return platform in options.get("issues.auto_source_code_config.dry-run-platforms")
+def get_platform_config(platform: str) -> dict[str, Any]:
+    """Return the platform config for the given platform"""
+    return dict(PLATFORMS_CONFIG[platform])
 
 
 class PlatformConfig:
     def __init__(self, platform: str) -> None:
         self.platform = platform
-        self.config = PLATFORMS_CONFIG[platform]
+        self.config = get_platform_config(platform)
 
     def is_supported(self) -> bool:
         return self.config is not None

@@ -86,7 +86,7 @@ class FrameInfo:
             platform_config = PlatformConfig(platform)
             if platform_config.extracts_filename_from_module():
                 self.frame_info_from_module(frame)
-            return
+                return
 
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)

@@ -146,7 +146,8 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
     def test_skips_not_supported_platforms(self) -> None:
-        self._process_and_assert_no_code_mapping(repo_files=[], frames=[{}], platform="other")
+        with patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}):
+            self._process_and_assert_no_code_mapping(repo_files=[], frames=[{}], platform="other")
 
     def test_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -180,8 +181,9 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         frame_filename = "foo/bar.py"
         file_in_repo = "src/foo/bar.py"
         with (
-            patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
-            patch(f"{CODE_ROOT}.task.is_dry_run_platform", return_value=True),
+            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
+            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_supported", return_value=True),
+            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_dry_run_platform", return_value=True),
         ):
             # No code mapping will be stored, however, we get what would have been created
             code_mappings = self._process_and_assert_no_code_mapping(
@@ -199,18 +201,21 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         platform = "foo"
         self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
 
-        with patch(f"{CODE_ROOT}.task.supported_platform", return_value=True):
+        with (
+            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
+            patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=[]),
+        ):
             # No extensions are supported, thus, we can't generate a code mapping
             self._process_and_assert_no_code_mapping(
                 repo_files=[file_in_repo],
-                frames=[{"filename": frame_filename, "in_app": True}],
+                frames=[self.frame(frame_filename, True)],
                 platform=platform,
             )
 
-            with patch(f"{REPO_TREES_CODE}.SUPPORTED_EXTENSIONS", ["tbd"]):
+            with patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]):
                 self._process_and_assert_code_mapping(
                     repo_files=[file_in_repo],
-                    frames=[{"filename": frame_filename, "in_app": True}],
+                    frames=[self.frame(frame_filename, True)],
                     platform=platform,
                     expected_stack_root="foo/",
                     expected_source_root="src/foo/",
