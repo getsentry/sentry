@@ -1062,7 +1062,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "relocation-find-transfer-control": {
         "task": "sentry.relocation.transfer.find_relocation_transfer_control",
-        "schedule": timedelta(minutes=5),
+        "schedule": crontab(minute="*/5"),
     },
     "fetch-release-registry-data-control": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
@@ -1303,7 +1303,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "relocation-find-transfer-region": {
         "task": "sentry.relocation.transfer.find_relocation_transfer_region",
-        "schedule": timedelta(minutes=5),
+        "schedule": crontab(minute="*/5"),
     },
 }
 
