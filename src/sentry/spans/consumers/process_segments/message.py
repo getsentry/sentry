@@ -147,7 +147,7 @@ def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
 
 def transform_spans_to_event_dict(
     segment_span: SegmentSpan, spans: list[SegmentSpan]
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     event_spans: list[dict[str, Any]] = []
 
     sentry_tags = segment_span.get("sentry_tags", {})
