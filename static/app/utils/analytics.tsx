@@ -7,8 +7,6 @@ import {
   alertsEventMap,
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
-import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
-import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
@@ -76,7 +74,6 @@ interface EventParameters
     AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
-    DDMEventParameters,
     DiscoverEventParameters,
     FeatureFlagEventParameters,
     FeedbackEventParameters,
@@ -106,7 +103,6 @@ const allEventMap: Record<string, string | null> = {
   ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
-  ...ddmEventMap,
   ...discoverEventMap,
   ...featureFlagEventMap,
   ...feedbackEventMap,
