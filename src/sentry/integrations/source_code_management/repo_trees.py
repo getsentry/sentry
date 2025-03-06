@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
+from sentry.issues.auto_source_code_config.utils import get_supported_extensions
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
@@ -13,29 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 # We only care about extensions of files which would show up in stacktraces after symbolication
-SUPPORTED_EXTENSIONS = [
-    "clj",
-    "cljc",
-    "cljcs",
-    "cs",
-    "go",
-    "groovy",
-    "java",
-    "js",
-    "jsp",
-    "jsx",
-    "kt",
-    "kts",
-    "mjs",
-    "php",
-    "py",
-    "rake",
-    "rb",
-    "scala",
-    "sc",
-    "ts",
-    "tsx",
-]
+SUPPORTED_EXTENSIONS = get_supported_extensions()
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
