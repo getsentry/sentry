@@ -98,12 +98,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.showReleaseAs === 'bubble';
 
   // find min/max timestamp of *all* timeSeries
-  const allTimestamps = props.timeSeries
-    .flatMap(timeSeries => timeSeries.data)
-    .map(datum => datum.timestamp)
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
     .toSorted();
-  const earliestTimeStamp = allTimestamps.at(0);
-  const latestTimeStamp = allTimestamps.at(-1);
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
 
   const {
     createReleaseBubbleHighlighter,
