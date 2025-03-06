@@ -1,5 +1,6 @@
 import hashlib
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -167,6 +168,23 @@ class ApiTokenTest(TestCase):
 
         with assume_test_silo_mode(SiloMode.REGION):
             assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+    @mock.patch(
+        "sentry.hybridcloud.services.replica.region_replica_service.delete_replicated_api_token"
+    )
+    def test_handle_async_deletion_called(self, mock_delete_replica):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        token_id = token.id
+
+        # Delete token and verify handle_async_deletion was called
+        with outbox_runner():
+            token.delete()
+
+        mock_delete_replica.assert_called_once_with(
+            apitoken_id=token_id,
+            region_name=mock.ANY,
+        )
 
 
 @control_silo_test
