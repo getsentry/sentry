@@ -322,31 +322,6 @@ class SentryAppActionHandler(DefaultActionHandler):
             self.record_alert_sent_analytics(self.action.sentry_app_id, notification_uuid)
 
 
-@AlertRuleTriggerAction.register_type(
-    "fake_log",
-    AlertRuleTriggerAction.Type.FAKE_LOG,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-)
-class FakeLogActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return "fake_log"
-
-    def send_alert(
-        self,
-        metric_value: int | float,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ):
-        from sentry.rules.actions.notify_event_service import send_incident_alert_notification
-
-        success = send_incident_alert_notification(
-            self.action, self.incident, new_status, metric_value, notification_uuid
-        )
-        if success:
-            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
-
-
 def format_duration(minutes):
     """
     Format minutes into a duration string

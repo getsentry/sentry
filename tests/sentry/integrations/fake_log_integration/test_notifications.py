@@ -1,7 +1,8 @@
-from unittest.mock import Mock
+from uuid import uuid4
 
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.fake_log_integration.notification_class import LoggingNotification
-from sentry.integrations.models.integration import Integration
 from sentry.notifications.models import (
     ActionService,
     ActionTarget,
@@ -12,17 +13,31 @@ from sentry.testutils.cases import TestCase
 from sentry.types.actor import Actor
 
 
-class TestLoggingNotification(TestCase):
+class TestMetricNotification(TestCase):
     def setUp(self):
-        super().setUp()
-        self.integration = Mock(spec=Integration)
-        self.target_identifier = "test-identifier"
-        self.notification = LoggingNotification(self.integration, self.target_identifier)
+        self.new_integration = self.create_integration(
+            self.organization, "woof", metadata={}, name="TestLogger", provider="fake-log"
+        )
+        self.alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[self.project]
+        )
+        self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule)
+        self.alert_rule_trigger_action = self.create_alert_rule_trigger_action(
+            type=AlertRuleTriggerAction.Type.FAKE_LOG, target_type=ActionTarget.SPECIFIC
+        )
+        self.incident = self.create_incident(
+            organization=self.organization, projects=[self.project]
+        )
 
-    def test_initialization(self):
-        """Test that the notification is initialized with correct attributes"""
-        assert self.notification.integration == self.integration
-        assert self.notification.target_identifier == self.target_identifier
+    def test_fake_log_trigger(self):
+        self.alert_rule_trigger_action.fire(
+            self.alert_rule_trigger_action,
+            self.incident,
+            project=self.project,
+            metric_value=100,
+            new_status=IncidentStatus.OPEN,
+            notification_uuid=uuid4().hex,
+        )
 
 
 class TestNotificationClass(TestCase):
