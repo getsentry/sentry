@@ -86,12 +86,15 @@ def test_exclude_exception_retry(capture_exception):
     assert capture_exception.call_count == 0
 
 
+@patch("sentry.tasks.base.current_task")
 @patch("sentry.tasks.base.capture_exception")
-def test_retry_on(capture_exception):
-    with pytest.raises(Exception):
-        retry_on_task("bruh")
+def test_retry_on(capture_exception, current_task):
+
+    # In reality current_task.retry will cause the given exception to be re-raised but we patch it here so no need to .raises :bufo-shrug:
+    retry_on_task("bruh")
 
     assert capture_exception.call_count == 1
+    assert current_task.retry.call_count == 1
 
 
 @pytest.mark.parametrize(
