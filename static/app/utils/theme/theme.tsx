@@ -915,8 +915,9 @@ const dataCategory: Record<
 };
 
 /**
- * Default colors for data usage outcomes
- * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
+ * Default colors for data usage outcomes.
+ * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
+ * which is why they don't have their own defined colors.
  */
 type OutcomeColors = Record<
   Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
@@ -999,6 +1000,12 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
+
+    tour: {
+      blur: 10100,
+      element: 10101,
+      overlay: 10102,
+    },
 
     // On mobile views issue list dropdowns overlap
     issuesList: {

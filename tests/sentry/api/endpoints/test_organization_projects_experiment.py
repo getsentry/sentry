@@ -1,5 +1,6 @@
 import re
-from unittest.mock import patch
+from unittest import mock
+from unittest.mock import Mock, patch
 
 from django.utils.text import slugify
 
@@ -14,6 +15,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.signals import project_created
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -282,3 +284,36 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
             name="foo",
             status_code=201,
         )
+
+    @with_feature(["organizations:team-roles"])
+    @patch(
+        "sentry.api.endpoints.organization_projects_experiment.OrganizationProjectsExperimentEndpoint.create_audit_entry"
+    )
+    def test_create_project_with_origin(self, create_audit_entry):
+        signal_handler = Mock()
+        project_created.connect(signal_handler)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            name="foo",
+            origin="ui",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        # Verify audit log was created
+        create_audit_entry.assert_any_call(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=project.id,
+            event=1154,
+            data={
+                **project.get_audit_log_data(),
+                "origin": "ui",
+            },
+        )
+
+        # Verify origin is passed to project_created signal
+        assert signal_handler.call_count == 1
+        assert signal_handler.call_args[1]["origin"] == "ui"
+        project_created.disconnect(signal_handler)

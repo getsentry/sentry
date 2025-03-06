@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, ClassVar
 
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -19,6 +20,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+
+logger = logging.getLogger(__name__)
 
 
 # NOTE: There are gaps in the numberation because a
@@ -57,26 +60,32 @@ class OnboardingTaskStatus:
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
+    @sentry_sdk.trace
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(organization_id=organization_id, task=task, **kwargs)
-                    return True
-            except IntegrityError as error:
-                if task == OnboardingTask.FIRST_PROJECT:
-                    scope = sentry_sdk.get_current_scope()
-                    scope.set_extra("error", error)
-                    sentry_sdk.capture_message(
-                        f"Integrity error while creating first project task for org {organization_id}",
-                        level="warning",
-                    )
-                pass
+            _, created = self.create_or_update(
+                organization_id=organization_id,
+                task=task,
+                values=kwargs,
+            )
+
+            logger.info(
+                "organizationonboardingtask.record.after_create_or_update",
+                extra={
+                    "cache_key": cache_key,
+                    "organization_id": organization_id,
+                    "task": task,
+                    "kwargs": kwargs,
+                    "is_obj_created": created,  # LOG003 extra key 'created' clashes with LogRecord attribute
+                },
+            )
 
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
+            if created:
+                return True
         return False
 
 

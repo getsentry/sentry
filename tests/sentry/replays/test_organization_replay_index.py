@@ -483,6 +483,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay2_id
+            link_header = response.headers["Link"]
+            assert 'rel="next"; results="true"' in link_header
 
             # Next page.
             response = self.get_success_response(
@@ -494,6 +496,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay1_id
+            link_header = response.headers["Link"]
+            assert 'rel="next"; results="false"' in link_header
 
             # Beyond pages.
             response = self.get_success_response(
@@ -505,6 +509,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 0
+            link_header = response.headers["Link"]
+            assert 'rel="next"; results="false"' in link_header
 
     def test_get_replays_user_filters(self):
         """Test replays conform to the interchange format."""

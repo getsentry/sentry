@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -34,7 +34,13 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravelOverviewPage';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
+import {
+  hasLaravelInsightsFeature,
+  useIsLaravelInsightsEnabled,
+} from 'sentry/views/insights/pages/backend/laravel/features';
+import {LaravelInsightsProvider} from 'sentry/views/insights/pages/backend/laravel/laravelInsightsContext';
+import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -92,21 +98,31 @@ function BackendOverviewPage() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const [isLaravelInsightsEnabled, setIsLaravelInsightsEnabled] =
+    useIsLaravelInsightsEnabled();
 
   const selectedProjects: Project[] = useMemo(
     () => getSelectedProjectList(selection.projects, projects),
     [projects, selection.projects]
   );
 
+  let renderLaravelInsights = false;
   const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
   if (
     selectedProject?.platform === 'php-laravel' &&
-    organization.features.includes('laravel-insights')
+    hasLaravelInsightsFeature(organization) &&
+    isLaravelInsightsEnabled
   ) {
-    return <LaravelOverviewPage />;
+    renderLaravelInsights = true;
   }
 
-  return <GenericBackendOverviewPage />;
+  return (
+    <LaravelInsightsProvider
+      value={{isLaravelInsightsEnabled, setIsLaravelInsightsEnabled}}
+    >
+      {renderLaravelInsights ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />}
+    </LaravelInsightsProvider>
+  );
 }
 
 function GenericBackendOverviewPage() {
@@ -121,11 +137,7 @@ function GenericBackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
   const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
@@ -254,7 +266,12 @@ function GenericBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
+        headerActions={
+          <Fragment>
+            <ViewTrendsButton />
+            <NewLaravelExperienceButton />
+          </Fragment>
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>

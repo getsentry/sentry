@@ -61,9 +61,9 @@ class AssembleDifTest(BaseAssembleTest):
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
 
         # The order here is on purpose because we check for the order of checksums
-        blob1 = FileBlob.from_file(fileobj1)
-        blob3 = FileBlob.from_file(fileobj3)
-        blob2 = FileBlob.from_file(fileobj2)
+        blob1 = FileBlob.from_file_with_organization(fileobj1, self.organization)
+        blob3 = FileBlob.from_file_with_organization(fileobj3, self.organization)
+        blob2 = FileBlob.from_file_with_organization(fileobj2, self.organization)
 
         chunks = [blob2.checksum, blob1.checksum, blob3.checksum]
 
@@ -76,7 +76,7 @@ class AssembleDifTest(BaseAssembleTest):
 
     def test_dif(self):
         sym_file = self.load_fixture("crash.sym")
-        blob1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
 
         assemble_dif(
@@ -186,7 +186,7 @@ class AssembleDifTest(BaseAssembleTest):
 
     def test_assemble_debug_id_override(self):
         sym_file = self.load_fixture("crash.sym")
-        blob1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
 
         assemble_dif(
@@ -213,7 +213,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         expected_source_file_types = [SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP]
@@ -290,7 +290,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         assemble_artifacts(
@@ -313,7 +313,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         assemble_artifacts(
@@ -333,7 +333,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = "a" * 40
 
         assemble_artifacts(
@@ -353,7 +353,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         expected_debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
 
@@ -378,7 +378,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
@@ -428,7 +428,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
@@ -460,7 +460,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
@@ -503,7 +503,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
@@ -540,7 +540,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
@@ -577,7 +577,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         # debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
@@ -629,7 +629,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file_1 = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
+        blob1_1 = FileBlob.from_file_with_organization(
+            ContentFile(bundle_file_1), self.organization
+        )
         total_checksum_1 = sha1(bundle_file_1).hexdigest()
 
         # We try to upload the first bundle.
@@ -649,7 +651,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file_2 = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle", project=self.project.id
         )
-        blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
+        blob1_2 = FileBlob.from_file_with_organization(
+            ContentFile(bundle_file_2), self.organization
+        )
         total_checksum_2 = sha1(bundle_file_2).hexdigest()
 
         # We try to upload the first bundle.
@@ -669,7 +673,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file_3 = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
         )
-        blob1_3 = FileBlob.from_file(ContentFile(bundle_file_3))
+        blob1_3 = FileBlob.from_file_with_organization(
+            ContentFile(bundle_file_3), self.organization
+        )
         total_checksum_3 = sha1(bundle_file_3).hexdigest()
 
         # We try to upload the first bundle.
@@ -695,7 +701,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         for min_files in (10, 1):
@@ -746,7 +752,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_artifacts_invalid_org(self):
         bundle_file = self.create_artifact_bundle_zip(org="invalid", release=self.release.version)
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         assemble_artifacts(
@@ -764,7 +770,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_artifacts_invalid_release(self):
         bundle_file = self.create_artifact_bundle_zip(org=self.organization.slug, release="invalid")
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         assemble_artifacts(
@@ -782,7 +788,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_artifacts_invalid_zip(self):
         bundle_file = b""
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         assemble_artifacts(
@@ -803,7 +809,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
         with self.options(
@@ -854,7 +860,7 @@ class ArtifactBundleIndexingTest(TestCase):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
         rv = assemble_file(
             task=AssembleTask.ARTIFACT_BUNDLE,

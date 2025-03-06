@@ -34,6 +34,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
   const organization = useOrganization();
@@ -88,8 +89,6 @@ function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 
 function SidebarContent() {
   const {
-    hasDocs,
-    projects,
     allProjects,
     currentProject,
     setCurrentProject,
@@ -139,12 +138,6 @@ function SidebarContent() {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
-  const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-
-  if (!selectedProject) {
-    return <LoadingIndicator />;
-  }
-
   return (
     <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
@@ -183,19 +176,19 @@ function SidebarContent() {
             />
           </div>
         </HeaderActions>
-        <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
+        {currentProject ? (
+          <OnboardingContent currentProject={currentProject} />
+        ) : (
+          <TextBlock>
+            {t('Select a project from the drop-down to view set up instructions.')}
+          </TextBlock>
+        )}
       </TaskList>
     </Fragment>
   );
 }
 
-function OnboardingContent({
-  currentProject,
-  hasDocs,
-}: {
-  currentProject: Project;
-  hasDocs: boolean;
-}) {
+function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
 
   // useMemo is needed to remember the original hash
@@ -203,7 +196,7 @@ function OnboardingContent({
   const ORIGINAL_HASH = useMemo(() => {
     return window.location.hash;
   }, []);
-  const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
+  const skipEvalTracking = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
 
   // First dropdown: OpenFeature providers
   const openFeatureProviderOptions = Object.values(WebhookProviderEnum).map(provider => {
@@ -329,7 +322,10 @@ function OnboardingContent({
         {t(
           'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
         )}
-        <LinkButton size="sm" href={`/settings/${organization.slug}/feature-flags/`}>
+        <LinkButton
+          size="sm"
+          to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+        >
           {t('Go to Feature Flag Settings')}
         </LinkButton>
       </StyledDefaultContent>
@@ -369,14 +365,7 @@ function OnboardingContent({
   }
 
   // Platform is not supported, no platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (
-    doesNotSupportFeatureFlags ||
-    !currentPlatform ||
-    !docs ||
-    !dsn ||
-    !hasDocs ||
-    !projectKeyId
-  ) {
+  if (doesNotSupportFeatureFlags || !currentPlatform || !docs || !dsn || !projectKeyId) {
     return defaultMessage;
   }
 
@@ -384,7 +373,7 @@ function OnboardingContent({
     <Fragment>
       {radioButtons}
       <FeatureFlagOnboardingLayout
-        skipConfig={skipConfig}
+        skipEvalTracking={skipEvalTracking}
         docsConfig={docs}
         dsn={dsn}
         projectKeyId={projectKeyId}
@@ -395,10 +384,6 @@ function OnboardingContent({
         integration={
           // either OpenFeature or the SDK selected from the second dropdown
           setupMode() === 'openFeature' ? SdkProviderEnum.OPENFEATURE : sdkProvider.value
-        }
-        provider={
-          // dropdown value (from either dropdown)
-          setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
         }
         configType="featureFlagOnboarding"
       />

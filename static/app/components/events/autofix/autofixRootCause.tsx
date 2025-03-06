@@ -14,6 +14,7 @@ import {
   type AutofixRootCauseSelection,
   AutofixStatus,
   AutofixStepType,
+  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
@@ -37,6 +38,7 @@ type AutofixRootCauseProps = {
   repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  agentCommentThread?: CommentThread;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -265,11 +267,13 @@ function AutofixRootCauseDisplay({
   rootCauseSelection,
   previousDefaultStepIndex,
   previousInsightCount,
+  agentCommentThread,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
   const [customRootCause, setCustomRootCause] = useState('');
   const cause = causes[0];
+  const iconFocusRef = useRef<HTMLDivElement>(null);
 
   if (!cause) {
     return (
@@ -285,7 +289,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconFocus size="sm" />
+              <div ref={iconFocusRef}>
+                <IconFocus size="sm" />
+              </div>
               {t('Custom Root Cause')}
             </HeaderText>
             <CopyRootCauseButton
@@ -304,7 +310,9 @@ function AutofixRootCauseDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <IconFocus size="sm" />
+            <div ref={iconFocusRef}>
+              <IconFocus size="sm" />
+            </div>
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
@@ -343,6 +351,23 @@ function AutofixRootCauseDisplay({
             )}
           </ButtonBar>
         </HeaderWrapper>
+        <AnimatePresence>
+          {agentCommentThread && iconFocusRef.current && (
+            <AutofixHighlightPopup
+              selectedText="Root Cause"
+              referenceElement={iconFocusRef.current}
+              groupId={groupId}
+              runId={runId}
+              stepIndex={previousDefaultStepIndex ?? 0}
+              retainInsightCardIndex={
+                previousInsightCount !== undefined && previousInsightCount >= 0
+                  ? previousInsightCount
+                  : null
+              }
+              isAgentComment
+            />
+          )}
+        </AnimatePresence>
         <Content>
           {isEditing ? (
             <TextArea

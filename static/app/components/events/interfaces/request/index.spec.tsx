@@ -475,4 +475,33 @@ describe('Request entry', function () {
       });
     });
   });
+
+  it('should display url fragment', function () {
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = true;
+    ConfigStore.set('user', user);
+
+    const data: EntryRequest['data'] = {
+      apiTarget: null,
+      method: null,
+      url: 'http://localhost:8000/',
+      query: [],
+      fragment: '/sentry',
+      data: null,
+      headers: [['User-Agent', 'Mozilla/5.0']],
+      cookies: [],
+      env: null,
+      inferredContentType: null,
+    };
+
+    const event = EventFixture({
+      entries: [{type: EntryType.REQUEST, data}],
+    });
+
+    render(<Request event={event} data={event.entries[0]!.data} />);
+
+    const fragmentSection = screen.getByText('Fragment');
+    expect(fragmentSection).toBeInTheDocument();
+    expect(fragmentSection?.parentElement).toHaveTextContent('/sentry');
+  });
 });

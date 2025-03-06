@@ -45,10 +45,12 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
 
         :param organization:
         :param string stacktraceFilename:
+        :param string platform:
         :auth: required
         """
-        # XXX: Evaluate what else does the UI send us
         stacktrace_filename = request.GET.get("stacktraceFilename")
+        # XXX: The UI will need to pass the platform
+        platform = request.GET.get("platform")
 
         try:
             possible_code_mappings = []
@@ -56,7 +58,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
 
             if stacktrace_filename:
                 possible_code_mappings = derive_code_mappings(
-                    organization, {"filename": stacktrace_filename}
+                    organization, {"filename": stacktrace_filename}, platform
                 )
                 if possible_code_mappings:
                     resp_status = status.HTTP_200_OK

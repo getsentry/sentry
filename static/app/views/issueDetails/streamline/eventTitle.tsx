@@ -1,6 +1,7 @@
 import {type CSSProperties, forwardRef, Fragment} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -272,10 +273,12 @@ const JsonLinkWrapper = styled('div')`
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.gray300};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.translucentGray200};
+  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
 
   :hover {
     color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.gray300};
   }
 `;
 

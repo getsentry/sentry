@@ -82,5 +82,5 @@ def test_get_frames_to_process(
     ],
 )
 def test_find_stacktrace_empty(frames: list[dict[str, Any]], expected: list[str]) -> None:
-    frames = get_frames_to_process(_exception_with_stacktrace(frames))
+    frames = get_frames_to_process(_exception_with_stacktrace(frames), "python")
     assert frames == expected

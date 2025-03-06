@@ -360,6 +360,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       cursor,
       dashboardFilters,
       onDataFetched,
+      limit,
     } = this.props;
     const config = ReleasesConfig;
 
@@ -372,7 +373,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget={this.transformWidget(widget)}
         dashboardFilters={dashboardFilters}
         cursor={cursor}
-        limit={this.limit}
+        limit={limit}
         onDataFetched={onDataFetched}
         loading={
           requiresCustomReleaseSorting(widget.queries[0]!)

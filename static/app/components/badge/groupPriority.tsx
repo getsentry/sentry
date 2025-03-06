@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
@@ -7,9 +6,9 @@ import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -48,7 +47,7 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 
-function getTagTypeForPriority(priority: string): keyof Theme['tag'] {
+function getTagTypeForPriority(priority: string): TagProps['type'] {
   switch (priority) {
     case PriorityLevel.HIGH:
       return 'error';
@@ -278,17 +277,12 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.25)};
-  }
-
-  & > div {
-    position: relative;
-    height: 24px;
-    overflow: hidden;
-  }
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  position: relative;
+  height: 24px;
+  overflow: hidden;
 `;
 
 const InlinePlaceholder = styled(Placeholder)`

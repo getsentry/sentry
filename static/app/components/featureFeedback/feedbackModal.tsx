@@ -16,7 +16,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
-import Textarea from 'sentry/components/forms/controls/textarea';
+import {TextArea} from 'sentry/components/core/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
@@ -307,7 +307,7 @@ export function FeedbackModal<T extends Data>({
             flexibleControlStateSize
             stacked
           >
-            <Textarea
+            <TextArea
               name="additional-feedback"
               value={state.additionalInfo}
               rows={5}

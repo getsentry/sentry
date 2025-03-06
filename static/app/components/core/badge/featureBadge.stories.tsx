@@ -1,7 +1,9 @@
-import type {ComponentProps} from 'react';
 import {Fragment} from 'react';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {
+  FeatureBadge,
+  type FeatureBadgeProps,
+} from 'sentry/components/core/badge/featureBadge';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
@@ -18,7 +20,7 @@ export default storyBook('FeatureBadge', story => {
 
   story('Variants', () => (
     <Fragment>
-      <Matrix<ComponentProps<typeof FeatureBadge>>
+      <Matrix<FeatureBadgeProps>
         render={props => (
           <span>
             Feature X

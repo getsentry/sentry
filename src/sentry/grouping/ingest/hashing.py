@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 import sentry_sdk
@@ -213,17 +213,22 @@ def get_or_create_grouphashes(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
-    hashes: Sequence[str],
+    hashes: Iterable[str],
     grouping_config: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
-    # The only utility of secondary hashes is to link new primary hashes to an existing group.
-    # Secondary hashes which are also new are therefore of no value, so there's no need to store or
-    # annotate them and we can bail now.
-    if is_secondary and not GroupHash.objects.filter(project=project, hash__in=hashes).exists():
-        return grouphashes
+    if is_secondary:
+        # The only utility of secondary hashes is to link new primary hashes to an existing group
+        # via an existing grouphash. Secondary hashes which are new are therefore of no value, so
+        # filter them out before creating grouphash records.
+        existing_hashes = set(
+            GroupHash.objects.filter(project=project, hash__in=hashes).values_list(
+                "hash", flat=True
+            )
+        )
+        hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)

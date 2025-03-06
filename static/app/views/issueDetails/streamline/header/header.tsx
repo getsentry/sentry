@@ -158,7 +158,7 @@ export default function StreamlinedGroupHeader({
           <Flex gap={space(1)} align="center" justify="flex-start">
             <Fragment>
               {issueTypeConfig.logLevel.enabled && (
-                <ErrorLevel level={group.level} size={'10px'} />
+                <ErrorLevel level={group.level} size={10} />
               )}
               {group.isUnhandled && <UnhandledTag />}
               {(issueTypeConfig.logLevel.enabled || group.isUnhandled) && <Divider />}

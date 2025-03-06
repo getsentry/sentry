@@ -15,6 +15,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ApiApplication} from 'sentry/types/user';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import Row from 'sentry/views/settings/account/apiApplications/row';
@@ -31,15 +32,16 @@ function ApiApplications({router}: Props) {
   const ENDPOINT = '/api-applications/';
 
   const {
-    data: appList,
-    isPending,
+    data: appList = [],
+    isLoading,
     isError,
     refetch,
   } = useApiQuery<ApiApplication[]>([ENDPOINT], {
     staleTime: 0,
+    enabled: !isDemoModeEnabled(),
   });
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
