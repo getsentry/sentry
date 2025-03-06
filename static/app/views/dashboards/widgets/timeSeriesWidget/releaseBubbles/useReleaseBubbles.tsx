@@ -35,7 +35,6 @@ import {
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
-import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
@@ -44,9 +43,11 @@ interface CreateReleaseBubbleMouseListenersParams {
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
   ) => void;
-  chartRenderer?: (
-    rendererProps: Partial<TimeSeriesWidgetVisualizationProps>
-  ) => ReactElement;
+  chartRenderer?: (rendererProps: {
+    end: Date;
+    releases: ReleaseMetaBasic[];
+    start: Date;
+  }) => ReactElement;
 }
 
 /**
@@ -272,7 +273,11 @@ Tap to view
 interface UseReleaseBubblesParams {
   chartRef: React.RefObject<ReactEchartsRef>;
   bubbleSize?: number;
-  chartRenderer?: (rendererProps: Partial<TimeSeriesWidgetVisualizationProps>) => any;
+  chartRenderer?: (rendererProps: {
+    end: Date;
+    releases: ReleaseMetaBasic[];
+    start: Date;
+  }) => ReactElement;
   maxTime?: number;
   minTime?: number;
   releases?: ReleaseMetaBasic[];

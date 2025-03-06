@@ -14,7 +14,6 @@ import {ReleaseDrawerTable} from 'sentry/components/releases/releasesDrawerTable
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
@@ -39,7 +38,7 @@ interface ReleasesDrawerProps {
    */
   chartRenderer?: (rendererProps: {
     end: Date;
-    releases: Release[];
+    releases: ReleaseMetaBasic[];
     start: Date;
   }) => ReactElement;
 }
