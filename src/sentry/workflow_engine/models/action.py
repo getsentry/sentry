@@ -4,6 +4,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
@@ -77,3 +79,15 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         # get the handler for the action type
         handler = self.get_handler()
         handler.execute(job, self, detector)
+
+
+@receiver(pre_save, sender=Action)
+def enforce_config_schema(sender, instance: Action, **kwargs):
+    """
+    Add a default receiver that
+    """
+    handler = instance.get_handler()
+    schema = handler.config_schema
+
+    if schema is not None:
+        instance.validate_config(schema)
