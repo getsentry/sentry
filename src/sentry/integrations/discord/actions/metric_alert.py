@@ -16,6 +16,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
@@ -24,8 +25,8 @@ from ..utils import logger
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: float,
     new_status: IncidentStatus,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     chart_url = None
@@ -50,9 +51,15 @@ def send_incident_alert_notification(
         )
         return False
 
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
     message = DiscordMetricAlertMessageBuilder(
-        alert_rule=incident.alert_rule,
-        incident=incident,
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        open_period_identifier=incident.identifier,
+        snuba_query=incident.alert_rule.snuba_query,
+        organization=incident.organization,
+        date_started=incident.date_started,
         new_status=new_status,
         metric_value=metric_value,
         chart_url=chart_url,

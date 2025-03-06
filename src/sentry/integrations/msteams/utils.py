@@ -5,6 +5,7 @@ import logging
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -101,16 +102,28 @@ def get_channel_id(organization: Organization, integration_id: int, name: str) -
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: float,
     new_status: IncidentStatus,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from .card_builder.incident_attachment import build_incident_attachment
 
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
     if action.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
 
-    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    attachment = build_incident_attachment(
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        open_period_identifier=incident.identifier,
+        snuba_query=incident.alert_rule.snuba_query,
+        organization=incident.organization,
+        date_started=incident.date_started,
+        new_status=new_status,
+        metric_value=metric_value,
+        notification_uuid=notification_uuid,
+    )
     success = integration_service.send_msteams_incident_alert_notification(
         integration_id=action.integration_id,
         channel=action.target_identifier,

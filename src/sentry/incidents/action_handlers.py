@@ -257,7 +257,11 @@ class PagerDutyActionHandler(DefaultActionHandler):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
         success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
+            action=self.action,
+            incident=self.incident,
+            new_status=new_status,
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
         if success:
             self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
@@ -283,7 +287,11 @@ class OpsgenieActionHandler(DefaultActionHandler):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 
         success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
+            action=self.action,
+            incident=self.incident,
+            new_status=new_status,
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
         if success:
             self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)

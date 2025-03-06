@@ -16,6 +16,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
@@ -79,11 +80,14 @@ class PagerDutyActionHandlerTest(FireTest):
         metric_value = 1000
         notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            incident,
-            self.integration_key,
-            IncidentStatus(incident.status),
-            metric_value,
-            notification_uuid,
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            integration_key=self.integration_key,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
 
         assert data["routing_key"] == self.integration_key
@@ -133,11 +137,14 @@ class PagerDutyActionHandlerTest(FireTest):
         metric_value = 1000
         notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            incident,
-            self.integration_key,
-            IncidentStatus(incident.status),
-            metric_value,
-            notification_uuid,
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            integration_key=self.integration_key,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
 
         assert data["routing_key"] == self.integration_key
@@ -177,7 +184,13 @@ class PagerDutyActionHandlerTest(FireTest):
         data = responses.calls[0].request.body
 
         expected_payload = build_incident_attachment(
-            incident, self.service["integration_key"], new_status, metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            integration_key=self.integration_key,
+            new_status=new_status,
+            metric_value=metric_value,
         )
         expected_payload = attach_custom_severity(expected_payload, self.action, new_status)
 

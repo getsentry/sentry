@@ -17,9 +17,11 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.models.organization import Organization
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
+from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -92,23 +94,24 @@ def get_service(
 
 
 def build_incident_attachment(
-    incident,
+    alert_context: AlertContext,
+    open_period_identifier: int,
+    organization: Organization,
+    snuba_query: SnubaQuery,
     integration_key,
     new_status: IncidentStatus,
     metric_value: float | None = None,
-    notfication_uuid: str | None = None,
+    notification_uuid: str | None = None,
 ) -> dict[str, Any]:
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
 
     data = incident_attachment_info(
-        AlertContext.from_alert_rule_incident(incident.alert_rule),
-        open_period_identifier=incident.identifier,
-        organization=incident.organization,
-        snuba_query=incident.alert_rule.snuba_query,
+        alert_context=alert_context,
+        open_period_identifier=open_period_identifier,
+        organization=organization,
+        snuba_query=snuba_query,
         metric_value=metric_value,
         new_status=new_status,
-        notification_uuid=notfication_uuid,
+        notification_uuid=notification_uuid,
         referrer="metric_alert_pagerduty",
     )
     severity = "info"
@@ -126,11 +129,11 @@ def build_incident_attachment(
     return {
         "routing_key": integration_key,
         "event_action": event_action,
-        "dedup_key": f"incident_{incident.organization_id}_{incident.identifier}",
+        "dedup_key": f"incident_{organization.id}_{open_period_identifier}",
         "payload": {
-            "summary": incident.alert_rule.name,
+            "summary": alert_context.name,
             "severity": severity,
-            "source": str(incident.identifier),
+            "source": str(open_period_identifier),
             "custom_details": {"details": data["text"]},
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
@@ -155,8 +158,8 @@ def attach_custom_severity(
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: float,
     new_status: IncidentStatus,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from sentry.integrations.pagerduty.integration import PagerDutyIntegration
@@ -215,8 +218,18 @@ def send_incident_alert_notification(
         )
         return False
 
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
     attachment = build_incident_attachment(
-        incident, client.integration_key, new_status, metric_value, notification_uuid
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        open_period_identifier=incident.identifier,
+        organization=incident.organization,
+        snuba_query=incident.alert_rule.snuba_query,
+        integration_key=client.integration_key,
+        new_status=new_status,
+        metric_value=metric_value,
+        notification_uuid=notification_uuid,
     )
     attachment = attach_custom_severity(attachment, action, new_status)
 
