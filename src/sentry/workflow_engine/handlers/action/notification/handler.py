@@ -54,6 +54,8 @@ group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 @action_handler_registry.register(Action.Type.WEBHOOK)
 @action_handler_registry.register(Action.Type.PLUGIN)
 class NotificationActionHandler(ActionHandler):
+    config_schema = {}
+
     @staticmethod
     def execute(
         job: WorkflowJob,

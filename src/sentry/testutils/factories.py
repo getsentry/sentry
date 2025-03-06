@@ -2191,8 +2191,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_action(**kwargs) -> Action:
-        return Action.objects.create(**kwargs)
+    def create_action(type: Action.Type | None = None, **kwargs) -> Action:
+        if type is None:
+            type = Action.Type.SLACK
+        return Action.objects.create(type=type, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
