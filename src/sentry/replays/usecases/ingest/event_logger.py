@@ -27,6 +27,7 @@ def emit_click_events(
     replay_id: str,
     retention_days: int,
     start_time: float,
+    event_cap: int = 20,
 ) -> None:
     clicks: list[ReplayActionsEventPayloadClick] = [
         {
@@ -46,7 +47,7 @@ def emit_click_events(
             "timestamp": click.timestamp,
             "title": click.title,
         }
-        for click in click_events[:20]
+        for click in click_events[:event_cap]
     ]
 
     payload: ReplayActionsEventPayload = {
