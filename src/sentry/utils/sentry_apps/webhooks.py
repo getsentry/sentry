@@ -15,7 +15,7 @@ from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.organization import Organization
-from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
+from sentry.sentry_apps.metrics import SentryAppEventType, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
@@ -131,7 +131,7 @@ def send_and_save_webhook_request(
 
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=SentryAppEventType(event)
     ).capture() as lifecycle:
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 

@@ -385,15 +385,9 @@ class TestProcessResourceChange(TestCase):
         process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
 
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT)
-        )
-        # PREPARE_WEBHOOK (failure)
+        # We got an invalid event prior to lifecycle starting so we would exit early
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
-        )
-        assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=0
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

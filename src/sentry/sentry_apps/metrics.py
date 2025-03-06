@@ -56,3 +56,41 @@ class SentryAppWebhookHaltReason(StrEnum):
 
     GOT_CLIENT_ERROR = "got_client_error"
     INTEGRATOR_ERROR = "integrator_error"
+
+
+class SentryAppEventType(StrEnum):
+    """Events/features that Sentry Apps can do"""
+
+    # event webhooks
+    ERROR_CREATED = "error.created"
+    ISSUE_CREATED = "issue.created"
+
+    # issue alert webhooks
+    EVENT_ALERT_TRIGGERED = "event_alert.triggered"
+
+    # external request webhooks
+    EXTERNAL_ISSUE_CREATED = "external_issue.created"
+    EXTERNAL_ISSUE_LINKED = "external_issue.linked"
+    SELECT_OPTIONS_REQUESTED = "select_options.requested"
+
+    # metric alert webhooks
+    METRIC_ALERT_OPEN = "metric_alert.open"
+    METRIC_ALERT_RESOLVED = "metric_alert.resolved"
+    METRIC_ALERT_CRITICAL = "metric_alert.critical"
+    METRIC_ALERT_WARNING = "metric_alert.warning"
+
+    # comment webhooks
+    COMMENT_CREATED = "comment.created"
+    COMMENT_UPDATED = "comment.updated"
+    COMMENT_DELETED = "comment.deleted"
+
+    # installation webhooks
+    INSTALLATION_CREATED = "installation.created"
+    INSTALLATION_DELETED = "installation.deleted"
+
+    # workflow notification
+    ISSUE_IGNORED = "issue.ignored"
+    ISSUE_ARCHIVED = "issue.archived"
+    ISSUE_UNRESOLVED = "issue.unresolved"
+    ISSUE_RESOLVED = "issue.resolved"
+    ISSUE_ASSIGNED = "issue.assigned"
