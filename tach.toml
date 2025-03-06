@@ -1,4 +1,3 @@
-interfaces = []
 exclude = [
     "**/*__pycache__",
     "**/*egg-info",
@@ -6,12 +5,11 @@ exclude = [
     "**/tests",
     "**/venv",
 ]
-source_roots = [ "src",
-]
+source_roots = ["src"]
 
 [[modules ]]
 path = "social_auth"
-depends_on = ["sentry"]
+depends_on = [{path = "sentry", deprecated = true}]
 
 [[modules ]]
 path = "flagpole"
@@ -35,4 +33,52 @@ depends_on = []
 
 [[modules ]]
 path = "sentry_plugins"
-depends_on = ["sentry"]
+depends_on = [{path = "sentry", deprecated = true}]
+
+
+[[interfaces]]
+expose = [
+    ".*utils.*",
+    ".*integrations.*",
+    ".*utils.*",
+    ".*services.*",
+]
+
+[[interfaces]]
+expose = [
+    "django_picklefield",
+]
+from = ["django_picklefield"]
+
+[[interfaces]]
+expose = [
+    ".*plugin.*",
+]
+from = ["sentry_plugins"]
+
+
+[[interfaces]]
+expose = [
+    ".*Bit.*",
+    ".*bit.*",
+]
+from = ["bitfield"]
+
+[[interfaces]]
+expose = [
+    "backends.BaseAuth",
+]
+from = ["social_auth"]
+
+[[interfaces]]
+expose = [
+    "evaluation.*",
+    "conditions.*"
+]
+from = ["flagpole"]
+
+[[interfaces]]
+expose = [
+    ".*",
+]
+from = ["sudo"]
