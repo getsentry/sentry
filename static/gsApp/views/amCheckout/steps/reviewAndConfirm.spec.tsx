@@ -538,39 +538,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         `This change will take effect at the end of your current contract period.`
       )
     ).toBeInTheDocument();
-
-    // Expects the same copy for self serve partners
-    const partnerSub = SubscriptionFixture({
-      organization,
-      contractPeriodEnd: moment().add(20, 'days').toString(),
-      plan: 'am3_f',
-      planTier: PlanTier.AM3,
-      isSelfServePartner: true,
-      partner: {
-        externalId: 'whateva',
-        isActive: true,
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
-        name: '',
-      },
-    });
-    const partnerStepProps = {
-      ...stepProps,
-      subscription: partnerSub,
-    };
-
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
-    expect(
-      await screen.findByText(
-        `This change will take effect at the end of your current contract period.`
-      )
-    ).toBeInTheDocument();
   });
 
-  it('should render billed through self serve partner copy effectiveNow', async function () {
+  it('should render billed through self serve partner copy for effectiveNow', async function () {
     const partnerSub = SubscriptionFixture({
       organization,
       contractPeriodEnd: moment().add(20, 'days').toString(),
@@ -609,7 +579,52 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
     expect(
       await screen.findByText(
-        `These changes will apply immediately, and you will be billed today through FOO.`
+        `These changes will apply immediately, and you will be billed by FOO monthly for any recurring subscription fees and incurred pay-as-you-go fees.`
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should render billed through self serve partner copy for effective later', async function () {
+    mockPreviewGet(organization.slug);
+    mockSubscriptionPut(organization.slug);
+
+    const updatedData = {
+      plan: 'am3_business',
+      reserved: {
+        errors: 100_000,
+        replays: 5000,
+        spans: 10_000_000,
+        attachments: 1,
+        monitorSeats: 1,
+      },
+    };
+
+    const partnerSub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: moment().add(20, 'days').toString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          id: 'FOO',
+          displayName: 'FOO',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    const partnerStepProps = {
+      ...stepProps,
+      subscription: partnerSub,
+    };
+
+    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
+    expect(
+      await screen.findByText(
+        `These changes will apply on the date above, and you will be billed by FOO monthly for any recurring subscription fees and incurred pay-as-you-go fees.`
       )
     ).toBeInTheDocument();
   });
