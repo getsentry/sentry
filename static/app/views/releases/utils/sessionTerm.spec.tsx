@@ -472,6 +472,29 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
+  it('apple app hang rate', function () {
+    const anrRateSessionTerm = getSessionTermDescription(SessionTerm.ANR_RATE, 'apple');
+    expect(anrRateSessionTerm).toBe(
+      'Percentage of unique users that experienced an fatal App Hang error.'
+    );
+
+    const anrRateSessionTermiOS = getSessionTermDescription(
+      SessionTerm.ANR_RATE,
+      'apple-ios'
+    );
+    expect(anrRateSessionTermiOS).toBe(
+      'Percentage of unique users that experienced an fatal App Hang error.'
+    );
+
+    const anrRateSessionTermMacOS = getSessionTermDescription(
+      SessionTerm.ANR_RATE,
+      'apple-macos'
+    );
+    expect(anrRateSessionTermMacOS).toBe(
+      'Percentage of unique users that experienced an fatal App Hang error.'
+    );
+  });
+
   it('node-express terms', function () {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
@@ -655,7 +678,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHED,
       'apple-ios'
     );
-    expect(crashedSessionTerm).toEqual(desktopTermDescriptions.crashed);
+    expect(crashedSessionTerm).toEqual(mobileTermsDescription.crashed);
 
     // Crash Free Users
     const crashFreeUsersSessionTerm = getSessionTermDescription(

@@ -37,7 +37,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
+import {
+  getANRRateText,
+  isPlatformANRCompatible,
+  isPlatformForegroundANRCompatible,
+} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -219,24 +223,28 @@ class ProjectCharts extends Component<Props, State> {
     ];
 
     if (isPlatformANRCompatible(project?.platform)) {
-      return [
+      const anrRateOptions = [
         {
           value: DisplayModes.ANR_RATE,
-          label: t('ANR Rate'),
+          label: getANRRateText(project?.platform),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.ANR_RATE) || !hasSessions,
           tooltip: !hasSessions ? noHealthTooltip : undefined,
         },
-        {
+      ];
+
+      if (isPlatformForegroundANRCompatible(project?.platform)) {
+        anrRateOptions.push({
           value: DisplayModes.FOREGROUND_ANR_RATE,
           label: t('Foreground ANR Rate'),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.FOREGROUND_ANR_RATE) ||
             !hasSessions,
           tooltip: !hasSessions ? noHealthTooltip : undefined,
-        },
-        ...options,
-      ];
+        });
+      }
+
+      return [...anrRateOptions, ...options];
     }
 
     return options;
@@ -320,6 +328,9 @@ class ProjectCharts extends Component<Props, State> {
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
     const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
+    const hasAnrForegroundRateFeature = isPlatformForegroundANRCompatible(
+      project?.platform
+    );
 
     return (
       <Panel>
@@ -438,8 +449,11 @@ class ProjectCharts extends Component<Props, State> {
               )}
               {hasAnrRateFeature && displayMode === DisplayModes.ANR_RATE && (
                 <ProjectBaseSessionsChart
-                  title={t('ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+                  title={getANRRateText(project?.platform)}
+                  help={getSessionTermDescription(
+                    SessionTerm.ANR_RATE,
+                    project?.platform || null
+                  )}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
@@ -447,17 +461,21 @@ class ProjectCharts extends Component<Props, State> {
                   query={query}
                 />
               )}
-              {hasAnrRateFeature && displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
-                <ProjectBaseSessionsChart
-                  title={t('Foreground ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
-                  api={api}
-                  organization={organization}
-                  onTotalValuesChange={this.handleTotalValuesChange}
-                  displayMode={displayMode}
-                  query={query}
-                />
-              )}
+              {hasAnrForegroundRateFeature &&
+                displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
+                  <ProjectBaseSessionsChart
+                    title={t('Foreground ANR Rate')}
+                    help={getSessionTermDescription(
+                      SessionTerm.FOREGROUND_ANR_RATE,
+                      null
+                    )}
+                    api={api}
+                    organization={organization}
+                    onTotalValuesChange={this.handleTotalValuesChange}
+                    displayMode={displayMode}
+                    query={query}
+                  />
+                )}
               {displayMode === DisplayModes.STABILITY_USERS && (
                 <ProjectBaseSessionsChart
                   title={t('Crash Free Users')}
