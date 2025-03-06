@@ -144,6 +144,7 @@ declare namespace Profiling {
   interface SentryAndroidContinuousProfileChunk extends Omit<Schema, 'profiles'> {
     profiles: ReadonlyArray<Readonly<Profiling.EventedProfile>>;
     androidClock: string;
+    measurements?: ContinuousMeasurements;
   }
 
   ////////////////

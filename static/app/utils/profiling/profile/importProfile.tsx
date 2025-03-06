@@ -365,8 +365,10 @@ export function importAndroidContinuousProfileChunk(
     input.profiles
   );
 
-  // @todo(jonas): implement measurements
-  const minTimestamp = minTimestampInChunk({...convertedProfile, frames}, {});
+  const minTimestamp = minTimestampInChunk(
+    {...convertedProfile, frames},
+    input.measurements ?? {}
+  );
 
   for (const sample of convertedProfile.samples) {
     if (!samplesByThread[sample.thread_id]) {
@@ -415,12 +417,10 @@ export function importAndroidContinuousProfileChunk(
     transactionID: null,
     activeProfileIndex,
     profiles,
-    // @TODO(jonas): implement this
-    measurements: {},
-    // measurements: measurementsFromContinuousMeasurements(
-    //   input.measurements ?? {},
-    //   minTimestamp
-    // ),
+    measurements: measurementsFromContinuousMeasurements(
+      input.measurements ?? {},
+      minTimestamp
+    ),
     metadata: {
       platform: input.metadata.platform,
       projectID: input.metadata.projectID,
