@@ -6,6 +6,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -96,6 +97,11 @@ describe('IssueListOverview (actions)', function () {
       culprit: 'Group 2',
       shortId: 'JAVASCRIPT-2',
     });
+    const group3 = GroupFixture({
+      id: '3',
+      culprit: 'Group 3',
+      shortId: 'JAVASCRIPT-3',
+    });
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -141,6 +147,66 @@ describe('IssueListOverview (actions)', function () {
 
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
       expect(screen.getByText('Group 2')).toBeInTheDocument();
+    });
+
+    it('refreshes after resolving all issues on page', async function () {
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(<IssueListOverview {...defaultProps} />, {
+        organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved'},
+          },
+        },
+      });
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
+
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
+
+      // After action, will refetch so need to mock that response
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group3],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+      const confirmationModal = await screen.findByRole('dialog');
+
+      expect(
+        within(confirmationModal).getByText(
+          'Are you sure you want to resolve these 2 issues?'
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(
+        within(confirmationModal).getByRole('button', {name: 'Resolve 2 selected issues'})
+      );
+
+      await waitFor(() => {
+        expect(updateIssueMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            query: expect.objectContaining({id: ['1', '2']}),
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
+          })
+        );
+      });
+
+      // After refetch, should only see group 3
+      expect(await screen.findByText('Group 3')).toBeInTheDocument();
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
     });
 
     it('can undo resolve action', async function () {

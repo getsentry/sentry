@@ -799,13 +799,10 @@ function IssueListOverview({router}: Props) {
       delete queryData.sort;
     }
 
-    if (path !== location.pathname || !isEqual(query, location.query)) {
-      navigate({
-        pathname: normalizeUrl(path),
-        query: queryData,
-      });
-      setIssuesLoading(true);
-    }
+    navigate({
+      pathname: normalizeUrl(path),
+      query: queryData,
+    });
   };
 
   const onSearch = (newQuery: string) => {
@@ -938,7 +935,7 @@ function IssueListOverview({router}: Props) {
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
       transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
-      fetchCounts(newQueryCount, true);
+      fetchData(true);
     } else {
       fetchData(true);
     }
