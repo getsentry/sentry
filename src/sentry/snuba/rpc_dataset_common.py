@@ -12,7 +12,12 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
-from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
+from sentry.search.eap.columns import (
+    ResolvedAggregate,
+    ResolvedColumn,
+    ResolvedFormula,
+    ResolvedFunction,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
