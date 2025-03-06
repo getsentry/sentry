@@ -30,7 +30,7 @@ import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
 
-import Option from './selectOption';
+import Option from './option';
 
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
@@ -179,7 +179,7 @@ export type GeneralSelectValue = SelectValue<any>;
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 
-function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+function Index<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
@@ -528,7 +528,7 @@ const RefForwardedSelectControl = forwardRef<
   typeof ReactSelect<GeneralSelectValue>,
   ControlProps
 >(function RefForwardedSelectControl(props, ref) {
-  return <SelectControl forwardedRef={ref as any} {...props} />;
+  return <Index forwardedRef={ref as any} {...props} />;
 });
 
 export default RefForwardedSelectControl;
