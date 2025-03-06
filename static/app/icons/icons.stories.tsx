@@ -757,7 +757,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'previous',
         groups: ['action'],
-        keywords: ['video', 'audio', 'back', 'return', 'rewind'],
+        keywords: ['video', 'audio', 'back', 'rewind'],
         name: 'Previous',
         defaultProps: {},
       },
@@ -1172,13 +1172,6 @@ const SECTIONS: TSection[] = [
     id: 'device',
     label: 'Device',
     icons: [
-      {
-        id: 'return',
-        groups: ['device'],
-        keywords: ['enter'],
-        name: 'Return',
-        defaultProps: {},
-      },
       {
         id: 'file',
         groups: ['device'],

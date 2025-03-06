@@ -87,7 +87,6 @@ export {IconQuestion} from './iconQuestion';
 export {IconRefresh} from './iconRefresh';
 export {IconReleases} from './iconReleases';
 export {IconResize} from './iconResize';
-export {IconReturn} from './iconReturn';
 export {IconRewind10} from './iconRewind10';
 export {IconSad} from './iconSad';
 export {IconSearch} from './iconSearch';
