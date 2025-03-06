@@ -103,9 +103,11 @@ type GetsentryEventParameters = {
     previous_replays?: number;
     previous_spans?: number;
     previous_transactions?: number;
+    previous_uptime?: number;
     replays?: number;
     spans?: number;
     transactions?: number;
+    uptime?: number;
   } & Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;

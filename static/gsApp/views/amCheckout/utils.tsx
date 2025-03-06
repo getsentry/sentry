@@ -327,6 +327,7 @@ function recordAnalytics(
     monitorSeats: data.reservedMonitorSeats,
     spans: data.reservedSpans,
     profileDuration: data.reservedProfileDuration,
+    uptime: data.reservedUptime,
   };
 
   const previousData = {
@@ -338,6 +339,7 @@ function recordAnalytics(
     monitorSeats: subscription.categories.monitorSeats?.reserved || undefined,
     profileDuration: subscription.categories.profileDuration?.reserved || undefined,
     spans: subscription.categories.spans?.reserved || undefined,
+    uptime: subscription.categories.uptime?.reserved || undefined,
   };
 
   trackGetsentryAnalytics('checkout.upgrade', {
@@ -351,6 +353,7 @@ function recordAnalytics(
     previous_monitorSeats: previousData.monitorSeats,
     previous_profileDuration: previousData.profileDuration,
     previous_spans: previousData.spans,
+    previous_uptime: previousData.uptime,
     ...currentData,
   });
 
@@ -442,6 +445,7 @@ export function getCheckoutAPIData({
     reservedMonitorSeats: formatReservedData(formData.reserved.monitorSeats),
     reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
     reservedSpans: formatReservedData(formData.reserved.spans),
+    reservedUptime: formatReservedData(formData.reserved.uptime),
   } satisfies Partial<
     // Enforce plural spelling against the enums in DataCategory
     Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
