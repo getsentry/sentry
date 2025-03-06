@@ -280,7 +280,7 @@ export function TourGuide({
                 </TopRow>
               )}
               {title && <TitleRow>{title}</TitleRow>}
-              {description && <div>{description}</div>}
+              {description && <DescriptionRow>{description}</DescriptionRow>}
               {actions && <Flex justify="flex-end">{actions}</Flex>}
             </TourBody>
           </TourOverlay>
@@ -331,6 +331,17 @@ const TopRow = styled('div')`
 const TitleRow = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.4;
+  white-space: wrap;
+`;
+
+const DescriptionRow = styled('div')`
+  color: ${p => p.theme.inverted.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  line-height: 1.4;
+  white-space: wrap;
+  opacity: 0.9;
 `;
 
 export const TourAction = styled(Button)`
