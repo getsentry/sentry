@@ -185,13 +185,13 @@ export default function SentryApplicationDetails(props: Props) {
     isError,
     refetch,
   } = useApiQuery<SentryApp>(SENTRY_APP_QUERY_KEY, {
-    staleTime: Infinity,
+    staleTime: 30000,
     enabled: isEditingApp,
   });
   const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
     SENTRY_APP_API_TOKENS_QUERY_KEY,
     {
-      staleTime: Infinity,
+      staleTime: 30000,
       enabled: isEditingApp,
     }
   );
