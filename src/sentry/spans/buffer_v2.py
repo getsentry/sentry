@@ -75,7 +75,7 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 
-def segment_to_span_id(segment_id: SegmentId) -> str:
+def segment_to_span_id(segment_id: SegmentId) -> bytes:
     return segment_id.rsplit(b":", 1)[1]
 
 
