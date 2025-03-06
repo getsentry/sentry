@@ -75,7 +75,7 @@ class SystemOptionsEndpoint(Endpoint):
             [keyword in k.name for keyword in keywords]
         )
 
-    def has_permission(self, request: Request):
+    def has_permission(self, request: Request) -> bool:
         if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
             return True
         if not request.access.has_permission("options.admin"):
