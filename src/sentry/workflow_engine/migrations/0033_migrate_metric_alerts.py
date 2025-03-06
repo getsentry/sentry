@@ -286,24 +286,162 @@ def _migrate_trigger_action(apps: Apps, trigger_action: Any, condition_group_id:
     )
 
 
+def _create_data_source(apps: Apps, alert_rule: Any) -> Any:
+    DataSource = apps.get_model("workflow_engine", "DataSource")
+    QuerySubscription = apps.get_model("sentry", "QuerySubscription")
+
+    snuba_query = alert_rule.snuba_query
+    if not snuba_query:
+        logger.info("alert rule missing snuba query", extra={"alert_rule_id": alert_rule.id})
+        raise Exception("Alert rule missing snuba query")
+    try:
+        query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+    except QuerySubscription.DoesNotExist:
+        logger.info(
+            "query subscription does not exist",
+            extra={"snuba_query_id": snuba_query.id},
+        )
+        raise Exception("Query subscription does not exist")
+    data_source = DataSource.objects.create(
+        organization_id=alert_rule.organization_id,
+        source_id=str(query_subscription.id),
+        type="snuba_query_subscription",
+    )
+    return data_source
+
+
+def _create_detector(
+    apps: Apps,
+    alert_rule: Any,
+    project: Any,
+    data_condition_group: Any,
+    create_activity: Any,
+    enabled: bool,
+) -> Any:
+    Detector = apps.get_model("workflow_engine", "Detector")
+    detector = Detector.objects.create(
+        project_id=project.id,
+        enabled=enabled,
+        created_by_id=create_activity.user_id,
+        name=alert_rule.name,
+        workflow_condition_group=data_condition_group,
+        type="metric_alert_fire",
+        description=alert_rule.description,
+        owner_user_id=alert_rule.user_id,
+        owner_team=alert_rule.team,
+        config={
+            "threshold_period": alert_rule.threshold_period,
+            "sensitivity": alert_rule.sensitivity,
+            "seasonality": alert_rule.seasonality,
+            "comparison_delta": alert_rule.comparison_delta,
+            "detection_type": alert_rule.detection_type,
+        },
+    )
+    return detector
+
+
+def _create_detector_state(apps: Apps, alert_rule: Any, project: Any, detector: Any) -> None:
+    Incident = apps.get_model("sentry", "Incident")
+    DetectorState = apps.get_model("workflow_engine", "DetectorState")
+
+    try:
+        incident_query = Incident.objects.filter(
+            type=IncidentType.ALERT_TRIGGERED.value,
+            alert_rule=alert_rule,
+            projects=project,
+        )
+        open_incident = incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by(
+            "-date_added"
+        )[0]
+    except IndexError:
+        open_incident = None
+    if open_incident:
+        state = (
+            DetectorPriorityLevel.MEDIUM
+            if open_incident.status == IncidentStatus.WARNING.value
+            else DetectorPriorityLevel.HIGH
+        )
+    else:
+        state = DetectorPriorityLevel.OK
+    # create detector state
+    DetectorState.objects.create(
+        detector=detector,
+        active=True if open_incident else False,
+        state=state,
+    )
+
+
+def _migrate_resolve_threshold(apps: Apps, alert_rule: Any, detector: Any) -> None:
+    AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
+    DataCondition = apps.get_model("workflow_engine", "DataCondition")
+    DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
+    WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
+
+    resolve_threshold_type = (
+        Condition.LESS_OR_EQUAL
+        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+        else Condition.GREATER_OR_EQUAL
+    )
+    if alert_rule.resolve_threshold is not None:
+        resolve_threshold = alert_rule.resolve_threshold
+    else:
+        detector_triggers = DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group
+        )
+        warning_data_condition = detector_triggers.filter(
+            condition_result=DetectorPriorityLevel.MEDIUM
+        ).first()
+        if warning_data_condition is not None:
+            resolve_threshold = warning_data_condition.comparison
+        else:
+            critical_data_condition = detector_triggers.filter(
+                condition_result=DetectorPriorityLevel.HIGH
+            ).first()
+            if critical_data_condition is None:
+                logger.info(
+                    "no critical or warning data conditions exist for detector data condition group",
+                    extra={"detector_data_condition_group": detector_triggers},
+                )
+                raise Exception(
+                    "No critical or warning data conditions exist for detector data condition group"
+                )
+            else:
+                resolve_threshold = critical_data_condition.comparison
+    DataCondition.objects.create(
+        comparison=resolve_threshold,
+        condition_result=DetectorPriorityLevel.OK,
+        type=resolve_threshold_type,
+        condition_group=detector.workflow_condition_group,
+    )
+
+    data_condition_group = DataConditionGroup.objects.create(
+        organization_id=alert_rule.organization_id
+    )
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    WorkflowDataConditionGroup.objects.create(
+        condition_group=data_condition_group,
+        workflow=alert_rule_workflow.workflow,
+    )
+
+    DataCondition.objects.create(
+        comparison=DetectorPriorityLevel.OK,
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_EQUALS,
+        condition_group=data_condition_group,
+    )
+
+
 def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     AlertRule = apps.get_model("sentry", "AlertRule")
     AlertRuleTrigger = apps.get_model("sentry", "AlertRuleTrigger")
     AlertRuleActivity = apps.get_model("sentry", "AlertRuleActivity")
     RuleSnooze = apps.get_model("sentry", "RuleSnooze")
-    QuerySubscription = apps.get_model("sentry", "QuerySubscription")
-    Incident = apps.get_model("sentry", "Incident")
 
     AlertRuleDetector = apps.get_model("workflow_engine", "AlertRuleDetector")
     AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
-    DataCondition = apps.get_model("workflow_engine", "DataCondition")
     DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
-    DataSource = apps.get_model("workflow_engine", "DataSource")
-    Detector = apps.get_model("workflow_engine", "Detector")
-    DetectorState = apps.get_model("workflow_engine", "DetectorState")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = apps.get_model("workflow_engine", "Workflow")
-    WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
 
     # MAIN MIGRATION LOOP STARTS HERE
     for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(
@@ -343,48 +481,20 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                 )
 
                 # create data source
-                snuba_query = alert_rule.snuba_query
-                if not snuba_query:
-                    logger.info(
-                        "alert rule missing snuba query", extra={"alert_rule_id": alert_rule.id}
-                    )
-                    raise Exception("Alert rule missing snuba query")
-                try:
-                    query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
-                except QuerySubscription.DoesNotExist:
-                    logger.info(
-                        "query subscription does not exist",
-                        extra={"snuba_query_id": snuba_query.id},
-                    )
-                    raise Exception("Query subscription does not exist")
-                data_source = DataSource.objects.create(
-                    organization_id=organization_id,
-                    source_id=str(query_subscription.id),
-                    type="snuba_query_subscription",
-                )
+                data_source = _create_data_source(apps, alert_rule)
 
                 # create detector DCG
                 data_condition_group = DataConditionGroup.objects.create(
                     organization_id=organization_id,
                 )
                 # create detector
-                detector = Detector.objects.create(
-                    project_id=project.id,
-                    enabled=enabled,
-                    created_by_id=create_activity.user_id,
-                    name=alert_rule.name,
-                    workflow_condition_group=data_condition_group,
-                    type="metric_alert_fire",
-                    description=alert_rule.description,
-                    owner_user_id=alert_rule.user_id,
-                    owner_team=alert_rule.team,
-                    config={
-                        "threshold_period": alert_rule.threshold_period,
-                        "sensitivity": alert_rule.sensitivity,
-                        "seasonality": alert_rule.seasonality,
-                        "comparison_delta": alert_rule.comparison_delta,
-                        "detection_type": alert_rule.detection_type,
-                    },
+                detector = _create_detector(
+                    apps,
+                    alert_rule,
+                    project,
+                    data_condition_group,
+                    create_activity,
+                    enabled,
                 )
                 # create workflow
                 workflow = Workflow.objects.create(
@@ -396,33 +506,10 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     config={},
                 )
 
-                try:
-                    incident_query = Incident.objects.filter(
-                        type=IncidentType.ALERT_TRIGGERED.value,
-                        alert_rule=alert_rule,
-                        projects=project,
-                    )
-                    open_incident = incident_query.exclude(
-                        status=IncidentStatus.CLOSED.value
-                    ).order_by("-date_added")[0]
-                except IndexError:
-                    open_incident = None
-                if open_incident:
-                    state = (
-                        DetectorPriorityLevel.MEDIUM
-                        if open_incident.status == IncidentStatus.WARNING.value
-                        else DetectorPriorityLevel.HIGH
-                    )
-                else:
-                    state = DetectorPriorityLevel.OK
-
                 data_source.detectors.set([detector])
+
                 # create detector state
-                DetectorState.objects.create(
-                    detector=detector,
-                    active=True if open_incident else False,
-                    state=state,
-                )
+                _create_detector_state(apps, alert_rule, project, detector)
                 # create lookup tables
                 AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
                 alert_rule_workflow = AlertRuleWorkflow.objects.create(
@@ -437,58 +524,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     _migrate_trigger(apps, trigger, detector, alert_rule_workflow)
 
                 # migrate resolve threshold
-                resolve_threshold_type = (
-                    Condition.LESS_OR_EQUAL
-                    if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-                    else Condition.GREATER_OR_EQUAL
-                )
-                if alert_rule.resolve_threshold is not None:
-                    resolve_threshold = alert_rule.resolve_threshold
-                else:
-                    detector_triggers = DataCondition.objects.filter(
-                        condition_group=detector.workflow_condition_group
-                    )
-                    warning_data_condition = detector_triggers.filter(
-                        condition_result=DetectorPriorityLevel.MEDIUM
-                    ).first()
-                    if warning_data_condition is not None:
-                        resolve_threshold = warning_data_condition.comparison
-                    else:
-                        critical_data_condition = detector_triggers.filter(
-                            condition_result=DetectorPriorityLevel.HIGH
-                        ).first()
-                        if critical_data_condition is None:
-                            logger.info(
-                                "no critical or warning data conditions exist for detector data condition group",
-                                extra={"detector_data_condition_group": detector_triggers},
-                            )
-                            raise Exception(
-                                "No critical or warning data conditions exist for detector data condition group"
-                            )
-                        else:
-                            resolve_threshold = critical_data_condition.comparison
-                DataCondition.objects.create(
-                    comparison=resolve_threshold,
-                    condition_result=DetectorPriorityLevel.OK,
-                    type=resolve_threshold_type,
-                    condition_group=detector.workflow_condition_group,
-                )
+                _migrate_resolve_threshold(apps, alert_rule, detector)
 
-                data_condition_group = DataConditionGroup.objects.create(
-                    organization_id=alert_rule.organization_id
-                )
-                AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-                WorkflowDataConditionGroup.objects.create(
-                    condition_group=data_condition_group,
-                    workflow=alert_rule_workflow.workflow,
-                )
-
-                DataCondition.objects.create(
-                    comparison=DetectorPriorityLevel.OK,
-                    condition_result=True,
-                    type=Condition.ISSUE_PRIORITY_EQUALS,
-                    condition_group=data_condition_group,
-                )
                 logger.info(
                     "Successfully migrated alert rule", extra={"alert_rule_id": alert_rule.id}
                 )
