@@ -282,6 +282,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature("organizations:global-views"):
             mock_now.return_value = datetime.now(timezone.utc)
             self.create_issues()
+            self.dismiss_assistant()
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_for_issue()
 
