@@ -80,4 +80,23 @@ export default storyBook('SimpleTable', story => {
       </Fragment>
     );
   });
+
+  story('empty', () => {
+    const data: Data[] = [];
+
+    return (
+      <Fragment>
+        <p>
+          Use the <JSXProperty name="fallback" value="message" /> property for empty
+          states
+        </p>
+
+        <SimpleTable
+          columns={columns}
+          data={data}
+          fallback={t('No alerts triggered during given date range')}
+        />
+      </Fragment>
+    );
+  });
 });
