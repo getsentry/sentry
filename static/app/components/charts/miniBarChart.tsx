@@ -284,7 +284,7 @@ function MiniBarChart({
 
     const chartSeries: BarChartSeries[] = [];
 
-    const groupedData = groupDataByName(series);
+    const groupedData = stacked ? groupDataByName(series) : {};
 
     const colorList = Array.isArray(colors)
       ? colors
