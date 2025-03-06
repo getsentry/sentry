@@ -119,7 +119,7 @@ def schedule_webhook_delivery(**kwargs: Never) -> None:
             )
         )
         # Order by priority first (lowest number = highest priority), then ID
-        .order_by("provider_priority", "id").values("id", "mailbox_name", "provider")
+        .order_by("provider_priority", "id").values("id", "mailbox_name")
     )
 
     metrics.distribution(
