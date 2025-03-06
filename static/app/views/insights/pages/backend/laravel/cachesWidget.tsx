@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
-import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

@@ -115,9 +115,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     tag_key=tag_key,
                 )
 
-                if not results:
-                    return {"data": []}
-
                 for row in results["data"]:
                     row["tags_value"] = tagstore.backend.get_tag_value_label(
                         row["tags_key"], row["tags_value"]
