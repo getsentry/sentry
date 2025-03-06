@@ -2702,8 +2702,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 2
         assert data[0]["http_response_rate(5)"] == 0.5
         assert data[0]["description"] == "description 1"
-        assert data[0]["http_response_rate(5)"] == 1.0
-        assert data[0]["description"] == "description 2"
+        assert data[1]["http_response_rate(5)"] == 1.0
+        assert data[1]["description"] == "description 2"
         assert meta["dataset"] == self.dataset
 
     def test_cache_hit(self):
