@@ -98,17 +98,6 @@ export function bodyRenderer(props: FieldRendererProps) {
   );
 }
 
-function wrappedSeverityTextRenderer(props: {
-  attribute_value: string | number | null;
-  extra?: RendererExtra;
-}) {
-  const extra = props.extra || {
-    highlightTerms: [],
-    logColors: {} as ReturnType<typeof getLogColors>,
-  };
-  return severityTextRenderer({...props, extra});
-}
-
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: {
@@ -124,8 +113,6 @@ export const LogAttributesRendererMap: Record<
     };
     return TimestampRenderer({...props, extra});
   },
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: wrappedSeverityTextRenderer,
-  [OurLogKnownFieldKey.SENTRY_SEVERITY_TEXT]: wrappedSeverityTextRenderer,
 };
 
 export const LogAttributesHumanLabel: Record<OurLogFieldKey, string> = {
