@@ -196,13 +196,16 @@ export const platformProductAvailability = {
 /**
  * Defines which products are selected per default for each platform
  * If not defined in here, all products are selected
+ *
+ * UPDATE Mar 2025, we're running an experiment that has only error monitoring enabled by default
  */
-const platformDefaultProducts: Partial<Record<PlatformKey, ProductSolution[]>> = {
-  android: [ProductSolution.PERFORMANCE_MONITORING],
-  php: [ProductSolution.PERFORMANCE_MONITORING],
-  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING],
-  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING],
-};
+const platformDefaultProducts = Object.keys(platformProductAvailability).reduce(
+  (acc, key) => {
+    acc[key as PlatformKey] = [];
+    return acc;
+  },
+  {} as Record<PlatformKey, ProductSolution[]>
+);
 
 type ProductProps = {
   /**

@@ -2,11 +2,12 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
 import {
@@ -37,9 +38,14 @@ export interface InsightsTimeSeriesWidgetProps {
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {start, end, period, utc} = pageFilters.selection.datetime;
-  const {projects, environments} = pageFilters.selection;
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     visualizationType: props.visualizationType,
@@ -96,7 +102,14 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     <ChartContainer>
       <Widget
         Title={Title}
-        Visualization={<TimeSeriesWidgetVisualization {...visualizationProps} />}
+        Visualization={
+          <TimeSeriesWidgetVisualization
+            {...(organization.features.includes('release-bubbles-ui')
+              ? {releases, showReleaseAs: 'bubble'}
+              : {})}
+            {...visualizationProps}
+          />
+        }
         Actions={
           <Widget.WidgetToolbar>
             <Button
@@ -108,33 +121,12 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 openInsightChartModal({
                   title: props.title,
                   children: (
-                    <ReleaseSeries
-                      start={start}
-                      end={end}
-                      queryExtra={undefined}
-                      period={period}
-                      utc={utc}
-                      projects={projects}
-                      environments={environments}
-                    >
-                      {({releases}) => {
-                        return (
-                          <ModalChartContainer>
-                            <TimeSeriesWidgetVisualization
-                              {...visualizationProps}
-                              releases={
-                                releases
-                                  ? releases.map(release => ({
-                                      timestamp: release.date,
-                                      version: release.version,
-                                    }))
-                                  : []
-                              }
-                            />
-                          </ModalChartContainer>
-                        );
-                      }}
-                    </ReleaseSeries>
+                    <ModalChartContainer>
+                      <TimeSeriesWidgetVisualization
+                        {...visualizationProps}
+                        releases={releases ?? []}
+                      />
+                    </ModalChartContainer>
                   ),
                 });
               }}
