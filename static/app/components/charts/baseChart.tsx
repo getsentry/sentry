@@ -750,6 +750,19 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
 
   .tooltip-arrow {
+    &.arrow-top {
+      bottom: 100%;
+      top: auto;
+      border-bottom: 8px solid ${p.theme.backgroundElevated};
+      border-top: none;
+      &:before {
+        border-top: none;
+        border-bottom: 8px solid ${p.theme.translucentBorder};
+        bottom: -7px;
+        top: auto;
+      }
+    }
+
     top: 100%;
     left: 50%;
     position: absolute;

@@ -27,6 +27,7 @@ import type {
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
@@ -48,6 +49,8 @@ import {
 } from './settings';
 
 type VisualizationType = 'area' | 'line' | 'bar';
+
+const RELEASE_BUBBLE_SIZE = 14;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**
@@ -83,6 +86,10 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   releases?: Release[];
   /**
+   * Show releases as either lines per release or a bubble for a group of releases.
+   */
+  showReleaseAs?: 'bubble' | 'line';
+  /**
    * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
    */
   stacked?: boolean;
@@ -112,32 +119,72 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const hasReleaseBubbles =
+    organization.features.includes('release-bubbles-ui') &&
+    props.showReleaseAs === 'bubble';
 
-  const releaseSeries =
-    props.releases &&
-    ReleaseSeries(
-      theme,
-      props.releases,
-      function onReleaseClick(release: Release) {
-        navigate(
-          makeReleasesPathname({
-            organization,
-            path: `/${encodeURIComponent(release.version)}/`,
-          })
-        );
-      },
-      utc ?? false
-    );
+  // find min/max timestamp of *all* timeSeries
+  const allTimestamps = props.timeSeries
+    .flatMap(timeSeries => timeSeries.data)
+    .map(datum => datum.timestamp)
+    .toSorted();
+  const earliestTimeStamp = allTimestamps.at(0);
+  const latestTimeStamp = allTimestamps.at(-1);
+
+  const {
+    createReleaseBubbleHighlighter,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    bubbleSize: RELEASE_BUBBLE_SIZE,
+    chartRef,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
+  });
+
+  const releaseSeries = props.releases
+    ? hasReleaseBubbles
+      ? releaseBubbleSeries
+      : ReleaseSeries(
+          theme,
+          props.releases,
+          function onReleaseClick(release: Release) {
+            navigate(
+              makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(release.version)}/`,
+              })
+            );
+          },
+          utc ?? false
+        )
+    : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
   const handleChartRef = useCallback(
     (e: ReactEchartsRef) => {
       chartRef.current = e;
 
-      if (e?.getEchartsInstance) {
-        registerWithWidgetSyncContext(e.getEchartsInstance());
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        createReleaseBubbleHighlighter(echartsInstance);
       }
     },
-    [registerWithWidgetSyncContext]
+    [
+      hasReleaseBubblesSeries,
+      createReleaseBubbleHighlighter,
+      registerWithWidgetSyncContext,
+    ]
   );
 
   const chartZoomProps = useChartZoom({
@@ -298,6 +345,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <BaseChart
       ref={handleChartRef}
+      {...releaseBubbleEventHandlers}
       autoHeightResize
       series={[...dataSeries, releaseSeries].filter(defined)}
       grid={{
@@ -309,6 +357,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         right: 8,
         bottom: 0,
         containLabel: true,
+        ...releaseBubbleGrid,
       }}
       legend={
         showLegend
@@ -354,6 +403,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
         },
         splitNumber: 5,
+        ...releaseBubbleXAxis,
       }}
       yAxis={{
         animation: false,
