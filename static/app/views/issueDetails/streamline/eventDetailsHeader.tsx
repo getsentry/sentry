@@ -5,13 +5,15 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import {type Event, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,6 +31,7 @@ import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/iss
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {useGroupStatsPeriod} from 'sentry/views/issueDetails/useGroupStatsPeriod';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface EventDetailsHeaderProps {
@@ -45,6 +48,20 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
+
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
+  const statsPeriod = useGroupStatsPeriod(group);
+  const period =
+    hasSetStatsPeriod ||
+    // TODO: Handle open periods for other event types
+    ![EventOrGroupType.ERROR, EventOrGroupType.DEFAULT].includes(group.type)
+      ? getPeriod({
+          start: location.query.start as string,
+          end: location.query.end as string,
+          period: location.query.statsPeriod as string,
+        })
+      : statsPeriod;
 
   useEffect(() => {
     if (event) {
@@ -87,6 +104,39 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           <Fragment>
             <EnvironmentSelector group={group} event={event} project={project} />
             <DateFilter
+              menuTitle={t('Filter Time Range')}
+              start={period?.start}
+              end={period?.end}
+              utc={location.query.utc === 'true'}
+              relative={period?.statsPeriod}
+              relativeOptions={props => {
+                return {
+                  ...props.arbitraryOptions,
+                  // Always display arbitrary issue open period
+                  ...(statsPeriod.statsPeriod
+                    ? {
+                        [statsPeriod.statsPeriod]: t(
+                          '%s (since first seen)',
+                          getRelativeSummary(statsPeriod.statsPeriod)
+                        ),
+                      }
+                    : {}),
+                  ...props.defaultOptions,
+                };
+              }}
+              onChange={selection => {
+                const {relative, ...rest} = selection;
+                navigate({
+                  ...location,
+                  query: {
+                    ...location.query,
+                    ...rest,
+                    // If selecting the issue open period, remove the stats period query param
+                    statsPeriod:
+                      relative === statsPeriod.statsPeriod ? undefined : relative,
+                  },
+                });
+              }}
               triggerProps={{
                 borderless: true,
                 style: {
@@ -208,7 +258,7 @@ const SearchFilter = styled(EventSearch)`
   box-shadow: none;
 `;
 
-const DateFilter = styled(DatePageFilter)`
+const DateFilter = styled(TimeRangeSelector)`
   grid-area: date;
   &:before {
     right: 0;

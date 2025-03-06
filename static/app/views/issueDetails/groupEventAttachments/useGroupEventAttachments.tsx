@@ -111,7 +111,10 @@ export function useGroupEventAttachments({
   const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
 
-  const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
+  const fetchAllAvailable =
+    hasStreamlinedUI && hasSetStatsPeriod ? options?.fetchAllAvailable : true;
   const {
     data: attachments = [],
     isPending,
