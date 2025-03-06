@@ -1,6 +1,5 @@
 import logging
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
@@ -63,16 +62,7 @@ def _fetch_release_registry_data(**kwargs):
 
     # AWS Layers
     layer_data = _fetch_registry_url("/aws-lambda-layers")
-    logger.info(
-        "release_registry.fetch.aws-lambda-layers",
-        extra={"layer_data": layer_data},
-    )
     cache.set(LAYER_INDEX_CACHE_KEY, layer_data, CACHE_TTL)
-    logger.info(
-        "release_registry.fetch.aws-lambda-layers",
-        extra={"layer_cache": cache.get(LAYER_INDEX_CACHE_KEY)},
-    )
-    sentry_sdk.capture_message("Fetching release registry")
 
 
 @instrumented_task(
