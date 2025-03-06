@@ -8,8 +8,8 @@ import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-import type {ControlProps, GeneralSelectValue} from './selectControl';
-import SelectControl from './selectControl';
+import type {ControlProps, GeneralSelectValue} from './';
+import SelectControl from './';
 
 export type Result = {
   label: string;

@@ -1,5 +1,5 @@
+import SelectAsyncControl from 'sentry/components/core/select/async';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import SelectAsyncControl from 'sentry/components/forms/controls/selectAsyncControl';
 
 class SelectAsyncField extends SelectField {
   static defaultProps = {
