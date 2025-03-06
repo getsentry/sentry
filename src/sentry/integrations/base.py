@@ -356,18 +356,22 @@ class IntegrationInstallation(abc.ABC):
     def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
+        self._org_integration: RpcOrganizationIntegration | None
 
-    @cached_property
-    def org_integration(self) -> RpcOrganizationIntegration:
+    @property
+    def org_integration(self) -> RpcOrganizationIntegration | None:
         from sentry.integrations.services.integration import integration_service
 
-        integration = integration_service.get_organization_integration(
-            integration_id=self.model.id,
-            organization_id=self.organization_id,
-        )
-        if integration is None:
-            raise NotFound("missing org_integration")
-        return integration
+        if not hasattr(self, "_org_integration"):
+            self._org_integration = integration_service.get_organization_integration(
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+            )
+        return self._org_integration
+
+    @org_integration.setter
+    def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
+        self._org_integration = org_integration
 
     @cached_property
     def organization(self) -> RpcOrganization:
@@ -397,12 +401,10 @@ class IntegrationInstallation(abc.ABC):
 
         config = self.org_integration.config
         config.update(data)
-        org_integration = integration_service.update_organization_integration(
+        self.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
-        if org_integration is not None:
-            self.org_integration = org_integration
 
     def get_config_data(self) -> Mapping[str, str]:
         if not self.org_integration:
