@@ -25,7 +25,6 @@ import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -135,7 +134,7 @@ function GroupCheckbox({
   );
 }
 
-function GroupLifespan({group}: {group: Group}) {
+function GroupFirstLastSeen({group}: {group: Group}) {
   if (!group.lifetime) {
     return <Placeholder height="18px" width="60px" />;
   }
@@ -146,25 +145,21 @@ function GroupLifespan({group}: {group: Group}) {
 
   return (
     <Fragment>
-      <LifespanFirstSeen>
-        <PositionedTimeSince
-          date={group.lifetime.firstSeen}
-          suffix="old"
-          unitStyle="short"
-          aria-label={t('First Seen')}
-          tooltipPrefix={t('First Seen')}
-        />
-      </LifespanFirstSeen>
-      <LifespanLastSeen>
-        <IconArrow direction="right" size="xs" />
-        <PositionedTimeSince
-          date={group.lifetime.lastSeen}
-          suffix="ago"
-          unitStyle="short"
-          aria-label={t('Last Seen')}
-          tooltipPrefix={t('Last Seen')}
-        />
-      </LifespanLastSeen>
+      <PositionedTimeSince
+        date={group.lifetime.firstSeen}
+        unitStyle="short"
+        suffix=""
+        aria-label={t('First Seen')}
+        tooltipPrefix={t('First Seen')}
+      />
+      <SeenSeparator>/</SeenSeparator>
+      <PositionedTimeSince
+        date={group.lifetime.lastSeen}
+        suffix="ago"
+        unitStyle="short"
+        aria-label={t('Last Seen')}
+        tooltipPrefix={t('Last Seen')}
+      />
     </Fragment>
   );
 }
@@ -627,10 +622,10 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
-      {withColumns.includes('lifespan') && (
-        <LifespanWrapper breakpoint={COLUMN_BREAKPOINTS.LIFESPAN}>
-          <GroupLifespan group={group} />
-        </LifespanWrapper>
+      {withColumns.includes('firstLastSeen') && (
+        <FirstLastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_LAST_SEEN}>
+          <GroupFirstLastSeen group={group} />
+        </FirstLastSeenWrapper>
       )}
 
       {withChart && !displayReprocessingLayout ? (
@@ -651,7 +646,7 @@ function StreamGroup({
         ) : (
           <ChartWrapper
             narrowGroups={narrowGroups}
-            margin={withColumns.includes('lifespan')}
+            margin={withColumns.includes('firstLastSeen')}
           >
             {issueTypeConfig.stats.enabled ? (
               <GroupStatusChart
@@ -680,7 +675,7 @@ function StreamGroup({
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper
-                leftMargin={withColumns.includes('lifespan') ? undefined : '0px'}
+                leftMargin={withColumns.includes('firstLastSeen') ? undefined : '0px'}
               >
                 {issueTypeConfig.stats.enabled ? groupCount : null}
               </EventCountsWrapper>
@@ -953,12 +948,11 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const LifespanWrapper = styled('div')<{breakpoint: string}>`
+const FirstLastSeenWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${space(0.25)};
   align-self: center;
-  width: 106px;
+  width: 120px;
   padding-right: ${space(1)};
   margin-right: ${space(2)};
 
@@ -1087,6 +1081,10 @@ const PositionedTimeSince = styled(TimeSince)`
   position: relative;
 `;
 
+const SeenSeparator = styled('span')`
+  color: ${p => p.theme.subText};
+`;
+
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
@@ -1095,15 +1093,4 @@ const UnreadIndicator = styled('div')`
   margin-top: ${space(4)};
   margin-left: ${space(3)};
   position: relative;
-`;
-
-const LifespanFirstSeen = styled('div')`
-  align-self: flex-start;
-`;
-
-const LifespanLastSeen = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  align-self: flex-end;
 `;

@@ -39,10 +39,10 @@ function Headers({
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
-              <LifespanLabel breakpoint={COLUMN_BREAKPOINTS.LIFESPAN}>
-                {t('Lifespan')}
+              <FirstLastSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_LAST_SEEN}>
+                {t('First / Last Seen')}
                 <HeaderDivider />
-              </LifespanLabel>
+              </FirstLastSeenLabel>
             </Fragment>
           ) : null}
           {organization.features.includes('issue-stream-table-layout') ? (
@@ -175,8 +175,8 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const LifespanLabel = styled(IssueStreamHeaderLabel)`
-  width: 106px;
+const FirstLastSeenLabel = styled(IssueStreamHeaderLabel)`
+  width: 120px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
