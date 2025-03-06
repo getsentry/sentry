@@ -15,6 +15,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.data["contexts"]["trace"]["span_id"], message
         assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        assert result["project_slug"] == event_data.project.slug, message
 
     def get_transaction_children(self, event):
         """Assumes that the test setup only gives each event 1 txn child"""

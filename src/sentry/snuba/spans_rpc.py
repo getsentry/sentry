@@ -415,7 +415,6 @@ def run_trace_query(
         "transaction",
         "precise.start_ts",
         "precise.finish_ts",
-        "project.slug",
         "project.id",
         "span.duration",
     ]
@@ -448,5 +447,9 @@ def run_trace_query(
                     span[resolved_column.public_alias] = attribute.value.val_int == 1
                 elif resolved_column.proto_definition.type == INT:
                     span[resolved_column.public_alias] = attribute.value.val_int
+                    if resolved_column.public_alias == "project.id":
+                        span["project.slug"] = resolver.params.project_id_map.get(
+                            span[resolved_column.public_alias], "Unknown"
+                        )
             spans.append(span)
     return spans
