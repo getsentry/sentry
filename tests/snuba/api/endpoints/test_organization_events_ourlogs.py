@@ -151,6 +151,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "log.body": "baz",
-                "timestamp": "2025-03-05T19:34:42+00:00",
+                "timestamp": self.nine_mins_ago.isoformat(),
             },
         ]
