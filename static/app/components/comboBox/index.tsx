@@ -17,7 +17,7 @@ import {
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
-import {GrowingInput} from 'sentry/components/core/input/growingInput';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -166,18 +166,21 @@ function ComboBox<Value extends string>({
     [inputProps.onFocus, menuTrigger, state]
   );
 
-  const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
+  const autosizeCallbackRef = useAutosizeInput({
+    value: inputProps.value as string,
+    disabled: !growingInput,
+  });
 
   return (
     <ControlWrapper className={className}>
       {!state.isFocused && <InteractionStateLayer />}
-      <InputComponent
+      <StyledInput
         {...inputProps}
         onClick={handleInputClick}
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
         onFocus={handleInputFocus}
-        ref={mergeRefs([inputRef, triggerProps.ref])}
+        ref={mergeRefs([inputRef, triggerProps.ref, autosizeCallbackRef])}
         size={size}
       />
       <StyledPositionWrapper
@@ -402,13 +405,6 @@ const ControlWrapper = styled('div')`
 `;
 
 const StyledInput = styled(Input)`
-  max-width: inherit;
-  min-width: inherit;
-  &:not(:focus) {
-    cursor: pointer;
-  }
-`;
-const StyledGrowingInput = styled(GrowingInput)`
   max-width: inherit;
   min-width: inherit;
   &:not(:focus) {
