@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
@@ -18,6 +20,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+
+logger = logging.getLogger(__name__)
 
 
 # NOTE: There are gaps in the numberation because a
@@ -56,6 +60,7 @@ class OnboardingTaskStatus:
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
+    @sentry_sdk.trace
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
@@ -65,6 +70,18 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                 task=task,
                 values=kwargs,
             )
+
+            logger.info(
+                "organizationonboardingtask.record.after_create_or_update",
+                extra={
+                    "cache_key": cache_key,
+                    "organization_id": organization_id,
+                    "task": task,
+                    "kwargs": kwargs,
+                    "is_obj_created": created,  # LOG003 extra key 'created' clashes with LogRecord attribute
+                },
+            )
+
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
             if created:

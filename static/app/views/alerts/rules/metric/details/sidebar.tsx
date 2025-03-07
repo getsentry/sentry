@@ -114,10 +114,10 @@ function TriggerDescription({
             {thresholdText}
             {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
               <FeatureBadge
-                type="alpha"
+                type="beta"
                 tooltipProps={{
                   title: t(
-                    'Anomaly detection is in alpha and may produce inaccurate results'
+                    'Anomaly detection is in beta and may produce unexpected results'
                   ),
                   isHoverable: true,
                 }}

@@ -101,9 +101,9 @@ function ThresholdTypeForm({
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
         <FeatureBadge
-          type="alpha"
+          type="beta"
           tooltipProps={{
-            title: t('Anomaly detection is in alpha and may produce inaccurate results'),
+            title: t('Anomaly detection is in beta and may produce unexpected results'),
             isHoverable: true,
           }}
         />

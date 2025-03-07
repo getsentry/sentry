@@ -286,6 +286,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       previous_monitorSeats: 1,
       previous_profileDuration: undefined,
       previous_spans: undefined,
+      previous_uptime: 1,
       plan: updatedData.plan,
       errors: updatedData.reserved.errors,
       transactions: updatedData.reserved.transactions,
@@ -293,6 +294,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: undefined,
+      uptime: 1,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -335,6 +337,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         attachments: 1,
         monitorSeats: 1,
         profileDuration: 0,
+        uptime: 1,
       },
     };
 
@@ -380,6 +383,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       previous_monitorSeats: 1,
       previous_profileDuration: undefined,
       previous_spans: undefined,
+      previous_uptime: 1,
       plan: updatedData.plan,
       errors: updatedData.reserved.errors,
       transactions: undefined,
@@ -388,6 +392,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: updatedData.reserved.spans,
       profileDuration: updatedData.reserved.profileDuration,
+      uptime: updatedData.reserved.uptime,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -480,6 +485,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
       spans: updatedData.reserved.spans,
+      previous_uptime: 1,
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -538,39 +544,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         `This change will take effect at the end of your current contract period.`
       )
     ).toBeInTheDocument();
-
-    // Expects the same copy for self serve partners
-    const partnerSub = SubscriptionFixture({
-      organization,
-      contractPeriodEnd: moment().add(20, 'days').toString(),
-      plan: 'am3_f',
-      planTier: PlanTier.AM3,
-      isSelfServePartner: true,
-      partner: {
-        externalId: 'whateva',
-        isActive: true,
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
-        name: '',
-      },
-    });
-    const partnerStepProps = {
-      ...stepProps,
-      subscription: partnerSub,
-    };
-
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
-    expect(
-      await screen.findByText(
-        `This change will take effect at the end of your current contract period.`
-      )
-    ).toBeInTheDocument();
   });
 
-  it('should render billed through self serve partner copy effectiveNow', async function () {
+  it('should render billed through self serve partner copy for effectiveNow', async function () {
     const partnerSub = SubscriptionFixture({
       organization,
       contractPeriodEnd: moment().add(20, 'days').toString(),
@@ -609,7 +585,52 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
     expect(
       await screen.findByText(
-        `These changes will apply immediately, and you will be billed today through FOO.`
+        `These changes will apply immediately, and you will be billed by FOO monthly for any recurring subscription fees and incurred pay-as-you-go fees.`
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should render billed through self serve partner copy for effective later', async function () {
+    mockPreviewGet(organization.slug);
+    mockSubscriptionPut(organization.slug);
+
+    const updatedData = {
+      plan: 'am3_business',
+      reserved: {
+        errors: 100_000,
+        replays: 5000,
+        spans: 10_000_000,
+        attachments: 1,
+        monitorSeats: 1,
+      },
+    };
+
+    const partnerSub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: moment().add(20, 'days').toString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          id: 'FOO',
+          displayName: 'FOO',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    const partnerStepProps = {
+      ...stepProps,
+      subscription: partnerSub,
+    };
+
+    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
+    expect(
+      await screen.findByText(
+        `These changes will apply on the date above, and you will be billed by FOO monthly for any recurring subscription fees and incurred pay-as-you-go fees.`
       )
     ).toBeInTheDocument();
   });
@@ -672,6 +693,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       attachments: updatedData.reserved.attachments,
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
+      uptime: updatedData.reserved.uptime,
       spans: undefined,
     });
     expect(trackGetsentryAnalytics).not.toHaveBeenCalledWith(
@@ -735,6 +757,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       attachments: updatedData.reserved.attachments,
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
+      uptime: updatedData.reserved.uptime,
       spans: undefined,
     });
 

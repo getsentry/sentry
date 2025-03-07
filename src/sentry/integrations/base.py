@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import Enum, StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -176,6 +176,25 @@ INTEGRATION_TYPE_TO_PROVIDER = {
 }
 
 
+class _UserIdentity(TypedDict):
+    type: str
+    external_id: str
+    data: dict[str, str]
+    scopes: list[str]
+
+
+class IntegrationData(TypedDict):
+    external_id: str
+    name: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    post_install_data: NotRequired[dict[str, Any]]
+    expect_exists: NotRequired[bool]
+    idp_external_id: NotRequired[str]
+    idp_config: NotRequired[dict[str, Any]]
+    user_identity: NotRequired[_UserIdentity]
+    provider: NotRequired[str]  # maybe unused ???
+
+
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
@@ -263,8 +282,9 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         pass
 
@@ -298,7 +318,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         """
         raise NotImplementedError
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         """
         Given state captured during the setup pipeline, return a dictionary
         of configuration and metadata to store with this integration.
@@ -356,22 +376,18 @@ class IntegrationInstallation(abc.ABC):
     def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration: RpcOrganizationIntegration | None
 
-    @property
-    def org_integration(self) -> RpcOrganizationIntegration | None:
+    @cached_property
+    def org_integration(self) -> RpcOrganizationIntegration:
         from sentry.integrations.services.integration import integration_service
 
-        if not hasattr(self, "_org_integration"):
-            self._org_integration = integration_service.get_organization_integration(
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-            )
-        return self._org_integration
-
-    @org_integration.setter
-    def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
-        self._org_integration = org_integration
+        integration = integration_service.get_organization_integration(
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+        )
+        if integration is None:
+            raise NotFound("missing org_integration")
+        return integration
 
     @cached_property
     def organization(self) -> RpcOrganization:
@@ -401,10 +417,12 @@ class IntegrationInstallation(abc.ABC):
 
         config = self.org_integration.config
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def get_config_data(self) -> Mapping[str, str]:
         if not self.org_integration:
@@ -435,16 +453,19 @@ class IntegrationInstallation(abc.ABC):
 
     def get_default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
-        if self.org_integration is None or self.org_integration.default_auth_id is None:
+        try:
+            org_integration = self.org_integration
+        except NotFound:
             raise Identity.DoesNotExist
-        identity = identity_service.get_identity(
-            filter={"id": self.org_integration.default_auth_id}
-        )
+        else:
+            if org_integration.default_auth_id is None:
+                raise Identity.DoesNotExist
+        identity = identity_service.get_identity(filter={"id": org_integration.default_auth_id})
         if identity is None:
             scope = Scope.get_isolation_scope()
             scope.set_tag("integration_provider", self.model.get_provider().name)
-            scope.set_tag("org_integration_id", self.org_integration.id)
-            scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            scope.set_tag("org_integration_id", org_integration.id)
+            scope.set_tag("default_auth_id", org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 

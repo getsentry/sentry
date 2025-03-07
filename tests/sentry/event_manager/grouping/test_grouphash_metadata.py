@@ -10,9 +10,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GROUPHASH_METADATA_SCHEMA_VERSION, HashBasis
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 
@@ -39,22 +37,11 @@ class GroupHashMetadataTest(TestCase):
             ).first()
             assert grouphash and grouphash.metadata is None
 
-        # The feature flag is obeyed
-        with Feature({"organizations:grouphash-metadata-creation": False}):
-            event2 = save_new_event({"message": "Sit! Good dog!"}, self.project)
+        with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
+            # New hashes get metadata
+            event2 = save_new_event({"message": "Adopt, don't shop"}, self.project)
             grouphash = GroupHash.objects.filter(
                 project=self.project, hash=event2.get_primary_hash()
-            ).first()
-            assert grouphash and grouphash.metadata is None
-
-        with (
-            Feature({"organizations:grouphash-metadata-creation": True}),
-            patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr,
-        ):
-            # New hashes get metadata
-            event3 = save_new_event({"message": "Adopt, don't shop"}, self.project)
-            grouphash = GroupHash.objects.filter(
-                project=self.project, hash=event3.get_primary_hash()
             ).first()
             assert grouphash and grouphash.metadata
             mock_metrics_incr.assert_any_call(
@@ -68,10 +55,10 @@ class GroupHashMetadataTest(TestCase):
                 with patch(
                     "sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.908
                 ):
-                    event4 = save_new_event({"message": "Dogs are great!"}, self.project)
-                    assert event4.get_primary_hash() == event1.get_primary_hash()
+                    event3 = save_new_event({"message": "Dogs are great!"}, self.project)
+                    assert event3.get_primary_hash() == event1.get_primary_hash()
                     grouphash = GroupHash.objects.filter(
-                        project=self.project, hash=event4.get_primary_hash()
+                        project=self.project, hash=event3.get_primary_hash()
                     ).first()
                     assert grouphash and grouphash.metadata is None
 
@@ -79,10 +66,10 @@ class GroupHashMetadataTest(TestCase):
                 with patch(
                     "sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.1231
                 ):
-                    event5 = save_new_event({"message": "Dogs are great!"}, self.project)
-                    assert event5.get_primary_hash() == event1.get_primary_hash()
+                    event4 = save_new_event({"message": "Dogs are great!"}, self.project)
+                    assert event4.get_primary_hash() == event1.get_primary_hash()
                     grouphash = GroupHash.objects.filter(
-                        project=self.project, hash=event5.get_primary_hash()
+                        project=self.project, hash=event4.get_primary_hash()
                     ).first()
                     assert grouphash and grouphash.metadata
                     mock_metrics_incr.assert_any_call(
@@ -92,7 +79,6 @@ class GroupHashMetadataTest(TestCase):
                     # creation date
                     assert grouphash.metadata.date_added is None
 
-    @with_feature("organizations:grouphash-metadata-creation")
     def test_stores_expected_properties(self):
         event = save_new_event({"message": "Dogs are great!", "platform": "python"}, self.project)
         grouphash = GroupHash.objects.filter(
@@ -110,7 +96,6 @@ class GroupHashMetadataTest(TestCase):
             },
         )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     def test_stores_expected_properties_for_secondary_hashes(self):
         project = self.project
@@ -162,7 +147,6 @@ class GroupHashMetadataTest(TestCase):
         assert legacy_config_grouphash.metadata.hash_basis is None
         assert legacy_config_grouphash.metadata.hashing_metadata is None
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_grouping_config_update(self, mock_metrics_incr: MagicMock):
@@ -198,7 +182,6 @@ class GroupHashMetadataTest(TestCase):
             },
         )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 0.415})
     def test_updates_obey_sample_rate(self):
         self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
@@ -244,7 +227,6 @@ class GroupHashMetadataTest(TestCase):
                 grouphash3, {"latest_grouping_config": DEFAULT_GROUPING_CONFIG}
             )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_schema_update(self, mock_metrics_incr: MagicMock):
@@ -303,7 +285,6 @@ class GroupHashMetadataTest(TestCase):
                 },
             )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_both_updates(self, mock_metrics_incr: MagicMock):
@@ -372,7 +353,6 @@ class GroupHashMetadataTest(TestCase):
                 },
             )
 
-    @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_grouping_config_update_precedence(self, mock_metrics_incr: MagicMock):

@@ -21,13 +21,13 @@ from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
+from sentry.demo_mode.utils import is_demo_user
 from sentry.organizations.services.organization import organization_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
-from sentry.utils.demo_mode import is_demo_user
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -190,7 +190,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
             curl -X ###METHOD### -u username:password ###URL###
         """
-        if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
+        if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if is_demo_user(request.user):

@@ -234,14 +234,25 @@ function parsePageParam(dir: 'previous' | 'next') {
 export function useInfiniteApiQuery<TResponseData>({
   queryKey,
   enabled,
+  staleTime,
 }: {
   queryKey: ApiQueryKey;
   enabled?: boolean;
+  staleTime?: number;
 }) {
   return useInfiniteQuery({
-    queryKey,
-    queryFn: ({pageParam}): Promise<ApiResult<TResponseData>> => {
-      const [url, endpointOptions] = queryKey;
+    // We append an additional string to the queryKey here to prevent a hard
+    // crash due to a cache conflict between normal queries and "infinite"
+    // queries. Read more
+    // here: https://tkdodo.eu/blog/effective-react-query-keys#caching-data
+    queryKey:
+      queryKey.length === 1
+        ? ([...queryKey, {}, 'infinite'] as const)
+        : ([...queryKey, 'infinite'] as const),
+    queryFn: ({
+      pageParam,
+      queryKey: [url, endpointOptions],
+    }): Promise<ApiResult<TResponseData>> => {
       return QUERY_API_CLIENT.requestPromise(url, {
         includeAllArgs: true,
         headers: endpointOptions?.headers,
@@ -255,6 +266,7 @@ export function useInfiniteApiQuery<TResponseData>({
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
     enabled: enabled ?? true,
+    staleTime,
   });
 }
 

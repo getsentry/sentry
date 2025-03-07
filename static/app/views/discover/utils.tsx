@@ -708,7 +708,10 @@ export function handleAddQueryToDashboard({
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
-  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType =
+    widgetType === WidgetType.SPANS
+      ? (eventView.display as DisplayType)
+      : displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -826,7 +829,10 @@ export function constructAddQueryToDashboardLink({
   widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
-  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType =
+    widgetType === WidgetType.SPANS
+      ? (eventView.display as DisplayType)
+      : displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultTableFields = eventView.fields.map(({field}) => field);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
