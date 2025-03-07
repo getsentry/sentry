@@ -144,6 +144,7 @@ def retry(
     on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
     exclude: type[Exception] | tuple[type[Exception], ...] = (),
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
+    ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
@@ -160,6 +161,9 @@ def retry(
             try:
                 return func(*args, **kwargs)
             except ignore:
+                return
+            except ignore_and_capture:
+                capture_exception()
                 return
             except exclude:
                 raise
