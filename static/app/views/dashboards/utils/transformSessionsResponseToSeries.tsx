@@ -92,7 +92,7 @@ export function transformSessionsResponseToSeries(
             seriesName: getSeriesName(status, group, queryAlias),
             data: data.intervals.map((interval, index) => ({
               name: interval,
-              value: metricField ? group.series[metricField]?.[index] ?? 0 : 0,
+              value: metricField ? (group.series[metricField]?.[index] ?? 0) : 0,
             })),
           });
         }

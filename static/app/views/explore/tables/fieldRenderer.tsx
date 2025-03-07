@@ -130,7 +130,7 @@ function BaseExploreFieldRenderer({
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
-    const spanId = field === 'transaction.id' ? undefined : data.span_id ?? data.id;
+    const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
     const target = generateLinkToEventInTraceView({
       projectSlug: data.project,
       traceSlug: data.trace,
