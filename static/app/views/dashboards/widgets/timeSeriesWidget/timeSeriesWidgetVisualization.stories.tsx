@@ -58,17 +58,17 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <p>
           It includes features like:
           <ul>
-            <li>scaling mis-matched units</li>
-            <li>displaying incomplete ingestion buckets</li>
-            <li>multi-type plotting</li>
+            <li>automatically scaling mis-matched units</li>
+            <li>visually deemphasizing incomplete ingestion buckets</li>
+            <li>plotting lines, area, and bars on the same visualization</li>
             <li>
-              support for <code>null</code> values
+              skipping <code>null</code> values while plotting
             </li>
             <li>
               stripping legend names of internal information like <code>equation|</code>{' '}
               prefixes
             </li>
-            <li>flexible size</li>
+            <li>automatically stretching to fit the parent</li>
             <li>intelligently formatting the axes</li>
             <li>and more!</li>
           </ul>
