@@ -41,7 +41,7 @@ from sentry.constants import (
     InsightModules,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
+from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
@@ -114,7 +114,6 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -686,98 +685,41 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 @sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    jobs_with_releases: dict[tuple[int, str], list[Job]] = {}
-    release_date_added: dict[tuple[int, str], datetime] = {}
-
     for job in jobs:
-        if not job["release"]:
-            continue
+        data = job["data"]
+        if not data.get("release"):
+            return
 
-        release_key = (job["project_id"], job["release"])
-        jobs_with_releases.setdefault(release_key, []).append(job)
-        new_datetime = job["event"].datetime
-        old_datetime = release_date_added.get(release_key)
-        if old_datetime is None or new_datetime > old_datetime:
-            release_date_added[release_key] = new_datetime
+        project = projects[job["project_id"]]
+        date = job["event"].datetime
 
-    for (project_id, version), jobs_to_update in jobs_with_releases.items():
         try:
             release = Release.get_or_create(
-                project=projects[project_id],
-                version=version,
-                date_added=release_date_added[(project_id, version)],
+                project=project,
+                version=data["release"],
+                date_added=date,
             )
         except ValidationError:
-            release = None
             logger.exception(
                 "Failed creating Release due to ValidationError",
-                extra={
-                    "project": projects[project_id],
-                    "version": version,
-                },
+                extra={"project": project, "version": data["release"]},
             )
+            release = None
 
-        if release:
-            for job in jobs_to_update:
-                # Don't allow a conflicting 'release' tag
-                data = job["data"]
-                pop_tag(data, "release")
-                set_tag(data, "sentry:release", release.version)
+        job["release"] = release
+        if not release:
+            return
 
-                job["release"] = release
+        # Don't allow a conflicting 'release' tag
+        pop_tag(data, "release")
+        set_tag(data, "sentry:release", release.version)
 
-                if job["dist"]:
-                    job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+        if data.get("dist"):
+            job["dist"] = release.add_dist(data["dist"], date)
 
-                    # don't allow a conflicting 'dist' tag
-                    pop_tag(job["data"], "dist")
-                    set_tag(job["data"], "sentry:dist", job["dist"].name)
-
-                # Dynamic Sampling - Boosting latest release functionality
-                if (
-                    features.has(
-                        "organizations:dynamic-sampling", projects[project_id].organization
-                    )
-                    and data.get("type") == "transaction"
-                ):
-                    with sentry_sdk.start_span(
-                        op="event_manager.dynamic_sampling_observe_latest_release"
-                    ) as span:
-                        try:
-                            latest_release_params = LatestReleaseParams(
-                                release=release,
-                                project=projects[project_id],
-                                environment=_get_environment_from_transaction(data),
-                            )
-
-                            def on_release_boosted() -> None:
-                                span.set_tag(
-                                    "dynamic_sampling.observe_release_status",
-                                    "(release, environment) pair observed and boosted",
-                                )
-                                span.set_data("release", latest_release_params.release.id)
-                                span.set_data("environment", latest_release_params.environment)
-
-                                schedule_invalidate_project_config(
-                                    project_id=project_id,
-                                    trigger="dynamic_sampling:boost_release",
-                                )
-
-                            LatestReleaseBias(
-                                latest_release_params=latest_release_params
-                            ).observe_release(on_boosted_release_added=on_release_boosted)
-                        except Exception:
-                            sentry_sdk.capture_exception()
-
-
-def _get_environment_from_transaction(data: EventDict) -> str | None:
-    environment = data.get("environment", None)
-    # We handle the case in which the users sets the empty string as environment, for us that
-    # is equal to having no environment at all.
-    if environment == "":
-        environment = None
-
-    return environment
+            # don't allow a conflicting 'dist' tag
+            pop_tag(job["data"], "dist")
+            set_tag(job["data"], "sentry:dist", job["dist"].name)
 
 
 @sentry_sdk.tracing.trace
@@ -2527,6 +2469,10 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             project = event.project
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
                 record_transaction_name_for_clustering(project, event.data)
+
+            if job["release"]:
+                environment = job["data"].get("environment") or None  # coorce "" to None
+                record_latest_release(project, job["release"], environment)
 
             # these are what the "transaction_processed" signal hooked into
             # we should not use signals here, so call the recievers directly

@@ -11,7 +11,7 @@ from sentry.api.permissions import SuperuserPermission
 
 @all_silo_endpoint
 class InternalQuotasEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

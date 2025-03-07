@@ -801,7 +801,7 @@ const StyledInput = styled(Input)`
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
