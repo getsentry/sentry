@@ -10,7 +10,7 @@ from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
 from sentry.issues.auto_source_code_config.constants import METRIC_PREFIX
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
-from sentry.issues.auto_source_code_config.utils import is_dry_run_platform
+from sentry.issues.auto_source_code_config.utils import PlatformConfig
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
@@ -80,7 +80,8 @@ class BaseDeriveCodeMappings(TestCase):
             code_mapping = code_mappings[0]
             assert code_mapping.stack_root == expected_stack_root
             assert code_mapping.source_root == expected_source_root
-            dry_run = is_dry_run_platform(platform)
+            platform_config = PlatformConfig(platform)
+            dry_run = platform_config.is_dry_run_platform()
             # Check that both metrics were called with any order
             mock_incr.assert_any_call(
                 key=f"{METRIC_PREFIX}.code_mapping.created",
@@ -109,7 +110,8 @@ class BaseDeriveCodeMappings(TestCase):
             event = self.create_event(frames, platform)
             code_mappings = process_event(self.project.id, event.group_id, event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
-            dry_run = is_dry_run_platform(platform)
+            platform_config = PlatformConfig(platform)
+            dry_run = platform_config.is_dry_run_platform()
             if code_mappings:
                 # Check that both metrics were called with any order
                 mock_incr.assert_any_call(
