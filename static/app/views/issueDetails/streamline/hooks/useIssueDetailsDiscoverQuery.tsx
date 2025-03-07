@@ -12,7 +12,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {useGroupStatsPeriod} from 'sentry/views/issueDetails/useGroupStatsPeriod';
+import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 
 export function useIssueDetailsEventView({
   group,
@@ -26,20 +26,20 @@ export function useIssueDetailsEventView({
   const location = useLocation();
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
-  const statsPeriod = useGroupStatsPeriod(group);
+  const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
   const periodQuery = hasSetStatsPeriod
     ? getPeriod({
         start: location.query.start as string,
         end: location.query.end as string,
         period: location.query.statsPeriod as string,
       })
-    : statsPeriod;
+    : defaultStatsPeriod;
 
   const interval = getInterval(
     {
-      start: periodQuery.start,
-      end: periodQuery.end,
-      period: periodQuery.statsPeriod,
+      start: periodQuery?.start,
+      end: periodQuery?.end,
+      period: periodQuery?.statsPeriod,
     },
     'issues'
   );

@@ -61,6 +61,7 @@ describe('SolutionsSection', () => {
         links: [{link: 'https://example.com', text: 'Test Link'}],
         linksByPlatform: {},
       },
+      defaultTimePeriod: {sinceFirstSeen: true},
       actions: {
         archiveUntilOccurrence: {enabled: false},
         delete: {enabled: false},

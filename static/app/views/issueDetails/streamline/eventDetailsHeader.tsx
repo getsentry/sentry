@@ -10,7 +10,7 @@ import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type Event, EventOrGroupType} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
@@ -31,7 +31,7 @@ import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/iss
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {useGroupStatsPeriod} from 'sentry/views/issueDetails/useGroupStatsPeriod';
+import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface EventDetailsHeaderProps {
@@ -51,17 +51,14 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
-  const statsPeriod = useGroupStatsPeriod(group);
-  const period =
-    hasSetStatsPeriod ||
-    // TODO: Handle open periods for other event types
-    ![EventOrGroupType.ERROR, EventOrGroupType.DEFAULT].includes(group.type)
-      ? getPeriod({
-          start: location.query.start as string,
-          end: location.query.end as string,
-          period: location.query.statsPeriod as string,
-        })
-      : statsPeriod;
+  const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
+  const period = hasSetStatsPeriod
+    ? getPeriod({
+        start: location.query.start as string,
+        end: location.query.end as string,
+        period: location.query.statsPeriod as string,
+      })
+    : defaultStatsPeriod;
 
   useEffect(() => {
     if (event) {
@@ -113,11 +110,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 return {
                   ...props.arbitraryOptions,
                   // Always display arbitrary issue open period
-                  ...(statsPeriod.statsPeriod
+                  ...(defaultStatsPeriod?.statsPeriod
                     ? {
-                        [statsPeriod.statsPeriod]: t(
+                        [defaultStatsPeriod.statsPeriod]: t(
                           '%s (since first seen)',
-                          getRelativeSummary(statsPeriod.statsPeriod)
+                          getRelativeSummary(defaultStatsPeriod.statsPeriod)
                         ),
                       }
                     : {}),
@@ -133,7 +130,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     ...rest,
                     // If selecting the issue open period, remove the stats period query param
                     statsPeriod:
-                      relative === statsPeriod.statsPeriod ? undefined : relative,
+                      relative === defaultStatsPeriod?.statsPeriod ? undefined : relative,
                   },
                 });
               }}
