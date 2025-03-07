@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.db.models.signals import post_save
 
 from sentry import analytics
-from sentry.adoption import manager
 from sentry.integrations.services.integration import integration_service
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.group import Group
@@ -20,7 +19,6 @@ from sentry.signals import (
     alert_rule_edited,
     data_scrubber_enabled,
     deploy_created,
-    event_processed,
     first_event_received,
     inbound_filter_toggled,
     integration_added,
@@ -46,11 +44,9 @@ from sentry.signals import (
     save_search_created,
     sso_enabled,
     team_created,
-    transaction_processed,
     user_feedback_received,
 )
 from sentry.utils import metrics
-from sentry.utils.javascript import has_sourcemap
 
 DEFAULT_TAGS = frozenset(
     [
@@ -93,55 +89,6 @@ def record_first_event(project, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_event", complete=True
     )
-
-
-def record_event_processed(project, event, **kwargs):
-    feature_slugs = []
-
-    platform = event.group.platform if event.group else event.platform
-
-    # Platform
-    if platform in manager.location_slugs("language"):
-        feature_slugs.append(platform)
-
-    # Release Tracking
-    if event.get_tag("sentry:release"):
-        feature_slugs.append("release_tracking")
-
-    # Environment Tracking
-    if event.get_tag("environment"):
-        feature_slugs.append("environment_tracking")
-
-    # User Tracking
-    user_context = event.data.get("user")
-    # We'd like them to tag with id or email.
-    # Certain SDKs automatically tag with ip address.
-    # Check to make sure more the ip address is being sent.
-    # testing for this in test_no_user_tracking_for_ip_address_only
-    # list(d.keys()) pattern is to make this python3 safe
-    if user_context and len(user_context.keys() - {"ip_address", "sentry_user"}) > 0:
-        feature_slugs.append("user_tracking")
-
-    # Custom Tags
-    if {tag[0] for tag in event.tags} - DEFAULT_TAGS:
-        feature_slugs.append("custom_tags")
-
-    # Sourcemaps
-    if has_sourcemap(event):
-        feature_slugs.append("source_maps")
-
-    # Breadcrumbs
-    if event.data.get("breadcrumbs"):
-        feature_slugs.append("breadcrumbs")
-
-    if not feature_slugs:
-        return
-
-    FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
-
-
-event_processed.connect(record_event_processed, weak=False)
-transaction_processed.connect(record_event_processed, weak=False)
 
 
 @user_feedback_received.connect(weak=False)
