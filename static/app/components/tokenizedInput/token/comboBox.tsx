@@ -274,7 +274,7 @@ function ComboBoxInner(
         placeholder={placeholder}
         onClick={handleInputClick}
         value={inputValue}
-        onChange={onInputChange}
+        onChange={onInputChange ?? (() => {})}
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={false}
