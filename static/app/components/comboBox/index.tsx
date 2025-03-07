@@ -38,9 +38,9 @@ interface ComboBoxProps<Value extends string>
     'allowsCustomValue'
   > {
   'aria-label': string;
+  autosize?: boolean;
   className?: string;
   disabled?: boolean;
-  growingInput?: boolean;
   hasSearch?: boolean;
   hiddenOptions?: Set<SelectKey>;
   isLoading?: boolean;
@@ -69,7 +69,7 @@ function ComboBox<Value extends string>({
   loadingMessage,
   sizeLimitMessage,
   menuTrigger = 'focus',
-  growingInput = false,
+  autosize = false,
   onOpenChange,
   menuWidth,
   hiddenOptions,
@@ -170,7 +170,10 @@ function ComboBox<Value extends string>({
       {!state.isFocused && <InteractionStateLayer />}
       <StyledInput
         {...inputProps}
-        autosize={growingInput}
+        autosize={autosize}
+        // @TODO(jonasbadalic): this used to use a component that was providing a default onChange handler
+        // that was just calling the inputProps.onChange.
+        onChange={inputProps.onChange ?? (() => {})}
         onClick={handleInputClick}
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
