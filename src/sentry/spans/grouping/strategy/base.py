@@ -39,7 +39,7 @@ class SpanGroupingStrategy:
 
     def execute(self, event_data: Any) -> dict[str, str]:
         spans = event_data.get("spans", [])
-        span_groups = {span["span_id"]: self.get_span_group(span) for span in spans}
+        span_groups = {span["span_id"]: self.get_embedded_span_group(span) for span in spans}
 
         # make sure to get the group id for the transaction root span
         span_id = event_data["contexts"]["trace"]["span_id"]
@@ -47,10 +47,10 @@ class SpanGroupingStrategy:
 
         return span_groups
 
-    def execute_raw(self, spans: list[Any]) -> dict[str, str]:
-        return {span["span_id"]: self.get_span_group_compat(span) for span in spans}
+    def execute_standalone(self, spans: list[Any]) -> dict[str, str]:
+        return {span["span_id"]: self.get_standalone_span_group(span) for span in spans}
 
-    def get_span_group_compat(self, span: Span) -> str:
+    def get_standalone_span_group(self, span: Span) -> str:
         # Treat the segment span like get_transaction_span_group for backwards
         # compatibility with transaction events.
         if span.get("is_segment"):
@@ -58,14 +58,14 @@ class SpanGroupingStrategy:
             result.update(span["sentry_tags"].get("transaction"))
             return result.hexdigest()
         else:
-            return self.get_span_group(span)
+            return self.get_embedded_span_group(span)
 
     def get_transaction_span_group(self, event_data: Any) -> str:
         result = Hash()
         result.update(event_data["transaction"])
         return result.hexdigest()
 
-    def get_span_group(self, span: Span) -> str:
+    def get_embedded_span_group(self, span: Span) -> str:
         fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
         result = Hash()

@@ -173,7 +173,7 @@ def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
-    groupings = config.execute_strategy_raw(spans)
+    groupings = config.execute_strategy_standalone(spans)
     groupings.write_to_spans(spans)
 
 
