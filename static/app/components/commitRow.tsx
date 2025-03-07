@@ -118,7 +118,7 @@ function CommitRow({
             isHoverable
           >
             <AuthorWrapper>
-              {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
               {commit.author && commit.author.id === undefined && (
                 <IconQuestion size="xs" />
               )}
@@ -209,7 +209,7 @@ function CommitRow({
           {tct('[author] committed [commitLink] \u2022 [date]', {
             author: (
               <strong>
-                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+                {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
               </strong>
             ),
             commitLink: (
