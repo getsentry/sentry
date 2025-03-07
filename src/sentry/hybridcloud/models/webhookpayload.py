@@ -4,6 +4,7 @@ import datetime
 from typing import Any, Self
 
 from django.db import models
+from django.db.models import Case, ExpressionWrapper, F, IntegerField, Value, When
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -23,6 +24,7 @@ class WebhookPayload(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     mailbox_name = models.CharField(null=False, blank=False)
+    provider = models.CharField(null=True, blank=True)
     region_name = models.CharField(null=False)
     # May need to add organization_id in the future for debugging.
     integration_id = models.BigIntegerField(null=True)
@@ -46,6 +48,23 @@ class WebhookPayload(Model):
         indexes = (
             models.Index(fields=["mailbox_name"]),
             models.Index(fields=["schedule_for"]),
+            models.Index(fields=["provider"], name="webhookpayload_provider_idx"),
+            models.Index(
+                fields=["mailbox_name", "id"],
+                name="webhookpayload_mailbox_id_idx",
+            ),
+            models.Index(
+                ExpressionWrapper(
+                    Case(
+                        When(provider="stripe", then=Value(1)),
+                        default=Value(10),
+                        output_field=IntegerField(),
+                    ),
+                    output_field=IntegerField(),
+                ),
+                F("id"),
+                name="webhookpayload_priority_idx",
+            ),
         )
 
     __repr__ = sane_repr(
@@ -83,6 +102,7 @@ class WebhookPayload(Model):
         metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
+            provider=provider,
             region_name=region,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),

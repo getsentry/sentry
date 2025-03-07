@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -16,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
@@ -32,7 +34,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
@@ -176,6 +178,7 @@ class OAuthLoginView(PipelineView):
                 return pipeline.next_step()
 
             config = pipeline.fetch_state("installation_data")
+            assert config is not None
             client = BitbucketServerSetupClient(
                 config.get("url"),
                 config.get("consumer_key"),
@@ -213,6 +216,7 @@ class OAuthCallbackView(PipelineView):
             BitbucketServerIntegrationProvider.key,
         ).capture() as lifecycle:
             config = pipeline.fetch_state("installation_data")
+            assert config is not None
             client = BitbucketServerSetupClient(
                 config.get("url"),
                 config.get("consumer_key"),
@@ -341,8 +345,9 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -359,7 +364,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
                 }
             )
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         install = state["installation_data"]
         access_token = state["access_token"]
 
