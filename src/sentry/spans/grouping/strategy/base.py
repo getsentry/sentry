@@ -11,6 +11,7 @@ class Span(TypedDict):
     trace_id: str
     parent_span_id: str
     span_id: str
+    is_segment: bool
     start_timestamp: float
     timestamp: float
     same_process_as_parent: bool
