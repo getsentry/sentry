@@ -65,7 +65,7 @@ type WidgetBuilderV2Props = {
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
