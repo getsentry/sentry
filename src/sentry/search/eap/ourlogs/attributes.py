@@ -1,8 +1,5 @@
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    ColumnDefinitions,
     ResolvedColumn,
     VirtualColumnDefinition,
     datetime_processor,
@@ -70,12 +67,3 @@ OURLOG_VIRTUAL_CONTEXTS = {
     )
     for key in constants.PROJECT_FIELDS
 }
-
-
-OURLOG_DEFINITIONS = ColumnDefinitions(
-    aggregates={},
-    formulas={},
-    columns=OURLOG_ATTRIBUTE_DEFINITIONS,
-    contexts=OURLOG_VIRTUAL_CONTEXTS,
-    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
-)

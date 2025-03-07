@@ -19,7 +19,7 @@ class SystemHealthEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     permission_classes = (SentryIsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")
 
