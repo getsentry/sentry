@@ -51,30 +51,30 @@ function SchemaHintsList({
         return;
       }
 
-      const containerWidth = schemaHintsContainerRef.current.clientWidth;
-      let currentWidth = 0;
-      const gap = 8;
-      const averageHintWidth = 250;
+      const container = schemaHintsContainerRef.current;
+      const containerRect = container.getBoundingClientRect();
 
-      const visibleItems = filterTagsSorted.filter((_hint, index) => {
-        const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
-        if (!element) {
-          // add in a new hint if there is enough space
-          if (containerWidth - currentWidth >= averageHintWidth) {
-            currentWidth += averageHintWidth + (index > 0 ? gap : 0);
-            return true;
-          }
-          return false;
+      // First render all items
+      setVisibleHints(filterTagsSorted);
+
+      requestAnimationFrame(() => {
+        // Get all rendered items
+        const items = Array.from(container.children) as HTMLElement[];
+
+        // Find the last item that fits within the container
+        let lastVisibleIndex = items.findIndex(item => {
+          const itemRect = item.getBoundingClientRect();
+          return itemRect.right > containerRect.right;
+        });
+
+        // If all items fit, show them all
+        if (lastVisibleIndex === -1) {
+          lastVisibleIndex = items.length;
         }
 
-        const itemWidth = element.offsetWidth;
-        currentWidth += itemWidth + (index > 0 ? gap : 0);
-
-        return currentWidth <= containerWidth;
+        setVisibleHints(filterTagsSorted.slice(0, lastVisibleIndex));
       });
-
-      setVisibleHints(visibleItems);
-    }, 100);
+    }, 50);
 
     // initial calculation
     calculateVisibleHints();
