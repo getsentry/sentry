@@ -30,7 +30,7 @@ describe('Tour Components', () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
 
       const {container: availableContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -42,7 +42,7 @@ describe('Tour Components', () => {
       expect(within(availableContainer).getByText('Child Content')).toBeInTheDocument();
 
       const {container: unavailableContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable={false}
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -57,7 +57,7 @@ describe('Tour Components', () => {
     it('renders children regardless of completion', () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -76,7 +76,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       const {container: blurContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
@@ -88,7 +88,7 @@ describe('Tour Components', () => {
       expect(within(blurContainer).getByTestId('tour-blur-window')).toBeInTheDocument();
 
       const {container: noBlurContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           isAvailable
@@ -102,13 +102,44 @@ describe('Tour Components', () => {
         within(noBlurContainer).queryByTestId('tour-blur-window')
       ).not.toBeInTheDocument();
     });
+
+    it('just updates the assistant when opened', async () => {
+      const tourKey = 'test-tour';
+      const mockMutateAssistant = MockApiClient.addMockResponse({
+        url: '/assistant/',
+        method: 'PUT',
+      });
+      mockUseTourReducer.mockReturnValue({
+        ...emptyTourContext,
+        tourKey,
+        isRegistered: true,
+        currentStepId: TestTour.NAME,
+      });
+      render(
+        <TourContextProvider<TestTour>
+          tourKey={tourKey}
+          isCompleted={false}
+          orderedStepIds={ORDERED_TEST_TOUR}
+          isAvailable
+          tourContext={TestTourContext}
+        >
+          <div>Child Content</div>
+        </TourContextProvider>
+      );
+
+      expect(await screen.findByTestId('tour-blur-window')).toBeInTheDocument();
+      expect(mockMutateAssistant).toHaveBeenCalledWith(
+        '/assistant/',
+        expect.objectContaining({data: {guide: tourKey, status: 'viewed'}})
+      );
+    });
   });
 
   describe('TourElement', () => {
     it('renders children regardless of tour state', async () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
       const {container: inactiveContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -133,7 +164,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       const {container: activeContainer} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -161,7 +192,7 @@ describe('Tour Components', () => {
         currentStepId: TestTour.NAME,
       });
       const {unmount: unmountFirstStep} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -196,7 +227,7 @@ describe('Tour Components', () => {
       });
 
       const {unmount: unmountSecondStep} = render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
@@ -227,13 +258,13 @@ describe('Tour Components', () => {
       });
 
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
-          <TourElement
+          <TourElement<TestTour>
             id={TestTour.PASSWORD}
             title="Test Title"
             description="Test Description"
@@ -257,13 +288,13 @@ describe('Tour Components', () => {
         handleStepRegistration: mockHandleStepRegistration,
       });
       render(
-        <TourContextProvider
+        <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
           tourContext={TestTourContext}
         >
-          <TourElement
+          <TourElement<TestTour>
             tourContext={TestTourContext}
             id={TestTour.NAME}
             title="Name"
@@ -271,7 +302,7 @@ describe('Tour Components', () => {
           >
             Name
           </TourElement>
-          <TourElement
+          <TourElement<TestTour>
             tourContext={TestTourContext}
             id={TestTour.EMAIL}
             title="Email"
@@ -279,7 +310,7 @@ describe('Tour Components', () => {
           >
             Email
           </TourElement>
-          <TourElement
+          <TourElement<TestTour>
             tourContext={TestTourContext}
             id={TestTour.PASSWORD}
             title="Password"
@@ -292,6 +323,45 @@ describe('Tour Components', () => {
       expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.NAME});
       expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.EMAIL});
       expect(mockHandleStepRegistration).toHaveBeenCalledWith({id: TestTour.PASSWORD});
+    });
+
+    it('just updates the assistant when dismissed', async () => {
+      const tourKey = 'test-tour';
+      const mockMutateAssistant = MockApiClient.addMockResponse({
+        url: '/assistant/',
+        method: 'PUT',
+      });
+      mockUseTourReducer.mockReturnValue({
+        ...emptyTourContext,
+        tourKey,
+        orderedStepIds: ORDERED_TEST_TOUR,
+        isRegistered: true,
+        currentStepId: TestTour.NAME,
+      });
+      render(
+        <TourContextProvider<TestTour>
+          tourKey={tourKey}
+          isAvailable
+          isCompleted={false}
+          orderedStepIds={ORDERED_TEST_TOUR}
+          tourContext={TestTourContext}
+        >
+          <TourElement<TestTour>
+            tourContext={TestTourContext}
+            id={TestTour.NAME}
+            title="Name"
+            description="The name"
+          >
+            Name
+          </TourElement>
+        </TourContextProvider>
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      expect(mockMutateAssistant).toHaveBeenCalledWith(
+        '/assistant/',
+        expect.objectContaining({data: {guide: tourKey, status: 'dismissed'}})
+      );
     });
   });
 

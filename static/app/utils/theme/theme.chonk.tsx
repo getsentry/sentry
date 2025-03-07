@@ -1,3 +1,4 @@
+import type React from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled, {
   type CreateStyledComponent,
@@ -26,20 +27,20 @@ const formTheme: FormTheme = {
    */
   form: {
     md: {
-      height: 32,
-      minHeight: 32,
+      height: '32px',
+      minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     sm: {
-      height: 28,
-      minHeight: 28,
+      height: '28px',
+      minHeight: '28px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     xs: {
-      height: 24,
-      minHeight: 24,
+      height: '24px',
+      minHeight: '24px',
       fontSize: '0.75rem',
       lineHeight: '0.875rem',
     },
@@ -770,8 +771,13 @@ interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
     border: ReturnType<typeof generateChonkTokens>['border'];
     content: ReturnType<typeof generateChonkTokens>['content'];
   };
+  focusRing: {
+    boxShadow: React.CSSProperties['boxShadow'];
+    outline: React.CSSProperties['outline'];
+  };
   isChonk: true;
   radius: typeof radius;
+
   space: typeof space;
 }
 
@@ -792,6 +798,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   space,
   radius,
+  focusRing: {
+    outline: 'none',
+    boxShadow: `0 0 0 2px ${lightAliases.background}, 0 0 0 4px ${lightAliases.focusBorder}`,
+  },
+
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
   alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
@@ -839,6 +850,13 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     ...darkAliases,
   },
 
+  space,
+  radius,
+  focusRing: {
+    outline: 'none',
+    boxShadow: `0 0 0 2px ${darkAliases.background}, 0 0 0 4px ${darkAliases.focusBorder}`,
+  },
+
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
   alert: generateAlertTheme(chonkDarkColorMapping, darkAliases),
@@ -862,8 +880,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     border: generateChonkTokens(darkColors).border,
   },
 
-  space,
-  radius,
   sidebar: {
     // @TODO: these colors need to be ported
     ...darkTheme.sidebar,

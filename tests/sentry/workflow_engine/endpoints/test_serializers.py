@@ -264,12 +264,15 @@ class TestActionSerializer(TestCase):
             integration = Integration.objects.create(
                 provider="slack", name="example-integration", external_id="123-id", metadata={}
             )
+
         action = self.create_action(
             type=Action.Type.SLACK,
             data={"foo": "bar"},
             integration_id=integration.id,
-            target_display="freddy frog",
-            target_type=ActionTarget.USER,
+            config={
+                "target_display": "freddy frog",
+                "target_type": ActionTarget.USER,
+            },
         )
 
         result = serialize(action)

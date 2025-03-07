@@ -350,7 +350,7 @@ class Endpoint(APIView):
             if rv.auth is None:
                 rv.auth = orig_auth
             if rv.user is None:
-                rv.user = orig_user
+                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
         return rv
 
     def has_pagination(self, response: Response) -> bool:

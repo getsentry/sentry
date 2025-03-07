@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.uptime_check_columns import UPTIME_CHECK_DEFINITIONS
+from sentry.search.eap.uptime_checks.definitions import UPTIME_CHECK_DEFINITIONS
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 

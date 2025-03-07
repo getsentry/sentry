@@ -28,8 +28,7 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
   cursor: pointer;
 
   &:focus-visible + div {
-    outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.background}, 0 0 0 4px ${p => p.theme.focusBorder};
+    ${p => p.theme.focusRing};
   }
 
   + div {

@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.utils.demo_mode import is_demo_mode_enabled
+from sentry.demo_mode.utils import is_demo_mode_enabled
 from sentry.utils.marketo_client import MarketoClient
 
 client = MarketoClient()

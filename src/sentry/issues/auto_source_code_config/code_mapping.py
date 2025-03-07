@@ -12,15 +12,13 @@ from sentry.integrations.source_code_management.repo_trees import (
     RepoTreesIntegration,
     get_extension,
 )
-from sentry.issues.auto_source_code_config.constants import (
-    EXTRACT_FILENAME_FROM_MODULE_AND_ABS_PATH,
-)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 from .integration_utils import InstallationNotFoundError, get_installation
+from .utils import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +82,11 @@ def derive_code_mappings(
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameInfo:
     def __init__(self, frame: Mapping[str, Any], platform: str | None = None) -> None:
-        if platform in EXTRACT_FILENAME_FROM_MODULE_AND_ABS_PATH:
-            self.frame_info_from_module(frame)
-            return
+        if platform:
+            platform_config = PlatformConfig(platform)
+            if platform_config.extracts_filename_from_module():
+                self.frame_info_from_module(frame)
+                return
 
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
@@ -589,7 +589,7 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         raise DoesNotFollowJavaPackageNamingConvention
 
     # If module has a dot, take everything before the last dot
-    # com.example.foo.Bar$InnerClass -> com/example/foo/
+    # com.example.foo.Bar$InnerClass -> com/example/foo
     stack_root = module.rsplit(".", 1)[0].replace(".", "/")
     file_path = f"{stack_root}/{abs_path}"
 
