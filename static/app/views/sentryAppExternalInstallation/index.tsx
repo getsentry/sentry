@@ -6,7 +6,7 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {Alert} from 'sentry/components/core/alert';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
@@ -339,7 +339,7 @@ function MultiOrgView({
         )}
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>
-        <SelectControl
+        <Select
           onChange={({value}: any) => onSelectOrg(value)}
           value={selectedOrgSlug}
           placeholder={t('Select an organization')}

@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -109,7 +109,7 @@ export function VisualizationStep({
       )}
     >
       <FieldGroup error={error} inline={false} flexibleControlStateSize stacked>
-        <SelectControl
+        <Select
           name="displayType"
           options={displayOptions}
           value={displayType}

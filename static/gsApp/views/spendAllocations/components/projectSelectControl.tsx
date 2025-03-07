@@ -4,9 +4,8 @@
 
 import {useMemo} from 'react';
 
-import SelectControl, {
-  type ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -57,7 +56,7 @@ function ProjectSelectControl({
   }, [projects, filteredIdList]);
 
   return (
-    <SelectControl
+    <Select
       placeholder={t('Select a project to continue')}
       name="projectSlug"
       disabled={disabled}

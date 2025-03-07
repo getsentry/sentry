@@ -3,8 +3,8 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import type {GeneralSelectValue} from 'sentry/components/core/select';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';

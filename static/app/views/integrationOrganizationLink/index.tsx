@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -397,7 +397,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
         </p>
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
-          <SelectControl
+          <Select
             // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
             onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}

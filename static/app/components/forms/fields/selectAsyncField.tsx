@@ -1,12 +1,9 @@
 import {useState} from 'react';
 
-import type {
-  Result,
-  SelectAsyncControlProps,
-} from 'sentry/components/forms/controls/selectAsyncControl';
-import SelectAsyncControl from 'sentry/components/forms/controls/selectAsyncControl';
 // projects can be passed as a direct prop as well
-import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/core/select';
+import type {Result, SelectAsyncControlProps} from 'sentry/components/core/select/async';
+import {SelectAsync} from 'sentry/components/core/select/async';
 import FormField from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
@@ -53,7 +50,7 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
           (latestSelection as GeneralSelectValue);
 
         return (
-          <SelectAsyncControl
+          <SelectAsync
             {...fieldProps}
             onChange={(option: any, e: any) => {
               const resultValue = !option

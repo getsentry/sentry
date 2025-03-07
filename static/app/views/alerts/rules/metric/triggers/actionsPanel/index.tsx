@@ -6,7 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -364,7 +364,7 @@ class ActionsPanel extends PureComponent<Props> {
               <RuleRowContainer>
                 <PanelItemGrid>
                   <PanelItemSelects>
-                    <SelectControl
+                    <Select
                       name="select-level"
                       aria-label={t('Select a status level')}
                       isDisabled={disabled || loading}
@@ -381,7 +381,7 @@ class ActionsPanel extends PureComponent<Props> {
                           : levels
                       }
                     />
-                    <SelectControl
+                    <Select
                       name="select-action"
                       aria-label={t('Select an Action')}
                       isDisabled={disabled || loading}
@@ -396,7 +396,7 @@ class ActionsPanel extends PureComponent<Props> {
                     />
 
                     {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
-                      <SelectControl
+                      <Select
                         isDisabled={disabled || loading}
                         value={action.targetType}
                         options={availableAction?.allowedTargetTypes?.map(
@@ -473,7 +473,7 @@ class ActionsPanel extends PureComponent<Props> {
                     {availableAction &&
                     (availableAction.type === 'opsgenie' ||
                       availableAction.type === 'pagerduty') ? (
-                      <SelectControl
+                      <Select
                         isDisabled={disabled || loading}
                         value={action.priority}
                         placeholder={

@@ -12,7 +12,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
@@ -261,7 +261,7 @@ function AddToDashboardModal({
       </Header>
       <Body>
         <Wrapper>
-          <SelectControl
+          <Select
             disabled={dashboards === null}
             menuPlacement="auto"
             name="dashboard"

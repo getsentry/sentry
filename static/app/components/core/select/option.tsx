@@ -9,7 +9,7 @@ import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
-function SelectOption(props: Props) {
+export function SelectOption(props: Props) {
   const {
     label,
     data,
@@ -80,8 +80,6 @@ function SelectOption(props: Props) {
     </ClassNames>
   );
 }
-
-export default SelectOption;
 
 const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
   display: flex;

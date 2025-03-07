@@ -9,7 +9,7 @@ import type {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/core/select';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import PanelBody from 'sentry/components/panels/panelBody';

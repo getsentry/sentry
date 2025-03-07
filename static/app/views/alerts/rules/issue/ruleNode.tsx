@@ -7,7 +7,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
 import {Input} from 'sentry/components/core/input';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
@@ -593,7 +593,7 @@ const InlineNumberInput = styled(NumberInput)`
   min-height: 28px;
 `;
 
-const InlineSelectControl = styled(SelectControl)`
+const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 

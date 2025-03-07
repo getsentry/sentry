@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
@@ -162,6 +162,6 @@ function WidgetBuilderSortBySelector() {
 
 export default WidgetBuilderSortBySelector;
 
-const ResultsLimitSelector = styled(SelectControl)`
+const ResultsLimitSelector = styled(Select)`
   margin-bottom: ${space(1)};
 `;

@@ -4,7 +4,7 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import TeamSelector from 'sentry/components/teamSelector';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -178,7 +178,7 @@ function TeamStatsControls({
         }}
       />
       {showEnvironment && (
-        <SelectControl
+        <Select
           options={[
             {
               value: '',

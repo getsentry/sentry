@@ -4,8 +4,8 @@ import difference from 'lodash/difference';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
@@ -223,7 +223,7 @@ export class RenderField extends Component<RenderProps, State> {
       <Fragment>
         {existingValues.map(renderItem)}
         <Item>
-          <SelectControl
+          <Select
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
             options={mappedItemOptions}
@@ -243,7 +243,7 @@ export class RenderField extends Component<RenderProps, State> {
             value={selectedMappedValue}
           />
           <RightArrow size="xs" direction="right" />
-          <SelectControl
+          <Select
             placeholder={t('Sentry project\u2026')}
             name="project"
             options={projectOptions}

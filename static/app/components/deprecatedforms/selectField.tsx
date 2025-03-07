@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
@@ -129,7 +129,7 @@ export default class SelectField extends FormField<Props> {
 }
 
 // This is to match other fields that are wrapped by a `div.control-group`
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   ${StyledForm} &, .form-stacked & {
     .control-group & {
       margin-bottom: 0;
