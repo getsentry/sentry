@@ -78,7 +78,7 @@ simplejson>=3.17.6
 sqlparse>=0.4.4
 statsd>=3.3
 structlog>=22
-symbolic==12.12.0
+symbolic==12.14.1
 tiktoken>=0.8.0
 tldextract>=5.1.2
 toronado>=0.1.0
