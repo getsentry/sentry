@@ -432,6 +432,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
+    "sentry.explore",
 )
 
 # Silence internal hints from Django's system checks
