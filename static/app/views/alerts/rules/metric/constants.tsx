@@ -8,6 +8,8 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
@@ -178,11 +180,13 @@ export function createDefaultRule(
       createDefaultTrigger(AlertRuleTriggerType.CRITICAL),
       createDefaultTrigger(AlertRuleTriggerType.WARNING),
     ],
+    sensitivity: AlertRuleSensitivity.MEDIUM,
+    seasonality: AlertRuleSeasonality.AUTO,
     projects: [],
     environment: null,
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,
-    detectionType: AlertRuleComparisonType.STATIC,
+    detectionType: AlertRuleComparisonType.DYNAMIC,
     ...defaultRuleOptions,
   };
 }
