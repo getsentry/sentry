@@ -22,7 +22,7 @@ class AuthOrganizationLoginView(AuthLoginView):
     def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponseBase:
         return self.respond("sentry/organization-login.html", context)
 
-    def handle_sso(self, request: Request, organization: RpcOrganization, auth_provider):
+    def handle_sso(self, request: HttpRequest, organization: RpcOrganization, auth_provider):
         if request.method == "POST":
             helper = AuthHelper(
                 request=request,
