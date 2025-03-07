@@ -16,9 +16,6 @@ describe('apple-ios onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Experimental Features'})
-    ).toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async function () {

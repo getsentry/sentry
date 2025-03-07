@@ -65,7 +65,11 @@ func application(_ application: UIApplication,
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn.public}"
-        options.debug = true // Enabling debug when first installing is always helpful${
+        options.debug = true // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = true${
           params.isPerformanceSelected
             ? `
 
@@ -110,7 +114,11 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn.public}"
-            options.debug = true // Enabling debug when first installing is always helpful${
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true${
               params.isPerformanceSelected
                 ? `
 
@@ -156,34 +164,6 @@ view.addSubview(button)
 @IBAction func breakTheWorld(_ sender: AnyObject) {
     fatalError("Break the world")
 }`;
-
-const getExperimentalFeaturesSnippetSwift = () => `
-import Sentry
-
-SentrySDK.start { options in
-    // ...
-
-    // Enable all experimental features
-    options.attachViewHierarchy = true
-    options.enableMetricKit = true
-    options.enableTimeToFullDisplayTracing = true
-    options.swiftAsyncStacktraces = true
-    options.enableAppLaunchProfiling = true
-}`;
-
-const getExperimentalFeaturesSnippetObjC = () => `
-@import Sentry;
-
-[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    // ...
-
-    // Enable all experimental features
-    options.attachViewHierarchy = YES;
-    options.enableMetricKit = YES;
-    options.enableTimeToFullDisplayTracing = YES;
-    options.swiftAsyncStacktraces = YES;
-    options.enableAppLaunchProfiling = YES;
-}];`;
 
 const getReplaySetupSnippet = (params: Params) => `
 SentrySDK.start(configureOptions: { options in
@@ -360,51 +340,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: t(
               'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
             ),
-          },
-          {
-            title: t('Experimental Features'),
-            description: tct(
-              'Want to play with some new features? Try out our experimental features for [vh: View Hierarchy], [ttfd: Time to Full Display (TTFD)], [metricKit: MetricKit], [prewarmedAppStart: Prewarmed App Start Tracing], and [asyncStacktraces: Swift Async Stacktraces]. Experimental features are still a work-in-progress and may have bugs. We recognize the irony. [break] Let us know if you have feedback through [gh: GitHub issues].',
-              {
-                vh: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/enriching-events/viewhierarchy/" />
-                ),
-                ttfd: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display" />
-                ),
-                metricKit: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/watchos/configuration/metric-kit/" />
-                ),
-                prewarmedAppStart: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/tracing/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
-                ),
-                asyncStacktraces: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#stitch-together-swift-concurrency-stack-traces" />
-                ),
-                gh: (
-                  <ExternalLink href="https://github.com/getsentry/sentry-cocoa/issues" />
-                ),
-                break: <br />,
-              }
-            ),
-            configurations: [
-              {
-                code: [
-                  {
-                    label: 'Swift',
-                    value: 'swift',
-                    language: 'swift',
-                    code: getExperimentalFeaturesSnippetSwift(),
-                  },
-                  {
-                    label: 'Objective-C',
-                    value: 'c',
-                    language: 'c',
-                    code: getExperimentalFeaturesSnippetObjC(),
-                  },
-                ],
-              },
-            ],
           },
         ]
       : [
