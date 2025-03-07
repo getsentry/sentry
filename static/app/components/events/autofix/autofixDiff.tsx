@@ -18,8 +18,10 @@ import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
   diff: FilePatch[];
@@ -73,19 +75,99 @@ function addChangesToDiffLines(lines: DiffLineWithChanges[]): DiffLineWithChange
   return lines;
 }
 
-function DiffLineCode({line}: {line: DiffLineWithChanges}) {
-  if (!line.changes) {
-    return <Fragment>{line.value}</Fragment>;
+function detectLanguageFromPath(filePath: string): string {
+  if (!filePath) {
+    return 'plaintext';
+  }
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (!extension) {
+    return 'plaintext';
   }
 
+  // Map common file extensions to Prism language identifiers
+  const extensionMap: Record<string, string> = {
+    js: 'javascript',
+    jsx: 'jsx',
+    ts: 'typescript',
+    tsx: 'tsx',
+    py: 'python',
+    rb: 'ruby',
+    go: 'go',
+    java: 'java',
+    php: 'php',
+    c: 'c',
+    cpp: 'cpp',
+    cs: 'csharp',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    json: 'json',
+    md: 'markdown',
+    yaml: 'yaml',
+    yml: 'yaml',
+    sh: 'bash',
+    bash: 'bash',
+    rs: 'rust',
+    swift: 'swift',
+    kt: 'kotlin',
+    sql: 'sql',
+    xml: 'xml',
+  };
+
+  return extensionMap[extension] || 'plaintext';
+}
+
+const SyntaxHighlightedCode = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  white-space: pre;
+
+  pre,
+  code {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+`;
+
+function DiffLineCode({line, fileName}: {line: DiffLineWithChanges; fileName?: string}) {
+  const language = useMemo(
+    () => (fileName ? detectLanguageFromPath(fileName) : 'plaintext'),
+    [fileName]
+  );
+
+  const tokens = usePrismTokens({code: line.value, language});
+
+  // If we have changes (diff), use the CodeDiff component
+  if (line.changes) {
+    return (
+      <Fragment>
+        {line.changes.map((change, i) => (
+          <CodeDiff key={i} added={change.added} removed={change.removed}>
+            {change.value}
+          </CodeDiff>
+        ))}
+      </Fragment>
+    );
+  }
+
+  // For non-changed lines, apply syntax highlighting
   return (
-    <Fragment>
-      {line.changes.map((change, i) => (
-        <CodeDiff key={i} added={change.added} removed={change.removed}>
-          {change.value}
-        </CodeDiff>
-      ))}
-    </Fragment>
+    <SyntaxHighlightedCode>
+      <pre className={`language-${language}`}>
+        <code>
+          {tokens.map((lineTokens, i) => (
+            <Fragment key={i}>
+              {lineTokens.map((token, j) => (
+                <span key={j} className={token.className}>
+                  {token.children}
+                </span>
+              ))}
+            </Fragment>
+          ))}
+        </code>
+      </pre>
+    </SyntaxHighlightedCode>
   );
 }
 
@@ -406,7 +488,7 @@ function DiffHunkContent({
             }}
             onMouseLeave={() => setHoveredGroup(null)}
           >
-            <DiffLineCode line={line} />
+            <DiffLineCode line={line} fileName={fileName} />
             {editable && lineGroups.some(group => index === group.start) && (
               <ButtonGroup>
                 <ActionButton
@@ -430,7 +512,11 @@ function DiffHunkContent({
             {editingGroup === index && (
               <EditOverlay ref={overlayRef}>
                 <OverlayHeader>
-                  <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
+                  <OverlayTitle
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(t('Editing `%s`', fileName)),
+                    }}
+                  />
                 </OverlayHeader>
                 <OverlayContent>
                   <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
@@ -797,6 +883,7 @@ const StyledTextArea = styled(TextArea)`
   background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.border};
   position: relative;
+  min-height: 250px;
 
   &:focus {
     border-color: ${p => p.theme.focusBorder};

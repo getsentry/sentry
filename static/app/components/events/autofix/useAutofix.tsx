@@ -122,13 +122,13 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
 };
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
-  const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
+  const {data, isPending} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
     staleTime: Infinity,
     enabled: false,
     notifyOnChangeProps: ['data'],
   });
 
-  return data?.autofix ?? null;
+  return {data: data?.autofix ?? null, isPending};
 };
 
 export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {

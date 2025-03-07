@@ -171,14 +171,14 @@ export function GroupSummary({
   const insightCards = [
     {
       id: 'whats_wrong',
-      title: t("What's wrong"),
+      title: t("What's Wrong"),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
       showWhenLoading: true,
     },
     {
       id: 'trace',
-      title: t('In the trace'),
+      title: t('In the Trace'),
       insight: data?.trace,
       icon: <IconSpan size="sm" />,
       showWhenLoading: false,
@@ -187,7 +187,7 @@ export function GroupSummary({
       ? [
           {
             id: 'possible_cause',
-            title: t('Possible cause'),
+            title: t('Possible Cause'),
             insight: data?.possibleCause,
             icon: <IconFocus size="sm" />,
             showWhenLoading: true,
@@ -332,7 +332,7 @@ const CardLineDecorationWrapper = styled('div')`
 `;
 
 const CardLineDecoration = styled('div')`
-  width: 2px;
+  width: 1px;
   align-self: stretch;
   background-color: ${p => p.theme.border};
 `;
