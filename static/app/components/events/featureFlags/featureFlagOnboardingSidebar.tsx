@@ -8,11 +8,7 @@ import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
-import {
-  SdkProviderEnum,
-  WebhookProviderEnum,
-} from 'sentry/components/events/featureFlags/utils';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -32,7 +28,6 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
@@ -190,49 +185,17 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
 
-  // useMemo is needed to remember the original hash
-  // in case window.location.hash disappears
-  const ORIGINAL_HASH = useMemo(() => {
-    return window.location.hash;
-  }, []);
-
-  // First dropdown: OpenFeature providers
-  const openFeatureProviderOptions = Object.values(WebhookProviderEnum).map(provider => {
+  const sdkProviderOptions = Object.values(SdkProviderEnum).map(provider => {
     return {
       value: provider,
-      textValue: provider,
       label: <TextOverflow>{provider}</TextOverflow>,
     };
   });
 
-  const [openFeatureProvider, setOpenFeatureProvider] = useState<{
-    value: string;
-    label?: ReactNode;
-    textValue?: string;
-  }>(openFeatureProviderOptions[0]!);
-
-  // Second dropdown: other SDK providers
-  const sdkProviderOptions = Object.values(SdkProviderEnum)
-    .filter(provider => provider !== SdkProviderEnum.OPENFEATURE)
-    .map(provider => {
-      return {
-        value: provider,
-        textValue: provider,
-        label: <TextOverflow>{provider}</TextOverflow>,
-      };
-    });
-
   const [sdkProvider, setsdkProvider] = useState<{
     value: string;
     label?: ReactNode;
-    textValue?: string;
   }>(sdkProviderOptions[0]!);
-
-  const defaultTab = 'openFeature';
-  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
-    'mode',
-    defaultTab
-  );
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
@@ -252,52 +215,20 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const radioButtons = (
     <Header>
-      <StyledRadioGroup
-        label="mode"
-        choices={[
-          [
-            'openFeature',
-            <PlatformSelect key="platform-select">
-              {tct('I use the OpenFeature SDK using a provider from [providerSelect]', {
-                providerSelect: (
-                  <CompactSelect
-                    triggerLabel={openFeatureProvider.label}
-                    value={openFeatureProvider.value}
-                    onChange={setOpenFeatureProvider}
-                    options={openFeatureProviderOptions}
-                    position="bottom-end"
-                    key={openFeatureProvider.textValue}
-                    disabled={setupMode() === 'other'}
-                  />
-                ),
-              })}
-            </PlatformSelect>,
-          ],
-          [
-            'other',
-            <PlatformSelect key="platform-select">
-              {tct('I use an SDK from [providerSelect]', {
-                providerSelect: (
-                  <CompactSelect
-                    triggerLabel={sdkProvider.label}
-                    value={sdkProvider.value}
-                    onChange={setsdkProvider}
-                    options={sdkProviderOptions}
-                    position="bottom-end"
-                    key={sdkProvider.textValue}
-                    disabled={setupMode() === 'openFeature'}
-                  />
-                ),
-              })}
-            </PlatformSelect>,
-          ],
-        ]}
-        value={setupMode()}
-        onChange={value => {
-          setSetupMode(value);
-          window.location.hash = ORIGINAL_HASH;
-        }}
-      />
+      <PlatformSelect key="platform-select">
+        {tct('I use a Feature Flag SDK from [providerSelect]', {
+          providerSelect: (
+            <CompactSelect
+              triggerLabel={sdkProvider.label}
+              value={sdkProvider.value}
+              onChange={setsdkProvider}
+              options={sdkProviderOptions}
+              position="bottom-end"
+              key={sdkProvider.value}
+            />
+          ),
+        })}
+      </PlatformSelect>
     </Header>
   );
 
@@ -347,16 +278,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         {radioButtons}
         <FeatureFlagOtherPlatformOnboarding
           projectSlug={currentProject.slug}
-          integration={
-            // either OpenFeature or the SDK selected from the second dropdown
-            setupMode() === 'openFeature'
-              ? SdkProviderEnum.OPENFEATURE
-              : sdkProvider.value
-          }
-          provider={
-            // dropdown value (from either dropdown)
-            setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
-          }
+          integration={sdkProvider.value}
         />
       </Fragment>
     );
@@ -378,10 +300,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         platformKey={currentPlatform.id}
         projectId={currentProject.id}
         projectSlug={currentProject.slug}
-        integration={
-          // either OpenFeature or the SDK selected from the second dropdown
-          setupMode() === 'openFeature' ? SdkProviderEnum.OPENFEATURE : sdkProvider.value
-        }
+        integration={sdkProvider.value}
         configType="featureFlagOnboarding"
       />
     </Fragment>
@@ -445,10 +364,6 @@ const PlatformSelect = styled('div')`
   gap: ${space(1)};
   align-items: center;
   flex-wrap: wrap;
-`;
-
-const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${space(1)} 0;
 `;
 
 const Header = styled('div')`

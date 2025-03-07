@@ -3,22 +3,23 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
+import FeatureFlagAdditionalFeatures from 'sentry/components/events/featureFlags/featureFlagAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOtherPlatformOnboardingProps {
+  integration: string;
   projectSlug: string;
-  integration?: string;
-  provider?: string;
 }
 
 export function FeatureFlagOtherPlatformOnboarding({
   projectSlug,
-  integration = '',
-  provider = '',
+  integration,
 }: FeatureFlagOtherPlatformOnboardingProps) {
+  const organization = useOrganization();
+
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
@@ -28,7 +29,7 @@ export function FeatureFlagOtherPlatformOnboarding({
               <Flex gap={space(3)}>
                 {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
                 <LinkButton
-                  href={`https://docs.sentry.io/organization/integrations/feature-flag/${provider.toLowerCase()}/#evaluation-tracking/`}
+                  href={`https://docs.sentry.io/organization/integrations/feature-flag/${integration.toLowerCase()}/#evaluation-tracking/`}
                   external
                 >
                   {t('Read the docs')}
@@ -37,7 +38,7 @@ export function FeatureFlagOtherPlatformOnboarding({
             </Alert>
           </Alert.Container>
         }
-        <OnboardingIntegrationSection provider={provider} integration={integration} />
+        <FeatureFlagAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

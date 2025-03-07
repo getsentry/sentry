@@ -2,14 +2,14 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
+import FeatureFlagAdditionalFeatures from 'sentry/components/events/featureFlags/featureFlagAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -18,8 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
-  integration?: string;
-  skipEvalTracking?: boolean;
+  integration: string;
 }
 
 export function FeatureFlagOnboardingLayout({
@@ -30,7 +29,7 @@ export function FeatureFlagOnboardingLayout({
   projectSlug,
   projectKeyId,
   configType = 'onboarding',
-  integration = '',
+  integration,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -103,17 +102,7 @@ export function FeatureFlagOnboardingLayout({
           </StyledLinkButton>
         </Steps>
         <Divider />
-        <h3 style={{marginTop: '40px'}}>{t('Additional Features')}</h3>
-        {tct(
-          '[link:Change Tracking]: Configure Sentry to listen for additions, removals, and modifications to your feature flags.',
-          {
-            link: (
-              <Link
-                to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
-              />
-            ),
-          }
-        )}
+        <FeatureFlagAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
