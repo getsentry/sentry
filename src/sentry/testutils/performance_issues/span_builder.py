@@ -18,6 +18,7 @@ class SpanBuilder:
         self.tags: Any | None = None
         self.data: Any | None = None
         self.hash: str | None = None
+        self.sentry_tags: dict[str, str] = {}
 
     def segment(self) -> "SpanBuilder":
         self.is_segment = True
@@ -47,6 +48,10 @@ class SpanBuilder:
         self.data = data
         return self
 
+    def with_sentry_tag(self, key: str, value: str) -> "SpanBuilder":
+        self.sentry_tags[key] = value
+        return self
+
     def build(self) -> Span:
         span: Span = {
             "trace_id": self.trace_id,
@@ -61,6 +66,7 @@ class SpanBuilder:
             "fingerprint": self.fingerprint,
             "tags": self.tags,
             "data": self.data,
+            "sentry_tags": self.sentry_tags,
         }
         if self.hash is not None:
             span["hash"] = self.hash

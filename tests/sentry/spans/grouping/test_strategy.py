@@ -604,9 +604,13 @@ def test_standalone_spans_compat() -> None:
         "spans": spans,
     }
 
-    segment_span = SpanBuilder().with_span_id("a" * 16).segment().build()
-    segment_span["sentry_tags"] = {"transaction": "transaction name"}
-    standalone_spans = spans + [segment_span]
+    standalone_spans = spans + [
+        SpanBuilder()
+        .with_span_id("a" * 16)
+        .segment()
+        .with_sentry_tag("transaction", "txname")
+        .build()
+    ]
 
     cfg = CONFIGURATIONS[DEFAULT_CONFIG_ID]
     assert cfg.execute_strategy(event) == cfg.execute_strategy_standalone(standalone_spans)
