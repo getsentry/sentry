@@ -114,9 +114,6 @@ const StyledLinkButton = styled(LinkButton)`
 `;
 
 const Wrapper = styled('div')`
-  h3 {
-    margin-bottom: 0.5em;
-  }
   h4 {
     margin-bottom: 0.5em;
   }

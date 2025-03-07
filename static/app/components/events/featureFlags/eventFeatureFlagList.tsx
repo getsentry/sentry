@@ -244,11 +244,11 @@ export function EventFeatureFlagList({
               key: 'settings',
               label: t('Set Up Change Tracking'),
               details: (
-                <div style={{maxWidth: '200px', whiteSpace: 'normal'}}>
+                <ChangeTrackingDetails>
                   {t(
                     'Listen for additions, removals, and modifications to your feature flags.'
                   )}
-                </div>
+                </ChangeTrackingDetails>
               ),
               to: `/settings/${organization.slug}/feature-flags/change-tracking/`,
             },
@@ -339,6 +339,19 @@ export function EventFeatureFlagList({
   );
 }
 
+const ChangeTrackingDetails = styled('div')`
+  max-width: 200px;
+  white-space: normal;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
 const SuspectLabel = styled('div')`
   color: ${p => p.theme.subText};
 `;
@@ -348,12 +361,15 @@ const ValueWrapper = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
-  border-radius: ${p => p.theme.borderRadius};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+const VerticalEllipsis = styled(IconEllipsis)`
+  height: 22px;
+  color: ${p => p.theme.subText};
+  margin: ${space(0.5)};
+  transform: rotate(90deg);
+`;
+
+const ViewAllButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
 `;
 
 const ViewAllContainer = styled('div')`
@@ -369,15 +385,4 @@ const ViewAllContainer = styled('div')`
     height: ${space(1)};
     background: ${p => p.theme.border};
   }
-`;
-
-const VerticalEllipsis = styled(IconEllipsis)`
-  height: 22px;
-  color: ${p => p.theme.subText};
-  margin: ${space(0.5)};
-  transform: rotate(90deg);
-`;
-
-const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
 `;

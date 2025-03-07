@@ -231,10 +231,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const header = (
     <ContentHeader>
-      <ContentHeading>{t('Set Up Evaluation Tracking')}</ContentHeading>
-      <ContentDesc>
-        {t('Configure Sentry to track feature flag evaluations on error events.')}
-      </ContentDesc>
+      <h3>{t('Set Up Evaluation Tracking')}</h3>
+      <p>{t('Configure Sentry to track feature flag evaluations on error events.')}</p>
       <RadioGroup
         label="mode"
         choices={[
@@ -287,17 +285,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const defaultMessage = (
     <Fragment>
-      <StyledDefaultContent>
-        {t(
-          'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
-        )}
-        <LinkButton
-          size="sm"
-          to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
-        >
-          {t('Go to Feature Flag Settings')}
-        </LinkButton>
-      </StyledDefaultContent>
       <div>
         {tct(
           'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python and JavaScript projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
@@ -309,6 +296,17 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           }
         )}
       </div>
+      <StyledDefaultContent>
+        {t(
+          'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
+        )}
+        <LinkButton
+          size="sm"
+          to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+        >
+          {t('Go to Feature Flag Settings')}
+        </LinkButton>
+      </StyledDefaultContent>
     </Fragment>
   );
 
@@ -405,14 +403,6 @@ const HeaderActions = styled('div')`
 
 const ContentHeader = styled('div')`
   padding: ${space(2)} 0;
-`;
-
-const ContentHeading = styled('h3')`
-  margin-bottom: 0.5em;
-`;
-
-const ContentDesc = styled('p')`
-  margin-bottom: ${space(1)};
 `;
 
 const SdkSelect = styled('div')`
