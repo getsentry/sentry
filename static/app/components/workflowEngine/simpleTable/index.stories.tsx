@@ -70,7 +70,7 @@ export default storyBook('SimpleTable', story => {
           components.
         </p>
         <p>
-          Use the <code>defineColumns()</code> helper function improved type-safety.
+          Use the <code>defineColumns()</code> helper function for improved type-safety.
         </p>
 
         <p>
