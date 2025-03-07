@@ -2222,7 +2222,7 @@ export type {Props as SmartSearchBarProps};
 export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
-  min-height: ${p => p.theme.form.md.height}px;
+  min-height: ${p => p.theme.form.md.height};
   border: ${p =>
     p.inputHasFocus ? `1px solid ${p.theme.focusBorder}` : `1px solid ${p.theme.border}`};
   box-shadow: ${p =>
