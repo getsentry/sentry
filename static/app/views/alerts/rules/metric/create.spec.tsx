@@ -31,6 +31,7 @@ describe('Incident Rules Create', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/anomalies/',
+      method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
