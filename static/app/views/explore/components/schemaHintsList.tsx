@@ -5,8 +5,10 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
+import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -27,20 +29,19 @@ function SchemaHintsList({
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
 
-  const filterTags: TagCollection = useMemo(() => {
-    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
-    tags.has = getHasTag({...stringTags});
-    return tags;
-  }, [numberTags, stringTags, functionTags]);
-
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
+    const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    filterTags.has = getHasTag({...stringTags});
+
     const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children);
-    const sectionSortedTags = sectionKeys.map(key => filterTags[key]).filter(Boolean);
+    const sectionSortedTags = sectionKeys
+      .map(key => filterTags[key])
+      .filter(tag => !!tag);
     const otherKeys = Object.keys(filterTags).filter(key => !sectionKeys.includes(key));
-    const otherTags = otherKeys.map(key => filterTags[key]).filter(Boolean);
+    const otherTags = otherKeys.map(key => filterTags[key]).filter(tag => !!tag);
     return [...sectionSortedTags, ...otherTags];
-  }, [filterTags]);
+  }, [numberTags, stringTags, functionTags]);
 
   const [visibleHints, setVisibleHints] = useState(filterTagsSorted);
 
@@ -57,6 +58,7 @@ function SchemaHintsList({
       // First render all items
       setVisibleHints(filterTagsSorted);
 
+      // this guarantees that the items are rendered before we try to measure them and do calculations
       requestAnimationFrame(() => {
         // Get all rendered items
         const items = Array.from(container.children) as HTMLElement[];
@@ -89,11 +91,11 @@ function SchemaHintsList({
 
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
-      {visibleHints.map((hint, index) => (
+      {visibleHints.map(hint => (
         <SchemaHintOption
-          key={index}
-          data-type={hint?.key}
-        >{`${hint?.key} is ...`}</SchemaHintOption>
+          key={hint.key}
+          data-type={hint.key}
+        >{`${tct('[tag] is ...', {tag: prettifyTagKey(hint.key)})}`}</SchemaHintOption>
       ))}
     </SchemaHintsContainer>
   );
