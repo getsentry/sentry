@@ -20,6 +20,7 @@ class Span(TypedDict):
     tags: Any | None
     data: Any | None
     hash: NotRequired[str]
+    sentry_tags: dict[str, str]
 
 
 # A callable strategy is a callable that when given a span, it tries to
@@ -50,7 +51,8 @@ class SpanGroupingStrategy:
         return {span["span_id"]: self.get_span_group_compat(span) for span in spans}
 
     def get_span_group_compat(self, span: Span) -> str:
-        # Treat the segment span like get_transaction_span_group for backwards compatibility with transaction events.
+        # Treat the segment span like get_transaction_span_group for backwards
+        # compatibility with transaction events.
         if span.get("is_segment"):
             result = Hash()
             result.update(span["sentry_tags"].get("transaction"))
