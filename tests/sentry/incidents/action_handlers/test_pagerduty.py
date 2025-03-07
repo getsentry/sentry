@@ -32,6 +32,7 @@ from . import FireTest
 class PagerDutyActionHandlerTest(FireTest):
     def setUp(self):
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        self.handler = PagerDutyActionHandler()
         service = [
             {
                 "type": "service",
@@ -176,11 +177,13 @@ class PagerDutyActionHandlerTest(FireTest):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(self.action, incident, self.project)
+
         metric_value = 1000
         new_status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, new_status)
+            getattr(self.handler, method)(
+                self.action, incident, self.project, metric_value, new_status
+            )
         data = responses.calls[0].request.body
 
         expected_payload = build_incident_attachment(
@@ -242,10 +245,11 @@ class PagerDutyActionHandlerTest(FireTest):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
 
