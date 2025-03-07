@@ -92,10 +92,9 @@ function SchemaHintsList({
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map(hint => (
-        <SchemaHintOption
-          key={hint.key}
-          data-type={hint.key}
-        >{`${tct('[tag] is ...', {tag: prettifyTagKey(hint.key)})}`}</SchemaHintOption>
+        <SchemaHintOption key={hint.key} data-type={hint.key}>
+          {tct('[tag] is ...', {tag: prettifyTagKey(hint.key)})}
+        </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
   );

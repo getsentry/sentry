@@ -36,6 +36,37 @@ const mockNumberTags: TagCollection = {
   },
 };
 
+// Mock getBoundingClientRect for container
+jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+  this: HTMLElement
+) {
+  // Mock individual hint items
+  if (this.hasAttribute('data-type')) {
+    return {
+      width: 200,
+      right: 200,
+      left: 0,
+      top: 0,
+      bottom: 100,
+      height: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    };
+  }
+  return {
+    width: 1000,
+    right: 1000,
+    left: 0,
+    top: 0,
+    bottom: 100,
+    height: 100,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  };
+});
+
 describe('SpansTabContent', function () {
   const {organization, project, router} = initializeOrg({
     organization: {
@@ -165,9 +196,6 @@ describe('SpansTabContent', function () {
       },
     });
 
-    // Mock clientWidth before rendering to display hints
-    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
-
     render(
       <SpansTabContent
         defaultPeriod="7d"
@@ -180,6 +208,7 @@ describe('SpansTabContent', function () {
       />,
       {disableRouterMocks: true, router, organization: schemaHintsOrganization}
     );
+
     expect(screen.getByText('stringTag1 is ...')).toBeInTheDocument();
     expect(screen.getByText('stringTag2 is ...')).toBeInTheDocument();
     expect(screen.getByText('numberTag1 is ...')).toBeInTheDocument();
