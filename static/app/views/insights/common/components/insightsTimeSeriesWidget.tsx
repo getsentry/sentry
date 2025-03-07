@@ -27,6 +27,7 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from '../../colors';
+import {INGESTION_DELAY} from '../../settings';
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
@@ -62,7 +63,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS[timeSeries.field],
-        delay: 90,
+        delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
       });
     }),
