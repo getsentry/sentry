@@ -11,8 +11,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-
-# from sentry.workflow_engine.migration_helpers.alert_rule import get_threshold_type
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
