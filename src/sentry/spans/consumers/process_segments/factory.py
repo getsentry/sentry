@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from typing import cast
 
 import orjson
 from arroyo import Topic as ArroyoTopic
@@ -12,11 +13,11 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, Message, Partition, Value
 from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment, SegmentSpan
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.message import Span, process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -25,17 +26,13 @@ BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_topic_codec(Topic.BUFFERED
 logger = logging.getLogger(__name__)
 
 
-def _deserialize_segment(value: bytes) -> BufferedSegment:
-    return BUFFERED_SEGMENT_SCHEMA.decode(value)
-
-
-def process_message(message: Message[KafkaPayload]) -> list[SegmentSpan]:
+def process_message(message: Message[KafkaPayload]) -> list[Span]:
     value = message.payload.value
-    segment = _deserialize_segment(value)
-    return process_segment(segment["spans"])
+    segment = BUFFERED_SEGMENT_SCHEMA.decode(value)
+    return process_segment(cast(list[Span], segment["spans"]))
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[SegmentSpan]:
+def _process_message(message: Message[KafkaPayload]) -> list[Span]:
     if not options.get("standalone-spans.process-segments-consumer.enable"):
         return []
 
@@ -49,7 +46,7 @@ def _process_message(message: Message[KafkaPayload]) -> list[SegmentSpan]:
         # raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def explode_segment(message: tuple[list[SegmentSpan], Mapping[Partition, int]]):
+def explode_segment(message: tuple[list[Span], Mapping[Partition, int]]):
     spans, committable = message
     last = len(spans) - 1
     for i, span in enumerate(spans):

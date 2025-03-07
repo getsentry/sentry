@@ -5,13 +5,12 @@ from copy import deepcopy
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as SchemaSpan
 
 from sentry import options
 from sentry.event_manager import (
     Job,
     ProjectsMapping,
-    _calculate_span_grouping,
     _detect_performance_problems,
     _pull_out_data,
     _record_transaction_info,
@@ -24,10 +23,18 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
+
+
+class Span(SchemaSpan, total=False):
+    start_timestamp_precise: float  # Missing in schema
+    end_timestamp_precise: float  # Missing in schema
+    op: str | None  # Added in enrichment
+    hash: str | None  # Added in enrichment
 
 
 @metrics.wraps("save_event.send_occurrence_to_platform")
@@ -105,9 +112,9 @@ def dfs(visited, flattened_spans, tree, span_id):
                 stack.append(child["span_id"])
 
 
-def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[SegmentSpan]:
+def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[Span]:
     visited: Set[str] = set()
-    flattened_spans: list[SegmentSpan] = []
+    flattened_spans: list[Span] = []
 
     if root_span_id:
         dfs(visited, flattened_spans, tree, root_span_id)
@@ -138,7 +145,7 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
         job["performance_problems"] = updated_problems
 
 
-def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
+def _find_segment_span(spans: list[Span]) -> Span | None:
     """
     Finds the segment in the span in the list that has ``is_segment`` set to
     ``True``.
@@ -157,7 +164,20 @@ def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
     return None
 
 
-def _create_models(segment: SegmentSpan, project: Project) -> None:
+def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
+    for span in spans:
+        if (op := span.get("sentry_tags", {}).get("op")) is not None:
+            span["op"] = op
+
+        # TODO: Add Relay's enrichment here.
+
+    # Calculate grouping hashes for performance issue detection
+    config = load_span_grouping_config()
+    groupings = config.execute_strategy_standalone(spans)
+    groupings.write_to_spans(spans)
+
+
+def _create_models(segment: Span, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
@@ -168,7 +188,7 @@ def _create_models(segment: SegmentSpan, project: Project) -> None:
     environment_name = sentry_tags.get("environment")
     release_name = sentry_tags.get("release")
     dist_name = sentry_tags.get("dist")
-    date = to_datetime(segment["end_timestamp_precise"])  # type: ignore[typeddict-item]
+    date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -193,9 +213,7 @@ def _create_models(segment: SegmentSpan, project: Project) -> None:
     )
 
 
-def transform_spans_to_event_dict(
-    segment_span: SegmentSpan, spans: list[SegmentSpan]
-) -> dict[str, Any]:
+def transform_spans_to_event_dict(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
     event_spans: list[dict[str, Any]] = []
 
     sentry_tags = segment_span.get("sentry_tags", {})
@@ -215,6 +233,7 @@ def transform_spans_to_event_dict(
         "type": "trace",
         "op": sentry_tags.get("transaction.op"),
         "span_id": segment_span["span_id"],
+        "hash": segment_span["hash"],
     }
 
     if (profile_id := segment_span.get("profile_id")) is not None:
@@ -222,13 +241,8 @@ def transform_spans_to_event_dict(
 
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
-
-        if (op := span.get("sentry_tags", {}).get("op")) is not None:
-            event_span["op"] = op
-
         event_span["start_timestamp"] = span["start_timestamp_ms"] / 1000
         event_span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
-
         event_spans.append(event_span)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
@@ -256,7 +270,7 @@ def prepare_event_for_occurrence_consumer(event):
     return event_light
 
 
-def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
+def process_segment(spans: list[Span]) -> list[Span]:
     segment_span = _find_segment_span(spans)
     if segment_span is None:
         # TODO: Handle segments without a defined segment span once all
@@ -270,12 +284,12 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     # exact order, where only operations marked with X are relevant to the spans
     # consumer:
     #
-    #  - [ ] _pull_out_data
+    #  - [X] _pull_out_data                            ->  _enrich_spans
     #  - [X] _get_or_create_release_many               ->  _create_models
     #  - [ ] _get_event_user_many
     #  - [ ] _derive_plugin_tags_many
     #  - [ ] _derive_interface_tags_many
-    #  - [X] _calculate_span_grouping
+    #  - [X] _calculate_span_grouping                  ->  _enrich_spans
     #  - [ ] _materialize_metadata_many
     #  - [X] _get_or_create_environment_many           ->  _create_models
     #  - [X] _get_or_create_release_associated_models  ->  _create_models
@@ -288,6 +302,7 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     #  - [X]  _send_occurrence_to_platform
     #  - [X] _record_transaction_info
 
+    _enrich_spans(segment_span, spans)
     _create_models(segment_span, project)
 
     # XXX: Below are old-style functions imported from EventManager that rely on
@@ -308,7 +323,6 @@ def process_segment(spans: list[SegmentSpan]) -> list[SegmentSpan]:
     ]
 
     _pull_out_data(jobs, projects)
-    _calculate_span_grouping(jobs, projects)
 
     if options.get("standalone-spans.detect-performance-problems.enable"):
         _detect_performance_problems(jobs, projects, is_standalone_spans=True)
