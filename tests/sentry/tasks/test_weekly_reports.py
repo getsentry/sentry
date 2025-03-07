@@ -43,6 +43,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
+from sentry.utils import redis
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
@@ -1085,3 +1086,112 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "report_date": "1970-01-01",
             },
         )
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_with_redis_tracking(self, mock_prepare_organization_report):
+        """Test that schedule_organizations uses Redis to track minimum organization ID."""
+        timestamp = self.timestamp
+        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+            "weekly_reports_org_id_min"
+        )
+
+        # Create multiple organizations
+        org1 = self.organization  # Use existing organization
+        org2 = self.create_organization(name="Another Org")
+        org3 = self.create_organization(name="Third Org")
+
+        # Set initial Redis value to simulate a previous run that was interrupted
+        redis_cluster.set(f"weekly_reports_org_id_min:{timestamp}", org1.id)
+
+        # Run the task
+        schedule_organizations(timestamp=timestamp)
+
+        # Verify that prepare_organization_report was called for org2 and org3 but not org1
+        # because we started from org1.id
+        mock_prepare_organization_report.delay.assert_any_call(
+            timestamp, ONE_DAY * 7, org2.id, mock.ANY, dry_run=False
+        )
+        mock_prepare_organization_report.delay.assert_any_call(
+            timestamp, ONE_DAY * 7, org3.id, mock.ANY, dry_run=False
+        )
+
+        # Verify that Redis key was deleted after completion
+        assert redis_cluster.get(f"weekly_reports_org_id_min:{timestamp}") is None
+
+        # Reset call counts for the next test
+        mock_prepare_organization_report.reset_mock()
+
+        # Run again with no Redis value set
+        schedule_organizations(timestamp=timestamp)
+
+        # Verify that prepare_organization_report was called for all organizations
+        assert mock_prepare_organization_report.delay.call_count == 3
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_updates_redis_during_processing(
+        self, mock_prepare_organization_report
+    ):
+        """Test that schedule_organizations updates Redis with the current organization ID during processing."""
+        timestamp = self.timestamp
+
+        # Create multiple organizations
+        orgs = [
+            self.organization,
+            self.create_organization(name="Org 2"),
+            self.create_organization(name="Org 3"),
+        ]
+
+        # Sort organizations by ID
+        orgs.sort(key=lambda org: org.id)
+
+        # Use a spy to track Redis set calls
+        with mock.patch("redis.client.Redis.set") as mock_redis_set:
+            # Run the task
+            schedule_organizations(timestamp=timestamp)
+
+            # Verify that redis.set was called for each organization
+            expected_key = f"weekly_reports_org_id_min:{timestamp}"
+
+            # Check that set was called at least once for each organization except the last one
+            assert mock_redis_set.call_count > 0, "Redis set was not called"
+
+            # Get the keys that were set
+            set_keys = [args[0] for args, _ in mock_redis_set.call_args_list]
+
+            # Verify that the expected key was used
+            assert expected_key in set_keys, f"Expected key {expected_key} not found in {set_keys}"
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
+    def test_schedule_organizations_starts_from_beginning_when_no_redis_key(
+        self, mock_prepare_organization_report
+    ):
+        """Test that schedule_organizations starts from the beginning when no Redis key exists."""
+        timestamp = self.timestamp
+        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+            "weekly_reports_org_id_min"
+        )
+
+        # Ensure Redis key doesn't exist
+        redis_cluster.delete(f"weekly_reports_org_id_min:{timestamp}")
+
+        # Create multiple organizations
+        orgs = [
+            self.organization,
+            self.create_organization(name="Org 2"),
+            self.create_organization(name="Org 3"),
+        ]
+
+        # Sort organizations by ID
+        orgs.sort(key=lambda org: org.id)
+
+        # Run the task
+        schedule_organizations(timestamp=timestamp)
+
+        # Verify that prepare_organization_report was called for all organizations
+        assert mock_prepare_organization_report.delay.call_count == len(orgs)
+
+        # Verify that each organization was processed
+        for org in orgs:
+            mock_prepare_organization_report.delay.assert_any_call(
+                timestamp, ONE_DAY * 7, org.id, mock.ANY, dry_run=False
+            )
