@@ -17,6 +17,12 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
 
+BITBUCKET_CODEOWNERS = {
+    "filepath": ".bitbucket/CODEOWNERS",
+    "html_url": "https://bitbucket.org/sentryuser/newsdiffs/src/master/.bitbucket/CODEOWNERS",
+    "raw": "docs/* @jianyuan @getsentry/ecosystem\n* @jianyuan\n",
+}
+
 
 @control_silo_test
 class BitbucketApiClientTest(TestCase, BaseTestCase):
@@ -121,3 +127,30 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             source_url
             == "https://bitbucket.org/sentryuser/newsdiffs/src/master/src/sentry/integrations/bitbucket/client.py"
         )
+
+    @responses.activate
+    def test_get_codeowner_file(self):
+        self.config = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+
+        path = ".bitbucket/CODEOWNERS"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.config.repository.name}/src/{self.config.default_branch}/{path}"
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+        responses.add(
+            method=responses.GET,
+            url=url,
+            content_type="text/plain",
+            body=BITBUCKET_CODEOWNERS["raw"],
+        )
+
+        result = self.install.get_codeowner_file(
+            self.config.repository, ref=self.config.default_branch
+        )
+        assert result == BITBUCKET_CODEOWNERS
