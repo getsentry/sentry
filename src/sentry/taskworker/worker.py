@@ -245,7 +245,8 @@ class TaskWorker:
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
-        result_queue_factor: int = 5,
+        child_tasks_queue_maxsize: int = 1,
+        result_queue_maxsize: int = 5,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -256,10 +257,10 @@ class TaskWorker:
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
-            maxsize=concurrency
+            maxsize=child_tasks_queue_maxsize
         )
         self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(
-            maxsize=concurrency * result_queue_factor
+            maxsize=result_queue_maxsize
         )
         self._children: list[ForkProcess] = []
         self._shutdown_event = mp_context.Event()
@@ -305,6 +306,11 @@ class TaskWorker:
 
         logger.info("taskworker.worker.shutdown")
         self._shutdown_event.set()
+
+        for child in self._children:
+            child.terminate()
+            child.join()
+
         if self._result_thread:
             self._result_thread.join()
 
@@ -313,13 +319,9 @@ class TaskWorker:
         while True:
             try:
                 result = self._processed_tasks.get_nowait()
+                self._send_result(result, fetch=False)
             except queue.Empty:
                 break
-            self._send_result(result, fetch=False)
-
-        for child in self._children:
-            child.terminate()
-            child.join()
 
     def _add_task(self) -> bool:
         """
