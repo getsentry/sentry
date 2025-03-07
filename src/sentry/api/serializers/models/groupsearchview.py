@@ -1,8 +1,10 @@
-from typing import TypedDict
+from collections.abc import MutableMapping
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.savedsearch import SORT_LITERALS
 
 
@@ -16,8 +18,9 @@ class GroupSearchViewSerializerResponse(TypedDict):
     isAllProjects: bool
     environments: list[str]
     timeFilters: dict
-    dateCreated: str | None
-    dateUpdated: str | None
+    lastVisited: str | None
+    dateCreated: str
+    dateUpdated: str
 
 
 @register(GroupSearchView)
@@ -26,6 +29,23 @@ class GroupSearchViewSerializer(Serializer):
         self.has_global_views = kwargs.pop("has_global_views", None)
         self.default_project = kwargs.pop("default_project", None)
         super().__init__(*args, **kwargs)
+
+    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
+        attrs: MutableMapping[Any, Any] = {}
+
+        # Get the organization from the first item
+        organization = item_list[0].organization
+        last_visited_views = GroupSearchViewLastVisited.objects.filter(
+            organization=organization,
+            user_id=user.id,
+            group_search_view_id__in=[item.id for item in item_list],
+        )
+
+        for item in item_list:
+            attrs[item] = {}
+            attrs[item]["last_visited"] = last_visited_views.filter(group_search_view_id=item.id)
+
+        return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         if self.has_global_views is False:
@@ -50,6 +70,7 @@ class GroupSearchViewSerializer(Serializer):
             "isAllProjects": is_all_projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
+            "lastVisited": attrs["last_visited"][0].last_visited if attrs["last_visited"] else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
