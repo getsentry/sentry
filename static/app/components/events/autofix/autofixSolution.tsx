@@ -855,8 +855,6 @@ const InstructionsInputWrapper = styled('form')`
   border-radius: ${p => p.theme.borderRadius};
   margin-top: ${space(0.5)};
   margin-right: ${space(0.25)};
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const InstructionsInput = styled(Input)`
@@ -868,7 +866,11 @@ const InstructionsInput = styled(Input)`
 `;
 
 const SubmitButton = styled(Button)`
-  flex-shrink: 0;
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
 `;
 
 const AddInstructionWrapper = styled('div')`
