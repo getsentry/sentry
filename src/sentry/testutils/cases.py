@@ -292,7 +292,6 @@ class BaseTestCase(Fixtures):
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
-        request.is_superuser = lambda: request.superuser.is_active
 
         if is_staff:
             request.staff.set_logged_in(user)
