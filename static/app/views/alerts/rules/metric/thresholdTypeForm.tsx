@@ -96,7 +96,7 @@ function ThresholdTypeForm({
   ];
 
   if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
-    thresholdTypeChoices.push([
+    thresholdTypeChoices.unshift([
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
@@ -109,6 +109,7 @@ function ThresholdTypeForm({
         />
       </ComparisonContainer>,
     ] as RadioOption);
+    comparisonType = AlertRuleComparisonType.DYNAMIC;
   }
 
   return (
