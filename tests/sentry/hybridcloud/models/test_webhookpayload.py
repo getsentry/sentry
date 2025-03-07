@@ -26,6 +26,7 @@ class WebhookPayloadTest(TestCase):
             integration_id=123,
         )
         assert hook.mailbox_name == "github:123"
+        assert hook.provider == "github"
         assert hook.request_method == request.method
         assert hook.request_path == request.get_full_path()
         assert (
