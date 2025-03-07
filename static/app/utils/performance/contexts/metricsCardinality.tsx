@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
@@ -70,6 +71,7 @@ export function MetricsCardinalityProvider(props: {
   };
   const eventView = EventView.fromLocation(props.location);
   eventView.fields = [{field: 'tpm()'}];
+  eventView.dataset = DiscoverDatasets.TRANSACTIONS;
   const _eventView = adjustEventViewTime(eventView);
 
   if (
