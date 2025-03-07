@@ -861,8 +861,6 @@ const InstructionsInputWrapper = styled('form')`
 
 const InstructionsInput = styled(Input)`
   flex-grow: 1;
-  border: none;
-  box-shadow: none;
 
   &::placeholder {
     color: ${p => p.theme.gray300};
