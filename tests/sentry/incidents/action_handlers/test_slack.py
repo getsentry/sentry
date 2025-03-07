@@ -85,7 +85,7 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(self.handler, method)(self.action, incident, self.project, metric_value, status)
+            getattr(self.handler, method)(self.action, incident, self.project, status, metric_value)
 
         return incident, chart_url
 

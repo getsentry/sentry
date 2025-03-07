@@ -62,7 +62,11 @@ class DiscordActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             getattr(self.handler, method)(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                IncidentStatus(incident.status),
+                metric_value=metric_value,
             )
 
         data = orjson.loads(responses.calls[0].request.body)
