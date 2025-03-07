@@ -21,8 +21,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     Detector,
 )
-
-# from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -45,6 +44,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         actions = Action.objects.filter(
             id__in=[dcga.action_id for dcga in data_condition_group_actions]
         ).order_by("id")
+        kwargs = {}  # maybe pass something to help lookup the ActionAlertRuleTriggerAction?
         serialized_actions = serialize(
             list(actions), user, WorkflowEngineActionSerializer(), **kwargs
         )
@@ -60,32 +60,52 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
-        # we are assuming that the obj/DataCondition is a detector trigger here
+        # XXX: we are assuming that the obj/DataCondition is a detector trigger
         detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
         alert_rule_detector = AlertRuleDetector.objects.get(detector=detector)
         alert_rule = alert_rule_detector.alert_rule
         label = "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
         trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule, label=label)
-        # resolve_trigger = DataCondition.objects.get(
-        #     comparison=alert_rule.resolve_threshold,
-        #     condition_result=DetectorPriorityLevel.OK,
-        #     type=Condition.LESS_OR_EQUAL.value if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else Condition.GREATER_OR_EQUAL.value,
-        # )
-        # threshold_type = AlertRuleThresholdType.ABOVE if resolve_trigger.type == Condition.GREATER_OR_EQUAL else AlertRuleThresholdType.BELOW
+
+        resolve_trigger_data_condition = DataCondition.objects.get(
+            comparison=(
+                trigger.alert_threshold
+                if alert_rule.resolve_threshold is None
+                else alert_rule.resolve_threshold
+            ),
+            condition_result=DetectorPriorityLevel.OK,
+            type=(
+                Condition.LESS_OR_EQUAL.value
+                if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                else Condition.GREATER_OR_EQUAL.value
+            ),
+        )
+        resolve_threshold_type = (
+            AlertRuleThresholdType.ABOVE
+            if resolve_trigger_data_condition.type == Condition.GREATER_OR_EQUAL
+            else AlertRuleThresholdType.BELOW
+        )
         return {
             "id": str(trigger.id),
             "alertRuleId": str(alert_rule.id),
             "label": label,
-            "thresholdType": AlertRuleThresholdType.ABOVE.value,  # what to do if there isn't a resolve trigger?
+            "thresholdType": (
+                AlertRuleThresholdType.ABOVE.value
+                if resolve_trigger_data_condition.type == Condition.LESS_OR_EQUAL
+                else AlertRuleThresholdType.BELOW.value
+            ),
             "alertThreshold": translate_threshold(
                 detector.config.get("comparison_delta"),
-                AlertRuleThresholdType.ABOVE.value,
+                resolve_trigger_data_condition.type,
                 obj.comparison,
-            ),  # dont hardcode threshold type
-            # "resolveThreshold": translate_threshold(
-            #     detector.config.get("comparison_delta"), threshold_type, obj.comparison
-            # ),
-            "resolveThreshold": None,
+            ),
+            "resolveThreshold": (
+                None
+                if alert_rule.resolve_threshold is None
+                else translate_threshold(
+                    detector.config.get("comparison_delta"), resolve_threshold_type, obj.comparison
+                )
+            ),
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }
