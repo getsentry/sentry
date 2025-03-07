@@ -7,6 +7,7 @@ from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -86,11 +87,13 @@ class RepoTreesIntegration(ABC):
 
     def get_trees_for_org(self) -> dict[str, RepoTree]:
         trees = {}
-        repositories = self._populate_repositories()
+        with metrics.timer("integrations.source_code_management.populate_repositories.duration"):
+            repositories = self._populate_repositories()
         if not repositories:
             logger.warning("Fetching repositories returned an empty list.")
         else:
-            trees = self._populate_trees(repositories)
+            with metrics.timer("integrations.source_code_management.populate_trees.duration"):
+                trees = self._populate_trees(repositories)
 
         return trees
 
@@ -103,7 +106,9 @@ class RepoTreesIntegration(ABC):
         )
         repositories: list[dict[str, str]] = cache.get(cache_key, [])
 
+        use_cache = False
         if not repositories:
+            use_cache = True
             repositories = [
                 # Do not use RepoAndBranch so it stores in the cache as a simple dict
                 {
@@ -113,6 +118,11 @@ class RepoTreesIntegration(ABC):
                 for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
             ]
+
+        metrics.incr(
+            "integrations.source_code_management.populate_repositories",
+            tags={"cached": use_cache, "integration": self.integration_name},
+        )
 
         if repositories:
             cache.set(cache_key, repositories, self.CACHE_SECONDS)
@@ -137,6 +147,11 @@ class RepoTreesIntegration(ABC):
             logger.warning(
                 "Loading trees from cache. Execution will continue. Check logs.", exc_info=True
             )
+
+        metrics.incr(
+            "integrations.source_code_management.populate_trees",
+            tags={"cached": use_cache, "integration": self.integration_name},
+        )
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
