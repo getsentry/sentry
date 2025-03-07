@@ -20,6 +20,11 @@ export function FeatureFlagOtherPlatformOnboarding({
 }: FeatureFlagOtherPlatformOnboardingProps) {
   const organization = useOrganization();
 
+  const docsUrl =
+    integration.toLowerCase() === 'openfeature'
+      ? 'https://docs.sentry.io/product/issues/issue-details/feature-flags/#evaluation-tracking'
+      : `https://docs.sentry.io/organization/integrations/feature-flag/${integration.toLowerCase()}/#evaluation-tracking`;
+
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
@@ -27,11 +32,8 @@ export function FeatureFlagOtherPlatformOnboarding({
           <Alert.Container>
             <Alert type="info" showIcon>
               <Flex gap={space(3)}>
-                {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
-                <LinkButton
-                  href={`https://docs.sentry.io/organization/integrations/feature-flag/${integration.toLowerCase()}/#evaluation-tracking/`}
-                  external
-                >
+                {t('Read the docs to learn more about setting up evaluation tracking.')}
+                <LinkButton href={docsUrl} external>
                   {t('Read the docs')}
                 </LinkButton>
               </Flex>

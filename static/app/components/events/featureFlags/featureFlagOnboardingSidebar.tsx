@@ -213,9 +213,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     productType: 'featureFlags',
   });
 
-  const radioButtons = (
+  const header = (
     <Header>
-      <PlatformSelect key="platform-select">
+      <h3 style={{marginBottom: space(2)}}>{t('Set Up Evaluation Tracking')}</h3>
+      <TextBlock style={{marginBottom: space(1)}}>
+        {t('Configure Sentry to track feature flag evaluations on error events.')}
+      </TextBlock>
+      <ProviderSelect>
         {tct('I use a Feature Flag SDK from [providerSelect]', {
           providerSelect: (
             <CompactSelect
@@ -228,14 +232,14 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             />
           ),
         })}
-      </PlatformSelect>
+      </ProviderSelect>
     </Header>
   );
 
   if (isProjKeysLoading) {
     return (
       <Fragment>
-        {radioButtons}
+        {header}
         <LoadingIndicator />
       </Fragment>
     );
@@ -275,7 +279,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   if (currentProject.platform === 'other') {
     return (
       <Fragment>
-        {radioButtons}
+        {header}
         <FeatureFlagOtherPlatformOnboarding
           projectSlug={currentProject.slug}
           integration={sdkProvider.value}
@@ -291,7 +295,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   return (
     <Fragment>
-      {radioButtons}
+      {header}
       <FeatureFlagOnboardingLayout
         docsConfig={docs}
         dsn={dsn}
@@ -359,7 +363,7 @@ const HeaderActions = styled('div')`
   gap: ${space(3)};
 `;
 
-const PlatformSelect = styled('div')`
+const ProviderSelect = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
@@ -367,7 +371,7 @@ const PlatformSelect = styled('div')`
 `;
 
 const Header = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${space(2)} 0;
 `;
 
 export default LegacyFeatureFlagOnboardingSidebar;

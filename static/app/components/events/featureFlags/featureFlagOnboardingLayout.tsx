@@ -15,7 +15,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration: string;
@@ -89,10 +88,6 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        <h3>{t('Set Up Evaluation Tracking')}</h3>
-        <TextBlock>
-          {t('Configure Sentry to track feature flag evaluations on error events.')}
-        </TextBlock>
         <Steps>
           {steps.map(step => (
             <Step key={step.title ?? step.type} {...step} />
