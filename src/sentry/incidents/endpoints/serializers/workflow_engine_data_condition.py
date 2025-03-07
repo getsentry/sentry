@@ -6,8 +6,13 @@ from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
 from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
-from sentry.workflow_engine.migration_helpers.alert_rule import get_threshold_type
+from sentry.incidents.models.alert_rule import (
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
+
+# from sentry.workflow_engine.migration_helpers.alert_rule import get_threshold_type
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -16,6 +21,9 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     Detector,
 )
+
+# from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class WorkflowEngineDataConditionSerializer(Serializer):
@@ -44,27 +52,40 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         result: DefaultDict[str, dict[str, list[str]]] = defaultdict(dict)
         for action, serialized in zip(rule_actions, serialized_actions):
             dcga = data_condition_group_actions.get(action_id=action.id)
-            data_condition = DataCondition.objects.get(condition_group=dcga.condition_group)
+            data_condition = DataCondition.objects.filter(
+                condition_group=dcga.condition_group
+            ).first()
             triggers_actions = result[data_conditions[data_condition.id]].setdefault("actions", [])
             triggers_actions.append(serialized)
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        # we are assuming that the obj/DataCondition is a detector trigger here
         detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
         alert_rule_detector = AlertRuleDetector.objects.get(detector=detector)
         alert_rule = alert_rule_detector.alert_rule
-        trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule)
+        label = "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
+        trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule, label=label)
+        # resolve_trigger = DataCondition.objects.get(
+        #     comparison=alert_rule.resolve_threshold,
+        #     condition_result=DetectorPriorityLevel.OK,
+        #     type=Condition.LESS_OR_EQUAL.value if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else Condition.GREATER_OR_EQUAL.value,
+        # )
+        # threshold_type = AlertRuleThresholdType.ABOVE if resolve_trigger.type == Condition.GREATER_OR_EQUAL else AlertRuleThresholdType.BELOW
         return {
             "id": str(trigger.id),
             "alertRuleId": str(alert_rule.id),
-            "label": obj.type,
-            "thresholdType": get_threshold_type(obj.type),
+            "label": label,
+            "thresholdType": AlertRuleThresholdType.ABOVE.value,  # what to do if there isn't a resolve trigger?
             "alertThreshold": translate_threshold(
-                detector.config.get("comparison_delta"), obj.type, obj.comparison
-            ),
-            "resolveThreshold": translate_threshold(
-                detector.config.get("comparison_delta"), obj.type, obj.comparison
-            ),
+                detector.config.get("comparison_delta"),
+                AlertRuleThresholdType.ABOVE.value,
+                obj.comparison,
+            ),  # dont hardcode threshold type
+            # "resolveThreshold": translate_threshold(
+            #     detector.config.get("comparison_delta"), threshold_type, obj.comparison
+            # ),
+            "resolveThreshold": None,
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }
