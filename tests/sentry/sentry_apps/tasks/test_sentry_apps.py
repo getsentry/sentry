@@ -50,6 +50,9 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps.service_hook_manager import (
+    create_or_update_service_hooks_for_installation,
+)
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -417,17 +420,10 @@ class TestProcessResourceChange(TestCase):
         }
 
     def test_project_filter_no_filters_sends_webhook(self, safe_urlopen):
-        with assume_test_silo_mode_of(ServiceHookProject):
-            ServiceHookProject.objects.all().delete()
-            ServiceHook.objects.all().delete()
-
-        self.create_service_hook(
-            project_ids=[],  # no project filter
+        create_or_update_service_hooks_for_installation(
             installation=self.install,
-            application=self.sentry_app,
-            events=["issue.created"],
-            org=self.organization,
-            actor=self.install,
+            webhook_url=self.sentry_app.webhook_url,
+            events=self.sentry_app.events,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
