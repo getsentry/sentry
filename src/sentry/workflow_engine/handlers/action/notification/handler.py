@@ -11,6 +11,9 @@ from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     issue_alert_handler_registry,
 )
+from sentry.workflow_engine.handlers.action.notification.metric_alert import (
+    metric_alert_handler_registry,
+)
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
@@ -99,8 +102,22 @@ class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
 class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
     @staticmethod
     def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
-        # TODO(iamrajjoshi): Implement this
-        pass
+        try:
+            handler = metric_alert_handler_registry.get(action.type)
+            handler.invoke_legacy_registry(job, action, detector)
+        except NoRegistrationExistsError:
+            logger.exception(
+                "No metric alert handler found for action type: %s",
+                action.type,
+                extra={"action_id": action.id},
+            )
+            raise
+        except Exception as e:
+            logger.exception(
+                "Error invoking metric alert handler",
+                extra={"action_id": action.id},
+            )
+            raise NotificationHandlerException(e)
 
     @staticmethod
     def target(action: Action) -> RpcUser | Team | str | None:
