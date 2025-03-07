@@ -22,6 +22,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
+from sentry.conf.types.region_config import RegionConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -687,9 +688,8 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions, or a JSON string
-# that is parsed.
-SENTRY_REGION_CONFIG: Any = ()
+# List of the available regions
+SENTRY_REGION_CONFIG: list[RegionConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -3548,7 +3548,6 @@ if SILO_DEVSERVER:
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
-            "api_token": "dev-region-silo-token",
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
