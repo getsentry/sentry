@@ -18,8 +18,6 @@ export const ToolbarHeader = styled('div')`
 
 export const ToolbarLabel = styled('h6')<{disabled?: boolean; underlined?: boolean}>`
   color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
-  height: ${p => p.theme.form.md.height};
-  min-height: ${p => p.theme.form.md.minHeight};
   font-size: ${p => p.theme.form.md.fontSize};
   margin: 0;
   ${p =>
