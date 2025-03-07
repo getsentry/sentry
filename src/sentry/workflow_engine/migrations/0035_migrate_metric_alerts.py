@@ -4,7 +4,6 @@ import dataclasses
 import logging
 from enum import Enum, IntEnum, StrEnum
 from typing import Any
-from venv import create
 
 from django.apps.registry import Apps
 from django.db import migrations, router, transaction
@@ -548,7 +547,6 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             extra={"alert_rule_id": alert_rule.id},
                         )
                 except Exception as e:
-                    raise
                     logger.info(
                         "error when migrating alert rule",
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
@@ -572,7 +570,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0032_remove_data_source_query_id"),
+        ("workflow_engine", "0034_action_cleanup_1"),
     ]
 
     operations = [
