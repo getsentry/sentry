@@ -19,8 +19,6 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
     for stacktrace in stacktraces:
         frames = stacktrace["frames"]
         for frame in frames:
-            if frame is None:
-                continue
 
             if platform_config.creates_in_app_stack_trace_rules():
                 frames_to_process.append(frame)
@@ -34,9 +32,9 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
 def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
-        return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
+        return [
+            e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames", filter=True)
+        ]
 
-    if "stacktrace" in data:
-        return [data["stacktrace"]]
-
-    return []
+    stacktrace = get_path(data, "stacktrace", filter=True)
+    return [stacktrace] if stacktrace else []
