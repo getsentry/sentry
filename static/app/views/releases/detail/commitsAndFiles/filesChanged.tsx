@@ -90,8 +90,8 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
             <Fragment>
               {reposToRender.map(repoName => {
                 const repoData = filesByRepository[repoName]!;
-                const files = Object.keys(repoData);
-                const fileCount = files.length;
+                const repoDataEntries = Object.entries(repoData);
+                const fileCount = repoDataEntries.length;
                 return (
                   <Panel key={repoName}>
                     <PanelHeader>
@@ -99,14 +99,12 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                       <span>{tn('%s file changed', '%s files changed', fileCount)}</span>
                     </PanelHeader>
                     <PanelBody>
-                      {files.map(filename => {
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        const {authors} = repoData[filename];
+                      {repoDataEntries.map(([filename, {authors}]) => {
                         return (
                           <FileChange
                             key={filename}
                             filename={filename}
-                            authors={Object.values(authors)}
+                            authors={authors ? Object.values(authors) : []}
                           />
                         );
                       })}
