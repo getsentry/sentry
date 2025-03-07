@@ -203,20 +203,17 @@ def process_code_mapping(
         .first()
     )
 
-    if not repository:
-        if not dry_run:
-            repository = Repository.objects.create(
-                name=code_mapping.repo.name,
-                organization_id=organization_id,
-                integration_id=organization_integration.integration_id,
-            )
-            create_code_mapping(
-                code_mapping, project, repository, organization_integration, dry_run
-            )
+    if not repository and not dry_run:
+        repository = Repository.objects.create(
+            name=code_mapping.repo.name,
+            organization_id=organization_id,
+            integration_id=organization_integration.integration_id,
+        )
 
-        tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
-        metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)
-        metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
+    create_code_mapping(code_mapping, project, repository, organization_integration, dry_run)
+    tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
+    metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)
+    metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
 
 
 def create_code_mapping(
