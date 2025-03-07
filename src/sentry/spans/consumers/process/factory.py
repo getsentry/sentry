@@ -1,8 +1,10 @@
 import dataclasses
 import logging
+import threading
 import time
 from collections import defaultdict
 from collections.abc import Mapping
+from concurrent import futures
 from datetime import datetime
 from typing import Any
 
@@ -12,15 +14,18 @@ import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.batching import BatchStep, UnbatchStep, ValuesBatch
+from arroyo.processing.strategies.abstract import (
+    MessageRejected,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+)
+from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import (
     FILTERED_PAYLOAD,
-    BaseValue,
     BrokerValue,
     Commit,
     FilteredPayload,
@@ -312,17 +317,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if self.buffer_v2:
-            produce = Produce(
-                producer=self.producer,
-                topic=self.output_topic,
-                next_step=CommitOffsets(commit),
-            )
+            committer = CommitOffsets(commit)
 
-            unbatch = UnbatchStep(next_step=produce)
-
-            flusher = RunTask(
-                function=self.flush_segments_v2,
-                next_step=unbatch,
+            flusher = SpanFlusher(
+                self.producer, self.output_topic, self.max_batch_size, next_step=committer
             )
 
             run_task = run_task_with_multiprocessing(
@@ -379,61 +377,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.producer.close()
         self.__pool.close()
 
-    def flush_segments_v2(
-        self, message: Message[int]
-    ) -> ValuesBatch[KafkaPayload | FilteredPayload]:
-        # TODO config
-        buffer = RedisSpansBufferV2()
-
-        now = message.payload
-        if now < self.last_flush + self.flush_interval:
-            return []
-
-        self.last_flush = now
-
-        # TODO: make max segments during flushing configurable
-        flushed_segments = buffer.flush_segments(max_segments=self.max_batch_size, now=now)
-
-        segment_messages: list[BaseValue[KafkaPayload | FilteredPayload]] = []
-
-        for segment_id, spans_set in flushed_segments.items():
-            # TODO: Check if this is correctly placed
-            segment_span_id = segment_to_span_id(segment_id)
-            if not spans_set:
-                # TODO: Fix a bug where we flush empty segments
-                logger.warning(
-                    "skipping segment without spans", extra={"segment_id": segment_span_id}
-                )
-                continue
-
-            segment_spans = []
-            for payload in spans_set:
-                val = rapidjson.loads(payload)
-                val["segment_id"] = segment_span_id
-                val["is_segment"] = segment_span_id == val["span_id"]
-                segment_spans.append(val)
-
-            value = Value(
-                payload=KafkaPayload(
-                    None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
-                ),
-                committable={},
-            )
-
-            segment_messages.append(value)
-
-        if segment_messages:
-            # TODO: remove once https://github.com/getsentry/arroyo/pull/427 lands
-            segment_messages[-1] = Value(
-                payload=segment_messages[-1].payload, committable=message.committable
-            )
-
-        # TODO: call done_flush_segments after commit, not here
-        # figure out how to flush when consumer is inactive
-        buffer.done_flush_segments(flushed_segments)
-
-        return segment_messages
-
 
 def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> int:
     # TODO config
@@ -455,3 +398,97 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> int:
     now = int(time.time())
     buffer.process_spans(spans, now=now)
     return now
+
+
+class SpanFlusher(ProcessingStrategy[int]):
+    def __init__(
+        self,
+        producer: KafkaProducer,
+        topic: ArroyoTopic,
+        max_segments: int,
+        next_step: ProcessingStrategy[int],
+    ):
+        self.producer = producer
+        self.topic = topic
+        self.max_segments = max_segments
+        self.next_step = next_step
+
+        self.stopped = False
+        self.enable_backpressure = False
+        self.current_time = 0
+        # TODO config
+        self.buffer = RedisSpansBufferV2()
+
+        self.thread = threading.Thread(target=self.main, daemon=True)
+        self.thread.start()
+
+    def main(self):
+        while not self.stopped:
+            now = self.current_time
+
+            producer_futures = []
+
+            flushed_segments = self.buffer.flush_segments(max_segments=self.max_segments, now=now)
+            if not flushed_segments:
+                self.enable_backpressure = False
+                time.sleep(1)
+                continue
+
+            self.enable_backpressure = flushed_segments == self.max_segments
+
+            for segment_id, spans_set in flushed_segments.items():
+                # TODO: Check if this is correctly placed
+                segment_span_id = segment_to_span_id(segment_id)
+                if not spans_set:
+                    # TODO: Fix a bug where we flush empty segments
+                    logger.warning(
+                        "skipping segment without spans", extra={"segment_id": segment_span_id}
+                    )
+                    continue
+
+                segment_spans = []
+                for payload in spans_set:
+                    val = rapidjson.loads(payload)
+                    val["segment_id"] = segment_span_id
+                    val["is_segment"] = segment_span_id == val["span_id"]
+                    segment_spans.append(val)
+
+                kafka_payload = KafkaPayload(
+                    None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
+                )
+
+                producer_futures.append(self.producer.produce(self.topic, kafka_payload))
+
+            futures.wait(producer_futures)
+
+            self.buffer.done_flush_segments(flushed_segments)
+
+    def poll(self) -> None:
+        self.next_step.poll()
+
+    def submit(self, message: Message[int]) -> None:
+        self.current_time = max((self.current_time, message.payload))
+
+        if self.enable_backpressure:
+            raise MessageRejected()
+
+        self.next_step.submit(message)
+
+    def terminate(self) -> None:
+        self.stopped = True
+        self.next_step.terminate()
+
+    def close(self) -> None:
+        self.stopped = True
+        self.next_step.close()
+
+    def join(self, timeout: float | None = None):
+        # set stopped flag first so we can "flush" the background thread while
+        # next_step is also shutting down. we can do two things at once!
+        self.stopped = True
+        deadline = time.time() + timeout if timeout else None
+
+        self.next_step.join(timeout)
+
+        while self.thread.is_alive() and (deadline is None or deadline > time.time()):
+            time.sleep(0.1)
