@@ -188,7 +188,7 @@ export default typescript.config([
     '**/tests/**/fixtures/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
-    'config/chartcuterie/config.js', // TODO: see if this file exists
+    'config/chartcuterie/config.js',
     'fixtures/artifact_bundle/**/*',
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
