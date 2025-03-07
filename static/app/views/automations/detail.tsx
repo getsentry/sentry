@@ -30,10 +30,10 @@ export default function AutomationDetail() {
           <DetailLayout>
             <DetailLayout.Main>
               <Section title={t('History')}>
-                <AutomationHistoryList />
+                <AutomationHistoryList history={[]} />
               </Section>
               <Section title={t('Connected Monitors')}>
-                <ConnectedMonitorsList />
+                <ConnectedMonitorsList monitors={[]} />
               </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>

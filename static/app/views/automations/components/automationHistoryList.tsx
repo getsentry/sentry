@@ -6,36 +6,22 @@ import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpl
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 
-interface Data {
+interface AutomationHistoryData {
   dateSent: Date;
   groupId: string;
   monitor: {link: string; name: string};
 }
 
-const data: Data[] = [
-  {
-    dateSent: moment().subtract(1, 'day').toDate(),
-    monitor: {link: '/monitors/1', name: 'Errors high'},
-    groupId: '143567',
-  },
-  {
-    dateSent: moment().subtract(2, 'days').toDate(),
-    monitor: {link: '/monitors/1', name: 'Slow endpoint'},
-    groupId: '143566',
-  },
-  {
-    dateSent: moment().subtract(3, 'days').toDate(),
-    monitor: {link: '/monitors/1', name: 'Errors (fingerprinting)'},
-    groupId: '143565',
-  },
-];
+type Props = {
+  history: AutomationHistoryData[];
+};
 
-export default function AutomationHistoryList() {
+export default function AutomationHistoryList({history}: Props) {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
 
-  const columns = defineColumns<Data>({
+  const columns = defineColumns<AutomationHistoryData>({
     dateSent: {
       Header: () =>
         tct('Time Sent ([timezone])', {timezone: moment.tz(timezone).zoneAbbr()}),
@@ -54,5 +40,5 @@ export default function AutomationHistoryList() {
     },
   });
 
-  return <SimpleTable columns={columns} data={data} />;
+  return <SimpleTable columns={columns} data={history} />;
 }

@@ -3,43 +3,21 @@ import {NumberCell} from 'sentry/components/workflowEngine/gridCell/numberCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
+import type {Group} from 'sentry/types/group';
 import type {AvatarProject} from 'sentry/types/project';
 
-interface Data {
-  lastIssue: {platform: string; shortId: string};
+interface MonitorsData {
+  lastIssue: Group;
   name: {link: string; name: string; project: AvatarProject};
   openIssues: number;
 }
 
-const data: Data[] = [
-  {
-    name: {
-      name: 'Error Grouping',
-      project: {
-        slug: 'javascript',
-        platform: 'javascript',
-      },
-      link: '/issues/1',
-    },
-    lastIssue: {shortId: 'JAVASCRIPT-SHGH', platform: 'javascript'},
-    openIssues: 1,
-  },
-  {
-    name: {
-      name: 'Error Grouping',
-      project: {
-        slug: 'javascript',
-        platform: 'javascript',
-      },
-      link: '/issues/1',
-    },
-    lastIssue: {shortId: 'JAVASCRIPT-SHGH', platform: 'javascript'},
-    openIssues: 2,
-  },
-];
+type Props = {
+  monitors: MonitorsData[];
+};
 
-export default function ConnectedMonitorsList() {
-  const columns = defineColumns<Data>({
+export default function ConnectedMonitorsList({monitors}: Props) {
+  const columns = defineColumns<MonitorsData>({
     name: {
       Header: () => t('Name'),
       Cell: ({value}) => (
@@ -59,5 +37,5 @@ export default function ConnectedMonitorsList() {
     },
   });
 
-  return <SimpleTable columns={columns} data={data} />;
+  return <SimpleTable columns={columns} data={monitors} />;
 }
