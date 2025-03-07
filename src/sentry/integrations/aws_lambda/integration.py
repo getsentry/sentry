@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import ClientError
 from django.http.request import HttpRequest
@@ -12,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import analytics, options
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -20,7 +22,8 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
@@ -43,6 +46,9 @@ from .utils import (
     get_version_of_arn,
     wrap_lambda_updater,
 )
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
@@ -206,7 +212,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         ]
 
     @control_silo_function
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         region = state["region"]
         account_number = state["account_number"]
         aws_external_id = state["aws_external_id"]
@@ -230,7 +236,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
         external_id = f"{account_number}-{region}"
 
-        integration = {
+        return {
             "name": integration_name,
             "external_id": external_id,
             "metadata": {
@@ -240,13 +246,13 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             },
             "post_install_data": {"default_project_id": state["project_id"]},
         }
-        return integration
 
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         default_project_id = extra["default_project_id"]
         for oi in OrganizationIntegration.objects.filter(
@@ -262,6 +268,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             pipeline.bind_state("project_id", request.GET["projectId"])
             return pipeline.next_step()
 
+        assert pipeline.organization is not None
         organization = pipeline.organization
         projects = organization.projects
 
@@ -286,6 +293,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
+            assert pipeline.organization is not None
             serialized_organization = organization_service.serialize_organization(
                 id=pipeline.organization.id,
                 as_user=(
@@ -376,6 +384,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 
+        assert pipeline.organization is not None
         organization = pipeline.organization
 
         account_number = pipeline.fetch_state("account_number")
@@ -384,6 +393,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
         enabled_lambdas = pipeline.fetch_state("enabled_lambdas")
+        assert enabled_lambdas is not None
 
         sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
 
@@ -423,7 +433,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     success_count += 1
                 else:
                     # need to make sure we catch any error to continue to the next function
-                    err_message = str(e)
+                    err_message: str | _StrPromise = str(e)
                     is_custom_err, err_message = get_sentry_err_message(err_message)
                     if not is_custom_err:
                         capture_exception(e)

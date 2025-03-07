@@ -13,6 +13,7 @@ from rest_framework.serializers import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -23,7 +24,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -206,7 +207,6 @@ class OpsgenieIntegration(IntegrationInstallation):
                         )
                     elif e.code == 401:
                         invalid_keys.append(integration_key)
-                        pass
                     elif e.json and e.json.get("message"):
                         raise ApiError(e.json["message"])
                     else:
@@ -240,7 +240,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView()]
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state["installation_data"]["api_key"]
         base_url = state["installation_data"]["base_url"]
         name = state["installation_data"]["provider"]
@@ -257,8 +257,9 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         with record_event(OnCallInteractionType.POST_INSTALL).capture():
             try:

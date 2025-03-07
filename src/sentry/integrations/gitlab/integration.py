@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -14,6 +14,7 @@ from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -390,7 +391,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             lambda: self._make_identity_pipeline_view(),
         ]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
 
         # Gitlab requires the client_id and client_secret for refreshing the access tokens
@@ -420,7 +421,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         # rotate secrets.
         secret = sha1_text("".join([hostname, state["installation_data"]["client_id"]]))
 
-        integration = {
+        return {
             "name": group.get("full_name", hostname),
             # Splice the gitlab host and project together to
             # act as unique link between a gitlab instance, group + sentry.
@@ -451,7 +452,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 ),
             },
         }
-        return integration
 
     def setup(self):
         from sentry.plugins.base import bindings
