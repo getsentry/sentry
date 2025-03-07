@@ -23,4 +23,5 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.BODY,
   OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.ITEM_TYPE,
 ];

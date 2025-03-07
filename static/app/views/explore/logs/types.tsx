@@ -21,7 +21,7 @@ export enum OurLogKnownFieldKey {
   SENTRY_PROJECT_ID = 'sentry.project_id',
   SPAN_ID = 'sentry.span_id',
   TIMESTAMP = 'timestamp',
-  SENTRY_ITEM_TYPE = 'sentry.item_type',
+  ITEM_TYPE = 'sentry.item_type',
 }
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
