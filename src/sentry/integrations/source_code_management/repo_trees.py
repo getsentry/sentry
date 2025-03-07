@@ -106,9 +106,9 @@ class RepoTreesIntegration(ABC):
         )
         repositories: list[dict[str, str]] = cache.get(cache_key, [])
 
-        use_cache = False
+        use_cache = True
         if not repositories:
-            use_cache = True
+            use_cache = False
             repositories = [
                 # Do not use RepoAndBranch so it stores in the cache as a simple dict
                 {
