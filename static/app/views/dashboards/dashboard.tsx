@@ -324,7 +324,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+  handleDuplicateWidget = (widget: Widget) => () => {
     const {
       organization,
       dashboard,
@@ -342,8 +342,7 @@ class Dashboard extends Component<Props, State> {
       assignTempId({...widget, id: undefined, tempId: undefined})
     );
 
-    let nextList = [...dashboard.widgets];
-    nextList.splice(index, 0, widgetCopy);
+    let nextList = [...dashboard.widgets, widgetCopy];
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
@@ -440,7 +439,7 @@ class Dashboard extends Component<Props, State> {
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
-      onDuplicate: this.handleDuplicateWidget(widget, index),
+      onDuplicate: this.handleDuplicateWidget(widget),
       onSetTransactionsDataset: () => this.handleChangeSplitDataset(widget, index),
 
       isPreview,
