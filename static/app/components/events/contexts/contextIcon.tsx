@@ -44,6 +44,7 @@ import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 import logoVercel from 'sentry-logos/logo-vercel.svg';
 import logoWindows from 'sentry-logos/logo-windows.svg';
+import logoXbox from 'sentry-logos/logo-xbox.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -107,6 +108,7 @@ const LOGO_MAPPING = {
   watch: logoAppleWatch,
   watchos: logoApple,
   windows: logoWindows,
+  xbox: logoXbox,
 };
 
 export const NAMES = Object.keys(LOGO_MAPPING);
