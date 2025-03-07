@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from datetime import timedelta
 from typing import Any, ClassVar
 
@@ -256,6 +256,21 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         region_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),
+            region_name=region_name,
+        )
+
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.hybridcloud.services.replica import region_replica_service
+
+        region_replica_service.delete_replicated_api_token(
+            apitoken_id=identifier,
             region_name=region_name,
         )
 
