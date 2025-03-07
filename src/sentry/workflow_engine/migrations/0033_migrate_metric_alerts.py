@@ -337,6 +337,7 @@ def _create_detector(
             "detection_type": alert_rule.detection_type,
         },
     )
+    Detector.objects.filter(id=detector.id).update(date_added=alert_rule.date_added)
     return detector
 
 
@@ -344,17 +345,14 @@ def _create_detector_state(apps: Apps, alert_rule: Any, project: Any, detector: 
     Incident = apps.get_model("sentry", "Incident")
     DetectorState = apps.get_model("workflow_engine", "DetectorState")
 
-    try:
-        incident_query = Incident.objects.filter(
-            type=IncidentType.ALERT_TRIGGERED.value,
-            alert_rule=alert_rule,
-            projects=project,
-        )
-        open_incident = incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by(
-            "-date_added"
-        )[0]
-    except IndexError:
-        open_incident = None
+    incident_query = Incident.objects.filter(
+        type=IncidentType.ALERT_TRIGGERED.value,
+        alert_rule=alert_rule,
+        projects=project,
+    )
+    open_incident = (
+        incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by("-date_added").first()
+    )
     if open_incident:
         state = (
             DetectorPriorityLevel.MEDIUM
@@ -517,6 +515,9 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             enabled=True,
                             created_by_id=create_activity.user_id,
                             config={},
+                        )
+                        Workflow.objects.filter(id=workflow.id).update(
+                            date_added=alert_rule.date_added
                         )
 
                         data_source.detectors.set([detector])
