@@ -647,11 +647,15 @@ describe('Subscription > UsageHistory', () => {
               reserved: RESERVED_BUDGET_QUOTA,
             }),
           },
+          hadCustomDynamicSampling: false,
         }),
       ],
     });
 
-    const subscription = Am3DsEnterpriseSubscriptionFixture({organization: billingOrg});
+    const subscription = Am3DsEnterpriseSubscriptionFixture({
+      organization: billingOrg,
+      hadCustomDynamicSampling: true, // even if the current status is true, we rely on the status from the history
+    });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
     render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
@@ -686,13 +690,13 @@ describe('Subscription > UsageHistory', () => {
               reserved: RESERVED_BUDGET_QUOTA,
             }),
           },
+          hadCustomDynamicSampling: true,
         }),
       ],
     });
 
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: billingOrg,
-      hadCustomDynamicSampling: true,
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
@@ -731,6 +735,7 @@ describe('Subscription > UsageHistory', () => {
               reserved: UNLIMITED_RESERVED,
             }),
           },
+          hadCustomDynamicSampling: false,
         }),
       ],
     });
@@ -770,6 +775,7 @@ describe('Subscription > UsageHistory', () => {
               reserved: UNLIMITED_RESERVED,
             }),
           },
+          hadCustomDynamicSampling: true,
         }),
       ],
     });
