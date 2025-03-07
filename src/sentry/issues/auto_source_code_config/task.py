@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
@@ -210,7 +211,7 @@ def process_code_mapping(
                 code_mapping, project, repository, organization_integration, dry_run
             )
 
-        tags = {"platform": platform, "dry_run": dry_run}
+        tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
         metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)
         metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
 
