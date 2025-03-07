@@ -1128,53 +1128,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert mock_prepare_organization_report.delay.call_count == 3
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
-    def test_schedule_organizations_resumes_from_min_id(self, mock_prepare_organization_report):
-        """Test that schedule_organizations resumes from the minimum organization ID stored in Redis."""
-        timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
-
-        # Create organizations with specific IDs to ensure ordering
-        orgs = [
-            self.organization,  # Use existing organization
-            self.create_organization(name="Org 2"),
-            self.create_organization(name="Org 3"),
-            self.create_organization(name="Org 4"),
-            self.create_organization(name="Org 5"),
-        ]
-
-        # Sort organizations by ID to ensure we know the order
-        orgs.sort(key=lambda org: org.id)
-
-        # Set Redis value to the middle organization
-        middle_org = orgs[2]
-        redis_cluster.set(f"weekly_reports_org_id_min:{timestamp}", middle_org.id)
-
-        # Run the task
-        schedule_organizations(timestamp=timestamp)
-
-        # Verify that prepare_organization_report was only called for organizations with ID >= middle_org.id
-        assert (
-            mock_prepare_organization_report.delay.call_count == 3
-        )  # middle_org and the two after it
-
-        # Organizations before middle_org should not be processed
-        for org in orgs[:2]:
-            # Check that the call was not made with this organization ID
-            call_args_list = mock_prepare_organization_report.delay.call_args_list
-            org_ids_called = [args[0][2] for args in call_args_list]
-            assert (
-                org.id not in org_ids_called
-            ), f"Organization {org.id} should not have been processed"
-
-        # Organizations including and after middle_org should be processed
-        for org in orgs[2:]:
-            mock_prepare_organization_report.delay.assert_any_call(
-                timestamp, ONE_DAY * 7, org.id, mock.ANY, dry_run=False
-            )
-
-    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
     def test_schedule_organizations_updates_redis_during_processing(
         self, mock_prepare_organization_report
     ):

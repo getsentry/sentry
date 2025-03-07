@@ -97,7 +97,11 @@ def schedule_organizations(
         # Create a celery task per organization
         logger.info(
             "weekly_reports.schedule_organizations",
-            extra={"batch_id": str(batch_id), "organization": organization.id},
+            extra={
+                "batch_id": str(batch_id),
+                "organization": organization.id,
+                "minimum_organization_id": minimum_organization_id,
+            },
         )
         prepare_organization_report.delay(
             timestamp, duration, organization.id, batch_id, dry_run=dry_run
