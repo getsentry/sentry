@@ -414,7 +414,7 @@ describe('groupDetails', () => {
 
     await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
