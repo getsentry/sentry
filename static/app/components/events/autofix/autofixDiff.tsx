@@ -79,10 +79,7 @@ function detectLanguageFromPath(filePath: string): string {
   if (!filePath) {
     return 'plaintext';
   }
-
-  // Extract the file extension
   const extension = filePath.split('.').pop()?.toLowerCase();
-
   if (!extension) {
     return 'plaintext';
   }
@@ -120,7 +117,7 @@ function detectLanguageFromPath(filePath: string): string {
   return extensionMap[extension] || 'plaintext';
 }
 
-const SyntaxHighlightedCode = styled('div')<{language: string}>`
+const SyntaxHighlightedCode = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
   white-space: pre;
@@ -139,7 +136,6 @@ function DiffLineCode({line, fileName}: {line: DiffLineWithChanges; fileName?: s
     [fileName]
   );
 
-  // Always call hooks at the top level, before any conditional logic
   const tokens = usePrismTokens({code: line.value, language});
 
   // If we have changes (diff), use the CodeDiff component
@@ -157,7 +153,7 @@ function DiffLineCode({line, fileName}: {line: DiffLineWithChanges; fileName?: s
 
   // For non-changed lines, apply syntax highlighting
   return (
-    <SyntaxHighlightedCode language={language}>
+    <SyntaxHighlightedCode>
       <pre className={`language-${language}`}>
         <code>
           {tokens.map((lineTokens, i) => (
