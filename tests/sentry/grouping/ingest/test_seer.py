@@ -325,17 +325,11 @@ class ShouldCallSeerTest(TestCase):
 
         self.event.should_skip_seer = True
 
-        # TODO: Replace the assert below with the commented-out assertions once we turn the skip on
-        # for real.
-        #
-        # assert (
-        #     should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
-        # )
-        # mock_record_did_call_seer.assert_any_call(
-        #     self.event, call_made=False, blocker="race_condition"
-        # )
         assert (
-            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+            should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
+        )
+        mock_record_did_call_seer.assert_any_call(
+            self.event, call_made=False, blocker="race_condition"
         )
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
@@ -353,7 +347,6 @@ class ShouldCallSeerTest(TestCase):
 
 
 @apply_feature_flag_on_cls("organizations:grouping-hybrid-fingerprint-seer-usage")
-@apply_feature_flag_on_cls("organizations:grouphash-metadata-creation")
 class GetSeerSimilarIssuesTest(TestCase):
     def create_new_event(
         self,

@@ -14,7 +14,6 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
@@ -107,102 +106,11 @@ def ingest_recording(message_bytes: bytes) -> None:
         ):
             try:
                 message = parse_recording_message(message_bytes)
-                if message.org_id in options.get("replay.consumer.separate-compute-and-io-org-ids"):
-                    _ingest_recording_separated_io_compute(message)
-                else:
-                    _ingest_recording(message)
+                _ingest_recording_separated_io_compute(message)
             except DropSilently:
                 # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
                 # so we ignore it.
                 pass
-
-
-@sentry_sdk.trace
-def _ingest_recording(message: RecordingIngestMessage) -> None:
-    """Ingest recording messages."""
-    set_tag("org_id", message.org_id)
-    set_tag("project_id", message.project_id)
-
-    headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
-    segment = decompress_segment(segment_bytes)
-    _report_size_metrics(len(segment.compressed), len(segment.decompressed))
-
-    # Normalize ingest data into a standardized ingest format.
-    segment_data = RecordingSegmentStorageMeta(
-        project_id=message.project_id,
-        replay_id=message.replay_id,
-        segment_id=headers["segment_id"],
-        retention_days=message.retention_days,
-    )
-
-    if message.replay_video:
-        # Logging org info for bigquery
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "mobile_event",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "size": len(message.replay_video),
-            },
-        )
-
-        # Record video size for COGS analysis.
-        metrics.incr("replays.recording_consumer.replay_video_count")
-        metrics.distribution(
-            "replays.recording_consumer.replay_video_size",
-            len(message.replay_video),
-            unit="byte",
-        )
-
-        dat = zlib.compress(pack(rrweb=segment.decompressed, video=message.replay_video))
-        storage_kv.set(make_recording_filename(segment_data), dat)
-
-        # Track combined payload size.
-        metrics.distribution(
-            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
-        )
-    else:
-        storage_kv.set(make_recording_filename(segment_data), segment.compressed)
-
-    recording_post_processor(message, headers, segment.decompressed, message.replay_event)
-
-    # The first segment records an accepted outcome. This is for billing purposes. Subsequent
-    # segments are not billed.
-    if headers["segment_id"] == 0:
-        track_initial_segment_event(
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            message.key_id,
-            message.received,
-            is_replay_video=message.replay_video is not None,
-        )
-
-
-@sentry_sdk.trace
-def track_initial_segment_event(
-    org_id: int,
-    project_id: int,
-    replay_id,
-    key_id: int | None,
-    received: int,
-    is_replay_video: bool,
-) -> None:
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-        return _track_initial_segment_event(
-            org_id, project, replay_id, key_id, received, is_replay_video
-        )
-    except Project.DoesNotExist:
-        logger.warning(
-            "Recording segment was received for a project that does not exist.",
-            extra={
-                "project_id": project_id,
-                "replay_id": replay_id,
-            },
-        )
-        return None
 
 
 def _track_initial_segment_event(
@@ -211,41 +119,21 @@ def _track_initial_segment_event(
     replay_id,
     key_id: int | None,
     received: int,
-    is_replay_video: bool,
 ) -> None:
     if not project.flags.has_replays:
         first_replay_received.send_robust(project=project, sender=Project)
 
-    # Beta customers will have a 2 months grace period post GA.
-    if should_skip_billing(org_id, is_replay_video):
-        metrics.incr("replays.billing-outcome-skipped")
-        track_outcome(
-            org_id=org_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.fromtimestamp(received, timezone.utc),
-            event_id=replay_id,
-            category=DataCategory.REPLAY_VIDEO,
-            quantity=1,
-        )
-    else:
-        track_outcome(
-            org_id=org_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.fromtimestamp(received, timezone.utc),
-            event_id=replay_id,
-            category=DataCategory.REPLAY,
-            quantity=1,
-        )
-
-
-def should_skip_billing(org_id: int, is_replay_video: bool) -> bool:
-    return is_replay_video and org_id in options.get("replay.replay-video.billing-skip-org-ids")
+    track_outcome(
+        org_id=org_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.fromtimestamp(received, timezone.utc),
+        event_id=replay_id,
+        category=DataCategory.REPLAY,
+        quantity=1,
+    )
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
@@ -426,7 +314,6 @@ class ProcessedRecordingMessage:
     actions_event: ParsedEventMeta | None
     filedata: bytes
     filename: str
-    is_replay_video: bool
     key_id: int | None
     org_id: int
     project_id: int
@@ -474,7 +361,6 @@ def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecor
         replay_events,
         filedata,
         filename,
-        is_replay_video=message.replay_video is not None,
         key_id=message.key_id,
         org_id=message.org_id,
         project_id=message.project_id,
@@ -515,7 +401,6 @@ def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
             recording.replay_id,
             recording.key_id,
             recording.received,
-            is_replay_video=recording.is_replay_video,
         )
 
     # Write to replay-event consumer.

@@ -51,7 +51,11 @@ class SlackMessagingSpec(MessagingIntegrationSpec):
         from sentry.integrations.slack.utils.notifications import send_incident_alert_notification
 
         return send_incident_alert_notification(
-            action, incident, metric_value, new_status, notification_uuid
+            action=action,
+            incident=incident,
+            new_status=new_status,
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
 
     @property

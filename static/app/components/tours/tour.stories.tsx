@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import {Input} from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -52,7 +52,7 @@ export default storyBook('Tours', story => {
         and 'right/l' keys will navigate between steps.
       </p>
       <TourProvider>
-        <TourElement
+        <TourElement<MyTour>
           id={MyTour.NAME}
           title={'Name Time!'}
           description={'This is the description of the name tour step.'}
@@ -60,7 +60,7 @@ export default storyBook('Tours', story => {
         >
           <Input placeholder="Step 1: Name" />
         </TourElement>
-        <TourElement
+        <TourElement<MyTour>
           id={MyTour.EMAIL}
           title={'Email Time!'}
           description={'This is the description of the email tour step.'}
@@ -68,7 +68,7 @@ export default storyBook('Tours', story => {
         >
           <Input placeholder="Step 2: Email" type="email" />
         </TourElement>
-        <TourElement
+        <TourElement<MyTour>
           id={MyTour.PASSWORD}
           title={'Password Time!'}
           description={'This is the description of the password tour step.'}
@@ -88,6 +88,7 @@ export default storyBook('Tours', story => {
         <li>Define the order of the steps.</li>
         <li>Create the tour context for the components to use.</li>
         <li>Create a usage hook to refine types.</li>
+        <li>Add a tour key to save the viewed/dismissed status.</li>
       </ol>
       <CodeSnippet language="tsx">
         {`import {createContext, useContext} from 'react';
@@ -116,6 +117,11 @@ function useMyTour(): TourContextType<MyTour> {
   }
   return tourContext;
 }
+
+// Step 5. Add a tour key to save the viewed/dismissed status.
+// Note: This should match what's added to 'src/sentry/assistant/guides.py'.
+export const MY_TOUR_KEY = 'tour.my_tour';
+
 `}
       </CodeSnippet>
     </Fragment>
@@ -129,9 +135,10 @@ function useMyTour(): TourContextType<MyTour> {
         you created earlier.
       </p>
       <CodeSnippet language="tsx">
-        {`<TourContextProvider
+        {`<TourContextProvider<MyTour>
   orderedStepIds={ORDERED_MY_TOUR}
   tourContext={MyTourContext}
+  tourKey={MY_TOUR_KEY}
 >
   {/* All focused elements in the tour should be within this provider */}
 </TourContextProvider>`}
@@ -146,7 +153,7 @@ function useMyTour(): TourContextType<MyTour> {
 <Input placeholder="Name" />
 
 // After...
-<TourElement
+<TourElement<MyTour>
   tourContext={MyTourContext}
   id={MyTour.NAME}
   title={'Name Time!'}
@@ -183,7 +190,7 @@ function useMyTour(): TourContextType<MyTour> {
       </CodeSnippet>
       <br />
       <TourProvider>
-        <TourElement
+        <TourElement<MyTour>
           tourContext={MyTourContext}
           id={MyTour.NAME}
           title={'Name Time!'}
@@ -191,7 +198,7 @@ function useMyTour(): TourContextType<MyTour> {
         >
           <Input placeholder="Step 1: Name" />
         </TourElement>
-        <TourElement
+        <TourElement<MyTour>
           tourContext={MyTourContext}
           id={MyTour.EMAIL}
           title={'Email Time!'}
@@ -272,8 +279,9 @@ function TourProvider({
   return (
     <SizingWindow>
       <BlurBoundary>
-        <TourContextProvider
+        <TourContextProvider<MyTour>
           isAvailable
+          isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}
           tourContext={MyTourContext}
           {...tourProviderProps}

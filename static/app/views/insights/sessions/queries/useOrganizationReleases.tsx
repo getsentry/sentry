@@ -7,11 +7,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export default function useOrganizationReleases({
   dateRange,
-  tableType,
   filters,
 }: {
   filters: string[];
-  tableType: 'health' | 'adoption';
   dateRange?: Pick<PageFiltersStringified, 'start' | 'end' | 'statsPeriod'>;
 }) {
   const location = useLocation();
@@ -22,10 +20,7 @@ export default function useOrganizationReleases({
     query: {
       ...location.query,
       ...dateRange,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      width: undefined,
     },
   };
 
@@ -79,10 +74,6 @@ export default function useOrganizationReleases({
           adoptionStages: 1,
           health: 1,
           per_page: 10,
-          cursor:
-            tableType === 'health'
-              ? location.query.cursor_health_table
-              : location.query.cursor_adoption_table,
           status,
         },
       },
@@ -118,6 +109,7 @@ export default function useOrganizationReleases({
               : undefined;
 
             return {
+              project: release.projects[0]!,
               release: release.shortVersion ?? release.version,
               date: release.dateCreated,
               adoption_stage: projSlug

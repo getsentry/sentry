@@ -53,6 +53,15 @@ export type QueryKeyEndpointOptions<
   query?: Query;
 };
 
+type InfiniteApiQueryKey = readonly [
+  url: string,
+  options: QueryKeyEndpointOptions<
+    Record<string, string>,
+    Record<string, any>,
+    Record<string, any>
+  >,
+  additionalKey: 'infinite',
+];
 export type ApiQueryKey =
   | readonly [url: string]
   | readonly [
@@ -255,7 +264,7 @@ export function fetchInfiniteQuery<TResponseData>(api: Client) {
   return function fetchInfiniteQueryImpl({
     pageParam,
     queryKey,
-  }: QueryFunctionContext<ApiQueryKey, undefined | ParsedHeader>): Promise<
+  }: QueryFunctionContext<InfiniteApiQueryKey, undefined | ParsedHeader>): Promise<
     ApiResult<TResponseData>
   > {
     const [url, endpointOptions] = queryKey;
@@ -287,18 +296,28 @@ function parsePageParam(dir: 'previous' | 'next') {
 export function useInfiniteApiQuery<TResponseData>({
   queryKey,
   enabled,
+  staleTime,
 }: {
   queryKey: ApiQueryKey;
   enabled?: boolean;
+  staleTime?: number;
 }) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const query = useInfiniteQuery({
-    queryKey,
+    // We append an additional string to the queryKey here to prevent a hard
+    // crash due to a cache conflict between normal queries and "infinite"
+    // queries. Read more
+    // here: https://tkdodo.eu/blog/effective-react-query-keys#caching-data
+    queryKey:
+      queryKey.length === 1
+        ? ([...queryKey, {}, 'infinite'] as const)
+        : ([...queryKey, 'infinite'] as const),
     queryFn: fetchInfiniteQuery<TResponseData>(api),
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
     enabled: enabled ?? true,
+    staleTime,
   });
 
   return query;

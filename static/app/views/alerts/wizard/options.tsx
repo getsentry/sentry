@@ -134,10 +134,7 @@ export const getAlertWizardCategories = (org: Organization) => {
       ],
     });
 
-    if (
-      org.features.includes('uptime') &&
-      !org.features.includes('uptime-create-disabled')
-    ) {
+    if (org.features.includes('uptime')) {
       result.push({
         categoryHeading: t('Uptime Monitoring'),
         options: ['uptime_monitor'],

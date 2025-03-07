@@ -67,32 +67,11 @@ type Props = ModalRenderProps & {
 
 export function SentryAppPublishRequestModal(props: Props) {
   const [formModel] = useState<FormModel>(() => new FormModel({transformData}));
-  const {app, closeModal, Header, Body, organization, onPublishSubmission} = props;
-  const isNewModalVisible = organization.features.includes(`streamlined-publishing-flow`);
+  const {app, closeModal, Header, Body, onPublishSubmission} = props;
 
   const formFields = () => {
-    const permissions = getPermissionSelectionsFromScopes(app.scopes);
-
-    const permissionQuestionBaseText =
-      'Please justify why you are requesting each of the following permissions: ';
-    const permissionQuestionPlainText = `${permissionQuestionBaseText}${permissions.join(
-      ', '
-    )}.`;
-
-    const permissionLabel = (
-      <Fragment>
-        <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
-        {permissions.map((permission, i) => (
-          <Fragment key={permission}>
-            {i > 0 && ', '}
-            <Permission>{permission}</Permission>
-          </Fragment>
-        ))}
-        .
-      </Fragment>
-    );
-
-    const newModalFields: React.ComponentProps<typeof JsonForm>['fields'] = [
+    // No translations since we need to be able to read this email :)
+    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -189,68 +168,13 @@ export function SentryAppPublishRequestModal(props: Props) {
       },
     ];
 
-    const oldModalFields: React.ComponentProps<typeof JsonForm>['fields'] = [
-      {
-        type: 'textarea',
-        required: true,
-        label: t('What does your integration do? Please be as detailed as possible.'),
-        meta: 'What does your integration do? Please be as detailed as possible.',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question5',
-      },
-      {
-        type: 'textarea',
-        required: true,
-        label: t('What value does it offer customers?'),
-        meta: 'What value does it offer customers?',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question6',
-      },
-      {
-        type: 'textarea',
-        required: true,
-        label: t('Do you operate the web service your integration communicates with?'),
-        meta: 'Do you operate the web service your integration communicates with?',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question7',
-      },
-    ];
-
-    // Only add the permissions question if there are perms to add
-    if (permissions.length > 0) {
-      oldModalFields.push({
-        type: 'textarea',
-        required: true,
-        label: permissionLabel,
-        labelText: permissionQuestionPlainText,
-        autosize: true,
-        rows: 1,
-        inline: false,
-        meta: permissionQuestionPlainText,
-        name: 'question8',
-      });
-    }
-
-    // No translations since we need to be able to read this email :)
-    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = isNewModalVisible
-      ? newModalFields
-      : oldModalFields;
-
     return baseFields;
   };
 
   const handleSubmitSuccess = () => {
     addSuccessMessage(t('Request to publish %s successful.', app.slug));
     closeModal();
-    if (isNewModalVisible) {
-      onPublishSubmission();
-    }
+    onPublishSubmission();
   };
 
   const handleSubmitError = (err: any) => {
@@ -325,14 +249,6 @@ export function SentryAppPublishRequestModal(props: Props) {
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const PermissionLabel = styled('span')`
-  line-height: 24px;
-`;
-
-const Permission = styled('code')`
-  line-height: 24px;
 `;
 
 const Footer = styled('div')`
