@@ -7,6 +7,7 @@ import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {getStylingSliceName} from '../../../traces/utils';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -28,7 +29,7 @@ export function makeTraceNodeBarColor(
         node.value['transaction.op']
     );
   }
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return pickBarColor(node.value.op);
   }
   if (isAutogroupedNode(node)) {

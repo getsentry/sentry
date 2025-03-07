@@ -27,7 +27,7 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {isRootTransaction} from '../../traceDetails/utils';
+import {isRootEvent} from '../../traceDetails/utils';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
 import {isTraceNode} from '../traceGuards';
@@ -152,7 +152,7 @@ export const getRepresentativeTransaction = (
 
   for (const transaction of traceNode.value.transactions || []) {
     // If we find a root transaction, we can stop looking and use it for the title.
-    if (!firstRootTransaction && isRootTransaction(transaction)) {
+    if (!firstRootTransaction && isRootEvent(transaction)) {
       firstRootTransaction = transaction;
       break;
     } else if (

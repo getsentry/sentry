@@ -46,7 +46,7 @@ import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/t
 import {
   getTraceInfo,
   hasTraceData,
-  isRootTransaction,
+  isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
@@ -313,7 +313,7 @@ function NewTraceView({
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
-        isOrphan: !isRootTransaction(trace),
+        isOrphan: !isRootEvent(trace),
         isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
           (!isLastTransaction && hasChildren) || hasOrphanErrors

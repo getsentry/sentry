@@ -1,3 +1,4 @@
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
 import {TraceIcons} from '../traceIcons';
@@ -14,7 +15,13 @@ import {
 
 const NO_PROFILES: any = [];
 
-export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>) {
+export function TraceSpanRow(
+  props: TraceRowProps<TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>>
+) {
+  const spanId = isEAPSpanNode(props.node)
+    ? props.node.value.event_id
+    : props.node.value.span_id;
+
   return (
     <div
       key={props.index}
@@ -66,7 +73,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
           <strong className="TraceEmDash"> — </strong>
           <span className="TraceDescription" title={props.node.value.description}>
             {!props.node.value.description
-              ? props.node.value.span_id ?? 'unknown'
+              ? spanId ?? 'unknown'
               : props.node.value.description.length > 100
                 ? props.node.value.description.slice(0, 100).trim() + '\u2026'
                 : props.node.value.description}

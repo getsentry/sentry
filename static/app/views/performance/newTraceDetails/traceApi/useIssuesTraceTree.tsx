@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,11 +11,12 @@ import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
+import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   meta: TraceMetaQueryResults;
   replay: ReplayRecord | null;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
+  trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };
 
@@ -63,10 +63,7 @@ export function useIssuesTraceTree({
       return;
     }
 
-    if (
-      trace?.data?.transactions.length === 0 &&
-      trace?.data?.orphan_errors.length === 0
-    ) {
+    if (trace.data && isEmptyTrace(trace.data)) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
       traceAnalytics.trackTraceEmptyState(organization, 'issue_details');
       return;
