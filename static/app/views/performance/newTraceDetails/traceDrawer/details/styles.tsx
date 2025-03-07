@@ -972,7 +972,7 @@ function NodeActions(props: {
     const profileId = isTransactionNode(props.node)
       ? props.node.value.profile_id
       : isSpanNode(props.node)
-        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        ? (props.node.event?.contexts?.profile?.profile_id ?? '')
         : '';
     if (!profileId) {
       return null;
@@ -987,7 +987,7 @@ function NodeActions(props: {
     const profilerId = isTransactionNode(props.node)
       ? props.node.value.profiler_id
       : isSpanNode(props.node)
-        ? props.node.value.sentry_tags?.profiler_id ?? null
+        ? (props.node.value.sentry_tags?.profiler_id ?? null)
         : null;
     if (!profilerId) {
       return null;
