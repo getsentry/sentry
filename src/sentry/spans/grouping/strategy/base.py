@@ -52,10 +52,11 @@ class SpanGroupingStrategy:
 
     def get_standalone_span_group(self, span: Span) -> str:
         # Treat the segment span like get_transaction_span_group for backwards
-        # compatibility with transaction events.
-        if span.get("is_segment"):
+        # compatibility with transaction events, but fall back to default
+        # fingerprinting if the span doesn't have a transaction.
+        if span.get("is_segment") and "transaction" in span["sentry_tags"]:
             result = Hash()
-            result.update(span["sentry_tags"].get("transaction"))
+            result.update(span["sentry_tags"]["transaction"])
             return result.hexdigest()
         else:
             return self.get_embedded_span_group(span)
