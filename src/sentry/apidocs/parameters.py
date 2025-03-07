@@ -817,3 +817,30 @@ Available fields are:
 - `myqueries`
         """,
     )
+
+
+class ExploreSavedQueriesParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""The name of the Explore query you'd like to filter by.""",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by query name.
+
+Available fields are:
+- `name`
+- `dateCreated`
+- `dateUpdated`
+- `mostPopular`
+- `recentlyViewed`
+- `myqueries`
+        """,
+    )
