@@ -219,11 +219,11 @@ def process_code_mapping(
 def create_code_mapping(
     code_mapping: CodeMapping,
     project: Project,
-    repository: Repository,
+    repository: Repository | None,
     organization_integration: RpcOrganizationIntegration,
     dry_run: bool,
 ) -> None:
-    if not dry_run:
+    if not dry_run and repository:
         RepositoryProjectPathConfig.objects.create(
             project=project,
             stack_root=code_mapping.stacktrace_root,
