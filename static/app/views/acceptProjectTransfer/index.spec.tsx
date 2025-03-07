@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -31,8 +30,7 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('renders', function () {
-    const router = RouterFixture();
-    render(<AcceptProjectTransfer />, {router});
+    render(<AcceptProjectTransfer />);
 
     expect(getMock).toHaveBeenCalled();
   });
@@ -55,15 +53,13 @@ describe('AcceptProjectTransfer', function () {
       },
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });
-    const router = RouterFixture();
-    render(<AcceptProjectTransfer />, {router});
+    render(<AcceptProjectTransfer />);
 
     expect(getMock).toHaveBeenCalled();
   });
 
   it('submits', async function () {
-    const router = RouterFixture();
-    render(<AcceptProjectTransfer />, {router});
+    render(<AcceptProjectTransfer />);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
 
