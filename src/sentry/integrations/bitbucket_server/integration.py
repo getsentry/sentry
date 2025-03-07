@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -19,7 +19,6 @@ from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
     IntegrationDomain,
-    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -61,6 +60,19 @@ FEATURES = [
         including `Fixes PROJ-ID` in the message
         """,
         IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your Bitbucket [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
     ),
 ]
 
@@ -246,6 +258,8 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     default_identity = None
 
+    codeowners_locations = [".bitbucket/CODEOWNERS"]
+
     @property
     def integration_name(self) -> str:
         return "bitbucket_server"
@@ -312,16 +326,40 @@ class BitbucketServerIntegration(RepositoryIntegration):
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
     def source_url_matches(self, url: str) -> bool:
-        raise IntegrationFeatureNotImplementedError
+        return url.startswith(self.model.metadata["base_url"])
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
-        raise IntegrationFeatureNotImplementedError
+        project = quote(repo.config["project"])
+        repo_name = quote(repo.config["repo"])
+        source_url = f"{self.model.metadata["base_url"]}/projects/{project}/repos/{repo_name}/browse/{filepath}"
+
+        if branch:
+            source_url += "?" + urlencode({"at": branch})
+
+        return source_url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        parsed_url = urlparse(url)
+        qs = parse_qs(parsed_url.query)
+
+        if "at" in qs and len(qs["at"]) == 1:
+            branch = qs["at"][0]
+
+            # branch name may be prefixed with refs/heads/, so we strip that
+            refs_prefix = "refs/heads/"
+            if branch.startswith(refs_prefix):
+                branch = branch[len(refs_prefix) :]
+
+            return branch
+
+        return ""
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        if repo.url is None:
+            return ""
+        parsed_repo_url = urlparse(repo.url)
+        parsed_url = urlparse(url)
+        return parsed_url.path.replace(parsed_repo_url.path + "/", "")
 
     # Bitbucket Server only methods
 
@@ -336,7 +374,13 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    features = frozenset([IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_pipeline_views(self) -> list[PipelineView]:
