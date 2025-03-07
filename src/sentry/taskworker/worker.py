@@ -117,7 +117,7 @@ def child_worker(
             break
 
         try:
-            activation = child_tasks.get(timeout=0.1)
+            activation = child_tasks.get(timeout=1.0)
         except queue.Empty:
             metrics.incr("taskworker.worker.child_task_queue_empty")
             continue
@@ -363,10 +363,11 @@ class TaskWorker:
             with iopool as executor:
                 while not self._shutdown_event.is_set():
                     try:
-                        result = self._processed_tasks.get(timeout=0.1)
+                        result = self._processed_tasks.get(timeout=1.0)
+                        executor.submit(self._send_result, result)
                     except queue.Empty:
+                        metrics.incr("taskworker.worker.result_thread.queue_empty")
                         continue
-                    executor.submit(self._send_result, result)
 
         self._result_thread = threading.Thread(target=result_thread)
         self._result_thread.start()
