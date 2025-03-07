@@ -300,7 +300,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                   metricHistory =>
                     metricHistory.category !== DataCategory.SPANS_INDEXED ||
                     (metricHistory.category === DataCategory.SPANS_INDEXED &&
-                      subscription.hadCustomDynamicSampling)
+                      history.hadCustomDynamicSampling)
                 )
                 .map(metricHistory => (
                   <tr key={metricHistory.category}>
@@ -308,7 +308,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       {getCategoryDisplay({
                         plan: history.planDetails,
                         metricHistory,
-                        hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                        hadCustomDynamicSampling: history.hadCustomDynamicSampling,
                       })}
                     </td>
                     <td>
