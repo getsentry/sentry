@@ -11,10 +11,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Commit, Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,6 +23,7 @@ import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
+import {useReleaseCommits} from 'sentry/views/releases/utils/useReleaseCommits';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -42,24 +42,19 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
 
-  const query = getQuery({location, activeRepository: activeReleaseRepo});
+  const query = getQuery({location});
   const {
     data: commitList = [],
     isPending: isLoadingCommitList,
     error: commitListError,
     refetch,
     getResponseHeader,
-  } = useApiQuery<Commit[]>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-        params.release
-      )}/commits/`,
-      {query},
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useReleaseCommits({
+    release: params.release,
+    projectSlug,
+    activeRepository: activeReleaseRepo,
+    ...query,
+  });
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
   const activeRepoName: string | undefined = activeReleaseRepo

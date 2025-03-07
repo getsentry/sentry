@@ -75,25 +75,16 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  activeRepository?: Repository;
   perPage?: number;
 };
 
-export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
+export function getQuery({location, perPage = 40}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     per_page: perPage,
   };
 
-  if (!activeRepository) {
-    return query;
-  }
-
-  return {
-    ...query,
-    repo_id: activeRepository.externalId,
-    repo_name: activeRepository.name,
-  };
+  return query;
 }
 
 /**
