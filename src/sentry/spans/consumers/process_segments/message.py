@@ -330,6 +330,6 @@ def process_segment(spans: list[Span]) -> list[Span]:
         if options.get("standalone-spans.send-occurrence-to-platform.enable"):
             _send_occurrence_to_platform(jobs, projects)
 
-    _record_transaction_info(jobs, projects)
+    _record_transaction_info(jobs, projects, skip_send_first_transaction=False)
 
     return spans
