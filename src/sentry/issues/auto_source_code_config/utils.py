@@ -1,7 +1,5 @@
 from typing import Any
 
-from sentry import options
-
 from .constants import PLATFORMS_CONFIG
 
 
@@ -38,8 +36,7 @@ class PlatformConfig:
         return self.config is not None
 
     def is_dry_run_platform(self) -> bool:
-        dry_run_platforms = options.get("issues.auto_source_code_config.dry-run-platforms", [])
-        return self.platform in dry_run_platforms
+        return self.config.get("dry_run", False)
 
     def extracts_filename_from_module(self) -> bool:
         return self.config.get("extract_filename_from_module", False)
