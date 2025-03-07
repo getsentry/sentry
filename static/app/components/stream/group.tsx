@@ -134,33 +134,43 @@ function GroupCheckbox({
   );
 }
 
-function GroupFirstLastSeen({group}: {group: Group}) {
+function GroupLastSeen({group}: {group: Group}) {
   if (!group.lifetime) {
     return <Placeholder height="18px" width="60px" />;
   }
 
-  if (!group.lifetime.firstSeen || !group.lifetime.lastSeen) {
+  if (!group.lifetime.lastSeen) {
     return null;
   }
 
   return (
-    <Fragment>
-      <PositionedTimeSince
-        date={group.lifetime.firstSeen}
-        unitStyle="short"
-        suffix=""
-        aria-label={t('First Seen')}
-        tooltipPrefix={t('First Seen')}
-      />
-      <SeenSeparator>/</SeenSeparator>
-      <PositionedTimeSince
-        date={group.lifetime.lastSeen}
-        suffix="ago"
-        unitStyle="short"
-        aria-label={t('Last Seen')}
-        tooltipPrefix={t('Last Seen')}
-      />
-    </Fragment>
+    <PositionedTimeSince
+      date={group.lifetime.lastSeen}
+      suffix="ago"
+      unitStyle="short"
+      aria-label={t('Last Seen')}
+      tooltipPrefix={t('Last Seen')}
+    />
+  );
+}
+
+function GroupFirstSeen({group}: {group: Group}) {
+  if (!group.lifetime) {
+    return <Placeholder height="18px" width="30px" />;
+  }
+
+  if (!group.lifetime.firstSeen) {
+    return null;
+  }
+
+  return (
+    <PositionedTimeSince
+      date={group.lifetime.firstSeen}
+      unitStyle="short"
+      suffix=""
+      aria-label={t('First Seen')}
+      tooltipPrefix={t('First Seen')}
+    />
   );
 }
 
@@ -622,10 +632,16 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
-      {withColumns.includes('firstLastSeen') && (
-        <FirstLastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_LAST_SEEN}>
-          <GroupFirstLastSeen group={group} />
-        </FirstLastSeenWrapper>
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <GroupLastSeen group={group} />
+        </LastSeenWrapper>
+      )}
+
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <GroupFirstSeen group={group} />
+        </FirstSeenWrapper>
       )}
 
       {withChart && !displayReprocessingLayout ? (
@@ -644,10 +660,7 @@ function StreamGroup({
             ) : null}
           </NarrowChartWrapper>
         ) : (
-          <ChartWrapper
-            narrowGroups={narrowGroups}
-            margin={withColumns.includes('firstLastSeen')}
-          >
+          <ChartWrapper narrowGroups={narrowGroups}>
             {issueTypeConfig.stats.enabled ? (
               <GroupStatusChart
                 hideZeros
@@ -674,9 +687,7 @@ function StreamGroup({
                 ) : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
-              <EventCountsWrapper
-                leftMargin={withColumns.includes('firstLastSeen') ? undefined : '0px'}
-              >
+              <EventCountsWrapper>
                 {issueTypeConfig.stats.enabled ? groupCount : null}
               </EventCountsWrapper>
             )
@@ -752,7 +763,7 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 86px;
+      min-height: 82px;
 
       &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
         ${CheckboxLabel} {
@@ -865,7 +876,7 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
   ${p =>
     p.hasNewLayout &&
     css`
-      padding-top: ${space(2)};
+      padding-top: 14px;
     `}
 `;
 
@@ -930,10 +941,10 @@ const CountTooltipContent = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
+const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
-  margin-right: ${p => (p.margin ? space(2) : 0)};
+  margin-right: ${space(2)};
 
   @media (max-width: ${p =>
       p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
@@ -951,12 +962,25 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const FirstLastSeenWrapper = styled('div')<{breakpoint: string}>`
+const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  gap: ${space(0.25)};
-  align-self: center;
-  width: 130px;
-  padding-right: ${space(1)};
+  align-items: center;
+  justify-content: flex-end;
+  width: 86px;
+  padding-right: ${space(2)};
+  margin-right: ${space(2)};
+
+  @media (max-width: ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 50px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -967,6 +991,7 @@ const FirstLastSeenWrapper = styled('div')<{breakpoint: string}>`
 const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   align-self: center;
   margin-right: ${space(2)};
   width: 60px;
@@ -1084,15 +1109,11 @@ const PositionedTimeSince = styled(TimeSince)`
   position: relative;
 `;
 
-const SeenSeparator = styled('span')`
-  color: ${p => p.theme.subText};
-`;
-
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
   margin-left: ${space(3)};
-  margin-top: ${space(1.5)};
+  margin-top: 10px;
 `;

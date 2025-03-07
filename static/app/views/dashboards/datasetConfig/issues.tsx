@@ -81,7 +81,7 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   };
 }
 
-function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQuery) {
+function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
   const sortOptions = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
@@ -90,7 +90,7 @@ function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQu
     IssueSortOptions.USER,
   ];
   return sortOptions.map(sortOption => ({
-    label: getSortLabel(sortOption),
+    label: getSortLabel(sortOption, organization),
     value: sortOption,
   }));
 }

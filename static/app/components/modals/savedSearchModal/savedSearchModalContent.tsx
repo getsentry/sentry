@@ -31,7 +31,7 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
 
   const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,
-    label: getSortLabel(sortOption),
+    label: getSortLabel(sortOption, organization),
   }));
 
   return (

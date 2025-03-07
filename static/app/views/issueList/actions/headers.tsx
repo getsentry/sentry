@@ -39,10 +39,14 @@ function Headers({
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
-              <FirstLastSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_LAST_SEEN}>
-                {t('First / Last Seen')}
+              <LastSeenLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+                {t('Last Seen')}
                 <HeaderDivider />
-              </FirstLastSeenLabel>
+              </LastSeenLabel>
+              <FirstSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+                {t('Age')}
+                <HeaderDivider />
+              </FirstSeenLabel>
             </Fragment>
           ) : null}
           {organization.features.includes('issue-stream-table-layout') ? (
@@ -175,12 +179,18 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const FirstLastSeenLabel = styled(IssueStreamHeaderLabel)`
-  width: 130px;
+const LastSeenLabel = styled(IssueStreamHeaderLabel)`
+  width: 86px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  text-align: left;
+`;
+
+const FirstSeenLabel = styled(IssueStreamHeaderLabel)`
+  width: 50px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 `;
 
 const EventsOrUsersLabel = styled(ToolbarHeader)`
