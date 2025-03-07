@@ -61,6 +61,7 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
+
     has_aggregations = any(col for col in columns if col.is_aggregate)
 
     labeled_columns = [categorize_column(col) for col in columns]
