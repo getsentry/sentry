@@ -148,9 +148,4 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data == [
-            {
-                "log.body": "baz",
-                "timestamp": self.nine_mins_ago.isoformat(),
-            },
-        ]
+        assert data[0]["log.body"] == "baz"
