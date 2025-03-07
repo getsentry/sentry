@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
 from sentry.search.eap.resolver import SearchResolver
@@ -61,9 +61,8 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
-    has_aggregations = any(
-        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
-    )
+
+    has_aggregations = any(col for col in columns if col.is_aggregate)
 
     labeled_columns = [categorize_column(col) for col in columns]
 
