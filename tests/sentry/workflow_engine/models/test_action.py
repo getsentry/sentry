@@ -14,6 +14,16 @@ class TestAction(TestCase):
         self.mock_event = Mock(spec=GroupEvent)
         self.mock_detector = Mock(name="detector")
         self.action = Action(type=Action.Type.SLACK)
+        self.config_schema = {
+            "$id": "https://example.com/user-profile.schema.json",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "A representation of a user profile",
+            "type": "object",
+            "required": [],
+            "properties": {
+                "foo": {"type": "string"},
+            },
+        }
 
     def test_get_handler_notification_type(self):
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
@@ -68,3 +78,19 @@ class TestAction(TestCase):
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
                 self.action.trigger(self.mock_event, self.mock_detector)
+
+    def test_config_schema(self):
+        mock_handler = Mock(spec=ActionHandler)
+        mock_handler.config_schema = self.config_schema
+
+        with patch.object(Action, "get_handler", return_value=mock_handler):
+            result = Action.objects.create(type=Action.Type.SLACK, config={"foo": "bar"})
+            assert result is not None
+
+    def test_config_schema__invalid(self):
+        mock_handler = Mock(spec=ActionHandler)
+        mock_handler.config_schema = self.config_schema
+
+        with patch.object(Action, "get_handler", return_value=mock_handler):
+            with pytest.raises(Exception):
+                Action.objects.create(type=Action.Type.SLACK, config={"foo": 42})
