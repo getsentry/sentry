@@ -351,9 +351,9 @@ class MigrateMetricAlertTest(TestMigrations):
             "sentry_app_config": self.email_action.sentry_app_config,
         }
         assert action.integration_id is None
-        assert action.target_display is None
-        assert action.target_identifier == self.email_action.target_identifier
-        assert action.target_type == self.email_action.target_type
+        assert action.config.get("target_display") is None
+        assert action.config.get("target_identifier") == self.email_action.target_identifier
+        assert action.config.get("target_type") == self.email_action.target_type
 
     def test_on_call_trigger_action(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
@@ -378,9 +378,9 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.type == Action.Type.OPSGENIE
         assert action.data == {"priority": OPSGENIE_DEFAULT_PRIORITY}
         assert action.integration_id == self.integration_action.integration_id
-        assert action.target_display == self.integration_action.target_display
-        assert action.target_identifier == self.integration_action.target_identifier
-        assert action.target_type == self.integration_action.target_type
+        assert action.config.get("target_display") == self.integration_action.target_display
+        assert action.config.get("target_identifier") == self.integration_action.target_identifier
+        assert action.config.get("target_type") == self.integration_action.target_type
 
     def test_sentry_app_trigger_action(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
@@ -407,9 +407,9 @@ class MigrateMetricAlertTest(TestMigrations):
             "settings": self.sentry_app_action.sentry_app_config,
         }
         assert action.integration_id is None
-        assert action.target_display == self.sentry_app_action.target_display
-        assert action.target_identifier == self.sentry_app_action.target_identifier
-        assert action.target_type == self.sentry_app_action.target_type
+        assert action.config.get("target_display") == self.sentry_app_action.target_display
+        assert action.config.get("target_identifier") == self.sentry_app_action.target_identifier
+        assert action.config.get("target_type") == self.sentry_app_action.target_type
 
     def test_skip_dynamic_rule(self):
         assert not AlertRuleDetector.objects.filter(alert_rule=self.dynamic_rule).exists()
