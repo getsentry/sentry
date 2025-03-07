@@ -40,7 +40,7 @@ export function IssueViewTab({
   const {views} = state;
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
 
-  useEffect(() => {
+  function updateViewLastVisitedIfExists() {
     if (
       initialTabKey !== TEMPORARY_TAB_KEY &&
       !initialTabKey.startsWith('default') &&
@@ -48,6 +48,10 @@ export function IssueViewTab({
     ) {
       updateViewLastVisited({viewId: view.id});
     }
+  }
+
+  useEffect(() => {
+    updateViewLastVisitedIfExists();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -138,7 +142,7 @@ export function IssueViewTab({
   };
 
   return (
-    <TabContentWrap onClick={() => updateViewLastVisited({viewId: view.id})}>
+    <TabContentWrap onClick={() => updateViewLastVisitedIfExists()}>
       <EditableTabTitle
         label={view.label}
         isEditing={editingTabKey === view.key}
