@@ -16,7 +16,7 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
     stacktraces = get_stacktraces(data)
     frames_to_process = []
     for stacktrace in stacktraces:
-        frames = stacktrace["frames"]
+        frames = stacktrace["frames"] or []
         for frame in frames:
             if platform in PROCESS_ALL_FRAMES:
                 frames_to_process.append(frame)
