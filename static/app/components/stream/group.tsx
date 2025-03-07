@@ -116,7 +116,7 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      <CheckboxLabel>
+      <CheckboxLabel hasNewLayout={hasNewLayout}>
         <CheckboxWithBackground
           id={group.id}
           aria-label={t('Select Issue')}
@@ -763,7 +763,7 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 78px;
+      min-height: 82px;
 
       &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
         ${CheckboxLabel} {
@@ -862,7 +862,7 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
   z-index: 1;
 `;
 
-const CheckboxLabel = styled('label')`
+const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
   position: absolute;
   top: 0;
   left: 0;
@@ -872,6 +872,12 @@ const CheckboxLabel = styled('label')`
   padding-left: ${space(2)};
   padding-top: ${space(1.5)};
   margin: 0;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding-top: 14px;
+    `}
 `;
 
 const CheckboxWithBackground = styled(Checkbox)`
@@ -1109,5 +1115,5 @@ const UnreadIndicator = styled('div')`
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
   margin-left: ${space(3)};
-  margin-top: ${space(1)};
+  margin-top: 10px;
 `;
