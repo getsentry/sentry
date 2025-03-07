@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
 import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
-import {defined} from 'sentry/utils';
 
 const IMAGE_ADDR_LEN = 12;
 export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
@@ -42,24 +41,6 @@ export function getFileName(path?: string | null) {
 
 export function normalizeId(id?: string) {
   return id?.trim().toLowerCase().replace(/[- ]/g, '') ?? '';
-}
-
-export function shouldSkipSection(filteredImages: Image[], images: Array<Image | null>) {
-  if (filteredImages.length) {
-    return false;
-  }
-
-  const definedImages = images.filter(image => defined(image));
-
-  if (!definedImages.length) {
-    return true;
-  }
-
-  if (definedImages.every(image => image.type === 'proguard')) {
-    return true;
-  }
-
-  return false;
 }
 
 export function getImageAddress(image: Image) {
