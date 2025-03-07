@@ -7,6 +7,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -101,8 +102,7 @@ export function CachesWidget({query}: {query?: string}) {
           <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
         ) : (
           <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+            plottables={timeSeries.map(convertSeriesToTimeseries).map(ts => new Line(ts))}
           />
         )
       }
