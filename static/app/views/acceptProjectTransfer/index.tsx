@@ -1,6 +1,7 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
+import type {Data} from 'sentry/components/forms/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -19,7 +20,7 @@ type TransferDetails = {
 };
 
 function AcceptProjectTransfer() {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const location = useLocation();
 
   const regionHost = (): string | undefined => {
@@ -48,13 +49,13 @@ function AcceptProjectTransfer() {
   );
 
   const handleSubmitMutation = useMutation({
-    mutationFn: (formData: any) => {
+    mutationFn: (formData: Data) => {
       return api.requestPromise('/accept-transfer/', {
         method: 'POST',
+        host: regionHost(),
         data: {
           data: location.query.data,
           organization: formData.organization,
-          host: regionHost(),
         },
       });
     },
@@ -69,14 +70,14 @@ function AcceptProjectTransfer() {
         // done this way since we need to change subdomains
       }
     },
-    onError: _ => {
+    onError: () => {
       const errorMsg =
         error?.responseJSON && typeof error.responseJSON.detail === 'string'
           ? error.responseJSON.detail
           : '';
 
       addErrorMessage(
-        t('Unable to transfer project') + (errorMsg ? `: ${errorMsg}` : '')
+        tct('Unable to transfer project. [errorMsg]', {errorMsg: errorMsg ?? ''})
       );
     },
   });
