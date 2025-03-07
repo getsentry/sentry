@@ -16,7 +16,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
 from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_columns import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
@@ -415,7 +415,6 @@ def run_trace_query(
         "transaction",
         "precise.start_ts",
         "precise.finish_ts",
-        "project.slug",
         "project.id",
         "span.duration",
     ]
@@ -448,5 +447,9 @@ def run_trace_query(
                     span[resolved_column.public_alias] = attribute.value.val_int == 1
                 elif resolved_column.proto_definition.type == INT:
                     span[resolved_column.public_alias] = attribute.value.val_int
+                    if resolved_column.public_alias == "project.id":
+                        span["project.slug"] = resolver.params.project_id_map.get(
+                            span[resolved_column.public_alias], "Unknown"
+                        )
             spans.append(span)
     return spans

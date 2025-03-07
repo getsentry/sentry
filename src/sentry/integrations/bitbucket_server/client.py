@@ -8,6 +8,7 @@ from requests_oauthlib import OAuth1
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
@@ -112,7 +113,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
 
     def __init__(
         self,
-        integration: RpcIntegration,
+        integration: RpcIntegration | Integration,
         identity: RpcIdentity,
     ):
         self.base_url = integration.metadata["base_url"]

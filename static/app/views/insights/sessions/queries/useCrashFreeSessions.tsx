@@ -14,10 +14,8 @@ export default function useCrashFreeSessions() {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
