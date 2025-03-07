@@ -1,14 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
 describe('AcceptProjectTransfer', function () {
-  const {routerProps} = initializeOrg();
-
   let getMock: jest.Mock;
   let postMock: jest.Mock;
   const endpoint = '/accept-transfer/';
@@ -33,7 +31,8 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('renders', function () {
-    render(<AcceptProjectTransfer {...routerProps} />);
+    const router = RouterFixture();
+    render(<AcceptProjectTransfer />, {router});
 
     expect(getMock).toHaveBeenCalled();
   });
@@ -56,15 +55,17 @@ describe('AcceptProjectTransfer', function () {
       },
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });
-    render(<AcceptProjectTransfer {...routerProps} />);
+    const router = RouterFixture();
+    render(<AcceptProjectTransfer />, {router});
 
     expect(getMock).toHaveBeenCalled();
   });
 
   it('submits', async function () {
-    render(<AcceptProjectTransfer {...routerProps} />);
+    const router = RouterFixture();
+    render(<AcceptProjectTransfer />, {router});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
 
     expect(postMock).toHaveBeenCalledWith(
       endpoint,
