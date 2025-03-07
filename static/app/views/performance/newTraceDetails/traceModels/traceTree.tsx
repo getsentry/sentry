@@ -471,7 +471,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     for (const span of spanNodes) {
       // If the span has no parent span id, nest it under the root
       const parent = span.value.parent_span_id
-        ? spanIdToNode.get(span.value.parent_span_id) ?? node
+        ? (spanIdToNode.get(span.value.parent_span_id) ?? node)
         : node;
 
       span.parent = parent;
@@ -778,7 +778,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         {
           ...head.value,
           autogrouped_by: {
-            op: head.value && 'op' in head.value ? head.value.op ?? '' : '',
+            op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
         },
         {

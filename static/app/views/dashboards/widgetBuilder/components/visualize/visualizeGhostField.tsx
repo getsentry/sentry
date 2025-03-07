@@ -139,20 +139,22 @@ function VisualizeGhostField({
                       {
                         label:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field,
                         value:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field!,
                       },
                     ]}
                     value={
                       draggingField?.kind === FieldValueKind.FUNCTION
-                        ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                            ?.arguments[0] ?? ''
+                        ? (parseFunction(fields?.map(generateFieldAsString)[activeId]!)
+                            ?.arguments[0] ?? '')
                         : draggingField?.field
                     }
                     onChange={() => {}}
