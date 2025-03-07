@@ -28,7 +28,6 @@ import {
   getHiddenOptions,
 } from 'sentry/components/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
@@ -509,14 +508,13 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     return () => {};
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
-  const autosizeCallbackRef = useAutosizeInput({value: inputValue});
-
   return (
     <Wrapper>
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs([ref, inputRef, triggerProps.ref, autosizeCallbackRef])}
+        autosize
+        ref={mergeRefs([ref, inputRef, triggerProps.ref])}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}

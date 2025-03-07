@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Tooltip} from 'sentry/components/tooltip';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 interface IssueViewNavEditableTitleProps {
   isDragging: boolean;
@@ -87,8 +85,6 @@ function IssueViewNavEditableTitle({
     setInputValue(e.target.value);
   };
 
-  const autosizeCallbackRef = useAutosizeInput({value: inputValue});
-
   return (
     <Tooltip
       title={label}
@@ -99,11 +95,12 @@ function IssueViewNavEditableTitle({
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isEditing ? (
           <StyledInput
+            autosize
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
             onBlur={handleOnBlur}
-            ref={mergeRefs([inputRef, autosizeCallbackRef])}
+            ref={inputRef}
             style={memoizedStyles}
             isEditing={isEditing}
             maxLength={128}

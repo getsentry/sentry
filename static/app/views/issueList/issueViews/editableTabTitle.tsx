@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Tooltip} from 'sentry/components/tooltip';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 interface EditableTabTitleProps {
   isEditing: boolean;
@@ -87,14 +85,13 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  const autosizeCallbackRef = useAutosizeInput({value: inputValue});
-
   return (
     <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isSelected && isEditing && !disableEditing ? (
           <StyledInput
-            ref={mergeRefs([inputRef, autosizeCallbackRef])}
+            ref={inputRef}
+            autosize
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}

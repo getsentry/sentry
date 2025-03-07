@@ -17,7 +17,6 @@ import {
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -166,21 +165,17 @@ function ComboBox<Value extends string>({
     [inputProps.onFocus, menuTrigger, state]
   );
 
-  const autosizeCallbackRef = useAutosizeInput({
-    value: inputProps.value,
-    disabled: !growingInput,
-  });
-
   return (
     <ControlWrapper className={className}>
       {!state.isFocused && <InteractionStateLayer />}
       <StyledInput
         {...inputProps}
+        autosize={growingInput}
         onClick={handleInputClick}
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
         onFocus={handleInputFocus}
-        ref={mergeRefs([inputRef, triggerProps.ref, autosizeCallbackRef])}
+        ref={mergeRefs([inputRef, triggerProps.ref])}
         size={size}
       />
       <StyledPositionWrapper

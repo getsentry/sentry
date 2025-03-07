@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useRef} from 'react';
+import {useCallback, useLayoutEffect, useRef} from 'react';
 
 /**
  * This hook is used to automatically resize an input element based on its content.
@@ -11,9 +11,24 @@ import {useCallback, useRef} from 'react';
  * @returns A ref callback for the input element.
  */
 export function useAutosizeInput(
-  options: UseAutosizeInputOptions = {}
+  options: {
+    disabled?: boolean;
+    value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
+  } = {}
 ): React.RefCallback<HTMLInputElement> {
   const sourceRef = useRef<HTMLInputElement | null>(null);
+
+  // A controlled input value change does not trigger a change event,
+  // so we need to manually observe the value...
+  useLayoutEffect(() => {
+    if (options.disabled) {
+      return;
+    }
+
+    if (sourceRef.current) {
+      resize(sourceRef.current);
+    }
+  }, [options.value, options.disabled]);
 
   const onInputChange = useCallback((_event: any) => {
     if (sourceRef.current) {
@@ -25,14 +40,13 @@ export function useAutosizeInput(
     (element: HTMLInputElement | null) => {
       if (options.disabled || !element) {
         if (sourceRef.current) {
-          sourceRef.current.removeEventListener('change', onInputChange);
+          sourceRef.current.removeEventListener('input', onInputChange);
         }
-        sourceRef.current = null;
-        return;
+      } else {
+        resize(element);
+        element.addEventListener('input', onInputChange);
       }
 
-      resize(element);
-      element.addEventListener('value', onInputChange);
       sourceRef.current = element;
     },
     [onInputChange, options.disabled]
@@ -59,7 +73,7 @@ function createSizingDiv(referenceStyles: CSSStyleDeclaration) {
 }
 
 function resize(input: HTMLInputElement) {
-  const computedStyles = window.getComputedStyle(input);
+  const computedStyles = getComputedStyle(input);
 
   const sizingDiv = createSizingDiv(computedStyles);
   sizingDiv.innerText = input.value || input.placeholder;
@@ -68,17 +82,11 @@ function resize(input: HTMLInputElement) {
   const newTotalInputSize =
     sizingDiv.offsetWidth +
     // parseInt is save here as the computed styles are always in px
-    parseInt(computedStyles.paddingLeft, 10) +
-    parseInt(computedStyles.paddingRight, 10) +
-    parseInt(computedStyles.borderWidth, 10) * 2 +
+    parseInt(computedStyles.paddingLeft ?? 0, 10) +
+    parseInt(computedStyles.paddingRight ?? 0, 10) +
+    parseInt(computedStyles.borderWidth ?? 0, 10) * 2 +
     1; // Add 1px to account for cursor width in Safari
 
   document.body.removeChild(sizingDiv);
-
   input.style.width = `${newTotalInputSize}px`;
-}
-
-interface UseAutosizeInputOptions {
-  disabled?: boolean;
-  value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
