@@ -434,7 +434,7 @@ class SpanFlusher(ProcessingStrategy[int]):
                 time.sleep(1)
                 continue
 
-            self.enable_backpressure = flushed_segments == self.max_segments
+            self.enable_backpressure = len(flushed_segments) == self.max_segments
 
             for segment_id, spans_set in flushed_segments.items():
                 # TODO: Check if this is correctly placed
