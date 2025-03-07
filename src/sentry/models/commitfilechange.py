@@ -48,13 +48,16 @@ class CommitFileChange(Model):
 
 
 def process_resource_change(instance, **kwargs):
+    from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
     from sentry.integrations.github.integration import GitHubIntegration
     from sentry.integrations.gitlab.integration import GitlabIntegration
     from sentry.tasks.codeowners import code_owners_auto_sync
 
     def _spawn_task():
-        filepaths = set(GitHubIntegration.codeowners_locations) | set(
-            GitlabIntegration.codeowners_locations
+        filepaths = (
+            set(GitHubIntegration.codeowners_locations)
+            | set(GitlabIntegration.codeowners_locations)
+            | set(BitbucketServerIntegration.codeowners_locations)
         )
 
         # CODEOWNERS file added or modified, trigger auto-sync

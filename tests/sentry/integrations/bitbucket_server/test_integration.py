@@ -1,3 +1,4 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
@@ -7,15 +8,32 @@ from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
 
 
 @control_silo_test
 class BitbucketServerIntegrationTest(IntegrationTestCase):
     provider = BitbucketServerIntegrationProvider
+
+    @cached_property
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def integration(self):
+        integration = Integration.objects.create(
+            provider=self.provider.key,
+            name="Bitbucket Server",
+            external_id="bitbucket_server:1",
+            metadata={
+                "base_url": "https://bitbucket.example.com",
+                "domain_name": "bitbucket.example.com",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
 
     def test_config_view(self):
         resp = self.client.get(self.init_path)
@@ -348,3 +366,113 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             integration.external_id
             == "bitbucket.example.com:a-very-long-consumer-key-that-when-combine"
         )
+
+    def test_source_url_matches(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        test_cases = [
+            (
+                "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=main",
+                True,
+            ),
+            (
+                "https://notbitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=main",
+                False,
+            ),
+            (
+                "https://jianyuan.io",
+                False,
+            ),
+        ]
+
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    def test_format_source_url(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="TEST/sentry",
+                url="https://bitbucket.example.com/projects/TEST/repos/sentry/browse",
+                provider=self.provider.key,
+                external_id=123,
+                config={"name": "TEST/sentry", "project": "TEST", "repo": "sentry"},
+                integration_id=self.integration.id,
+            )
+
+        assert (
+            installation.format_source_url(
+                repo, "src/sentry/integrations/bitbucket_server/integration.py", None
+            )
+            == "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py"
+        )
+        assert (
+            installation.format_source_url(
+                repo, "src/sentry/integrations/bitbucket_server/integration.py", "main"
+            )
+            == "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=main"
+        )
+
+    def test_extract_branch_from_source_url(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="TEST/sentry",
+                url="https://bitbucket.example.com/projects/TEST/repos/sentry/browse",
+                provider=self.provider.key,
+                external_id=123,
+                config={"name": "TEST/sentry", "project": "TEST", "repo": "sentry"},
+                integration_id=self.integration.id,
+            )
+
+        # ?at=main
+        assert (
+            installation.extract_branch_from_source_url(
+                repo,
+                "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=main",
+            )
+            == "main"
+        )
+        # ?at=refs/heads/main
+        assert (
+            installation.extract_branch_from_source_url(
+                repo,
+                "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=refs%2Fheads%2Fmain",
+            )
+            == "main"
+        )
+
+    def test_extract_source_path_from_source_url(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="TEST/sentry",
+                url="https://bitbucket.example.com/projects/TEST/repos/sentry/browse",
+                provider=self.provider.key,
+                external_id=123,
+                config={"name": "TEST/sentry", "project": "TEST", "repo": "sentry"},
+                integration_id=self.integration.id,
+            )
+
+        test_cases = [
+            (
+                "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py",
+                "src/sentry/integrations/bitbucket_server/integration.py",
+            ),
+            (
+                "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=main",
+                "src/sentry/integrations/bitbucket_server/integration.py",
+            ),
+            (
+                "https://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/sentry/integrations/bitbucket_server/integration.py?at=refs%2Fheads%2Fmain",
+                "src/sentry/integrations/bitbucket_server/integration.py",
+            ),
+        ]
+        for source_url, expected in test_cases:
+            assert installation.extract_source_path_from_source_url(repo, source_url) == expected
