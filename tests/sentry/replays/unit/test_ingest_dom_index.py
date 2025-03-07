@@ -1199,6 +1199,7 @@ def test_parse_clicks_with_replay_event_and_environment(default_project):
     replay_actions = parse_replay_actions(
         default_project, "1", 30, events, mock_replay_event(environment="dev")
     )
+    assert replay_actions is not None
     assert isinstance(replay_actions["payload"], list)
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["environment"] == "dev"
@@ -1247,6 +1248,7 @@ def test_parse_clicks_with_replay_event_null_environment(default_project):
     replay_actions = parse_replay_actions(
         default_project, "1", 30, events, mock_replay_event(environment=None)
     )
+    assert replay_actions is not None
     assert isinstance(replay_actions["payload"], list)
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["environment"] == ""
@@ -1293,6 +1295,7 @@ def test_parse_clicks_no_replay_event(default_project):
 
     default_project.update_option("sentry:replay_rage_click_issues", True)
     replay_actions = parse_replay_actions(default_project, "1", 30, events, None)
+    assert replay_actions is not None
     assert isinstance(replay_actions["payload"], list)
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["environment"] == ""
@@ -1310,7 +1313,7 @@ def test_parse_clicks_no_replay_event(default_project):
 def test_emit_click_events_environment_handling(test_environment, expected_environment):
     click_events = [
         ClickEvent(
-            timestamp=1.0,
+            timestamp=1,
             node_id=1,
             tag="div",
             text="test",
