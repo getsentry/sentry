@@ -11,7 +11,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Detector} from 'sentry/views/detectors/components/detectorListRow';
+import type {Detector} from 'sentry/views/detectors/components/detectorListRow';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
 
 export default function DetectorsList() {

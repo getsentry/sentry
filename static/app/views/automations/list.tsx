@@ -11,7 +11,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Automation} from 'sentry/views/automations/components/automationListRow';
+import type {Automation} from 'sentry/views/automations/components/automationListRow';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
 
 const automations: Automation[] = [
