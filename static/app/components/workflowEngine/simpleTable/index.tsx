@@ -1,5 +1,4 @@
-import {type CSSProperties, useCallback, useRef} from 'react';
-import {useResizeObserver} from '@react-aria/utils';
+import type {CSSProperties} from 'react';
 
 import {
   Body as Panel,
@@ -39,14 +38,6 @@ export function SimpleTable<
   ColumnId extends string = keyof Data extends string ? keyof Data : string,
 >({columns, data, fallback}: TableProps<Data, ColumnId>) {
   const columnIds = Object.keys(columns ?? data.at(0) ?? {}) as unknown as ColumnId[];
-  const tableRef = useRef<HTMLTableElement>(null);
-  const onResize = useCallback(() => {
-    if (!tableRef.current) {
-      return;
-    }
-  }, [tableRef]);
-  useResizeObserver({ref: tableRef, onResize});
-
   const gridTemplateColumns = columnIds
     .map(colId => columns?.[colId]?.width ?? 'minmax(0, 1fr)')
     .join(' ');
@@ -54,7 +45,6 @@ export function SimpleTable<
   return (
     <Panel>
       <Grid
-        ref={tableRef}
         /** override grid-template-columns */
         style={{gridTemplateColumns}}
       >
