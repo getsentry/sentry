@@ -10,13 +10,13 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 import type {LegendSelection, Release, TimeSeries} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
-import {shiftTimeSeriesToNow} from './shiftTimeSeriesToNow';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax

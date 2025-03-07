@@ -17,6 +17,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
@@ -42,8 +43,8 @@ _logger = logging.getLogger(__name__)
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: float,
     new_status: IncidentStatus,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
@@ -70,8 +71,19 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
     attachment: SlackBlock = SlackIncidentsMessageBuilder(
-        incident, new_status, metric_value, chart_url, notification_uuid
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        open_period_identifier=incident.identifier,
+        organization=organization,
+        snuba_query=incident.alert_rule.snuba_query,
+        new_status=new_status,
+        date_started=incident.date_started,
+        metric_value=metric_value,
+        chart_url=chart_url,
+        notification_uuid=notification_uuid,
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}

@@ -9,14 +9,14 @@ describe('Switch', () => {
   });
 
   it('checked', () => {
-    render(<Switch checked />);
+    render(<Switch checked onChange={jest.fn()} />);
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
   it('disallows toggling a disabled switch', async () => {
     const onClick = jest.fn();
 
-    render(<Switch disabled onClick={onClick} />);
+    render(<Switch disabled onChange={onClick} />);
 
     const switchButton = screen.getByRole('checkbox');
     expect(switchButton).not.toBeChecked();

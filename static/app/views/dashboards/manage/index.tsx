@@ -449,7 +449,7 @@ function ManageDashboards() {
                         <Switch
                           checked={showTemplates}
                           size="lg"
-                          onClick={toggleTemplates}
+                          onChange={toggleTemplates}
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />

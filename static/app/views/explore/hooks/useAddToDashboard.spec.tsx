@@ -89,6 +89,95 @@ describe('AddToDashboardButton', () => {
     );
   });
 
+  it.each([
+    {
+      chartType: ChartType.AREA,
+      expectedDisplayType: DisplayType.AREA,
+    },
+    {
+      chartType: ChartType.BAR,
+      expectedDisplayType: DisplayType.BAR,
+    },
+    {
+      chartType: ChartType.LINE,
+      expectedDisplayType: DisplayType.LINE,
+    },
+  ])(
+    'opens the dashboard modal with display type $expectedDisplayType for chart type $chartType',
+    async ({chartType, expectedDisplayType}) => {
+      render(
+        <PageParamsProvider>
+          <TestPage visualizeIndex={1} />
+        </PageParamsProvider>,
+        {disableRouterMocks: true}
+      );
+
+      act(() =>
+        setVisualizes([
+          {
+            yAxes: ['avg(span.duration)'],
+            chartType: ChartType.AREA,
+          },
+          {
+            yAxes: ['max(span.duration)'],
+            chartType,
+          },
+        ])
+      );
+
+      await userEvent.click(screen.getByText('Add to Dashboard'));
+
+      // The group by and the yAxes are encoded as the fields for the defaultTableQuery
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // For Add + Stay on Page
+          widget: {
+            title: 'Custom Widget',
+            displayType: expectedDisplayType,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['max(span.duration)'],
+                columns: [],
+                fields: ['max(span.duration)'],
+                conditions: '',
+                orderby: '-timestamp',
+                name: '',
+              },
+            ],
+          },
+
+          // For Open in Widget Builder
+          widgetAsQueryParams: expect.objectContaining({
+            dataset: WidgetType.SPANS,
+            defaultTableColumns: [
+              'id',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'transaction',
+              'timestamp',
+            ],
+            defaultTitle: 'Custom Widget',
+            defaultWidgetQuery:
+              'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
+            displayType: expectedDisplayType,
+            field: [
+              'id',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'transaction',
+              'timestamp',
+            ],
+          }),
+        })
+      );
+    }
+  );
+
   it('opens the dashboard modal with the correct query based on the visualize index', async () => {
     render(
       <PageParamsProvider>

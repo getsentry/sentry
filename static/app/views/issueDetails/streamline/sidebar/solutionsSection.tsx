@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,6 +44,41 @@ function SolutionsHubFeedbackButton({hidden}: {hidden: boolean}) {
   );
 }
 
+function SolutionsSectionContent({
+  group,
+  project,
+  event,
+}: {
+  event: Event | undefined;
+  group: Group;
+  project: Project;
+}) {
+  const aiConfig = useAiConfig(group, event, project);
+
+  if (aiConfig.hasSummary) {
+    if (aiConfig.hasAutofix) {
+      return (
+        <Summary>
+          <GroupSummaryWithAutofix
+            group={group}
+            event={event}
+            project={project}
+            preview
+          />
+        </Summary>
+      );
+    }
+
+    return (
+      <Summary>
+        <GroupSummary group={group} event={event} project={project} preview />
+      </Summary>
+    );
+  }
+
+  return null;
+}
+
 export default function SolutionsSection({
   group,
   project,
@@ -62,43 +98,6 @@ export default function SolutionsSection({
     aiConfig.needsGenAIConsent ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
-
-  const renderContent = () => {
-    if (aiConfig.needsGenAIConsent) {
-      return (
-        <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
-      );
-    }
-
-    if (aiConfig.hasSummary) {
-      return (
-        <Summary>
-          <GroupSummary group={group} event={event} project={project} preview />
-        </Summary>
-      );
-    }
-
-    if (!aiConfig.hasSummary && issueTypeConfig.resources) {
-      return (
-        <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
-          <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
-            <Resources
-              configResources={issueTypeConfig.resources}
-              eventPlatform={event?.platform}
-              group={group}
-            />
-          </ResourcesContent>
-          {!hasStreamlinedUI && (
-            <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
-              {isExpanded ? t('SHOW LESS') : t('READ MORE')}
-            </ExpandButton>
-          )}
-        </ResourcesWrapper>
-      );
-    }
-
-    return null;
-  };
 
   const titleComponent = (
     <HeaderContainer>
@@ -127,7 +126,26 @@ export default function SolutionsSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SolutionsSectionContainer>
-        {renderContent()}
+        {aiConfig.needsGenAIConsent ? (
+          <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
+        ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
+          <SolutionsSectionContent group={group} project={project} event={event} />
+        ) : issueTypeConfig.resources ? (
+          <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
+            <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
+              <Resources
+                configResources={issueTypeConfig.resources}
+                eventPlatform={event?.platform}
+                group={group}
+              />
+            </ResourcesContent>
+            {!hasStreamlinedUI && (
+              <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
+                {isExpanded ? t('SHOW LESS') : t('READ MORE')}
+              </ExpandButton>
+            )}
+          </ResourcesWrapper>
+        ) : null}
         {event && showCtaButton && (
           <SolutionsSectionCtaButton
             aiConfig={aiConfig}

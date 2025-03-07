@@ -6,6 +6,9 @@ import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkTag from './tag.chonk';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
@@ -62,7 +65,7 @@ export const Tag = forwardRef<HTMLDivElement, TagProps>(
   }
 );
 
-const StyledTag = styled('div')<{
+const TagPill = styled('div')<{
   type: NonNullable<TagProps['type']>;
 }>`
   font-size: ${p => p.theme.fontSizeSmall};
@@ -82,6 +85,8 @@ const StyledTag = styled('div')<{
     color: currentColor;
   }
 `;
+
+const StyledTag = withChonk(TagPill, ChonkTag.TagPill, ChonkTag.chonkTagPropMapping);
 
 const Text = styled('div')`
   overflow: hidden;

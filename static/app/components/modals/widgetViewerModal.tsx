@@ -15,9 +15,9 @@ import type {Client} from 'sentry/api';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Select} from 'sentry/components/core/select';
+import {SelectOption} from 'sentry/components/core/select/option';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Option from 'sentry/components/forms/controls/selectOption';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
@@ -38,6 +38,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
+  getAggregateAlias,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -284,15 +285,16 @@ function WidgetViewerModal(props: Props) {
       ? tableWidget.queries[0]!.fields
       : [...columns, ...aggregates];
 
-  // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
+  // Timeseries Widgets (Line, Area, Bar) allow the user to specify an orderby
   // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
-    widget.widgetType === WidgetType.DISCOVER &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
-    !fields.includes(rawOrderby)
+    // Normalize to the aggregate alias because we may still have widgets
+    // that store that format
+    !fields.map(getAggregateAlias).includes(getAggregateAlias(rawOrderby))
   ) {
     fields.push(rawOrderby);
     [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
@@ -894,7 +896,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>
-            <SelectControl
+            <Select
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -946,7 +948,7 @@ function WidgetViewerModal(props: Props) {
                     display: 'flex',
                   });
                   return (
-                    <Option
+                    <SelectOption
                       {...(highlightedQuery
                         ? {
                             ...containerProps,
