@@ -6,10 +6,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
-import type {Organization} from 'sentry/types/organization';
 import {descopeFeatureName} from 'sentry/utils';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -28,12 +27,12 @@ const PROVIDER_POPULARITY: Record<string, number> = {
 };
 
 type Props = {
-  organization: Organization;
   providerList: AuthProvider[];
   activeProvider?: AuthProvider;
 };
 
-function OrganizationAuthList({organization, providerList, activeProvider}: Props) {
+function OrganizationAuthList({providerList, activeProvider}: Props) {
+  const organization = useOrganization();
   const features = organization.features;
 
   // Sort provider list twice: first, by popularity,
@@ -118,7 +117,7 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
   );
 }
 
-export default withOrganization(OrganizationAuthList);
+export default OrganizationAuthList;
 
 // For tests
 export {OrganizationAuthList};
