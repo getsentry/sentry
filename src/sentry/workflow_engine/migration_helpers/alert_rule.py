@@ -708,7 +708,7 @@ def dual_update_migrated_alert_rule_trigger_action(
     }
 
     for field in LEGACY_ACTION_FIELDS:
-        if field in updated_fields:
+        if field in updated_fields and field not in updated_action_fields["config"].keys():
             updated_action_fields[field] = updated_fields[field]
 
     action.update(**updated_action_fields)
