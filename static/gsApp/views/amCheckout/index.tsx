@@ -697,8 +697,13 @@ class AMCheckout extends Component<Props, State> {
 
             {subscription.canCancel && (
               <CancelSubscription>
-                <Button to={`/settings/${organization.slug}/billing/cancel/`}>
-                  {t('Cancel Subscription')}
+                <Button
+                  to={`/settings/${organization.slug}/billing/cancel/`}
+                  disabled={subscription.cancelAtPeriodEnd}
+                >
+                  {subscription.cancelAtPeriodEnd
+                    ? t('Pending Cancellation')
+                    : t('Cancel Subscription')}
                 </Button>
               </CancelSubscription>
             )}

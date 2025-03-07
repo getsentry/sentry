@@ -12,7 +12,7 @@ import random
 from datetime import datetime
 from typing import Any, TypeIs, cast
 
-from sentry import features, options
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
@@ -110,9 +110,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 
 def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
     # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled") or not features.has(
-        "organizations:grouphash-metadata-creation", project.organization
-    ):
+    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
         return False
 
     # While we're backfilling metadata for existing grouphash records, if the load is too high, we
@@ -146,12 +144,10 @@ def create_or_update_grouphash_metadata_if_needed(
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={
-                    "grouphash_metadata_id": grouphash_metadata.id,
-                    "linked_metadata_id": grouphash.metadata.id if grouphash.metadata else None,
                     "grouphash_id": grouphash.id,
                     "grouphash_is_new": grouphash_is_new,
+                    "grouphash_has_group": bool(grouphash.group_id),
                     "event_id": event.event_id,
-                    "hash_basis": new_data["hash_basis"],
                     "hash": grouphash.hash,
                 },
             )
@@ -163,6 +159,18 @@ def create_or_update_grouphash_metadata_if_needed(
             # results and to reduce load and preserve the project's Seer rate limit.
             event.should_skip_seer = True
             return
+
+        # TODO: Temporary log to investigate race condition.
+        logger.info(
+            "grouphash_metadata.creation_race_condition.new_record",
+            extra={
+                "grouphash_id": grouphash.id,
+                "grouphash_is_new": grouphash_is_new,
+                "grouphash_has_group": bool(grouphash.group_id),
+                "event_id": event.event_id,
+                "hash": grouphash.hash,
+            },
+        )
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 

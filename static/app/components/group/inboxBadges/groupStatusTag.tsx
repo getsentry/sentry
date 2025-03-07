@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 
@@ -11,7 +11,7 @@ interface GroupStatusBadgeProps {
   dateAdded?: string;
   fontSize?: 'sm' | 'md';
   tooltip?: React.ReactNode;
-  type?: keyof Theme['tag'];
+  type?: TagProps['type'];
 }
 
 /**

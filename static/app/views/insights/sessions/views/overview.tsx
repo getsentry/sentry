@@ -20,8 +20,11 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
+import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
+import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
+import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -32,6 +35,32 @@ export function SessionsOverview() {
 
   const {view} = useDomainViewFilters();
   const [filters, setFilters] = useState<string[]>(['']);
+
+  const SESSION_HEALTH_CHARTS = (
+    <Fragment>
+      {view === FRONTEND_LANDING_SUB_PATH ? (
+        <ModuleLayout.Third>
+          <ErrorFreeSessionsChart />
+        </ModuleLayout.Third>
+      ) : view === MOBILE_LANDING_SUB_PATH ? (
+        <ModuleLayout.Third>
+          <CrashFreeSessionChart />
+        </ModuleLayout.Third>
+      ) : undefined}
+      <ModuleLayout.Third>
+        <SessionHealthCountChart />
+      </ModuleLayout.Third>
+      <ModuleLayout.Third>
+        <SessionHealthRateChart />
+      </ModuleLayout.Third>
+      <ModuleLayout.Half>
+        <UserHealthCountChart />
+      </ModuleLayout.Half>
+      <ModuleLayout.Half>
+        <UserHealthRateChart />
+      </ModuleLayout.Half>
+    </Fragment>
+  );
 
   return (
     <React.Fragment>
@@ -59,23 +88,16 @@ export function SessionsOverview() {
             </ModuleLayout.Full>
             {view === MOBILE_LANDING_SUB_PATH && (
               <Fragment>
-                <ModuleLayout.Half>
-                  <CrashFreeSessionChart />
-                </ModuleLayout.Half>
+                {SESSION_HEALTH_CHARTS}
                 <ModuleLayout.Full>
                   <FilterWrapper>
                     <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
                   </FilterWrapper>
-                  <ReleaseAdoption filters={filters} />
                   <ReleaseHealth filters={filters} />
                 </ModuleLayout.Full>
               </Fragment>
             )}
-            {view === FRONTEND_LANDING_SUB_PATH && (
-              <ModuleLayout.Third>
-                <ErrorFreeSessionsChart />
-              </ModuleLayout.Third>
-            )}
+            {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

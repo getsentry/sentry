@@ -72,7 +72,7 @@ export function getPythonFrame(frame: Frame): string {
   if (defined(frame.context)) {
     frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
-        result += '\n    ' + item[1].trim();
+        result += '\n    ' + item[1]?.trim();
       }
     });
   }
@@ -199,7 +199,7 @@ function getFrame(
 }
 
 export default function displayRawContent(
-  data: StacktraceType,
+  data: StacktraceType | null,
   platform?: string,
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature = false

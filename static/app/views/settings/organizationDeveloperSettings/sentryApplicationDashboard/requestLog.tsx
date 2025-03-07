@@ -5,7 +5,7 @@ import type moment from 'moment-timezone';
 
 import {Button, StyledButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -85,7 +85,7 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 function ResponseCode({code}: {code: number}) {
-  let type: React.ComponentProps<typeof Tag>['type'] = 'error';
+  let type: TagProps['type'] = 'error';
   if (code <= 399 && code >= 300) {
     type = 'warning';
   } else if (code <= 299 && code >= 100) {

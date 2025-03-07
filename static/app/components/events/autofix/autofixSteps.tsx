@@ -95,6 +95,7 @@ export function Step({
                   causes={step.causes}
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
+                  agentCommentThread={step.agent_comment_thread ?? undefined}
                   repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
@@ -105,11 +106,13 @@ export function Step({
                   groupId={groupId}
                   runId={runId}
                   solution={step.solution}
+                  description={step.description}
                   solutionSelected={step.solution_selected}
                   customSolution={step.custom_solution}
                   repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
+                  agentCommentThread={step.agent_comment_thread ?? undefined}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -119,6 +122,7 @@ export function Step({
                   runId={runId}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
+                  agentCommentThread={step.agent_comment_thread ?? undefined}
                 />
               )}
             </Fragment>

@@ -160,11 +160,11 @@ export class InstalledPlugin extends Component<Props> {
                 </Confirm>
               </div>
               <Switch
-                isActive={projectItem.enabled}
-                toggle={() =>
+                checked={projectItem.enabled}
+                onChange={() =>
                   this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
                 }
-                isDisabled={!hasAccess}
+                disabled={!hasAccess}
               />
             </IntegrationFlex>
           )}

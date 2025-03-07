@@ -5,7 +5,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import sentry_sdk
 from celery import Task, current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
@@ -24,11 +23,12 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
 )
-from sentry.sentry_apps.models.sentry_app import VALID_EVENTS, SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
@@ -70,7 +70,8 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError, SentryAppSentryError, AssertionError),
+    ignore=(ClientError,),
+    ignore_and_capture=(SentryAppSentryError, AssertionError),
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -221,33 +222,41 @@ def _process_resource_change(
     retryer: Task | None = None,
     **kwargs: Any,
 ) -> None:
+
+    # The class is serialized as a string when enqueueing the class.
+    model: type[Event] | type[Model] = TYPES[sender]
+    instance: Event | Model | None = None
+    # Make the event name first so we can add to metric tag
+    if sender == "Error":
+        name = sender.lower()
+    else:
+        # Some resources are named differently than their model. eg. Group vs Issue.
+        # Looks up the human name for the model. Defaults to the model name.
+        name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
+
+    try:
+        event = SentryAppEventType(f"{name}.{action}")
+    except ValueError as e:
+        raise SentryAppSentryError(
+            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
+        ) from e
+
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
-        event_type=f"process_resource_change.{sender}_{action}",
-    ).capture() as lifecycle:
-
-        # The class is serialized as a string when enqueueing the class.
-        model: type[Event] | type[Model] = TYPES[sender]
-        instance: Event | Model | None = None
-
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK, event_type=event
+    ).capture():
         project_id: int | None = kwargs.get("project_id", None)
         group_id: int | None = kwargs.get("group_id", None)
+
         if sender == "Error" and project_id and group_id:
             # Read event from nodestore as Events are heavy in task messages.
             nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
             if not nodedata:
                 raise SentryAppSentryError(
                     message=f"{SentryAppWebhookFailureReason.MISSING_EVENT}",
-                    webhook_context={"sender": sender, "action": action, "event_id": instance_id},
                 )
             instance = Event(
                 project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
             )
-            name = sender.lower()
-        else:
-            # Some resources are named differently than their model. eg. Group vs Issue.
-            # Looks up the human name for the model. Defaults to the model name.
-            name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
         # By default, use Celery's `current_task` but allow a value to be passed for the
         # bound Task.
@@ -262,14 +271,6 @@ def _process_resource_change(
                 # Explicitly requeue the task, so we don't report this to Sentry until
                 # we hit the max number of retries.
                 return retryer.retry(exc=e)
-
-        event = f"{name}.{action}"
-        lifecycle.add_extras(extras={"event_name": event, "instance_id": instance_id})
-
-        if event not in VALID_EVENTS:
-            raise SentryAppSentryError(
-                message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-            )
 
         org = None
 
@@ -299,7 +300,7 @@ def _process_resource_change(
 
                 # Trigger a new task for each webhook
                 send_resource_change_webhook.delay(
-                    installation_id=installation.id, event=event, data=data
+                    installation_id=installation.id, event=str(event), data=data
                 )
 
 
@@ -310,13 +311,9 @@ def _process_resource_change(
 def process_resource_change_bound(
     self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
-    try:
-        _process_resource_change(
-            action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
-        )
-    except (AssertionError, SentryAppSentryError) as e:
-        sentry_sdk.capture_exception(e)
-        return
+    _process_resource_change(
+        action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
+    )
 
 
 @instrumented_task(
@@ -480,27 +477,17 @@ def send_resource_change_webhook(
     installation_id: int, event: str, data: dict[str, Any], *args: Any, **kwargs: Any
 ) -> None:
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
-    ).capture() as lifecycle:
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=SentryAppEventType(event)
+    ).capture():
         installation = app_service.installation_by_id(id=installation_id)
         if not installation:
-            error = SentryAppSentryError(
-                message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
-                webhook_context={"installation_id": installation_id, "event": event},
+            raise SentryAppSentryError(
+                message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
-            sentry_sdk.capture_exception(error)
-            raise error
 
-        try:
-            send_webhooks(installation, event, data=data)
-        except SentryAppSentryError as e:
-            sentry_sdk.capture_exception(e)
-            raise
-        except (ApiHostError, ApiTimeoutError, RequestException, ClientError) as e:
-            lifecycle.record_halt(e)
-            raise
+    send_webhooks(installation, event, data=data)
 
-        metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
+    metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
@@ -534,55 +521,62 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
-    servicehook: ServiceHook
-    extras: dict[str, int | str] = {"installation_id": installation.id, "event": event}
     try:
-        servicehook = ServiceHook.objects.get(
-            organization_id=installation.organization_id, actor_id=installation.id
-        )
-    except ServiceHook.DoesNotExist:
+        event = SentryAppEventType(event)
+    except ValueError as e:
         raise SentryAppSentryError(
-            message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK, webhook_context=extras
-        )
-    if event not in servicehook.events:
-        raise SentryAppSentryError(
-            message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK, webhook_context=extras
-        )
+            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
+        ) from e
 
-    # The service hook applies to all projects if there are no
-    # ServiceHookProject records. Otherwise we want check if
-    # the event is within the allowed projects.
-    project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
+    ).capture():
+        servicehook: ServiceHook
+        try:
+            servicehook = ServiceHook.objects.get(
+                organization_id=installation.organization_id, actor_id=installation.id
+            )
+        except ServiceHook.DoesNotExist:
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+        if event not in servicehook.events:
+            raise SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
+            )
 
-    # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
-    # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
-    # # Make sure we don't send the request, to prevent potential infinite loops
-    # if (
-    #     event == "error.created"
-    #     and installation.organization_id == installation.sentry_app.owner_id
-    # ):
-    #     # We just want to exclude error.created from the project that the integration lives in
-    #     # Need to first implement project mapping for integration partners
-    #     metrics.incr(
-    #         "webhook_request.dropped",
-    #         tags={"sentry_app": installation.sentry_app.id, "event": event},
-    #     )
-    #     return
+        # The service hook applies to all projects if there are no
+        # ServiceHookProject records. Otherwise we want check if
+        # the event is within the allowed projects.
+        project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
 
-    if not project_limited:
-        resource, action = event.split(".")
+        # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
+        # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
+        # # Make sure we don't send the request, to prevent potential infinite loops
+        # if (
+        #     event == "error.created"
+        #     and installation.organization_id == installation.sentry_app.owner_id
+        # ):
+        #     # We just want to exclude error.created from the project that the integration lives in
+        #     # Need to first implement project mapping for integration partners
+        #     metrics.incr(
+        #         "webhook_request.dropped",
+        #         tags={"sentry_app": installation.sentry_app.id, "event": event},
+        #     )
+        #     return
 
-        kwargs["resource"] = resource
-        kwargs["action"] = action
-        kwargs["install"] = installation
+        if not project_limited:
+            resource, action = event.split(".")
 
-        request_data = AppPlatformEvent(**kwargs)
+            kwargs["resource"] = resource
+            kwargs["action"] = action
+            kwargs["install"] = installation
 
-        send_and_save_webhook_request(
-            installation.sentry_app,
-            request_data,
-            installation.sentry_app.webhook_url,
-        )
+            request_data = AppPlatformEvent(**kwargs)
+
+    send_and_save_webhook_request(
+        installation.sentry_app,
+        request_data,
+        installation.sentry_app.webhook_url,
+    )
 
 
 @instrumented_task(

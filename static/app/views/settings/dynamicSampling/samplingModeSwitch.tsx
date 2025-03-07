@@ -48,9 +48,9 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
       >
         <Switch
           size="lg"
-          toggle={handleSwitchMode}
-          isDisabled={!hasAccess}
-          isActive={samplingMode === 'project'}
+          onChange={handleSwitchMode}
+          disabled={!hasAccess}
+          checked={samplingMode === 'project'}
         />
       </Tooltip>
     </Wrapper>

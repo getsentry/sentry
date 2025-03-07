@@ -15,8 +15,13 @@ from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.organization import Organization
-from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppWebhookFailureReason,
+    SentryAppWebhookHaltReason,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -129,7 +134,13 @@ def send_and_save_webhook_request(
     """
     from sentry.sentry_apps.metrics import SentryAppInteractionEvent, SentryAppInteractionType
 
-    event = f"{app_platform_event.resource}.{app_platform_event.action}"
+    try:
+        event = SentryAppEventType(f"{app_platform_event.resource}.{app_platform_event.action}")
+    except ValueError as e:
+        raise SentryAppSentryError(
+            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
+        ) from e
+
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
     ).capture() as lifecycle:
