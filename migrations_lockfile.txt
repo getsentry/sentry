@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0839_add_visibility_column_to_groupsearchview
+sentry: 0840_savedsearch_type_non_null
 
 social_auth: 0002_default_auto_field
 
