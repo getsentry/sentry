@@ -67,7 +67,10 @@ def process_message(
     message: Message[KafkaPayload],
 ) -> ProcessedRecordingMessage | FilteredPayload | KafkaPayload:
     if random.randint(0, 100) > options.get("replay.consumer.recording.beta-rollout"):
+        sentry_sdk.set_tag("replay.consumer.recording.beta", False)
         return message.payload
+
+    sentry_sdk.set_tag("replay.consumer.recording.beta", True)
 
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
