@@ -203,7 +203,7 @@ def send_alert_webhook(
             "alert_rule_ui_component_webhook.sent",
             organization_id=organization.id,
             sentry_app_id=sentry_app_id,
-            event=f"{request_data.resource}.{request_data.action}",
+            event=str(SentryAppEventType.EVENT_ALERT_TRIGGERED),
         )
 
 
