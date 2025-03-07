@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
@@ -77,10 +78,9 @@ function useQuotaExceededAlertMessage(
     />
   );
 
-  const subscriptionRenewalDate = getFormattedDate(
-    new Date(subscription.renewalDate),
-    DATE_FORMAT
-  );
+  const periodRenewalDate = moment(subscription.onDemandPeriodEnd)
+    .add(1, 'days')
+    .format('ll');
 
   if (!formattedDateRange) {
     return subscription?.onDemandBudgets?.enabled
@@ -88,21 +88,21 @@ function useQuotaExceededAlertMessage(
         ? tct(
             'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your on-demand budget].',
             {
-              subscriptionRenewalDate,
+              periodRenewalDate,
               billingPageLink,
             }
           )
         : tct(
-            'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your pay-as-you-go budget].',
+            'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your pay-as-you-go budget].',
             {
-              subscriptionRenewalDate,
+              periodRenewalDate,
               billingPageLink,
             }
           )
       : tct(
-          'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].',
+          'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].',
           {
-            subscriptionRenewalDate,
+            periodRenewalDate,
             billingPageLink,
           }
         );
@@ -112,9 +112,9 @@ function useQuotaExceededAlertMessage(
   return subscription?.onDemandBudgets?.enabled
     ? ['am1', 'am2'].includes(subscription.planTier)
       ? tct(
-          'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. [rest]',
+          'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
           {
-            subscriptionRenewalDate,
+            periodRenewalDate,
             rest: period
               ? tct(
                   'If you need more, [billingPageLink: increase your on-demand budget] or adjust your date range prior to [formattedDateRange].',
@@ -133,9 +133,9 @@ function useQuotaExceededAlertMessage(
           }
         )
       : tct(
-          'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. [rest]',
+          'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
           {
-            subscriptionRenewalDate,
+            periodRenewalDate,
             rest: period
               ? tct(
                   'If you need more, [billingPageLink: increase your pay-as-you-go budget] or adjust your date range prior to [formattedDateRange].',
@@ -154,9 +154,9 @@ function useQuotaExceededAlertMessage(
           }
         )
     : tct(
-        'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. [rest]',
+        'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
         {
-          subscriptionRenewalDate,
+          periodRenewalDate,
           rest: period
             ? tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range prior to [formattedDateRange].',
