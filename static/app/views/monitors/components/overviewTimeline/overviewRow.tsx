@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -92,6 +93,15 @@ export function OverviewRow({
         query,
       };
 
+  const canDisable = hasEveryAccess(['alerts:write'], {
+    organization,
+    project: monitor.project,
+  });
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
       <DetailsLink to={to}>
@@ -126,6 +136,8 @@ export function OverviewRow({
             monitor={monitor}
             size="xs"
             onToggleStatus={status => onToggleStatus(monitor, status)}
+            disabled={!canDisable}
+            title={!canDisable ? permissionTooltipText : undefined}
           />
         )}
       </DetailsActions>
