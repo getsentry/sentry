@@ -4,6 +4,7 @@ import dataclasses
 import logging
 from enum import Enum, IntEnum, StrEnum
 from typing import Any
+from venv import create
 
 from django.apps.registry import Apps
 from django.db import migrations, router, transaction
@@ -272,9 +273,11 @@ def _migrate_trigger_action(apps: Apps, trigger_action: Any, condition_group_id:
         type=action_type,
         data=data,
         integration_id=trigger_action.integration_id,
-        target_display=trigger_action.target_display,
-        target_identifier=target_identifier,
-        target_type=trigger_action.target_type,
+        config={
+            "target_display": trigger_action.target_display,
+            "target_identifier": target_identifier,
+            "target_type": trigger_action.target_type,
+        },
     )
     DataConditionGroupAction.objects.create(
         condition_group_id=condition_group_id,
@@ -322,7 +325,7 @@ def _create_detector(
     detector = Detector.objects.create(
         project_id=project.id,
         enabled=enabled,
-        created_by_id=create_activity.user_id,
+        created_by_id=create_activity.user_id if create_activity else None,
         name=alert_rule.name,
         workflow_condition_group=data_condition_group,
         type="metric_alert_fire",
@@ -487,9 +490,9 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             pass
                         enabled = True if snoozed is None else False
 
-                        create_activity = AlertRuleActivity.objects.get(
+                        create_activity = AlertRuleActivity.objects.filter(
                             alert_rule_id=alert_rule.id, type=AlertRuleActivityType.CREATED.value
-                        )
+                        ).first()
 
                         # create data source
                         data_source = _create_data_source(apps, alert_rule)
@@ -513,7 +516,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             organization_id=organization_id,
                             when_condition_group=None,
                             enabled=True,
-                            created_by_id=create_activity.user_id,
+                            created_by_id=create_activity.user_id if create_activity else None,
                             config={},
                         )
                         Workflow.objects.filter(id=workflow.id).update(
@@ -545,6 +548,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             extra={"alert_rule_id": alert_rule.id},
                         )
                 except Exception as e:
+                    raise
                     logger.info(
                         "error when migrating alert rule",
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
