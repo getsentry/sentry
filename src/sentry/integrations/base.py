@@ -356,22 +356,18 @@ class IntegrationInstallation(abc.ABC):
     def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration: RpcOrganizationIntegration | None
 
-    @property
-    def org_integration(self) -> RpcOrganizationIntegration | None:
+    @cached_property
+    def org_integration(self) -> RpcOrganizationIntegration:
         from sentry.integrations.services.integration import integration_service
 
-        if not hasattr(self, "_org_integration"):
-            self._org_integration = integration_service.get_organization_integration(
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-            )
-        return self._org_integration
-
-    @org_integration.setter
-    def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
-        self._org_integration = org_integration
+        integration = integration_service.get_organization_integration(
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+        )
+        if integration is None:
+            raise NotFound("missing org_integration")
+        return integration
 
     @cached_property
     def organization(self) -> RpcOrganization:
@@ -401,10 +397,12 @@ class IntegrationInstallation(abc.ABC):
 
         config = self.org_integration.config
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def get_config_data(self) -> Mapping[str, str]:
         if not self.org_integration:
@@ -435,16 +433,19 @@ class IntegrationInstallation(abc.ABC):
 
     def get_default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
-        if self.org_integration is None or self.org_integration.default_auth_id is None:
+        try:
+            org_integration = self.org_integration
+        except NotFound:
             raise Identity.DoesNotExist
-        identity = identity_service.get_identity(
-            filter={"id": self.org_integration.default_auth_id}
-        )
+        else:
+            if org_integration.default_auth_id is None:
+                raise Identity.DoesNotExist
+        identity = identity_service.get_identity(filter={"id": org_integration.default_auth_id})
         if identity is None:
             scope = Scope.get_isolation_scope()
             scope.set_tag("integration_provider", self.model.get_provider().name)
-            scope.set_tag("org_integration_id", self.org_integration.id)
-            scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            scope.set_tag("org_integration_id", org_integration.id)
+            scope.set_tag("default_auth_id", org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 
