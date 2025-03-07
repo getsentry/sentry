@@ -96,9 +96,14 @@ class HandleTriggerActionTest(TestCase):
                     IncidentStatus.CRITICAL.value,
                     metric_value=metric_value,
                 )
-            mock_handler.assert_called_once_with(self.action, incident, self.project)
+            mock_handler.assert_called_once_with()
             mock_handler.return_value.fire.assert_called_once_with(
-                metric_value, IncidentStatus.CRITICAL, str(activity.notification_uuid)
+                self.action,
+                incident,
+                self.project,
+                metric_value,
+                IncidentStatus.CRITICAL,
+                str(activity.notification_uuid),
             )
 
 

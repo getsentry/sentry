@@ -152,15 +152,15 @@ class HandleSnubaQueryUpdateTest(TestCase):
             assert active_incident().exists()
 
         assert len(mail.outbox) == 1
-        handler = EmailActionHandler(self.action, active_incident().get(), self.project)
-        incident_activity = IncidentActivity.objects.filter(incident=handler.incident).order_by(
-            "-id"
-        )[0]
+        handler = EmailActionHandler()
+        incident_activity = IncidentActivity.objects.filter(
+            incident=active_incident().get()
+        ).order_by("-id")[0]
         message_builder = handler.build_message(
             generate_incident_trigger_email_context(
-                handler.project,
-                handler.incident,
-                handler.action.alert_rule_trigger,
+                self.project,
+                active_incident().get(),
+                self.trigger,
                 TriggerStatus.ACTIVE,
                 IncidentStatus.CRITICAL,
                 notification_uuid=str(incident_activity.notification_uuid),

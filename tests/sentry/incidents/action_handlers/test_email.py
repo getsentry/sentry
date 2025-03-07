@@ -50,9 +50,9 @@ class EmailActionHandlerTest(FireTest):
             target_identifier=str(self.user.id),
             triggered_for_incident=incident,
         )
-        handler = EmailActionHandler(action, incident, self.project)
+        handler = EmailActionHandler()
         with self.tasks():
-            handler.fire(1000, IncidentStatus(incident.status))
+            handler.fire(action, incident, self.project, 1000, IncidentStatus(incident.status))
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == "[{}] {} - {}".format(
@@ -81,6 +81,10 @@ class EmailActionHandlerTest(FireTest):
 
 
 class EmailActionHandlerGetTargetsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.handler = EmailActionHandler()
+
     @cached_property
     def incident(self):
         return self.create_incident()
@@ -90,8 +94,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == [(self.user.id, self.user.email)]
+        assert self.handler.get_targets(action, self.incident, self.project) == [
+            (self.user.id, self.user.email)
+        ]
 
     def test_rule_snoozed_by_user(self):
         action = self.create_alert_rule_trigger_action(
@@ -99,18 +104,16 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.user.id),
         )
 
-        handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(user_id=self.user.id, alert_rule=self.incident.alert_rule)
-        assert handler.get_targets() == []
+        assert self.handler.get_targets(action, self.incident, self.project) == []
 
     def test_user_rule_snoozed(self):
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(alert_rule=self.incident.alert_rule)
-        assert handler.get_targets() == []
+        assert self.handler.get_targets(action, self.incident, self.project) == []
 
     def test_user_alerts_disabled(self):
         with assume_test_silo_mode_of(NotificationSettingOption):
@@ -125,8 +128,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == [(self.user.id, self.user.email)]
+        assert self.handler.get_targets(action, self.incident, self.project) == [
+            (self.user.id, self.user.email)
+        ]
 
     def test_team(self):
         new_user = self.create_user()
@@ -135,8 +139,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == {
+        assert set(self.handler.get_targets(action, self.incident, self.project)) == {
             (self.user.id, self.user.email),
             (new_user.id, new_user.email),
         }
@@ -148,9 +151,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(user_id=new_user.id, alert_rule=self.incident.alert_rule)
-        assert set(handler.get_targets()) == {
+        assert set(self.handler.get_targets(action, self.incident, self.project)) == {
             (self.user.id, self.user.email),
         }
 
@@ -161,9 +163,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(alert_rule=self.incident.alert_rule)
-        assert handler.get_targets() == []
+        assert self.handler.get_targets(action, self.incident, self.project) == []
 
     def test_team_alert_disabled(self):
         with assume_test_silo_mode_of(NotificationSettingOption):
@@ -189,8 +190,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
+        assert set(self.handler.get_targets(action, self.incident, self.project)) == {
+            (new_user.id, new_user.email),
+        }
 
     def test_user_email_routing(self):
         new_email = "marcos@sentry.io"
@@ -207,8 +209,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == [(self.user.id, new_email)]
+        assert self.handler.get_targets(action, self.incident, self.project) == [
+            (self.user.id, new_email),
+        ]
 
     def test_team_email_routing(self):
         new_email = "marcos@sentry.io"
@@ -232,11 +235,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == {
+        assert self.handler.get_targets(action, self.incident, self.project) == [
             (self.user.id, new_email),
             (new_user.id, new_email),
-        }
+        ]
 
 
 @freeze_time()

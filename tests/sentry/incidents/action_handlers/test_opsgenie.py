@@ -35,6 +35,7 @@ METADATA = {
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
+        self.handler = OpsgenieActionHandler()
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
@@ -210,10 +211,11 @@ class OpsgenieActionHandlerTest(FireTest):
             )
             expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(self.handler, method)(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
         data = responses.calls[0].request.body
 
         assert json.loads(data) == expected_payload
@@ -247,10 +249,11 @@ class OpsgenieActionHandlerTest(FireTest):
             json={},
             status=202,
         )
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
 
@@ -263,10 +266,11 @@ class OpsgenieActionHandlerTest(FireTest):
         with assume_test_silo_mode_of(Integration):
             self.integration.delete()
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
         assert (
@@ -284,10 +288,11 @@ class OpsgenieActionHandlerTest(FireTest):
         with assume_test_silo_mode_of(OrganizationIntegration):
             self.org_integration.save()
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
         assert (
