@@ -49,6 +49,7 @@ ReplayActionsEventPayloadClick = TypedDict(
 
 
 class ReplayActionsEventPayload(TypedDict):
+    environment: str
     clicks: list[ReplayActionsEventPayloadClick]
     replay_id: str
     type: Literal["replay_actions"]

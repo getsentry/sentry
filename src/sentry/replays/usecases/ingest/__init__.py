@@ -283,11 +283,13 @@ def emit_replay_events(
     retention_days: int,
     replay_event: dict[str, Any] | None,
 ) -> None:
-    payload = replay_event.get("payload")
-    if isinstance(payload, dict):
-        environment = payload.get("environment")
-    else:
-        environment = json.loads(bytes(payload)).get("environment")
+    environment = None
+    if replay_event and replay_event.get("payload"):
+        payload = replay_event["payload"]
+        if isinstance(payload, dict):
+            environment = payload.get("environment")
+        else:
+            environment = json.loads(bytes(payload)).get("environment")
 
     emit_click_events(
         event_meta.click_events,
