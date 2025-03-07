@@ -13,11 +13,11 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.consumers.recording_two_step import RecordingTwoStepStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class RecordingTestCase(TransactionTestCase):
@@ -474,6 +474,48 @@ class ThreadedRecordingTestCase(RecordingTestCase):
 # Experimental Two Step Recording Consumer
 
 
-class RecordingTwoStepTestCase(RecordingTestCase):
-    def processing_factory(self):
-        return RecordingTwoStepStrategyFactory()
+class BetaEnabledRecordingTestCase(RecordingTestCase):
+
+    def test_compressed_segment_ingestion(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_compressed_segment_ingestion()
+
+    def test_event_with_replay_video(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_event_with_replay_video()
+
+    def test_event_with_replay_video_packed(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_event_with_replay_video_packed()
+
+    def test_uncompressed_segment_ingestion(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_uncompressed_segment_ingestion()
+
+    def test_invalid_json(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_json()
+
+    def test_invalid_payload_invalid_headers(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_payload_invalid_headers()
+
+    def test_invalid_payload_invalid_unicode_codepoint(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_payload_invalid_unicode_codepoint()
+
+    def test_invalid_payload_malformed_headers(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_payload_malformed_headers()
+
+    def test_invalid_payload_missing_headers(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_payload_missing_headers()
+
+    def test_invalid_payload_type(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_payload_type()
+
+    def test_invalid_message(self):
+        with override_options({"replay.consumer.recording.beta-rollout": 100}):
+            super().test_invalid_message()

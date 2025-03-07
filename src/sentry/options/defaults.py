@@ -456,6 +456,13 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Beta recording consumer rollout.
+register(
+    "replay.consumer.recording.beta-rollout",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Globally disables replay-video.
 register(
     "replay.replay-video.disabled",
