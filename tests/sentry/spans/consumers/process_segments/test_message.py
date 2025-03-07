@@ -24,6 +24,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -33,6 +34,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -45,6 +47,7 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
+                start_timestamp_precise=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
@@ -94,6 +97,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -103,6 +107,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -115,6 +120,7 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
+                start_timestamp_precise=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
