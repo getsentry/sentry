@@ -56,7 +56,7 @@ export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>)
 
   const formattedDescription =
     resolvedModule !== ModuleName.DB
-      ? span.description ?? ''
+      ? (span.description ?? '')
       : formatter.toString(span.description ?? '');
 
   return (
@@ -116,7 +116,9 @@ export function SpanDescription({
     organization.features.includes('insights-initial-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
-  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+  const groupHash = hasNewSpansUIFlag
+    ? (span.sentry_tags?.group ?? '')
+    : (span.hash ?? '');
   const showAction = hasTraceDrawerAction ? !!span.description : !!span.op && !!span.hash;
   const averageSpanDuration: number | undefined =
     span['span.averageResults']?.['avg(span.duration)'];
@@ -401,7 +403,9 @@ function LegacySpanDescription({
     organization.features.includes('insights-initial-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
-  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+  const groupHash = hasNewSpansUIFlag
+    ? (span.sentry_tags?.group ?? '')
+    : (span.hash ?? '');
 
   const actions =
     !span.op || !span.hash ? null : (

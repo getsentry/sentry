@@ -221,7 +221,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
-      : rule.query ?? '';
+      : (rule.query ?? '');
 
     return {
       ...super.getDefaultState(),
@@ -1412,9 +1412,9 @@ function formatStatsToHistoricalDataset(
   data: EventsStats | MultiSeriesEventsStats | null
 ): Array<[number, {count: number}]> {
   return Array.isArray(data?.data)
-    ? data.data.flatMap(([timestamp, entries]) =>
+    ? (data.data.flatMap(([timestamp, entries]) =>
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
-      ) ?? []
+      ) ?? [])
     : [];
 }
 

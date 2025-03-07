@@ -223,7 +223,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
     : otherPlatform;
 
   const webBackendPlatform = replayBackendPlatforms.includes(currentPlatform.id);

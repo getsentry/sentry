@@ -79,7 +79,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         </Fragment>
       }
       revealActions={
-        props.revealTooltip === 'always' ? 'always' : props.revealActions ?? 'hover'
+        props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
       }
       Actions={
         <Fragment>

@@ -274,8 +274,8 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? colors?.slice(0, series.length) ??
-        getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice()
+      ? (colors?.slice(0, series.length) ??
+        getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice())
       : undefined;
     if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);

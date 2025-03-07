@@ -247,7 +247,7 @@ function OnboardingContent({
   const showJsFrameworkInstructions = backendPlatform && setupMode() === 'npm';
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
     : otherPlatform;
 
   // New onboarding docs
@@ -259,8 +259,8 @@ function OnboardingContent({
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
-        ? replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-          replayJsFrameworkOptions()[0]!
+        ? (replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+          replayJsFrameworkOptions()[0]!)
         : currentPlatform,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,

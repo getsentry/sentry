@@ -178,7 +178,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       return true;
     } catch (response) {
       const updateError =
-        response?.responseJSON ?? subscription.planTier === PlanTier.AM3
+        (response?.responseJSON ?? subscription.planTier === PlanTier.AM3)
           ? PAYG_BUDGET_SAVE_ERROR
           : ONDEMAND_BUDGET_SAVE_ERROR;
       this.setState({

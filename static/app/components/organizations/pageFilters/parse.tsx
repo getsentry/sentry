@@ -243,12 +243,12 @@ export function normalizeDateTimeParams(
 
   const dateTimeStart = allowAbsoluteDatetime
     ? allowAbsolutePageDatetime
-      ? getDateTimeString(pageStart) ?? getDateTimeString(start)
+      ? (getDateTimeString(pageStart) ?? getDateTimeString(start))
       : getDateTimeString(start)
     : null;
   const dateTimeEnd = allowAbsoluteDatetime
     ? allowAbsolutePageDatetime
-      ? getDateTimeString(pageEnd) ?? getDateTimeString(end)
+      ? (getDateTimeString(pageEnd) ?? getDateTimeString(end))
       : getDateTimeString(end)
     : null;
 
@@ -258,8 +258,8 @@ export function normalizeDateTimeParams(
 
   const object = {
     statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : dateTimeStart ?? null,
-    end: coercedPeriod ? null : dateTimeEnd ?? null,
+    start: coercedPeriod ? null : (dateTimeStart ?? null),
+    end: coercedPeriod ? null : (dateTimeEnd ?? null),
     // coerce utc into a string (it can be both: a string representation from
     // router, or a boolean from time range picker)
     utc: coercedPeriod ? null : getUtcValue(pageUtc ?? utc),

@@ -244,7 +244,7 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
       <StyledPagination
         pageLinks={
           transactions.status === 'success'
-            ? transactions.getResponseHeader?.('Link') ?? null
+            ? (transactions.getResponseHeader?.('Link') ?? null)
             : null
         }
       />

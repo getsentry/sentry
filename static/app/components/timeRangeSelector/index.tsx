@@ -310,7 +310,7 @@ export function TimeRangeSelector({
               defaultOptions: DEFAULT_RELATIVE_PERIODS,
               arbitraryOptions: arbitraryRelativePeriods,
             })
-          : relativeOptions ?? defaultRelativePeriods
+          : (relativeOptions ?? defaultRelativePeriods)
       )}
       handleSelectRelative={value => handleChange({value})}
     >
@@ -324,13 +324,13 @@ export function TimeRangeSelector({
             setSearch(s);
           }}
           searchPlaceholder={
-            searchPlaceholder ?? disallowArbitraryRelativeRanges
+            (searchPlaceholder ?? disallowArbitraryRelativeRanges)
               ? t('Search…')
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
-          value={start && end ? ABSOLUTE_OPTION_VALUE : relative ?? ''}
+          value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
           onChange={handleChange}
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
@@ -369,7 +369,7 @@ export function TimeRangeSelector({
               );
             })
           }
-          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
+          menuWidth={showAbsoluteSelector ? undefined : (menuWidth ?? '16rem')}
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>

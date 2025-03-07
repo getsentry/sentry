@@ -184,7 +184,7 @@ function computeProfileOffset(
   let offset = flamegraph.profile.startedAt;
 
   const transactionStart =
-    transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
+    transaction.type === 'resolved' ? (transaction.data?.startTimestamp ?? null) : null;
 
   if (
     defined(transactionStart) &&

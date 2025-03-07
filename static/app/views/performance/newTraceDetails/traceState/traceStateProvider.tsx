@@ -96,7 +96,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
       preferences: props.initialPreferences,
       tabs: {
         tabs: hasTraceNewUi ? [] : STATIC_DRAWER_TABS,
-        current_tab: hasTraceNewUi ? null : STATIC_DRAWER_TABS[0] ?? null,
+        current_tab: hasTraceNewUi ? null : (STATIC_DRAWER_TABS[0] ?? null),
         last_clicked_tab: null,
       },
     }

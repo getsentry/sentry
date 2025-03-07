@@ -112,8 +112,8 @@ const getMavenInstallSnippet = (params: Params) => `
       <version>${
         params.sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
+          : (params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']
+              ?.version ?? '0.0.4')
       }</version>
       <extensions>true</extensions>
       <configuration>

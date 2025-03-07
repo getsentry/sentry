@@ -140,7 +140,7 @@ function getEventView(
   pageFilters: PageFilters,
   dataset: DiscoverDatasets
 ) {
-  const query = typeof search === 'string' ? search : search?.formatString() ?? '';
+  const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {

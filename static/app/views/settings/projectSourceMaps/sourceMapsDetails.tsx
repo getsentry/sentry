@@ -220,8 +220,8 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         }
         isEmpty={
           (isDebugIdBundle
-            ? debugIdBundlesArtifactsData?.files ?? []
-            : artifactsData ?? []
+            ? (debugIdBundlesArtifactsData?.files ?? [])
+            : (artifactsData ?? [])
           ).length === 0
         }
         isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
@@ -298,8 +298,8 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       <Pagination
         pageLinks={
           isDebugIdBundle
-            ? debugIdBundlesArtifactsHeaders?.('Link') ?? ''
-            : artifactsHeaders?.('Link') ?? ''
+            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
+            : (artifactsHeaders?.('Link') ?? '')
         }
       />
     </Fragment>

@@ -469,7 +469,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     loadingGroup,
     group,
     // Allow previous event to be displayed while new event is loading
-    event: (loadingEvent ? event ?? previousEvent : event) ?? null,
+    event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
     errorType,
     error: isGroupError,
     refetchData,

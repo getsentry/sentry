@@ -64,7 +64,7 @@ function HotkeysLabel({value, forcePlatform}: Props) {
 
   const isMac = forcePlatform
     ? forcePlatform === 'macos'
-    : window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false;
+    : (window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false);
 
   // If we're not using mac find the first key set that is generic.
   // Otherwise show whatever the first hotkey is.

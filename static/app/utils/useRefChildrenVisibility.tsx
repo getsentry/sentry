@@ -50,7 +50,7 @@ export function useRefChildrenVisibility({
             // was no entry for the child.
             return entry !== undefined
               ? entry.intersectionRatio > visibleRatio
-              : currentVisibility[idx] ?? false;
+              : (currentVisibility[idx] ?? false);
           })
         ),
       {

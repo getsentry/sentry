@@ -452,7 +452,7 @@ export function getCheckoutAPIData({
   >;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
-    ? formData.onDemandMaxSpend ?? 0
+    ? (formData.onDemandMaxSpend ?? 0)
     : undefined;
 
   let data: CheckoutAPIData = {

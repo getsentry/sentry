@@ -329,7 +329,7 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 }
 
 export const displayPlanName = (plan?: Plan | null) => {
-  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : plan?.name ?? '[unavailable]';
+  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
 export const getAmPlanTier = (plan: string) => {

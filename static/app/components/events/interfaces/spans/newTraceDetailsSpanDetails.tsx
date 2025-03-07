@@ -249,7 +249,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
     const groupHash = hasNewSpansUIFlag
-      ? props.node.value.sentry_tags?.group ?? ''
+      ? (props.node.value.sentry_tags?.group ?? '')
       : props.node.value.hash;
 
     // Do not render a button if there is no group hash, since this can result in broken links

@@ -115,7 +115,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
           <CheckInPlaceholder />
         ) : (
           <CheckInTimeline
-            bucketedData={uptimeAlertId ? uptimeStats?.[uptimeAlertId] ?? [] : []}
+            bucketedData={uptimeAlertId ? (uptimeStats?.[uptimeAlertId] ?? []) : []}
             statusLabel={statusToText}
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}

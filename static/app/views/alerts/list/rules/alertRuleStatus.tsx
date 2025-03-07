@@ -60,7 +60,7 @@ export default function AlertRuleStatus({rule}: Props) {
   const trigger =
     activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
       ? criticalTrigger
-      : warningTrigger ?? criticalTrigger;
+      : (warningTrigger ?? criticalTrigger);
 
   let iconColor: ColorOrAlias = 'successText';
   let iconDirection: 'up' | 'down' | undefined;

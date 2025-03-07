@@ -45,7 +45,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const defaultSort =
     state.displayType === DisplayType.TABLE && state.dataset === WidgetType.RELEASE
       ? ''
-      : fields?.[0] ?? defaultQuery.orderby;
+      : (fields?.[0] ?? defaultQuery.orderby);
   const sort =
     defined(state.sort) && state.sort.length > 0
       ? _formatSort(state.sort[0]!)

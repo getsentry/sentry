@@ -521,7 +521,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
-    return query !== null ? addSpace(query) : defaultQuery ?? '';
+    return query !== null ? addSpace(query) : (defaultQuery ?? '');
   }
 
   makeQueryState(query: string) {
