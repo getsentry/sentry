@@ -116,5 +116,6 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         arguments=[],
         formula_resolver=cache_miss_rate,
+        is_aggregate=True,
     ),
 }
