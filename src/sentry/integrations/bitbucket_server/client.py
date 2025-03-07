@@ -6,7 +6,6 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -29,6 +28,9 @@ class BitbucketServerAPIPath:
     repository_hooks = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
     repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
+
+    raw = "/projects/{project}/repos/{repo}/raw/{path}?at={sha}"
+    source = "/rest/api/1.0/projects/{project}/repos/{repo}/browse/{path}?at={sha}"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -256,9 +258,25 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         return values
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        raise IntegrationFeatureNotImplementedError
+        return self.head_cached(
+            path=BitbucketServerAPIPath.source.format(
+                project=repo.config["project"],
+                repo=repo.config["repo"],
+                path=path,
+                sha=version,
+            ),
+        )
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
-        raise IntegrationFeatureNotImplementedError
+        response = self.get_cached(
+            path=BitbucketServerAPIPath.raw.format(
+                project=repo.config["project"],
+                repo=repo.config["repo"],
+                path=path,
+                sha=ref,
+            ),
+            raw_response=True,
+        )
+        return response.text
