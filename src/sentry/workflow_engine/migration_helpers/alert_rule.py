@@ -701,7 +701,11 @@ def dual_update_migrated_alert_rule_trigger_action(
     target_identifier = get_target_identifier(trigger_action, action_type)
     updated_action_fields["type"] = action_type
     updated_action_fields["data"] = data
-    updated_action_fields["target_identifier"] = target_identifier
+    updated_action_fields["config"] = {
+        "target_display": updated_fields.get("target_display", None),
+        "target_type": updated_fields.get("target_type", None),
+        "target_identifier": target_identifier,
+    }
 
     for field in LEGACY_ACTION_FIELDS:
         if field in updated_fields:
