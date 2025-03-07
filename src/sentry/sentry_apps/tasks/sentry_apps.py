@@ -28,7 +28,7 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
 )
-from sentry.sentry_apps.models.sentry_app import VALID_EVENTS, SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
@@ -234,15 +234,15 @@ def _process_resource_change(
         # Looks up the human name for the model. Defaults to the model name.
         name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
-    event = f"{name}.{action}"
-    if event not in VALID_EVENTS:
+    try:
+        event = SentryAppEventType(f"{name}.{action}")
+    except ValueError as e:
         raise SentryAppSentryError(
             message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-        )
+        ) from e
 
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
-        event_type=SentryAppEventType(event),
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK, event_type=event
     ).capture():
         project_id: int | None = kwargs.get("project_id", None)
         group_id: int | None = kwargs.get("group_id", None)
@@ -300,7 +300,7 @@ def _process_resource_change(
 
                 # Trigger a new task for each webhook
                 send_resource_change_webhook.delay(
-                    installation_id=installation.id, event=event, data=data
+                    installation_id=installation.id, event=str(event), data=data
                 )
 
 
@@ -514,13 +514,15 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
-    if event not in VALID_EVENTS:
+    try:
+        event = SentryAppEventType(event)
+    except ValueError as e:
         raise SentryAppSentryError(
             message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-        )
+        ) from e
 
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=SentryAppEventType(event)
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
     ).capture():
         servicehook: ServiceHook
         try:
