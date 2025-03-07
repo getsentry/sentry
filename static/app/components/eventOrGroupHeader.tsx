@@ -17,7 +17,6 @@ import {getLocation, getMessage, isGroup, isTombstone} from 'sentry/utils/events
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
@@ -41,11 +40,12 @@ interface EventOrGroupHeaderProps {
 function usePreloadGroupOnHover({
   groupId,
   disabled,
+  organization,
 }: {
   disabled: boolean;
   groupId: string;
+  organization: Organization;
 }) {
-  const organization = useOrganization();
   const queryClient = useQueryClient();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {selection} = usePageFilters();
@@ -96,6 +96,7 @@ function EventOrGroupHeader({
   const preloadHoverProps = usePreloadGroupOnHover({
     groupId: data.id,
     disabled: !hasNewLayout || isTombstone(data) || !isGroup(data),
+    organization,
   });
 
   function getTitleChildren() {
