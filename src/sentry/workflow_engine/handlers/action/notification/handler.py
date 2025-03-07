@@ -120,18 +120,20 @@ class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
 
     @staticmethod
     def target(action: Action) -> RpcUser | Team | str | None:
-        if action.target_identifier is None:
+        target_identifier = action.config.get("target_identifier")
+        if target_identifier is None:
             return None
 
-        if action.target_type == ActionTarget.USER.value:
-            return user_service.get_user(user_id=int(action.target_identifier))
-        elif action.target_type == ActionTarget.TEAM.value:
+        target_type = action.config.get("target_type")
+        if target_type == ActionTarget.USER.value:
+            return user_service.get_user(user_id=int(target_identifier))
+        elif target_type == ActionTarget.TEAM.value:
             try:
-                return Team.objects.get(id=int(action.target_identifier))
+                return Team.objects.get(id=int(target_identifier))
             except Team.DoesNotExist:
                 pass
-        elif action.target_type == ActionTarget.SPECIFIC.value:
+        elif target_type == ActionTarget.SPECIFIC.value:
             # TODO: This is only for email. We should have a way of validating that it's
             # ok to contact this email.
-            return action.target_identifier
+            return target_identifier
         return None
