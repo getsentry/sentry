@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import FeatureFlagAdditionalFeatures from 'sentry/components/events/featureFlags/featureFlagAdditionalFeatures';
+import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -97,7 +97,7 @@ export function FeatureFlagOnboardingLayout({
           </StyledLinkButton>
         </Steps>
         <Divider />
-        <FeatureFlagAdditionalFeatures organization={organization} />
+        <OnboardingAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import FeatureFlagAdditionalFeatures from 'sentry/components/events/featureFlags/featureFlagAdditionalFeatures';
+import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,7 +40,7 @@ export function FeatureFlagOtherPlatformOnboarding({
             </Alert>
           </Alert.Container>
         }
-        <FeatureFlagAdditionalFeatures organization={organization} />
+        <OnboardingAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

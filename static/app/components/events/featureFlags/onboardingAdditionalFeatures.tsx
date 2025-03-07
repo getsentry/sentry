@@ -4,7 +4,7 @@ import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-export default function FeatureFlagAdditionalFeatures({
+export default function OnboardingAdditionalFeatures({
   organization,
 }: {
   organization: Organization;
