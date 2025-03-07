@@ -55,21 +55,20 @@ class BaseIssueAlertHandler(ABC):
         cls, action: Action, mapping: ActionFieldMapping, organization_id: int
     ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
-            if action.target_identifier is None:
-                raise ValueError(f"No target identifier found for action type: {action.type}")
-            return {
-                mapping[
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]: action.target_identifier
-            }
-        raise ValueError(f"No target identifier key found for action type: {action.type}")
+            target_id = action.config.get("target_identifier")
+
+            if target_id is None:
+                raise ValueError(f"No target_identifier found for action type: {action.type}")
+            return {mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value]: target_id}
+        raise ValueError(f"No target_identifier key found for action type: {action.type}")
 
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value):
-            if action.target_display is None:
+            target_display = action.config.get("target_display")
+            if target_display is None:
                 raise ValueError(f"No target display found for action type: {action.type}")
-            return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: action.target_display}
+            return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: target_display}
         raise ValueError(f"No target display key found for action type: {action.type}")
 
     @classmethod
@@ -298,26 +297,22 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
     def get_target_identifier(
         cls, action: Action, mapping: ActionFieldMapping, organization_id: int
     ) -> dict[str, Any]:
+        target_id = action.config.get("target_identifier")
+        target_type = action.config.get("target_type")
+
         # this would be when the target_type is IssueOwners
-        if action.target_identifier is None:
-            if action.target_type != ActionTarget.ISSUE_OWNERS.value:
+        if target_id is None:
+            if target_type != ActionTarget.ISSUE_OWNERS.value:
                 raise ValueError(
-                    f"No target identifier found for {action.type} action {action.id}, target_type: {action.target_type}"
+                    f"No target identifier found for {action.type} action {action.id}, target_type: {target_type}"
                 )
             return {}
         else:
-            return {
-                mapping[
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]: action.target_identifier
-            }
+            return {mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value]: target_id}
 
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
-        if action.target_type is None:
-            raise ValueError(f"No target type found for {action.type} action {action.id}")
-
-        target_type = ActionTarget(action.target_type)
+        target_type = ActionTarget(action.config.get("target_type"))
 
         final_blob = {
             EmailFieldMappingKeys.TARGET_TYPE_KEY.value: EmailActionHelper.get_target_type_string(
@@ -375,25 +370,24 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         cls, action: Action, mapping: ActionFieldMapping, organization_id: int
     ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
-            if action.target_identifier is None:
+            target_identifier = action.config.get("target_identifier")
+            if target_identifier is None:
                 raise ValueError(f"No target identifier found for action type: {action.type}")
 
-            sentry_app_id = action.target_identifier
-
             sentry_app_installations = app_service.get_many(
-                filter=dict(app_ids=[sentry_app_id], organization_id=organization_id)
+                filter=dict(app_ids=[target_identifier], organization_id=organization_id)
             )
 
             if len(sentry_app_installations) != 1:
                 raise ValueError(
-                    f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {sentry_app_id}, but got {len(sentry_app_installations)}"
+                    f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
                 )
 
             sentry_app_installation = sentry_app_installations[0]
 
             if sentry_app_installation is None:
                 raise ValueError(
-                    f"Sentry app not found for action type: {action.type}, target_identifier: {sentry_app_id}"
+                    f"Sentry app not found for action type: {action.type}, target_identifier: {target_identifier}"
                 )
 
             return {

@@ -21,8 +21,10 @@ class TestActionSerializer(TestCase):
 
         self.action = self.create_action(
             type=Action.Type.EMAIL.value,
-            target_type=ActionTarget.USER,
-            target_identifier=self.user.id,
+            config={
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
+            },
         )
         ActionAlertRuleTriggerAction.objects.create(
             action_id=self.action.id,
@@ -54,8 +56,8 @@ class TestActionSerializer(TestCase):
         )
         self.sentry_app_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.sentry_app_trigger,
-            target_identifier=sentry_app.id,
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_identifier=sentry_app.id,
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=sentry_app,
             sentry_app_config=[
@@ -67,9 +69,11 @@ class TestActionSerializer(TestCase):
         )
         self.sentry_app_action = self.create_action(
             type=Action.Type.SENTRY_APP.value,
-            target_type=ActionTarget.SENTRY_APP,
-            target_identifier=sentry_app.id,
-            target_display=sentry_app.name,
+            config={
+                "target_type": ActionTarget.SENTRY_APP,
+                "target_identifier": str(sentry_app.id),
+                "target_display": sentry_app.name,
+            },
             data={
                 "sentry_app_config": self.sentry_app_trigger_action.sentry_app_config,
                 "sentry_app_id": sentry_app.id,
@@ -112,10 +116,12 @@ class TestActionSerializer(TestCase):
         )
         self.slack_action = self.create_action(
             type=Action.Type.SLACK.value,
-            target_type=ActionTarget.SPECIFIC,
-            target_identifier=self.slack_trigger_action.target_identifier,
-            target_display=self.slack_trigger_action.target_display,
             integration_id=self.integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": self.slack_trigger_action.target_identifier,
+                "target_display": self.slack_trigger_action.target_display,
+            },
         )
         ActionAlertRuleTriggerAction.objects.create(
             action_id=self.slack_action.id,

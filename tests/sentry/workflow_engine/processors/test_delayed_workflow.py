@@ -666,7 +666,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            target_identifier="channel456",
+            config={"target_identifier": "channel456"},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
@@ -676,9 +676,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action2 = self.create_action(
             type=Action.Type.SLACK,
             integration_id="1234567890",
-            target_identifier="channel789",
-            target_display="#general",
             data={"tags": "environment,user", "notes": "Important alert"},
+            config={
+                "target_identifier": "channel789",
+                "target_display": "#general",
+            },
         )
         self.create_data_condition_group_action(
             condition_group=self.workflow2_dcgs[1], action=action2
