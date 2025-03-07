@@ -39,7 +39,9 @@ export default function AutomationDetail() {
             <DetailLayout.Sidebar>
               <Flex column gap={space(1)}>
                 <SectionHeading>{t('Last Triggered')}</SectionHeading>
-                <TimeSince date={new Date()} />
+                <span>
+                  <TimeSince date={new Date()} />
+                </span>
               </Flex>
               <Flex column gap={space(1)}>
                 <SectionHeading>{t('Conditions')}</SectionHeading>

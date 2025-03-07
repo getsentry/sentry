@@ -45,14 +45,17 @@ export default function ConnectedMonitorsList() {
       Cell: ({value}) => (
         <TitleCell name={value.name} project={value.project} link={value.link} />
       ),
+      width: '3fr',
     },
     lastIssue: {
       Header: () => t('Last Issue'),
       Cell: ({value}) => <IssueCell group={value} />,
+      width: '2fr',
     },
     openIssues: {
       Header: () => t('Open Issues'),
       Cell: ({value}) => <NumberCell number={value} />,
+      width: '1fr',
     },
   });
 

@@ -3,7 +3,8 @@ import moment from 'moment-timezone';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 
 interface Data {
   dateSent: Date;
@@ -30,18 +31,26 @@ const data: Data[] = [
 ];
 
 export default function AutomationHistoryList() {
+  const {
+    options: {timezone},
+  } = ConfigStore.get('user');
+
   const columns = defineColumns<Data>({
     dateSent: {
-      Header: () => t('Time sent'),
-      Cell: ({value}) => <DateTime date={value} />,
+      Header: () =>
+        tct('Time Sent ([timezone])', {timezone: moment.tz(timezone).zoneAbbr()}),
+      Cell: ({value}) => <DateTime date={value} forcedTimezone={timezone} />,
+      width: '1fr',
     },
     monitor: {
       Header: () => t('Monitor'),
       Cell: ({value}) => <Link to={value.link}>{value.name}</Link>,
+      width: '2fr',
     },
     groupId: {
       Header: () => t('Issue'),
       Cell: ({value}) => <Link to={`/issues/${value}`}>{`#${value}`}</Link>,
+      width: '2fr',
     },
   });
 
