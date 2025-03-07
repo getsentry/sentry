@@ -29,6 +29,10 @@ def emit_click_events(
     start_time: float,
     event_cap: int = 20,
 ) -> None:
+    # Skip event emission if no clicks specified.
+    if len(click_events) == 0:
+        return None
+
     clicks: list[ReplayActionsEventPayloadClick] = [
         {
             "alt": click.alt,
