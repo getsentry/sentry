@@ -11,9 +11,9 @@ import {
   GridRow,
 } from 'sentry/components/gridEditable/styles';
 
-export interface ColumnConfig<Cell> {
+export interface ColumnConfig<Cell, Row> {
   Header: () => React.ReactNode;
-  Cell?: (props: {value: Cell}) => React.ReactNode;
+  Cell?: (props: {row: Row; value: Cell}) => React.ReactNode;
   /** @default 1fr */
   width?: CSSProperties['gridTemplateColumns'];
 }
@@ -23,12 +23,12 @@ interface TableProps<
   ColumnId extends string = keyof Data extends string ? keyof Data : string,
 > {
   data: Data[];
-  columns?: {[Property in ColumnId]: ColumnConfig<Data[Property]>};
+  columns?: {[Property in ColumnId]?: ColumnConfig<Data[Property], Data>};
   fallback?: React.ReactNode;
 }
 
 export function defineColumns<Data extends {[Property in keyof Data]: unknown}>(columns: {
-  [Property in keyof Data]: ColumnConfig<Data[Property]>;
+  [Property in keyof Data]?: ColumnConfig<Data[Property], Data>;
 }) {
   return columns;
 }
@@ -69,7 +69,7 @@ export function SimpleTable<
                   const {Cell = DefaultCell} = columns?.[colId] ?? {};
                   return (
                     <GridBodyCell key={colId} data-column={colId} data-row={i}>
-                      <Cell value={value} />
+                      <Cell value={value} row={row} />
                     </GridBodyCell>
                   );
                 })}
