@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
@@ -144,12 +145,6 @@ export function EventFeatureFlagList({
 
   const hasFlags = eventFlags.length > 0;
 
-  const showCTA =
-    !project.hasFlags &&
-    !hasFlagContext &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta');
-
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
@@ -224,27 +219,46 @@ export function EventFeatureFlagList({
     return null;
   }
 
-  if (showCTA) {
-    return <FeatureFlagInlineCTA projectId={event.projectID} />;
-  }
-
-  // if contexts.flags is not set and project has not set up flags, hide the section
+  // contexts.flags is not set and project has not ingested flags
   if (!hasFlagContext && !project.hasFlags) {
-    return null;
+    const showCTA =
+      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+      organization.features.includes('feature-flag-cta');
+    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
   }
 
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
       <Fragment>
-        <LinkButton
-          aria-label={t('Go to Feature Flag Settings')}
+        <DropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            showChevron: false,
+            icon: <IconSettings />,
+          }}
           size="xs"
-          title="Go to Settings"
-          to={`/settings/${organization.slug}/feature-flags/`}
-        >
-          <IconSettings />
-        </LinkButton>
+          items={[
+            {
+              key: 'settings',
+              label: t('Set Up Change Tracking'),
+              details: (
+                <div style={{maxWidth: '200px', whiteSpace: 'normal'}}>
+                  {t(
+                    'Listen for additions, removals, and modifications to your feature flags.'
+                  )}
+                </div>
+              ),
+              to: `/settings/${organization.slug}/feature-flags/change-tracking/`,
+            },
+            {
+              key: 'docs',
+              label: t('Read the Docs'),
+              externalHref:
+                'https://docs.sentry.io/product/issues/issue-details/feature-flags/',
+            },
+          ]}
+        />
         {hasFlags && (
           <Fragment>
             <Button

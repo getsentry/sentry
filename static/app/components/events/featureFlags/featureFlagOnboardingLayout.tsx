@@ -1,9 +1,7 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
-import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -17,6 +15,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration?: string;
@@ -32,7 +31,6 @@ export function FeatureFlagOnboardingLayout({
   projectKeyId,
   configType = 'onboarding',
   integration = '',
-  skipEvalTracking = false,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -40,7 +38,6 @@ export function FeatureFlagOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [hideSteps, setHideSteps] = useState(skipEvalTracking);
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -93,32 +90,20 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        {skipEvalTracking ? (
-          <Alert.Container>
-            <Alert type="info" showIcon>
-              <Flex gap={space(3)}>
-                {t(
-                  'Feature flag integration detected. Please follow the remaining steps.'
-                )}
-                <Button onClick={() => setHideSteps(!hideSteps)}>
-                  {hideSteps ? t('Show Full Guide') : t('Hide Full Guide')}
-                </Button>
-              </Flex>
-            </Alert>
-          </Alert.Container>
-        ) : null}
-        {hideSteps ? null : (
-          <Steps>
-            {steps.map(step => (
-              <Step key={step.title ?? step.type} {...step} />
-            ))}
-            <StyledLinkButton to="/issues/" priority="primary">
-              {t('Take me to Issues')}
-            </StyledLinkButton>
-          </Steps>
-        )}
+        <h3>{t('Set Up Evaluation Tracking')}</h3>
+        <TextBlock>
+          {t('Configure Sentry to track feature flag evaluations on error events.')}
+        </TextBlock>
+        <Steps>
+          {steps.map(step => (
+            <Step key={step.title ?? step.type} {...step} />
+          ))}
+          <StyledLinkButton to="/issues/" priority="primary">
+            {t('Take me to Issues')}
+          </StyledLinkButton>
+        </Steps>
         <Divider />
-        <h4 style={{marginTop: '40px'}}>{t('Additional Features')}</h4>
+        <h3 style={{marginTop: '40px'}}>{t('Additional Features')}</h3>
         {tct(
           '[link:Change Tracking]: Configure Sentry to listen for additions, removals, and modifications to your feature flags.',
           {
@@ -145,6 +130,9 @@ const StyledLinkButton = styled(LinkButton)`
 `;
 
 const Wrapper = styled('div')`
+  h3 {
+    margin-bottom: 0.5em;
+  }
   h4 {
     margin-bottom: 0.5em;
   }
