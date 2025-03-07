@@ -432,6 +432,12 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
         "click_options": [
             click.Option(["--buffer-v2", "buffer_v2"], default=False, is_flag=True),
+            click.Option(
+                ["--max-flush-segments", "max_flush_segments"],
+                type=int,
+                default=10000,
+                help="The number of segments to download from redis at once. Defaults to 10000.",
+            ),
             *multiprocessing_options(default_max_batch_size=100),
         ],
     },

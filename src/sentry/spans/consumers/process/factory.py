@@ -288,6 +288,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
+        max_flush_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
     ):
@@ -298,6 +299,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.flush_interval = 1
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
+        self.max_flush_segments = max_flush_segments
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.__pool = MultiprocessingPool(num_processes)
@@ -320,7 +322,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             committer = CommitOffsets(commit)
 
             flusher = SpanFlusher(
-                self.producer, self.output_topic, self.max_batch_size, next_step=committer
+                self.producer, self.output_topic, self.max_flush_segments, next_step=committer
             )
 
             run_task = run_task_with_multiprocessing(
@@ -434,7 +436,7 @@ class SpanFlusher(ProcessingStrategy[int]):
                 time.sleep(1)
                 continue
 
-            self.enable_backpressure = len(flushed_segments) == self.max_segments
+            self.enable_backpressure = len(flushed_segments) >= self.max_segments
 
             for segment_id, spans_set in flushed_segments.items():
                 # TODO: Check if this is correctly placed
