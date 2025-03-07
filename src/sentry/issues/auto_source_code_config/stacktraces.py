@@ -6,19 +6,21 @@ from typing import Any
 from sentry.db.models.fields.node import NodeData
 from sentry.utils.safe import get_path
 
-from .constants import PROCESS_ALL_FRAMES
+from .utils import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
 
 def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> list[dict[str, Any]]:
     """It flattens all processableframes from the event's data."""
+    platform_config = PlatformConfig(platform)
     stacktraces = get_stacktraces(data)
     frames_to_process = []
     for stacktrace in stacktraces:
-        frames = stacktrace["frames"]
+        frames = stacktrace["frames"] or []
         for frame in frames:
-            if platform in PROCESS_ALL_FRAMES:
+
+            if platform_config.creates_in_app_stack_trace_rules():
                 frames_to_process.append(frame)
 
             elif frame.get("in_app") and frame.get("filename"):
