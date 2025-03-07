@@ -21,6 +21,7 @@ from sentry.utils import json, metrics
 logger = logging.getLogger()
 
 
+@sentry_sdk.trace
 def emit_click_events(
     click_events: list[ClickEvent],
     project_id: int,
