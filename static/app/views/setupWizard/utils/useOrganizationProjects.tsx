@@ -13,15 +13,20 @@ export function useOrganizationProjects({
 }) {
   const api = useApi();
 
+  const queryParams = {
+    host: organization?.region.url,
+    query: {
+      query,
+    },
+  };
+
   return useQuery<Project[], RequestError>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`, {query}],
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {queryParams}],
     queryFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
-        host: organization?.region.url,
-        query: {
-          query,
-        },
-      });
+      return api.requestPromise(
+        `/organizations/${organization?.slug}/projects/`,
+        queryParams
+      );
     },
     enabled: !!organization,
     refetchOnWindowFocus: true,

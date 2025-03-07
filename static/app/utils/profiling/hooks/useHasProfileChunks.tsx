@@ -10,18 +10,22 @@ export function useHasProfilingChunks(): UseQueryResult<boolean, RequestError> {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const queryParams = {
+    query: {
+      project: selection.projects,
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selection.datetime),
+    },
+  };
 
   return useQuery({
-    queryKey: [`/organizations/${organization.slug}/profiling/has-chunks/`],
+    queryKey: [`/organizations/${organization.slug}/profiling/has-chunks/`, queryParams],
     queryFn: () =>
       api
-        .requestPromise(`/organizations/${organization.slug}/profiling/has-chunks/`, {
-          query: {
-            project: selection.projects,
-            environment: selection.environments,
-            ...normalizeDateTimeParams(selection.datetime),
-          },
-        })
+        .requestPromise(
+          `/organizations/${organization.slug}/profiling/has-chunks/`,
+          queryParams
+        )
         .then((res: {hasChunks: boolean}) => res.hasChunks),
     staleTime: 0,
   });

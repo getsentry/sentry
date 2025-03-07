@@ -102,34 +102,22 @@ export const useSpanSamples = (options: Options) => {
   );
 
   const queryString = query.formatString();
-
+  const queryParams = {
+    ...dateCondtions,
+    ...{utc: location.query.utc},
+    lowerBound: 0,
+    firstBound: maxYValue * (1 / 3),
+    secondBound: maxYValue * (2 / 3),
+    upperBound: maxYValue,
+    project: pageFilter.selection.projects,
+    environment: pageFilter.selection.environments,
+    query: queryString,
+    ...(additionalFields?.length ? {additionalFields} : {}),
+  };
   const result = useQuery<SpanSample[]>({
-    queryKey: [
-      'span-samples',
-      groupId,
-      transactionName,
-      dateCondtions.statsPeriod,
-      dateCondtions.start,
-      dateCondtions.end,
-      queryString,
-      subregions?.join(','),
-      additionalFields?.join(','),
-    ],
+    queryKey: ['span-samples', {url, queryParams}],
     queryFn: async () => {
-      const {data} = await api.requestPromise(
-        `${url}?${qs.stringify({
-          ...dateCondtions,
-          ...{utc: location.query.utc},
-          lowerBound: 0,
-          firstBound: maxYValue * (1 / 3),
-          secondBound: maxYValue * (2 / 3),
-          upperBound: maxYValue,
-          project: pageFilter.selection.projects,
-          environment: pageFilter.selection.environments,
-          query: queryString,
-          ...(additionalFields?.length ? {additionalFields} : {}),
-        })}`
-      );
+      const {data} = await api.requestPromise(`${url}?${qs.stringify(queryParams)}`);
       return data
         ?.map((d: SpanSample) => ({
           ...d,

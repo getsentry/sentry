@@ -11,15 +11,17 @@ export function useOrganizationDetails({
 }) {
   const api = useApi();
 
+  const queryParams = {
+    host: organization?.region.url,
+    query: {
+      include_feature_flags: 1,
+    },
+  };
+
   return useQuery<Organization, RequestError>({
-    queryKey: [`/organizations/${organization?.slug}/`],
+    queryKey: [`/organizations/${organization?.slug}/`, queryParams],
     queryFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/`, {
-        host: organization?.region.url,
-        query: {
-          include_feature_flags: 1,
-        },
-      });
+      return api.requestPromise(`/organizations/${organization?.slug}/`, queryParams);
     },
     enabled: !!organization,
     refetchOnWindowFocus: true,
