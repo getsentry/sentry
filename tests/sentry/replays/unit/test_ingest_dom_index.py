@@ -402,10 +402,12 @@ def test_parse_replay_dead_click_actions(
             }
         ):
             replay_actions = parse_replay_actions(
-                default_project, "1", 30, events, mock_replay_event(), org_id=1
+                default_project, "1", 30, events, mock_replay_event(environment="dev"), org_id=1
             )
     else:
-        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+        replay_actions = parse_replay_actions(
+            default_project, "1", 30, events, mock_replay_event(environment="dev")
+        )
 
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
@@ -419,6 +421,7 @@ def test_parse_replay_dead_click_actions(
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["type"] == "replay_actions"
     assert payload["replay_id"] == "1"
+    assert payload["environment"] == "dev"
     assert len(payload["clicks"]) == 3
 
     action = payload["clicks"][0]

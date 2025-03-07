@@ -66,6 +66,7 @@ class ReplaySelectorResponseData(TypedDict, total=False):
     dom_element: str
     element: ElementResponseType
     project_id: str
+    environment: str
 
 
 class ReplaySelectorResponse(TypedDict):
@@ -238,6 +239,7 @@ def query_selector_dataset(
                 Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
+                Column("environment"),
                 Function(
                     "arrayFilter",
                     parameters=[
@@ -281,6 +283,7 @@ def query_selector_dataset(
                 Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
+                Column("environment"),
                 Column("click_class_filtered"),
                 Column("click_role"),
                 Column("click_alt"),
@@ -341,6 +344,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
                 "component_name": row["click_component_name"],
             },
             "project_id": row["project_id"],
+            "environment": row["environment"],
         }
         for row in response
     ]

@@ -84,15 +84,8 @@ def parse_replay_actions(
     if len(actions) == 0:
         return None
 
-    environment = None
-    if replay_event and replay_event.get("payload"):
-        payload = replay_event["payload"]
-        if isinstance(payload, dict):
-            environment = payload.get("environment")
-        else:
-            environment = json.loads(bytes(payload)).get("environment")
-
-    payload = create_replay_actions_payload(replay_id, actions, environment)
+    environment = replay_event.get("environment") if replay_event else None
+    payload = create_replay_actions_payload(replay_id, actions, environment=environment)
     return create_replay_actions_event(replay_id, project.id, retention_days, payload)
 
 
