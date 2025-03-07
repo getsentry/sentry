@@ -28,6 +28,7 @@ def emit_click_events(
     retention_days: int,
     start_time: float,
     event_cap: int = 20,
+    environment: str | None = None,
 ) -> None:
     clicks: list[ReplayActionsEventPayloadClick] = [
         {
@@ -51,6 +52,7 @@ def emit_click_events(
     ]
 
     payload: ReplayActionsEventPayload = {
+        "environment": environment or "",
         "replay_id": replay_id,
         "type": "replay_actions",
         "clicks": clicks,
