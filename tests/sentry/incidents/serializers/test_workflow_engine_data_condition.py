@@ -50,18 +50,23 @@ class TestDataConditionSerializer(TestCase):
             type=Condition.ISSUE_PRIORITY_EQUALS,
             condition_result=True,
         )
-        # self.resolve_detector_trigger_data_condition = self.create_data_condition(
-        #     condition_group=self.data_condition_group,
-        #     comparison=self.alert_rule.resolve_threshold,
-        #     condition_result=DetectorPriorityLevel.OK,
-        #     type=Condition.LESS_OR_EQUAL if self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else Condition.GREATER_OR_EQUAL,
-        # )
-        # self.resolve_action_filter_data_condition = self.create_data_condition(
-        #     condition_group=self.data_condition_group,
-        #     comparison=DetectorPriorityLevel.OK,
-        #     condition_result=True,
-        #     type=Condition.ISSUE_PRIORITY_EQUALS,
-        # )
+        # XXX: these resolve data conditions assume that self.alert_rule.resolve_threshold is None
+        self.resolve_detector_trigger_data_condition = self.create_data_condition(
+            condition_group=self.data_condition_group,
+            comparison=self.critical_trigger.alert_threshold,
+            condition_result=DetectorPriorityLevel.OK,
+            type=(
+                Condition.LESS_OR_EQUAL
+                if self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                else Condition.GREATER_OR_EQUAL
+            ),
+        )
+        self.resolve_action_filter_data_condition = self.create_data_condition(
+            condition_group=self.data_condition_group,
+            comparison=DetectorPriorityLevel.OK,
+            condition_result=True,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+        )
 
         self.detector = self.create_detector(
             project_id=self.project.id,
@@ -104,14 +109,17 @@ class TestDataConditionSerializer(TestCase):
         )
         assert serialized_data_condition["id"] == str(self.warning_trigger.id)
         assert serialized_data_condition["alertRuleId"] == str(self.alert_rule.id)
-        # assert serialized_data_condition["thresholdType"] == get_threshold_type(
-        #     self.warning_detector_trigger_data_condition.type
-        # )
-        assert serialized_data_condition["thresholdType"] == AlertRuleThresholdType.ABOVE.value
-        # assert serialized_data_condition["resolveThreshold"] == self.alert_rule.resolve_threshold
-        assert serialized_data_condition["resolveThreshold"] is None
+        assert (
+            serialized_data_condition["thresholdType"] == AlertRuleThresholdType.ABOVE.value
+            if self.resolve_detector_trigger_data_condition.type == Condition.LESS_OR_EQUAL
+            else AlertRuleThresholdType.BELOW.value
+        )
+        assert (
+            serialized_data_condition["resolveThreshold"] is None
+            if self.alert_rule.resolve_threshold is None
+            else self.warning_trigger.alert_threshold
+        )
         assert serialized_data_condition["dateCreated"] == self.warning_trigger.date_added
-        # assert serialized_data_condition["actions"] == {}
 
         serialized_alert_rule_trigger = serialize(
             self.warning_trigger, self.user, AlertRuleTriggerSerializer()
