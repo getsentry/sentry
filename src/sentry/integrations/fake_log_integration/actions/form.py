@@ -19,7 +19,7 @@ class FakeLogServiceForm(forms.Form):
         set_field_choices(self.fields["log_key"], logger_list)
 
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data: dict[str, Any] = super().clean()
+        cleaned_data = super().clean() or {}
         logging.info("sentry.fake_log_service_form", extra={"form": self.cleaned_data})
         identifier = cleaned_data.get("identifier")
         assert identifier is not None, "Identifier is required"

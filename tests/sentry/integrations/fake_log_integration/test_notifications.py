@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.fake_log_integration.notification_class import LoggingNotification
@@ -9,8 +10,44 @@ from sentry.notifications.models import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.testutils.cases import TestCase
 from sentry.types.actor import Actor
+
+
+class TestIssueAlertNotifications(TestCase):
+    def setUp(self):
+        self.new_integration = self.create_integration(
+            self.organization, "woof", metadata={}, name="TestLogger", provider="fake-log"
+        )
+
+        # Create a rule with the correct payload to invoke the FakeLogger
+        self.rule = self.create_project_rule(
+            self.project,
+            action_data=[
+                {
+                    # Integration ID is encoded here per the issue alert form
+                    "log_key": str(self.new_integration.id),
+                    "id": "sentry.integrations.fake_log.notify_action.FakeLogAction",
+                    "identifier": "test",
+                    "uuid": uuid4().hex,
+                }
+            ],
+        )
+
+    def test_issue_alert(self):
+        # Triggering these rules is typically done in 2 places:
+        # 1. Post-processing - delayed_processing.py
+        # 2. ProjectRuleActionsEndpoint -> When dry-firing a project rule with a
+        # fake event.
+        #
+        # This just emulates the building/firing process, with a streamlined
+        # event.
+        group = self.create_group(project=self.project)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_event = GroupEvent.from_event(event, group)
+        for callback, futures in activate_downstream_actions(self.rule, group_event).values():
+            callback(group_event, futures)
 
 
 class TestMetricNotification(TestCase):
