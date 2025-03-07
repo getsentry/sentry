@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/button';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
+import Placeholder from 'sentry/components/placeholder';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -55,6 +56,10 @@ function SolutionsSectionContent({
 }) {
   const aiConfig = useAiConfig(group, event, project);
 
+  if (!event) {
+    return <Placeholder height="160px" />;
+  }
+
   if (aiConfig.hasSummary) {
     if (aiConfig.hasAutofix) {
       return (
@@ -103,7 +108,7 @@ export default function SolutionsSection({
     <HeaderContainer>
       {t('Solutions Hub')}
       {aiConfig.hasSummary && (
-        <FeatureBadge
+        <StyledFeatureBadge
           type="beta"
           tooltipProps={{
             title: tct(
@@ -215,4 +220,8 @@ const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-bottom: 3px;
 `;

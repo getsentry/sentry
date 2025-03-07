@@ -332,7 +332,7 @@ const CardLineDecorationWrapper = styled('div')`
 `;
 
 const CardLineDecoration = styled('div')`
-  width: 2px;
+  width: 1px;
   align-self: stretch;
   background-color: ${p => p.theme.border};
 `;
