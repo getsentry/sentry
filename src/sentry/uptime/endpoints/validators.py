@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
@@ -127,11 +127,6 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
 
     def validate(self, attrs):
-        if features.has("organization:uptime-create-disabled", self.context["organization"]):
-            raise serializers.ValidationError(
-                "The uptime feature is disabled for your organization"
-            )
-
         headers = []
         method = "GET"
         body = None

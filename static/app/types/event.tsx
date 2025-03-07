@@ -186,7 +186,7 @@ export enum LockType {
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
-  context: Array<[number, string]>;
+  context: Array<[number, string | null]>;
   filename: string | null;
   function: string | null;
   inApp: boolean;
@@ -333,11 +333,11 @@ type EntryMessage = {
 
 export interface EntryRequestDataDefault {
   apiTarget: null;
-  method: string;
+  method: string | null;
   url: string;
   cookies?: Array<[key: string, value: string] | null>;
   data?: string | null | Record<string, any> | Array<[key: string, value: any]>;
-  env?: Record<string, string>;
+  env?: Record<string, string> | null;
   fragment?: string | null;
   headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:
