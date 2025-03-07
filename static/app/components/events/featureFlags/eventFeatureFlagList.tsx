@@ -236,6 +236,7 @@ export function EventFeatureFlagList({
           triggerProps={{
             showChevron: false,
             icon: <IconSettings />,
+            'aria-label': t('Feature Flag Settings'),
           }}
           size="xs"
           items={[
