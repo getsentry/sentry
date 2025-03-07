@@ -104,8 +104,8 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
       <code>{String(isActive)}</code>
       <Switch
         id={`toggle-${flag.name}`}
-        isActive={isActive}
-        toggle={() => {
+        checked={isActive}
+        onChange={() => {
           setOverride(flag.name, !isActive);
           setIsActive(!isActive);
           trackAnalytics?.({

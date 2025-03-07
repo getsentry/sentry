@@ -321,8 +321,8 @@ export function DeprecatedAggregateFlamegraph(
             <Flex align="center" gap={space(1)}>
               <span>{t('Hide System Frames')}</span>
               <Switch
-                toggle={() => props.setHideSystemFrames(!props.hideSystemFrames)}
-                isActive={props.hideSystemFrames}
+                onChange={() => props.setHideSystemFrames(!props.hideSystemFrames)}
+                checked={props.hideSystemFrames}
               />
             </Flex>
           </Flex>

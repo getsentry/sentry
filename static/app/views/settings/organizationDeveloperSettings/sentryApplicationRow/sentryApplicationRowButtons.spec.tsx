@@ -25,8 +25,7 @@ describe('Sentry App Row Buttons', function () {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toBeEnabled();
-    await userEvent.hover(publishButton);
+    expect(publishButton).toBeDisabled();
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
     expect(deleteButton).toBeEnabled();
@@ -90,9 +89,7 @@ describe('Sentry App Row Buttons', function () {
   });
 
   it('disables the publish button if the sentry app has a UI feature and no icon', async () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
 
     const internalSentryApp = SentryAppFixture({
       status: 'unpublished',
@@ -168,9 +165,7 @@ describe('Sentry App Row Buttons', function () {
   });
 
   it('disables the publish button if the app is in progress of publishing', async () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
     const internalSentryApp = SentryAppFixture({status: 'publish_request_inprogress'});
 
     render(
@@ -199,9 +194,7 @@ describe('Sentry App Row Buttons', function () {
   });
 
   it('disables the publish button if the app is in progress of deletion', async () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
     const internalSentryApp = SentryAppFixture({status: 'deletion_in_progress'});
 
     render(
@@ -230,9 +223,7 @@ describe('Sentry App Row Buttons', function () {
   });
 
   it('disables the publish button if the app doesnt have a logo', async () => {
-    const organization = OrganizationFixture({
-      features: [`streamlined-publishing-flow`],
-    });
+    const organization = OrganizationFixture();
     const internalSentryApp = SentryAppFixture({status: 'unpublished'});
 
     render(

@@ -81,8 +81,6 @@ export default function UptimeOverview() {
     });
   };
 
-  const creationDisabled = organization.features.includes('uptime-create-disabled');
-
   return (
     <ModulePageProviders moduleName="uptime" pageTitle={t('Overview')}>
       <BackendHeader
@@ -99,14 +97,6 @@ export default function UptimeOverview() {
         headerActions={
           <ButtonBar gap={1}>
             <LinkButton
-              disabled={creationDisabled}
-              title={
-                creationDisabled
-                  ? t(
-                      'Creation of new uptime alerts is temporarily disabled as the beta has ended. Alert creation will be available again in a few days.'
-                    )
-                  : undefined
-              }
               size="sm"
               priority="primary"
               to={makeAlertsPathname({
