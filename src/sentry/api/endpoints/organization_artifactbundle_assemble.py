@@ -92,7 +92,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             chunks = data.get("chunks", [])
 
             # We check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(organization.id, chunks)
+            missing_chunks = find_missing_chunks(organization.id, set(chunks))
 
             # In case there are some missing chunks, we will tell the client which chunks we require.
             if missing_chunks:
