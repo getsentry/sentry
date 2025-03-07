@@ -5,15 +5,8 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import type {TableColumn} from 'sentry/views/discover/table/types';
-import {
-  useLogsSearch,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   CenteredRow,
   ColoredLogCircle,
@@ -33,7 +26,6 @@ import {
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
-  logRowItemToTableColumn,
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
@@ -127,8 +119,6 @@ function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
-  const search = useLogsSearch();
-  const setSearch = useSetLogsSearch();
   const type = props.meta?.fields?.[props.item.fieldKey as OurLogFieldKey];
 
   const adjustedValue =
@@ -150,32 +140,10 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
     return <Fragment>{adjustedValue}</Fragment>;
   }
 
-  const fakeRow: TableDataRow = {
-    id: '1',
-    column: adjustedValue,
-    value: adjustedValue,
-  };
-
   return (
-    <CellAction
-      column={logRowItemToTableColumn(props.item)}
-      dataRow={fakeRow}
-      handleCellAction={(actions, value) => {
-        const newSearch = search.copy();
-        updateQuery(
-          newSearch,
-          actions,
-          props.item.fieldKey as unknown as TableColumn<keyof TableDataRow>,
-          value
-        );
-        setSearch(newSearch);
-      }}
-      allowActions={ALLOWED_LOG_CELL_ACTIONS}
-    >
-      <CenteredRow align={align}>
-        {renderer({...props, [props.item.fieldKey]: adjustedValue}, props.extra)}
-      </CenteredRow>
-    </CellAction>
+    <CenteredRow align={align}>
+      {renderer({...props, [props.item.fieldKey]: adjustedValue}, props.extra)}
+    </CenteredRow>
   );
 }
 
@@ -193,8 +161,3 @@ export const LogAttributesRendererMap: Record<
 export function getLogFieldRenderer(field: OurLogFieldKey) {
   return LogAttributesRendererMap[field];
 }
-
-/**
- * Add more actions here once units are supported.
- */
-const ALLOWED_LOG_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
