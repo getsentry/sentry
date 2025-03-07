@@ -6,8 +6,9 @@ from uuid import uuid4
 from django.utils.translation import gettext as _
 
 from sentry import features
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
+from sentry.incidents.models.incident import INCIDENT_STATUS, Incident, IncidentStatus
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import MetricIssuePOC
@@ -43,16 +44,21 @@ QUERY_AGGREGATION_DISPLAY = {
     "count_unique(tags[sentry:user])": "Number of users affected",
     "percentage(sessions_crashed, sessions)": "Crash free session rate",
     "percentage(users_crashed, users)": "Crash free user rate",
+    "failure_rate()": "Failure rate",
+    "apdex()": "Apdex score",
 }
 
 
-def construct_title(alert_rule: AlertRule) -> str:
+def construct_title(alert_rule: AlertRule, status: int) -> str:
     # Parse the aggregate key from the alert rule
     agg_display_key = alert_rule.snuba_query.aggregate
     if is_mri_field(agg_display_key):
-        agg_text = format_mri_field(agg_display_key)
+        aggregate = format_mri_field(agg_display_key)
+    elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in agg_display_key:
+        agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+        aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
     else:
-        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+        aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 
     # Determine the higher or lower comparison
     higher_or_lower = ""
@@ -61,19 +67,35 @@ def construct_title(alert_rule: AlertRule) -> str:
     else:
         higher_or_lower = "less than" if alert_rule.comparison_delta else "below"
 
+    label = INCIDENT_STATUS[IncidentStatus(status)]
+
     # Format the time window for the threshold
-    time_window = alert_rule.snuba_query.time_window // 60
-    title = f"{agg_text} in the last {format_duration_idiomatic(time_window)} {higher_or_lower}"
+    time_window = format_duration_idiomatic(alert_rule.snuba_query.time_window // 60)
 
     # If the alert rule has a comparison delta, format the comparison string
+    comparison: str | int | float = "threshold"
     if alert_rule.comparison_delta:
         comparison_delta_minutes = alert_rule.comparison_delta // 60
-        comparison_string = TEXT_COMPARISON_DELTA.get(
-            comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
+        comparison = TEXT_COMPARISON_DELTA.get(
+            comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago "
         )
-        return _(f"{title} {comparison_string}")
+    else:
+        # Otherwise, check if there is a trigger with a threshold
+        trigger = AlertRuleTrigger.objects.filter(id=alert_rule.id, label=label.lower()).first()
+        if trigger:
+            threshold = trigger.alert_threshold
+            comparison = int(threshold) if threshold % 1 == 0 else threshold
 
-    return _(f"{title} threshold")
+    template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
+    return _(
+        template.format(
+            label=label.capitalize(),
+            metric=aggregate,
+            higher_or_lower=higher_or_lower,
+            comparison=comparison,
+            time_window=time_window,
+        )
+    )
 
 
 def _build_occurrence_from_incident(
@@ -88,7 +110,7 @@ def _build_occurrence_from_incident(
         else PriorityLevel.MEDIUM
     )
     fingerprint = [str(incident.alert_rule.id)]
-    title = construct_title(incident.alert_rule)
+    title = construct_title(incident.alert_rule, incident.status)
     return IssueOccurrence(
         id=uuid4().hex,
         project_id=project.id,
