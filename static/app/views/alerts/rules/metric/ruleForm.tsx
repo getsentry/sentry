@@ -249,8 +249,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonType: rule.comparisonDelta
         ? AlertRuleComparisonType.CHANGE
         : rule.sensitivity
-          ? AlertRuleComparisonType.DYNAMIC
-          : AlertRuleComparisonType.COUNT,
+          ? AlertRuleComparisonType.COUNT
+          : AlertRuleComparisonType.DYNAMIC,
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),

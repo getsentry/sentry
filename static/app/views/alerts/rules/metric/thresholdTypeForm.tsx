@@ -109,7 +109,6 @@ function ThresholdTypeForm({
         />
       </ComparisonContainer>,
     ] as RadioOption);
-    comparisonType = AlertRuleComparisonType.DYNAMIC;
   }
 
   return (
