@@ -29,3 +29,10 @@ class PythonParserMoreTestCase(TestCase):
             "delete",
             "put",
         }
+
+    def test_python_true_negatives(self):
+        patch = '@@ -101,7 +101,11 @@ class FilterWarningsComponent(BaseComponent[FilterWarningsRequest, FilterWarning\n     @observe(name="Codegen - Relevant Warnings - Filter Warnings Component")\n     @ai_track(description="Codegen - Relevant Warnings - Filter Warnings Component")\n     def invoke(self, request: FilterWarningsRequest) -> FilterWarningsOutput:\n-        def_variable_not_included = 0\n+        def_var_not_included = 0\n+\n+        def added_inner_func_not_included():\n+            return\n+\n         warnings = [\n             warning\n             for warning in request.warnings'
+        # true negatives:
+        #   def_var_not_included b/c it's a variable
+        #   added_inner_func_not_included b/c it's added
+        assert PythonParserMore.extract_functions_from_patch(patch) == {"invoke"}
