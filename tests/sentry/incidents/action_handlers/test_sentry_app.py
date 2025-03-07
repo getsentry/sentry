@@ -48,7 +48,11 @@ class SentryAppActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             getattr(self.handler, method)(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
         data = responses.calls[0].request.body
         assert (
@@ -75,7 +79,11 @@ class SentryAppActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert len(responses.calls) == 0

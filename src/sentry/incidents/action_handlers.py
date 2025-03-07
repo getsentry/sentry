@@ -27,6 +27,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     TriggerStatus,
 )
+from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
@@ -41,6 +42,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
 from sentry.utils.email import MessageBuilder, get_email_addresses
+from sentry.workflow_engine.typings.notification_action import NotificationContext
 
 
 class ActionHandler(metaclass=abc.ABCMeta):
@@ -57,8 +59,8 @@ class ActionHandler(metaclass=abc.ABCMeta):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         pass
@@ -69,8 +71,8 @@ class ActionHandler(metaclass=abc.ABCMeta):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         pass
@@ -101,24 +103,38 @@ class DefaultActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=incident.alert_rule):
-            self.send_alert(action, incident, project, metric_value, new_status, notification_uuid)
+            self.send_alert(
+                action=action,
+                incident=incident,
+                project=project,
+                metric_value=metric_value,
+                new_status=new_status,
+                notification_uuid=notification_uuid,
+            )
 
     def resolve(
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=incident.alert_rule):
-            self.send_alert(action, incident, project, metric_value, new_status, notification_uuid)
+            self.send_alert(
+                action=action,
+                incident=incident,
+                project=project,
+                metric_value=metric_value,
+                new_status=new_status,
+                notification_uuid=notification_uuid,
+            )
 
     @abc.abstractmethod
     def send_alert(
@@ -126,8 +142,8 @@ class DefaultActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         pass
@@ -197,8 +213,8 @@ class EmailActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         self.email_users(
@@ -215,8 +231,8 @@ class EmailActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         self.email_users(
@@ -288,15 +304,24 @@ class PagerDutyActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
+
         success = send_incident_alert_notification(
-            action=action,
-            incident=incident,
+            notification_context=notification_context,
+            alert_context=alert_context,
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
             new_status=new_status,
             metric_value=metric_value,
             notification_uuid=notification_uuid,
@@ -323,8 +348,8 @@ class OpsgenieActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
@@ -357,8 +382,8 @@ class SentryAppActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification

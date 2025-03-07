@@ -90,7 +90,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
         data = json.loads(responses.calls[0].request.body)
 
@@ -236,7 +240,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert len(responses.calls) == 0
@@ -259,7 +267,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
@@ -287,7 +299,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)

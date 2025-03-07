@@ -43,8 +43,8 @@ class SlackMessagingSpec(MessagingIntegrationSpec):
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
-        metric_value: float,
         new_status: IncidentStatus,
+        metric_value: float | int | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
 

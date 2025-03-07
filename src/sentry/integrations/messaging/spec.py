@@ -133,8 +133,9 @@ class MessagingIntegrationSpec(ABC):
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
-        metric_value: float,
+        project: Project,
         new_status: IncidentStatus,
+        metric_value: float | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
         raise NotImplementedError
@@ -174,12 +175,17 @@ class MessagingActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         success = self._spec.send_incident_alert_notification(
-            action, incident, metric_value, new_status, notification_uuid
+            action=action,
+            incident=incident,
+            project=project,
+            metric_value=metric_value,
+            new_status=new_status,
+            notification_uuid=notification_uuid,
         )
         if success:
             self.record_alert_sent_analytics(
