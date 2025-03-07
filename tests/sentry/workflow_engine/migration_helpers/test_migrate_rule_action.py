@@ -1181,4 +1181,4 @@ class TestNotificationActionMigrationUtils(TestCase):
         assert action.type == Action.Type.SLACK
         assert action.config.get("target_display") == "#test"
         assert action.config.get("target_identifier") == "C123"
-        assert action.config.get("integration_id") == 1
+        assert action.integration_id == 1
