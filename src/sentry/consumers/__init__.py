@@ -435,8 +435,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             click.Option(
                 ["--max-flush-segments", "max_flush_segments"],
                 type=int,
-                default=10000,
-                help="The number of segments to download from redis at once. Defaults to 10000.",
+                default=100,
+                help="The number of segments to download from redis at once. Defaults to 100.",
             ),
             *multiprocessing_options(default_max_batch_size=100),
         ],

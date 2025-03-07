@@ -296,7 +296,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         # config
         self.buffer_v2 = buffer_v2
-        self.flush_interval = 1
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
@@ -311,7 +310,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.output_topic = ArroyoTopic(
             get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
         )
-        self.last_flush = 0
 
     def create_with_partitions(
         self,
