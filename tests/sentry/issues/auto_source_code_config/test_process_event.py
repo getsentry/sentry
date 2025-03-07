@@ -10,12 +10,11 @@ from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
 from sentry.issues.auto_source_code_config.constants import METRIC_PREFIX
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
-from sentry.issues.auto_source_code_config.utils import is_dry_run_platform
+from sentry.issues.auto_source_code_config.utils import PlatformConfig
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -80,7 +79,8 @@ class BaseDeriveCodeMappings(TestCase):
             code_mapping = code_mappings[0]
             assert code_mapping.stack_root == expected_stack_root
             assert code_mapping.source_root == expected_source_root
-            dry_run = is_dry_run_platform(platform)
+            platform_config = PlatformConfig(platform)
+            dry_run = platform_config.is_dry_run_platform()
             # Check that both metrics were called with any order
             mock_incr.assert_any_call(
                 key=f"{METRIC_PREFIX}.code_mapping.created",
@@ -109,7 +109,8 @@ class BaseDeriveCodeMappings(TestCase):
             event = self.create_event(frames, platform)
             code_mappings = process_event(self.project.id, event.group_id, event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
-            dry_run = is_dry_run_platform(platform)
+            platform_config = PlatformConfig(platform)
+            dry_run = platform_config.is_dry_run_platform()
             if code_mappings:
                 # Check that both metrics were called with any order
                 mock_incr.assert_any_call(
@@ -171,7 +172,8 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
     def test_skips_not_supported_platforms(self) -> None:
-        self._process_and_assert_no_code_mapping(repo_files=[], frames=[{}], platform="other")
+        with patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}):
+            self._process_and_assert_no_code_mapping(repo_files=[], frames=[{}], platform="other")
 
     def test_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -206,9 +208,9 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         file_in_repo = "src/foo/bar.py"
         platform = "other"
         with (
-            patch(f"{CODE_ROOT}.task.supported_platform", return_value=True),
-            patch(f"{CODE_ROOT}.task.is_dry_run_platform", return_value=True),
-            override_options({"issues.auto_source_code_config.dry-run-platforms": [platform]}),
+            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
+            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_supported", return_value=True),
+            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_dry_run_platform", return_value=True),
         ):
             # No code mapping will be stored, however, we get what would have been created
             code_mappings = self._process_and_assert_no_code_mapping(
@@ -226,18 +228,21 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         platform = "foo"
         self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
 
-        with patch(f"{CODE_ROOT}.task.supported_platform", return_value=True):
+        with (
+            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
+            patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=[]),
+        ):
             # No extensions are supported, thus, we can't generate a code mapping
             self._process_and_assert_no_code_mapping(
                 repo_files=[file_in_repo],
-                frames=[{"filename": frame_filename, "in_app": True}],
+                frames=[self.frame(frame_filename, True)],
                 platform=platform,
             )
 
-            with patch(f"{REPO_TREES_CODE}.SUPPORTED_EXTENSIONS", ["tbd"]):
+            with patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]):
                 self._process_and_assert_code_mapping(
                     repo_files=[file_in_repo],
-                    frames=[{"filename": frame_filename, "in_app": True}],
+                    frames=[self.frame(frame_filename, True)],
                     platform=platform,
                     expected_stack_root="foo/",
                     expected_source_root="src/foo/",
@@ -502,34 +507,31 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
 
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
-    option = {"issues.auto_source_code_config.dry-run-platforms": ["java"]}
     platform = "java"
 
     def test_very_short_module_name(self) -> None:
-        with override_options(self.option):
-            # No code mapping will be stored, however, we get what would have been created
-            code_mappings = self._process_and_assert_no_code_mapping(
-                repo_files=["src/a/SomeShortPackageNameClass.java"],
-                frames=[
-                    {
-                        "module": "a.SomeShortPackageNameClass",
-                        "abs_path": "SomeShortPackageNameClass.java",
-                    }
-                ],
-                platform=self.platform,
-            )
-            assert len(code_mappings) == 1
-            assert code_mappings[0].stacktrace_root == "a/"
-            assert code_mappings[0].source_path == "src/a/"
+        # No code mapping will be stored, however, we get what would have been created
+        code_mappings = self._process_and_assert_no_code_mapping(
+            repo_files=["src/a/SomeShortPackageNameClass.java"],
+            frames=[
+                {
+                    "module": "a.SomeShortPackageNameClass",
+                    "abs_path": "SomeShortPackageNameClass.java",
+                }
+            ],
+            platform=self.platform,
+        )
+        assert len(code_mappings) == 1
+        assert code_mappings[0].stacktrace_root == "a/"
+        assert code_mappings[0].source_path == "src/a/"
 
     def test_handles_dollar_sign_in_module(self) -> None:
-        with override_options(self.option):
-            # No code mapping will be stored, however, we get what would have been created
-            code_mappings = self._process_and_assert_no_code_mapping(
-                repo_files=["src/com/example/foo/Bar.kt"],
-                frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
-                platform=self.platform,
-            )
-            assert len(code_mappings) == 1
-            assert code_mappings[0].stacktrace_root == "com/example/foo/"
-            assert code_mappings[0].source_path == "src/com/example/foo/"
+        # No code mapping will be stored, however, we get what would have been created
+        code_mappings = self._process_and_assert_no_code_mapping(
+            repo_files=["src/com/example/foo/Bar.kt"],
+            frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
+            platform=self.platform,
+        )
+        assert len(code_mappings) == 1
+        assert code_mappings[0].stacktrace_root == "com/example/foo/"
+        assert code_mappings[0].source_path == "src/com/example/foo/"
