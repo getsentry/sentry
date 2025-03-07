@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 from django.http import HttpResponse
@@ -9,6 +9,7 @@ from django.http.response import HttpResponseBase
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -22,7 +23,7 @@ from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.plugins.migrator import Migrator
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -88,17 +89,17 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
 
     def create_comment(self, issue_id, user_id, group_note):
         user = user_service.get_user(user_id)
+        assert user is not None
         attribution = f"{user.name} wrote:\n\n"
-        comment = {
+        return {
             "id": "123456789",
             "text": "{}<blockquote>{}</blockquote>".format(attribution, group_note.data["text"]),
         }
-        return comment
 
-    def get_persisted_default_config_fields(self) -> Sequence[str]:
+    def get_persisted_default_config_fields(self) -> list[str]:
         return ["project", "issueType"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["assignedTo", "reportedBy"]
 
     def get_create_issue_config(self, group, user, **kwargs):
@@ -175,7 +176,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         return f"display name: {external_issue.key}"
 
     def get_stacktrace_link(
-        self, repo: Repository, filepath: str, default: str, version: str
+        self, repo: Repository, filepath: str, default: str, version: str | None
     ) -> str | None:
         pass
 
@@ -226,12 +227,13 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         Migrator(integration=serialize_integration(integration), organization=organization).run()
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return {"external_id": state["name"]}
 
     def setup(self):
