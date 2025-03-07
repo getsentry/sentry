@@ -48,7 +48,7 @@ function IntegrationExternalTeamMappings(props: Props) {
     getResponseHeader,
     isPending: isTeamsPending,
     isError: isTeamsError,
-  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT, {query}], {staleTime: Infinity});
+  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT, {query}], {staleTime: 0});
   const teamsPageLinks = getResponseHeader?.('Link') ?? '';
   // We use this query as defaultOptions to reduce identical API calls
   const {
@@ -56,7 +56,7 @@ function IntegrationExternalTeamMappings(props: Props) {
     refetch: refetchInitialResults,
     isPending: isInitialResultsPending,
     isError: isInitialResultsError,
-  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT], {staleTime: Infinity});
+  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT], {staleTime: 0});
 
   const fetchData = () => {
     refetchTeams();
