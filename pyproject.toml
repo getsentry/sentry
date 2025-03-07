@@ -158,7 +158,6 @@ module = [
     "sentry.issues.search",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
-    "sentry.middleware.superuser",
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.notifications.activity.base",
