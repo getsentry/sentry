@@ -67,10 +67,12 @@ export default storyBook('SimpleTable', story => {
           <code>Data</code> keys and the values are objects with{' '}
           <JSXProperty name="Header" value="() => React.ReactNode" /> and{' '}
           <JSXProperty name="Cell" value="(props: { value: Cell }) => React.ReactNode" />{' '}
-          components.
+          <JSXProperty name="width" value="string" /> components.
         </p>
         <p>
           Use the <code>defineColumns()</code> helper function for improved type-safety.
+          To optimize performance, define your columns outside of the component where they
+          will be rendered (otherwise the columns will be redefined on every render).
         </p>
 
         <p>
@@ -96,6 +98,49 @@ export default storyBook('SimpleTable', story => {
           data={data}
           fallback={t('No alerts triggered during given date range')}
         />
+      </Fragment>
+    );
+  });
+
+  story('custom widths', () => {
+    const columnsWithWidth = defineColumns<Data>({
+      name: {Header: () => t('Name'), width: '2fr'},
+      monitors: {
+        Header: () => t('Monitors'),
+        Cell: ({value}) => `${value.length} monitors`,
+        width: 'min-content',
+      },
+      action: {Header: () => t('Action')},
+      lastTriggered: {
+        Header: () => t('Last Triggered'),
+        Cell: ({value}) => <TimeAgoCell date={value} />,
+        width: '256px',
+      },
+    });
+    const data: Data[] = [
+      {
+        name: 'Row A',
+        monitors: [1],
+        action: 'Email',
+        lastTriggered: moment().subtract(1, 'day').toDate(),
+      },
+      {
+        name: 'Row B',
+        monitors: [3, 5, 7],
+        action: 'Slack',
+        lastTriggered: moment().subtract(2, 'days').toDate(),
+      },
+      {
+        name: 'Row C',
+        monitors: [2, 4, 6, 8],
+        action: 'PagerDuty',
+        lastTriggered: moment().subtract(3, 'days').toDate(),
+      },
+    ];
+
+    return (
+      <Fragment>
+        <SimpleTable columns={columnsWithWidth} data={data} />
       </Fragment>
     );
   });

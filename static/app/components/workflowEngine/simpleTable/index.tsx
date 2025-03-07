@@ -47,16 +47,16 @@ export function SimpleTable<
   }, [tableRef]);
   useResizeObserver({ref: tableRef, onResize});
 
+  const gridTemplateColumns = columnIds
+    .map(colId => columns?.[colId]?.width ?? 'minmax(0, 1fr)')
+    .join(' ');
+
   return (
     <Panel>
       <Grid
         ref={tableRef}
         /** override grid-template-columns */
-        style={{
-          gridTemplateColumns: columnIds
-            .map(colId => columns?.[colId]?.width ?? 'minmax(0, 1fr)')
-            .join(' '),
-        }}
+        style={{gridTemplateColumns}}
       >
         <GridHead>
           <GridRow data-row="header">
