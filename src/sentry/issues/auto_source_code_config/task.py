@@ -210,16 +210,9 @@ def process_code_mapping(
                 code_mapping, project, repository, organization_integration, dry_run
             )
 
-        metrics.incr(
-            key=f"{METRIC_PREFIX}.code_mapping.created",
-            tags={"platform": platform, "dry_run": dry_run},
-            sample_rate=1.0,
-        )
-        metrics.incr(
-            key=f"{METRIC_PREFIX}.repository.created",
-            tags={"platform": platform, "dry_run": dry_run},
-            sample_rate=1.0,
-        )
+        tags = {"platform": platform, "dry_run": dry_run}
+        metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)
+        metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
 
 
 def create_code_mapping(
