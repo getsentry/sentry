@@ -18,7 +18,14 @@ type TypedSpanTags = {
   string: TagCollection;
 };
 
-export const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefined);
+type TypedSpanTagsStatus = {
+  numberTagsLoading: boolean;
+  stringTagsLoading: boolean;
+};
+
+type TypedSpanTagsResult = TypedSpanTags & TypedSpanTagsStatus;
+
+export const SpanTagsContext = createContext<TypedSpanTagsResult | undefined>(undefined);
 
 interface SpanTagsProviderProps {
   children: React.ReactNode;
@@ -34,12 +41,12 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
   const isEAP =
     dataset === DiscoverDatasets.SPANS_EAP || dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
-  const numberTags = useTypedSpanTags({
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTypedSpanTags({
     enabled: isEAP && enabled,
     type: 'number',
   });
 
-  const stringTags = useTypedSpanTags({
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTypedSpanTags({
     enabled: isEAP && enabled,
     type: 'string',
   });
@@ -89,27 +96,44 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
     };
   }, [dataset, indexedTags, stringTags]);
 
-  const tags = useMemo(() => {
+  const tagsResult = useMemo(() => {
     return {
       number: allNumberTags,
       string: allStringTags,
+      numberTagsLoading,
+      stringTagsLoading,
     };
-  }, [allNumberTags, allStringTags]);
+  }, [allNumberTags, allStringTags, numberTagsLoading, stringTagsLoading]);
 
-  return <SpanTagsContext.Provider value={tags}>{children}</SpanTagsContext.Provider>;
+  return (
+    <SpanTagsContext.Provider value={tagsResult}>{children}</SpanTagsContext.Provider>
+  );
 }
 
 export function useSpanTags(type?: 'number' | 'string') {
-  const typedTags = useContext(SpanTagsContext);
+  const typedTagsResult = useContext(SpanTagsContext);
 
-  if (typedTags === undefined) {
+  if (typedTagsResult === undefined) {
     throw new Error('useSpanTags must be used within a SpanTagsProvider');
   }
 
   if (type === 'number') {
-    return typedTags.number;
+    return typedTagsResult.number;
   }
-  return typedTags.string;
+  return typedTagsResult.string;
+}
+
+export function useSpanTagsAndStatus(type?: 'number' | 'string') {
+  const typedTagsResult = useContext(SpanTagsContext);
+
+  if (typedTagsResult === undefined) {
+    throw new Error('useSpanTags must be used within a SpanTagsProvider');
+  }
+
+  if (type === 'number') {
+    return {tags: typedTagsResult.number, isLoading: typedTagsResult.numberTagsLoading};
+  }
+  return {tags: typedTagsResult.string, isLoading: typedTagsResult.stringTagsLoading};
 }
 
 export function useSpanTag(key: string) {
@@ -179,5 +203,5 @@ function useTypedSpanTags({
 
   const previousTags = usePrevious(tags, result.isLoading);
 
-  return result.isLoading ? previousTags : tags;
+  return {tags: result.isLoading ? previousTags : tags, isLoading: result.isLoading};
 }
