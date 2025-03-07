@@ -7,6 +7,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
 } from 'sentry/components/compactSelect/types';
+import {escapeFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -118,6 +119,7 @@ export function getInitialFilterText(
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
+  const displayKeyText = escapeFilterKey(keyText);
   const valueType = getInitialValueType(fieldDefinition);
 
   switch (valueType) {
@@ -126,10 +128,10 @@ export function getInitialFilterText(
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
-      return `${keyText}:>${defaultValue}`;
+      return `${displayKeyText}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:
-      return `${keyText}:${defaultValue}`;
+      return `${displayKeyText}:${defaultValue}`;
   }
 }
 

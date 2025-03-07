@@ -411,7 +411,6 @@ function SearchQueryBuilderInputInternal({
           }
 
           const value = option.value;
-
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],

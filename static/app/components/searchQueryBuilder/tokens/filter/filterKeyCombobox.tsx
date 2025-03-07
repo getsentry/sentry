@@ -5,7 +5,10 @@ import type {Node} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  escapeFilterKey,
+  getFilterValueType,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -60,7 +63,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
           token,
-          key: keyName,
+          key: escapeFilterKey(keyName),
         });
         onCommit();
         return;
