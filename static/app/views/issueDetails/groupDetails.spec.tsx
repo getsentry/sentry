@@ -391,7 +391,7 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
         query: 'foo:bar',
-        statsPeriod: '14d',
+        statsPeriod: '90d',
       },
       statusCode: 404,
       body: {
@@ -406,7 +406,6 @@ describe('groupDetails', () => {
         location: LocationFixture({
           query: {
             query: 'foo:bar',
-            statsPeriod: '14d',
             streamline: '1',
           },
         }),

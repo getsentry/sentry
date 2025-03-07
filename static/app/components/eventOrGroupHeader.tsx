@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -184,12 +184,12 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const TitleWithLink = styled(GlobalSelectionLink)`
+const TitleWithLink = styled(Link)`
   display: inline-flex;
   align-items: center;
 `;
 
-const NewTitleWithLink = styled(GlobalSelectionLink)`
+const NewTitleWithLink = styled(Link)`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 
