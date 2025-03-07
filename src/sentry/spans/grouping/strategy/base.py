@@ -11,7 +11,7 @@ class Span(TypedDict):
     trace_id: str
     parent_span_id: str
     span_id: str
-    is_segment: bool
+    is_segment: NotRequired[bool]
     start_timestamp: float
     timestamp: float
     same_process_as_parent: bool
@@ -20,8 +20,8 @@ class Span(TypedDict):
     fingerprint: Sequence[str] | None
     tags: Any | None
     data: Any | None
+    sentry_tags: NotRequired[dict[str, str]]
     hash: NotRequired[str]
-    sentry_tags: dict[str, str]
 
 
 # A callable strategy is a callable that when given a span, it tries to
@@ -55,9 +55,10 @@ class SpanGroupingStrategy:
         # Treat the segment span like get_transaction_span_group for backwards
         # compatibility with transaction events, but fall back to default
         # fingerprinting if the span doesn't have a transaction.
-        if span.get("is_segment") and "transaction" in span["sentry_tags"]:
+        sentry_tags = span.get("sentry_tags") or {}
+        if span.get("is_segment") and sentry_tags.get("transaction") is not None:
             result = Hash()
-            result.update(span["sentry_tags"]["transaction"])
+            result.update(sentry_tags["transaction"])
             return result.hexdigest()
         else:
             return self.get_embedded_span_group(span)

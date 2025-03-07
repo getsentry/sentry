@@ -608,7 +608,7 @@ def test_standalone_spans_compat() -> None:
         SpanBuilder()
         .with_span_id("a" * 16)
         .segment()
-        .with_sentry_tag("transaction", "txname")
+        .with_sentry_tag("transaction", "transaction name")
         .build()
     ]
 
