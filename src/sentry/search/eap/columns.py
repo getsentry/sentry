@@ -23,7 +23,7 @@ from sentry.search.events.types import SnubaParams
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedAttribute:
+class ResolvedColumn:
     # The alias for this column
     public_alias: (
         str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
@@ -63,7 +63,7 @@ class ResolvedAttribute:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedColumn(ResolvedAttribute):
+class ResolvedAttribute(ResolvedColumn):
     # The internal rpc alias for this column
     internal_name: str
 
@@ -105,7 +105,7 @@ class VirtualColumnDefinition:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedFunction(ResolvedAttribute):
+class ResolvedFunction(ResolvedColumn):
     """
     A Function should be used as a non-attribute column, this means an aggregate or formula is a type of function.
     The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
@@ -240,20 +240,22 @@ class FormulaDefinition(FunctionDefinition):
         )
 
 
-def simple_sentry_field(field) -> ResolvedColumn:
+def simple_sentry_field(field) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     without the `sentry.` suffix. This helper functions makes defining them easier"""
-    return ResolvedColumn(public_alias=field, internal_name=f"sentry.{field}", search_type="string")
+    return ResolvedAttribute(
+        public_alias=field, internal_name=f"sentry.{field}", search_type="string"
+    )
 
 
 def simple_measurements_field(
     field,
     search_type: constants.SearchType = "number",
     secondary_alias: bool = False,
-) -> ResolvedColumn:
+) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     with the `measurements.` prefix. This helper functions makes defining them easier"""
-    return ResolvedColumn(
+    return ResolvedAttribute(
         public_alias=f"measurements.{field}",
         internal_name=field,
         search_type=search_type,
@@ -292,6 +294,6 @@ def project_term_resolver(
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
     formulas: dict[str, FormulaDefinition]
-    columns: dict[str, ResolvedColumn]
+    columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
