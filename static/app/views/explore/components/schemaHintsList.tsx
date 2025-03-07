@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,7 +8,11 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import type {AggregationKey} from 'sentry/utils/fields';
+import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
+import {
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 interface SchemaHintsListProps {
@@ -29,6 +33,8 @@ function SchemaHintsList({
   stringTags,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
+  const exploreQuery = useExploreQuery();
+  const setExploreQuery = useSetExploreQuery();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -61,7 +67,7 @@ function SchemaHintsList({
       const containerWidth = schemaHintsContainerRef.current.clientWidth;
       let currentWidth = 0;
       const gap = 8;
-      const averageHintWidth = 250;
+      const averageHintWidth = 150;
       const seeFullListTagWidth = 150;
 
       const visibleItems = filterTagsSorted.filter((_hint, index) => {
@@ -96,11 +102,37 @@ function SchemaHintsList({
     return () => resizeObserver.disconnect();
   }, [filterTagsSorted]);
 
+  const onHintClick = useCallback(
+    (hint: Tag | undefined) => {
+      if (hint?.key === seeFullListTag.key) {
+        return;
+      }
+
+      const newHintQuery =
+        hint?.kind === FieldKind.MEASUREMENT ? `${hint?.key}:>0` : `${hint?.key}:""`;
+      setExploreQuery(`${exploreQuery} ${newHintQuery}`);
+    },
+    [exploreQuery, setExploreQuery]
+  );
+
+  const getHintText = (hint: Tag | undefined) => {
+    if (hint?.key === seeFullListTag.key) {
+      return hint?.name;
+    }
+    return hint?.kind === FieldKind.MEASUREMENT
+      ? `${hint?.name} > ...`
+      : `${hint?.name} is ...`;
+  };
+
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map((hint, index) => (
-        <SchemaHintOption key={index} data-type={hint?.key}>
-          {hint?.key === seeFullListTag.key ? hint?.name : `${hint?.name} is ...`}
+        <SchemaHintOption
+          key={index}
+          data-type={hint?.key}
+          onClick={() => onHintClick(hint)}
+        >
+          {getHintText(hint)}
         </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
