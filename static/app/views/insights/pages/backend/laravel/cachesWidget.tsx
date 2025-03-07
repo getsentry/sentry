@@ -91,7 +91,7 @@ export function CachesWidget({query}: {query?: string}) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title="Caches" />}
+      Title={<Widget.WidgetTitle title="Cache Miss Rates" />}
       Visualization={
         isLoading ? (
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
