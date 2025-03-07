@@ -9,6 +9,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
 import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -28,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
@@ -185,17 +187,31 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
 
-  const sdkProviderOptions = Object.values(SdkProviderEnum).map(provider => {
-    return {
-      value: provider,
-      label: <TextOverflow>{provider}</TextOverflow>,
-    };
-  });
+  // useMemo is needed to remember the original hash
+  // in case window.location.hash disappears
+  const ORIGINAL_HASH = useMemo(() => {
+    return window.location.hash;
+  }, []);
+
+  const sdkProviderOptions = Object.values(SdkProviderEnum)
+    .filter(provider => provider !== SdkProviderEnum.GENERIC)
+    .map(provider => {
+      return {
+        value: provider,
+        label: <TextOverflow>{provider}</TextOverflow>,
+      };
+    });
 
   const [sdkProvider, setsdkProvider] = useState<{
     value: string;
     label?: ReactNode;
   }>(sdkProviderOptions[0]!);
+
+  const defaultTab = 'sdkSelect';
+  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+    'mode',
+    defaultTab
+  );
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
@@ -219,20 +235,40 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <ContentDesc>
         {t('Configure Sentry to track feature flag evaluations on error events.')}
       </ContentDesc>
-      <ProviderSelect>
-        {tct('I use a Feature Flag SDK from [providerSelect]', {
-          providerSelect: (
-            <CompactSelect
-              triggerLabel={sdkProvider.label}
-              value={sdkProvider.value}
-              onChange={setsdkProvider}
-              options={sdkProviderOptions}
-              position="bottom-end"
-              key={sdkProvider.value}
-            />
-          ),
-        })}
-      </ProviderSelect>
+      <RadioGroup
+        label="mode"
+        choices={[
+          [
+            'sdkSelect',
+            <SdkSelect key="sdkSelect">
+              {tct('I use a Feature Flag SDK from [sdkSelect]', {
+                sdkSelect: (
+                  <CompactSelect
+                    triggerLabel={sdkProvider.label}
+                    value={sdkProvider.value}
+                    onChange={setsdkProvider}
+                    options={sdkProviderOptions}
+                    position="bottom-end"
+                    key={sdkProvider.value}
+                    disabled={setupMode() === 'generic'}
+                  />
+                ),
+              })}
+            </SdkSelect>,
+          ],
+          [
+            'generic',
+            <div key="generic">
+              {t('I use a different solution to evaluate feature flags.')}
+            </div>,
+          ],
+        ]}
+        value={setupMode()}
+        onChange={value => {
+          setSetupMode(value);
+          window.location.hash = ORIGINAL_HASH;
+        }}
+      />
     </ContentHeader>
   );
 
@@ -282,7 +318,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         {header}
         <FeatureFlagOtherPlatformOnboarding
           projectSlug={currentProject.slug}
-          integration={sdkProvider.value}
+          integration={
+            setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
+          }
         />
       </Fragment>
     );
@@ -304,7 +342,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         platformKey={currentPlatform.id}
         projectId={currentProject.id}
         projectSlug={currentProject.slug}
-        integration={sdkProvider.value}
+        integration={
+          setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
+        }
         configType="featureFlagOnboarding"
       />
     </Fragment>
@@ -375,7 +415,7 @@ const ContentDesc = styled('p')`
   margin-bottom: ${space(1)};
 `;
 
-const ProviderSelect = styled('div')`
+const SdkSelect = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
