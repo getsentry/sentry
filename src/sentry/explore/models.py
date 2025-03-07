@@ -13,11 +13,13 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.dashboard_widget import TypesClass
 
 
-class ExploreSavedQueryTypes(TypesClass):
+class ExploreSavedQueryDataset(TypesClass):
     SPANS = 0
+    OURLOGS = 1
 
     TYPES = [
         (SPANS, "spans"),
+        (OURLOGS, "ourlogs"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -53,7 +55,7 @@ class ExploreSavedQuery(Model):
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     dataset = BoundedPositiveIntegerField(
-        choices=ExploreSavedQueryTypes.as_choices(), default=ExploreSavedQueryTypes.SPANS
+        choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
     )
     is_multi_query = models.BooleanField(null=True, blank=True)
 
