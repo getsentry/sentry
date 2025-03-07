@@ -286,7 +286,16 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
 )
-@click.option("--queue-size", help="Size of multiprocessing queues for child workers", default=1)
+@click.option(
+    "--result-queue-maxsize",
+    help="Size of multiprocessing queue for child process results",
+    default=5,
+)
+@click.option(
+    "--child-tasks-queue-maxsize",
+    help="Size of multiprocessing queue for pending tasks for child processes",
+    default=5,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -305,7 +314,8 @@ def run_taskworker(
     max_task_count: int,
     namespace: str | None,
     concurrency: int,
-    queue_size: int,
+    child_tasks_queue_maxsize: int,
+    result_queue_maxsize: int,
     **options: Any,
 ) -> None:
     """
@@ -320,7 +330,8 @@ def run_taskworker(
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,
-            queue_size=queue_size,
+            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+            result_queue_maxsize=result_queue_maxsize,
             **options,
         )
         exitcode = worker.start()

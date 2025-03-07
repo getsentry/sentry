@@ -90,16 +90,17 @@ class TestTaskWorker(TestCase):
             # No next_task returned
             mock_client.update_task.return_value = None
 
-            # Run once to add the task and then poll until the task is complete.
-            taskworker.run_once()
+            taskworker.start_result_thread()
             start = time.time()
             while True:
                 taskworker.run_once()
                 if mock_client.update_task.called:
                     break
                 if time.time() - start > max_runtime:
-                    raise AssertionError("Timeout waiting for get_task to be called")
+                    taskworker.shutdown()
+                    raise AssertionError("Timeout waiting for update_task to be called")
 
+            taskworker.shutdown()
             assert mock_client.get_task.called
             mock_client.update_task.assert_called_with(
                 task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
@@ -119,6 +120,7 @@ class TestTaskWorker(TestCase):
 
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.return_value = SIMPLE_TASK
+            taskworker.start_result_thread()
 
             # Run until two tasks have been processed
             start = time.time()
@@ -127,8 +129,10 @@ class TestTaskWorker(TestCase):
                 if mock_client.update_task.call_count >= 2:
                     break
                 if time.time() - start > max_runtime:
+                    taskworker.shutdown()
                     raise AssertionError("Timeout waiting for get_task to be called")
 
+            taskworker.shutdown()
             assert mock_client.get_task.called
             assert mock_client.update_task.call_count == 2
             mock_client.update_task.assert_called_with(
@@ -159,6 +163,7 @@ class TestTaskWorker(TestCase):
 
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.side_effect = get_task_response
+            taskworker.start_result_thread()
 
             # Run until the update has 'completed'
             start = time.time()
@@ -167,6 +172,7 @@ class TestTaskWorker(TestCase):
                 if mock_client.update_task.call_count >= 3:
                     break
                 if time.time() - start > max_runtime:
+                    taskworker.shutdown()
                     raise AssertionError("Timeout waiting for get_task to be called")
 
             taskworker.shutdown()
