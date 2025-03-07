@@ -216,7 +216,7 @@ def process_segment(spans: list[Span]) -> list[Span]:
     #  - [ ] _materialize_metadata_many
     #  - [X] _get_or_create_environment_many           ->  _create_models
     #  - [X] _get_or_create_release_associated_models  ->  _create_models
-    #  - [X] _tsdb_record_all_metrics
+    #  - [ ] _tsdb_record_all_metrics
     #  - [ ] _materialize_event_metrics
     #  - [ ] _nodestore_save_many
     #  - [ ] _eventstream_insert_many
@@ -237,7 +237,6 @@ def process_segment(spans: list[Span]) -> list[Span]:
     job: Job = {"data": event, "project_id": project.id, "raw": False, "start_time": None}
 
     _pull_out_data([job], projects)
-    # _tsdb_record_all_metrics([job])
     _record_transaction_info([job], projects)
 
     return spans
