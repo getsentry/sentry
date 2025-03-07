@@ -100,6 +100,24 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     emails: list[_UserEmails]
 
 
+class UserSerializerWithoutEmailsResponse(UserSerializerResponseOptional):
+    id: str
+    name: str
+    username: str
+    email: str
+    avatarUrl: str
+    isActive: bool
+    hasPasswordAuth: bool
+    isManaged: bool
+    dateJoined: datetime
+    lastLogin: datetime | None
+    has2fa: bool
+    lastActive: datetime | None
+    isSuperuser: bool
+    isStaff: bool
+    experiments: dict[str, Any]  # TODO
+
+
 class UserSerializerResponseSelf(UserSerializerResponse):
     options: _UserOptions
     flags: Any  # TODO
