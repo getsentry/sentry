@@ -214,11 +214,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   const header = (
-    <Header>
-      <h3 style={{marginBottom: space(2)}}>{t('Set Up Evaluation Tracking')}</h3>
-      <TextBlock style={{marginBottom: space(1)}}>
+    <ContentHeader>
+      <ContentHeading>{t('Set Up Evaluation Tracking')}</ContentHeading>
+      <ContentDesc>
         {t('Configure Sentry to track feature flag evaluations on error events.')}
-      </TextBlock>
+      </ContentDesc>
       <ProviderSelect>
         {tct('I use a Feature Flag SDK from [providerSelect]', {
           providerSelect: (
@@ -233,7 +233,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           ),
         })}
       </ProviderSelect>
-    </Header>
+    </ContentHeader>
   );
 
   if (isProjKeysLoading) {
@@ -363,15 +363,23 @@ const HeaderActions = styled('div')`
   gap: ${space(3)};
 `;
 
+const ContentHeader = styled('div')`
+  padding: ${space(2)} 0;
+`;
+
+const ContentHeading = styled('h3')`
+  margin-bottom: 0.5em;
+`;
+
+const ContentDesc = styled('p')`
+  margin-bottom: ${space(1)};
+`;
+
 const ProviderSelect = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
   flex-wrap: wrap;
-`;
-
-const Header = styled('div')`
-  padding: ${space(2)} 0;
 `;
 
 export default LegacyFeatureFlagOnboardingSidebar;
