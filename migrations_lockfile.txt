@@ -23,4 +23,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0029_uptime_subscription_index_domain_cols
 
-workflow_engine: 0035_action_model_drop_legacy_fields
+workflow_engine: 0036_action_remove_legacy_fields
