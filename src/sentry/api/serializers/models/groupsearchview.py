@@ -33,7 +33,6 @@ class GroupSearchViewSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
         attrs: MutableMapping[Any, Any] = {}
 
-        # Get the organization from the first item
         organization = item_list[0].organization
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
             organization=organization,
@@ -42,8 +41,10 @@ class GroupSearchViewSerializer(Serializer):
         )
 
         for item in item_list:
-            attrs[item] = {}
-            attrs[item]["last_visited"] = last_visited_views.filter(group_search_view_id=item.id)
+            last_visited = last_visited_views.filter(group_search_view_id=item.id).first()
+            if last_visited:
+                attrs[item] = {}
+                attrs[item]["last_visited"] = last_visited.last_visited
 
         return attrs
 
@@ -70,7 +71,7 @@ class GroupSearchViewSerializer(Serializer):
             "isAllProjects": is_all_projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
-            "lastVisited": attrs["last_visited"][0].last_visited if attrs["last_visited"] else None,
+            "lastVisited": attrs["last_visited"] if attrs else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
         }

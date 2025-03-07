@@ -139,7 +139,6 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
 
         assert response.data == serialize(objs["user_one_views"])
 
-    @freeze_time("2025-03-07T00:00:00Z")
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_last_visited_exists_for_seen_views(self) -> None:
@@ -159,9 +158,9 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
             assert len(response.data) == 3
 
             assert response.data[0]["lastVisited"] == timezone.now()
-            # # Second and third views should not have lastVisited
-            assert "lastVisited" not in response.data[1]
-            assert "lastVisited" not in response.data[2]
+            # Second and third views should not have lastVisited
+            assert not response.data[1]["lastVisited"]
+            assert not response.data[2]["lastVisited"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
