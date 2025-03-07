@@ -39,9 +39,10 @@ class GroupSearchViewSerializer(Serializer):
             user_id=user.id,
             group_search_view_id__in=[item.id for item in item_list],
         )
+        last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
         for item in item_list:
-            last_visited = last_visited_views.filter(group_search_view_id=item.id).first()
+            last_visited = last_visited_map.get(item.id, None)
             if last_visited:
                 attrs[item] = {}
                 attrs[item]["last_visited"] = last_visited.last_visited
