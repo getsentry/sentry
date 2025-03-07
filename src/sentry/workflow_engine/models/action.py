@@ -10,7 +10,6 @@ from django.dispatch import receiver
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
@@ -61,15 +60,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     integration_id = HybridCloudForeignKey(
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
-
-    # LEGACY: The target_display is used to display the target's name in notifications
-    target_display = models.TextField(null=True)
-
-    # LEGACY: The target_identifier is used to target the user / team / org that notifications are being sent to
-    target_identifier = models.TextField(null=True)
-
-    # LEGACY: This is used to denote if the Notification is going to a user, team, sentry app, etc
-    target_type = models.SmallIntegerField(choices=ActionTarget.as_choices(), null=True)
 
     def get_handler(self) -> ActionHandler:
         action_type = Action.Type(self.type)
