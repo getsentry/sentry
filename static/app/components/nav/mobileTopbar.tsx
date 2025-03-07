@@ -52,7 +52,7 @@ function MobileTopbar() {
       >
         <IconSentry />
       </HomeLink>
-      <MenuButton
+      <Button
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
@@ -132,7 +132,7 @@ const HomeLink = styled(Link, {
   position: relative;
 
   svg {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
     width: ${space(3)};
     height: ${space(3)};
   }
@@ -152,14 +152,6 @@ const HomeLink = styled(Link, {
         background: ${p.theme.sidebar.superuser};
       }
     `}
-`;
-
-const MenuButton = styled(Button)`
-  color: ${p => p.theme.white};
-
-  &:hover {
-    color: ${p => p.theme.white};
-  }
 `;
 
 const NavigationOverlay = styled('nav')`
