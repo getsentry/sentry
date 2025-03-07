@@ -1,9 +1,8 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from attr import field as attr_field
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -67,10 +66,7 @@ class ResolvedAttribute:
 class ResolvedColumn(ResolvedAttribute):
     # The internal rpc alias for this column
     internal_name: str
-    is_aggregate: bool = attr_field(init=False)
-
-    def __post_init__(self):
-        object.__setattr__(self, "is_aggregate", False)
+    is_aggregate: bool = field(default=False, init=False)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -156,10 +152,7 @@ class ResolvedAggregate(ResolvedFunction):
     internal_name: Function.ValueType
     # Whether to enable extrapolation
     extrapolation: bool = True
-    is_aggregate: bool = attr_field(init=False)
-
-    def __post_init__(self):
-        object.__setattr__(self, "is_aggregate", True)
+    is_aggregate: bool = field(default=True, init=False)
 
     @property
     def proto_definition(self) -> AttributeAggregation:
