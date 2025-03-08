@@ -22,7 +22,7 @@ from sentry import features, nodestore, options
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
+from sentry.issues.ingest import hash_fingerprint_parts, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType
@@ -206,7 +206,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
                 "project_id": payload["project_id"],
-                "fingerprint": payload["fingerprint"],
+                "fingerprint": hash_fingerprint_parts(payload["fingerprint"]),
                 "issue_title": payload["issue_title"],
                 "subtitle": payload["subtitle"],
                 "resource_id": payload.get("resource_id"),
@@ -217,8 +217,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "level": payload.get("level", DEFAULT_LEVEL),
                 "assignee": assignee_identifier,
             }
-
-            process_occurrence_data(occurrence_data)
 
             if payload.get("event_id"):
                 occurrence_data["event_id"] = UUID(payload["event_id"]).hex

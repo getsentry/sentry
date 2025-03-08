@@ -69,12 +69,8 @@ def save_issue_occurrence(
     return occurrence, group_info
 
 
-def process_occurrence_data(data: dict[str, Any]) -> None:
-    if "fingerprint" not in data:
-        return
-
-    # Hash fingerprints to make sure they're a consistent length
-    data["fingerprint"] = [md5(part.encode("utf-8")).hexdigest() for part in data["fingerprint"]]
+def hash_fingerprint_parts(fingerprint: list[str]) -> list[str]:
+    return [md5(part.encode("utf-8")).hexdigest() for part in fingerprint]
 
 
 class IssueArgs(TypedDict):

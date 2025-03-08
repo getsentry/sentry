@@ -11,7 +11,7 @@ from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
+from sentry.issues.ingest import hash_fingerprint_parts, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.issues.status_change_message import StatusChangeMessage, StatusChangeMessageData
@@ -42,7 +42,7 @@ class OccurrenceTestMixin:
             "id": uuid.uuid4().hex,
             "project_id": 1,
             "event_id": uuid.uuid4().hex,
-            "fingerprint": ["some-fingerprint"],
+            "fingerprint": hash_fingerprint_parts(["some-fingerprint"]),
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
             "culprit": "api/123",
@@ -58,7 +58,6 @@ class OccurrenceTestMixin:
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 
-        process_occurrence_data(kwargs)
         return kwargs
 
     def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
@@ -91,13 +90,12 @@ class StatusChangeTestMixin:
         kwargs: StatusChangeMessageData = {
             "id": uuid.uuid4().hex,
             "project_id": 1,
-            "fingerprint": ["some-fingerprint"],
+            "fingerprint": hash_fingerprint_parts(["some-fingerprint"]),
             "new_status": 1,
             "new_substatus": 1,
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 
-        process_occurrence_data(kwargs)
         return kwargs
 
     def build_statuschange(self, **overrides: Any) -> StatusChangeMessage:

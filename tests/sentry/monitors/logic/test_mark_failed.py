@@ -4,7 +4,7 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.issues.ingest import process_occurrence_data
+from sentry.issues.ingest import hash_fingerprint_parts
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -430,8 +430,9 @@ class MarkFailedTestCase(TestCase):
         assert monitor_incident.starting_timestamp == checkin.date_added
         assert monitor_environment.active_incident is not None
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
-        occurrence_data = {"fingerprint": [monitor_environment.active_incident.grouphash]}
-        process_occurrence_data(occurrence_data)
+        occurrence_data = {
+            "fingerprint": hash_fingerprint_parts([monitor_environment.active_incident.grouphash])
+        }
         issue_platform_hash = occurrence_data["fingerprint"][0]
 
         grouphash = GroupHash.objects.get(hash=issue_platform_hash)

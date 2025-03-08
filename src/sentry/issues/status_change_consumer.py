@@ -144,7 +144,7 @@ def bulk_get_groups_from_fingerprints(
     Returns a map of (project, fingerprint) to the group.
 
     Note that fingerprints for issue platform are expected to be
-    processed via `process_occurrence_data` prior to calling this function.
+    hashed prior to calling this function.
     """
     fingerprints_by_project: dict[int, list[str]] = defaultdict(list)
     for project_id, fingerprints in project_fingerprint_pairs:
@@ -179,16 +179,15 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     Processes the incoming message payload into a format we can use.
     """
-    from sentry.issues.ingest import process_occurrence_data
+    from sentry.issues.ingest import hash_fingerprint_parts
 
     data = {
-        "fingerprint": payload["fingerprint"],
+        "fingerprint": hash_fingerprint_parts(payload["fingerprint"]),
         "project_id": payload["project_id"],
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
     }
 
-    process_occurrence_data(data)
     return {"status_change": data}
 
 
