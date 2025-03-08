@@ -10,7 +10,7 @@ import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 export interface ActorAvatarProps extends BaseAvatarProps {
-  actor: Actor;
+  actor: Actor | undefined;
 }
 
 export const ActorAvatar = forwardRef(
@@ -18,6 +18,11 @@ export const ActorAvatar = forwardRef(
     {size = 24, hasTooltip = true, actor, ...props}: ActorAvatarProps,
     ref: React.Ref<HTMLSpanElement>
   ) => {
+    if (!actor) {
+      // @TODO(jonasbadalic): Do we need a placeholder here?
+      return null;
+    }
+
     const otherProps = {
       size,
       hasTooltip,

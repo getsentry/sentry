@@ -13,7 +13,7 @@ export const DocIntegrationAvatar = forwardRef<
   DocIntegrationAvatarProps
 >(({docIntegration, ...props}, ref) => {
   if (!docIntegration?.avatar) {
-    // @TODO(jonasbadalic): This is not passing a ref!!
+    // @TODO(jonasbadalic): This is not passing a ref!
     return <PluginIcon size={props.size} pluginId={docIntegration?.slug} />;
   }
 
