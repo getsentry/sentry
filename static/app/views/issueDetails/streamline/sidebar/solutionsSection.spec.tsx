@@ -234,11 +234,6 @@ describe('SolutionsSection', () => {
         },
       });
 
-      // jest.mocked(getConfigForIssueType).mockReturnValue({
-      //   ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
-      //   resources: null,
-      // });
-
       render(
         <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
         {
