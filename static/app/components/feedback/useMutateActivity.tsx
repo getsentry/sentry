@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
@@ -54,10 +53,6 @@ export default function useMutateActivity({
   onMutate,
   onSettled,
 }: Props) {
-  const api = useApi({
-    persistInFlight: false,
-  });
-
   const mutation = useMutation<TData, TError, TVariables, TContext>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
@@ -66,7 +61,7 @@ export default function useMutateActivity({
           ? `/organizations/${organization.slug}/issues/${group.id}/comments/${noteId}/`
           : `/organizations/${organization.slug}/issues/${group.id}/comments/`;
 
-      return fetchMutation(api)([
+      return fetchMutation([
         method,
         url,
         {},
