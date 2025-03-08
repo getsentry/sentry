@@ -1,49 +1,28 @@
 import {forwardRef} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
 import type {Actor} from 'sentry/types/core';
-import type {AvatarSentryApp, DocIntegration} from 'sentry/types/integrations';
+import type {SentryApp} from 'sentry/types/integrations';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 
 export interface AvatarProps extends UserAvatarProps {
   actor?: Actor;
-  docIntegration?: DocIntegration;
-  /**
-   * True if the Avatar is full color, rather than B&W (Used for SentryAppAvatar)
-   */
-  isColor?: boolean;
-  /**
-   * True if the rendered Avatar should be a static asset
-   */
-  isDefault?: boolean;
   organization?: OrganizationSummary;
   project?: AvatarProject;
-  sentryApp?: AvatarSentryApp;
+  sentryApp?: SentryApp;
   team?: Team;
 }
 
 const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
   (
-    {
-      hasTooltip = false,
-      actor,
-      user,
-      team,
-      project,
-      organization,
-      sentryApp,
-      isColor = true,
-      isDefault = false,
-      docIntegration,
-      ...props
-    },
+    {hasTooltip = false, actor, user, team, project, organization, sentryApp, ...props},
     ref
   ) => {
     const commonProps = {hasTooltip, ref, ...props};
@@ -71,21 +50,17 @@ const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
     }
 
     if (sentryApp) {
-      return (
-        <SentryAppAvatar
-          sentryApp={sentryApp}
-          isColor={isColor}
-          isDefault={isDefault}
-          {...commonProps}
-        />
-      );
+      return <SentryAppAvatar sentryApp={sentryApp} {...commonProps} />;
     }
 
-    if (docIntegration) {
-      return <DocIntegrationAvatar docIntegration={docIntegration} {...commonProps} />;
+    if (organization) {
+      return <OrganizationAvatar organization={organization} {...commonProps} />;
     }
 
-    return <OrganizationAvatar organization={organization} {...commonProps} />;
+    Sentry.captureMessage(
+      'Avatar component did not receive any non nullable entity, at least one of actor, user, team, project, or organization is required'
+    );
+    return null;
   }
 );
 

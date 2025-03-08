@@ -13,17 +13,10 @@ export interface SentryAppAvatarProps extends BaseAvatarProps {
 export const SentryAppAvatar = forwardRef<HTMLSpanElement, SentryAppAvatarProps>(
   ({isColor = true, sentryApp, isDefault, ...props}, ref) => {
     const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
-    const defaultSentryAppAvatar = (
-      <IconGeneric
-        legacySize={`${props.size}`}
-        className={props.className}
-        data-test-id="default-sentry-app-avatar"
-      />
-    );
 
     // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
     if (isDefault || !avatarDetails || avatarDetails.avatarType === 'default') {
-      return defaultSentryAppAvatar;
+      return <FallbackAvatar {...props} />;
     }
 
     return (
@@ -33,8 +26,18 @@ export const SentryAppAvatar = forwardRef<HTMLSpanElement, SentryAppAvatarProps>
         type="upload"
         uploadUrl={avatarDetails?.avatarUrl}
         title={sentryApp?.name}
-        backupAvatar={defaultSentryAppAvatar}
+        backupAvatar={<FallbackAvatar {...props} />}
       />
     );
   }
 );
+
+function FallbackAvatar(props: Pick<BaseAvatarProps, 'size' | 'className'>) {
+  return (
+    <IconGeneric
+      legacySize={`${props.size}`}
+      className={props.className}
+      data-test-id="default-sentry-app-avatar"
+    />
+  );
+}

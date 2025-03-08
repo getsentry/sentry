@@ -5,7 +5,7 @@ import type {Team} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
 export interface TeamAvatarProps extends BaseAvatarProps {
-  team: Team | null | undefined;
+  team: Team | undefined;
 }
 
 export const TeamAvatar = forwardRef<HTMLSpanElement, TeamAvatarProps>(

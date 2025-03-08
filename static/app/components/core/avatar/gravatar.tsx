@@ -3,10 +3,13 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import {imageStyle, type ImageStyleProps} from 'sentry/components/avatar/styles';
+import {
+  type AvatarStyleProps,
+  AvatarStyles,
+} from 'sentry/components/core/avatar/baseAvatar';
 import ConfigStore from 'sentry/stores/configStore';
 
-export interface GravatarProps extends ImageStyleProps {
+export interface GravatarProps extends AvatarStyleProps {
   remoteSize: number;
   gravatarId?: string;
   onError?: () => void;
@@ -38,6 +41,7 @@ export const Gravatar = forwardRef<HTMLImageElement, GravatarProps>(
     }, [gravatarId]);
 
     if (!sha256) {
+      // @TODO(jonasbadalic): Do we need a placeholder here?
       return null;
     }
 
@@ -48,14 +52,11 @@ export const Gravatar = forwardRef<HTMLImageElement, GravatarProps>(
       d: placeholder ?? '404',
     });
 
-    const gravatarBaseUrl = ConfigStore.get('gravatarBaseUrl');
-    const url = `${gravatarBaseUrl}/avatar/${sha256}?${query}`;
-
     return (
       <Image
         ref={ref}
         round={round}
-        src={url}
+        src={`${ConfigStore.get('gravatarBaseUrl')}/avatar/${sha256}?${query}`}
         onLoad={onLoad}
         onError={onError}
         suggested={suggested}
@@ -85,6 +86,6 @@ async function hashGravatarId(message = ''): Promise<string> {
     .join('');
 }
 
-const Image = styled('img')<ImageStyleProps>`
-  ${imageStyle};
+const Image = styled('img')<AvatarStyleProps>`
+  ${AvatarStyles};
 `;

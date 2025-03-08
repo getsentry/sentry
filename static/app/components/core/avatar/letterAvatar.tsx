@@ -3,11 +3,10 @@ import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {imageStyle} from 'sentry/components/avatar/styles';
+import {AvatarStyles} from 'sentry/components/core/avatar/baseAvatar';
 
 export interface LetterAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
   displayName?: string;
-  forwardedRef?: React.Ref<SVGSVGElement>;
   identifier?: string;
   round?: boolean;
   suggested?: boolean;
@@ -19,10 +18,7 @@ export interface LetterAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
  */
 export const LetterAvatar = styled(
   forwardRef<SVGSVGElement, LetterAvatarProps>(
-    (
-      {identifier, displayName, round: _round, forwardedRef, suggested, ...props},
-      ref
-    ) => {
+    ({identifier, displayName, round: _round, suggested, ...props}, ref) => {
       const theme = useTheme();
 
       return (
@@ -51,7 +47,7 @@ export const LetterAvatar = styled(
     }
   )
 )<LetterAvatarProps>`
-  ${imageStyle};
+  ${AvatarStyles};
 `;
 
 const COLORS = [

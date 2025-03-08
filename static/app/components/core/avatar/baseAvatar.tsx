@@ -1,14 +1,13 @@
+import type React from 'react';
 import {forwardRef, useCallback, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import {imageStyle, type ImageStyleProps} from 'sentry/components/avatar/styles';
 import {Gravatar} from 'sentry/components/core/avatar/gravatar';
 import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
 const DEFAULT_REMOTE_SIZE = 120;
@@ -131,36 +130,6 @@ export const BaseAvatar = forwardRef<
   }
 );
 
-interface BackgroundAvatarProps extends React.ComponentProps<'svg'> {
-  round?: boolean;
-  suggested?: boolean;
-}
-
-/**
- * Creates an avatar placeholder that is used when showing multiple
- * suggested assignees
- */
-const BackgroundAvatar = styled(
-  forwardRef<SVGSVGElement, BackgroundAvatarProps>(({round: _round, ...props}, ref) => {
-    const theme = useTheme();
-    return (
-      <svg ref={ref} viewBox="0 0 120 120" {...props}>
-        <rect
-          x="0"
-          y="0"
-          width="120"
-          height="120"
-          rx="15"
-          ry="15"
-          fill={theme.purple100}
-        />
-      </svg>
-    );
-  })
-)<BackgroundAvatarProps>`
-  ${imageStyle};
-`;
-
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
 const AvatarContainer = styled('span')<{
@@ -177,6 +146,45 @@ const AvatarContainer = styled('span')<{
   }
 `;
 
-const ImageAvatar = styled('img')<ImageStyleProps>`
-  ${imageStyle};
+export interface AvatarStyleProps {
+  round?: boolean;
+  suggested?: boolean;
+}
+
+export const AvatarStyles = (props: AvatarStyleProps) => css`
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  border-radius: ${props.round ? '50%' : '3px'};
+  user-select: none;
+  filter: ${props.suggested ? 'grayscale(100%)' : 'none'};
+`;
+
+const ImageAvatar = styled('img')<AvatarStyleProps>`
+  ${AvatarStyles};
+`;
+
+interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
+  round?: boolean;
+  suggested?: boolean;
+}
+
+/**
+ * Creates an avatar placeholder that is used when showing multiple
+ * suggested assignees
+ */
+const BackgroundAvatar = styled(
+  forwardRef<SVGSVGElement, BackgroundAvatarProps>(({round: _round, ...props}, ref) => {
+    return (
+      <svg ref={ref} viewBox="0 0 120 120" {...props}>
+        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
+      </svg>
+    );
+  })
+)<BackgroundAvatarProps>`
+  ${AvatarStyles};
+
+  svg rect {
+    fill: ${p => p.theme.purple100};
+  }
 `;

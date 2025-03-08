@@ -59,11 +59,11 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
     return (
       <BaseAvatar
         round
-        {...props}
-        {...avatarProps}
         ref={ref}
         type={type}
         tooltip={tooltip}
+        {...props}
+        {...avatarProps}
       />
     );
   }
