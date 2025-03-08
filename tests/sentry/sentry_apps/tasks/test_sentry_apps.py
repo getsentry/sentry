@@ -894,12 +894,12 @@ class TestWorkflowNotification(TestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -914,12 +914,12 @@ class TestWorkflowNotification(TestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -934,13 +934,18 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
         # SLO assertions
-        assert_success_metric(mock_record)
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+        )
         # PREPARE_WEBHOOK (success) -> send_webhook (error)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -957,13 +962,18 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
         # SLO assertions
-        assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> send_webhook (error)
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
+        )
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
 

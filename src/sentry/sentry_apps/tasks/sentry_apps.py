@@ -390,37 +390,28 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 def workflow_notification(
     installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
 ) -> None:
+    try:
+        event = SentryAppEventType(f"issue.{type}")
+    except ValueError as e:
+        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT) from e
+
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
-        event_type="workflow_notification",
-    ).capture() as lifecycle:
-        try:
-            webhook_data = get_webhook_data(installation_id, issue_id, user_id)
-        except SentryAppSentryError as e:
-            sentry_sdk.capture_exception(e)
-            raise
+        event_type=event,
+    ).capture():
+        webhook_data = get_webhook_data(installation_id, issue_id, user_id)
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
         data.update({"issue": serialize(issue)})
-        try:
-            send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
-        except SentryAppSentryError as e:
-            # record success as the preperation portion did not fail
-            lifecycle.record_success()
-            sentry_sdk.capture_exception(e)
-            raise
-        except (ApiHostError, ApiTimeoutError, RequestException, ClientError):
-            # record success as the preperation portion did not fail
-            lifecycle.record_success()
-            raise
 
-        analytics.record(
-            f"sentry_app.issue.{type}",
-            user_id=user_id,
-            group_id=issue_id,
-            installation_id=installation_id,
-        )
+    send_webhooks(installation=install, event=event, data=data, actor=user)
+    analytics.record(
+        f"sentry_app.{event}",
+        user_id=user_id,
+        group_id=issue_id,
+        installation_id=installation_id,
+    )
 
 
 @instrumented_task(
@@ -464,7 +455,6 @@ def get_webhook_data(
     if not install:
         raise SentryAppSentryError(
             message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
-            webhook_context=extra,
         )
 
     try:
@@ -473,7 +463,6 @@ def get_webhook_data(
         logger.info("workflow_notification.missing_issue", extra=extra)
         raise SentryAppSentryError(
             message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
-            webhook_context=extra,
         )
 
     user = None
@@ -482,7 +471,6 @@ def get_webhook_data(
         if not user:
             raise SentryAppSentryError(
                 message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_USER}",
-                webhook_context=extra,
             )
 
     return (install, issue, user)
