@@ -40,7 +40,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is not None
         assert response.data["autofix"]["status"] == "PROCESSING"
 
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id)
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_without_autofix(self, mock_get_autofix_state):
@@ -53,7 +53,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["autofix"] is None
 
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id)
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
@@ -1079,3 +1079,116 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
             params={"format": "sample"},
         )
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.api.endpoints.group_ai_autofix.cache")
+    def test_ai_autofix_get_endpoint_cache_miss(self, mock_cache, mock_get_autofix_state):
+        """Test that repo access is checked when cache is empty"""
+        # Set up cache miss
+        mock_cache.get.return_value = None
+
+        # Set up mock autofix state
+        mock_get_autofix_state.return_value = None
+
+        url = self._get_url(self.group.id)
+        self.login_as(user=self.user)
+
+        response = self.client.get(url)
+
+        # Verify response
+        assert response.status_code == 200
+
+        # Verify cache behavior - cache miss should trigger repo access check
+        mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=self.group.id, check_repo_access=True
+        )
+
+        # Verify the cache was set with a 60-second timeout
+        mock_cache.set.assert_called_once_with(
+            f"autofix_access_check:{self.group.id}", True, timeout=60
+        )
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.api.endpoints.group_ai_autofix.cache")
+    def test_ai_autofix_get_endpoint_cache_hit(self, mock_cache, mock_get_autofix_state):
+        """Test that repo access is not checked when cache has a value"""
+        # Set up cache hit
+        mock_cache.get.return_value = True
+
+        # Set up mock autofix state
+        mock_get_autofix_state.return_value = None
+
+        url = self._get_url(self.group.id)
+        self.login_as(user=self.user)
+
+        response = self.client.get(url)
+
+        # Verify response
+        assert response.status_code == 200
+
+        # Verify cache behavior - cache hit should skip repo access check
+        mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=self.group.id, check_repo_access=False
+        )
+
+        # Verify the cache was not set again
+        mock_cache.set.assert_not_called()
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    @patch("sentry.api.endpoints.group_ai_autofix.cache")
+    def test_ai_autofix_get_endpoint_polling_behavior(self, mock_cache, mock_get_autofix_state):
+        """Test that polling the endpoint only performs repository access checks once per minute"""
+        group = self.create_group()
+        url = self._get_url(group.id)
+        self.login_as(user=self.user)
+
+        # Mock the autofix state
+        mock_get_autofix_state.return_value = AutofixState(
+            run_id=123,
+            request={"project_id": 456, "issue": {"id": 789}},
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
+            status=AutofixStatus.PROCESSING,
+        )
+
+        # Simulate first request (cache miss)
+        mock_cache.get.return_value = None
+
+        response1 = self.client.get(url)
+        assert response1.status_code == 200
+
+        # Verify first request behavior
+        mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
+        mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
+
+        # Reset mocks for second request
+        mock_cache.reset_mock()
+        mock_get_autofix_state.reset_mock()
+
+        # Simulate second request within the 1-minute window (cache hit)
+        mock_cache.get.return_value = True
+
+        response2 = self.client.get(url)
+        assert response2.status_code == 200
+
+        # Verify second request behavior
+        mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=False)
+        mock_cache.set.assert_not_called()
+
+        # Reset mocks for third request
+        mock_cache.reset_mock()
+        mock_get_autofix_state.reset_mock()
+
+        # Simulate third request after cache expiration (cache miss again)
+        mock_cache.get.return_value = None
+
+        response3 = self.client.get(url)
+        assert response3.status_code == 200
+
+        # Verify third request behavior - should be like the first request
+        mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
+        mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
