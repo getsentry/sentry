@@ -30,6 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
+import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -212,7 +213,11 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <Wrapper>
             <Container>
               {displayTags.map((tag, tagIdx) => (
-                <TagDistribution tag={tag} key={tagIdx} groupId={group.id} />
+                <div key={tagIdx}>
+                  <TagDetailsLink tag={tag} groupId={group.id}>
+                    <TagDistribution tag={tag} />
+                  </TagDetailsLink>
+                </div>
               ))}
             </Container>
           </Wrapper>
