@@ -5,7 +5,7 @@ import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';

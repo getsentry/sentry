@@ -1,8 +1,58 @@
+import type React from 'react';
 import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {imageStyle} from 'sentry/components/avatar/styles';
+
+export interface LetterAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
+  displayName?: string;
+  forwardedRef?: React.Ref<SVGSVGElement>;
+  identifier?: string;
+  round?: boolean;
+  suggested?: boolean;
+}
+
+/**
+ * Also see avatar.py. Anything changed in this file (how colors are selected,
+ * the svg, etc) will also need to be changed there.
+ */
+export const LetterAvatar = styled(
+  forwardRef<SVGSVGElement, LetterAvatarProps>(
+    (
+      {identifier, displayName, round: _round, forwardedRef, suggested, ...props},
+      ref
+    ) => {
+      const theme = useTheme();
+
+      return (
+        <svg ref={ref} viewBox="0 0 120 120" {...props}>
+          <rect
+            x="0"
+            y="0"
+            width="120"
+            height="120"
+            rx="15"
+            ry="15"
+            fill={suggested ? theme.background : getColor(identifier)}
+          />
+          <text
+            x="50%"
+            y="50%"
+            fontSize="65"
+            style={{dominantBaseline: 'central'}}
+            textAnchor="middle"
+            fill={suggested ? theme.subText : theme.white}
+          >
+            {getInitials(displayName)}
+          </text>
+        </svg>
+      );
+    }
+  )
+)<LetterAvatarProps>`
+  ${imageStyle};
+`;
 
 const COLORS = [
   '#4674ca', // blue
@@ -52,60 +102,3 @@ function getInitials(displayName: string | undefined) {
   }
   return initials.toUpperCase();
 }
-
-type Props = {
-  displayName?: string;
-  forwardedRef?: React.Ref<SVGSVGElement>;
-  identifier?: string;
-  round?: boolean;
-  suggested?: boolean;
-};
-
-type LetterAvatarProps = React.ComponentProps<'svg'> & Props;
-
-/**
- * Also see avatar.py. Anything changed in this file (how colors are selected,
- * the svg, etc) will also need to be changed there.
- */
-const LetterAvatar = styled(
-  ({
-    identifier,
-    displayName,
-    round: _round,
-    forwardedRef,
-    suggested,
-    ...props
-  }: LetterAvatarProps) => {
-    const theme = useTheme();
-
-    return (
-      <svg ref={forwardedRef} viewBox="0 0 120 120" {...props}>
-        <rect
-          x="0"
-          y="0"
-          width="120"
-          height="120"
-          rx="15"
-          ry="15"
-          fill={suggested ? theme.background : getColor(identifier)}
-        />
-        <text
-          x="50%"
-          y="50%"
-          fontSize="65"
-          style={{dominantBaseline: 'central'}}
-          textAnchor="middle"
-          fill={suggested ? theme.subText : theme.white}
-        >
-          {getInitials(displayName)}
-        </text>
-      </svg>
-    );
-  }
-)<Props>`
-  ${imageStyle};
-`;
-
-export default forwardRef<SVGSVGElement, Props>((props, ref) => (
-  <LetterAvatar forwardedRef={ref} {...props} />
-));

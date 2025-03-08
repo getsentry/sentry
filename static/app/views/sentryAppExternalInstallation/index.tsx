@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Alert} from 'sentry/components/core/alert';
 import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';

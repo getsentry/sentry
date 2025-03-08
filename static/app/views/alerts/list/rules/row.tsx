@@ -2,8 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';

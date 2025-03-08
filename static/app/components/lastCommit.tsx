@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';

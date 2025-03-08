@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {
   IconAdd,

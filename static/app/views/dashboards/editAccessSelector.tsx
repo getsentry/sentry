@@ -5,9 +5,9 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Avatar from 'sentry/components/avatar';
+import Avatar from 'sentry/components/core/avatar';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/avatar/avatarList';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Flex} from 'sentry/components/container/flex';
 import ShortId, {Wrapper} from 'sentry/components/group/inboxBadges/shortId';
 import Link from 'sentry/components/links/link';

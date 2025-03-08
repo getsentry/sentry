@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';

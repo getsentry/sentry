@@ -3,7 +3,7 @@ import {forwardRef, useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
-import Avatar from 'sentry/components/avatar';
+import Avatar from 'sentry/components/core/avatar';
 import Link from 'sentry/components/links/link';
 import {
   AvatarWrapper,
