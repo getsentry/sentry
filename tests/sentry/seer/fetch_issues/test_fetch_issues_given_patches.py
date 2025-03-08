@@ -5,7 +5,7 @@ from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.repository import Repository
-from sentry.seer.fetch_issues_given_patches import (
+from sentry.seer.fetch_issues.fetch_issues_given_patches import (
     NUM_DAYS_AGO,
     STACKFRAME_COUNT,
     PrFile,
@@ -247,12 +247,14 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         assert projects == {self.project}
         assert filenames == {"some/path/foo.py", "path/foo.py", "foo.py"}
 
-    @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
-    @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
+    @patch("sentry.seer.fetch_issues.fetch_issues_given_patches.safe_for_fetching_issues")
     @patch(
-        "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.seer.fetch_issues.fetch_issues_given_patches._get_projects_and_filenames_from_source_file"
     )
-    @patch("sentry.seer.fetch_issues_given_patches.get_issues_with_event_details_for_file")
+    @patch("sentry.seer.fetch_issues.more_parsing.PythonParserMore.extract_functions_from_patch")
+    @patch(
+        "sentry.seer.fetch_issues.fetch_issues_given_patches.get_issues_with_event_details_for_file"
+    )
     def test_get_issues_related_to_file_patches(
         self,
         mock_get_issues_with_event_details_for_file: Mock,
@@ -263,7 +265,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         mock_get_issues_with_event_details_for_file.side_effect = (
             lambda *args, **kwargs: self.issues_with_event_details
         )
-        mock_extract_functions_from_patch.return_value = ["world", "planet"]
+        mock_extract_functions_from_patch.return_value = {"world", "planet"}
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
         mock_safe_for_fetching_issues.side_effect = lambda x: x
 
@@ -289,12 +291,14 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         )
         assert filename_to_issues == filename_to_issues_expected
 
-    @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
-    @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
+    @patch("sentry.seer.fetch_issues.fetch_issues_given_patches.safe_for_fetching_issues")
     @patch(
-        "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.seer.fetch_issues.fetch_issues_given_patches._get_projects_and_filenames_from_source_file"
     )
-    @patch("sentry.seer.fetch_issues_given_patches.get_issues_with_event_details_for_file")
+    @patch("sentry.seer.fetch_issues.more_parsing.PythonParserMore.extract_functions_from_patch")
+    @patch(
+        "sentry.seer.fetch_issues.fetch_issues_given_patches.get_issues_with_event_details_for_file"
+    )
     def test_get_issues_related_to_file_patches_no_function_names(
         self,
         mock_get_issues_with_event_details_for_file: Mock,
@@ -305,7 +309,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         mock_get_issues_with_event_details_for_file.side_effect = (
             lambda *args, **kwargs: self.issues_with_event_details
         )
-        mock_extract_functions_from_patch.return_value = []
+        mock_extract_functions_from_patch.return_value = set()
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
         mock_safe_for_fetching_issues.side_effect = lambda x: x
 
@@ -325,12 +329,14 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         )
         assert filename_to_issues == filename_to_issues_expected
 
-    @patch("sentry.seer.fetch_issues_given_patches.safe_for_fetching_issues")
-    @patch("sentry.seer.fetch_issues_given_patches._get_projects_and_filenames_from_source_file")
+    @patch("sentry.seer.fetch_issues.fetch_issues_given_patches.safe_for_fetching_issues")
     @patch(
-        "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.seer.fetch_issues.fetch_issues_given_patches._get_projects_and_filenames_from_source_file"
     )
-    @patch("sentry.seer.fetch_issues_given_patches.get_issues_with_event_details_for_file")
+    @patch("sentry.seer.fetch_issues.more_parsing.PythonParserMore.extract_functions_from_patch")
+    @patch(
+        "sentry.seer.fetch_issues.fetch_issues_given_patches.get_issues_with_event_details_for_file"
+    )
     def test_get_issues_related_to_file_patches_no_issues_found(
         self,
         mock_get_issues_with_event_details_for_file: Mock,
@@ -339,7 +345,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         mock_safe_for_fetching_issues: Mock,
     ):
         mock_get_issues_with_event_details_for_file.side_effect = lambda *args, **kwargs: []
-        mock_extract_functions_from_patch.return_value = ["world", "planet"]
+        mock_extract_functions_from_patch.return_value = {"world", "planet"}
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
         mock_safe_for_fetching_issues.side_effect = lambda x: x
 
