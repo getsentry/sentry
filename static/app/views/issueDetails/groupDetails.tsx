@@ -13,6 +13,7 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {TourContextProvider} from 'sentry/components/tours/components';
+import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -732,6 +733,10 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     {enabled: !!projectSlug}
   );
 
+  const {data: assistantData} = useAssistant();
+  const isTourComplete =
+    assistantData?.some(item => item.guide === 'issue_details') ?? false;
+
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
 
@@ -802,7 +807,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isAvailable={location.hash === '#tour'}
-      isCompleted={false}
+      isCompleted={isTourComplete}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}
     >

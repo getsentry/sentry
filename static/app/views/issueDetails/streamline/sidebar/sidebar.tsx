@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -12,6 +13,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
@@ -34,6 +36,7 @@ type Props = {
 };
 
 export default function StreamlinedSidebar({group, event, project}: Props) {
+  const theme = useTheme();
   const activeUser = useUser();
   const organization = useOrganization();
 
@@ -51,6 +54,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   return (
     <TourElement<IssueDetailsTour>
@@ -60,7 +64,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       description={t(
         'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
       )}
-      position="left-start"
+      position={isScreenSmall ? 'top' : 'left-start'}
     >
       <Side>
         <GuideAnchor target="issue_sidebar_releases" position="left">
