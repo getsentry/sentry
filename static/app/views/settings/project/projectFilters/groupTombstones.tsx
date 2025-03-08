@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Avatar from 'sentry/components/core/avatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -44,7 +44,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
       </StyledBox>
       <AvatarContainer>
         {actor && (
-          <Avatar
+          <UserAvatar
             user={actor}
             hasTooltip
             tooltip={t('Discarded by %s', actor.name || actor.email)}

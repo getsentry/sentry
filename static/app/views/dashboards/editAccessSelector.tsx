@@ -10,7 +10,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
-import Avatar from 'sentry/components/core/avatar';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Badge} from 'sentry/components/core/badge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -153,7 +152,7 @@ function EditAccessSelector({
                 marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
               }}
             >
-              <Avatar team={team} size={18} />
+              <TeamAvatar team={team} size={18} />
               <div>#{team.name}</div>
             </CollapsedAvatarTooltipListItem>
           ))}

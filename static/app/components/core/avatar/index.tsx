@@ -1,81 +1,82 @@
 import {forwardRef} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {
+  ActorAvatar,
+  type ActorAvatarProps,
+} from 'sentry/components/core/avatar/actorAvatar';
+import {
+  DocIntegrationAvatar,
+  type DocIntegrationAvatarProps,
+} from 'sentry/components/core/avatar/docIntegrationAvatar';
+import {
+  OrganizationAvatar,
+  type OrganizationAvatarProps,
+} from 'sentry/components/core/avatar/organizationAvatar';
+import {
+  ProjectAvatar,
+  type ProjectAvatarProps,
+} from 'sentry/components/core/avatar/projectAvatar';
+import {
+  SentryAppAvatar,
+  type SentryAppAvatarProps,
+} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {TeamAvatar, type TeamAvatarProps} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import type {Actor} from 'sentry/types/core';
-import type {DocIntegration, SentryApp} from 'sentry/types/integrations';
-import type {OrganizationSummary, Team} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
 
-export interface AvatarProps extends UserAvatarProps {
-  actor?: Actor;
-  docIntegration?: DocIntegration;
-  organization?: OrganizationSummary;
-  project?: AvatarProject;
-  sentryApp?: SentryApp;
-  team?: Team;
-}
+type AvatarProps =
+  | ActorAvatarProps
+  | UserAvatarProps
+  | TeamAvatarProps
+  | ProjectAvatarProps
+  | OrganizationAvatarProps
+  | DocIntegrationAvatarProps
+  | SentryAppAvatarProps;
 
 const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
-  (
-    {
-      hasTooltip = false,
-      actor,
-      user,
-      team,
-      project,
-      organization,
-      docIntegration,
-      sentryApp,
-      ...props
-    },
-    ref
-  ) => {
+  ({hasTooltip = false, ...props}, ref) => {
     const commonProps = {hasTooltip, ref, ...props};
 
-    if (actor) {
-      return <ActorAvatar actor={actor} {...commonProps} />;
+    if ('actor' in props) {
+      return <ActorAvatar actor={props.actor} {...commonProps} />;
     }
 
-    if (user) {
-      return <UserAvatar user={user} {...commonProps} />;
+    if ('user' in props) {
+      return <UserAvatar user={props.user} {...commonProps} />;
     }
 
-    if (team) {
-      return <TeamAvatar team={team} {...commonProps} />;
+    if ('team' in props) {
+      return <TeamAvatar team={props.team} {...commonProps} />;
     }
 
-    if (project) {
+    if ('project' in props) {
       return (
         <ProjectAvatar
-          project={project}
+          project={props.project}
           {...commonProps}
           ref={ref as React.Ref<HTMLDivElement>}
         />
       );
     }
 
-    if (sentryApp) {
-      return <SentryAppAvatar sentryApp={sentryApp} {...commonProps} />;
+    if ('sentryApp' in props) {
+      return <SentryAppAvatar sentryApp={props.sentryApp} {...commonProps} />;
     }
 
-    if (docIntegration) {
-      return <DocIntegrationAvatar docIntegration={docIntegration} {...commonProps} />;
+    if ('docIntegration' in props) {
+      return (
+        <DocIntegrationAvatar docIntegration={props.docIntegration} {...commonProps} />
+      );
     }
 
-    if (organization) {
-      return <OrganizationAvatar organization={organization} {...commonProps} />;
+    if ('organization' in props) {
+      return <OrganizationAvatar organization={props.organization} {...commonProps} />;
     }
 
     Sentry.captureMessage(
-      'Avatar component did not receive any non nullable entity, at least one of actor, user, team, project, or organization is required'
+      'Avatar component did not receive any non nullable entity, at least one of actor, user, team, project, organization, docIntegration, or sentryApp is required'
     );
+
     return null;
   }
 );
