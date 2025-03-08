@@ -132,7 +132,9 @@ export default function SolutionsSection({
     >
       <SolutionsSectionContainer>
         {aiConfig.needsGenAIConsent ? (
-          <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
+          <Summary>
+            {t('Explore potential root causes and solutions with Autofix.')}
+          </Summary>
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
           <SolutionsSectionContent group={group} project={project} event={event} />
         ) : issueTypeConfig.resources ? (

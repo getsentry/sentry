@@ -188,7 +188,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
-          {t('Seer')}
+          {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
             tooltipProps={{

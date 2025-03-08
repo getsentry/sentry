@@ -130,7 +130,7 @@ export function SolutionsSectionCtaButton({
 
   const getButtonText = () => {
     if (aiConfig.needsGenAIConsent) {
-      return t('Set Up Seer');
+      return t('Set Up Autofix');
     }
 
     if (!aiConfig.hasAutofix) {

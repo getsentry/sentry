@@ -207,7 +207,7 @@ describe('SolutionsSection', () => {
   });
 
   describe('Solutions Hub button text', () => {
-    it('shows "Set Up Seer" when AI needs setup', async () => {
+    it('shows "Set Up Autofix" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
@@ -235,10 +235,10 @@ describe('SolutionsSection', () => {
       });
 
       expect(
-        screen.getByText('Explore potential root causes and solutions with Seer.')
+        screen.getByText('Explore potential root causes and solutions with Autofix.')
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
@@ -384,7 +384,6 @@ describe('SolutionsSection', () => {
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set Up Autofix'})
       ).not.toBeInTheDocument();
