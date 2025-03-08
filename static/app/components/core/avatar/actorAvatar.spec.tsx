@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';

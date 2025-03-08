@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';

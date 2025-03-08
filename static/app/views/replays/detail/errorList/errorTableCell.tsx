@@ -3,7 +3,7 @@ import {forwardRef, useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
-import Avatar from 'sentry/components/avatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import Link from 'sentry/components/links/link';
 import {
   AvatarWrapper,
@@ -172,7 +172,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps}>
           <Text>
             <AvatarWrapper>
-              <Avatar project={project} size={16} />
+              <ProjectAvatar project={project!} size={16} />
             </AvatarWrapper>
             {eventUrl ? (
               <Link to={eventUrl}>

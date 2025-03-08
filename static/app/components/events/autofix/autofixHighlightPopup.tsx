@@ -13,8 +13,8 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Input} from 'sentry/components/core/input';
 import {
   makeAutofixQueryKey,

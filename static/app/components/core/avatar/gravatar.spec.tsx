@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Gravatar from './gravatar';
+import {Gravatar} from 'sentry/components/core/avatar/gravatar';
 
 describe('Gravatar', () => {
   it('renders the image with remote size', async () => {

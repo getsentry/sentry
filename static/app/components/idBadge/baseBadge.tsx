@@ -1,7 +1,7 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import Avatar from 'sentry/components/avatar';
+import Avatar from 'sentry/components/core/avatar';
 import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';

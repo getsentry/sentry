@@ -1,13 +1,14 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import type {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import {
+  ActorAvatar,
+  type ActorAvatarProps,
+} from 'sentry/components/core/avatar/actorAvatar';
 import type {Actor} from 'sentry/types/core';
 
-interface Props
-  extends BaseAvatarProps,
-    Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'> {
+interface SuggestedAvatarStackProps
+  extends Omit<ActorAvatarProps, 'actor' | 'hasTooltip'> {
   owners: Actor[];
   reverse?: boolean;
 }
@@ -22,7 +23,7 @@ function SuggestedAvatarStack({
   reverse = true,
   suggested = true,
   ...props
-}: Props) {
+}: SuggestedAvatarStackProps) {
   const [firstSuggestion, ...suggestedOwners] = owners;
   const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
   return (
