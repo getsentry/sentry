@@ -1,8 +1,10 @@
-import {useCallback, useRef} from 'react';
+import {forwardRef, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
@@ -94,13 +96,20 @@ export function NumberDragInput({
     <InputGroup>
       <InputGroup.Input ref={inputRef} type="number" {...props} />
       <InputGroup.TrailingItems>
-        <TrailingItemsContainer
-          onPointerDown={onPointerDown}
-          layout={axis === 'x' ? 'horizontal' : 'vertical'}
+        <Tooltip
+          title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {
+            break: <br />,
+          })}
+          skipWrapper
         >
-          <VerySmallIconArrow direction={axis === 'x' ? 'left' : 'up'} />
-          <VerySmallIconArrow direction={axis === 'x' ? 'right' : 'down'} />
-        </TrailingItemsContainer>
+          <TrailingItemsContainer
+            onPointerDown={onPointerDown}
+            layout={axis === 'x' ? 'horizontal' : 'vertical'}
+          >
+            <VerySmallIconArrow direction={axis === 'x' ? 'left' : 'up'} />
+            <VerySmallIconArrow direction={axis === 'x' ? 'right' : 'down'} />
+          </TrailingItemsContainer>
+        </Tooltip>
       </InputGroup.TrailingItems>
     </InputGroup>
   );
@@ -120,7 +129,12 @@ const VerySmallIconArrow = styled(IconArrow)`
   height: 8px;
 `;
 
-const TrailingItemsContainer = styled('div')<{
+// forwardRef is required so that skipWrapper can be applied by the tooltip
+const TrailingItemsContainer = styled(
+  forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
+    <div {...props} ref={ref} />
+  ))
+)<{
   layout: 'vertical' | 'horizontal';
 }>`
   display: flex;
