@@ -52,7 +52,13 @@ class EmailActionHandlerTest(FireTest):
         )
         handler = EmailActionHandler()
         with self.tasks():
-            handler.fire(action, incident, self.project, 1000, IncidentStatus(incident.status))
+            handler.fire(
+                action,
+                incident,
+                self.project,
+                metric_value=1000,
+                new_status=IncidentStatus(incident.status),
+            )
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == "[{}] {} - {}".format(

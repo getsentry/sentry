@@ -103,7 +103,7 @@ def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
+    metric_value: float | int | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from .card_builder.incident_attachment import build_incident_attachment

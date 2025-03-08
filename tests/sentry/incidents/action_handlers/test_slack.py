@@ -85,7 +85,7 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(self.handler, method)(self.action, incident, self.project, metric_value, status)
+            getattr(self.handler, method)(self.action, incident, self.project, status, metric_value)
 
         return incident, chart_url
 
@@ -254,7 +254,11 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
@@ -266,7 +270,11 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert not mock_post.called
@@ -283,7 +291,11 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         mock_post.assert_called

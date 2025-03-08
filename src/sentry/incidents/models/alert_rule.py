@@ -499,14 +499,19 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
         if handler:
             return handler.fire(
-                action, incident, project, metric_value, new_status, notification_uuid
+                action=action,
+                incident=incident,
+                project=project,
+                new_status=new_status,
+                metric_value=metric_value,
+                notification_uuid=notification_uuid,
             )
 
     def resolve(
@@ -514,14 +519,19 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
-        metric_value: int | float,
         new_status: IncidentStatus,
+        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
         if handler:
             return handler.resolve(
-                action, incident, project, metric_value, new_status, notification_uuid
+                action=action,
+                incident=incident,
+                project=project,
+                metric_value=metric_value,
+                new_status=new_status,
+                notification_uuid=notification_uuid,
             )
 
     def get_single_sentry_app_config(self) -> dict[str, Any] | None:
