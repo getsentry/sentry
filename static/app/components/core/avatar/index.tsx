@@ -2,18 +2,20 @@ import {forwardRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
 import type {Actor} from 'sentry/types/core';
-import type {SentryApp} from 'sentry/types/integrations';
+import type {DocIntegration, SentryApp} from 'sentry/types/integrations';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 
 export interface AvatarProps extends UserAvatarProps {
   actor?: Actor;
+  docIntegration?: DocIntegration;
   organization?: OrganizationSummary;
   project?: AvatarProject;
   sentryApp?: SentryApp;
@@ -22,7 +24,17 @@ export interface AvatarProps extends UserAvatarProps {
 
 const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
   (
-    {hasTooltip = false, actor, user, team, project, organization, sentryApp, ...props},
+    {
+      hasTooltip = false,
+      actor,
+      user,
+      team,
+      project,
+      organization,
+      docIntegration,
+      sentryApp,
+      ...props
+    },
     ref
   ) => {
     const commonProps = {hasTooltip, ref, ...props};
@@ -51,6 +63,10 @@ const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
 
     if (sentryApp) {
       return <SentryAppAvatar sentryApp={sentryApp} {...commonProps} />;
+    }
+
+    if (docIntegration) {
+      return <DocIntegrationAvatar docIntegration={docIntegration} {...commonProps} />;
     }
 
     if (organization) {
