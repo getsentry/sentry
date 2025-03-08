@@ -1,17 +1,16 @@
 import {forwardRef} from 'react';
 
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarSentryApp, DocIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
-
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 
 export interface AvatarProps extends UserAvatarProps {
   actor?: Actor;

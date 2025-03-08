@@ -1,14 +1,13 @@
 import {forwardRef, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import {TeamAvatar, type TeamAvatarProps} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
 import Placeholder from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 
 export interface ActorAvatarProps extends BaseAvatarProps {
   actor: Actor;

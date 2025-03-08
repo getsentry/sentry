@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Avatar from 'sentry/components/core/avatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
+import Avatar from 'sentry/components/core/avatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';

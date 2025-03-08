@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
-import Avatar from 'sentry/components/core/avatar';
 import {Chevron} from 'sentry/components/chevron';
+import Avatar from 'sentry/components/core/avatar';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';

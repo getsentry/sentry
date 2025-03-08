@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import ConfigStore from 'sentry/stores/configStore';
-
 import {imageStyle, type ImageStyleProps} from 'sentry/components/avatar/styles';
+import ConfigStore from 'sentry/stores/configStore';
 
 export interface GravatarProps extends ImageStyleProps {
   remoteSize: number;

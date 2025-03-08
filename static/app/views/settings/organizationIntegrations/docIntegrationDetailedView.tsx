@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {Button} from 'sentry/components/button';
+import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';

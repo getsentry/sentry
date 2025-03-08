@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Avatar from 'sentry/components/core/avatar';
 import {AvatarUploader} from 'sentry/components/avatarUploader';
 import {Button} from 'sentry/components/button';
+import Avatar from 'sentry/components/core/avatar';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';

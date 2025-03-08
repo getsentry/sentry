@@ -2,9 +2,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Button} from 'sentry/components/button';
 import Avatar from 'sentry/components/core/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';

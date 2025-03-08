@@ -1,22 +1,25 @@
 import {forwardRef, useCallback, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
+import {imageStyle, type ImageStyleProps} from 'sentry/components/avatar/styles';
+import {Gravatar} from 'sentry/components/core/avatar/gravatar';
 import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
-
-import {Gravatar} from 'sentry/components/core/avatar/gravatar';
-import {imageStyle, type ImageStyleProps} from 'sentry/components/avatar/styles';
 
 const DEFAULT_REMOTE_SIZE = 120;
 
 export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   backupAvatar?: React.ReactNode;
   gravatarId?: string;
+  /**
+   * Enable to display tooltips.
+   */
+  hasTooltip?: boolean;
   letterId?: string;
   /**
    * Should avatar be round instead of a square
@@ -25,10 +28,6 @@ export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: number;
   suggested?: boolean;
   title?: string;
-  /**
-   * Enable to display tooltips.
-   */
-  hasTooltip?: boolean;
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
@@ -125,7 +124,7 @@ export const BaseAvatar = forwardRef<
           hasTooltip={hasTooltip}
           {...props}
         >
-          {hasError ? backupAvatar ?? letterAvatar : imageAvatar}
+          {hasError ? (backupAvatar ?? letterAvatar) : imageAvatar}
         </AvatarContainer>
       </Tooltip>
     );

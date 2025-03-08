@@ -1,4 +1,5 @@
 import {forwardRef} from 'react';
+
 import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';

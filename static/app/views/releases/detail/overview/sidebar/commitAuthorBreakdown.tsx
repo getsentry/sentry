@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';

@@ -1,3 +1,4 @@
+import {forwardRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,7 +8,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
-import {forwardRef} from 'react';
 
 type Props = {
   className?: string;
