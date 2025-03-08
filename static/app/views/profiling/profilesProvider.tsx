@@ -42,7 +42,12 @@ function fetchContinuousProfileFlamegraph(
       },
       includeAllArgs: true,
     })
-    .then(([data]) => data.chunk);
+    .then(([data]) => {
+      // Temporary fix to ensure the profiler_id is set for continuous profiles
+      const profile = data.chunk;
+      profile.profiler_id = query.profiler_id;
+      return profile;
+    });
 }
 
 type ProfileProviderValue = RequestState<Profiling.ProfileInput>;
