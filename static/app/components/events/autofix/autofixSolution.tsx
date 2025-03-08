@@ -871,6 +871,8 @@ const SubmitButton = styled(Button)`
   top: 50%;
   transform: translateY(-50%);
   height: 24px;
+  width: 24px;
+  border-radius: 5px;
 `;
 
 const AddInstructionWrapper = styled('div')`
