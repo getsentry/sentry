@@ -12,10 +12,11 @@ export default storyBook('DocIntegrationAvatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The ProjectAvatar component displays an avatar for a user, which can be either a
-          gravatar, uploaded image, or letter avatar (initials). It accepts a user object
-          and will automatically determine the appropriate avatar type to display based on
-          the user's settings and available avatar data.
+          The DocIntegrationAvatar component displays an avatar for a doc integration,
+          which can be either a gravatar, uploaded image, or letter avatar (initials). It
+          accepts a doc integration object and will automatically determine the
+          appropriate avatar type to display based on the doc integration's settings and
+          available avatar data.
         </p>
         <DocIntegrationAvatar
           docIntegration={{

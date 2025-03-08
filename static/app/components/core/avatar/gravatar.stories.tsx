@@ -12,10 +12,10 @@ export default storyBook('Gravatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The ProjectAvatar component displays an avatar for a user, which can be either a
+          The Gravatar component displays an avatar for a user, which can be either a
           gravatar, uploaded image, or letter avatar (initials). It accepts a user object
-          and will automatically determine the appropriate avatar type to display based on
-          the user's settings and available avatar data.
+          and will attempt to fetch and display the user's gravatar from the Gravatar
+          service.
         </p>
         <Gravatar remoteSize={120} gravatarId="2d641b5d-8c74-44de-9cb6-fbd54701b35e" />
       </Fragment>

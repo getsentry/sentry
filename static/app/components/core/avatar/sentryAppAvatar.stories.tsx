@@ -13,9 +13,8 @@ export default storyBook('SentryAppAvatar', (story, APIReference) => {
       <Fragment>
         <p>
           The SentryAppAvatar component displays an avatar for a user, which can be either
-          a gravatar, uploaded image, or letter avatar (initials). It accepts a user
-          object and will automatically determine the appropriate avatar type to display
-          based on the user's settings and available avatar data.
+          a gravatar, uploaded image, or letter avatar (initials). It accepts a SentryApp
+          object as the property.
         </p>
         <SentryAppAvatar
           sentryApp={{

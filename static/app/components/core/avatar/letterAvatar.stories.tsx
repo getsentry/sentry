@@ -12,10 +12,9 @@ export default storyBook('LetterAvatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The ProjectAvatar component displays an avatar for a user, which can be either a
-          gravatar, uploaded image, or letter avatar (initials). It accepts a user object
-          and will automatically determine the appropriate avatar type to display based on
-          the user's settings and available avatar data.
+          The LetterAvatar component displays an avatar for a user, which is a letter
+          combination of the user's name or identifier. The color of the avatar is
+          determined by the hash of the identifier.
         </p>
         <LetterAvatar displayName="John Doe" identifier="john.doe@example.com" />
       </Fragment>

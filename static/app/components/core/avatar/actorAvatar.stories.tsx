@@ -12,7 +12,7 @@ export default storyBook('ActorAvatar', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The ProjectAvatar component displays an avatar for a user, which can be either a
+          The ActorAvatar component displays an avatar for a user, which can be either a
           gravatar, uploaded image, or letter avatar (initials). It accepts a user object
           and will automatically determine the appropriate avatar type to display based on
           the user's settings and available avatar data.

@@ -11,12 +11,7 @@ export default storyBook('TeamAvatar', (story, APIReference) => {
   story('Default', () => {
     return (
       <Fragment>
-        <p>
-          The TeamAvatar component displays an avatar for a user, which can be either a
-          gravatar, uploaded image, or letter avatar (initials). It accepts a user object
-          and will automatically determine the appropriate avatar type to display based on
-          the user's settings and available avatar data.
-        </p>
+        <p>The TeamAvatar component displays an avatar for a team.</p>
         <TeamAvatar
           team={{
             id: '1',
