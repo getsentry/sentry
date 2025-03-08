@@ -12,7 +12,6 @@ import type {EChartsInstance} from 'echarts-for-react';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
-import {ReleasesDrawer} from 'sentry/components/releases/releasesDrawer';
 import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -35,6 +34,7 @@ import {
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
+import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
