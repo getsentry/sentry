@@ -1,6 +1,5 @@
 import type React from 'react';
 import {forwardRef, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
@@ -9,6 +8,11 @@ import {Gravatar} from 'sentry/components/core/avatar/gravatar';
 import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
 import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
+
+import {
+  type BaseAvatarComponentProps,
+  BaseAvatarComponentStyles,
+} from './baseAvatarComponentStyles';
 
 const DEFAULT_REMOTE_SIZE = 120;
 
@@ -146,24 +150,6 @@ const AvatarContainer = styled('span')<{
   }
 `;
 
-export interface AvatarStyleProps {
-  round?: boolean;
-  suggested?: boolean;
-}
-
-export const AvatarStyles = (props: AvatarStyleProps) => css`
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  border-radius: ${props.round ? '50%' : '3px'};
-  user-select: none;
-  filter: ${props.suggested ? 'grayscale(100%)' : 'none'};
-`;
-
-const ImageAvatar = styled('img')<AvatarStyleProps>`
-  ${AvatarStyles};
-`;
-
 interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
   round?: boolean;
   suggested?: boolean;
@@ -182,9 +168,13 @@ const BackgroundAvatar = styled(
     );
   })
 )<BackgroundAvatarProps>`
-  ${AvatarStyles};
+  ${BaseAvatarComponentStyles};
 
   svg rect {
     fill: ${p => p.theme.purple100};
   }
+`;
+
+const ImageAvatar = styled('img')<BaseAvatarComponentProps>`
+  ${BaseAvatarComponentStyles};
 `;

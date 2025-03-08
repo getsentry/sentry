@@ -1,53 +1,53 @@
 import type React from 'react';
 import {forwardRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {AvatarStyles} from 'sentry/components/core/avatar/baseAvatar';
+import {
+  type BaseAvatarComponentProps,
+  BaseAvatarComponentStyles,
+} from './baseAvatarComponentStyles';
 
-export interface LetterAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
+export interface LetterAvatarProps
+  extends React.HTMLAttributes<SVGSVGElement>,
+    BaseAvatarComponentProps {
   displayName?: string;
   identifier?: string;
-  round?: boolean;
-  suggested?: boolean;
 }
 
 /**
  * Also see avatar.py. Anything changed in this file (how colors are selected,
  * the svg, etc) will also need to be changed there.
  */
-export const LetterAvatar = styled(
-  forwardRef<SVGSVGElement, LetterAvatarProps>(
-    ({identifier, displayName, round: _round, suggested, ...props}, ref) => {
-      const theme = useTheme();
+export const LetterAvatar = forwardRef<SVGSVGElement, LetterAvatarProps>(
+  ({displayName, ...props}, ref) => {
+    return (
+      <LetterAvatarComponent ref={ref} viewBox="0 0 120 120" {...props}>
+        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
+        <text
+          x="50%"
+          y="50%"
+          fontSize="65"
+          style={{dominantBaseline: 'central'}}
+          textAnchor="middle"
+        >
+          {getInitials(displayName)}
+        </text>
+      </LetterAvatarComponent>
+    );
+  }
+);
 
-      return (
-        <svg ref={ref} viewBox="0 0 120 120" {...props}>
-          <rect
-            x="0"
-            y="0"
-            width="120"
-            height="120"
-            rx="15"
-            ry="15"
-            fill={suggested ? theme.background : getColor(identifier)}
-          />
-          <text
-            x="50%"
-            y="50%"
-            fontSize="65"
-            style={{dominantBaseline: 'central'}}
-            textAnchor="middle"
-            fill={suggested ? theme.subText : theme.white}
-          >
-            {getInitials(displayName)}
-          </text>
-        </svg>
-      );
-    }
-  )
-)<LetterAvatarProps>`
-  ${AvatarStyles};
+const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
+  ${BaseAvatarComponentStyles};
+
+  rect {
+    fill: ${props =>
+      props.suggested ? props.theme.background : getColor(props.identifier)};
+  }
+
+  text {
+    fill: ${props => (props.suggested ? props.theme.subText : props.theme.white)};
+  }
 `;
 
 const COLORS = [

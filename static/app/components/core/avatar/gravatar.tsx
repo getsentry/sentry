@@ -4,12 +4,12 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {
-  type AvatarStyleProps,
-  AvatarStyles,
-} from 'sentry/components/core/avatar/baseAvatar';
+  type BaseAvatarComponentProps,
+  BaseAvatarComponentStyles,
+} from 'sentry/components/core/avatar/baseAvatarComponentStyles';
 import ConfigStore from 'sentry/stores/configStore';
 
-export interface GravatarProps extends AvatarStyleProps {
+export interface GravatarProps extends BaseAvatarComponentProps {
   remoteSize: number;
   gravatarId?: string;
   onError?: () => void;
@@ -86,6 +86,6 @@ async function hashGravatarId(message = ''): Promise<string> {
     .join('');
 }
 
-const Image = styled('img')<AvatarStyleProps>`
-  ${AvatarStyles};
+const Image = styled('img')<BaseAvatarComponentProps>`
+  ${BaseAvatarComponentStyles};
 `;
