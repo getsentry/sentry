@@ -13,7 +13,10 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
+from sentry.api.serializers.models.groupsearchview import (
+    GroupSearchViewSerializer,
+    GroupSearchViewStarredSerializer,
+)
 from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
@@ -106,6 +109,25 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                     data={"detail": "You do not have access to any projects."},
                 )
+
+        if features.has("organizations:issue-view-sharing", organization):
+            starred_views = GroupSearchViewStarred.objects.filter(
+                organization=organization, user_id=request.user.id
+            )
+
+            return self.paginate(
+                request=request,
+                queryset=starred_views,
+                order_by="position",
+                on_results=lambda x: serialize(
+                    x,
+                    request.user,
+                    serializer=GroupSearchViewStarredSerializer(
+                        has_global_views=has_global_views,
+                        default_project=default_project,
+                    ),
+                ),
+            )
 
         return self.paginate(
             request=request,

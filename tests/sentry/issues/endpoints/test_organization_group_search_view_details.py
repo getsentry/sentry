@@ -66,19 +66,16 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_delete_first_starred_view_decrements_succeeding_positions(self) -> None:
-        for idx, view in enumerate(self.base_data["user_one_views"]):
-            GroupSearchViewStarred.objects.create(
-                group_search_view=view,
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-                position=idx,
-            )
-
         # Delete the first view
         response = self.client.delete(self.url)
         assert response.status_code == 204
 
-        assert GroupSearchViewStarred.objects.count() == 2
+        assert (
+            GroupSearchViewStarred.objects.filter(
+                organization_id=self.organization.id, user_id=self.user.id
+            ).count()
+            == 2
+        )
 
         # All succeeeding views should have their position decremented
         for idx, gsv in enumerate(
@@ -91,14 +88,6 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_delete_last_starred_view_does_not_decrement_positions(self) -> None:
-        for idx, view in enumerate(self.base_data["user_one_views"]):
-            GroupSearchViewStarred.objects.create(
-                group_search_view=view,
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-                position=idx,
-            )
-
         # Delete the last view
         response = self.client.delete(
             reverse(
@@ -111,7 +100,12 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
         )
         assert response.status_code == 204
 
-        assert GroupSearchViewStarred.objects.count() == 2
+        assert (
+            GroupSearchViewStarred.objects.filter(
+                organization_id=self.organization.id, user_id=self.user.id
+            ).count()
+            == 2
+        )
 
         for idx, gsv in enumerate(
             GroupSearchViewStarred.objects.filter(
