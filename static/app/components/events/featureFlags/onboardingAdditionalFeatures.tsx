@@ -11,7 +11,7 @@ export default function OnboardingAdditionalFeatures({
 }) {
   return (
     <Fragment>
-      <h4 style={{marginTop: '40px'}}>{t('Additional Features')}</h4>
+      <h3 style={{marginTop: '40px'}}>{t('Additional Features')}</h3>
       {tct(
         '[link:Change Tracking]: Configure Sentry to listen for additions, removals, and modifications to your feature flags.',
         {
