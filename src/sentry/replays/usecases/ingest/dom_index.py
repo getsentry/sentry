@@ -49,6 +49,7 @@ ReplayActionsEventPayloadClick = TypedDict(
 
 
 class ReplayActionsEventPayload(TypedDict):
+    environment: str
     clicks: list[ReplayActionsEventPayloadClick]
     replay_id: str
     type: Literal["replay_actions"]
@@ -83,7 +84,8 @@ def parse_replay_actions(
     if len(actions) == 0:
         return None
 
-    payload = create_replay_actions_payload(replay_id, actions)
+    environment = replay_event.get("environment") if replay_event else None
+    payload = create_replay_actions_payload(replay_id, actions, environment=environment)
     return create_replay_actions_event(replay_id, project.id, retention_days, payload)
 
 
@@ -106,8 +108,10 @@ def create_replay_actions_event(
 def create_replay_actions_payload(
     replay_id: str,
     clicks: list[ReplayActionsEventPayloadClick],
+    environment: str | None,
 ) -> ReplayActionsEventPayload:
     return {
+        "environment": environment or "",
         "type": "replay_actions",
         "replay_id": replay_id,
         "clicks": clicks,
