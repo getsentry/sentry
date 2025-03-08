@@ -34,7 +34,7 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
       setApiQueryData<PlatformExternalIssue[]>(
         queryClient,
         getExternalIssuesQueryKey({group, organization}),
-        existingIssues => [...existingIssues, issue]
+        existingIssues => existingIssues && [...existingIssues, issue]
       );
     },
     [queryClient, group, organization]
@@ -45,7 +45,7 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
       setApiQueryData<PlatformExternalIssue[]>(
         queryClient,
         getExternalIssuesQueryKey({group, organization}),
-        existingIssues => existingIssues.filter(({id}) => id !== issue.id)
+        existingIssues => existingIssues?.filter(({id}) => id !== issue.id)
       );
     },
     [queryClient, group, organization]
