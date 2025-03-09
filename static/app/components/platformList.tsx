@@ -1,3 +1,4 @@
+import {forwardRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -36,82 +37,90 @@ type WrapperProps = Required<
   Pick<Props, 'showCounter' | 'size' | 'direction' | 'consistentWidth' | 'max'>
 >;
 
-function PlatformList({
-  platforms = [],
-  direction = 'right',
-  max = 3,
-  size = 16,
-  consistentWidth = false,
-  showCounter = false,
-  className,
-}: Props) {
-  const visiblePlatforms = platforms.slice(0, max);
-  const numNotVisiblePlatforms = platforms.length - visiblePlatforms.length;
-  const displayCounter = showCounter && !!numNotVisiblePlatforms;
+export const PlatformList = forwardRef(
+  (
+    {
+      platforms = [],
+      direction = 'right',
+      max = 3,
+      size = 16,
+      consistentWidth = false,
+      showCounter = false,
+      className,
+    }: Props,
+    ref: React.Ref<HTMLDivElement>
+  ) => {
+    const visiblePlatforms = platforms.slice(0, max);
+    const numNotVisiblePlatforms = platforms.length - visiblePlatforms.length;
+    const displayCounter = showCounter && !!numNotVisiblePlatforms;
 
-  function renderContent() {
-    if (!platforms.length) {
-      return <StyledPlatformIcon size={size} platform="default" />;
-    }
+    function renderContent() {
+      if (!platforms.length) {
+        return <StyledPlatformIcon size={size} platform="default" />;
+      }
 
-    const platformIcons = visiblePlatforms.slice().reverse();
+      const platformIcons = visiblePlatforms.slice().reverse();
 
-    if (displayCounter) {
+      if (displayCounter) {
+        return (
+          <InnerWrapper>
+            <PlatformIcons>
+              {platformIcons.map((visiblePlatform, index) => (
+                <Tooltip
+                  key={visiblePlatform + index}
+                  title={getPlatformName(visiblePlatform)}
+                  containerDisplayMode="inline-flex"
+                >
+                  <StyledPlatformIcon platform={visiblePlatform} size={size} />
+                </Tooltip>
+              ))}
+            </PlatformIcons>
+            <Tooltip
+              title={tn(
+                '%s other platform',
+                '%s other platforms',
+                numNotVisiblePlatforms
+              )}
+              containerDisplayMode="inline-flex"
+            >
+              <Counter>
+                {numNotVisiblePlatforms}
+                <Plus>{'\u002B'}</Plus>
+              </Counter>
+            </Tooltip>
+          </InnerWrapper>
+        );
+      }
+
       return (
-        <InnerWrapper>
-          <PlatformIcons>
-            {platformIcons.map((visiblePlatform, index) => (
-              <Tooltip
-                key={visiblePlatform + index}
-                title={getPlatformName(visiblePlatform)}
-                containerDisplayMode="inline-flex"
-              >
-                <StyledPlatformIcon platform={visiblePlatform} size={size} />
-              </Tooltip>
-            ))}
-          </PlatformIcons>
-          <Tooltip
-            title={tn('%s other platform', '%s other platforms', numNotVisiblePlatforms)}
-            containerDisplayMode="inline-flex"
-          >
-            <Counter>
-              {numNotVisiblePlatforms}
-              <Plus>{'\u002B'}</Plus>
-            </Counter>
-          </Tooltip>
-        </InnerWrapper>
+        <PlatformIcons>
+          {platformIcons.map((visiblePlatform, index) => (
+            <StyledPlatformIcon
+              data-test-id={`platform-icon-${visiblePlatform}`}
+              key={visiblePlatform + index}
+              platform={visiblePlatform}
+              size={size}
+            />
+          ))}
+        </PlatformIcons>
       );
     }
 
     return (
-      <PlatformIcons>
-        {platformIcons.map((visiblePlatform, index) => (
-          <StyledPlatformIcon
-            data-test-id={`platform-icon-${visiblePlatform}`}
-            key={visiblePlatform + index}
-            platform={visiblePlatform}
-            size={size}
-          />
-        ))}
-      </PlatformIcons>
+      <Wrapper
+        ref={ref}
+        consistentWidth={consistentWidth}
+        className={className}
+        size={size}
+        showCounter={displayCounter}
+        direction={direction}
+        max={max}
+      >
+        {renderContent()}
+      </Wrapper>
     );
   }
-
-  return (
-    <Wrapper
-      consistentWidth={consistentWidth}
-      className={className}
-      size={size}
-      showCounter={displayCounter}
-      direction={direction}
-      max={max}
-    >
-      {renderContent()}
-    </Wrapper>
-  );
-}
-
-export default PlatformList;
+);
 
 function getOverlapWidth(size: number) {
   return Math.round(size / 4);

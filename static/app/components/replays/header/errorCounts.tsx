@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Badge} from 'sentry/components/core/badge';
 import Link from 'sentry/components/links/link';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';

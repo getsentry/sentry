@@ -240,7 +240,7 @@ describe('Performance > TransactionSummary', function () {
 
     const tableFirstRowColumns = screen.getAllByRole('cell');
     expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
-    expect(tableFirstRowColumns[1]).toHaveTextContent('Uuhoh@example.com');
+    expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
     expect(tableFirstRowColumns[3]).toHaveTextContent('400.00ms');
     expect(tableFirstRowColumns[4]).toHaveTextContent('1234');
@@ -272,7 +272,7 @@ describe('Performance > TransactionSummary', function () {
 
     const tableFirstRowColumns = screen.getAllByRole('cell');
     expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
-    expect(tableFirstRowColumns[1]).toHaveTextContent('Uuhoh@example.com');
+    expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
     expect(tableFirstRowColumns[3]).toHaveTextContent('200');
     expect(tableFirstRowColumns[4]).toHaveTextContent('400.00ms');

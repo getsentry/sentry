@@ -7,7 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AvatarComponent from 'sentry/components/avatar';
+import AvatarComponent from 'sentry/components/core/avatar';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Avatar} from 'sentry/types/core';

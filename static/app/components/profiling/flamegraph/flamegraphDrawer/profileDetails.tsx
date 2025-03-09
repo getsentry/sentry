@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
