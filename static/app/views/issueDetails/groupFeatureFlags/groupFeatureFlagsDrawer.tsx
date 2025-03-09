@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useProjects from 'sentry/utils/useProjects';
+import TagsAndFlagsSegmentedControl from 'sentry/views/issueDetails/groupFeatureFlags/tagsAndFlagsSegmentedControl';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -73,10 +74,32 @@ export default function GroupFeatureFlagsDrawer({group}: {group: Group}) {
     return searchedTags;
   }, [data, search, tagValues]);
 
+  const headerActions = (
+    <ButtonBar gap={1}>
+      <InputGroup>
+        <SearchInput
+          size="xs"
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+          }}
+          aria-label={t('Search All Feature Flags')}
+        />
+        {/* TODO: what is this? */}
+        <InputGroup.TrailingItems disablePointerEvents>
+          <IconSearch size="xs" />
+        </InputGroup.TrailingItems>
+      </InputGroup>
+      <TagsAndFlagsSegmentedControl tab="featureFlags" />
+    </ButtonBar>
+  );
+
+  // TODO:
   if (isPending) {
     return <LoadingIndicator />;
   }
 
+  // TODO:
   if (isError) {
     return (
       <LoadingError
@@ -107,21 +130,7 @@ export default function GroupFeatureFlagsDrawer({group}: {group: Group}) {
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{t('All Feature Flags')}</Header>
-        <ButtonBar gap={1}>
-          <InputGroup>
-            <SearchInput
-              size="xs"
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-              }}
-              aria-label={t('Search All Feature Flags')}
-            />
-            <InputGroup.TrailingItems disablePointerEvents>
-              <IconSearch size="xs" />
-            </InputGroup.TrailingItems>
-          </InputGroup>
-        </ButtonBar>
+        {headerActions}
       </EventNavigator>
       <EventDrawerBody>
         <Wrapper>

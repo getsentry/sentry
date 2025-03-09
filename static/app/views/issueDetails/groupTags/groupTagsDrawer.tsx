@@ -29,6 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import TagsAndFlagsSegmentedControl from 'sentry/views/issueDetails/groupFeatureFlags/tagsAndFlagsSegmentedControl';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
@@ -171,6 +172,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
       </InputGroup>
+      <TagsAndFlagsSegmentedControl tab="tags" />
     </ButtonBar>
   );
 
