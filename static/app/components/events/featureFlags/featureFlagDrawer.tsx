@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -15,19 +15,17 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import FeatureFlagDistributions from 'sentry/components/events/featureFlags/featureFlagDistributions';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
-  OrderBy,
-  SortBy,
+  type OrderBy,
+  type SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,7 +33,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface FlagDrawerProps {
   event: Event;
@@ -56,25 +53,13 @@ export function FeatureFlagDrawer({
   hydratedFlags,
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
-  const [tab, setTab] = useState<'eventFlags' | 'issueFlags'>('eventFlags');
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
   const [search, setSearch] = useState('');
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
-  const displayFlags = useMemo(
-    () =>
-      tab === 'eventFlags'
-        ? sortedFlags({flags: hydratedFlags, sort: orderBy}).filter(f =>
-            f.item.key.includes(search)
-          )
-        : [], // FeatureFlagDistributions has its own query for issue flags.
-    [hydratedFlags, orderBy, search, tab]
-  );
-
-  const organization = useOrganization();
-  const issueFlagsEnabled = organization.features.includes(
-    'feature-flag-distribution-flyout'
+  const searchResults = sortedFlags({flags: hydratedFlags, sort: orderBy}).filter(f =>
+    f.item.key.includes(search)
   );
 
   const actions = (
@@ -99,29 +84,6 @@ export function FeatureFlagDrawer({
         setSortBy={setSortBy}
         setOrderBy={setOrderBy}
       />
-      {issueFlagsEnabled && (
-        <SegmentedControl
-          size="xs"
-          value={tab}
-          onChange={newTab => {
-            if (newTab === 'eventFlags') {
-              setSortBy(initialSortBy);
-              setOrderBy(initialOrderBy);
-            } else {
-              setSortBy(SortBy.ALPHABETICAL);
-              setOrderBy(OrderBy.A_TO_Z);
-            }
-            setTab(newTab);
-          }}
-        >
-          <SegmentedControl.Item key="eventFlags">
-            {t('Event Flags')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="issueFlags">
-            {t('Issue Flags')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
-      )}
     </ButtonBar>
   );
 
@@ -148,13 +110,9 @@ export function FeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        {tab === 'eventFlags' || !issueFlagsEnabled ? (
-          <CardContainer numCols={1}>
-            <KeyValueData.Card expandLeft contentItems={displayFlags} />
-          </CardContainer>
-        ) : (
-          <FeatureFlagDistributions group={group} search={search} orderBy={orderBy} />
-        )}
+        <CardContainer numCols={1}>
+          <KeyValueData.Card expandLeft contentItems={searchResults} />
+        </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>
   );

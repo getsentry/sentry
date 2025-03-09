@@ -26,7 +26,7 @@ const makeGroupFlagsQueryKey = ({
   {query: {environment, limit, useFlagsBackend: '1'}},
 ];
 
-export default function useGroupFlags(
+export default function useGroupFeatureFlags(
   parameters: Omit<FetchIssueFlagsParameters, 'orgSlug'>,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTag[]>> = {}
 ): UseApiQueryResult<GroupTag[], RequestError> {

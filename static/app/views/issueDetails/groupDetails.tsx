@@ -50,6 +50,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {useGroupFeatureFlagsDrawer} from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlagsDrawer';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
@@ -632,6 +633,7 @@ function GroupDetailsContent({
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
   const {openTagsDrawer} = useGroupTagsDrawer({group});
+  const {openFeatureFlagsDrawer} = useGroupFeatureFlagsDrawer({group});
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
@@ -648,6 +650,8 @@ function GroupDetailsContent({
 
     if (currentTab === Tab.TAGS) {
       openTagsDrawer();
+    } else if (currentTab === Tab.FEATURE_FLAGS) {
+      openFeatureFlagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
@@ -659,6 +663,7 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
+    openFeatureFlagsDrawer,
     openTagsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,

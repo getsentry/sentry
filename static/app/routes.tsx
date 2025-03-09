@@ -2086,6 +2086,12 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
       />
       <Route
+        path={TabPaths[Tab.FEATURE_FLAGS]}
+        component={make(
+          () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails')
+        )}
+      />
+      <Route
         path={TabPaths[Tab.USER_FEEDBACK]}
         component={make(() => import('sentry/views/issueDetails/groupUserFeedback'))}
       />
