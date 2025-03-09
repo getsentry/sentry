@@ -185,7 +185,7 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {t('View All Tags')}
+        {t('View All Tags And Flags')}
       </VerticalIssueTagsButton>
     );
   }
@@ -200,7 +200,7 @@ function IssueTagButton({
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {t('View all tags')}
+      {t('View all tags and feature flags')}
     </IssueTagsLink>
   );
 }
