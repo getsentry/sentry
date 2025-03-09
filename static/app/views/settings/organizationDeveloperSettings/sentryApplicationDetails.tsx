@@ -15,7 +15,7 @@ import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import Avatar from 'sentry/components/core/avatar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -569,7 +569,7 @@ const AvatarPreview = styled('div')`
   grid: 25px 25px / 50px 1fr;
 `;
 
-const StyledSentryAppPreviewAvatar = styled(SentryAppAvatar)`
+const StyledSentryAppPreviewAvatar = styled(Avatar)`
   grid-area: 1 / 1 / 3 / 2;
   justify-self: end;
 `;

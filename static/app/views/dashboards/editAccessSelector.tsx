@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import Avatar from 'sentry/components/core/avatar';
 import {Badge} from 'sentry/components/core/badge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
@@ -152,7 +152,7 @@ function EditAccessSelector({
                 marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
               }}
             >
-              <TeamAvatar team={team} size={18} />
+              <Avatar team={team} size={18} />
               <div>#{team.name}</div>
             </CollapsedAvatarTooltipListItem>
           ))}
@@ -213,7 +213,7 @@ function EditAccessSelector({
   const makeTeamOption = (team: Team) => ({
     value: team.id,
     label: `#${team.slug}`,
-    leadingItems: <TeamAvatar team={team} size={18} />,
+    leadingItems: <Avatar team={team} size={18} />,
   });
 
   // Avatars/Badges in the Edit Access Selector Button

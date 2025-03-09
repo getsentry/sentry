@@ -37,19 +37,22 @@ const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
   ({hasTooltip = false, ...props}, ref) => {
     const commonProps = {hasTooltip, ref, ...props};
 
-    if ('actor' in props) {
+    // @TODO(jonas): the old code included the falsy check, I attempted to remove it, but
+    // learned the hard way that it breaks tests, meaning there some type unsafety in the
+    // old code and this should be kept around.
+    if ('actor' in props && props.actor) {
       return <ActorAvatar actor={props.actor} {...commonProps} />;
     }
 
-    if ('user' in props) {
+    if ('user' in props && props.user) {
       return <UserAvatar user={props.user} {...commonProps} />;
     }
 
-    if ('team' in props) {
+    if ('team' in props && props.team) {
       return <TeamAvatar team={props.team} {...commonProps} />;
     }
 
-    if ('project' in props) {
+    if ('project' in props && props.project) {
       return (
         <ProjectAvatar
           project={props.project}
@@ -59,17 +62,17 @@ const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
       );
     }
 
-    if ('sentryApp' in props) {
+    if ('sentryApp' in props && props.sentryApp) {
       return <SentryAppAvatar sentryApp={props.sentryApp} {...commonProps} />;
     }
 
-    if ('docIntegration' in props) {
+    if ('docIntegration' in props && props.docIntegration) {
       return (
         <DocIntegrationAvatar docIntegration={props.docIntegration} {...commonProps} />
       );
     }
 
-    if ('organization' in props) {
+    if ('organization' in props && props.organization) {
       return <OrganizationAvatar organization={props.organization} {...commonProps} />;
     }
 
