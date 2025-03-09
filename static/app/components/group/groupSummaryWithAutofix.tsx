@@ -1,13 +1,18 @@
-import React, {useMemo} from 'react';
+import React, {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {type AutofixData, AutofixStatus} from 'sentry/components/events/autofix/types';
+import {
+  type AutofixChangesStep,
+  type AutofixCodebaseChange,
+  type AutofixData,
+  AutofixStatus,
+} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
-import {IconFix, IconFocus} from 'sentry/icons';
+import {IconCode, IconFix, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -67,6 +72,69 @@ const getSolutionIsLoading = (autofixData: AutofixData) => {
   return solutionProgressStep?.status === AutofixStatus.PROCESSING;
 };
 
+const getCodeChangesDescription = (autofixData: AutofixData) => {
+  if (!autofixData) {
+    return null;
+  }
+
+  const changesStep = autofixData.steps?.find(
+    step => step.type === AutofixStepType.CHANGES
+  ) as AutofixChangesStep | undefined;
+
+  if (!changesStep) {
+    return null;
+  }
+
+  // If there are changes with PRs, show links to them
+  const changesWithPRs = changesStep.changes?.filter(
+    (change: AutofixCodebaseChange) => change.pull_request
+  );
+  if (changesWithPRs?.length) {
+    return changesWithPRs
+      .map(
+        (change: AutofixCodebaseChange) =>
+          `[View PR in ${change.repo_name}](${change.pull_request?.pr_url})`
+      )
+      .join('\n');
+  }
+
+  // If there are code changes but no PRs yet, show a summary
+  if (changesStep.changes?.length) {
+    // Group changes by repo
+    const changesByRepo: Record<string, number> = {};
+    changesStep.changes.forEach((change: AutofixCodebaseChange) => {
+      changesByRepo[change.repo_name] = (changesByRepo[change.repo_name] || 0) + 1;
+    });
+
+    const changesSummary = Object.entries(changesByRepo)
+      .map(([repo, count]) => `${count} ${count === 1 ? 'change' : 'changes'} in ${repo}`)
+      .join(', ');
+
+    return `Proposed ${changesSummary}.`;
+  }
+
+  return null;
+};
+
+const getCodeChangesIsLoading = (autofixData: AutofixData) => {
+  if (!autofixData) {
+    return false;
+  }
+
+  // Check if there's a specific changes processing step, similar to solution_processing
+  const changesProgressStep = autofixData.steps?.find(step => step.key === 'plan');
+  if (changesProgressStep?.status === AutofixStatus.PROCESSING) {
+    return true;
+  }
+
+  // Also check if the changes step itself is in processing state
+  const changesStep = autofixData.steps?.find(
+    step => step.type === AutofixStepType.CHANGES
+  );
+
+  return changesStep?.status === AutofixStatus.PROCESSING;
+};
+
 export function GroupSummaryWithAutofix({
   group,
   event,
@@ -78,7 +146,7 @@ export function GroupSummaryWithAutofix({
   project: Project;
   preview?: boolean;
 }) {
-  const autofixData = useAutofixData({groupId: group.id});
+  const {data: autofixData, isPending} = useAutofixData({groupId: group.id});
 
   const openSolutionsDrawer = useOpenSolutionsDrawer(group, project, event);
 
@@ -97,12 +165,28 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
+  const codeChangesDescription = useMemo(
+    () => (autofixData ? getCodeChangesDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const codeChangesIsLoading = useMemo(
+    () => (autofixData ? getCodeChangesIsLoading(autofixData) : false),
+    [autofixData]
+  );
+
+  if (isPending) {
+    return <Placeholder height="130px" />;
+  }
+
   if (rootCauseDescription) {
     return (
       <AutofixSummary
         rootCauseDescription={rootCauseDescription}
         solutionDescription={solutionDescription}
         solutionIsLoading={solutionIsLoading}
+        codeChangesDescription={codeChangesDescription}
+        codeChangesIsLoading={codeChangesIsLoading}
         openSolutionsDrawer={openSolutionsDrawer}
       />
     );
@@ -115,8 +199,12 @@ function AutofixSummary({
   rootCauseDescription,
   solutionDescription,
   solutionIsLoading,
+  codeChangesDescription,
+  codeChangesIsLoading,
   openSolutionsDrawer,
 }: {
+  codeChangesDescription: string | null;
+  codeChangesIsLoading: boolean;
   openSolutionsDrawer: () => void;
   rootCauseDescription: string | null;
   solutionDescription: string | null;
@@ -125,7 +213,7 @@ function AutofixSummary({
   const insightCards: InsightCardObject[] = [
     {
       id: 'root_cause_description',
-      title: t('Root cause'),
+      title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" color="pink400" />,
       onClick: openSolutionsDrawer,
@@ -143,7 +231,36 @@ function AutofixSummary({
           },
         ]
       : []),
+
+    ...(codeChangesDescription || codeChangesIsLoading
+      ? [
+          {
+            id: 'code_changes',
+            title: t('Code Changes'),
+            insight: codeChangesDescription,
+            icon: <IconCode size="sm" color="blue400" />,
+            isLoading: codeChangesIsLoading,
+            onClick: openSolutionsDrawer,
+          },
+        ]
+      : []),
   ];
+
+  // Add event listener to prevent propagation of click events from links
+  useEffect(() => {
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const isLink = target.tagName === 'A' || target.closest('a');
+
+      if (isLink) {
+        event.stopPropagation();
+      }
+    };
+    document.addEventListener('click', handleLinkClick, true);
+    return () => {
+      document.removeEventListener('click', handleLinkClick, true);
+    };
+  }, []);
 
   return (
     <div data-testid="autofix-summary">
@@ -175,6 +292,12 @@ function AutofixSummary({
                         {card.insightElement}
                         {card.insight && (
                           <div
+                            onClick={e => {
+                              // Stop propagation if the click is directly on a link
+                              if ((e.target as HTMLElement).tagName === 'A') {
+                                e.stopPropagation();
+                              }
+                            }}
                             dangerouslySetInnerHTML={{
                               __html: marked(
                                 card.isLoading
@@ -243,7 +366,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  padding: ${space(1)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -262,14 +385,25 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  padding: ${space(1.5)};
   text-align: left;
+  flex: 1;
+
   p {
     margin: 0;
     white-space: pre-wrap;
   }
+
   code {
     word-break: break-all;
   }
-  flex: 1;
+
+  a {
+    color: ${p => p.theme.linkColor};
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;

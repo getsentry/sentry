@@ -7,9 +7,7 @@ import {OrganizationAuthList} from 'sentry/views/settings/organizationAuth/organ
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
-    render(
-      <OrganizationAuthList organization={OrganizationFixture()} providerList={[]} />
-    );
+    render(<OrganizationAuthList providerList={[]} />);
 
     expect(
       screen.getByText('No authentication providers are available.')
@@ -17,12 +15,7 @@ describe('OrganizationAuthList', function () {
   });
 
   it('renders', function () {
-    render(
-      <OrganizationAuthList
-        organization={OrganizationFixture()}
-        providerList={AuthProvidersFixture()}
-      />
-    );
+    render(<OrganizationAuthList providerList={AuthProvidersFixture()} />);
 
     expect(screen.getAllByLabelText('Configure')).toHaveLength(2);
     expect(screen.getByText('Dummy')).toBeInTheDocument();
@@ -34,10 +27,10 @@ describe('OrganizationAuthList', function () {
 
     render(
       <OrganizationAuthList
-        organization={organization}
         providerList={AuthProvidersFixture()}
         activeProvider={AuthProvidersFixture()[0]}
-      />
+      />,
+      {organization}
     );
 
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -51,12 +44,9 @@ describe('OrganizationAuthList', function () {
     it('renders', function () {
       const organization = OrganizationFixture({...require2fa, ...withSSO});
 
-      render(
-        <OrganizationAuthList
-          organization={organization}
-          providerList={AuthProvidersFixture()}
-        />
-      );
+      render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
+        organization,
+      });
 
       expect(
         screen.getByText('Require 2FA will be disabled if you enable SSO.')
@@ -66,12 +56,9 @@ describe('OrganizationAuthList', function () {
     it('renders with saml available', function () {
       const organization = OrganizationFixture({...require2fa, ...withSAML});
 
-      render(
-        <OrganizationAuthList
-          organization={organization}
-          providerList={AuthProvidersFixture()}
-        />
-      );
+      render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
+        organization,
+      });
 
       expect(
         screen.getByText('Require 2FA will be disabled if you enable SSO.')
@@ -81,12 +68,9 @@ describe('OrganizationAuthList', function () {
     it('does not render without sso available', function () {
       const organization = OrganizationFixture({...require2fa});
 
-      render(
-        <OrganizationAuthList
-          organization={organization}
-          providerList={AuthProvidersFixture()}
-        />
-      );
+      render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
+        organization,
+      });
 
       expect(
         screen.queryByText('Require 2FA will be disabled if you enable SSO.')
@@ -96,12 +80,9 @@ describe('OrganizationAuthList', function () {
     it('does not render with sso and require 2fa disabled', function () {
       const organization = OrganizationFixture({...withSSO});
 
-      render(
-        <OrganizationAuthList
-          organization={organization}
-          providerList={AuthProvidersFixture()}
-        />
-      );
+      render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
+        organization,
+      });
 
       expect(
         screen.queryByText('Require 2FA will be disabled if you enable SSO.')
@@ -111,12 +92,9 @@ describe('OrganizationAuthList', function () {
     it('does not render with saml and require 2fa disabled', function () {
       const organization = OrganizationFixture({...withSAML});
 
-      render(
-        <OrganizationAuthList
-          organization={organization}
-          providerList={AuthProvidersFixture()}
-        />
-      );
+      render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
+        organization,
+      });
 
       expect(
         screen.queryByText('Require 2FA will be disabled if you enable SSO.')
