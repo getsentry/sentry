@@ -38,7 +38,13 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-export function GroupTagsDrawer({group}: {group: Group}) {
+export function GroupTagsDrawer({
+  group,
+  includeFeatureFlagsTab,
+}: {
+  group: Group;
+  includeFeatureFlagsTab: boolean;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
@@ -172,7 +178,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
       </InputGroup>
-      <TagsAndFlagsSegmentedControl tab="tags" />
+      {includeFeatureFlagsTab && <TagsAndFlagsSegmentedControl tab="tags" />}
     </ButtonBar>
   );
 

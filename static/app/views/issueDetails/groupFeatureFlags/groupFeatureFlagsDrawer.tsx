@@ -35,7 +35,13 @@ function getSortedTags(tags: GroupTag[]) {
   return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
 }
 
-export default function GroupFeatureFlagsDrawer({group}: {group: Group}) {
+export default function GroupFeatureFlagsDrawer({
+  group,
+  includeTagsTab,
+}: {
+  group: Group;
+  includeTagsTab: boolean;
+}) {
   const environments = useEnvironmentsFromUrl();
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
@@ -90,7 +96,7 @@ export default function GroupFeatureFlagsDrawer({group}: {group: Group}) {
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
       </InputGroup>
-      <TagsAndFlagsSegmentedControl tab="featureFlags" />
+      {includeTagsTab && <TagsAndFlagsSegmentedControl tab="featureFlags" />}
     </ButtonBar>
   );
 
