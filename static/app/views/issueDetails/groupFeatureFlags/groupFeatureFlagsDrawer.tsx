@@ -91,7 +91,6 @@ export default function GroupFeatureFlagsDrawer({
           }}
           aria-label={t('Search All Feature Flags')}
         />
-        {/* TODO: what is this? */}
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
@@ -99,21 +98,6 @@ export default function GroupFeatureFlagsDrawer({
       {includeTagsTab && <TagsAndFlagsSegmentedControl tab="featureFlags" />}
     </ButtonBar>
   );
-
-  // TODO:
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  // TODO:
-  if (isError) {
-    return (
-      <LoadingError
-        message={t('There was an error loading issue flags.')}
-        onRetry={refetch}
-      />
-    );
-  }
 
   return (
     <EventDrawerContainer ref={drawerRef}>
@@ -139,13 +123,22 @@ export default function GroupFeatureFlagsDrawer({
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
-        <Wrapper>
-          <Container>
-            {displayTags.map((tag, tagIdx) => (
-              <TagDistribution tag={tag} key={tagIdx} />
-            ))}
-          </Container>
-        </Wrapper>
+        {isPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError
+            message={t('There was an error loading feature flags.')}
+            onRetry={refetch}
+          />
+        ) : (
+          <Wrapper>
+            <Container>
+              {displayTags.map((tag, tagIdx) => (
+                <TagDistribution tag={tag} key={tagIdx} />
+              ))}
+            </Container>
+          </Wrapper>
+        )}
       </EventDrawerBody>
     </EventDrawerContainer>
   );
