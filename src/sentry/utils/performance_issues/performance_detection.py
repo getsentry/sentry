@@ -115,7 +115,7 @@ class EventPerformanceProblem:
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(
-    data: dict[str, Any], project: Project, is_standalone_spans: bool = False
+    data: dict[str, Any], project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
@@ -126,9 +126,7 @@ def detect_performance_problems(
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
                 sentry_sdk.start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
-                return _detect_performance_problems(
-                    data, sdk_span, project, is_standalone_spans=is_standalone_spans
-                )
+                return _detect_performance_problems(data, sdk_span, project, standalone=standalone)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -332,12 +330,21 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project, is_standalone_spans: bool = False
+    data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
+
+    if standalone:
+        # The performance detectors expect the span list to be ordered/flattened in the way they
+        # are structured in the tree. This is an implicit assumption in the performance detectors.
+        # So we build a tree and flatten it depth first.
+        # TODO: See if we can update the detectors to work without this assumption so we can
+        # just pass it a list of spans.
+        tree, segment_id = build_tree(data.get("spans", []))
+        data = {**data, "spans": flatten_tree(tree, segment_id)}
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
@@ -360,7 +367,7 @@ def _detect_performance_problems(
             detectors,
             sdk_span,
             project.organization,
-            is_standalone_spans=is_standalone_spans,
+            standalone=standalone,
         )
 
     organization = project.organization
@@ -409,6 +416,63 @@ def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) ->
     detector.on_complete()
 
 
+def build_tree(spans: Sequence[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+    span_tree: dict[str, tuple[dict[str, Any], list[dict[str, Any]]]] = {}
+    segment_id = None
+
+    for span in spans:
+        span_id = span["span_id"]
+        is_root = span["is_segment"]
+        if is_root:
+            segment_id = span_id
+        if span_id not in span_tree:
+            span_tree[span_id] = (span, [])
+
+    for span, _ in span_tree.values():
+        parent_id = span.get("parent_span_id")
+        if parent_id is not None and parent_id in span_tree:
+            _, children = span_tree[parent_id]
+            children.append(span)
+
+    return span_tree, segment_id
+
+
+def dfs(
+    visited: set[str], flattened_spans: list[dict[str, Any]], tree: dict[str, Any], span_id: str
+) -> None:
+    stack = [span_id]
+
+    while len(stack):
+        span_id = stack.pop()
+
+        span, children = tree[span_id]
+
+        if span_id not in visited:
+            flattened_spans.append(span)
+            tree.pop(span_id)
+            visited.add(span_id)
+
+        for child in sorted(children, key=lambda span: span["start_timestamp"], reverse=True):
+            if child["span_id"] not in visited:
+                stack.append(child["span_id"])
+
+
+def flatten_tree(tree: dict[str, Any], segment_id: str | None) -> list[dict[str, Any]]:
+    visited: set[str] = set()
+    flattened_spans: list[dict[str, Any]] = []
+
+    if segment_id:
+        dfs(visited, flattened_spans, tree, segment_id)
+
+    # Catch all for orphan spans
+    remaining = sorted(tree.items(), key=lambda span: span[1][0]["start_timestamp"])
+    for span_id, _ in remaining:
+        if span_id not in visited:
+            dfs(visited, flattened_spans, tree, span_id)
+
+    return flattened_spans
+
+
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
     event: dict[str, Any],
@@ -416,7 +480,7 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
-    is_standalone_spans: bool = False,
+    standalone: bool = False,
 ) -> None:
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -431,11 +495,11 @@ def report_metrics_for_detectors(
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
         set_tag("_pi_sdk_name", sdk_name or "")
-        set_tag("is_standalone_spans", is_standalone_spans)
+        set_tag("is_standalone_spans", standalone)
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
-            tags={"sdk_name": sdk_name, "is_standalone_spans": is_standalone_spans},
+            tags={"sdk_name": sdk_name, "is_standalone_spans": standalone},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
@@ -466,7 +530,7 @@ def report_metrics_for_detectors(
     detected_tags = {
         "sdk_name": sdk_name,
         "is_early_adopter": bool(organization.flags.early_adopter),
-        "is_standalone_spans": is_standalone_spans,
+        "is_standalone_spans": standalone,
     }
 
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
@@ -502,7 +566,7 @@ def report_metrics_for_detectors(
 
         set_tag(f"_pi_{detector_key}", span_id)
 
-        op_tags = {"is_standalone_spans": is_standalone_spans}
+        op_tags = {"is_standalone_spans": standalone}
         for problem in detected_problems.values():
             op = problem.op
             op_tags[f"op_{op}"] = True
