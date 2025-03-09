@@ -139,12 +139,12 @@ class ThresholdControl extends Component<Props, State> {
                   size="md"
                   axis="y"
                   name={`${type}Threshold`}
+                  data-test-id={`${type}-threshold`}
                   value={inputValue}
                   // When shift key is held down, the pointer delta is multiplied by 1, making
                   // the threshold change more granular and precise than the step size.
                   shiftKeyMultiplier={1}
                   disabled={disabled}
-                  data-test-id={`${type}-threshold`}
                   placeholder={placeholder}
                   onChange={this.handleThresholdChange}
                   // Disable lastpass autocomplete
