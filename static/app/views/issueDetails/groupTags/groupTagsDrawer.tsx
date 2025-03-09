@@ -29,14 +29,22 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import TagsAndFlagsSegmentedControl from 'sentry/views/issueDetails/groupFeatureFlags/tagsAndFlagsSegmentedControl';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
+import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-export function GroupTagsDrawer({group}: {group: Group}) {
+export function GroupTagsDrawer({
+  group,
+  includeFeatureFlagsTab,
+}: {
+  group: Group;
+  includeFeatureFlagsTab: boolean;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
@@ -170,6 +178,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
       </InputGroup>
+      {includeFeatureFlagsTab && <TagsAndFlagsSegmentedControl tab="tags" />}
     </ButtonBar>
   );
 
@@ -201,7 +210,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
       </EventDrawerHeader>
       <EventNavigator>
         <Header>
-          {tagKey ? tct('Tag Details - [tagKey]', {tagKey}) : t('All Tags')}
+          {tagKey ? tct('Tag Details - [tagKey]', {tagKey}) : t('Tags & Feature Flags')}
         </Header>
         {headerActions}
       </EventNavigator>
@@ -212,7 +221,11 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <Wrapper>
             <Container>
               {displayTags.map((tag, tagIdx) => (
-                <TagDistribution tag={tag} key={tagIdx} groupId={group.id} />
+                <div key={tagIdx}>
+                  <TagDetailsLink tag={tag} groupId={group.id}>
+                    <TagDistribution tag={tag} />
+                  </TagDetailsLink>
+                </div>
               ))}
             </Container>
           </Wrapper>

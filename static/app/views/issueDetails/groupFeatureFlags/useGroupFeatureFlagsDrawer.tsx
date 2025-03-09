@@ -5,46 +5,58 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+import GroupFeatureFlagsDrawer from 'sentry/views/issueDetails/groupFeatureFlags/groupFeatureFlagsDrawer';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function useGroupTagsDrawer({
+export function useGroupFeatureFlagsDrawer({
   group,
-  includeFeatureFlagsTab,
+  includeTagsTab,
+  enabled = true,
 }: {
   group: Group;
-  includeFeatureFlagsTab: boolean;
+  includeTagsTab: boolean;
+  enabled?: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const {openDrawer} = useDrawer();
   const {baseUrl} = useGroupDetailsRoute();
 
-  const openTagsDrawer = useCallback(() => {
+  const openFeatureFlagsDrawer = useCallback(() => {
+    if (!enabled) {
+      navigate(
+        {
+          pathname: baseUrl,
+          query: {
+            ...location.query,
+          },
+        },
+        {replace: true}
+      );
+    }
+
     openDrawer(
-      () => (
-        <GroupTagsDrawer group={group} includeFeatureFlagsTab={includeFeatureFlagsTab} />
-      ),
+      () => <GroupFeatureFlagsDrawer group={group} includeTagsTab={includeTagsTab} />,
       {
-        ariaLabel: t('Tags Drawer'),
+        ariaLabel: t('Feature Flags Drawer'),
         onClose: () => {
           navigate(
             {
               pathname: baseUrl,
               query: {
                 ...location.query,
-                tagDrawerSort: undefined,
               },
             },
             {replace: true}
           );
         },
         shouldCloseOnLocationChange: newLocation => {
-          return !newLocation.pathname.includes('/tags/');
+          return !newLocation.pathname.includes(`/${TabPaths[Tab.FEATURE_FLAGS]}`);
         },
       }
     );
-  }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);
+  }, [location, navigate, openDrawer, group, baseUrl, includeTagsTab, enabled]);
 
-  return {openTagsDrawer};
+  return {openFeatureFlagsDrawer};
 }
