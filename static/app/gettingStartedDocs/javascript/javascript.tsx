@@ -480,6 +480,28 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       });
     };
   },
+  onProductSelectionChange: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
+  onProductSelectionLoad: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
