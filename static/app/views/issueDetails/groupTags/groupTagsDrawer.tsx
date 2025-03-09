@@ -210,7 +210,7 @@ export function GroupTagsDrawer({
       </EventDrawerHeader>
       <EventNavigator>
         <Header>
-          {tagKey ? tct('Tag Details - [tagKey]', {tagKey}) : t('All Tags')}
+          {tagKey ? tct('Tag Details - [tagKey]', {tagKey}) : t('Tags & Feature Flags')}
         </Header>
         {headerActions}
       </EventNavigator>
