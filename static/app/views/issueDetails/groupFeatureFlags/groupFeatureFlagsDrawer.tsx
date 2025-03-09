@@ -119,7 +119,7 @@ export default function GroupFeatureFlagsDrawer({
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{t('All Feature Flags')}</Header>
+        <Header>{t('Tags & Feature Flags')}</Header>
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
