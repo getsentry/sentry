@@ -173,7 +173,7 @@ function useWidgetBuilderState(): {
       // if it hasn't been explicitly set
       selectedAggregate:
         displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
-          ? selectedAggregate ?? fields.length - 1
+          ? (selectedAggregate ?? fields.length - 1)
           : undefined,
     }),
     [
