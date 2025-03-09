@@ -42,20 +42,6 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
       tooltip = userDisplayName(user);
     }
 
-    const avatarProps = isActor(user)
-      ? {
-          gravatarId: '',
-          letterId: user.name,
-          title: user.name,
-          uploadUrl: '',
-        }
-      : {
-          uploadUrl: user.avatar?.avatarUrl ?? '',
-          gravatarId: user.email?.toLowerCase(),
-          letterId: user.email || user.username || user.id || user.ip_address,
-          title: user.name || user.email || user.username || '',
-        };
-
     return (
       <BaseAvatar
         round
@@ -63,11 +49,27 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
         type={type}
         tooltip={tooltip}
         {...props}
-        {...avatarProps}
+        {...getAvatarProps(user)}
       />
     );
   }
 );
+
+function getAvatarProps(user: AvatarUser | Actor) {
+  return isActor(user)
+    ? {
+        gravatarId: '',
+        letterId: user.name,
+        title: user.name,
+        uploadUrl: '',
+      }
+    : {
+        uploadUrl: user.avatar?.avatarUrl ?? '',
+        gravatarId: user.email?.toLowerCase(),
+        letterId: user.email || user.username || user.id || user.ip_address,
+        title: user.name || user.email || user.username || '',
+      };
+}
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {
   return typeof (maybe as AvatarUser).email === 'undefined';
