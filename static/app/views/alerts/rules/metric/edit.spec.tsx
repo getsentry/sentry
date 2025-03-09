@@ -139,7 +139,7 @@ describe('MetricRulesEdit', function () {
                 }),
               ],
               alertRuleId: '4',
-              alertThreshold: 0,
+              alertThreshold: 70,
               id: '1',
             }),
           ],
@@ -216,7 +216,7 @@ describe('MetricRulesEdit', function () {
             expect.objectContaining({
               actions: [],
               alertRuleId: '4',
-              alertThreshold: 0,
+              alertThreshold: 70,
               id: '1',
             }),
           ],

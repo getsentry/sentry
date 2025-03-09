@@ -134,7 +134,6 @@ class ThresholdControl extends Component<Props, State> {
             <ThresholdContainer comparisonType={comparisonType}>
               <ThresholdInput>
                 <NumberDragInput
-                  step={5}
                   min={0}
                   size="md"
                   axis="y"
