@@ -95,8 +95,8 @@ describe('MetricRulesEdit', function () {
     );
 
     // has existing trigger
-    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
-    expect(screen.getByTestId('resolve-threshold')).toHaveValue('36');
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue(70);
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue(36);
 
     expect(req).toHaveBeenCalled();
 
@@ -150,8 +150,8 @@ describe('MetricRulesEdit', function () {
 
     // New Trigger should be in list
     // Has correct values
-    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
-    expect(screen.getByTestId('resolve-threshold')).toHaveValue('7');
+    expect(screen.getByTestId('critical-threshold')).toHaveValue(70);
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue(7);
   });
 
   it('removes warning trigger', async function () {
@@ -190,9 +190,9 @@ describe('MetricRulesEdit', function () {
     );
 
     // has existing trigger
-    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
-    expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
-    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue(70);
+    expect(screen.getByTestId('warning-threshold')).toHaveValue(13);
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue(12);
 
     // Clear warning Trigger
     await userEvent.clear(screen.getByTestId('warning-threshold'));
