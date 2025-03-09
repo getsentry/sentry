@@ -89,7 +89,7 @@ function EntityAvatarType({
   'user' | 'team' | 'organization' | 'project' | 'actor' | 'avatarProps'
 >) {
   if (user) {
-    return <UserAvatar {...user} {...avatarProps} />;
+    return <UserAvatar user={user} {...avatarProps} />;
   }
 
   if (team) {

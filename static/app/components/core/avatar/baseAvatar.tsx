@@ -78,16 +78,6 @@ export const BaseAvatar = forwardRef<
     const handleError = useCallback(() => setError(true), []);
     const handleLoad = useCallback(() => setError(false), []);
 
-    const letterAvatar = (
-      <LetterAvatar
-        ref={ref as React.Ref<SVGSVGElement>}
-        round={round}
-        displayName={title === '[Filtered]' ? '?' : title}
-        identifier={letterId}
-        suggested={suggested}
-      />
-    );
-
     const imageAvatar =
       type === 'upload' ? (
         <ImageAvatar
@@ -111,7 +101,13 @@ export const BaseAvatar = forwardRef<
       ) : type === 'background' ? (
         <BackgroundAvatar round={round} suggested={suggested} />
       ) : (
-        letterAvatar
+        <LetterAvatar
+          ref={ref as React.Ref<SVGSVGElement>}
+          round={round}
+          displayName={title === '[Filtered]' ? '?' : title}
+          identifier={letterId}
+          suggested={suggested}
+        />
       );
 
     return (
@@ -127,7 +123,17 @@ export const BaseAvatar = forwardRef<
           hasTooltip={hasTooltip}
           {...props}
         >
-          {hasError ? (backupAvatar ?? letterAvatar) : imageAvatar}
+          {hasError
+            ? (backupAvatar ?? (
+                <LetterAvatar
+                  ref={ref as React.Ref<SVGSVGElement>}
+                  round={round}
+                  displayName={title === '[Filtered]' ? '?' : title}
+                  identifier={letterId}
+                  suggested={suggested}
+                />
+              ))
+            : imageAvatar}
         </AvatarContainer>
       </Tooltip>
     );

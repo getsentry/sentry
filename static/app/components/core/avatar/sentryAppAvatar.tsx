@@ -11,7 +11,7 @@ export interface SentryAppAvatarProps extends BaseAvatarProps {
 }
 
 export const SentryAppAvatar = forwardRef<HTMLSpanElement, SentryAppAvatarProps>(
-  ({isColor = true, sentryApp, isDefault, ...props}, ref) => {
+  ({isColor = true, sentryApp, isDefault = false, ...props}, ref) => {
     const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
 
     // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
