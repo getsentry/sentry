@@ -7,7 +7,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/core/input/NumberDragInput';
+import types from '!!type-loader!sentry/components/core/input/numberDragInput';
 
 export default storyBook('NumberDragInput', (story, APIReference) => {
   APIReference(types.NumberDragInput);

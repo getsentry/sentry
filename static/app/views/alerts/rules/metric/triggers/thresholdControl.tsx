@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
 import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -134,32 +133,23 @@ class ThresholdControl extends Component<Props, State> {
           {!hideControl && (
             <ThresholdContainer comparisonType={comparisonType}>
               <ThresholdInput>
-                <Tooltip
-                  title={tct(
-                    'Drag to adjust threshold[break]You can hold shift to fine tune',
-                    {
-                      break: <br />,
-                    }
-                  )}
-                >
-                  <NumberDragInput
-                    step={5}
-                    min={0}
-                    size="md"
-                    axis="y"
-                    name={`${type}Threshold`}
-                    value={inputValue}
-                    // When shift key is held down, the pointer delta is multiplied by 1, making
-                    // the threshold change more granular and precise than the step size.
-                    shiftKeyMultiplier={1}
-                    disabled={disabled}
-                    data-test-id={`${type}-threshold`}
-                    placeholder={placeholder}
-                    onChange={this.handleThresholdChange}
-                    // Disable lastpass autocomplete
-                    data-lpignore="true"
-                  />
-                </Tooltip>
+                <NumberDragInput
+                  step={5}
+                  min={0}
+                  size="md"
+                  axis="y"
+                  name={`${type}Threshold`}
+                  value={inputValue}
+                  // When shift key is held down, the pointer delta is multiplied by 1, making
+                  // the threshold change more granular and precise than the step size.
+                  shiftKeyMultiplier={1}
+                  disabled={disabled}
+                  data-test-id={`${type}-threshold`}
+                  placeholder={placeholder}
+                  onChange={this.handleThresholdChange}
+                  // Disable lastpass autocomplete
+                  data-lpignore="true"
+                />
               </ThresholdInput>
               {comparisonType === AlertRuleComparisonType.CHANGE && (
                 <PercentWrapper>%</PercentWrapper>
