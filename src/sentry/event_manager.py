@@ -2465,8 +2465,9 @@ def _record_transaction_info(
             if not skip_send_first_transaction:
                 record_first_transaction(project, event.datetime)
 
+            spans = job["data"]["spans"]
             for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if not get_project_insight_flag(project, module) and is_module(job["data"]):
+                if not get_project_insight_flag(project, module) and is_module(spans):
                     record_first_insight_span(project, module)
 
             if job["release"]:
