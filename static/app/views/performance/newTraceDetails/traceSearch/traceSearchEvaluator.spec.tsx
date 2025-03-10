@@ -384,6 +384,7 @@ describe('TraceSearchEvaluator', () => {
     });
   });
 
+  // TODO Abdullah Khan: Add eap span tests for self_time/exclusive_time
   describe('eap span', () => {
     it('text filter', async () => {
       const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
