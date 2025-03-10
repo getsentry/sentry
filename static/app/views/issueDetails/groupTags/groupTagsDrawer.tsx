@@ -45,16 +45,21 @@ const TAGS_TAB = 'tags';
 const FEATURE_FLAGS_TAB = 'featureFlags';
 type DrawerTab = 'tags' | 'featureFlags';
 
-function useDrawerTab() {
+function useDrawerTab({enabled}: {enabled: boolean}) {
   const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams('tab');
   const [tab, setTab] = useState<DrawerTab>(
     getTabParam() === FEATURE_FLAGS_TAB ? FEATURE_FLAGS_TAB : TAGS_TAB
   );
 
   useEffect(() => {
-    setTabParam(tab);
-  }, [tab, setTabParam]);
+    if (enabled) {
+      setTabParam(tab);
+    }
+  }, [tab, setTabParam, enabled]);
 
+  if (!enabled) {
+    return {tab: TAGS_TAB, setTab: (_tab: string) => {}};
+  }
   return {tab, setTab};
 }
 
@@ -85,7 +90,7 @@ export function GroupTagsDrawer({
     },
   });
   const [search, setSearch] = useState('');
-  const {tab, setTab} = useDrawerTab();
+  const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
 
   const {
     data = [],
@@ -191,7 +196,7 @@ export function GroupTagsDrawer({
           size="xs"
           value={tab}
           onChange={newTab => {
-            setTab(newTab);
+            setTab(newTab as DrawerTab);
             setSearch('');
           }}
         >
@@ -206,7 +211,7 @@ export function GroupTagsDrawer({
 
   const content = tagKey ? (
     <TagDetailsDrawerContent group={group} />
-  ) : tab === FEATURE_FLAGS_TAB && includeFeatureFlagsTab ? (
+  ) : tab === FEATURE_FLAGS_TAB ? (
     <GroupFeatureFlagsDrawerContent
       group={group}
       environments={environments}
@@ -242,7 +247,7 @@ export function GroupTagsDrawer({
                 </CrumbContainer>
               ),
             },
-            ...(tab === TAGS_TAB || !includeFeatureFlagsTab
+            ...(tab === TAGS_TAB
               ? [
                   {
                     label: t('All Tags'),
