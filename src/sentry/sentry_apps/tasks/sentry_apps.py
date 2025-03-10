@@ -421,22 +421,32 @@ def workflow_notification(
 def build_comment_webhook(
     installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
 ) -> None:
-    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
-    install, _, user = webhook_data
-    data = kwargs.get("data", {})
-    project_slug = data.get("project_slug")
-    comment_id = data.get("comment_id")
-    payload = {
-        "comment_id": data.get("comment_id"),
-        "issue_id": issue_id,
-        "project_slug": data.get("project_slug"),
-        "timestamp": data.get("timestamp"),
-        "comment": data.get("comment"),
-    }
-    send_webhooks(installation=install, event=type, data=payload, actor=user)
-    # `type` is comment.created, comment.updated, or comment.deleted
+    try:
+        event = SentryAppEventType(type)
+    except ValueError as e:
+        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT) from e
+
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
+    ).capture():
+        webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+        install, _, user = webhook_data
+        data = kwargs.get("data", {})
+        project_slug = data.get("project_slug")
+        comment_id = data.get("comment_id")
+        payload = {
+            "comment_id": data.get("comment_id"),
+            "issue_id": issue_id,
+            "project_slug": data.get("project_slug"),
+            "timestamp": data.get("timestamp"),
+            "comment": data.get("comment"),
+        }
+
+    send_webhooks(installation=install, event=event, data=payload, actor=user)
+    # `event` is comment.created, comment.updated, or comment.deleted
     analytics.record(
-        type,
+        event,
         user_id=user_id,
         group_id=issue_id,
         project_slug=project_slug,
