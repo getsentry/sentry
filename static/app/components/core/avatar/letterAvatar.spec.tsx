@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import LetterAvatar from 'sentry/components/letterAvatar';
+import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
 
 describe('LetterAvatar', function () {
   const USER_1 = {
