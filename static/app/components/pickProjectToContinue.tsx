@@ -37,6 +37,16 @@ function PickProjectToContinue({
   const nextPathQuery = nextPath.query;
   let path = `${nextPath.pathname}?project=`;
 
+  if (nextPathQuery) {
+    const filteredQuery = Object.entries(nextPathQuery)
+      .filter(([key, _value]) => key !== 'project')
+      .map(([key, value]) => `${key}=${value}`);
+
+    const newPathQuery = [...filteredQuery, 'project='].join('&');
+
+    path = `${nextPath.pathname}?${newPathQuery}`;
+  }
+
   useEffect(() => {
     if (projects.length === 1) {
       return;
@@ -76,16 +86,6 @@ function PickProjectToContinue({
     //
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  if (nextPathQuery) {
-    const filteredQuery = Object.entries(nextPathQuery)
-      .filter(([key, _value]) => key !== 'project')
-      .map(([key, value]) => `${key}=${value}`);
-
-    const newPathQuery = [...filteredQuery, 'project='].join('&');
-
-    path = `${nextPath.pathname}?${newPathQuery}`;
-  }
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {
