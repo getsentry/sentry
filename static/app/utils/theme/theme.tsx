@@ -807,9 +807,9 @@ export type FormTheme = {
   form: {
     [key in FormSize]: {
       fontSize: string;
-      height: number;
+      height: string;
       lineHeight: string;
-      minHeight: number;
+      minHeight: string;
     };
   };
   formPadding: {
@@ -834,20 +834,20 @@ const formTheme: FormTheme = {
    */
   form: {
     md: {
-      height: 38,
-      minHeight: 38,
+      height: '38px',
+      minHeight: '38px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     sm: {
-      height: 32,
-      minHeight: 32,
+      height: '32px',
+      minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     xs: {
-      height: 26,
-      minHeight: 26,
+      height: '26px',
+      minHeight: '26px',
       fontSize: '0.75rem',
       lineHeight: '0.875rem',
     },
@@ -915,8 +915,9 @@ const dataCategory: Record<
 };
 
 /**
- * Default colors for data usage outcomes
- * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
+ * Default colors for data usage outcomes.
+ * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
+ * which is why they don't have their own defined colors.
  */
 type OutcomeColors = Record<
   Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,

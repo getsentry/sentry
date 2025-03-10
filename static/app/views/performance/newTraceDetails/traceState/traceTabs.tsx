@@ -148,7 +148,7 @@ export function traceTabsReducer(
         }
 
         const nextTab = nextTabIsPersistent
-          ? state.last_clicked_tab ?? state.current_tab
+          ? (state.last_clicked_tab ?? state.current_tab)
           : newTabs[newTabs.length - 1]!;
 
         return {

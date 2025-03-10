@@ -407,7 +407,7 @@ export function VitalBar(props: VitalBarProps) {
 
   const p75: React.ReactNode = Array.isArray(vital)
     ? null
-    : value ?? getP75(data?.[vital] ?? null, vital);
+    : (value ?? getP75(data?.[vital] ?? null, vital));
   const percents = getPercentsFromCounts(counts);
   const colorStops = getColorStopsFromPercents(percents);
 

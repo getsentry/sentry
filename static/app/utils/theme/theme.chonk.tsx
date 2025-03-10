@@ -27,20 +27,20 @@ const formTheme: FormTheme = {
    */
   form: {
     md: {
-      height: 32,
-      minHeight: 32,
+      height: '32px',
+      minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     sm: {
-      height: 28,
-      minHeight: 28,
+      height: '28px',
+      minHeight: '28px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     xs: {
-      height: 24,
-      minHeight: 24,
+      height: '24px',
+      minHeight: '24px',
       fontSize: '0.75rem',
       lineHeight: '0.875rem',
     },
@@ -800,7 +800,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   radius,
   focusRing: {
     outline: 'none',
-    boxShadow: `0 0 0 2px transparent, 0 0 0 4px ${lightAliases.focusBorder}`,
+    boxShadow: `0 0 0 2px ${lightAliases.background}, 0 0 0 4px ${lightAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
@@ -854,7 +854,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   radius,
   focusRing: {
     outline: 'none',
-    boxShadow: `0 0 0 2px transparent, 0 0 0 4px ${darkAliases.focusBorder}`,
+    boxShadow: `0 0 0 2px ${darkAliases.background}, 0 0 0 4px ${darkAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
@@ -888,7 +888,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
 declare module '@emotion/react' {
   // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-shadow
   export interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
     isChonk: true;
   }

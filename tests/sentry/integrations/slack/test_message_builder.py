@@ -21,6 +21,7 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
 )
+from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -805,7 +806,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=0
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=self.organization,
+            snuba_query=alert_rule.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=0,
+            date_started=incident.date_started,
         ).build() == {
             "blocks": [
                 {
@@ -871,7 +878,13 @@ class BuildIncidentAttachmentTest(TestCase):
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CLOSED, metric_value=0
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=self.organization,
+            snuba_query=alert_rule.snuba_query,
+            date_started=incident.date_started,
+            new_status=IncidentStatus.CLOSED,
+            metric_value=0,
         ).build() == {
             "blocks": [
                 {
@@ -910,7 +923,13 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=self.organization,
+            snuba_query=alert_rule.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=metric_value,
+            date_started=incident.date_started,
         ).build() == {
             "blocks": [
                 {
@@ -945,7 +964,14 @@ class BuildIncidentAttachmentTest(TestCase):
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CLOSED, metric_value=0, chart_url="chart-url"
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=self.organization,
+            snuba_query=alert_rule.snuba_query,
+            new_status=IncidentStatus.CLOSED,
+            metric_value=0,
+            date_started=incident.date_started,
+            chart_url="chart-url",
         ).build() == {
             "blocks": [
                 {
@@ -994,7 +1020,13 @@ class BuildIncidentAttachmentTest(TestCase):
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=0
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=self.organization,
+            snuba_query=alert_rule.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=0,
+            date_started=incident.date_started,
         ).build() == {
             "blocks": [
                 {

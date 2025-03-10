@@ -20,6 +20,10 @@ export interface Plottable {
    */
   dataUnit: DurationUnit | SizeUnit | RateUnit | null;
   /**
+   * Start timestamp of the plottable, if applicable
+   */
+  end: string | null;
+  /**
    * Whether this plottable has enough data to be visually represented.
    */
   isEmpty: boolean;
@@ -27,6 +31,10 @@ export interface Plottable {
    * Whether this plottable needs a color from a shared palette. For example, data series plottables share a palette which is created based on how many series will be plotted.
    */
   needsColor: boolean;
+  /**
+   * Start timestamp of the plottable, if applicable
+   */
+  start: string | null;
   /**
    *
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.

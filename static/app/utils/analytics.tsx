@@ -7,8 +7,6 @@ import {
   alertsEventMap,
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
-import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
-import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
@@ -43,6 +41,8 @@ import type {IntegrationEventParameters} from './analytics/integrations';
 import {integrationEventMap} from './analytics/integrations';
 import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
+import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
+import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
@@ -76,12 +76,12 @@ interface EventParameters
     AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
-    DDMEventParameters,
     DiscoverEventParameters,
     FeatureFlagEventParameters,
     FeedbackEventParameters,
     InsightEventParameters,
     IssueEventParameters,
+    LaravelInsightsEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
@@ -106,13 +106,13 @@ const allEventMap: Record<string, string | null> = {
   ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
-  ...ddmEventMap,
   ...discoverEventMap,
   ...featureFlagEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
   ...insightEventMap,
   ...issueEventMap,
+  ...laravelInsightsEventMap,
   ...monitorsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,

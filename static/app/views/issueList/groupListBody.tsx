@@ -110,7 +110,7 @@ function GroupList({
   const columns: GroupListColumn[] = [
     'graph',
     ...(organization.features.includes('issue-stream-table-layout')
-      ? ['lifespan' as const]
+      ? ['firstSeen' as const, 'lastSeen' as const]
       : []),
     'event',
     'users',
