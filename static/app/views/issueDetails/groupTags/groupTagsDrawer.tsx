@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -19,6 +19,7 @@ import {
 } from 'sentry/components/events/eventDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconDownload, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +30,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import TagsAndFlagsSegmentedControl from 'sentry/views/issueDetails/groupFeatureFlags/tagsAndFlagsSegmentedControl';
+import useUrlParams from 'sentry/utils/useUrlParams';
+import GroupFeatureFlagsDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/groupFeatureFlagsDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
@@ -37,6 +39,24 @@ import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+// Used for `tab` state and URL param.
+const TAGS_TAB = 'tags';
+const FEATURE_FLAGS_TAB = 'featureFlags';
+type DrawerTab = 'tags' | 'featureFlags';
+
+function useDrawerTab() {
+  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams('tab');
+  const [tab, setTab] = useState<DrawerTab>(
+    getTabParam() === FEATURE_FLAGS_TAB ? FEATURE_FLAGS_TAB : TAGS_TAB
+  );
+
+  useEffect(() => {
+    setTabParam(tab);
+  }, [tab, setTabParam]);
+
+  return {tab, setTab};
+}
 
 export function GroupTagsDrawer({
   group,
@@ -65,6 +85,7 @@ export function GroupTagsDrawer({
     },
   });
   const [search, setSearch] = useState('');
+  const {tab, setTab} = useDrawerTab();
 
   const {
     data = [],
@@ -110,19 +131,6 @@ export function GroupTagsDrawer({
     );
     return searchedTags;
   }, [data, search, tagValues, highlightTagKeys]);
-
-  if (isPending || isHighlightsPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return (
-      <LoadingError
-        message={t('There was an error loading issue tags.')}
-        onRetry={refetch}
-      />
-    );
-  }
 
   const headerActions = tagKey ? (
     <DropdownMenu
@@ -172,14 +180,53 @@ export function GroupTagsDrawer({
               organization,
             });
           }}
-          aria-label={t('Search All Tags')}
+          aria-label={t('Search All Tags & Feature Flags')}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
       </InputGroup>
-      {includeFeatureFlagsTab && <TagsAndFlagsSegmentedControl tab="tags" />}
+      {includeFeatureFlagsTab && (
+        <SegmentedControl
+          size="xs"
+          value={tab}
+          onChange={newTab => {
+            setTab(newTab);
+            setSearch('');
+          }}
+        >
+          <SegmentedControl.Item key={TAGS_TAB}>{t('All Tags')}</SegmentedControl.Item>
+          <SegmentedControl.Item key={FEATURE_FLAGS_TAB}>
+            {t('All Feature Flags')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      )}
     </ButtonBar>
+  );
+
+  const content = tagKey ? (
+    <TagDetailsDrawerContent group={group} />
+  ) : tab === FEATURE_FLAGS_TAB && includeFeatureFlagsTab ? (
+    <GroupFeatureFlagsDrawerContent
+      group={group}
+      environments={environments}
+      search={search}
+    />
+  ) : isPending || isHighlightsPending ? (
+    <LoadingIndicator />
+  ) : isError ? (
+    <LoadingError
+      message={t('There was an error loading issue tags.')}
+      onRetry={refetch}
+    />
+  ) : (
+    displayTags.map((tag, tagIdx) => (
+      <div key={tagIdx}>
+        <TagDetailsLink tag={tag} groupId={group.id}>
+          <TagDistribution tag={tag} />
+        </TagDetailsLink>
+      </div>
+    ))
   );
 
   return (
@@ -195,16 +242,27 @@ export function GroupTagsDrawer({
                 </CrumbContainer>
               ),
             },
-            {
-              label: t('All Tags'),
-              to: tagKey
-                ? {
-                    pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-                    query: location.query,
-                  }
-                : undefined,
-            },
-            ...(tagKey ? [{label: tagKey}] : []),
+            ...(tab === TAGS_TAB || !includeFeatureFlagsTab
+              ? [
+                  {
+                    label: t('All Tags'),
+                    to: tagKey
+                      ? {
+                          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                          query: location.query,
+                        }
+                      : undefined,
+                  },
+                  ...(tagKey ? [{label: tagKey}] : []),
+                ]
+              : []),
+            ...(tab === FEATURE_FLAGS_TAB
+              ? [
+                  {
+                    label: t('All Feature Flags'),
+                  },
+                ]
+              : []),
           ]}
         />
       </EventDrawerHeader>
@@ -219,21 +277,9 @@ export function GroupTagsDrawer({
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
-        {tagKey ? (
-          <TagDetailsDrawerContent group={group} />
-        ) : (
-          <Wrapper>
-            <Container>
-              {displayTags.map((tag, tagIdx) => (
-                <div key={tagIdx}>
-                  <TagDetailsLink tag={tag} groupId={group.id}>
-                    <TagDistribution tag={tag} />
-                  </TagDetailsLink>
-                </div>
-              ))}
-            </Container>
-          </Wrapper>
-        )}
+        <Wrapper>
+          <Container>{content}</Container>
+        </Wrapper>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
