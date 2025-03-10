@@ -79,7 +79,7 @@ describe('queryClient', function () {
     });
 
     it('can return error state', async function () {
-      const requestError = new RequestError('GET', '/some/test/path', new Error());
+      const requestError = new RequestError('GET', '/some/test/path', new Error('test'));
       requestError.message = 'something bad happened';
 
       const api = new MockApiClient();

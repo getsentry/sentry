@@ -550,7 +550,7 @@ export default typescript.config([
       // The recommended rules are very opinionated. We don't need to enable them.
 
       'unicorn/custom-error-definition': 'error', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/error-message': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/error-message': 'error', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
       'unicorn/new-for-builtins': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-abusive-eslint-disable': 'off', // TODO(ryan953): Fix violations and enable this rule
