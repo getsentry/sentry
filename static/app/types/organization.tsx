@@ -21,7 +21,12 @@ export interface OrganizationSummary {
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
-  features: string[];
+  features: Omit<string[], 'includes'> & {
+    /**
+     * @deprecated use useHasFeatures hook instead, or the Feature acl component.
+     */
+    includes: (searchElement: string, fromIndex?: number) => boolean;
+  };
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
