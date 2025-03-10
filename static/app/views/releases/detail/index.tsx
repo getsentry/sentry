@@ -28,12 +28,12 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -257,7 +257,6 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const navigate = useNavigate();
-  const router = useRouter();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {release} = params;
@@ -317,12 +316,11 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
           id: String(id),
           slug,
         }))}
-        router={router}
-        nextPath={{
+        nextPath={normalizeUrl({
           pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
             release!
           )}/`,
-        }}
+        })}
         noProjectRedirectPath={makeReleasesPathname({
           organization,
           path: '/',
