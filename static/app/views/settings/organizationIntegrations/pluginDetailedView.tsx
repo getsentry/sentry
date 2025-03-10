@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -80,6 +80,27 @@ function PluginDetailedView() {
     [plugin]
   );
   const featureData = useMemo(() => plugin?.featureDescriptions ?? [], [plugin]);
+
+  useEffect(() => {
+    if (!isPending && plugin) {
+      trackIntegrationAnalytics('integrations.integration_viewed', {
+        view: 'integrations_directory_integration_detail',
+        integration: integrationSlug,
+        integration_type: integrationType,
+        already_installed: installationStatus !== 'Not Installed', // pending counts as installed here
+        organization,
+        integration_tab: activeTab,
+      });
+    }
+  }, [
+    isPending,
+    integrationSlug,
+    plugin,
+    activeTab,
+    installationStatus,
+    organization,
+    integrationType,
+  ]);
 
   const getTabDisplay = useCallback((tab: Tab) => {
     if (tab === 'configurations') {
