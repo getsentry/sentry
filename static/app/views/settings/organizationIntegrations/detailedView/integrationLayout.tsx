@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -84,19 +84,21 @@ function Tabs({
   getTabDisplay,
 }: {
   activeTab: Tab;
-  getTabDisplay: (tab: Tab) => string;
-  onTabChange: (tab: Tab) => void;
   tabs: Tab[];
+  getTabDisplay?: (tab: Tab) => string;
+  onTabChange?: (tab: Tab) => void;
 }) {
+  // If getTabDisplay is not provided, use the tab as the display text
+  const renderTab = useMemo(() => getTabDisplay ?? ((tab: Tab) => tab), [getTabDisplay]);
   return (
     <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
       {tabs.map(tab => (
         <li
           key={tab}
           className={activeTab === tab ? 'active' : ''}
-          onClick={() => onTabChange(tab)}
+          onClick={() => onTabChange?.(tab)}
         >
-          <CapitalizedLink>{getTabDisplay(tab)}</CapitalizedLink>
+          <CapitalizedLink>{renderTab(tab)}</CapitalizedLink>
         </li>
       ))}
     </ul>
@@ -210,10 +212,10 @@ function InformationCard({
   alerts = [],
   resourceLinks = [],
 }: {
-  alerts: AlertType[];
   description: string;
   featureData: IntegrationFeature[];
   integrationSlug: string;
+  alerts?: AlertType[];
   author?: string;
   permissions?: React.ReactNode;
   resourceLinks?: Array<{title: string; url: string}>;
