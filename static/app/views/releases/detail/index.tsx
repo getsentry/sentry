@@ -1,4 +1,5 @@
 import {createContext, useEffect} from 'react';
+import {useRouter} from '@react-aria/utils';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -29,10 +30,10 @@ import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRout
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -255,6 +256,7 @@ type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
 function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
   const params = useParams<{release: string}>();
   const location = useLocation();
+  const navigate = useNavigate();
   const router = useRouter();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -266,12 +268,15 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
     const {start, end, statsPeriod, utc, ...restQuery} = location.query;
 
     if (start || end || statsPeriod || utc) {
-      router.replace({
-        ...location,
-        query: restQuery,
-      });
+      navigate(
+        {
+          ...location,
+          query: restQuery,
+        },
+        {replace: true}
+      );
     }
-  }, [location, router]);
+  }, [location, navigate]);
 
   const {
     data: releaseMeta,
