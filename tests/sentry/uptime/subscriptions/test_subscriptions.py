@@ -1,3 +1,4 @@
+from hashlib import md5
 from unittest import mock
 
 import pytest
@@ -7,14 +8,18 @@ from pytest import raises
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.issues.grouptype import UptimeDomainCheckFailure
+from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
+from sentry.uptime.issue_platform import create_issue_platform_occurrence
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
@@ -813,6 +818,40 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
 
         proj_sub.refresh_from_db()
         assert proj_sub.status == ObjectStatus.DISABLED
+        assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_disable_failed(self, mock_disable_seat):
+        with self.tasks(), self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
+            proj_sub = create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+                uptime_status=UptimeStatus.FAILED,
+            )
+
+            create_issue_platform_occurrence(
+                self.create_uptime_result(
+                    subscription_id=proj_sub.uptime_subscription.subscription_id
+                ),
+                proj_sub,
+            )
+            hashed_fingerprint = md5(str(proj_sub.id).encode("utf-8")).hexdigest()
+            assert Group.objects.filter(
+                grouphash__hash=hashed_fingerprint, status=GroupStatus.UNRESOLVED
+            ).exists()
+            disable_project_uptime_subscription(proj_sub)
+            assert Group.objects.filter(
+                grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
+            ).exists()
+
+        proj_sub.refresh_from_db()
+        assert proj_sub.status == ObjectStatus.DISABLED
+        assert proj_sub.uptime_status == UptimeStatus.OK
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
         mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 

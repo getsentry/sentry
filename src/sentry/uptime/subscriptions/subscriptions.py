@@ -8,9 +8,11 @@ from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
+from sentry.uptime.issue_platform import resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     load_regions_for_uptime_subscription,
@@ -167,6 +169,7 @@ def create_project_uptime_subscription(
     owner: Actor | None = None,
     trace_sampling: bool = False,
     override_manual_org_limit: bool = False,
+    uptime_status: UptimeStatus = UptimeStatus.OK,
 ) -> ProjectUptimeSubscription:
     """
     Links a project to an uptime subscription so that it can process results.
@@ -205,6 +208,7 @@ def create_project_uptime_subscription(
         name=name,
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
+        uptime_status=uptime_status,
     )
 
     # Update status. This may have the side effect of removing or creating a
@@ -291,7 +295,15 @@ def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscriptio
     if uptime_monitor.status == ObjectStatus.DISABLED:
         return
 
-    uptime_monitor.update(status=ObjectStatus.DISABLED)
+    if uptime_monitor.uptime_status == UptimeStatus.FAILED:
+        # Resolve the issue so that we don't see it in the ui anymore
+        resolve_uptime_issue(uptime_monitor)
+
+    uptime_monitor.update(
+        status=ObjectStatus.DISABLED,
+        # We set the status back to ok here so that if we re-enable we'll start from a good state
+        uptime_status=UptimeStatus.OK,
+    )
     quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
 
     uptime_subscription = uptime_monitor.uptime_subscription
