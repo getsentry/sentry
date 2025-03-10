@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
 import {Button} from 'sentry/components/button';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DateTime} from 'sentry/components/dateTime';
