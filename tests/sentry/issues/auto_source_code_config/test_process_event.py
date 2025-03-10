@@ -528,7 +528,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         assert code_mappings[0].source_path == "src/a/"
 
     def test_handles_dollar_sign_in_module(self) -> None:
-
         # No code mapping will be stored, however, we get what would have been created
         code_mappings = self._process_and_assert_no_configuration_changes(
             repo_files=["src/com/example/foo/Bar.kt"],

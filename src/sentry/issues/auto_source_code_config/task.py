@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any
 
@@ -164,8 +164,8 @@ def get_trees_for_org(
 def create_configurations(
     installation: IntegrationInstallation,
     project: Project,
-    trees: dict[str, Any],
-    frames_to_process: list[dict[str, str | bool]],
+    trees: Mapping[str, Any],
+    frames_to_process: Sequence[Mapping[str, str | bool]],
     platform_config: PlatformConfig,
 ) -> list[CodeMapping]:
     """
