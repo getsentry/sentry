@@ -101,7 +101,7 @@ def trace_status_rate(status: str) -> Column.BinaryFormula:
 
 
 FORMULA_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
-    "http_response_rate": http_response_rate,
+    "http_response_rate": http_response_rate
 }
 
 SPAN_FORMULA_DEFINITIONS = {
