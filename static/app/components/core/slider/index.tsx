@@ -11,7 +11,7 @@ export const Slider = styled(
     return <input ref={ref} type="range" {...props} />;
   })
 )`
-  ${SliderStyles}
+  ${p => SliderStyles(p)}
 `;
 
 function SliderStyles(p: {theme: Theme}) {
@@ -22,15 +22,7 @@ function SliderStyles(p: {theme: Theme}) {
     width: 100%;
     background: transparent;
 
-    &::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 3px;
-      cursor: pointer;
-      background: ${p.theme.border};
-      border-radius: 3px;
-      border: 0;
-    }
-
+    &::-webkit-slider-runnable-track,
     &::-moz-range-track {
       width: 100%;
       height: 3px;
@@ -40,22 +32,7 @@ function SliderStyles(p: {theme: Theme}) {
       border: 0;
     }
 
-    &::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px ${p.theme.background};
-      height: 17px;
-      width: 17px;
-      border-radius: 50%;
-      background: ${p.theme.active};
-      cursor: pointer;
-      /* stylelint-disable-next-line property-no-vendor-prefix */
-      -webkit-appearance: none;
-      margin-top: -7px;
-      border: 0;
-      transition:
-        background 0.1s,
-        box-shadow 0.1s;
-    }
-
+    &::-webkit-slider-thumb,
     &::-moz-range-thumb {
       box-shadow: 0 0 0 3px ${p.theme.background};
       height: 17px;
@@ -72,7 +49,6 @@ function SliderStyles(p: {theme: Theme}) {
         background 0.1s,
         box-shadow 0.1s;
     }
-
     &:focus {
       outline: none;
 
@@ -82,29 +58,20 @@ function SliderStyles(p: {theme: Theme}) {
     }
 
     &[disabled] {
-      &::-webkit-slider-thumb {
-        background: ${p.theme.border};
-        cursor: default;
-      }
-
+      &::-webkit-slider-thumb,
       &::-moz-range-thumb {
         background: ${p.theme.border};
         cursor: default;
       }
 
-      &::-webkit-slider-runnable-track {
-        cursor: default;
-      }
-
+      &::-webkit-slider-runnable-track,
       &::-moz-range-track {
         cursor: default;
       }
     }
 
-    &:not([disabled])::-webkit-slider-runnable-track:hover {
-      background: ${p.theme.activeHover};
-    }
-    &:not([disabled])::-moz-range-thumb:hover {
+    &:not([disabled])::-webkit-slider-runnable-track:hover,
+    &:not([disabled])::-moz-range-track:hover {
       background: ${p.theme.activeHover};
     }
 
