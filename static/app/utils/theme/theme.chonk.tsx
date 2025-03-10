@@ -202,7 +202,7 @@ const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
   static: {
     black: '#181423',
-    white: '#F6F5FA',
+    white: '#FFFFFF',
 
     blue400: '#7553FF',
     blue300: '#6C4DEB',
@@ -232,10 +232,10 @@ const lightColors = {
 
   dynamic: {
     surface500: '#FFFFFF',
-    surface400: '#FDFCFF',
-    surface300: '#F9F7FC',
-    surface200: '#ECEBF0', // Currently used for borderSecondary
-    surface100: '#E2E1E5', // Currently used for button chonk & borderPrimary
+    surface400: '#FBFAFF',
+    surface300: '#F9F7FF',
+    surface200: '#EBE9F2', // Currently used for borderSecondary
+    surface100: '#DAD7E5', // Currently used for button chonk & borderPrimary
 
     // @TODO(jonasbadalic): Why does gray opaque have 500?
     grayOpaque500: '#181423',
@@ -250,30 +250,42 @@ const lightColors = {
     grayTransparent200: 'rgba(24, 20, 35, 0.14)',
     grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
-    blue400: '#6C4DEB',
-    blue300: '#5E42CC',
-    blue200: '#523AB2',
-    blue100: '#553DB8',
+    gray600: '#181423',
+    gray500: '#6E6C75',
+    gray400: '#8D8B94',
+    gray300: 'rgba(24, 20, 35, 0.07)',
+    gray200: 'rgba(24, 20, 35, 0.05)',
+    gray100: 'rgba(24, 20, 35, 0.03)',
 
-    pink400: '#BD337C',
-    pink300: '#A32C6C',
-    pink200: '#8F275E',
-    pink100: '#962963',
+    blue500: '#6341F0',
+    blue400: '#8466FF',
+    blue300: 'rgba(117, 83, 255, 0.11)',
+    blue200: 'rgba(117, 83, 255, 0.08)',
+    blue100: 'rgba(117, 83, 255, 0.05)',
 
-    red400: '#CC003D',
-    red300: '#B20036',
-    red200: '#99002E',
-    red100: '#A80033',
+    pink500: '#C8287D',
+    pink400: '#F23A9C',
+    pink300: 'rgba(255, 69, 168, 0.13)',
+    pink200: 'rgba(255, 69, 168, 0.10)',
+    pink100: 'rgba(255, 69, 168, 0.07)',
 
-    yellow400: '#9D5710',
-    yellow300: '#8A4D0F',
-    yellow200: '#7B450F',
-    yellow100: '#C9A30A',
+    red500: '#C90036',
+    red400: '#F71954',
+    red300: 'rgba(255, 0, 68, 0.09)',
+    red200: 'rgba(255, 0, 68, 0.07)',
+    red100: 'rgba(255, 0, 68, 0.05)',
 
-    green400: '#17753D',
-    green300: '#146635',
-    green200: '#115A2E',
-    green100: '#00BF4D',
+    yellow500: '#AC5803',
+    yellow400: '#D47515',
+    yellow300: 'rgba(253, 208, 27, 0.28)',
+    yellow200: 'rgba(253, 208, 27, 0.20)',
+    yellow100: 'rgba(253, 208, 27, 0.12)',
+
+    green500: '#197D4F',
+    green400: '#2F9E6C',
+    green300: 'rgba(11, 229, 99, 0.18)',
+    green200: 'rgba(11, 229, 99, 0.13)',
+    green100: 'rgba(11, 229, 99, 0.18)',
   },
 };
 
@@ -309,11 +321,11 @@ const darkColors: typeof lightColors = {
   },
 
   dynamic: {
-    surface500: '#292536',
-    surface400: '#252130',
-    surface300: '#211E2B',
-    surface200: '#191721', // Currently used for borderSecondary
-    surface100: '#0B0A0F', // Currently used for button chonk & borderPrimary
+    surface500: '#312D40',
+    surface400: '#272433',
+    surface300: '#23202E',
+    surface200: '#18151F', // Currently used for borderSecondary
+    surface100: '#000000', // Currently used for button chonk & borderPrimary
 
     // @TODO(jonasbadalic): why 500 range?
     grayOpaque500: '#F6F5FA',
@@ -329,30 +341,42 @@ const darkColors: typeof lightColors = {
     grayTransparent200: 'rgba(246, 245, 250, 0.18)',
     grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
-    blue400: '#A791FF',
-    blue300: '#B7A6FF',
-    blue200: '#C6B8FF',
-    blue100: '#07050F',
+    gray600: '#F6F5FA',
+    gray500: '#A49FB5',
+    gray400: '#837D99',
+    gray300: 'rgba(246, 245, 250, 0.12)',
+    gray200: 'rgba(246, 245, 250, 0.09)',
+    gray100: 'rgba(246, 245, 250, 0.06)',
 
-    pink400: '#FF70BC',
-    pink300: '#FF82C4',
-    pink200: '#FF9CD0',
-    pink100: '#0D0609',
+    blue500: '#B3A1FF',
+    blue400: '#9179F2',
+    blue300: 'rgba(117, 83, 255, 0.30)',
+    blue200: 'rgba(117, 83, 255, 0.24)',
+    blue100: 'rgba(117, 83, 255, 0.18)',
 
-    red400: '#FF759F',
+    pink500: '#F59DCC',
+    pink400: '#DB7FB0',
+    pink300: 'rgba(255, 69, 168, 0.24)',
+    pink200: 'rgba(255, 69, 168, 0.18)',
+    pink100: 'rgba(255, 69, 168, 0.12)',
+
+    red500: '#FF8595',
     red300: '#FF8FB0',
-    red200: '#FFA8C2',
-    red100: '#1A0007',
+    red400: 'rgba(229, 0, 69, 0.30)',
+    red200: 'rgba(229, 0, 69, 0.25)',
+    red100: 'rgba(229, 0, 69, 0.20)',
 
-    yellow400: '#FFE166',
-    yellow300: '#FFE680',
-    yellow200: '#FFEB99',
-    yellow100: '#0A0800',
+    yellow500: '#FFE166',
+    yellow400: '#CCB141',
+    yellow300: 'rgba(253, 185, 27, 0.17)',
+    yellow200: 'rgba(253, 185, 27, 0.14)',
+    yellow100: 'rgba(253, 185, 27, 0.10)',
 
-    green400: '#55F294',
-    green300: '#6DF2A2',
-    green200: '#85F2B1',
-    green100: '#000A04',
+    green500: '#4DDB86',
+    green400: '#2DAD61',
+    green300: 'rgba(11, 229, 99, 0.18)',
+    green200: 'rgba(11, 229, 99, 0.14)',
+    green100: 'rgba(11, 229, 99, 0.10)',
   },
 };
 
