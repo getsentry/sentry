@@ -16,7 +16,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -118,6 +123,7 @@ function AdminUserEdit() {
   const formModel = new FormModel();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const {
     data: user,
@@ -149,6 +155,7 @@ function AdminUserEdit() {
       });
     },
     onSuccess: response => {
+      setApiQueryData(queryClient, [userEndpoint], response);
       formModel.setInitialData(response);
       addSuccessMessage(t("%s's account has been deactivated.", response.email));
     },
@@ -185,7 +192,8 @@ function AdminUserEdit() {
         onSubmitError={err => {
           addErrorMessage(err?.responseJSON?.detail);
         }}
-        onSubmitSuccess={_ => {
+        onSubmitSuccess={response => {
+          setApiQueryData(queryClient, [userEndpoint], response);
           addSuccessMessage(t('User account updated.'));
         }}
         extraButton={
