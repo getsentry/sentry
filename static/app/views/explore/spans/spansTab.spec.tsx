@@ -36,6 +36,37 @@ const mockNumberTags: TagCollection = {
   },
 };
 
+// Mock getBoundingClientRect for container
+jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+  this: HTMLElement
+) {
+  // Mock individual hint items
+  if (this.hasAttribute('data-type')) {
+    return {
+      width: 200,
+      right: 200,
+      left: 0,
+      top: 0,
+      bottom: 100,
+      height: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    };
+  }
+  return {
+    width: 1000,
+    right: 1000,
+    left: 0,
+    top: 0,
+    bottom: 100,
+    height: 100,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  };
+});
+
 describe('SpansTabContent', function () {
   const {organization, project, router} = initializeOrg({
     organization: {
