@@ -43,16 +43,18 @@ export function getTraceQueryParams(
   targetId: string | undefined;
   timestamp: string | undefined;
   useSpans: number;
-  demo?: string | undefined;
-  pageEnd?: string | undefined;
-  pageStart?: string | undefined;
-  statsPeriod?: string | undefined;
+  demo?: string;
+  pageEnd?: string;
+  pageStart?: string;
+  statsPeriod?: string;
+  view?: string;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
+  const view = decodeScalar(normalizedParams.view);
   const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
   let limit = options.limit ?? decodeScalar(normalizedParams.limit);
   if (typeof limit === 'string') {
@@ -86,6 +88,7 @@ export function getTraceQueryParams(
     timestamp: timestamp?.toString(),
     targetId,
     useSpans: 1,
+    view,
   };
   for (const key in queryParams) {
     if (
@@ -196,17 +199,24 @@ export function useTrace(
 ): UseApiQueryResult<TraceTree.Trace, RequestError> {
   const filters = usePageFilters();
   const organization = useOrganization();
+  const query = qs.parse(location.search);
   const queryParams = useMemo(() => {
-    const query = qs.parse(location.search);
     return getTraceQueryParams(query, filters.selection, {
       limit: options.limit,
       timestamp: options.timestamp,
     });
+
+    // Only re-run this if the view query param changes, otherwise if we pass location.search
+    // as a dependency, the query will re-run every time we perform actions on the trace view; like
+    // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.limit, options.timestamp]);
+  }, [options.limit, options.timestamp, query.view]);
+
+  const {view, ...queryParamsWithoutView} = queryParams;
 
   const isDemoMode = Boolean(queryParams.demo);
-  const isEAPEnabled = organization.features.includes('trace-spans-format');
+  const isEAPEnabled =
+    organization.features.includes('trace-spans-format') && view !== 'non-eap-trace';
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const demoTrace = useDemoTrace(queryParams.demo, organization);
@@ -214,7 +224,7 @@ export function useTrace(
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
-      {query: queryParams},
+      {query: queryParamsWithoutView},
     ],
     {
       staleTime: Infinity,
@@ -225,7 +235,7 @@ export function useTrace(
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
-      {query: {...queryParams, project: -1}},
+      {query: {...queryParamsWithoutView, project: -1}},
     ],
     {
       staleTime: Infinity,
