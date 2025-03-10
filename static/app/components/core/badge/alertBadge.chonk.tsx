@@ -41,7 +41,7 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
   return {
     color: theme.colors.black,
     background: theme.colors.chonk.green400,
-    border: `1px solid ${theme.colors.green100}`,
+    border: `1px solid ${theme.colors.chonk.green100}`,
   };
 }
 

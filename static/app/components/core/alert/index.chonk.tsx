@@ -56,11 +56,11 @@ function makeChonkAlertTheme(
         border: `1px solid ${theme.colors.chonk.blue100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
-    case 'success':
+    case 'danger':
       return {
-        color: theme.colors.black,
-        background: theme.colors.chonk.green400,
-        border: `1px solid ${theme.colors.chonk.green100}`,
+        color: theme.colors.white,
+        background: theme.colors.chonk.red400,
+        border: `1px solid ${theme.colors.chonk.red100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     case 'warning':
@@ -70,11 +70,11 @@ function makeChonkAlertTheme(
         border: `1px solid ${theme.colors.chonk.yellow100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
-    case 'danger':
+    case 'success':
       return {
-        color: theme.colors.white,
-        background: theme.colors.chonk.red400,
-        border: `1px solid ${theme.colors.chonk.red100}`,
+        color: theme.colors.black,
+        background: theme.colors.chonk.green400,
+        border: `1px solid ${theme.colors.chonk.green100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     case 'subtle':
@@ -84,7 +84,6 @@ function makeChonkAlertTheme(
         border: `1px solid ${theme.colors.surface100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
-
     default:
       unreachable(type);
   }
