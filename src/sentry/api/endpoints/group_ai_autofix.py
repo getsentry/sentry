@@ -32,6 +32,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -419,7 +420,17 @@ class GroupAutofixEndpoint(GroupEndpoint):
         )
 
     def get(self, request: Request, group: Group) -> Response:
-        autofix_state = get_autofix_state(group_id=group.id)
+        access_check_cache_key = f"autofix_access_check:{group.id}"
+        access_check_cache_value = cache.get(access_check_cache_key)
+
+        check_repo_access = False
+        if not access_check_cache_value:
+            check_repo_access = True
+
+        autofix_state = get_autofix_state(group_id=group.id, check_repo_access=check_repo_access)
+
+        if check_repo_access:
+            cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
 
         response_state: dict[str, Any] | None = None
 
