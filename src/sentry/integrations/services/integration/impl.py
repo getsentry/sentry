@@ -41,8 +41,15 @@ from sentry.integrations.services.integration.serial import (
 )
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+    SentryAppWebhookFailureReason,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -367,45 +374,46 @@ class DatabaseBackedIntegrationService(IntegrationService):
         metric_value: float,
         notification_uuid: str | None = None,
     ) -> bool:
-        try:
-            sentry_app = SentryApp.objects.get(id=sentry_app_id)
-        except SentryApp.DoesNotExist:
-            logger.info(
-                "metric_alert_webhook.missing_sentryapp",
-                extra={
-                    "sentry_app_id": sentry_app_id,
-                    "organization_id": organization_id,
-                },
-            )
-            return False
-
-        metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 
         try:
-            install = SentryAppInstallation.objects.get(
-                organization_id=organization_id,
-                sentry_app=sentry_app,
-                status=SentryAppInstallationStatus.INSTALLED,
+            event = SentryAppEventType(
+                f"metric_alert.{INCIDENT_STATUS[IncidentStatus(new_status)].lower()}"
             )
-        except SentryAppInstallation.DoesNotExist:
-            logger.info(
-                "metric_alert_webhook.missing_installation",
-                extra={
-                    "action": action_id,
-                    "incident": incident_id,
-                    "organization_id": organization_id,
-                    "sentry_app_id": sentry_app.id,
-                },
-                exc_info=True,
-            )
-            return False
+        except ValueError as e:
+            raise SentryAppSentryError(
+                message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
+            ) from e
 
-        app_platform_event = AppPlatformEvent(
-            resource="metric_alert",
-            action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
-            install=install,
-            data=json.loads(incident_attachment_json),
-        )
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+            event_type=event,
+        ).capture():
+            try:
+                sentry_app = SentryApp.objects.get(id=sentry_app_id)
+            except SentryApp.DoesNotExist as e:
+                raise SentryAppSentryError(
+                    message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP
+                ) from e
+
+            metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
+
+            try:
+                install = SentryAppInstallation.objects.get(
+                    organization_id=organization_id,
+                    sentry_app=sentry_app,
+                    status=SentryAppInstallationStatus.INSTALLED,
+                )
+            except SentryAppInstallation.DoesNotExist as e:
+                raise SentryAppSentryError(
+                    message=SentryAppWebhookFailureReason.MISSING_INSTALLATION
+                ) from e
+
+            app_platform_event = AppPlatformEvent(
+                resource="metric_alert",
+                action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
+                install=install,
+                data=json.loads(incident_attachment_json),
+            )
 
         # Can raise errors if client returns >= 400
         send_and_save_webhook_request(
