@@ -986,8 +986,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     self.action,
                     incident,
                     self.project,
-                    trigger.alert_threshold + 1,
                     IncidentStatus.CRITICAL,
+                    trigger.alert_threshold + 1,
                     uuid,
                 )
             ],
@@ -1030,8 +1030,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     w_action,
                     incident,
                     self.project,
-                    c_trigger.alert_threshold + 1,
                     IncidentStatus.CRITICAL,
+                    c_trigger.alert_threshold + 1,
                     mock.ANY,
                 )
             ],
@@ -1070,8 +1070,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     self.action,
                     incident,
                     self.project,
-                    trigger.alert_threshold + 1,
                     IncidentStatus.CRITICAL,
+                    trigger.alert_threshold + 1,
                     mock.ANY,
                 )
             ],

@@ -214,7 +214,11 @@ class OpsgenieActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             getattr(self.handler, method)(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
             )
         data = responses.calls[0].request.body
 
@@ -252,7 +256,11 @@ class OpsgenieActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert len(responses.calls) == 0
@@ -269,7 +277,11 @@ class OpsgenieActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert len(responses.calls) == 0
@@ -291,7 +303,11 @@ class OpsgenieActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
             )
 
         assert len(responses.calls) == 0

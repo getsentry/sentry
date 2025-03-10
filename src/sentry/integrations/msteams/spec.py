@@ -6,6 +6,7 @@ from sentry.integrations.messaging.spec import (
     MessagingIdentityLinkViewSet,
     MessagingIntegrationSpec,
 )
+from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
 
@@ -41,8 +42,9 @@ class MsTeamsMessagingSpec(MessagingIntegrationSpec):
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
-        metric_value: float,
+        project: Project,
         new_status: IncidentStatus,
+        metric_value: float | int | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
         from sentry.integrations.msteams.utils import send_incident_alert_notification
