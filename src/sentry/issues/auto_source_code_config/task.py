@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
@@ -9,6 +10,7 @@ from sentry_sdk import set_tag, set_user
 from sentry import eventstore
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -22,13 +24,14 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
+from .constants import METRIC_PREFIX
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
     get_installation,
 )
 from .stacktraces import get_frames_to_process
-from .utils import is_dry_run_platform, supported_platform
+from .utils import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +69,9 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
 
     platform = event.platform
     assert platform is not None
-    if not supported_platform(platform):
+
+    platform_config = PlatformConfig(platform)
+    if not platform_config.is_supported():
         return []
 
     frames_to_process = get_frames_to_process(event.data, platform)
@@ -79,8 +84,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
-        if not is_dry_run_platform(platform):
-            set_project_codemappings(code_mappings, installation, project, platform)
+        dry_run = platform_config.is_dry_run_platform()
+        create_configurations(code_mappings, installation, project, platform, dry_run)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
@@ -157,11 +162,12 @@ def get_trees_for_org(
         return trees
 
 
-def set_project_codemappings(
+def create_configurations(
     code_mappings: list[CodeMapping],
     installation: IntegrationInstallation,
     project: Project,
     platform: str,
+    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
@@ -173,32 +179,59 @@ def set_project_codemappings(
 
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
-        repository = (
-            Repository.objects.filter(name=code_mapping.repo.name, organization_id=organization_id)
-            .order_by("-date_added")
-            .first()
+        process_code_mapping(
+            organization_id,
+            organization_integration,
+            project,
+            code_mapping,
+            platform,
+            dry_run,
         )
 
-        if not repository:
-            repository = Repository.objects.create(
-                name=code_mapping.repo.name,
-                organization_id=organization_id,
-                integration_id=organization_integration.integration_id,
-            )
 
-        _, created = RepositoryProjectPathConfig.objects.get_or_create(
+def process_code_mapping(
+    organization_id: int,
+    organization_integration: RpcOrganizationIntegration,
+    project: Project,
+    code_mapping: CodeMapping,
+    platform: str,
+    dry_run: bool,
+) -> None:
+    repository = (
+        Repository.objects.filter(name=code_mapping.repo.name, organization_id=organization_id)
+        .order_by("-date_added")
+        .first()
+    )
+
+    if not repository and not dry_run:
+        repository = Repository.objects.create(
+            name=code_mapping.repo.name,
+            organization_id=organization_id,
+            integration_id=organization_integration.integration_id,
+        )
+
+    create_code_mapping(code_mapping, project, repository, organization_integration, dry_run)
+    tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
+    metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)
+    metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
+
+
+def create_code_mapping(
+    code_mapping: CodeMapping,
+    project: Project,
+    repository: Repository | None,
+    organization_integration: RpcOrganizationIntegration,
+    dry_run: bool,
+) -> None:
+    if not dry_run and repository:
+        RepositoryProjectPathConfig.objects.create(
             project=project,
             stack_root=code_mapping.stacktrace_root,
-            defaults={
-                "repository": repository,
-                "organization_integration_id": organization_integration.id,
-                "integration_id": organization_integration.integration_id,
-                "organization_id": organization_integration.organization_id,
-                "source_root": code_mapping.source_path,
-                "default_branch": code_mapping.repo.branch,
-                "automatically_generated": True,
-            },
+            repository=repository,
+            organization_integration_id=organization_integration.id,
+            integration_id=organization_integration.integration_id,
+            organization_id=organization_integration.organization_id,
+            source_root=code_mapping.source_path,
+            default_branch=code_mapping.repo.branch,
+            automatically_generated=True,
         )
-        if created:
-            # Since it is a low volume event, we can sample at 100%
-            metrics.incr(key="code_mappings.created", tags={"platform": platform}, sample_rate=1.0)

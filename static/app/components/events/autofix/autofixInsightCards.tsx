@@ -447,7 +447,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      addSuccessMessage(t('Thanks, rethinking this...'));
+      addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));

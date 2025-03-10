@@ -529,9 +529,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         event_metadata = self.get_event_metadata()
 
-        if event_metadata is None:
-            event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
-
         message = ""
 
         if data.get("logentry"):

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -82,7 +82,7 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
       >
-        <SelectControl
+        <Select
           name="sortDirection"
           aria-label={t('Sort direction')}
           menuPlacement="auto"
@@ -106,7 +106,7 @@ export function SortBySelectors({
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
         {displayType === DisplayType.TABLE ? (
-          <SelectControl
+          <Select
             name="sortBy"
             aria-label={t('Sort by')}
             menuPlacement="auto"

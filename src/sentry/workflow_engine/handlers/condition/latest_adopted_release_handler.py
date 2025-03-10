@@ -18,6 +18,8 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.LATEST_ADOPTED_RELEASE)
 class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
+    type = [DataConditionHandler.Type.ACTION_FILTER]
+
     comparison_json_schema = {
         "type": "object",
         "properties": {

@@ -13,7 +13,7 @@ from sentry.app import env
 
 @all_silo_endpoint
 class InternalEnvironmentEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

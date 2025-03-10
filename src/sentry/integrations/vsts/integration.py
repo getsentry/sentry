@@ -20,6 +20,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
@@ -28,7 +29,7 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration as IntegrationModel
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -39,7 +40,7 @@ from sentry.integrations.utils.metrics import (
 from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -130,7 +131,6 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
 
     @property
@@ -275,10 +275,12 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
         config = self.org_integration.config
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:
@@ -411,8 +413,9 @@ class VstsIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: IntegrationModel,
-        organization: RpcOrganizationSummary,
-        extra: Mapping[str, Any] | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -431,6 +434,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def get_scopes(self) -> Sequence[str]:
         # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+        assert self.pipeline.organization is not None
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
@@ -462,7 +466,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view, AccountConfigView()]
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
@@ -470,12 +474,13 @@ class VstsIntegrationProvider(IntegrationProvider):
         scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
 
+        assert self.pipeline.organization is not None
         logger.info(
             "vsts.build_integration.base_config",
             extra={"scopes": scopes, "organization_id": self.pipeline.organization.id},
         )
 
-        integration: MutableMapping[str, Any] = {
+        integration: IntegrationData = {
             "name": account["accountName"],
             "external_id": account["accountId"],
             "metadata": {"domain_name": base_url, "scopes": scopes},
@@ -584,9 +589,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def create_subscription(
-        self, base_url: str | None, oauth_data: Mapping[str, Any]
-    ) -> tuple[int, str]:
+    def create_subscription(self, base_url: str, oauth_data: Mapping[str, Any]) -> tuple[int, str]:
         client = VstsSetupApiClient(
             base_url=base_url,
             oauth_redirect_url=self.oauth_redirect_url,
@@ -599,6 +602,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
+                assert self.pipeline.organization is not None
                 logger.info(
                     "vsts.create_subscription_permission_error",
                     extra={
@@ -619,7 +623,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         subscription_id = subscription["id"]
         return subscription_id, shared_secret
 
-    def get_oauth_data(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    def get_oauth_data(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = {"access_token": payload["access_token"]}
 
         if "expires_in" in payload:
@@ -632,8 +636,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         return data
 
     @classmethod
-    def get_base_url(cls, access_token: str, account_id: int) -> str | None:
-        """TODO(mgaeta): This should not be allowed to return None."""
+    def get_base_url(cls, access_token: str, account_id: str) -> str:
         url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
         with http.build_session() as session:
             response = session.get(
@@ -643,11 +646,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Authorization": f"Bearer {access_token}",
                 },
             )
-        if response.status_code == 200:
             return response.json()["locationUrl"]
-
-        logger.info("vsts.get_base_url", extra={"responseCode": response.status_code})
-        return None
 
     def setup(self) -> None:
         from sentry.plugins.base import bindings
@@ -701,7 +700,7 @@ class AccountConfigView(PipelineView):
             )
 
     def get_account_from_id(
-        self, account_id: int, accounts: Sequence[Mapping[str, Any]]
+        self, account_id: str, accounts: Sequence[Mapping[str, Any]]
     ) -> Mapping[str, Any] | None:
         for account in accounts:
             if account["accountId"] == account_id:

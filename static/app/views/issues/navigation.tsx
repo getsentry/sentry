@@ -1,12 +1,14 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 
@@ -18,10 +20,21 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
   const organization = useOrganization();
 
   const sectionRef = useRef<HTMLDivElement>(null);
+  const {viewId} = useParams<{viewId?: string}>();
 
   const {data: groupSearchViews} = useFetchGroupSearchViews({
     orgSlug: organization.slug,
   });
+  const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
+
+  useEffect(() => {
+    if (groupSearchViews && viewId) {
+      const view = groupSearchViews.find(v => v.id === viewId);
+      if (view) {
+        updateViewLastVisited({viewId: view.id});
+      }
+    }
+  }, [groupSearchViews, viewId, updateViewLastVisited]);
 
   const prefersStackedNav = usePrefersStackedNav();
 
@@ -38,7 +51,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
-              {t('Search')}
+              {t('Feed')}
             </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
               {t('Feedback')}

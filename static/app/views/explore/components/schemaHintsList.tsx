@@ -5,9 +5,10 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
 import {
   useExploreQuery,
@@ -40,20 +41,19 @@ function SchemaHintsList({
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
 
-  const filterTags: TagCollection = useMemo(() => {
-    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
-    tags.has = getHasTag({...stringTags});
-    return tags;
-  }, [numberTags, stringTags, functionTags]);
-
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
+    const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    filterTags.has = getHasTag({...stringTags});
+
     const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children);
-    const sectionSortedTags = sectionKeys.map(key => filterTags[key]).filter(Boolean);
+    const sectionSortedTags = sectionKeys
+      .map(key => filterTags[key])
+      .filter(tag => !!tag);
     const otherKeys = Object.keys(filterTags).filter(key => !sectionKeys.includes(key));
-    const otherTags = otherKeys.map(key => filterTags[key]).filter(Boolean);
+    const otherTags = otherKeys.map(key => filterTags[key]).filter(tag => !!tag);
     return [...sectionSortedTags, ...otherTags];
-  }, [filterTags]);
+  }, [numberTags, stringTags, functionTags]);
 
   const [visibleHints, setVisibleHints] = useState(filterTagsSorted);
 
@@ -64,32 +64,39 @@ function SchemaHintsList({
         return;
       }
 
-      const containerWidth = schemaHintsContainerRef.current.clientWidth;
-      let currentWidth = 0;
-      const gap = 8;
-      const averageHintWidth = 150;
-      const seeFullListTagWidth = 150;
+      const container = schemaHintsContainerRef.current;
+      const containerRect = container.getBoundingClientRect();
 
-      const visibleItems = filterTagsSorted.filter((_hint, index) => {
-        const element = schemaHintsContainerRef.current?.children[index] as HTMLElement;
-        if (!element) {
-          // add in a new hint if there is enough space (taking into account the 'See full list' tag)
-          if (containerWidth - seeFullListTagWidth - currentWidth >= averageHintWidth) {
-            currentWidth += averageHintWidth + (index > 0 ? gap : 0);
-            return true;
-          }
-          return false;
+      // First render all items
+      setVisibleHints([...filterTagsSorted, seeFullListTag]);
+
+      // this guarantees that the items are rendered before we try to measure them and do calculations
+      requestAnimationFrame(() => {
+        // Get all rendered items
+        const items = Array.from(container.children) as HTMLElement[];
+
+        const seeFullListTagRect = Array.from(container.children)[
+          Array.from(container.children).length - 1
+        ]?.getBoundingClientRect();
+
+        // Find the last item that fits within the container
+        let lastVisibleIndex = items.findIndex(item => {
+          const itemRect = item.getBoundingClientRect();
+          return itemRect.right > containerRect.right - (seeFullListTagRect?.width ?? 0);
+        });
+
+        // If all items fit, show them all
+        if (lastVisibleIndex === -1) {
+          lastVisibleIndex = items.length;
         }
 
-        const itemWidth = element.offsetWidth;
-        currentWidth += itemWidth + (index > 0 ? gap : 0);
-
-        // the last item is the 'See full list' tag, so we need make sure it fits in the remaining space
-        return currentWidth <= containerWidth - seeFullListTagWidth;
+        setVisibleHints(
+          lastVisibleIndex < items.length
+            ? [...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]
+            : filterTagsSorted
+        );
       });
-
-      setVisibleHints([...visibleItems, seeFullListTag]);
-    }, 100);
+    }, 50);
 
     // initial calculation
     calculateVisibleHints();
@@ -103,33 +110,35 @@ function SchemaHintsList({
   }, [filterTagsSorted]);
 
   const onHintClick = useCallback(
-    (hint: Tag | undefined) => {
-      if (hint?.key === seeFullListTag.key) {
+    (hint: Tag) => {
+      if (hint.key === seeFullListTag.key) {
         return;
       }
 
       const newHintQuery =
-        hint?.kind === FieldKind.MEASUREMENT ? `${hint?.key}:>0` : `${hint?.key}:""`;
+        hint.kind === FieldKind.MEASUREMENT ? `${hint.key}:>0` : `${hint.key}:""`;
       setExploreQuery(`${exploreQuery} ${newHintQuery}`);
     },
     [exploreQuery, setExploreQuery]
   );
 
-  const getHintText = (hint: Tag | undefined) => {
-    if (hint?.key === seeFullListTag.key) {
-      return hint?.name;
+  const getHintText = (hint: Tag) => {
+    if (hint.key === seeFullListTag.key) {
+      return hint.name;
     }
-    return hint?.kind === FieldKind.MEASUREMENT
-      ? `${hint?.name} > ...`
-      : `${hint?.name} is ...`;
+
+    return tct('[tag] [operation] ...', {
+      tag: prettifyTagKey(hint.name),
+      operation: hint.kind === FieldKind.MEASUREMENT ? '>' : 'is',
+    });
   };
 
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
-      {visibleHints.map((hint, index) => (
+      {visibleHints.map(hint => (
         <SchemaHintOption
-          key={index}
-          data-type={hint?.key}
+          key={hint.key}
+          data-type={hint.key}
           onClick={() => onHintClick(hint)}
         >
           {getHintText(hint)}

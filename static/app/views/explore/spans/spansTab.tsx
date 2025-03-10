@@ -158,6 +158,13 @@ export function SpansTabContentImpl({
 
   const hasResults = !!resultsLength;
 
+  const resultsLoading =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.isPending
+      : queryType === 'samples'
+        ? spansTableResult.result.isPending
+        : tracesTableResult.result.isPending;
+
   return (
     <Body
       withToolbar={expanded}
@@ -226,7 +233,7 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {!hasResults && <QuotaExceededAlert referrer="explore" />}
+        {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
