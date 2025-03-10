@@ -176,58 +176,63 @@ def create_repos_and_code_mappings(
         raise InstallationNotFoundError
 
     organization_id = organization_integration.organization_id
-    for code_mapping in code_mappings:
-        repository = (
-            Repository.objects.filter(name=code_mapping.repo.name, organization_id=organization_id)
-            .order_by("-date_added")
-            .first()
-        )
-
-        if not repository:
-            if not dry_run:
-                repository = Repository.objects.create(
-                    name=code_mapping.repo.name,
-                    organization_id=organization_id,
-                    integration_id=organization_integration.integration_id,
+    with metrics.timer(
+        f"{METRIC_PREFIX}.create_configurations.duration", tags={"platform": platform}
+    ):
+        for code_mapping in code_mappings:
+            repository = (
+                Repository.objects.filter(
+                    name=code_mapping.repo.name, organization_id=organization_id
                 )
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.repository.created",
-                tags={"platform": platform, "dry_run": dry_run},
-                sample_rate=1.0,
+                .order_by("-date_added")
+                .first()
             )
 
-        extra = {
-            "project_id": project.id,
-            "stack_root": code_mapping.stacktrace_root,
-            "repository_name": code_mapping.repo.name,
-        }
-        # The project and stack_root are unique together
-        existing_code_mappings = RepositoryProjectPathConfig.objects.filter(
-            project=project, stack_root=code_mapping.stacktrace_root
-        )
-        if existing_code_mappings.exists():
-            logger.warning("Investigate.", extra=extra)
-            continue
+            if not repository:
+                if not dry_run:
+                    repository = Repository.objects.create(
+                        name=code_mapping.repo.name,
+                        organization_id=organization_id,
+                        integration_id=organization_integration.integration_id,
+                    )
+                metrics.incr(
+                    key=f"{METRIC_PREFIX}.repository.created",
+                    tags={"platform": platform, "dry_run": dry_run},
+                    sample_rate=1.0,
+                )
 
-        if not dry_run:
-            if repository is None:  # This is mostly to appease the type checker
+            extra = {
+                "project_id": project.id,
+                "stack_root": code_mapping.stacktrace_root,
+                "repository_name": code_mapping.repo.name,
+            }
+            # The project and stack_root are unique together
+            existing_code_mappings = RepositoryProjectPathConfig.objects.filter(
+                project=project, stack_root=code_mapping.stacktrace_root
+            )
+            if existing_code_mappings.exists():
                 logger.warning("Investigate.", extra=extra)
                 continue
 
-            RepositoryProjectPathConfig.objects.create(
-                project=project,
-                stack_root=code_mapping.stacktrace_root,
-                repository=repository,
-                organization_integration_id=organization_integration.id,
-                integration_id=organization_integration.integration_id,
-                organization_id=organization_integration.organization_id,
-                source_root=code_mapping.source_path,
-                default_branch=code_mapping.repo.branch,
-                automatically_generated=True,
-            )
+            if not dry_run:
+                if repository is None:  # This is mostly to appease the type checker
+                    logger.warning("Investigate.", extra=extra)
+                    continue
 
-        metrics.incr(
-            key=f"{METRIC_PREFIX}.code_mapping.created",
-            tags={"platform": platform, "dry_run": dry_run},
-            sample_rate=1.0,
-        )
+                RepositoryProjectPathConfig.objects.create(
+                    project=project,
+                    stack_root=code_mapping.stacktrace_root,
+                    repository=repository,
+                    organization_integration_id=organization_integration.id,
+                    integration_id=organization_integration.integration_id,
+                    organization_id=organization_integration.organization_id,
+                    source_root=code_mapping.source_path,
+                    default_branch=code_mapping.repo.branch,
+                    automatically_generated=True,
+                )
+
+            metrics.incr(
+                key=f"{METRIC_PREFIX}.code_mapping.created",
+                tags={"platform": platform, "dry_run": dry_run},
+                sample_rate=1.0,
+            )
