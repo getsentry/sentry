@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -269,7 +269,7 @@ function Product({
     >
       <ProductWrapper
         onClick={disabled?.onClick ?? onClick}
-        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        disabled={(disabled?.onClick ?? permanentDisabled) ? false : !!disabled}
         priority={permanentDisabled || checked ? 'primary' : 'default'}
         aria-label={label}
       >
@@ -345,13 +345,16 @@ export function ProductSelection({
     return selectedDefaults.filter(product => !(product in disabledProducts));
   }, [products, platform, disabledProducts]);
 
+  const safeDependencies = useRef({onLoad, urlProducts});
+
   useEffect(() => {
-    onLoad?.(defaultProducts);
-    setParams({
-      product: defaultProducts,
-    });
-    // Adding defaultProducts to the dependency array causes an max-depth error
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    safeDependencies.current = {onLoad, urlProducts};
+  });
+
+  useEffect(() => {
+    safeDependencies.current.onLoad?.(
+      safeDependencies.current.urlProducts as ProductSolution[]
+    );
   }, []);
 
   const handleClickProduct = useCallback(

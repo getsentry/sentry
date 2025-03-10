@@ -9,7 +9,7 @@ export function isLinkActive(
   pathname: string,
   options: {end?: boolean} = {end: false}
 ): boolean {
-  const toPathname = normalizeUrl(typeof to === 'string' ? to : to.pathname ?? '/');
+  const toPathname = normalizeUrl(typeof to === 'string' ? to : (to.pathname ?? '/'));
 
   if (options.end) {
     return pathname === toPathname;

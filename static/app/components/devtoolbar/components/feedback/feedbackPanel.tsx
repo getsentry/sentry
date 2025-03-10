@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import {useScopeAndClient} from 'sentry/components/devtoolbar/hooks/useSentryClientAndScope';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
