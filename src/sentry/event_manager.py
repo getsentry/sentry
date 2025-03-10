@@ -2462,7 +2462,7 @@ def _record_transaction_info(
 
             record_event_processed(project, event)
 
-            if not project.flags.has_transactions and not skip_send_first_transaction:
+            if not skip_send_first_transaction:
                 record_first_transaction(project, event.datetime)
 
             for module, is_module in INSIGHT_MODULE_FILTERS.items():
@@ -2472,7 +2472,7 @@ def _record_transaction_info(
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None
                 record_latest_release(project, job["release"], environment)
-                record_release_received(project)
+                record_release_received(project, job["release"].version)
         except Exception:
             sentry_sdk.capture_exception()
 

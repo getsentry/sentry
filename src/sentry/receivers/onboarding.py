@@ -230,6 +230,9 @@ def _record_first_transaction(project, event, **kwargs):
 
 
 def record_first_transaction(project, datetime, **kwargs):
+    if project.flags.has_transactions:
+        return
+
     project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
     OrganizationOnboardingTask.objects.record(
