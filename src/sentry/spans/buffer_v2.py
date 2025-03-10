@@ -120,6 +120,7 @@ class RedisSpansBufferV2:
 
     def process_spans(self, spans: Sequence[Span], now: int):
         queue_keys = []
+        queue_delete_items = []
         queue_items = []
         queue_item_has_root_span = []
 
@@ -157,14 +158,15 @@ class RedisSpansBufferV2:
                     queue_keys.append(queue_key)
 
                 results = iter(p.execute())
-                for item, has_root_span in results:
+                for delete_item, item, has_root_span in results:
+                    queue_delete_items.append(delete_item)
                     queue_items.append(item)
                     queue_item_has_root_span.append(has_root_span)
 
         with metrics.timer("sentry.spans.buffer.process_spans.step2"):
             with self.client.pipeline(transaction=False) as p:
-                for key, item, has_root_span in zip(
-                    queue_keys, queue_items, queue_item_has_root_span
+                for key, delete_item, item, has_root_span in zip(
+                    queue_keys, queue_delete_items, queue_items, queue_item_has_root_span
                 ):
                     # if the currently processed span is a root span, OR the buffer
                     # already had a root span inside, use a different timeout than
@@ -175,6 +177,8 @@ class RedisSpansBufferV2:
                     else:
                         timestamp = now + self.span_buffer_timeout_secs
 
+                    if delete_item != item:
+                        p.zrem(key, delete_item)
                     p.zadd(key, {item: timestamp})
                     p.expire(key, self.redis_ttl)
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import itertools
+
 import pytest
 from sentry_redis_tools.clients import StrictRedis
 
@@ -45,20 +47,44 @@ def assert_clean(client: StrictRedis[bytes]):
     assert not [x for x in client.keys("*") if b":sr:" not in x and b":hrs:" not in x]
 
 
-def test_basic(buffer: RedisSpansBufferV2):
-    spans = [
-        Span(
-            payload=b"A", trace_id="a" * 32, span_id="c" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"B", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"C", trace_id="a" * 32, span_id="e" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(payload=b"D", trace_id="a" * 32, span_id="b" * 16, parent_span_id=None, project_id=1),
-    ]
-
+@pytest.mark.parametrize(
+    "spans",
+    list(
+        itertools.permutations(
+            [
+                Span(
+                    payload=b"A",
+                    trace_id="a" * 32,
+                    span_id="c" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"B",
+                    trace_id="a" * 32,
+                    span_id="d" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"C",
+                    trace_id="a" * 32,
+                    span_id="e" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"D",
+                    trace_id="a" * 32,
+                    span_id="b" * 16,
+                    parent_span_id=None,
+                    project_id=1,
+                ),
+            ]
+        )
+    ),
+)
+def test_basic(buffer: RedisSpansBufferV2, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)
@@ -72,72 +98,44 @@ def test_basic(buffer: RedisSpansBufferV2):
     assert_clean(buffer.client)
 
 
-def test_parent_first(buffer: RedisSpansBufferV2):
-    spans = [
-        Span(payload=b"D", trace_id="a" * 32, span_id="b" * 16, parent_span_id=None, project_id=1),
-        Span(
-            payload=b"C", trace_id="a" * 32, span_id="e" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"B", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"A", trace_id="a" * 32, span_id="c" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-    ]
-
-    buffer.process_spans(spans, now=0)
-
-    assert_ttls(buffer.client)
-
-    rv = buffer.flush_segments(now=10)
-    assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"D", b"B", b"A", b"C"}}
-
-    buffer.done_flush_segments(rv)
-
-    assert_clean(buffer.client)
-
-
-def test_parent_middle(buffer: RedisSpansBufferV2):
-    spans = [
-        Span(
-            payload=b"C", trace_id="a" * 32, span_id="e" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"B", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(payload=b"D", trace_id="a" * 32, span_id="b" * 16, parent_span_id=None, project_id=1),
-        Span(
-            payload=b"A", trace_id="a" * 32, span_id="c" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-    ]
-
-    buffer.process_spans(spans, now=0)
-
-    assert_ttls(buffer.client)
-
-    rv = buffer.flush_segments(now=10)
-    assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"D", b"B", b"A", b"C"}}
-
-    buffer.done_flush_segments(rv)
-
-    assert_clean(buffer.client)
-
-
-def test_parent_middle_deep(buffer: RedisSpansBufferV2):
-    spans = [
-        Span(
-            payload=b"B", trace_id="a" * 32, span_id="b" * 16, parent_span_id="a" * 16, project_id=1
-        ),
-        Span(
-            payload=b"D", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(payload=b"A", trace_id="a" * 32, span_id="a" * 16, parent_span_id=None, project_id=1),
-        Span(
-            payload=b"C", trace_id="a" * 32, span_id="c" * 16, parent_span_id="a" * 16, project_id=1
-        ),
-    ]
-
+@pytest.mark.parametrize(
+    "spans",
+    list(
+        itertools.permutations(
+            [
+                Span(
+                    payload=b"D",
+                    trace_id="a" * 32,
+                    span_id="d" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"B",
+                    trace_id="a" * 32,
+                    span_id="b" * 16,
+                    parent_span_id="a" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"A",
+                    trace_id="a" * 32,
+                    span_id="a" * 16,
+                    parent_span_id=None,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"C",
+                    trace_id="a" * 32,
+                    span_id="c" * 16,
+                    parent_span_id="a" * 16,
+                    project_id=1,
+                ),
+            ]
+        )
+    ),
+)
+def test_deep(buffer: RedisSpansBufferV2, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)
@@ -147,23 +145,50 @@ def test_parent_middle_deep(buffer: RedisSpansBufferV2):
 
     buffer.done_flush_segments(rv)
 
+    rv = buffer.flush_segments(now=60)
+    assert rv == {}
+
     assert_clean(buffer.client)
 
 
-def test_parent_in_other_project(buffer: RedisSpansBufferV2):
-    spans = [
-        Span(
-            payload=b"A", trace_id="a" * 32, span_id="c" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"B", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"C", trace_id="a" * 32, span_id="e" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(payload=b"D", trace_id="a" * 32, span_id="b" * 16, parent_span_id=None, project_id=2),
-    ]
-
+@pytest.mark.parametrize(
+    "spans",
+    list(
+        itertools.permutations(
+            [
+                Span(
+                    payload=b"A",
+                    trace_id="a" * 32,
+                    span_id="c" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"B",
+                    trace_id="a" * 32,
+                    span_id="d" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"C",
+                    trace_id="a" * 32,
+                    span_id="e" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=b"D",
+                    trace_id="a" * 32,
+                    span_id="b" * 16,
+                    parent_span_id=None,
+                    project_id=2,
+                ),
+            ]
+        )
+    ),
+)
+def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)
@@ -179,36 +204,6 @@ def test_parent_in_other_project(buffer: RedisSpansBufferV2):
     assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"A", b"B", b"C"}}
     buffer.done_flush_segments(rv)
 
-    assert_clean(buffer.client)
-
-
-def test_parent_in_other_project_first(buffer: RedisSpansBufferV2):
-    spans = [
-        Span(payload=b"D", trace_id="a" * 32, span_id="b" * 16, parent_span_id=None, project_id=2),
-        Span(
-            payload=b"A", trace_id="a" * 32, span_id="c" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"B", trace_id="a" * 32, span_id="d" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-        Span(
-            payload=b"C", trace_id="a" * 32, span_id="e" * 16, parent_span_id="b" * 16, project_id=1
-        ),
-    ]
-
-    buffer.process_spans(spans, now=0)
-
-    assert_ttls(buffer.client)
-
-    assert buffer.flush_segments(now=5) == {}
-    rv = buffer.flush_segments(now=11, max_segments=2)
-    assert rv == {_segment_id(2, "a" * 32, "b" * 16): {b"D"}}
-    buffer.done_flush_segments(rv)
-
-    # TODO: flush faster, since we already saw parent in other project
-    assert buffer.flush_segments(now=30) == {}
-    rv = buffer.flush_segments(now=60)
-    assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"A", b"B", b"C"}}
-    buffer.done_flush_segments(rv)
+    assert buffer.flush_segments(now=90) == {}
 
     assert_clean(buffer.client)

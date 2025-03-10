@@ -46,4 +46,4 @@ if has_root_span or is_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
 end
 
-return {set_key, has_root_span or is_root_span}
+return {span_key, set_key, has_root_span or is_root_span}
