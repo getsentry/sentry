@@ -11,7 +11,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {TraceShape, type TraceTree} from '../traceModels/traceTree';
 
 interface TitleProps {
-  representativeTransaction: TraceTree.Transaction | null;
+  representativeTransaction: TraceTree.Transaction | TraceTree.EAPSpan | null;
   traceSlug: string;
   tree: TraceTree;
 }
@@ -19,7 +19,10 @@ interface TitleProps {
 export function Title({tree, traceSlug, representativeTransaction}: TitleProps) {
   const traceTitle = representativeTransaction
     ? {
-        op: representativeTransaction['transaction.op'],
+        op:
+          'transaction.op' in representativeTransaction
+            ? representativeTransaction['transaction.op']
+            : representativeTransaction.op,
         transaction: representativeTransaction.transaction,
       }
     : null;

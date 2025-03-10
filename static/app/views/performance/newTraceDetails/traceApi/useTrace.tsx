@@ -193,7 +193,7 @@ type UseTraceParams = {
 
 export function useTrace(
   options: UseTraceParams
-): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError> {
+): UseApiQueryResult<TraceTree.Trace, RequestError> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useMemo(() => {
@@ -204,8 +204,13 @@ export function useTrace(
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.limit, options.timestamp]);
-  const mode = queryParams.demo ? 'demo' : undefined;
+
+  const isDemoMode = Boolean(queryParams.demo);
+  const isEAPEnabled = organization.features.includes('trace-spans-format');
+  const hasValidTrace = Boolean(options.traceSlug && organization.slug);
+
   const demoTrace = useDemoTrace(queryParams.demo, organization);
+
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
@@ -213,9 +218,20 @@ export function useTrace(
     ],
     {
       staleTime: Infinity,
-      enabled: !!options.traceSlug && !!organization.slug && mode !== 'demo',
+      enabled: hasValidTrace && !isDemoMode && !isEAPEnabled,
     }
   );
 
-  return mode === 'demo' ? demoTrace : traceQuery;
+  const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
+    [
+      `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
+      {query: {...queryParams, project: -1}},
+    ],
+    {
+      staleTime: Infinity,
+      enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
+    }
+  );
+
+  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
 }

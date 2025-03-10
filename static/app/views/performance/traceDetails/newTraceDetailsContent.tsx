@@ -48,7 +48,7 @@ import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';
 import TraceViewDetailPanel from './traceViewDetailPanel';
-import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootEvent} from './utils';
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
@@ -207,7 +207,7 @@ function NewTraceDetailsContent(props: Props) {
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
-        if (isRootTransaction(trace)) {
+        if (isRootEvent(trace)) {
           counts.roots++;
         } else {
           counts.orphans++;

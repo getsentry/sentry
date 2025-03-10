@@ -1,13 +1,15 @@
 import type {EventTransaction} from 'sentry/types/event';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-export function useTraceRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
-  const root = trace?.transactions?.[0] || trace?.orphan_errors?.[0];
+export function useTraceRootEvent(trace: TraceTree.Trace | null) {
+  const root = trace
+    ? isTraceSplitResult(trace)
+      ? trace?.transactions?.[0] || trace?.orphan_errors?.[0]
+      : trace[0]
+    : null;
   const organization = useOrganization();
 
   return useApiQuery<EventTransaction>(

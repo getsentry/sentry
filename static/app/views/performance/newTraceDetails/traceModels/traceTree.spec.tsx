@@ -6,6 +6,7 @@ import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceD
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
@@ -16,6 +17,8 @@ import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
 import {
   assertTransactionNode,
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -53,6 +56,14 @@ const trace = makeTrace({
   ],
   orphan_errors: [],
 });
+
+const eapTrace = makeEAPTrace([
+  makeEAPSpan({
+    start_timestamp: start,
+    end_timestamp: start + 2,
+    children: [makeEAPSpan({start_timestamp: start + 1, end_timestamp: start + 4})],
+  }),
+]);
 
 const traceWithEventId = makeTrace({
   transactions: [
@@ -163,6 +174,13 @@ function findTransactionByEventId(tree: TraceTree, eventId: string) {
   return TraceTree.Find(
     tree.root,
     node => isTransactionNode(node) && node.value.event_id === eventId
+  );
+}
+
+function findEAPSpanByEventId(tree: TraceTree, eventId: string) {
+  return TraceTree.Find(
+    tree.root,
+    node => isEAPSpanNode(node) && node.value.event_id === eventId
   );
 }
 
@@ -478,6 +496,42 @@ describe('TraceTree', () => {
       );
 
       expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
+    });
+  });
+
+  describe('eap trace', () => {
+    it('assembles tree from eap trace', () => {
+      const tree = TraceTree.FromTrace(eapTrace, traceMetadata);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('initializes expanded based on is_transaction property', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                start_timestamp: start + 1,
+                end_timestamp: start + 4,
+                is_transaction: false,
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null}
+      );
+
+      // eap-span-1 is a transaction/segment and should be collapsed
+      expect(findEAPSpanByEventId(tree, 'eap-span-1')?.expanded).toBe(false);
+
+      // eap-span-2 is a span and should be expanded
+      expect(findEAPSpanByEventId(tree, 'eap-span-2')?.expanded).toBe(true);
     });
   });
 
