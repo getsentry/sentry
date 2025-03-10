@@ -52,7 +52,6 @@ export function AssigneeBadge({
           actor={actor}
           className="avatar"
           size={AVATAR_SIZE}
-          hasTooltip={false}
           data-test-id="assigned-avatar"
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders

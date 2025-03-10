@@ -79,7 +79,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
       <FlexCenter>
         {teamActor ? (
           <Fragment>
-            <StyledActorAvatar actor={teamActor} size={18} hasTooltip={false} />{' '}
+            <StyledActorAvatar actor={teamActor} size={18} />{' '}
             <TeamWrapper>{teamActor.name}</TeamWrapper>
           </Fragment>
         ) : (

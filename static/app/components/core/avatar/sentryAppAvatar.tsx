@@ -16,7 +16,7 @@ export const SentryAppAvatar = forwardRef<HTMLSpanElement, SentryAppAvatarProps>
 
     // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
     if (isDefault || !avatarDetails || avatarDetails.avatarType === 'default') {
-      return <FallbackAvatar {...props} />;
+      return <AppAvatarFallback {...props} />;
     }
 
     return (
@@ -26,13 +26,13 @@ export const SentryAppAvatar = forwardRef<HTMLSpanElement, SentryAppAvatarProps>
         type="upload"
         uploadUrl={avatarDetails?.avatarUrl}
         title={sentryApp?.name}
-        backupAvatar={<FallbackAvatar {...props} />}
+        backupAvatar={<AppAvatarFallback {...props} />}
       />
     );
   }
 );
 
-function FallbackAvatar(props: Pick<BaseAvatarProps, 'size' | 'className'>) {
+function AppAvatarFallback(props: Pick<BaseAvatarProps, 'size' | 'className'>) {
   return (
     <IconGeneric
       legacySize={`${props.size}`}

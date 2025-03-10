@@ -18,8 +18,6 @@ const MAX_SUGGESTIONS = 3;
 
 function SuggestedAvatarStack({
   owners,
-  tooltip,
-  tooltipOptions,
   reverse = true,
   suggested = true,
   ...props
@@ -32,7 +30,6 @@ function SuggestedAvatarStack({
         <Avatar
           round={firstSuggestion!.type === 'user'}
           actor={owner}
-          hasTooltip={false}
           {...props}
           key={i}
           index={i}
@@ -42,8 +39,6 @@ function SuggestedAvatarStack({
       ))}
       <Avatar
         actor={firstSuggestion!}
-        tooltip={tooltip}
-        tooltipOptions={{...tooltipOptions, skipWrapper: true}}
         {...props}
         index={numAvatars - 1}
         reverse={reverse}

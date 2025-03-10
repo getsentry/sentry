@@ -14,13 +14,9 @@ export interface ActorAvatarProps extends BaseAvatarProps {
 }
 
 export const ActorAvatar = forwardRef(
-  (
-    {size = 24, hasTooltip = true, actor, ...props}: ActorAvatarProps,
-    ref: React.Ref<HTMLSpanElement>
-  ) => {
+  ({size = 24, actor, ...props}: ActorAvatarProps, ref: React.Ref<HTMLSpanElement>) => {
     const otherProps = {
       size,
-      hasTooltip,
       ...props,
     };
 

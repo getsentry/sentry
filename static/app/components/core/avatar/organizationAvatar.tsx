@@ -25,7 +25,6 @@ export const OrganizationAvatar = forwardRef<HTMLSpanElement, OrganizationAvatar
         type={organization.avatar?.avatarType || 'letter_avatar'}
         uploadUrl={organization.avatar?.avatarUrl}
         letterId={slug}
-        tooltip={slug}
         title={title}
       />
     );

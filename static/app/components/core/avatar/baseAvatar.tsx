@@ -6,7 +6,6 @@ import * as qs from 'query-string';
 
 import {Gravatar} from 'sentry/components/core/avatar/gravatar';
 import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
-import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
 import {
@@ -19,10 +18,6 @@ const DEFAULT_REMOTE_SIZE = 120;
 export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   backupAvatar?: React.ReactNode;
   gravatarId?: string;
-  /**
-   * Enable to display tooltips.
-   */
-  hasTooltip?: boolean;
   letterId?: string;
   /**
    * Should avatar be round instead of a square
@@ -31,14 +26,6 @@ export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: number;
   suggested?: boolean;
   title?: string;
-  /**
-   * The content for the tooltip. Requires hasTooltip to display
-   */
-  tooltip?: React.ReactNode;
-  /**
-   * Additional props for the tooltip
-   */
-  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
   /**
    * The type of avatar being rendered.
    */
@@ -63,10 +50,7 @@ export const BaseAvatar = forwardRef<
       style,
       suggested,
       title,
-      tooltip,
-      tooltipOptions,
       uploadUrl,
-      hasTooltip = false,
       round = false,
       type = 'letter_avatar',
       ...props
@@ -111,31 +95,28 @@ export const BaseAvatar = forwardRef<
       );
 
     return (
-      <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
-        <AvatarContainer
-          ref={ref as React.Ref<HTMLSpanElement>}
-          data-test-id={`${type}-avatar`}
-          className={classNames('avatar', className)}
-          round={!!round}
-          suggested={!!suggested}
-          style={{...(size ? {height: size, width: size} : {}), ...style}}
-          title={title}
-          hasTooltip={hasTooltip}
-          {...props}
-        >
-          {hasError
-            ? (backupAvatar ?? (
-                <LetterAvatar
-                  ref={ref as React.Ref<SVGSVGElement>}
-                  round={round}
-                  displayName={title === '[Filtered]' ? '?' : title}
-                  identifier={letterId}
-                  suggested={suggested}
-                />
-              ))
-            : imageAvatar}
-        </AvatarContainer>
-      </Tooltip>
+      <AvatarContainer
+        ref={ref as React.Ref<HTMLSpanElement>}
+        data-test-id={`${type}-avatar`}
+        className={classNames('avatar', className)}
+        round={!!round}
+        suggested={!!suggested}
+        style={{...(size ? {height: size, width: size} : {}), ...style}}
+        title={title}
+        {...props}
+      >
+        {hasError
+          ? (backupAvatar ?? (
+              <LetterAvatar
+                ref={ref as React.Ref<SVGSVGElement>}
+                round={round}
+                displayName={title === '[Filtered]' ? '?' : title}
+                identifier={letterId}
+                suggested={suggested}
+              />
+            ))
+          : imageAvatar}
+      </AvatarContainer>
     );
   }
 );
@@ -143,7 +124,6 @@ export const BaseAvatar = forwardRef<
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
 const AvatarContainer = styled('span')<{
-  hasTooltip: boolean;
   round: boolean;
   suggested: boolean;
 }>`
@@ -151,9 +131,6 @@ const AvatarContainer = styled('span')<{
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
-  :hover {
-    pointer-events: ${p => (p.hasTooltip ? 'none' : 'auto')};
-  }
 `;
 
 interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {

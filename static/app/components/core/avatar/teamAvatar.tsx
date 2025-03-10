@@ -9,7 +9,7 @@ export interface TeamAvatarProps extends BaseAvatarProps {
 }
 
 export const TeamAvatar = forwardRef<HTMLSpanElement, TeamAvatarProps>(
-  ({team, tooltip: tooltipProp, ...props}, ref) => {
+  ({team, ...props}, ref) => {
     if (!team) {
       // @TODO(jonasbadalic): Do we need a placeholder here?
       return null;
@@ -17,7 +17,7 @@ export const TeamAvatar = forwardRef<HTMLSpanElement, TeamAvatarProps>(
 
     const slug = team?.slug || '';
     const title = explodeSlug(slug);
-    const tooltip = tooltipProp ?? `#${title}`;
+    // const tooltip = tooltipProp ?? `#${title}`;
 
     return (
       <BaseAvatar
@@ -25,7 +25,6 @@ export const TeamAvatar = forwardRef<HTMLSpanElement, TeamAvatarProps>(
         ref={ref}
         type={team.avatar?.avatarType || 'letter_avatar'}
         letterId={slug}
-        tooltip={tooltip}
         title={title}
       />
     );

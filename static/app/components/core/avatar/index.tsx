@@ -34,8 +34,8 @@ type AvatarProps =
   | SentryAppAvatarProps;
 
 const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
-  ({hasTooltip = false, ...props}, ref) => {
-    const commonProps = {hasTooltip, ref, ...props};
+  ({...props}, ref) => {
+    const commonProps = {ref, ...props};
 
     // @TODO(jonas): the old code included the falsy check, I attempted to remove it, but
     // learned the hard way that it breaks tests, meaning there some type unsafety in the
