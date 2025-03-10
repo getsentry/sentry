@@ -617,7 +617,8 @@ function ProfileIdsSubMenu(props: {
               {props.profileIds.map((profileId, i) => {
                 const projectSlug =
                   typeof profileId !== 'string' && 'project_id' in profileId
-                    ? projectLookupTable[profileId.project_id]?.slug ?? props.projectSlug
+                    ? (projectLookupTable[profileId.project_id]?.slug ??
+                      props.projectSlug)
                     : props.projectSlug;
 
                 if (!projectSlug) {

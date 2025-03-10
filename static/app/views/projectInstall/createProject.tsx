@@ -75,7 +75,7 @@ function CreateProject() {
   );
   const [team, setTeam] = useState(
     autoFill
-      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      ? (gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug)
       : accessTeams?.[0]?.slug
   );
 
