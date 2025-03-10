@@ -7,13 +7,13 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import LogsTextMultiHighlight from 'sentry/views/explore/logs/logsTextMultiHighlight';
 import {
   CenteredRow,
   ColoredLogCircle,
   ColoredLogText,
   type getLogColors,
   LogDate,
-  LogsHighlight,
   WrappingText,
 } from 'sentry/views/explore/logs/styles';
 import {
@@ -105,11 +105,11 @@ export function TraceIDRenderer(props: LogFieldRendererProps) {
 
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
-  const highlightTerm = props.extra?.highlightTerms[0] ?? '';
-  // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <WrappingText wrap={props.extra.wrapBody}>
-      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      <LogsTextMultiHighlight terms={props.extra.highlightTerms}>
+        {attribute_value}
+      </LogsTextMultiHighlight>
     </WrappingText>
   );
 }

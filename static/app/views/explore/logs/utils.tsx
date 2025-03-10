@@ -113,11 +113,18 @@ export function severityLevelToText(level: SeverityLevel) {
 }
 
 export function getLogBodySearchTerms(search: MutableSearch): string[] {
-  const searchTerms: string[] = search.freeText.map(text => text.replaceAll('*', ''));
-  const bodyFilters = search.getFilterValues('log.body');
-  for (const filter of bodyFilters) {
-    if (!filter.startsWith('!') && !filter.startsWith('[')) {
-      searchTerms.push(filter);
+  const searchTerms: string[] = search.freeText.flatMap(text =>
+    text.split('*').filter(term => term.length > 0)
+  );
+  const filterTerms: string[] = [];
+  filterTerms.push(...search.getFilterValues(OurLogKnownFieldKey.BODY));
+
+  for (const filter of filterTerms) {
+    if (!filter.startsWith('[')) {
+      searchTerms.push(filter.replaceAll('*', ''));
+    }
+    if (filter.startsWith('[') && filter.endsWith(']')) {
+      searchTerms.push(...filter.slice(1, -1).split(','));
     }
   }
   return searchTerms;
