@@ -7,6 +7,7 @@ import {setMockDate} from 'sentry-test/utils';
 
 import * as taskConfig from 'sentry/components/onboardingWizard/taskConfig';
 import * as useOnboardingTasks from 'sentry/components/onboardingWizard/useOnboardingTasks';
+import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import ConfigStore from 'sentry/stores/configStore';
@@ -269,7 +270,7 @@ describe('Onboarding Status', function () {
     jest.spyOn(useOnboardingTasks, 'useOnboardingTasks').mockReturnValue({
       allTasks: doneTasks,
       beyondBasicsTasks: [],
-      completeTasks: [],
+      completeTasks: doneTasks.filter(findCompleteTasks),
       doneTasks,
       gettingStartedTasks: [],
       refetch: jest.fn(),
@@ -290,7 +291,7 @@ describe('Onboarding Status', function () {
       }
     );
 
-    expect(mutateOnboardingTasksMock).toHaveBeenCalledTimes(2);
+    expect(mutateOnboardingTasksMock).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', {name: 'Onboarding'})).not.toBeInTheDocument();
   });
 });
