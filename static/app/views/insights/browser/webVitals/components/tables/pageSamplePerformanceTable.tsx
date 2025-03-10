@@ -371,13 +371,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <NoOverflow>
           {project && (
-            <StyledProjectAvatar
-              project={project}
-              direction="left"
-              size={16}
-              hasTooltip
-              tooltip={project.slug}
-            />
+            <Tooltip title={project.slug} skipWrapper>
+              <StyledProjectAvatar project={project} direction="left" size={16} />
+            </Tooltip>
           )}
           <Link
             to={{...location, query: {...location.query, transaction: row.transaction}}}

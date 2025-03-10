@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,13 +32,9 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
   return (
     <Bar>
       {project && (
-        <ProjectAvatar
-          project={project}
-          direction="left"
-          size={16}
-          hasTooltip
-          tooltip={project.slug}
-        />
+        <Tooltip title={project.slug} skipWrapper>
+          <ProjectAvatar project={project} direction="left" size={16} />
+        </Tooltip>
       )}
 
       {subtitle ? (

@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -82,13 +83,9 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
       <SampleDrawerBody>
         <HeaderContainer>
           {project && (
-            <SpanSummaryProjectAvatar
-              project={project}
-              direction="left"
-              size={40}
-              hasTooltip
-              tooltip={project.slug}
-            />
+            <Tooltip title={project.slug} skipWrapper>
+              <SpanSummaryProjectAvatar project={project} direction="left" size={40} />
+            </Tooltip>
           )}
           <TitleContainer>
             {spanDescription && <SpanDescription>{spanDescription}</SpanDescription>}
