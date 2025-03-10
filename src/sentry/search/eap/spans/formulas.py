@@ -1,8 +1,11 @@
+from typing import Literal
+
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
     AttributeKey,
     AttributeValue,
     ExtrapolationMode,
@@ -16,7 +19,7 @@ from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
 
-def http_response_rate(code: int) -> Column.BinaryFormula:
+def http_response_rate(code: Literal[1, 2, 3, 4, 5]) -> Column.BinaryFormula:
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
         left=Column(
@@ -55,6 +58,43 @@ def http_response_rate(code: int) -> Column.BinaryFormula:
                 label="total_request_count",
                 extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
             ),
+        ),
+    )
+
+
+def trace_status_rate(status: str) -> Column.BinaryFormula:
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.trace.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.trace.status",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(
+                            val_str=status,
+                        ),
+                    )
+                ),
+                label="trace_status_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                label="total",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            )
         ),
     )
 
@@ -117,5 +157,16 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=cache_miss_rate,
         is_aggregate=True,
+    ),
+    "trace_status_rate": FormulaDefinition(
+        default_search_type="percentage",
+        is_aggregate=True,
+        arguments=[
+            ArgumentDefinition(
+                argument_types={"string"},
+                is_attribute=False,
+            )
+        ],
+        formula_resolver=trace_status_rate,
     ),
 }

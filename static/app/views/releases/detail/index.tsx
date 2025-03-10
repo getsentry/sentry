@@ -1,21 +1,19 @@
-import {createContext} from 'react';
-import styled from '@emotion/styled';
+import {createContext, useEffect} from 'react';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Alert} from 'sentry/components/core/alert';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
@@ -26,15 +24,20 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
 
 import type {ReleaseBounds} from '../utils';
 import {getReleaseBounds, searchReleaseVersion} from '../utils';
@@ -249,90 +252,36 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
 // ========================================================================
 // RELEASE DETAIL CONTAINER
 // ========================================================================
-
 type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
-type ReleasesDetailContainerState = {
-  releaseMeta: ReleaseMeta | null;
-} & DeprecatedAsyncComponent['state'];
-class ReleasesDetailContainer extends DeprecatedAsyncComponent<
-  ReleasesDetailContainerProps,
-  ReleasesDetailContainerState
-> {
-  shouldReload = true;
+function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
+  const params = useParams<{release: string}>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const router = useRouter();
+  const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {release} = params;
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, params} = this.props;
-    // fetch projects this release belongs to
-    return [
-      [
-        'releaseMeta',
-        `/organizations/${organization.slug}/releases/${encodeURIComponent(
-          params.release
-        )}/meta/`,
-      ],
-    ];
-  }
+  useRouteAnalyticsParams({release});
 
-  componentDidMount() {
-    super.componentDidMount();
-    this.removeGlobalDateTimeFromUrl();
-    this.props.setRouteAnalyticsParams({release: this.props.params.release});
-  }
-
-  componentDidUpdate(
-    prevProps: ReleasesDetailContainerProps,
-    prevState: ReleasesDetailContainerState
-  ) {
-    const {organization, params} = this.props;
-
-    this.removeGlobalDateTimeFromUrl();
-    if (
-      prevProps.params.release !== params.release ||
-      prevProps.organization.slug !== organization.slug
-    ) {
-      this.props.setRouteAnalyticsParams({release: this.props.params.release});
-      super.componentDidUpdate(prevProps, prevState);
-    }
-  }
-
-  removeGlobalDateTimeFromUrl() {
-    const {router, location} = this.props;
+  // Remove global date time from URL
+  useEffect(() => {
     const {start, end, statsPeriod, utc, ...restQuery} = location.query;
 
     if (start || end || statsPeriod || utc) {
-      router.replace({
-        ...location,
-        query: restQuery,
-      });
-    }
-  }
-
-  renderError(...args: any[]) {
-    const has404Errors = Object.values(this.state.errors).find(e => e?.status === 404);
-
-    if (has404Errors) {
-      // This catches a 404 coming from the release endpoint and displays a custom error message.
-      return (
-        <Layout.Page withPadding>
-          <Alert.Container>
-            <Alert type="error" showIcon>
-              {t('This release could not be found.')}
-            </Alert>
-          </Alert.Container>
-        </Layout.Page>
+      navigate(
+        {
+          ...location,
+          query: restQuery,
+        },
+        {replace: true}
       );
     }
+  }, [location, navigate]);
 
-    return super.renderError(...args);
-  }
+  const {data: releaseMeta, isPending, isError, error} = useReleaseMeta({release});
 
-  isProjectMissingInUrl() {
-    const projectId = this.props.location.query.project;
-
-    return !projectId || typeof projectId !== 'string';
-  }
-
-  renderLoading() {
+  if (isPending) {
     return (
       <Layout.Page>
         <LoadingIndicator />
@@ -340,69 +289,64 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
     );
   }
 
-  renderProjectsFooterMessage() {
+  if (isError && error.status === 404) {
+    // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
-      <ProjectsFooterMessage>
-        <IconInfo size="xs" /> {t('Only projects with this release are visible.')}
-      </ProjectsFooterMessage>
+      <Layout.Page withPadding>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('This release could not be found.')}
+          </Alert>
+        </Alert.Container>
+      </Layout.Page>
     );
   }
 
-  renderBody() {
-    const {organization, params, router} = this.props;
-    const {releaseMeta} = this.state;
+  if (isError || !releaseMeta) {
+    return <LoadingError />;
+  }
 
-    if (!releaseMeta) {
-      return null;
-    }
+  const {projects} = releaseMeta;
+  const projectId = location.query.project;
+  const isProjectMissingInUrl = !projectId || typeof projectId !== 'string';
 
-    const {projects} = releaseMeta;
-
-    if (this.isProjectMissingInUrl()) {
-      return (
-        <PickProjectToContinue
-          projects={projects.map(({id, slug}) => ({
-            id: String(id),
-            slug,
-          }))}
-          router={router}
-          nextPath={{
-            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-              params.release
-            )}/`,
-          }}
-          noProjectRedirectPath={makeReleasesPathname({
-            organization,
-            path: '/',
-          })}
-        />
-      );
-    }
-
+  if (isProjectMissingInUrl) {
     return (
-      <PageFiltersContainer
-        shouldForceProject={projects.length === 1}
-        forceProject={
-          projects.length === 1
-            ? {...projects[0]!, id: String(projects[0]!.id)}
-            : undefined
-        }
-        specificProjectSlugs={projects.map(p => p.slug)}
-      >
-        <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
-      </PageFiltersContainer>
+      <PickProjectToContinue
+        projects={projects.map(({id, slug}: ReleaseProject) => ({
+          id: String(id),
+          slug,
+        }))}
+        router={router}
+        nextPath={{
+          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            release!
+          )}/`,
+        }}
+        noProjectRedirectPath={makeReleasesPathname({
+          organization,
+          path: '/',
+        })}
+      />
     );
   }
+
+  return (
+    <PageFiltersContainer
+      shouldForceProject={projects.length === 1}
+      forceProject={
+        projects.length === 1 ? {...projects[0]!, id: String(projects[0]!.id)} : undefined
+      }
+      specificProjectSlugs={projects.map((p: ReleaseProject) => p.slug)}
+    >
+      <ReleasesDetail
+        {...props}
+        organization={organization}
+        selection={pageFilters.selection}
+        releaseMeta={releaseMeta}
+      />
+    </PageFiltersContainer>
+  );
 }
-
-const ProjectsFooterMessage = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: min-content 1fr;
-  gap: ${space(1)};
-`;
-
 export {ReleaseContext, ReleasesDetailContainer};
-export default withRouteAnalytics(
-  withPageFilters(withOrganization(ReleasesDetailContainer))
-);
+export default ReleasesDetailContainer;

@@ -888,7 +888,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
 declare module '@emotion/react' {
   // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-shadow
   export interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
     isChonk: true;
   }

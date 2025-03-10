@@ -2,8 +2,8 @@ import type {CSSProperties} from 'react';
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Flex} from 'sentry/components/container/flex';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
