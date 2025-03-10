@@ -237,6 +237,6 @@ def process_segment(spans: list[Span]) -> list[Span]:
     job: Job = {"data": event, "project_id": project.id, "raw": False, "start_time": None}
 
     _pull_out_data([job], projects)
-    _record_transaction_info([job], projects)
+    _record_transaction_info([job], projects, skip_send_first_transaction=False)
 
     return spans
