@@ -40,7 +40,7 @@ def handle_snuba_errors(logger):
                 recoverable = False
                 if isinstance(error, snuba.RateLimitExceeded):
                     message = RATE_LIMIT_ERROR_MESSAGE
-                    raise Throttled(message)
+                    raise Throttled(detail=message)
                 elif isinstance(
                     error,
                     (
