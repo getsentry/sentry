@@ -3,6 +3,7 @@ from enum import StrEnum
 
 import sentry_sdk
 from django.db import router, transaction
+from django.db.models import Q
 
 from sentry import buffer
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -128,7 +129,11 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
-        Workflow.objects.filter(detectorworkflow__detector_id=detector.id, enabled=True).distinct()
+        Workflow.objects.filter(
+            (Q(environment_id=None) | Q(environment_id=job["event"].get_environment())),
+            detectorworkflow__detector_id=detector.id,
+            enabled=True,
+        ).distinct()
     )
 
     if workflows:
