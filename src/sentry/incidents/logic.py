@@ -1454,6 +1454,7 @@ def get_target_identifier_display_for_integration(
     input_channel_id: str | None = None,
     integrations: Collection[RpcIntegration] | None = None,
 ) -> AlertTarget:
+    # Apparently we bake slack logic directly into the base incident alerting logic?
     if action_type == AlertRuleTriggerAction.Type.SLACK.value:
         return _get_target_identifier_display_for_slack(
             target_value, integration_id, use_async_lookup, input_channel_id, integrations
@@ -1529,6 +1530,10 @@ def _get_target_identifier_display_from_target_value(
         return get_alert_rule_trigger_action_opsgenie_team(
             target_value, organization, integration_id
         )
+    elif action_type == AlertRuleTriggerAction.Type.FAKE_LOG.value:
+        # This is how we actually populate the target ID in the alert rule trigger action.
+        # This logic is coupled here for seemingly no reason, bad encapsulation.
+        return _get_alert_rule_trigger_action_fake_log(target_value, organization, integration_id)
     else:
         raise Exception("Not implemented")
 
@@ -1630,6 +1635,12 @@ def _get_alert_rule_trigger_action_pagerduty_service(
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
     return AlertTarget(service["id"], service["service_name"])
+
+
+def _get_alert_rule_trigger_action_fake_log(
+    target_value: str, organization: Organization, integration_id: int | None
+) -> AlertTarget:
+    return AlertTarget(target_value, target_value)
 
 
 def get_alert_rule_trigger_action_opsgenie_team(

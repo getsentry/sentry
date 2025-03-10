@@ -52,6 +52,7 @@ class ActionService(FlexibleIntEnum):
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
     OPSGENIE = 6
     DISCORD = 7
+    FAKE_LOG = 8
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -70,6 +71,7 @@ class ActionService(FlexibleIntEnum):
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
             (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
             (cls.DISCORD.value, ExternalProviders.DISCORD.name),
+            (cls.FAKE_LOG.value, ExternalProviders.FAKE_LOG.name),
         )
 
 
@@ -108,12 +110,15 @@ class ActionTrigger(FlexibleIntEnum):
 
     AUDIT_LOG = 0
     GS_SPIKE_PROTECTION = 100
+    FAKE_LOGGER_EXAMPLE = 200
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return (
             (cls.AUDIT_LOG.value, "audit-log"),
             (cls.GS_SPIKE_PROTECTION.value, "spike-protection"),
+            # Have to manually add the new enum value to the choices list
+            (cls.FAKE_LOGGER_EXAMPLE.value, "fake-log-example"),
         )
 
 
