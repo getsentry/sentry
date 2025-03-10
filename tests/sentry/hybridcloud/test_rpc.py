@@ -8,6 +8,7 @@ import responses
 from django.conf import settings
 from django.db import router
 from django.test import override_settings
+from django.urls import reverse
 
 from sentry import options
 from sentry.auth.services.auth import AuthService
@@ -308,3 +309,14 @@ class DispatchRemoteCallTest(TestCase):
         timeout_override_setting = {"organization_service.some_other_method": 20}
         with override_options({"hybridcloud.rpc.method_retry_overrides": timeout_override_setting}):
             assert test_class.get_method_retry_count() == default_value
+
+    def test_remote_silo_call_path(self) -> None:
+        assert _RemoteSiloCall(
+            service_name="organization_service",
+            method_name="get_org_by_id",
+            region=None,
+            serial_arguments={},
+        ).path == reverse(
+            "sentry-api-0-rpc-service",
+            kwargs={"service_name": "organization_service", "method_name": "get_org_by_id"},
+        )
