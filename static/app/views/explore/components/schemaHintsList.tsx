@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   useExploreQuery,
   useSetExploreQuery,
@@ -115,9 +116,13 @@ function SchemaHintsList({
         return;
       }
 
-      const newHintQuery =
-        hint.kind === FieldKind.MEASUREMENT ? `${hint.key}:>0` : `${hint.key}:""`;
-      setExploreQuery(`${exploreQuery} ${newHintQuery}`);
+      const newSearchQuery = new MutableSearch(exploreQuery);
+
+      newSearchQuery.addFilterValue(
+        hint.key,
+        hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+      );
+      setExploreQuery(newSearchQuery.formatString());
     },
     [exploreQuery, setExploreQuery]
   );
