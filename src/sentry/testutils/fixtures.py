@@ -79,7 +79,8 @@ class Fixtures:
                 is_sentry_app=False,
             )
         except IntegrityError:
-            return User.objects.get(email="admin@localhost")
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
