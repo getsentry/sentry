@@ -6,8 +6,6 @@ import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 import {removeProject} from 'sentry/actionCreators/projects';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
-import type {OpenConfirmOptions} from 'sentry/components/confirm';
-import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -210,30 +208,29 @@ function Onboarding(props: Props) {
       return;
     }
 
-    const newProjects = Object.keys(onboardingContext.data.projects).reduce(
-      (acc, key) => {
-        if (
-          onboardingContext.data.projects[key]!.slug !==
-          onboardingContext.data.selectedSDK?.key
-        ) {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          acc[key] = onboardingContext.data.projects[key];
-        }
-        return acc;
-      },
-      {}
-    );
+    const currentProjects = {...onboardingContext.data.projects};
+    const newProjects = Object.keys(currentProjects).reduce((acc, key) => {
+      if (
+        onboardingContext.data.projects[key]!.slug !==
+        onboardingContext.data.selectedSDK?.key
+      ) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        acc[key] = currentProjects[key];
+      }
+      return acc;
+    }, {});
 
     try {
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        projects: newProjects,
+        selectedSDK: undefined,
+      });
       await removeProject({
         api,
         orgSlug: organization.slug,
         projectSlug: recentCreatedProject.slug,
         origin: 'onboarding',
-      });
-      onboardingContext.setData({
-        ...onboardingContext.data,
-        projects: newProjects,
       });
 
       trackAnalytics('onboarding.data_removed', {
@@ -243,6 +240,11 @@ function Onboarding(props: Props) {
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        projects: currentProjects,
+        selectedSDK: undefined,
+      });
       handleXhrErrorResponse('Unable to delete project in onboarding', error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
@@ -275,7 +277,6 @@ function Onboarding(props: Props) {
       // from selected platform to welcome
       if (onboardingSteps[stepIndex]!.id === 'select-platform') {
         onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
-
         props.router.replace(
           normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
         );
@@ -348,37 +349,6 @@ function Onboarding(props: Props) {
     );
   }
 
-  const goBackDeletionAlertModalProps: OpenConfirmOptions = {
-    message: t(
-      "Hey, just a heads up - we haven't received any data for this SDK yet and by going back all changes will be discarded. Are you sure you want to head back?"
-    ),
-    priority: 'danger',
-    confirmText: t("Yes I'm sure"),
-    onConfirm: handleGoBack,
-    onClose: () => {
-      if (!recentCreatedProject) {
-        return;
-      }
-
-      trackAnalytics('onboarding.data_removal_modal_dismissed', {
-        organization,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    },
-    onRender: () => {
-      if (!recentCreatedProject) {
-        return;
-      }
-
-      trackAnalytics('onboarding.data_removal_modal_rendered', {
-        organization,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    },
-  };
-
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
@@ -390,11 +360,8 @@ function Onboarding(props: Props) {
             currentStepIndex={stepIndex}
             onClick={i => {
               if ((i as number) < stepIndex && shallProjectBeDeleted) {
-                openConfirmModal({
-                  ...goBackDeletionAlertModalProps,
-                  // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
-                  onConfirm: () => handleGoBack(i),
-                });
+                // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
+                handleGoBack(i);
                 return;
               }
 
@@ -411,9 +378,10 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
-          <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
-        </Confirm>
+        <Back
+          animate={stepIndex > 0 ? 'visible' : 'hidden'}
+          onClick={() => handleGoBack()}
+        />
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             initial="initial"
