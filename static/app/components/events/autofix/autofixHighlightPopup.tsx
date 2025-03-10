@@ -21,7 +21,7 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -37,6 +37,7 @@ interface Props {
   runId: string;
   selectedText: string;
   stepIndex: number;
+  isAgentComment?: boolean;
 }
 
 interface OptimisticMessage extends CommentThreadMessage {
@@ -49,6 +50,7 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
 
   return useMutation({
     mutationFn: (params: {
+      is_agent_comment: boolean;
       message: string;
       retain_insight_card_index: number | null;
       selected_text: string;
@@ -66,6 +68,7 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
             selected_text: params.selected_text,
             step_index: params.step_index,
             retain_insight_card_index: params.retain_insight_card_index,
+            is_agent_comment: params.is_agent_comment,
           },
         },
       });
@@ -79,41 +82,118 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   });
 }
 
+function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      is_agent_comment: boolean;
+      step_index: number;
+      thread_id: string;
+    }) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'resolve_comment_thread',
+            thread_id: params.thread_id,
+            step_index: params.step_index,
+            is_agent_comment: params.is_agent_comment,
+          },
+        },
+      });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when resolving the thread.'));
+    },
+  });
+}
+
 function AutofixHighlightPopupContent({
   selectedText,
   groupId,
   runId,
   stepIndex,
   retainInsightCardIndex,
-}: Omit<Props, 'referenceElement'>) {
+  isAgentComment,
+}: Props) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
+  const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
+
   const [comment, setComment] = useState('');
   const [threadId] = useState(() => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
     return `thread-${timestamp}-${random}`;
   });
-  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const [pendingUserMessage, setPendingUserMessage] = useState<OptimisticMessage | null>(
+    null
+  );
+  const [showLoadingAssistant, setShowLoadingAssistant] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const autofixData = useAutofixData({groupId});
-  const currentStep = autofixData?.steps?.[stepIndex];
-  const commentThread =
-    currentStep?.active_comment_thread?.id === threadId
+  const {data: autofixData} = useAutofixData({groupId});
+  const currentStep = !isAgentComment
+    ? autofixData?.steps?.[stepIndex]
+    : autofixData?.steps?.[stepIndex + 1];
+
+  const commentThread = isAgentComment
+    ? currentStep?.agent_comment_thread
+    : currentStep?.active_comment_thread?.id === threadId
       ? currentStep.active_comment_thread
       : null;
-  const messages = useMemo(
+
+  const serverMessages = useMemo(
     () => commentThread?.messages ?? [],
     [commentThread?.messages]
   );
 
+  // Effect to clear pending messages when server data updates
+  useEffect(() => {
+    if (serverMessages.length > 0) {
+      const lastServerMessage = serverMessages[serverMessages.length - 1];
+
+      // If the last server message is from the assistant, clear all pending messages
+      if (lastServerMessage && lastServerMessage.role === 'assistant') {
+        setPendingUserMessage(null);
+        setShowLoadingAssistant(false);
+      }
+
+      // If the last server message is from the user, keep loading assistant state
+      // but clear the pending user message
+      if (lastServerMessage && lastServerMessage.role === 'user') {
+        setPendingUserMessage(null);
+        setShowLoadingAssistant(true);
+      }
+    }
+  }, [serverMessages]);
+
   // Combine server messages with optimistic ones
   const allMessages = useMemo(() => {
-    const serverMessageCount = messages.length;
-    const relevantOptimisticMessages = optimisticMessages.slice(serverMessageCount);
-    return [...messages, ...relevantOptimisticMessages];
-  }, [messages, optimisticMessages]);
+    const result = [...serverMessages];
+
+    // Add pending user message if it exists
+    if (pendingUserMessage) {
+      result.push(pendingUserMessage);
+    }
+
+    // Add loading assistant message if needed
+    if (showLoadingAssistant) {
+      result.push({
+        role: 'assistant' as const,
+        content: '',
+        isLoading: true,
+      });
+    }
+
+    return result;
+  }, [serverMessages, pendingUserMessage, showLoadingAssistant]);
 
   const truncatedText =
     selectedText.length > 70
@@ -135,12 +215,9 @@ function AutofixHighlightPopupContent({
       return;
     }
 
-    // Add user message and loading assistant message immediately
-    setOptimisticMessages(prev => [
-      ...prev,
-      {role: 'user', content: comment},
-      {role: 'assistant', content: '', isLoading: true},
-    ]);
+    // Add optimistic user message and show loading assistant
+    setPendingUserMessage({role: 'user', content: comment});
+    setShowLoadingAssistant(true);
 
     submitComment({
       message: comment,
@@ -148,6 +225,7 @@ function AutofixHighlightPopupContent({
       selected_text: selectedText,
       step_index: stepIndex,
       retain_insight_card_index: retainInsightCardIndex,
+      is_agent_comment: isAgentComment ?? false,
     });
     setComment('');
   };
@@ -165,12 +243,30 @@ function AutofixHighlightPopupContent({
     scrollToBottom();
   }, [allMessages]);
 
+  const handleResolve = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    closeCommentThread({
+      thread_id: threadId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
+  };
+
   return (
     <Container onClick={handleContainerClick}>
       <Header>
         <SelectedText>
           <span>"{truncatedText}"</span>
         </SelectedText>
+        {allMessages.length > 0 && (
+          <ResolveButton
+            size="zero"
+            borderless
+            aria-label={t('Resolve thread')}
+            onClick={handleResolve}
+            icon={<IconClose size="xs" />}
+          />
+        )}
       </Header>
 
       {allMessages.length > 0 && (
@@ -250,6 +346,7 @@ function AutofixHighlightPopup(props: Props) {
     left: 0,
     top: 0,
   });
+  const [isFocused, setIsFocused] = useState(false);
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
@@ -294,11 +391,19 @@ function AutofixHighlightPopup(props: Props) {
     };
   }, [referenceElement]);
 
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
   return createPortal(
     <Wrapper
       ref={popupRef}
-      id="autofix-rethink-input"
       data-popup="autofix-highlight"
+      data-autofix-input-type={!props.isAgentComment ? 'rethink' : 'agent-comment'}
       initial={{opacity: 0, x: 10}}
       animate={{opacity: 1, x: 0}}
       exit={{opacity: 0, x: 10}}
@@ -309,6 +414,10 @@ function AutofixHighlightPopup(props: Props) {
         left: `${position.left}px`,
         top: `${position.top}px`,
       }}
+      isFocused={isFocused}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={-1}
     >
       <Arrow />
       <ScaleContainer>
@@ -319,8 +428,8 @@ function AutofixHighlightPopup(props: Props) {
   );
 }
 
-const Wrapper = styled(motion.div)`
-  z-index: ${p => p.theme.zIndex.tooltip};
+const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
+  z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -398,8 +507,8 @@ const StyledButton = styled(Button)`
 const Header = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  padding: ${space(1)};
+  justify-content: space-between;
+  padding: ${space(1)} ${space(1.5)};
   background: ${p => p.theme.backgroundSecondary};
   word-break: break-word;
   overflow-wrap: break-word;
@@ -478,6 +587,10 @@ const LoadingWrapper = styled('div')`
   align-items: center;
   height: 24px;
   margin-top: ${space(0.25)};
+`;
+
+const ResolveButton = styled(Button)`
+  margin-left: ${space(1)};
 `;
 
 function getScrollParents(element: HTMLElement): Element[] {

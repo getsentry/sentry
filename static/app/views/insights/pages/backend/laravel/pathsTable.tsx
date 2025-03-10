@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
-import {Link} from 'react-router-dom';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';

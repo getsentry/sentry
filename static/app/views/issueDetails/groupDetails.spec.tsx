@@ -100,6 +100,10 @@ describe('groupDetails', () => {
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
+      url: `/assistant/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group},
     });

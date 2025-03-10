@@ -376,12 +376,7 @@ class ActionHandlerFactory(abc.ABC):
         self.integration_provider = integration_provider
 
     @abc.abstractmethod
-    def build_handler(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-    ) -> ActionHandler:
+    def build_handler(self) -> ActionHandler:
         raise NotImplementedError
 
 
@@ -403,10 +398,8 @@ class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
         super().__init__(slug, service_type, supported_target_types, integration_provider)
         self.trigger_action_class = trigger_action_class
 
-    def build_handler(
-        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
-    ) -> ActionHandler:
-        return self.trigger_action_class(action, incident, project)
+    def build_handler(self) -> ActionHandler:
+        return self.trigger_action_class()
 
 
 class _FactoryRegistry:
@@ -492,15 +485,13 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             return self.target_identifier
         return None
 
-    def build_handler(
-        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
-    ) -> ActionHandler | None:
-        service_type = AlertRuleTriggerAction.Type(self.type)
-        factory = self._factory_registrations.by_action_service.get(service_type)
+    @staticmethod
+    def build_handler(type: ActionService) -> ActionHandler | None:
+        factory = AlertRuleTriggerAction._factory_registrations.by_action_service.get(type)
         if factory is not None:
-            return factory.build_handler(action, incident, project)
+            return factory.build_handler()
         else:
-            metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
+            metrics.incr(f"alert_rule_trigger.unhandled_type.{type}")
             return None
 
     def fire(
@@ -512,9 +503,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        handler = self.build_handler(action, incident, project)
+        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
         if handler:
-            return handler.fire(metric_value, new_status, notification_uuid)
+            return handler.fire(
+                action, incident, project, metric_value, new_status, notification_uuid
+            )
 
     def resolve(
         self,
@@ -525,9 +518,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        handler = self.build_handler(action, incident, project)
+        handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
         if handler:
-            return handler.resolve(metric_value, new_status, notification_uuid)
+            return handler.resolve(
+                action, incident, project, metric_value, new_status, notification_uuid
+            )
 
     def get_single_sentry_app_config(self) -> dict[str, Any] | None:
         value = self.sentry_app_config

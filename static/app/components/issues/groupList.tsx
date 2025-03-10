@@ -47,7 +47,8 @@ export type GroupListColumn =
   | 'priority'
   | 'assignee'
   | 'lastTriggered'
-  | 'lifespan';
+  | 'firstSeen'
+  | 'lastSeen';
 
 type Props = WithRouterProps & {
   api: Client;

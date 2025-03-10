@@ -3,17 +3,17 @@ import {createContext, useContext} from 'react';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 
 export const enum IssueDetailsTour {
-  /** Onboarding for trends and aggregates, the graph, and tag distributions */
+  /** Trends and aggregates, the graph, and tag distributions */
   AGGREGATES = 'issue-details-aggregates',
-  /** Onboarding for date/time/environment filters */
+  /** Date/time/environment filters */
   FILTERS = 'issue-details-filters',
-  /** Onboarding for event details, event navigation, main page content */
+  /** Event details, event navigation, main page content */
   EVENT_DETAILS = 'issue-details-event-details',
-  /** Onboarding for event navigation; next/previous, first/last/recommended events */
+  /** Event navigation; next/previous, first/last/recommended events */
   NAVIGATION = 'issue-details-navigation',
-  /** Onboarding for workflow actions; resolution, archival, assignment, priority, etc. */
+  /** Workflow actions; resolution, archival, assignment, priority, etc. */
   WORKFLOWS = 'issue-details-workflows',
-  /** Onboarding for activity log, issue tracking, solutions hub area */
+  /** Activity log, issue tracking, solutions hub area */
   SIDEBAR = 'issue-details-sidebar',
 }
 
@@ -25,6 +25,8 @@ export const ORDERED_ISSUE_DETAILS_TOUR = [
   IssueDetailsTour.WORKFLOWS,
   IssueDetailsTour.SIDEBAR,
 ];
+
+export const ISSUE_DETAILS_TOUR_GUIDE_KEY = 'tour.issue_details';
 
 export const IssueDetailsTourContext =
   createContext<TourContextType<IssueDetailsTour> | null>(null);

@@ -107,7 +107,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
     parsed.items
       .map(item =>
         item.value?.quoted
-          ? item.value?.text ?? ''
+          ? (item.value?.text ?? '')
           : cleanFilterValue({valueType, value: item.value?.text ?? ''})
       )
       .filter(text => text?.length) ?? [];
@@ -116,7 +116,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
 
   return uniqueValues.length > 1
     ? `[${uniqueValues.join(',')}]`
-    : uniqueValues[0] ?? '""';
+    : (uniqueValues[0] ?? '""');
 }
 
 function getSelectedValuesFromText(
@@ -375,7 +375,7 @@ function useFilterSuggestions({
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
     return shouldFetchValues
       ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : predefinedValues ?? [];
+      : (predefinedValues ?? []);
   }, [data, predefinedValues, shouldFetchValues]);
 
   // Grouped sections for rendering purposes

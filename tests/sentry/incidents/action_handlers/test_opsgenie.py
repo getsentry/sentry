@@ -13,6 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.seer.anomaly_detection.types import StoreDataResponse
@@ -34,6 +35,7 @@ METADATA = {
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
+        self.handler = OpsgenieActionHandler()
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
@@ -91,7 +93,12 @@ class OpsgenieActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert data["message"] == alert_rule.name
@@ -145,7 +152,12 @@ class OpsgenieActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert data["message"] == alert_rule.name
@@ -189,13 +201,21 @@ class OpsgenieActionHandlerTest(FireTest):
                 json={},
                 status=202,
             )
-            expected_payload = build_incident_attachment(incident, new_status, metric_value=1000)
+            expected_payload = build_incident_attachment(
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                open_period_identifier=incident.identifier,
+                organization=incident.organization,
+                snuba_query=incident.alert_rule.snuba_query,
+                new_status=new_status,
+                metric_value=1000,
+            )
             expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(self.handler, method)(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
         data = responses.calls[0].request.body
 
         assert json.loads(data) == expected_payload
@@ -229,10 +249,11 @@ class OpsgenieActionHandlerTest(FireTest):
             json={},
             status=202,
         )
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
 
@@ -245,10 +266,11 @@ class OpsgenieActionHandlerTest(FireTest):
         with assume_test_silo_mode_of(Integration):
             self.integration.delete()
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
         assert (
@@ -266,10 +288,11 @@ class OpsgenieActionHandlerTest(FireTest):
         with assume_test_silo_mode_of(OrganizationIntegration):
             self.org_integration.save()
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
         assert (
