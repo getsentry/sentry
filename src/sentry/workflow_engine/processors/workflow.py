@@ -4,7 +4,7 @@ from enum import StrEnum
 import sentry_sdk
 from django.db import router, transaction
 
-from sentry import buffer
+from sentry import buffer, features
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
@@ -153,11 +153,16 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     ):
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
-        metrics.incr(
-            "workflow_engine.process_workflows.triggered_actions",
-            amount=len(actions),
-            tags={"detector_type": detector.type},
-        )
+        if features.has(
+            "organizations:workflow-engine-issue-alert-metrics",
+            detector.project.organization,
+            actor=None,
+        ):
+            metrics.incr(
+                "workflow_engine.process_workflows.triggered_actions",
+                amount=len(actions),
+                tags={"detector_type": detector.type},
+            )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         for action in actions:

@@ -7,7 +7,7 @@ from typing import Any
 from celery import Task
 from django.utils import timezone
 
-from sentry import buffer, nodestore
+from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -410,11 +410,16 @@ def fire_actions_for_groups(
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
 
-        metrics.incr(
-            "workflow_engine.delayed_workflow.triggered_actions",
-            amount=len(filtered_actions),
-            tags={"event_type": group_event.group.type},
-        )
+        if features.has(
+            "organizations:workflow-engine-issue-alert-metrics",
+            group.project.organization,
+            actor=None,
+        ):
+            metrics.incr(
+                "workflow_engine.delayed_workflow.triggered_actions",
+                amount=len(filtered_actions),
+                tags={"event_type": group_event.group.type},
+            )
 
         for action in filtered_actions:
             action.trigger(job, detector)

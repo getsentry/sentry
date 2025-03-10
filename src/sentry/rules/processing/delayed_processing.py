@@ -9,7 +9,7 @@ from typing import Any, DefaultDict, NamedTuple
 from celery import Task
 from django.db.models import OuterRef, Subquery
 
-from sentry import buffer, nodestore
+from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -468,11 +468,16 @@ def fire_rules(
             callback_and_futures = activate_downstream_actions(
                 rule, groupevent, notification_uuid, rule_fire_history
             ).values()
-            metrics.incr(
-                "post_process.delayed_processing.triggered_actions",
-                amount=len(callback_and_futures),
-                tags={"event_type": groupevent.group.type},
-            )
+            if features.has(
+                "organizations:workflow-engine-issue-alert-metrics",
+                project.organization,
+                actor=None,
+            ):
+                metrics.incr(
+                    "post_process.delayed_processing.triggered_actions",
+                    amount=len(callback_and_futures),
+                    tags={"event_type": groupevent.group.type},
+                )
 
             for callback, futures in callback_and_futures:
                 safe_execute(callback, groupevent, futures)
