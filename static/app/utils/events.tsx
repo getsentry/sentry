@@ -512,6 +512,6 @@ export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneH
   return evidenceData.templateName === 'profile';
 }
 
-function isGroup(event: BaseGroup | Event): event is BaseGroup {
+export function isGroup(event: BaseGroup | Event): event is BaseGroup {
   return (event as BaseGroup).status !== undefined;
 }

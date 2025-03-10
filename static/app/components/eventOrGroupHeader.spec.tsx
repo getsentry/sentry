@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -36,6 +36,10 @@ const event = EventFixture({
 });
 
 describe('EventOrGroupHeader', function () {
+  beforeEach(() => {
+    jest.useRealTimers();
+  });
+
   const {organization, router} = initializeOrg();
 
   describe('Group', function () {
@@ -107,6 +111,32 @@ describe('EventOrGroupHeader', function () {
       expect(
         screen.getByText(textWithMarkupMatcher('in path/to/file.swift'))
       ).toBeInTheDocument();
+    });
+
+    it('preloads group on hover', async function () {
+      jest.useFakeTimers();
+      const mockFetchGroup = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/`,
+        body: group,
+      });
+
+      render(
+        <EventOrGroupHeader
+          organization={{...organization, features: ['issue-stream-table-layout']}}
+          data={group}
+          {...router}
+        />
+      );
+
+      const groupLink = screen.getByRole('link');
+
+      // Should not be called right away
+      await userEvent.hover(groupLink, {delay: null});
+      expect(mockFetchGroup).not.toHaveBeenCalled();
+
+      // Called after 300ms
+      jest.advanceTimersByTime(301);
+      expect(mockFetchGroup).toHaveBeenCalled();
     });
   });
 
