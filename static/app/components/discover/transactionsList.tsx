@@ -218,7 +218,7 @@ function TableRender({
         />
       </Header>
       {target ? (
-        <GuideAnchor target={target} position="top-start">
+        <GuideAnchor target={target} position="top-start" wrapperComponent={TableWrapper}>
           {content}
         </GuideAnchor>
       ) : (
@@ -515,6 +515,10 @@ const StyledPagination = styled(Pagination)`
 
 const InvestigationRuleWrapper = styled('div')`
   margin-right: ${space(1)};
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 function TransactionsList(

@@ -5,6 +5,8 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+explore: 0001_add_explore_saved_query_model
+
 feedback: 0004_index_together
 
 hybridcloud: 0019_add_provider_webhook_payload
@@ -15,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0840_add_explore_saved_query_model
+sentry: 0840_savedsearch_type_non_null
 
 social_auth: 0002_default_auto_field
 
@@ -23,4 +25,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0029_uptime_subscription_index_domain_cols
 
-workflow_engine: 0034_action_cleanup_1
+workflow_engine: 0035_action_model_drop_legacy_fields

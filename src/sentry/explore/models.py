@@ -29,11 +29,11 @@ class ExploreSavedQueryProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    explore_saved_query = FlexibleForeignKey("sentry.ExploreSavedQuery")
+    explore_saved_query = FlexibleForeignKey("explore.ExploreSavedQuery")
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_exploresavedqueryproject"
+        app_label = "explore"
+        db_table = "explore_exploresavedqueryproject"
         unique_together = (("project", "explore_saved_query"),)
 
 
@@ -57,11 +57,11 @@ class ExploreSavedQuery(Model):
     dataset = BoundedPositiveIntegerField(
         choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
     )
-    is_multi_query = models.BooleanField(null=True, blank=True)
+    is_multi_query = models.BooleanField(default=False)
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_exploresavedquery"
+        app_label = "explore"
+        db_table = "explore_exploresavedquery"
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 

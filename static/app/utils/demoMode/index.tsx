@@ -1,7 +1,9 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
+import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
+import {logout} from '../../actionCreators/account';
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
 const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
@@ -67,3 +69,9 @@ function onAddedEmail(email: string) {
   localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
   openDemoSignupModal();
 }
+
+window.addEventListener('blur', () => {
+  if (isDemoModeEnabled()) {
+    logout(new Client());
+  }
+});

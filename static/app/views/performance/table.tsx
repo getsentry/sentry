@@ -475,18 +475,10 @@ class _Table extends Component<Props, State> {
       />
     );
 
-    if (field.field.startsWith('transaction')) {
-      return (
-        <GuideAnchor target="performance_table" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
-    }
-
     if (field.field.startsWith('user_misery')) {
       if (title.tooltip) {
         return (
-          <GuideAnchor target="performance_table" position="top">
+          <GuideAnchor target="project_transaction_threshold" position="top">
             <Tooltip isHoverable title={title.tooltip} showUnderline>
               {sortLink}
             </Tooltip>
@@ -600,57 +592,63 @@ class _Table extends Component<Props, State> {
 
     return (
       <div data-test-id="performance-table">
-        <MEPConsumer>
-          {value => {
-            return (
-              <DiscoverQuery
-                eventView={sortedEventView}
-                orgSlug={organization.slug}
-                location={location}
-                setError={error => setError(error?.message)}
-                referrer="api.performance.landing-table"
-                transactionName={transaction}
-                transactionThreshold={transactionThreshold}
-                queryExtras={getMEPQueryParams(value)}
-              >
-                {({pageLinks, isLoading, tableData}) => (
-                  <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
-                    <VisuallyCompleteWithData
-                      id="PerformanceTable"
-                      hasData={
-                        !isLoading && !!tableData?.data && tableData.data.length > 0
-                      }
-                      isLoading={isLoading}
-                    >
-                      <GridEditable
+        <GuideAnchor
+          target="performance_table"
+          position="top-start"
+          wrapperComponent={TableWrapper}
+        >
+          <MEPConsumer>
+            {value => {
+              return (
+                <DiscoverQuery
+                  eventView={sortedEventView}
+                  orgSlug={organization.slug}
+                  location={location}
+                  setError={error => setError(error?.message)}
+                  referrer="api.performance.landing-table"
+                  transactionName={transaction}
+                  transactionThreshold={transactionThreshold}
+                  queryExtras={getMEPQueryParams(value)}
+                >
+                  {({pageLinks, isLoading, tableData}) => (
+                    <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                      <VisuallyCompleteWithData
+                        id="PerformanceTable"
+                        hasData={
+                          !isLoading && !!tableData?.data && tableData.data.length > 0
+                        }
                         isLoading={isLoading}
-                        data={tableData ? tableData.data : []}
-                        columnOrder={columnOrder}
-                        columnSortBy={columnSortBy}
-                        bodyStyle={{overflow: 'visible'}}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                          renderPrependColumns: this.renderPrependCellWithData(
-                            tableData
-                          ) as any,
-                          prependColumnWidths,
-                        }}
+                      >
+                        <GridEditable
+                          isLoading={isLoading}
+                          data={tableData ? tableData.data : []}
+                          columnOrder={columnOrder}
+                          columnSortBy={columnSortBy}
+                          bodyStyle={{overflow: 'visible'}}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                            renderPrependColumns: this.renderPrependCellWithData(
+                              tableData
+                            ) as any,
+                            prependColumnWidths,
+                          }}
+                        />
+                      </VisuallyCompleteWithData>
+                      <Pagination
+                        pageLinks={pageLinks}
+                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </VisuallyCompleteWithData>
-                    <Pagination
-                      pageLinks={pageLinks}
-                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                    />
-                  </TrackHasDataAnalytics>
-                )}
-              </DiscoverQuery>
-            );
-          }}
-        </MEPConsumer>
+                    </TrackHasDataAnalytics>
+                  )}
+                </DiscoverQuery>
+              );
+            }}
+          </MEPConsumer>
+        </GuideAnchor>
       </div>
     );
   }
@@ -681,6 +679,10 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 export default Table;
