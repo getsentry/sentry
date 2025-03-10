@@ -73,8 +73,8 @@ class OnDemandBudgets extends Component<Props> {
         }
       >
         <div>
-          <Button to={`/settings/${organization.slug}/support/`}>
-            {t('Contact Support')}
+          <Button to={`/settings/${organization.slug}/billing/checkout/`}>
+            {t('Subscribe To A Paid Plan')}
           </Button>
         </div>
       </FieldGroup>
