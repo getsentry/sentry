@@ -190,23 +190,27 @@ class RedisSpansBufferV2:
 
     def flush_segments(
         self, now: int, max_segments: int = 0, flush_shard: list[int] | None = None
-    ) -> dict[SegmentId, set[bytes]]:
+    ) -> tuple[int, dict[SegmentId, set[bytes]]]:
+        flush_shard = flush_shard or list(range(self.num_shards))
         cutoff = now
 
         with metrics.timer("sentry.spans.buffer.flush_segments.step1"):
             with self.client.pipeline(transaction=False) as p:
-                for shard in flush_shard or range(self.num_shards):
+                for shard in flush_shard:
                     key = f"span-buf:q:{shard}"
                     p.zrangebyscore(
                         key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
                     )
+                    p.zcard(key)
 
-                result = p.execute()
+                result = iter(p.execute())
 
         segment_ids = []
+        queue_sizes = []
 
         with metrics.timer("sentry.spans.buffer.flush_segments.step2"):
             with self.client.pipeline(transaction=False) as p:
+                # ZRANGEBYSCORE output
                 for segment_span_ids in result:
                     # process return value of zrevrangebyscore
                     for segment_id in segment_span_ids:
@@ -214,7 +218,17 @@ class RedisSpansBufferV2:
                         segment_ids.append(segment_id)
                         p.smembers(segment_id)
 
+                    # ZCARD output
+                    queue_sizes.append(next(result))
+
                 segments = p.execute()
+
+        for shard_i, queue_size in zip(flush_shard, queue_sizes):
+            metrics.timing(
+                "sentry.spans.buffer.flush_segments.queue_size",
+                queue_size,
+                tags={"shard_i": shard_i},
+            )
 
         return_segments = {}
 
@@ -227,7 +241,7 @@ class RedisSpansBufferV2:
             return_segments[segment_id] = return_segment
         metrics.timing("sentry.spans.buffer.flush_segments.num_segments", len(return_segments))
 
-        return return_segments
+        return sum(queue_sizes), return_segments
 
     def done_flush_segments(self, segment_ids: Collection[SegmentId]):
         metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))

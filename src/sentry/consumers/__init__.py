@@ -438,6 +438,12 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 help="The number of segments to download from redis at once. Defaults to 100.",
             ),
             click.Option(
+                ["--max-inflight-segments", "max_inflight_segments"],
+                type=int,
+                default=10000,
+                help="The number of segments that can exist in Redis before the consumer applies backpressure. Defaults to 10000.",
+            ),
+            click.Option(
                 ["--num-shards", "num_shards"],
                 type=int,
                 default=32,

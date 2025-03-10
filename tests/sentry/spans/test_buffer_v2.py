@@ -89,11 +89,11 @@ def test_basic(buffer: RedisSpansBufferV2, spans):
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == {}
-    rv = buffer.flush_segments(now=11)
+    assert buffer.flush_segments(now=5) == (0, {})
+    _, rv = buffer.flush_segments(now=11)
     assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"D", b"B", b"A", b"C"}}
     buffer.done_flush_segments(rv)
-    assert buffer.flush_segments(now=30) == {}
+    assert buffer.flush_segments(now=30) == (0, {})
 
     assert_clean(buffer.client)
 
@@ -140,12 +140,12 @@ def test_deep(buffer: RedisSpansBufferV2, spans):
 
     assert_ttls(buffer.client)
 
-    rv = buffer.flush_segments(now=10)
+    _, rv = buffer.flush_segments(now=10)
     assert rv == {_segment_id(1, "a" * 32, "a" * 16): {b"D", b"B", b"A", b"C"}}
 
     buffer.done_flush_segments(rv)
 
-    rv = buffer.flush_segments(now=60)
+    _, rv = buffer.flush_segments(now=60)
     assert rv == {}
 
     assert_clean(buffer.client)
@@ -193,17 +193,17 @@ def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == {}
-    rv = buffer.flush_segments(now=11)
+    assert buffer.flush_segments(now=5) == (0, {})
+    _, rv = buffer.flush_segments(now=11)
     assert rv == {_segment_id(2, "a" * 32, "b" * 16): {b"D"}}
     buffer.done_flush_segments(rv)
 
     # TODO: flush faster, since we already saw parent in other project
-    assert buffer.flush_segments(now=30) == {}
-    rv = buffer.flush_segments(now=60)
+    assert buffer.flush_segments(now=30) == (0, {})
+    _, rv = buffer.flush_segments(now=60)
     assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"A", b"B", b"C"}}
     buffer.done_flush_segments(rv)
 
-    assert buffer.flush_segments(now=90) == {}
+    assert buffer.flush_segments(now=90) == (0, {})
 
     assert_clean(buffer.client)

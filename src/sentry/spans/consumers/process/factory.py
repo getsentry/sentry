@@ -156,6 +156,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_time: int,
         num_processes: int,
         max_flush_segments: int,
+        max_inflight_segments: int,
         num_shards: int,
         flush_shard: list[int],
         input_block_size: int | None,
@@ -167,6 +168,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
+        self.max_inflight_segments = max_inflight_segments
         self.num_shards = num_shards
         self.flush_shard = flush_shard
         self.input_block_size = input_block_size
@@ -196,6 +198,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.producer,
             self.output_topic,
             self.max_flush_segments,
+            self.max_inflight_segments,
             next_step=committer,
         )
 
@@ -248,14 +251,16 @@ class SpanFlusher(ProcessingStrategy[int]):
         flush_shard: list[int],
         producer: KafkaProducer,
         topic: ArroyoTopic,
-        max_segments: int,
+        max_flush_segments: int,
+        max_inflight_segments: int,
         next_step: ProcessingStrategy[int],
     ):
         self.buffer = buffer
         self.flush_shard = flush_shard
         self.producer = producer
         self.topic = topic
-        self.max_segments = max_segments
+        self.max_flush_segments = max_flush_segments
+        self.max_inflight_segments = max_inflight_segments
         self.next_step = next_step
 
         self.stopped = False
@@ -271,15 +276,14 @@ class SpanFlusher(ProcessingStrategy[int]):
 
             producer_futures = []
 
-            flushed_segments = self.buffer.flush_segments(
-                max_segments=self.max_segments, now=now, flush_shard=self.flush_shard or None
+            queue_size, flushed_segments = self.buffer.flush_segments(
+                max_segments=self.max_flush_segments, now=now, flush_shard=self.flush_shard or None
             )
+            self.enable_backpressure = queue_size >= self.max_inflight_segments
+
             if not flushed_segments:
-                self.enable_backpressure = False
                 time.sleep(1)
                 continue
-
-            self.enable_backpressure = len(flushed_segments) >= self.max_segments
 
             for segment_id, spans_set in flushed_segments.items():
                 # TODO: Check if this is correctly placed
