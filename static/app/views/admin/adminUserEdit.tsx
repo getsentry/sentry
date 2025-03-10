@@ -11,6 +11,8 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
@@ -117,13 +119,18 @@ function AdminUserEdit() {
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
 
-  const {data: user} = useApiQuery<User>([`/users/${id}/`], {
+  const {
+    data: user,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<User>([userEndpoint], {
     staleTime: 0,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async () => {
-      await api.requestPromise(userEndpoint, {
+    mutationFn: () => {
+      return api.requestPromise(userEndpoint, {
         method: 'DELETE',
         data: {hardDelete: true, organizations: []},
       });
@@ -135,12 +142,11 @@ function AdminUserEdit() {
   });
 
   const deactivateMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.requestPromise(userEndpoint, {
+    mutationFn: () => {
+      return api.requestPromise(userEndpoint, {
         method: 'PUT',
         data: {isActive: false},
       });
-      return response;
     },
     onSuccess: response => {
       formModel.setInitialData(response);
@@ -150,6 +156,14 @@ function AdminUserEdit() {
 
   const removeUser = (actionType: DeleteType) =>
     actionType === 'delete' ? deleteMutation.mutate() : deactivateMutation.mutate();
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
 
   if (!user) {
     return null;
