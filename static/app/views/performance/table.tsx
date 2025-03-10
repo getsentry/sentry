@@ -594,7 +594,7 @@ class _Table extends Component<Props, State> {
       <div data-test-id="performance-table">
         <GuideAnchor
           target="performance_table"
-          position="top"
+          position="top-start"
           wrapperComponent={TableWrapper}
         >
           <MEPConsumer>
