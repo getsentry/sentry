@@ -2711,13 +2711,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             [
                 self.create_span(
                     {
-                        "measurements": {"cache.hit": {"value": 0}},
+                        "data": {"cache.hit": False},
                     },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
                     {
-                        "measurements": {"cache.hit": {"value": 1}},
+                        "data": {"cache.hit": True},
                     },
                     start_ts=self.ten_mins_ago,
                 ),
