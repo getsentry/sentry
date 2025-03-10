@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from typing import Any, Literal
+from typing import Literal
 
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -100,9 +99,45 @@ def trace_status_rate(status: str) -> Column.BinaryFormula:
     )
 
 
-FORMULA_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
-    "http_response_rate": http_response_rate
-}
+def cache_miss_rate(arg: None) -> Column.BinaryFormula:
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="cache.hit",
+                    type=AttributeKey.TYPE_BOOLEAN,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="cache.hit",
+                            type=AttributeKey.TYPE_BOOLEAN,
+                        ),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(
+                            val_bool=False,
+                        ),
+                    )
+                ),
+                label="cache_miss_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="cache.hit",
+                    type=AttributeKey.TYPE_BOOLEAN,
+                ),
+                label="total_cache_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+    )
+
 
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
@@ -115,7 +150,13 @@ SPAN_FORMULA_DEFINITIONS = {
                 validator=literal_validator(["1", "2", "3", "4", "5"]),
             )
         ],
-        formula_resolver=FORMULA_RESOLVER["http_response_rate"],
+        formula_resolver=http_response_rate,
+    ),
+    "cache_miss_rate": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[],
+        formula_resolver=cache_miss_rate,
+        is_aggregate=True,
     ),
     "trace_status_rate": FormulaDefinition(
         default_search_type="percentage",
