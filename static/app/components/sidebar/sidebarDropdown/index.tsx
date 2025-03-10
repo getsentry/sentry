@@ -1,10 +1,13 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
-import Avatar from 'sentry/components/avatar';
 import {Chevron} from 'sentry/components/chevron';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
@@ -58,21 +61,22 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
     logout(api);
   }
 
+  const sharedAvatarProps = {
+    collapsed,
+    size: 32,
+    round: false,
+  };
+
   // Avatar to use: Organization --> user --> Sentry
-  const avatar =
-    hasOrganization || hasUser ? (
-      <StyledAvatar
-        collapsed={collapsed}
-        organization={org ?? undefined}
-        user={!org ? user : undefined}
-        size={32}
-        round={false}
-      />
-    ) : (
-      <SentryLink to="/">
-        <IconSentry size="xl" />
-      </SentryLink>
-    );
+  const avatar = hasOrganization ? (
+    <StyledOrganizationAvatar {...sharedAvatarProps} organization={org} />
+  ) : hasUser ? (
+    <StyledUserAvatar {...sharedAvatarProps} user={user} />
+  ) : (
+    <SentryLink to="/">
+      <IconSentry size="xl" />
+    </SentryLink>
+  );
 
   return (
     <DeprecatedDropdownMenu>
@@ -240,15 +244,23 @@ const SidebarDropdownActor = styled('button')`
   }
 `;
 
-const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
+const AvatarStyles = (p: {collapsed: boolean; theme: Theme}) => css`
   margin: ${space(0.25)} 0;
-  margin-right: ${p => (p.collapsed ? '0' : space(1.5))};
+  margin-right: ${p.collapsed ? '0' : space(1.5)};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   border-radius: 6px; /* Fixes background bleeding on corners */
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p.theme.breakpoints.medium}) {
     margin-right: 0;
   }
+`;
+
+const StyledOrganizationAvatar = styled(OrganizationAvatar)<{collapsed: boolean}>`
+  ${p => AvatarStyles(p)};
+`;
+
+const StyledUserAvatar = styled(UserAvatar)<{collapsed: boolean}>`
+  ${p => AvatarStyles(p)};
 `;
 
 const OrgAndUserMenu = styled('div')`
