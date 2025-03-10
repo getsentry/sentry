@@ -255,7 +255,7 @@ class Chart extends Component<ChartProps, State> {
           top: 12,
           data,
           selected,
-          ...(legendOptions ?? {}),
+          ...legendOptions,
         }
       : undefined;
 
@@ -330,7 +330,7 @@ class Chart extends Component<ChartProps, State> {
           },
         },
       },
-      ...(chartOptionsProp ?? {}),
+      ...chartOptionsProp,
       animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 

@@ -66,6 +66,8 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPSpanNode,
+  isEAPTraceNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -664,7 +666,7 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
@@ -680,7 +682,7 @@ function RenderTraceRow(props: {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
-  if (isTraceNode(node)) {
+  if (isTraceNode(node) || isEAPTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
   }
 
