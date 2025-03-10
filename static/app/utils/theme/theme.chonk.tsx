@@ -272,9 +272,9 @@ const darkColors: typeof lightColors = {
   black: '#181423',
   white: '#F6F5FA',
 
-  surface500: '#2B2738', // background.primary
-  surface400: '#272433', // background.secondary
-  surface300: '#23202E', // background.teritary
+  surface500: '#272433', // background.primary
+  surface400: '#23202E', // background.secondary
+  surface300: '#1F1D29', // background.teritary
   surface200: '#18151F', // border.muted
   surface100: '#000000', // border.primary
 
