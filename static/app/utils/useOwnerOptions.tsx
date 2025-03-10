@@ -1,7 +1,8 @@
 import groupBy from 'lodash/groupBy';
 
-import Avatar from 'sentry/components/avatar';
-import type {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {t} from 'sentry/locale';
 import type {DetailedTeam, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -42,13 +43,13 @@ export function useOwnerOptions({
     members?.map(member => ({
       value: `user:${member.id}`,
       label: member.name,
-      leadingItems: <Avatar user={member} {...avatarProps} />,
+      leadingItems: <UserAvatar user={member} {...avatarProps} />,
     })) ?? [];
 
   const makeTeamOption = (team: Team) => ({
     value: `team:${team.id}`,
     label: `#${team.slug}`,
-    leadingItems: <Avatar team={team} {...avatarProps} />,
+    leadingItems: <TeamAvatar team={team} {...avatarProps} />,
   });
 
   const makeDisabledTeamOption = (team: Team) => ({
