@@ -143,9 +143,9 @@ class PieChart extends Component<Props> {
           bottom: 10,
           formatter: name =>
             `${name} ${
-              typeof seriesPercentages[name] !== 'undefined'
-                ? `(${seriesPercentages[name]}%)`
-                : ''
+              typeof seriesPercentages[name] === 'undefined'
+                ? ''
+                : `(${seriesPercentages[name]}%)`
             }`,
         })}
         tooltip={{

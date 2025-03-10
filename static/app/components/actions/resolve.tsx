@@ -260,7 +260,7 @@ function ResolveActions({
       },
     ];
 
-    const isDisabled = !projectSlug ? disabled : disableDropdown;
+    const isDisabled = projectSlug ? disableDropdown : disabled;
 
     return (
       <StyledDropdownMenu

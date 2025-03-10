@@ -222,7 +222,7 @@ export function useSpanAncestryAndGroupingItems({
 
   items.push({
     key: 'origin',
-    value: span.origin !== undefined ? String(span.origin) : null,
+    value: span.origin === undefined ? null : String(span.origin),
     subject: t('Origin'),
   });
 

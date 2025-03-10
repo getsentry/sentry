@@ -70,9 +70,7 @@ function HotkeysLabel({value, forcePlatform}: Props) {
   // Otherwise show whatever the first hotkey is.
   const finalKeySet = hotkeySets
     .map(keySet => keySet.map(key => keyToDisplay(key, isMac)))
-    .find(keySet =>
-      !isMac ? keySet.every(key => key.specificToOs === 'generic') : true
-    );
+    .find(keySet => (isMac ? true : keySet.every(key => key.specificToOs === 'generic')));
 
   // No key available for the OS. Don't show a hotkey
   if (finalKeySet === undefined) {

@@ -98,12 +98,12 @@ export function CachesWidget({query}: {query?: string}) {
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
         ) : error ? (
           <Widget.WidgetError error={error} />
-        ) : !hasData ? (
-          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-        ) : (
+        ) : hasData ? (
           <TimeSeriesWidgetVisualization
             plottables={timeSeries.map(convertSeriesToTimeseries).map(ts => new Line(ts))}
           />
+        ) : (
+          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
         )
       }
       Footer={

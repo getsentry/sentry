@@ -381,17 +381,7 @@ function AggregateFlamegraphFunctionBreakdown(
         {tct('Called By ([count])', {count: callers.length})}
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {!callers.length ? (
-          <AggregateFlamegraphFunctionBreakdownEmptyState>
-            <Tooltip
-              title={t(
-                'When a function has no callers, it means that it is a root function.'
-              )}
-            >
-              {t('No callers detected.')}
-            </Tooltip>
-          </AggregateFlamegraphFunctionBreakdownEmptyState>
-        ) : (
+        {callers.length ? (
           callers.map((caller, c) => (
             <AggregateFlamegraphFunction
               key={c}
@@ -403,23 +393,23 @@ function AggregateFlamegraphFunctionBreakdown(
               profileGroup={profileGroup}
             />
           ))
+        ) : (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            <Tooltip
+              title={t(
+                'When a function has no callers, it means that it is a root function.'
+              )}
+            >
+              {t('No callers detected.')}
+            </Tooltip>
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
         )}
       </AggregateFlamegraphSection>
       <AggregateFlamegraphSectionHeader>
         {tct('Calls ([count])', {count: callees.length})}
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {!callees.length ? (
-          <AggregateFlamegraphFunctionBreakdownEmptyState>
-            <Tooltip
-              title={t(
-                'When a function has no callees, it likely means that it is a leaf function, or that the profiler did not collect any samples of its callees yet.'
-              )}
-            >
-              {t('No callees detected.')}
-            </Tooltip>
-          </AggregateFlamegraphFunctionBreakdownEmptyState>
-        ) : (
+        {callees.length ? (
           callees.map((callee, c) => (
             <AggregateFlamegraphFunction
               key={c}
@@ -431,6 +421,16 @@ function AggregateFlamegraphFunctionBreakdown(
               profileGroup={profileGroup}
             />
           ))
+        ) : (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            <Tooltip
+              title={t(
+                'When a function has no callees, it likely means that it is a leaf function, or that the profiler did not collect any samples of its callees yet.'
+              )}
+            >
+              {t('No callees detected.')}
+            </Tooltip>
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
         )}
       </AggregateFlamegraphSection>
       <AggregateFlamegraphSectionHeader>
@@ -439,11 +439,7 @@ function AggregateFlamegraphFunctionBreakdown(
         </Tooltip>
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {!example.profileIds?.length ? (
-          <AggregateFlamegraphFunctionBreakdownEmptyState>
-            {t('No profiles detected.')}
-          </AggregateFlamegraphFunctionBreakdownEmptyState>
-        ) : (
+        {example.profileIds?.length ? (
           example.profileIds?.map((e, i) => {
             return (
               <AggregateFlamegraphProfileReference
@@ -455,6 +451,10 @@ function AggregateFlamegraphFunctionBreakdown(
               />
             );
           })
+        ) : (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            {t('No profiles detected.')}
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
         )}
       </AggregateFlamegraphSection>
     </AggregateFlamegraphFunctionBreakdownContainer>

@@ -391,14 +391,14 @@ function StreamGroup({
           <TimeSince date={dateCreated} />
         </StartedColumn>
         <EventsReprocessedColumn>
-          {!defined(count) ? (
-            <Placeholder height="17px" />
-          ) : (
+          {defined(count) ? (
             <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
             </Fragment>
+          ) : (
+            <Placeholder height="17px" />
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
@@ -440,9 +440,7 @@ function StreamGroup({
     [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
-  const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupCount = defined(primaryCount) ? (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
         disabled={!useFilteredStats}
@@ -490,11 +488,11 @@ function StreamGroup({
         )}
       </Tooltip>
     </GuideAnchor>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupUsersCount = defined(primaryUserCount) ? (
     <Tooltip
       isHoverable
       disabled={!usePageFilters}
@@ -540,17 +538,19 @@ function StreamGroup({
         </Fragment>
       )}
     </Tooltip>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const lastTriggered = !defined(lastTriggeredDate) ? (
-    <Placeholder height="18px" />
-  ) : (
+  const lastTriggered = defined(lastTriggeredDate) ? (
     <PositionedTimeSince
       tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
       unitStyle="short"
     />
+  ) : (
+    <Placeholder height="18px" />
   );
 
   const issueStreamAnchor = isDemoModeEnabled() ? (

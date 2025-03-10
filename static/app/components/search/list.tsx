@@ -70,9 +70,7 @@ function List({
         <LoadingWrapper>
           <LoadingIndicator mini hideMessage relative />
         </LoadingWrapper>
-      ) : !hasAnyResults ? (
-        <EmptyItem>{t('No results found')}</EmptyItem>
-      ) : (
+      ) : hasAnyResults ? (
         resultList.map((result, index) => {
           const {item, matches, refIndex} = result;
           const highlighted = index === highlightedIndex;
@@ -89,6 +87,8 @@ function List({
 
           return <ResultRow key={`${index}-${refIndex}`} {...resultProps} />;
         })
+      ) : (
+        <EmptyItem>{t('No results found')}</EmptyItem>
       )}
       {!isLoading && resultFooter ? <ResultFooter>{resultFooter}</ResultFooter> : null}
     </DropdownBox>

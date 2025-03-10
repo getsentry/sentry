@@ -66,10 +66,10 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 
   const handleToggleMonitor = (monitor: Monitor) => {
     const checked = isMonitorSelected(monitor);
-    if (!checked) {
-      setSelectedMonitors([...selectedMonitors, monitor]);
-    } else {
+    if (checked) {
       setSelectedMonitors(selectedMonitors.filter(m => m.slug !== monitor.slug));
+    } else {
+      setSelectedMonitors([...selectedMonitors, monitor]);
     }
   };
 

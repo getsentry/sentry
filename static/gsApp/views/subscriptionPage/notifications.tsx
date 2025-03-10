@@ -303,9 +303,9 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
           <SelectGroupRow>
             <StyledCompactSelect
               triggerLabel={
-                newThresholdValue !== undefined
-                  ? `${newThresholdValue}%`
-                  : t('Add threshold')
+                newThresholdValue === undefined
+                  ? t('Add threshold')
+                  : `${newThresholdValue}%`
               }
               triggerProps={{style: {width: '100%', fontWeight: 'normal'}}}
               value={undefined}

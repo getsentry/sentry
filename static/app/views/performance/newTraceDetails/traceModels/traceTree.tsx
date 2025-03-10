@@ -1343,18 +1343,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (isParentAutogroupedNode(node)) {
-      if (!expanded) {
-        const index = this.list.indexOf(node);
-        this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
-
-        // When we collapse the autogroup, we need to point the tail children
-        // back to the tail autogroup node.
-        for (const c of node.tail.children) {
-          c.parent = node;
-        }
-
-        this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node.tail));
-      } else {
+      if (expanded) {
         const index = this.list.indexOf(node);
         this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
@@ -1370,6 +1359,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
           node.head,
           ...TraceTree.VisibleChildren(node.head)
         );
+      } else {
+        const index = this.list.indexOf(node);
+        this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+
+        // When we collapse the autogroup, we need to point the tail children
+        // back to the tail autogroup node.
+        for (const c of node.tail.children) {
+          c.parent = node;
+        }
+
+        this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node.tail));
       }
 
       TraceTree.invalidate(node, true);
@@ -1377,7 +1377,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return true;
     }
 
-    if (!expanded) {
+    if (expanded) {
+      node.expanded = expanded;
+      // Flip expanded so that we can collect visible children
+      const index = this.list.indexOf(node);
+      this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
+    } else {
       const index = this.list.indexOf(node);
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
@@ -1386,11 +1391,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isTransactionNode(node)) {
         this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
       }
-    } else {
-      node.expanded = expanded;
-      // Flip expanded so that we can collect visible children
-      const index = this.list.indexOf(node);
-      this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
     }
 
     TraceTree.invalidate(node, true);

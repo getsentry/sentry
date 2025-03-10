@@ -50,10 +50,10 @@ export function FunctionName({
 
   return (
     <code className={className} {...props}>
-      {!valueOutput ? (
-        t('<unknown>')
-      ) : (
+      {valueOutput ? (
         <AnnotatedText value={valueOutput.value} meta={valueOutput.meta} />
+      ) : (
+        t('<unknown>')
       )}
     </code>
   );

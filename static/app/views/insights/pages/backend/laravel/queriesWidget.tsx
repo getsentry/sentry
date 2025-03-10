@@ -119,9 +119,7 @@ export function QueriesWidget({query}: {query?: string}) {
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
         ) : error ? (
           <Widget.WidgetError error={error} />
-        ) : !hasData ? (
-          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-        ) : (
+        ) : hasData ? (
           <TimeSeriesWidgetVisualization
             aliases={Object.fromEntries(
               queriesRequest.data?.data.map(item => [
@@ -131,6 +129,8 @@ export function QueriesWidget({query}: {query?: string}) {
             )}
             plottables={timeSeries.map(convertSeriesToTimeseries).map(ts => new Line(ts))}
           />
+        ) : (
+          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
         )
       }
       noFooterPadding

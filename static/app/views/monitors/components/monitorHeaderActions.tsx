@@ -71,7 +71,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
 
   const disableProps = {
     disabled: !canEdit,
-    title: !canEdit ? permissionTooltipText : undefined,
+    title: canEdit ? undefined : permissionTooltipText,
   };
 
   return (
@@ -100,7 +100,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
           size="sm"
           icon={<IconDelete size="xs" />}
           aria-label={t('Delete')}
-          title={!canEdit ? permissionTooltipText : undefined}
+          title={canEdit ? undefined : permissionTooltipText}
         />
       </Confirm>
       <LinkButton

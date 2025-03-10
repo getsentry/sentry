@@ -782,7 +782,7 @@ class FormModel {
       this.isValidRequiredField(field)
     );
 
-    this.formState = !formComplete ? FormState.INCOMPLETE : FormState.READY;
+    this.formState = formComplete ? FormState.READY : FormState.INCOMPLETE;
   }
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
