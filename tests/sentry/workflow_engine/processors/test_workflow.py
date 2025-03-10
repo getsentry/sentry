@@ -159,7 +159,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             process_workflows(self.job)
             mock_incr.assert_any_call(
                 "workflow_engine.process_workflows.triggered_actions",
-                0,
+                amount=0,
                 tags={"detector_type": self.error_detector.type},
             )
 
