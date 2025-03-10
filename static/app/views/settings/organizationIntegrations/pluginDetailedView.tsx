@@ -64,21 +64,18 @@ function PluginDetailedView() {
     {staleTime: Infinity, retry: false}
   );
 
-  // XXX: For the FC conversion, these all need to be memoized to prevent render callbacks being
-  // computed on every render.
   const integrationType = 'plugin';
   const plugin = useMemo(() => plugins?.[0], [plugins]);
-  const description = useMemo(() => plugin?.description || '', [plugin]);
-  const author = useMemo(() => plugin?.author?.name, [plugin]);
-  const resourceLinks = useMemo(() => plugin?.resourceLinks || [], [plugin]);
-  const installationStatus: IntegrationInstallationStatus = useMemo(
-    () => (plugin?.projectList?.length ? INSTALLED : NOT_INSTALLED),
-    [plugin]
-  );
+  const description = plugin?.description || '';
+  const author = plugin?.author?.name ?? '';
+  const installationStatus: IntegrationInstallationStatus = plugin?.projectList?.length
+    ? INSTALLED
+    : NOT_INSTALLED;
   const integrationName = useMemo(
     () => `${plugin?.name}${plugin?.isHidden ? t(' (Legacy)') : ''}`,
     [plugin]
   );
+  const resourceLinks = useMemo(() => plugin?.resourceLinks || [], [plugin]);
   const featureData = useMemo(() => plugin?.featureDescriptions ?? [], [plugin]);
 
   useEffect(() => {
@@ -336,7 +333,6 @@ function PluginDetailedView() {
           <IntegrationLayout.InformationCard
             integrationSlug={integrationSlug}
             description={description}
-            alerts={[]}
             featureData={featureData}
             author={author}
             resourceLinks={resourceLinks}
