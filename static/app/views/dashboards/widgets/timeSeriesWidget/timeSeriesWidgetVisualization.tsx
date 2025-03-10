@@ -371,6 +371,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             show: false,
           },
         },
+        // @ts-expect-error ECharts types are wrong here. Returning `undefined` from the `max` function is 100% allowed and is listed in the documentation. See https://github.com/apache/echarts/pull/12215/
         max: value => {
           // Handle a very specific edge case with percentage formatting.
           // Percentage charts values usually range from 0 to 1, but JavaScript
@@ -388,7 +389,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             return 1;
           }
 
-          return value.max;
+          return null;
         },
       }}
       {...chartZoomProps}
