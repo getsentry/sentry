@@ -552,7 +552,7 @@ export default typescript.config([
       'unicorn/custom-error-definition': 'error', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/error-message': 'error', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/new-for-builtins': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/new-for-builtins': 'error', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-abusive-eslint-disable': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-await-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
