@@ -555,7 +555,7 @@ export default typescript.config([
       'unicorn/new-for-builtins': 'error',
       'unicorn/no-abusive-eslint-disable': 'error',
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-await-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-await-in-promise-methods': 'error',
       'unicorn/no-instanceof-array': 'error',
       'unicorn/no-invalid-remove-event-listener': 'error',
       'unicorn/no-negated-condition': 'off', // TODO(ryan953): Fix violations and enable this rule
