@@ -557,7 +557,7 @@ export default typescript.config([
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-await-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-instanceof-array': 'error',
-      'unicorn/no-invalid-remove-event-listener': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-invalid-remove-event-listener': 'error',
       'unicorn/no-negated-condition': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-negation-in-equality-check': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
