@@ -20,6 +20,65 @@ import AutomationHistoryList from 'sentry/views/automations/components/automatio
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 
+function HistoryAndConnectedMonitors() {
+  return (
+    <div>
+      <Section title={t('History')}>
+        <AutomationHistoryList history={[]} />
+      </Section>
+      <Section title={t('Connected Monitors')}>
+        <ConnectedMonitorsList monitors={[]} />
+      </Section>
+    </div>
+  );
+}
+
+function Details() {
+  return (
+    <div>
+      <Flex column gap={space(1)}>
+        <SectionHeading>{t('Last Triggered')}</SectionHeading>
+        <span>
+          <TimeSince date={new Date()} />
+        </span>
+      </Flex>
+      <Flex column gap={space(1)}>
+        <SectionHeading>{t('Conditions')}</SectionHeading>
+        <ConditionsPanel
+          when_conditions={[
+            t('An issue escalates'),
+            t('A new event is captured for an issue'),
+          ]}
+          if_conditions={[
+            t('Issue is assigned to no one'),
+            t('Current issue priority is high'),
+          ]}
+          actions={[
+            t(
+              'Notify Suggested Assignees and if none can be found then notify Recently Active Members'
+            ),
+          ]}
+        />
+      </Flex>
+      <Flex column gap={space(1)}>
+        <SectionHeading>{t('Details')}</SectionHeading>
+        <KeyValueTable>
+          <KeyValueTableRow
+            keyName={t('Date created')}
+            value={<DateTime date={new Date()} dateOnly year />}
+          />
+          <KeyValueTableRow keyName={t('Created by')} value="Jane Doe" />
+          <KeyValueTableRow
+            keyName={t('Last modified')}
+            value={<TimeSince date={new Date()} />}
+          />
+          <KeyValueTableRow keyName={t('Team')} value="Platform" />
+        </KeyValueTable>
+      </Flex>
+    </div>
+  );
+}
+
 export default function AutomationDetail() {
   useWorkflowEngineFeatureGate({redirect: true});
 
@@ -29,53 +88,10 @@ export default function AutomationDetail() {
         <ActionsProvider actions={<Actions />}>
           <DetailLayout>
             <DetailLayout.Main>
-              <Section title={t('History')}>
-                <AutomationHistoryList history={[]} />
-              </Section>
-              <Section title={t('Connected Monitors')}>
-                <ConnectedMonitorsList monitors={[]} />
-              </Section>
+              <HistoryAndConnectedMonitors />
             </DetailLayout.Main>
             <DetailLayout.Sidebar>
-              <Flex column gap={space(1)}>
-                <SectionHeading>{t('Last Triggered')}</SectionHeading>
-                <span>
-                  <TimeSince date={new Date()} />
-                </span>
-              </Flex>
-              <Flex column gap={space(1)}>
-                <SectionHeading>{t('Conditions')}</SectionHeading>
-                <ConditionsPanel
-                  when_conditions={[
-                    t('An issue escalates'),
-                    t('A new event is captured for an issue'),
-                  ]}
-                  if_conditions={[
-                    t('Issue is assigned to no one'),
-                    t('Current issue priority is high'),
-                  ]}
-                  actions={[
-                    t(
-                      'Notify Suggested Assignees and if none can be found then notify Recently Active Members'
-                    ),
-                  ]}
-                />
-              </Flex>
-              <Flex column gap={space(1)}>
-                <SectionHeading>{t('Details')}</SectionHeading>
-                <KeyValueTable>
-                  <KeyValueTableRow
-                    keyName={t('Date created')}
-                    value={<DateTime date={new Date()} dateOnly year />}
-                  />
-                  <KeyValueTableRow keyName={t('Created by')} value="Jane Doe" />
-                  <KeyValueTableRow
-                    keyName={t('Last modified')}
-                    value={<TimeSince date={new Date()} />}
-                  />
-                  <KeyValueTableRow keyName={t('Team')} value="Platform" />
-                </KeyValueTable>
-              </Flex>
+              <Details />
             </DetailLayout.Sidebar>
           </DetailLayout>
         </ActionsProvider>

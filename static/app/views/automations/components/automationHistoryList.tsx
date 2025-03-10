@@ -16,12 +16,8 @@ type Props = {
   history: AutomationHistoryData[];
 };
 
-export default function AutomationHistoryList({history}: Props) {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-
-  const columns = defineColumns<AutomationHistoryData>({
+const getColumns = (timezone: string) =>
+  defineColumns<AutomationHistoryData>({
     dateSent: {
       Header: () =>
         tct('Time Sent ([timezone])', {timezone: moment.tz(timezone).zoneAbbr()}),
@@ -39,6 +35,13 @@ export default function AutomationHistoryList({history}: Props) {
       width: '2fr',
     },
   });
+
+export default function AutomationHistoryList({history}: Props) {
+  const {
+    options: {timezone},
+  } = ConfigStore.get('user');
+
+  const columns = getColumns(timezone);
 
   return <SimpleTable columns={columns} data={history} />;
 }
