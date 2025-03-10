@@ -213,6 +213,7 @@ export function getDemoModeGuides(): GuidesContent {
           description: t(
             `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select a transaction to see more details.`
           ),
+          hasNextGuide: true,
         },
       ],
     },
@@ -234,6 +235,7 @@ export function getDemoModeGuides(): GuidesContent {
             'Select an Event ID from a list of slow transactions to uncover slow spans.'
           ),
           nextText: t('Got it'),
+          hasNextGuide: true,
         },
       ],
     },

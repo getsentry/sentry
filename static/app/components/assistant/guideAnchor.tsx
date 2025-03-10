@@ -41,6 +41,11 @@ type Props = {
     pathname: string;
     query: Query;
   };
+  wrapperComponent?: React.ComponentType<{
+    'aria-expanded': React.AriaAttributes['aria-expanded'];
+    children: React.ReactNode;
+    ref: React.RefAttributes<HTMLElement>['ref'];
+  }>;
 };
 
 function ScrollToGuide({children}: {children: React.ReactNode}) {
@@ -146,7 +151,8 @@ class BaseGuideAnchor extends Component<Props, State> {
   };
 
   render() {
-    const {children, position, offset, containerClassName, to} = this.props;
+    const {children, position, offset, containerClassName, to, wrapperComponent} =
+      this.props;
     const {active, currentGuide, step} = this.state;
 
     if (!active) {
@@ -156,7 +162,7 @@ class BaseGuideAnchor extends Component<Props, State> {
     const totalStepCount = currentGuide?.steps.length ?? 0;
     const currentStepCount = step + 1;
     const currentStep = currentGuide?.steps[step]!;
-    const lastStep = currentStepCount === totalStepCount;
+    const lastStep = currentStepCount === totalStepCount && !currentStep.hasNextGuide;
     const hasManySteps = totalStepCount > 1;
 
     return (
@@ -170,7 +176,7 @@ class BaseGuideAnchor extends Component<Props, State> {
           this.handleDismiss(e);
           window.location.hash = '';
         }}
-        wrapperComponent={GuideAnchorWrapper}
+        wrapperComponent={wrapperComponent ?? GuideAnchorWrapper}
         actions={
           <ButtonBar gap={1}>
             {lastStep ? (
@@ -202,6 +208,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 type WrapperProps = Props & {
   children?: React.ReactNode;
   disabled?: boolean;
+  wrapperComponent?: React.CSSProperties;
 };
 
 /**
@@ -209,11 +216,15 @@ type WrapperProps = Props & {
  * register with the GuideStore, which uses registrations from one or more
  * anchors on the page to determine which guides can be shown on the page.
  */
-function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
+function GuideAnchor({disabled, children, wrapperComponent, ...rest}: WrapperProps) {
   if (disabled) {
     return <Fragment>{children}</Fragment>;
   }
-  return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
+  return (
+    <BaseGuideAnchor wrapperComponent={wrapperComponent} {...rest}>
+      {children}
+    </BaseGuideAnchor>
+  );
 }
 
 const GuideAnchorWrapper = styled('span')`
