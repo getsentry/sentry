@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PlatformList from 'sentry/components/platformList';
+import {PlatformList} from 'sentry/components/platformList';
 import type {PlatformKey} from 'sentry/types/project';
 
 describe('PlatformList', function () {

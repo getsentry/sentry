@@ -4,8 +4,8 @@ import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';

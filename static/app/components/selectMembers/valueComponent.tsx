@@ -1,4 +1,4 @@
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import type {Actor} from 'sentry/types/core';
 
 type Value = {

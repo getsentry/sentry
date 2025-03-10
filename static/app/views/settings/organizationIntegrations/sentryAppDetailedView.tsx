@@ -9,8 +9,8 @@ import {
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -287,7 +287,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderIntegrationIcon() {
-    return <SentryAppIcon sentryApp={this.sentryApp} size={50} />;
+    return <SentryAppAvatar sentryApp={this.sentryApp} size={50} />;
   }
 }
 

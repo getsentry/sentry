@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';

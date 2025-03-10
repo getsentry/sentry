@@ -4,8 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
