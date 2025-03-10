@@ -220,8 +220,8 @@ function DashboardGrid({
 
     // finds number of dashboards (cached or not) based on if the screen is being resized or not
     const numDashboards = gridIsBeingResized
-      ? currentDashboards?.length ?? 0
-      : dashboards?.length ?? 0;
+      ? (currentDashboards?.length ?? 0)
+      : (dashboards?.length ?? 0);
 
     return (
       <DashboardGridContainer

@@ -53,3 +53,9 @@ class SpanGroupingResults:
             trace_context["hash"] = span_hash
 
         event_data["span_grouping_config"] = {"id": self.id}
+
+    def write_to_spans(self, spans: list[Any]) -> None:
+        for span in spans:
+            span_hash = self.results.get(span["span_id"])
+            if span_hash is not None:
+                span["hash"] = span_hash

@@ -161,14 +161,8 @@ class MessagingIntegrationSpec(ABC):
 
 
 class MessagingActionHandler(DefaultActionHandler):
-    def __init__(
-        self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-        spec: MessagingIntegrationSpec,
-    ):
-        super().__init__(action, incident, project)
+    def __init__(self, spec: MessagingIntegrationSpec):
+        super().__init__()
         self._spec = spec
 
     @property
@@ -177,15 +171,20 @@ class MessagingActionHandler(DefaultActionHandler):
 
     def send_alert(
         self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
         success = self._spec.send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
+            action, incident, metric_value, new_status, notification_uuid
         )
         if success:
-            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
+            self.record_alert_sent_analytics(
+                action, incident, project, action.target_identifier, notification_uuid
+            )
 
 
 class _MessagingHandlerFactory(ActionHandlerFactory):
@@ -198,7 +197,5 @@ class _MessagingHandlerFactory(ActionHandlerFactory):
         )
         self.spec = spec
 
-    def build_handler(
-        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
-    ) -> ActionHandler:
-        return MessagingActionHandler(action, incident, project, self.spec)
+    def build_handler(self) -> ActionHandler:
+        return MessagingActionHandler(self.spec)

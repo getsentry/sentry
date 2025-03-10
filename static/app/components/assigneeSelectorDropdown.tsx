@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
 import {
@@ -11,6 +10,7 @@ import {
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/compactSelect';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
