@@ -314,7 +314,7 @@
           {% url 'sentry-organization-performance' organization.slug as performance_landing %}
           {% querystring referrer="weekly_report_upsell" notification_uuid=notification_uuid as query %}
           <a href="{% org_url organization performance_landing query=query %}"
-             class="btn" style="margin-top: 8px;">Set Up Performance</a>
+             class="btn" style="margin-top: 8px;">Set Up Tracing</a>
         </div>
       </td>
     {% endif %}
