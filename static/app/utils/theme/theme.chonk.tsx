@@ -170,19 +170,20 @@ const lightColors = {
   black: '#181423',
   white: '#F6F5FA',
 
-  surface500: '#FFFFFF',
-  surface400: '#FBFAFF',
-  surface300: '#F9F7FF',
-  surface200: '#EBE9F2', // Currently used for borderSecondary
-  surface100: '#DAD7E5', // Currently used for button chonk & borderPrimary
+  surface500: '#FFFFFF', // background.primary
+  surface400: '#FBFAFF', // background.secondary
+  surface300: '#F9F7FF', // background.tertiary
+  surface200: '#EBE9F2', // border.muted
+  surface100: '#DAD7E5', // border.primary
 
-  // @TODO(jonasbadalic): Why does gray opaque have 500?
+  // ⚠ Deprecated
   grayOpaque500: '#181423',
   grayOpaque400: '#6D6B74',
   grayOpaque300: '#939198',
   grayOpaque200: '#E0DFE2',
   grayOpaque100: '#F3F3F4',
 
+  // ⚠ Deprecated
   grayTransparent500: 'rgba(24, 20, 35, 1.0)',
   grayTransparent400: 'rgba(24, 20, 35, 0.63)',
   grayTransparent300: 'rgba(24, 20, 35, 0.47)',
@@ -248,7 +249,7 @@ const lightColors = {
     pink400: '#FF70BC',
     pink300: '#ED69AF',
     pink200: '#DB61A2',
-    pink100: '#C45691',
+    pink100: '#962963',
 
     red400: '#E50045',
     red300: '#D4003F',
@@ -271,20 +272,20 @@ const darkColors: typeof lightColors = {
   black: '#181423',
   white: '#F6F5FA',
 
-  surface500: '#312D40',
-  surface400: '#272433',
-  surface300: '#23202E',
-  surface200: '#18151F', // Currently used for borderSecondary
-  surface100: '#000000', // Currently used for button chonk & borderPrimary
+  surface500: '#312D40', // background.primary
+  surface400: '#272433', // background.secondary
+  surface300: '#23202E', // background.teritary
+  surface200: '#18151F', // border.muted
+  surface100: '#000000', // border.primary
 
-  // @TODO(jonasbadalic): why 500 range?
+  // ⚠ Deprecated
   grayOpaque500: '#F6F5FA',
   grayOpaque400: '#A09DA8',
   grayOpaque300: '#767380',
   grayOpaque200: '#4D4A59',
   grayOpaque100: '#3D394A',
 
-  // @TODO(jonasbadalic): why 500 range?
+  // ⚠ Deprecated
   grayTransparent500: 'rgba(246, 245, 250, 1.0)',
   grayTransparent400: 'rgba(246, 245, 250, 0.58)',
   grayTransparent300: 'rgba(246, 245, 250, 0.37)',
