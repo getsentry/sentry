@@ -545,7 +545,7 @@ function StreamGroup({
   const lastTriggered = !defined(lastTriggeredDate) ? (
     <Placeholder height="18px" />
   ) : (
-    <TimeSince
+    <PositionedTimeSince
       tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
@@ -740,9 +740,12 @@ function StreamGroup({
                 />
               </AssigneeWrapper>
             ))}
-          {showLastTriggered && (
-            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
-          )}
+          {showLastTriggered &&
+            (hasNewLayout ? (
+              <NarrowLastTriggeredWrapper>{lastTriggered}</NarrowLastTriggeredWrapper>
+            ) : (
+              <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+            ))}
         </Fragment>
       )}
     </Wrapper>
@@ -1024,8 +1027,16 @@ const LastTriggeredWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
-  width: 60px;
-  margin: 0 ${space(2)} 0 0;
+  width: 80px;
+  margin: 0 ${space(2)};
+`;
+
+const NarrowLastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 80px;
+  margin-right: ${space(2)};
 `;
 
 const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
@@ -1066,7 +1077,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
 
 const NarrowAssigneeWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   text-align: right;
   width: 60px;
   margin-right: ${space(2)};

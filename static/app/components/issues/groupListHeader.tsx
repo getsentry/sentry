@@ -70,7 +70,7 @@ function GroupListHeader({
             <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
           )}
           {withColumns.includes('lastTriggered') && (
-            <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>
+            <LastTriggeredWrapper>{t('Last Triggered')}</LastTriggeredWrapper>
           )}
         </Fragment>
       )}
@@ -116,6 +116,11 @@ const EventUserWrapper = styled(Heading)`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
+`;
+
+const LastTriggeredWrapper = styled(Heading)`
+  justify-content: flex-end;
+  width: 80px;
 `;
 
 const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
@@ -182,5 +187,6 @@ const NarrowAssigneeLabel = styled(GroupListHeaderLabel)`
 
 const NarrowLastTriggeredLabel = styled(GroupListHeaderLabel)`
   width: 80px;
-  margin-right: 0;
+  text-align: right;
+  justify-content: flex-end;
 `;
