@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,8 +7,11 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {hasLaravelInsightsFeature} from 'sentry/views/insights/pages/backend/laravel/features';
 import {useLaravelInsightsContext} from 'sentry/views/insights/pages/backend/laravel/laravelInsightsContext';
 
@@ -17,6 +20,15 @@ export function NewLaravelExperienceButton() {
   const hasLaravelInsightsFlag = hasLaravelInsightsFeature(organization);
   const {isLaravelInsightsEnabled, setIsLaravelInsightsEnabled} =
     useLaravelInsightsContext();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  const isLaravelProjectSelected = useMemo(() => {
+    const selectedProjects = getSelectedProjectList(selection.projects, projects);
+    return (
+      selectedProjects.length === 1 && selectedProjects[0]?.platform === 'php-laravel'
+    );
+  }, [projects, selection.projects]);
 
   const openForm = useFeedbackForm();
 
@@ -28,7 +40,7 @@ export function NewLaravelExperienceButton() {
     });
   }, [setIsLaravelInsightsEnabled, isLaravelInsightsEnabled, organization]);
 
-  if (!hasLaravelInsightsFlag) {
+  if (!hasLaravelInsightsFlag || !isLaravelProjectSelected) {
     return null;
   }
 
