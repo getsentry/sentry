@@ -30,17 +30,13 @@ describe('WidgetBuilderSlideout', () => {
   beforeEach(() => {
     organization = OrganizationFixture();
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
@@ -59,9 +55,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -98,9 +92,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -134,9 +126,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -230,9 +220,7 @@ describe('WidgetBuilderSlideout', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
-      body: {
-        title: 'Title is required during creation',
-      },
+      body: {title: 'Title is required during creation'},
       statusCode: 400,
     });
 
@@ -408,9 +396,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(await screen.findByText('Update Widget'));
@@ -439,9 +425,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));

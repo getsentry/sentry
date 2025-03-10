@@ -53,15 +53,13 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
     visibleFields,
     tableRef,
-    {
-      minimumColumnWidth: 50,
-    }
+    {minimumColumnWidth: 50}
   );
 
   const meta = result.meta ?? {};
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   return (
     <Fragment>

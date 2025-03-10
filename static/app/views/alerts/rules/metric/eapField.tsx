@@ -38,14 +38,11 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const storedTags = useSpanTags('number');
+  const {tags: storedTags} = useSpanTags('number');
   const numberTags: TagCollection = useMemo(() => {
     const availableTags: TagCollection = storedTags;
     if (field && !defined(storedTags[field])) {
-      availableTags[field] = {
-        key: field,
-        name: prettifyTagKey(field),
-      };
+      availableTags[field] = {key: field, name: prettifyTagKey(field)};
     }
     return availableTags;
   }, [field, storedTags]);
@@ -96,10 +93,7 @@ function EAPField({aggregate, onChange}: Props) {
       );
 
       const options = filteredMeta.map(metric => {
-        return {
-          label: metric.name,
-          value: metric.key,
-        };
+        return {label: metric.name, value: metric.key};
       });
       return options;
     },
@@ -109,10 +103,7 @@ function EAPField({aggregate, onChange}: Props) {
   const fieldName = fieldsArray.find(f => f.key === field)?.name;
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = field && {
-    label: fieldName,
-    value: field,
-  };
+  const selectedOption = field && {label: fieldName, value: field};
 
   return (
     <Wrapper>

@@ -20,14 +20,10 @@ describe('QueryFilterBuilder', () => {
     organization = OrganizationFixture({
       features: ['dashboards-widget-builder-redesign'],
     });
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
   });
 
   it('renders a dataset-specific query filter bar', async () => {
@@ -66,11 +62,7 @@ describe('QueryFilterBuilder', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              query: [],
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.TABLE,
-            },
+            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
           }),
         }),
       }

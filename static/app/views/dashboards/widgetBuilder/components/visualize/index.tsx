@@ -59,9 +59,7 @@ export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
   textValue: t('field'),
-  label: tct('[emphasis:field]', {
-    emphasis: <em />,
-  }),
+  label: tct('[emphasis:field]', {emphasis: <em />}),
   value: NONE,
   trailingItems: null,
 };
@@ -248,9 +246,7 @@ function Visualize({error, setError}: VisualizeProps) {
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
-    fields: {
-      selectedAggregate: decodeScalar,
-    },
+    fields: {selectedAggregate: decodeScalar},
   });
   const [selectedAggregateSet, setSelectedAggregateSet] = useState(
     defined(queryParamSelectedAggregate)
@@ -262,8 +258,8 @@ function Visualize({error, setError}: VisualizeProps) {
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -677,10 +673,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                         return;
                                       }
                                       newFields[index]!.function[1] = value;
-                                      dispatch({
-                                        type: updateAction,
-                                        payload: newFields,
-                                      });
+                                      dispatch({type: updateAction, payload: newFields});
                                       setError?.({...error, queries: []});
                                     }}
                                   />
@@ -698,10 +691,7 @@ function Visualize({error, setError}: VisualizeProps) {
                               onChange={e => {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
-                                dispatch({
-                                  type: updateAction,
-                                  payload: newFields,
-                                });
+                                dispatch({type: updateAction, payload: newFields});
                               }}
                               onBlur={() => {
                                 trackAnalytics('dashboards_views.widget_builder.change', {

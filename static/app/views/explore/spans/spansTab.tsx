@@ -79,8 +79,8 @@ export function SpansTabContentImpl({
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
@@ -282,9 +282,7 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
-type OnboardingContentProps = SpanTabProps & {
-  onboardingProject: Project;
-};
+type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
 
 function OnboardingContent(props: OnboardingContentProps) {
   const organization = useOrganization();
