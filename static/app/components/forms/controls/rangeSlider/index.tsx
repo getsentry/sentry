@@ -1,4 +1,5 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
@@ -220,7 +221,9 @@ function RangeSlider({
   );
 }
 
-const StyledSlider = styled(Slider)<{hasLabel: boolean}>`
+const StyledSlider = styled(Slider, {
+  shouldForwardProp: prop => isPropValid(prop),
+})<{hasLabel: boolean}>`
   margin: ${space(1)} 0 ${p => space(p.hasLabel ? 2 : 1)};
 `;
 
