@@ -55,7 +55,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         return RunTask(
             function=process_message,
             next_step=RunTaskInThreads(
-                processing_function=commit_message,
+                processing_function=commit_message,  # type: ignore[arg-type]
                 concurrency=self.num_threads,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -65,10 +65,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 def process_message(
     message: Message[KafkaPayload],
-) -> ProcessedRecordingMessage | FilteredPayload | KafkaPayload:
+) -> ProcessedRecordingMessage | FilteredPayload | bytes:
     if random.randint(0, 100) > options.get("replay.consumer.recording.beta-rollout"):
         sentry_sdk.set_tag("replay.consumer.recording.beta", False)
-        return message.payload
+        return message.payload.value
 
     sentry_sdk.set_tag("replay.consumer.recording.beta", True)
 
@@ -88,9 +88,9 @@ def process_message(
             return FilteredPayload()
 
 
-def commit_message(message: Message[ProcessedRecordingMessage | KafkaPayload]) -> None:
-    if isinstance(message.payload, KafkaPayload):
-        return ingest_recording(message.payload.value)
+def commit_message(message: Message[ProcessedRecordingMessage | bytes]) -> None:
+    if isinstance(message.payload, bytes):
+        return ingest_recording(message.payload)
 
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.commit_message",
