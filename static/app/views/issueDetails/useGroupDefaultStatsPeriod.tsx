@@ -53,7 +53,9 @@ export function useGroupDefaultStatsPeriod(
   const daysSinceFirstSeen = getDaysSinceDateRoundedUp(group.firstSeen);
 
   if (daysSinceFirstSeen === 0) {
-    const hoursDiff = moment().diff(moment(new Date(group.firstSeen)), 'hours');
+    const minutesDiff = moment().diff(moment(new Date(group.firstSeen)), 'minutes');
+    // Minimum of 2 hours, add 1 hour to any time window
+    const hoursDiff = Math.max(1, Math.ceil(minutesDiff / 60)) + 1;
     return {statsPeriod: `${hoursDiff}h`};
   }
 

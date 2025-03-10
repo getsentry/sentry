@@ -37,7 +37,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
-  defaultTimePeriod: {sinceFirstSeen: false},
+  defaultTimePeriod: {sinceFirstSeen: true},
   header: {
     filterBar: {enabled: true, fixedEnvironment: false},
     graph: {enabled: true, type: 'discover-events'},

@@ -12,7 +12,6 @@ import {Tab} from 'sentry/views/issueDetails/types';
 
 export const errorConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
-    defaultTimePeriod: {sinceFirstSeen: true},
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {enabled: true},
