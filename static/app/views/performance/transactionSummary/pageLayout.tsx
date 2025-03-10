@@ -29,7 +29,6 @@ import {
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {
@@ -110,7 +109,6 @@ function PageLayout(props: Props) {
     projectId = filterProjects;
   }
 
-  const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
   const metricsCardinality = useMetricsCardinalityContext();
@@ -232,7 +230,6 @@ function PageLayout(props: Props) {
               <PickProjectToContinue
                 data-test-id="transaction-sumamry-project-picker-modal"
                 projects={selectableProjects}
-                router={router}
                 nextPath={{
                   pathname: generateTransactionSummaryRoute({organization}),
                   query: {
