@@ -46,10 +46,14 @@ describe('celery onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.queryByText(
+        textWithMarkupMatcher(/sentry_sdk.profiler.start_profile_session\(\)/)
+      )
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.queryByText(
+        textWithMarkupMatcher(/sentry_sdk.profiler.stop_profile_session\(\)/)
+      )
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -78,10 +82,14 @@ describe('celery onboarding docs', function () {
 
     // Does render continuous profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.getByText(
+        textWithMarkupMatcher(/sentry_sdk.profiler.start_profile_session\(\)/)
+      )
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.getByText(
+        textWithMarkupMatcher(/sentry_sdk.profiler.stop_profile_session\(\)/)
+      )
     ).toBeInTheDocument();
   });
 });
