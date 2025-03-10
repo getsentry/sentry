@@ -7,7 +7,9 @@ from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as SchemaSpan
 
 from sentry import options
-from sentry.event_manager import Job, _pull_out_data, _record_transaction_info
+from sentry.constants import INSIGHT_MODULE_FILTERS
+from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
+from sentry.event_manager import get_project_insight_flag
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -16,6 +18,12 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.receivers.features import record_generic_event_processed
+from sentry.receivers.onboarding import (
+    record_first_insight_span,
+    record_first_transaction,
+    record_release_received,
+)
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -97,6 +105,12 @@ def _create_models(segment: Span, project: Project) -> None:
     ReleaseProjectEnvironment.get_or_create(
         project=project, release=release, environment=environment, datetime=date
     )
+
+    # Record the release for dynamic sampling
+    record_latest_release(project, release, environment)
+
+    # Record onboarding signals
+    record_release_received(project, release.version)
 
 
 def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
@@ -193,6 +207,26 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
     return event
 
 
+def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
+    # TODO: Make transaction name clustering work again
+    # record_transaction_name_for_clustering(project, event.data)
+
+    sentry_tags = segment_span.get("sentry_tags", {})
+
+    record_generic_event_processed(
+        project,
+        platform=sentry_tags.get("platform"),
+        release=sentry_tags.get("release"),
+        environment=sentry_tags.get("environment"),
+    )
+
+    record_first_transaction(project, to_datetime(segment_span["end_timestamp_precise"]))
+
+    for module, is_module in INSIGHT_MODULE_FILTERS.items():
+        if not get_project_insight_flag(project, module) and is_module(spans):
+            record_first_insight_span(project, module)
+
+
 def process_segment(spans: list[Span]) -> list[Span]:
     segment_span = _find_segment_span(spans)
     if segment_span is None:
@@ -203,40 +237,9 @@ def process_segment(spans: list[Span]) -> list[Span]:
     with metrics.timer("tasks.spans.project.get_from_cache"):
         project = Project.objects.get_from_cache(id=segment_span["project_id"])
 
-    # The original transaction pipeline ran the following operations in this
-    # exact order, where only operations marked with X are relevant to the spans
-    # consumer:
-    #
-    #  - [X] _pull_out_data                            ->  _enrich_spans
-    #  - [X] _get_or_create_release_many               ->  _create_models
-    #  - [ ] _get_event_user_many
-    #  - [ ] _derive_plugin_tags_many
-    #  - [ ] _derive_interface_tags_many
-    #  - [X] _calculate_span_grouping                  ->  _enrich_spans
-    #  - [ ] _materialize_metadata_many
-    #  - [X] _get_or_create_environment_many           ->  _create_models
-    #  - [X] _get_or_create_release_associated_models  ->  _create_models
-    #  - [ ] _tsdb_record_all_metrics
-    #  - [ ] _materialize_event_metrics
-    #  - [ ] _nodestore_save_many
-    #  - [ ] _eventstream_insert_many
-    #  - [ ] _track_outcome_accepted_many
-    #  - [X]  _detect_performance_problems             ->  _detect_performance_problems
-    #  - [X]  _send_occurrence_to_platform             ->  _detect_performance_problems
-    #  - [X] _record_transaction_info
-
     _enrich_spans(segment_span, spans)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
-
-    # XXX: Below are old-style functions imported from EventManager that rely on
-    # the Event schema:
-
-    event = _build_shim_event_data(segment_span, spans)
-    projects = {project.id: project}
-    job: Job = {"data": event, "project_id": project.id, "raw": False, "start_time": None}
-
-    _pull_out_data([job], projects)
-    _record_transaction_info([job], projects, skip_send_first_transaction=False)
+    _record_signals(segment_span, spans, project)
 
     return spans
