@@ -198,7 +198,7 @@ class SelectMembers extends Component<Props, State> {
         onChange={this.handleChange}
         value={this.state.options?.find(({value}) => value === this.props.value)}
         styles={{
-          ...(styles ?? {}),
+          ...styles,
           // @ts-expect-error TS(7006): Parameter 'provided' implicitly has an 'any' type.
           option: (provided, state: any) => ({
             ...provided,
