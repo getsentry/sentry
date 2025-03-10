@@ -44,6 +44,7 @@ export function IssueViewTab({
     if (
       initialTabKey !== TEMPORARY_TAB_KEY &&
       !initialTabKey.startsWith('default') &&
+      !initialTabKey.startsWith('_') &&
       view.id === initialTabKey
     ) {
       updateViewLastVisited({viewId: view.id});
