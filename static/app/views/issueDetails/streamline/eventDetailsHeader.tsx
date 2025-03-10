@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -16,6 +17,10 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
@@ -67,53 +72,52 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
 
-  const hasHeader =
-    issueTypeConfig.header.filterBar.enabled ||
-    issueTypeConfig.header.graph.enabled ||
-    issueTypeConfig.header.occurrenceSummary.enabled;
-
-  if (!hasHeader) {
-    return null;
-  }
-
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <FilterContainer
+      <DetailsContainer
         role="group"
         aria-description={t('Event filtering controls')}
         hasFilterBar={issueTypeConfig.header.filterBar.enabled}
       >
         {issueTypeConfig.header.filterBar.enabled && (
-          <Fragment>
-            <EnvironmentSelector group={group} event={event} project={project} />
-            <DateFilter
-              triggerProps={{
-                borderless: true,
-                style: {
-                  borderRadius: 0,
-                },
-              }}
-            />
-            <Flex style={{gridArea: 'search'}}>
-              <SearchFilter
-                group={group}
-                handleSearch={query => {
-                  navigate(
-                    {...location, query: {...location.query, query}},
-                    {replace: true}
-                  );
-                }}
-                environments={environments}
-                query={searchQuery}
-                queryBuilderProps={{
-                  disallowFreeText: true,
-                  placeholder: searchText,
-                  label: searchText,
+          <TourElement<IssueDetailsTour>
+            tourContext={IssueDetailsTourContext}
+            id={IssueDetailsTour.FILTERS}
+            title={t('Narrow your focus')}
+            description={t(
+              'Filtering data to a specific environment, timeframe, tag value, or user can speed up debugging.'
+            )}
+            position="bottom-start"
+          >
+            <FilterContainer>
+              <EnvironmentSelector group={group} event={event} project={project} />
+              <DateFilter
+                triggerProps={{
+                  borderless: true,
+                  style: {borderRadius: 0},
                 }}
               />
-              <ToggleSidebar />
-            </Flex>
-          </Fragment>
+              <Flex>
+                <SearchFilter
+                  group={group}
+                  handleSearch={query => {
+                    navigate(
+                      {...location, query: {...location.query, query}},
+                      {replace: true}
+                    );
+                  }}
+                  environments={environments}
+                  query={searchQuery}
+                  queryBuilderProps={{
+                    disallowFreeText: true,
+                    placeholder: searchText,
+                    label: searchText,
+                  }}
+                />
+                <ToggleSidebar />
+              </Flex>
+            </FilterContainer>
+          </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
@@ -141,7 +145,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
         )}
-      </FilterContainer>
+      </DetailsContainer>
     </PageErrorBoundary>
   );
 }
@@ -153,7 +157,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
 
   const environmentCss = css`
-    grid-area: env;
+    display: block;
     &:before {
       right: 0;
       top: ${space(1)};
@@ -187,29 +191,32 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   );
 }
 
-const FilterContainer = styled('div')<{
+const DetailsContainer = styled('div')<{
   hasFilterBar: boolean;
 }>`
   padding-left: 24px;
-  display: grid;
-  grid-template-columns: auto auto minmax(100px, 1fr) auto;
-  grid-template-rows: ${p => (p.hasFilterBar ? 'minmax(38px, auto) auto auto' : 'auto')};
-  grid-template-areas:
-    'env      date      search    toggle'
-    'graph    graph     graph     graph'
-    'timeline timeline  timeline  timeline';
+  display: flex;
+  flex-direction: column;
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
 `;
 
+const FilterContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto minmax(100px, 1fr) auto;
+  grid-template-rows: minmax(38px, auto);
+  width: 100%;
+`;
+
 const SearchFilter = styled(EventSearch)`
+  display: block;
   border-color: transparent;
   border-radius: 0;
   box-shadow: none;
 `;
 
 const DateFilter = styled(DatePageFilter)`
-  grid-area: date;
+  display: block;
   &:before {
     right: 0;
     top: ${space(1)};
@@ -222,7 +229,6 @@ const DateFilter = styled(DatePageFilter)`
 `;
 
 const GraphSection = styled('div')`
-  grid-area: graph;
   display: flex;
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
@@ -231,7 +237,6 @@ const GraphSection = styled('div')`
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
-  grid-area: timeline;
   padding: ${space(1)};
   padding-left: 0;
   &:not(:first-child) {

@@ -7,9 +7,15 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupDetailsLayout', () => {
   const organization = OrganizationFixture();

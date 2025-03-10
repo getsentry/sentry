@@ -1,10 +1,11 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -13,11 +14,31 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useIssueDetailsTour} from 'sentry/views/issueDetails/issueDetailsTour';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
   const user = useUser();
   const organization = useOrganization();
+  const {
+    dispatch: tourDispatch,
+    isAvailable: isTourAvailable,
+    isRegistered: isTourRegistered,
+    isCompleted: isTourCompleted,
+  } = useIssueDetailsTour();
+
+  // XXX: We use a ref to track the previous state of tour completion
+  // since we only show the banner when the tour goes from incomplete to complete
+  const isTourCompletedRef = useRef(isTourCompleted);
+  const [isReminderVisible, setIsReminderVisible] = useState(false);
+  useEffect(() => {
+    // If the tour becomes completed, and started off incomplete, show the reminder.
+    if (isTourCompleted && !isTourCompletedRef.current) {
+      setIsReminderVisible(true);
+    }
+    isTourCompletedRef.current = isTourCompleted;
+  }, [isTourCompleted]);
+
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
@@ -87,44 +108,65 @@ export function NewIssueExperienceButton() {
     );
   }
 
-  return (
-    <DropdownMenu
-      trigger={triggerProps => (
-        <StyledDropdownButton
-          {...triggerProps}
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          aria-label={t('Switch issue experience')}
-        >
-          {/* Passing icon as child to avoid extra icon margin */}
-          <IconLab isSolid={hasStreamlinedUI} />
-        </StyledDropdownButton>
-      )}
-      items={[
-        {
-          key: 'switch-to-old-ui',
-          label: t('Switch to the old issue experience'),
-          onAction: handleToggle,
-        },
-        {
-          key: 'give-feedback',
-          label: t('Give feedback on new UI'),
-          hidden: !openForm,
-          onAction: () => {
-            openForm({
-              messagePlaceholder: t(
-                'Excluding bribes, what would make you excited to use the new UI?'
-              ),
-              tags: {
-                ['feedback.source']: 'streamlined_issue_details',
-                ['feedback.owner']: 'issues',
-              },
-            });
+  const items = [
+    {
+      key: 'switch-to-old-ui',
+      label: t('Switch to the old issue experience'),
+      onAction: handleToggle,
+    },
+    {
+      key: 'give-feedback',
+      label: t('Give feedback on new UI'),
+      hidden: !openForm,
+      onAction: () => {
+        openForm({
+          messagePlaceholder: t(
+            'Excluding bribes, what would make you excited to use the new UI?'
+          ),
+          tags: {
+            ['feedback.source']: 'streamlined_issue_details',
+            ['feedback.owner']: 'issues',
           },
-        },
-      ]}
-      position="bottom-end"
-    />
+        });
+      },
+    },
+  ];
+
+  if (isTourAvailable && isTourRegistered) {
+    items.unshift({
+      key: 'start-tour',
+      label: t('Take a tour'),
+      onAction: () => tourDispatch({type: 'START_TOUR'}),
+    });
+  }
+
+  return (
+    <TourGuide
+      title={t('Come back anytime')}
+      description={t('Click here to take the tour or share feedback with the team.')}
+      actions={
+        <TourAction size="xs" onClick={() => setIsReminderVisible(false)}>
+          {t('Got it')}
+        </TourAction>
+      }
+      isOpen={isReminderVisible}
+    >
+      <DropdownMenu
+        trigger={triggerProps => (
+          <StyledDropdownButton
+            {...triggerProps}
+            enabled={hasStreamlinedUI}
+            size={hasStreamlinedUI ? 'xs' : 'sm'}
+            aria-label={t('Switch issue experience')}
+          >
+            {/* Passing icon as child to avoid extra icon margin */}
+            <IconLab isSolid={hasStreamlinedUI} />
+          </StyledDropdownButton>
+        )}
+        items={items}
+        position="bottom-end"
+      />
+    </TourGuide>
   );
 }
 
