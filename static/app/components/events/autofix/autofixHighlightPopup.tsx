@@ -13,8 +13,8 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Input} from 'sentry/components/core/input';
 import {
   makeAutofixQueryKey,
@@ -138,7 +138,7 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const autofixData = useAutofixData({groupId});
+  const {data: autofixData} = useAutofixData({groupId});
   const currentStep = !isAgentComment
     ? autofixData?.steps?.[stepIndex]
     : autofixData?.steps?.[stepIndex + 1];

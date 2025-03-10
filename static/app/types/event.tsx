@@ -284,7 +284,13 @@ export enum EntryType {
 
 export type EntryDebugMeta = {
   data: {
-    images: Array<Image | null>;
+    images?: Array<Image | null>;
+    sdk_info?: {
+      sdk_name: string;
+      version_major: number;
+      version_minor: number;
+      version_patchlevel: number;
+    };
   };
   type: EntryType.DEBUGMETA;
 };
@@ -333,11 +339,11 @@ type EntryMessage = {
 
 export interface EntryRequestDataDefault {
   apiTarget: null;
-  method: string;
+  method: string | null;
   url: string;
   cookies?: Array<[key: string, value: string] | null>;
   data?: string | null | Record<string, any> | Array<[key: string, value: any]>;
-  env?: Record<string, string>;
+  env?: Record<string, string> | null;
   fragment?: string | null;
   headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:

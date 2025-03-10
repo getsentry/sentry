@@ -40,8 +40,8 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
 function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? activeColor ?? 'pink400' : 'gray400',
-    iconBorder: isActive ? activeColor ?? 'pink400' : 'gray400',
+    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
   };
 }
 
@@ -160,4 +160,5 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.gray300};
   flex-shrink: 0;
+  margin-right: ${space(0.25)};
 `;

@@ -22,6 +22,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
+from sentry.conf.types.region_config import RegionConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -687,9 +688,8 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions, or a JSON string
-# that is parsed.
-SENTRY_REGION_CONFIG: Any = ()
+# List of the available regions
+SENTRY_REGION_CONFIG: list[RegionConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -1060,6 +1060,10 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
     },
+    "relocation-find-transfer-control": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": crontab(minute="*/5"),
+    },
     "fetch-release-registry-data-control": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
         # Run every 5 minutes
@@ -1296,6 +1300,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
+    },
+    "relocation-find-transfer-region": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": crontab(minute="*/5"),
     },
 }
 
@@ -3151,7 +3159,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
-ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
@@ -3540,7 +3548,6 @@ if SILO_DEVSERVER:
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
-            "api_token": "dev-region-silo-token",
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
