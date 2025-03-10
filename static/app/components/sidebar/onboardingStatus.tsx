@@ -83,7 +83,7 @@ export function OnboardingStatus({
   const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
 
   const handleShowPanel = useCallback(() => {
-    if (!demoMode && !isActive === true) {
+    if (!demoMode && isActive !== true) {
       trackAnalytics('quick_start.opened', {
         organization,
         user_clicked: true,

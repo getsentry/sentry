@@ -559,7 +559,7 @@ export default typescript.config([
       'unicorn/no-instanceof-array': 'error',
       'unicorn/no-invalid-remove-event-listener': 'error',
       'unicorn/no-negated-condition': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-negation-in-equality-check': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-negation-in-equality-check': 'error',
       'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
