@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
@@ -57,7 +59,7 @@ function PluginDetailedView() {
   const navigate = useNavigate();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
-  const {data: plugins} = useApiQuery<PluginWithProjectList[]>(
+  const {data: plugins, isPending} = useApiQuery<PluginWithProjectList[]>(
     makePluginQueryKey({orgSlug: organization.slug, pluginSlug: integrationSlug}),
     {staleTime: Infinity, retry: false}
   );
@@ -270,6 +272,14 @@ function PluginDetailedView() {
     plugin,
     renderTopButton,
   ]);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (!plugin) {
+    return <LoadingError message={t('There was an error loading this integration.')} />;
+  }
 
   return (
     <IntegrationLayout.Body
