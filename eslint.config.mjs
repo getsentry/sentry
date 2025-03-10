@@ -544,11 +544,12 @@ export default typescript.config([
   },
   {
     name: 'plugin/unicorn',
+    // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
     plugins: {unicorn},
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
 
-      'unicorn/custom-error-definition': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/custom-error-definition': 'error', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/error-message': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
       'unicorn/new-for-builtins': 'off', // TODO(ryan953): Fix violations and enable this rule
