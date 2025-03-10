@@ -2650,6 +2650,100 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             == response.data["detail"].title()
         )
 
+    def test_http_response_rate_group_by(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "200"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["http_response_rate(5)", "description"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "description",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["http_response_rate(5)"] == 0.5
+        assert data[0]["description"] == "description 1"
+        assert data[1]["http_response_rate(5)"] == 1.0
+        assert data[1]["description"] == "description 2"
+        assert meta["dataset"] == self.dataset
+
+    def test_cache_hit(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "get cache 1",
+                        "measurements": {"cache.hit": {"value": 0}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "get cache 2",
+                        "measurements": {"cache.hit": {"value": 1}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["cache.hit", "description"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "description",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["cache.hit"] is False
+        assert data[1]["cache.hit"] is True
+        assert meta["dataset"] == self.dataset
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self):
         super().test_replay_id()
@@ -2692,6 +2786,46 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             {
                 "avg(span.duration)": 1000.0,
                 "description": "foo",
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_trace_id_in_filter(self):
+        spans = [
+            self.create_span(
+                {"description": "bar", "trace_id": "1" * 32},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "trace_id": "2" * 32},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": f"trace:[{'1' * 32}, {'2' * 32}]",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "description": "bar",
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+            },
+            {
+                "description": "foo",
+                "id": mock.ANY,
+                "project.name": self.project.slug,
             },
         ]
         assert meta["dataset"] == self.dataset

@@ -179,7 +179,7 @@ describe('StreamGroup', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows first and last seen columns', function () {
+  it('shows first/last seen column', function () {
     render(
       <StreamGroup
         id="1337"

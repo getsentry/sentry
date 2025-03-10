@@ -477,13 +477,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Separate compute and IO.
-register(
-    "replay.consumer.separate-compute-and-io-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Used for internal dogfooding of a reduced timeout on rage/dead clicks.
 register(
     "replay.rage-click.experimental-timeout.org-id-list",
@@ -869,7 +862,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 
 #  Percentage of orgs that will be put into a bucket using the split rate below.
 register(
@@ -2102,8 +2094,12 @@ register(
 )
 
 # Killswitch for monitor check-ins
-register("crons.organization.disable-check-in", type=Sequence, default=[])
-
+register(
+    "crons.organization.disable-check-in",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Temporary killswitch to enable dispatching incident occurrences into the
 # incident_occurrence_consumer
@@ -3096,4 +3092,21 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.demo_mode.sync_artifact_bundles.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.source_org_id",
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.lookback_days",
+    default=1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

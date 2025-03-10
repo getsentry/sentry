@@ -37,7 +37,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, AlertRuleSerializer
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -118,6 +118,9 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     @cached_property
     def valid_params(self):
+        email_action_type = AlertRuleTriggerAction.get_registered_factory(
+            AlertRuleTriggerAction.Type.EMAIL
+        ).slug
         return {
             "name": "hello",
             "time_window": 10,
@@ -133,17 +136,31 @@ class AlertRuleDetailsBase(AlertRuleBase):
                     "label": "critical",
                     "alertThreshold": 200,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
                     ],
                 },
                 {
                     "label": "warning",
                     "alertThreshold": 150,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {
-                            "type": "email",
-                            "targetType": "user",
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.USER
+                            ],
                             "targetIdentifier": self.user.id,
                         },
                     ],

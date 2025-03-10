@@ -44,7 +44,7 @@ const ColoredLine = styled('span')<Props>`
   border-radius: 3px;
   display: inline-block;
   flex-shrink: 0;
-  height: ${p => (p.size || DEFAULT_SIZE) + 4}px;
+  height: 1em;
   background-color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
 `;
 

@@ -110,29 +110,28 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
 const QueryConstructionSection = styled('div')`
   display: grid;
-  width: 100%;
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(400px, 1fr) 1fr;
-    margin-bottom: 0;
-    gap: ${space(2)};
   }
 `;
 
 const DropDownGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, auto)) ${space(2)};
-  align-items: start;
-  gap: ${space(2)};
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const DeleteButton = styled(Button)`
-  margin-top: ${space(4)};
+  margin-top: ${space(2)};
 `;
 
 const QueryVisualizationSection = styled('div')`
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  margin-bottom: ${space(1)};
-  gap: ${space(2)};
+  grid-template-columns: 2fr 1.2fr;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

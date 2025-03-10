@@ -52,6 +52,14 @@ class TestProcessDataSources(BaseWorkflowTest):
             (self.packet_two, [self.detector_two]),
         ]
 
+    def test_disabled_detector(self):
+        self.detector_one.enabled = False
+        self.detector_one.save()
+
+        assert process_data_sources(self.data_packets, "test") == [
+            (self.packet_two, [self.detector_two])
+        ]
+
     def test_multiple_detectors(self):
         self.detector_three = self.create_detector(name="test_detector3")
         self.detector_four = self.create_detector(name="test_detector4")

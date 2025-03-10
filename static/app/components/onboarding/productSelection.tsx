@@ -1,12 +1,12 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -196,13 +196,16 @@ export const platformProductAvailability = {
 /**
  * Defines which products are selected per default for each platform
  * If not defined in here, all products are selected
+ *
+ * UPDATE Mar 2025, we're running an experiment that has only error monitoring enabled by default
  */
-const platformDefaultProducts: Partial<Record<PlatformKey, ProductSolution[]>> = {
-  android: [ProductSolution.PERFORMANCE_MONITORING],
-  php: [ProductSolution.PERFORMANCE_MONITORING],
-  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING],
-  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING],
-};
+const platformDefaultProducts = Object.keys(platformProductAvailability).reduce(
+  (acc, key) => {
+    acc[key as PlatformKey] = [];
+    return acc;
+  },
+  {} as Record<PlatformKey, ProductSolution[]>
+);
 
 type ProductProps = {
   /**
@@ -266,7 +269,7 @@ function Product({
     >
       <ProductWrapper
         onClick={disabled?.onClick ?? onClick}
-        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        disabled={(disabled?.onClick ?? permanentDisabled) ? false : !!disabled}
         priority={permanentDisabled || checked ? 'primary' : 'default'}
         aria-label={label}
       >
@@ -342,13 +345,16 @@ export function ProductSelection({
     return selectedDefaults.filter(product => !(product in disabledProducts));
   }, [products, platform, disabledProducts]);
 
+  const safeDependencies = useRef({onLoad, urlProducts});
+
   useEffect(() => {
-    onLoad?.(defaultProducts);
-    setParams({
-      product: defaultProducts,
-    });
-    // Adding defaultProducts to the dependency array causes an max-depth error
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    safeDependencies.current = {onLoad, urlProducts};
+  });
+
+  useEffect(() => {
+    safeDependencies.current.onLoad?.(
+      safeDependencies.current.urlProducts as ProductSolution[]
+    );
   }, []);
 
   const handleClickProduct = useCallback(

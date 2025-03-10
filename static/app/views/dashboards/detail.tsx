@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -159,7 +160,9 @@ export function handleUpdateDashboardSplit({
   // because the backend has evaluated the query and stored that value
   const updatedDashboard = cloneDashboard(dashboard);
   const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget => widget.id === widgetId
+    widget =>
+      (defined(widget.id) && widget.id === widgetId) ||
+      (defined(widget.tempId) && widget.tempId === widgetId)
   );
 
   if (widgetIndex >= 0) {
@@ -304,6 +307,7 @@ class DashboardDetail extends Component<Props, State> {
       seriesResultsType,
       confidence,
       sampleCount,
+      isSampled,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
@@ -349,7 +353,20 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
-            const widgetIndex = dashboard.widgets.indexOf(widget);
+            const widgetIndex = dashboard.widgets.findIndex(
+              w =>
+                (defined(widget.id) && w.id === widget.id) ||
+                (defined(widget.tempId) && w.tempId === widget.tempId)
+            );
+            if (widgetIndex === -1) {
+              Sentry.setTag('edit_source', 'modal');
+              Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+                level: 'error',
+                extra: {widget, dashboard},
+              });
+              return;
+            }
+
             if (organization.features.includes('dashboards-widget-builder-redesign')) {
               this.onEditWidget(widget);
               return;
@@ -371,6 +388,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           confidence,
           sampleCount,
+          isSampled,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -755,7 +773,23 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
-    const widgetIndex = currentDashboard.widgets.indexOf(widget);
+
+    const widgetIndex = currentDashboard.widgets.findIndex(
+      w =>
+        (defined(widget.id) && w.id === widget.id) ||
+        (defined(widget.tempId) && w.tempId === widget.tempId)
+    );
+    if (widgetIndex === -1) {
+      Sentry.setTag('edit_source', 'context-menu');
+      Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+        level: 'error',
+        extra: {
+          widget,
+          currentDashboard,
+        },
+      });
+    }
+
     this.setState({
       isWidgetBuilderOpen: true,
       openWidgetTemplates: false,

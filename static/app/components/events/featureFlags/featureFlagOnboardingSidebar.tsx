@@ -237,7 +237,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
     : otherPlatform;
 
   const {
@@ -324,7 +324,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         )}
         <LinkButton
           size="sm"
-          href={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+          to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
         >
           {t('Go to Feature Flag Settings')}
         </LinkButton>

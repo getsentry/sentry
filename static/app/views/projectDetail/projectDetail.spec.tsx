@@ -45,12 +45,7 @@ describe('ProjectDetail', function () {
 
     // By clicking on the retry button, we should attempt to fetch the organization details again
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-    expect(fetchOrganizationDetails).toHaveBeenCalledWith(
-      api,
-      organization.slug,
-      true,
-      false
-    );
+    expect(fetchOrganizationDetails).toHaveBeenCalledWith(api, organization.slug);
   });
 
   it('Render warning if user is not a member of the project', async function () {

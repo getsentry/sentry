@@ -3,9 +3,9 @@ import logging
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFormula, ResolvedFunction
+from sentry.search.eap.columns import ResolvedAggregate, ResolvedAttribute, ResolvedFormula
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
@@ -16,10 +16,10 @@ from sentry.utils.snuba import process_value
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def categorize_column(column: ResolvedColumn | ResolvedFunction | ResolvedFormula) -> Column:
+def categorize_column(column: ResolvedAttribute | ResolvedAggregate | ResolvedFormula) -> Column:
     if isinstance(column, ResolvedFormula):
         return Column(formula=column.proto_definition, label=column.public_alias)
-    if isinstance(column, ResolvedFunction):
+    if isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
     else:
         return Column(key=column.proto_definition, label=column.public_alias)
@@ -61,9 +61,8 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
-    has_aggregations = any(
-        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
-    )
+
+    has_aggregations = any(col for col in columns if col.is_aggregate)
 
     labeled_columns = [categorize_column(col) for col in columns]
 

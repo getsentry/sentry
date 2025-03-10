@@ -27,7 +27,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
-from sentry.seer.fetch_issues_given_patches import get_issues_related_to_file_patches
+from sentry.seer.fetch_issues.fetch_issues_given_patches import get_issues_related_to_file_patches
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 

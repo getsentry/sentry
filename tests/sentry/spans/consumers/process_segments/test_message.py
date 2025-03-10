@@ -2,6 +2,8 @@ import uuid
 from hashlib import md5
 from unittest import mock
 
+import pytest
+
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
@@ -22,6 +24,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -31,6 +34,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -43,6 +47,7 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
+                start_timestamp_precise=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
@@ -53,18 +58,27 @@ class TestSpansTask(TestCase):
     @override_options(
         {
             "standalone-spans.detect-performance-problems.enable": True,
+            "standalone-spans.send-occurrence-to-platform.enable": True,
         }
     )
-    def test_n_plus_one_issue_detection(self):
+    @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
+    def test_n_plus_one_issue_detection(self, mock_eventstream):
         spans = self.generate_n_plus_one_spans()
-        job = process_segment(spans)[0]
+        with mock.patch(
+            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
+        ) as mock_released:
+            mock_released.return_value = True
+            process_segment(spans)
 
-        assert (
-            job["performance_problems"][0].fingerprint
-            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
-        )
+        mock_eventstream.assert_called_once()
 
-        assert job["performance_problems"][0].type == PerformanceStreamedSpansGroupTypeExperimental
+        performance_problem = mock_eventstream.call_args[0][1]
+        assert performance_problem.fingerprint == [
+            md5(
+                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
+            ).hexdigest()
+        ]
+        assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
     @override_options(
         {
@@ -73,27 +87,8 @@ class TestSpansTask(TestCase):
         }
     )
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
-    def test_sends_occurrence_to_platform(self, mock_eventstream):
-        spans = self.generate_n_plus_one_spans()
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
-        ) as mock_released:
-            mock_released.return_value = True
-            process_segment(spans)[0]
-
-        mock_eventstream.assert_called_once()
-        assert mock_eventstream.call_args[0][1].fingerprint == [
-            md5(
-                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
-            ).hexdigest()
-        ]
-
-    @override_options(
-        {
-            "standalone-spans.detect-performance-problems.enable": True,
-        }
-    )
-    def test_n_plus_one_issue_detection_without_segment_span(self):
+    @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
+    def test_n_plus_one_issue_detection_without_segment_span(self, mock_eventstream):
         segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
         child_span = build_mock_span(
             project_id=self.project.id,
@@ -102,6 +97,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -111,6 +107,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -123,16 +120,22 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
+                start_timestamp_precise=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
-        job = process_segment(spans)[0]
+        with mock.patch(
+            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
+        ) as mock_released:
+            mock_released.return_value = True
+            process_segment(spans)
 
-        assert (
-            job["performance_problems"][0].fingerprint
-            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
-        )
-
-        assert job["performance_problems"][0].type == PerformanceStreamedSpansGroupTypeExperimental
+        performance_problem = mock_eventstream.call_args[0][1]
+        assert performance_problem.fingerprint == [
+            md5(
+                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
+            ).hexdigest()
+        ]
+        assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental

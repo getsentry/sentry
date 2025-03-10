@@ -117,8 +117,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable disabling gitlab integrations when broken is detected
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Allow creating `GroupHashMetadata` records
-    manager.add("organizations:grouphash-metadata-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow events with hybrid fingerprints to be sent to Seer for grouping
     manager.add("organizations:grouping-hybrid-fingerprint-seer-usage", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable increased issue_owners rate limit for auto-assignment
@@ -160,6 +158,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable issue stream table layout changes
     manager.add("organizations:issue-stream-table-layout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable issue view sharing
+    manager.add("organizations:issue-view-sharing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("projects:metric-issue-creation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -253,6 +253,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-trace-details", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace explorer features
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable saved queries in trace explorer
+    manager.add("organizations:performance-saved-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable querying spans fields stats from comparative workflows project
     manager.add("organizations:performance-spans-fields-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable linking to trace explorer from metrics
@@ -344,6 +346,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:feature-flag-cta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature flag search autocomplete
     manager.add("organizations:feature-flag-autocomplete", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable feature flag distribution flyout in issue details
+    manager.add("organizations:feature-flag-distribution-flyout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new release insights charts
     manager.add("organizations:insights-session-health-tab-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Lets organizations manage grouping configs
@@ -351,8 +355,6 @@ def register_temporary_features(manager: FeatureManager):
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Enable new slack threads logic for uptime issues
-    manager.add("organizations:slack-threads-refactor-uptime", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable SAML2 Single-logout
     manager.add("organizations:sso-saml2-slo", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Show links and upsells to Insights modules
@@ -410,7 +412,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable feature to load quota exceeded banner in new trace view.
     manager.add("organizations:trace-view-quota-exceeded-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use span only trace endpoint.
-    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new traces onboarding guide.
     manager.add("organizations:traces-onboarding-guide", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load traces schema hints.
@@ -433,8 +435,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:uptime-create-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables uptime related settings for projects and orgs
     manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Disallows creation of uptime monitors
-    manager.add('organizations:uptime-create-disabled', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables detailed logging for uptime results
     manager.add("organizations:uptime-detailed-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -492,13 +492,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable updated form for 3p publishing flow
     manager.add("organizations:streamlined-publishing-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable new find missing chunks algorithm
-    manager.add(
-        "organizations:find-missing-chunks-new",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=False
-    )
     # Enable per-project selection for Jira integration
     manager.add("organizations:jira-per-project-statuses", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Relay extracting logs from breadcrumbs for a project.

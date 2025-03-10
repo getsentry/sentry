@@ -87,7 +87,9 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
 
   // Check if there's any active comment thread that hasn't been completed
   const hasActiveCommentThread = autofixData.steps.some(
-    step => step.active_comment_thread && !step.active_comment_thread.is_completed
+    step =>
+      (step.active_comment_thread && !step.active_comment_thread.is_completed) ||
+      (step.agent_comment_thread && !step.agent_comment_thread.is_completed)
   );
 
   const hasSolutionStep = autofixData.steps.some(
@@ -120,13 +122,13 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
 };
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
-  const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
+  const {data, isPending} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
     staleTime: Infinity,
     enabled: false,
     notifyOnChangeProps: ['data'],
   });
 
-  return data?.autofix ?? null;
+  return {data: data?.autofix ?? null, isPending};
 };
 
 export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {

@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,6 +22,8 @@ import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMod
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+
+const {info, fmt} = Sentry._experiment_log;
 
 export function useTrackAnalytics({
   queryType,
@@ -56,10 +59,10 @@ export function useTrackAnalytics({
 
   const tableError =
     queryType === 'aggregate'
-      ? aggregatesTableResult.result.error?.message ?? ''
+      ? (aggregatesTableResult.result.error?.message ?? '')
       : queryType === 'traces'
-        ? tracesTableResult?.result.error?.message ?? ''
-        : spansTableResult.result.error?.message ?? '';
+        ? (tracesTableResult?.result.error?.message ?? '')
+        : (spansTableResult.result.error?.message ?? '');
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
 
@@ -96,6 +99,24 @@ export function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
     });
+
+    info(
+      fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
+      dataset: ${dataset}
+      query: [omitted]
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
+      queryType: ${queryType}
+      result_length: ${String(aggregatesTableResult.result.data?.length || 0)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(String(search.tokens).length)}
+      visualizes_count: ${String(String(visualizes).length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+      page_source: ${page_source}
+    `,
+      {isAnalytics: true}
+    );
   }, [
     organization,
     dataset,
@@ -145,6 +166,21 @@ export function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
     });
+
+    info(fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
+      dataset: ${dataset}
+      query: ${query}
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
+      queryType: ${queryType}
+      result_length: ${String(spansTableResult.result.data?.length || 0)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(search.tokens.length)}
+      visualizes_count: ${String(visualizes.length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+      page_source: ${page_source}
+    `);
   }, [
     organization,
     dataset,

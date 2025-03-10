@@ -3,7 +3,7 @@ import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';

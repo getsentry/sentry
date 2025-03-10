@@ -134,8 +134,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return SUBSCRIPTION_REASONS[reason];
+      return SUBSCRIPTION_REASONS[reason as keyof typeof SUBSCRIPTION_REASONS];
     }
   }
 
@@ -192,7 +191,7 @@ export function useEnvironmentsFromUrl(): string[] {
   const envs = location.query.environment;
 
   const envsArray = useMemo(() => {
-    return typeof envs === 'string' ? [envs] : envs ?? [];
+    return typeof envs === 'string' ? [envs] : (envs ?? []);
   }, [envs]);
 
   return envsArray;

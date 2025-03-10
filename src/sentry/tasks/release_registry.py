@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.net.http import Session
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -36,17 +37,17 @@ def _fetch_registry_url(relative_url):
         return response.json()
 
 
-@instrumented_task(
-    name="sentry.tasks.release_registry.fetch_release_registry_data",
-    time_limit=65,
-    soft_time_limit=60,
-)
-def fetch_release_registry_data(**kwargs):
+def _fetch_release_registry_data(**kwargs):
     """
     Fetch information about the latest SDK version from the release registry.
 
     More details about the registry: https://github.com/getsentry/sentry-release-registry/
     """
+    logger.info(
+        "release_registry.fetch.starting",
+        extra={"release_registry_baseurl": str(settings.SENTRY_RELEASE_REGISTRY_BASEURL)},
+    )
+
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
         logger.warning("Release registry URL is not specified, skipping the task.")
         return
@@ -62,3 +63,25 @@ def fetch_release_registry_data(**kwargs):
     # AWS Layers
     layer_data = _fetch_registry_url("/aws-lambda-layers")
     cache.set(LAYER_INDEX_CACHE_KEY, layer_data, CACHE_TTL)
+
+
+@instrumented_task(
+    name="sentry.tasks.release_registry.fetch_release_registry_data",
+    time_limit=65,
+    soft_time_limit=60,
+    queue="release_registry",
+    silo_mode=SiloMode.REGION,
+)
+def fetch_release_registry_data(**kwargs):
+    _fetch_release_registry_data(**kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.release_registry.fetch_release_registry_data_control",
+    time_limit=65,
+    soft_time_limit=60,
+    queue="release_registry.control",
+    silo_mode=SiloMode.CONTROL,
+)
+def fetch_release_registry_data_control(**kwargs):
+    _fetch_release_registry_data(**kwargs)

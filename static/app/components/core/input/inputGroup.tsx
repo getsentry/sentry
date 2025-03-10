@@ -13,10 +13,18 @@ import styled from '@emotion/styled';
 
 import type {InputProps} from 'sentry/components/core/input';
 import {Input as _Input} from 'sentry/components/core/input';
-import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
-import _TextArea from 'sentry/components/forms/controls/textarea';
-import {space} from 'sentry/styles/space';
+import {
+  ChonkStyledInput,
+  ChonkStyledLeadingItemsWrap,
+  ChonkStyledTextArea,
+  ChonkStyledTrailingItemsWrap,
+  InputItemsWrap,
+  type InputStyleProps,
+} from 'sentry/components/core/input/inputGroup.chonk';
+import type {TextAreaProps} from 'sentry/components/core/textarea';
+import {TextArea as _TextArea} from 'sentry/components/core/textarea';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 interface InputContext {
   /**
@@ -207,23 +215,6 @@ export const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   ${p => p.disabled && `color: ${p.theme.disabled};`};
 `;
 
-const InputItemsWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${space(1)};
-
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-`;
-
-interface InputStyleProps {
-  leadingWidth?: number;
-  size?: FormSize;
-  trailingWidth?: number;
-}
-
 const getInputStyles = ({
   leadingWidth,
   trailingWidth,
@@ -247,26 +238,38 @@ const getInputStyles = ({
   `}
 `;
 
-const StyledInput = styled(_Input)<InputStyleProps>`
-  ${getInputStyles}
-`;
+const StyledInput = withChonk(
+  styled(_Input)<InputStyleProps>`
+    ${getInputStyles}
+  `,
+  ChonkStyledInput
+);
 
-const StyledTextArea = styled(_TextArea)<InputStyleProps>`
-  ${getInputStyles}
-`;
+const StyledTextArea = withChonk(
+  styled(_TextArea)<InputStyleProps>`
+    ${getInputStyles}
+  `,
+  ChonkStyledTextArea
+);
 
-const InputLeadingItemsWrap = styled(InputItemsWrap)<{
-  size: FormSize;
-  disablePointerEvents?: boolean;
-}>`
-  left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
-`;
+const InputLeadingItemsWrap = withChonk(
+  styled(InputItemsWrap)<{
+    size: FormSize;
+    disablePointerEvents?: boolean;
+  }>`
+    left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
+    ${p => p.disablePointerEvents && `pointer-events: none;`}
+  `,
+  ChonkStyledLeadingItemsWrap
+);
 
-const InputTrailingItemsWrap = styled(InputItemsWrap)<{
-  size: FormSize;
-  disablePointerEvents?: boolean;
-}>`
-  right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
-`;
+const InputTrailingItemsWrap = withChonk(
+  styled(InputItemsWrap)<{
+    size: FormSize;
+    disablePointerEvents?: boolean;
+  }>`
+    right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;
+    ${p => p.disablePointerEvents && `pointer-events: none;`}
+  `,
+  ChonkStyledTrailingItemsWrap
+);

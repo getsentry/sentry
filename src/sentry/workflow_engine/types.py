@@ -46,6 +46,8 @@ class WorkflowJob(EventJob, total=False):
 
 
 class ActionHandler:
+    config_schema: ClassVar[dict[str, Any]]
+
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
         raise NotImplementedError
@@ -83,6 +85,7 @@ class DataConditionType(TypedDict):
     condition_group_id: int
 
 
+# TODO - Move this to snuba module
 class SnubaQueryDataSourceType(TypedDict):
     query_type: int
     dataset: str

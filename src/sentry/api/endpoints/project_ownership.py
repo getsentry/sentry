@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -104,7 +106,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         attrs["schema"] = schema
         return attrs
 
-    def save(self):
+    def save(self, **kwargs: Any) -> ProjectOwnership:
         ownership = self.context["ownership"]
 
         changed = False
@@ -182,15 +184,13 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectOwnershipPermission,)
 
-    def get_ownership(self, project):
+    def get_ownership(self, project: Project) -> ProjectOwnership:
         try:
             return ProjectOwnership.objects.get(project=project)
         except ProjectOwnership.DoesNotExist:
-            return ProjectOwnership(
-                project=project,
-                date_created=None,
-                last_updated=None,
-            )
+            # XXX: the values for last_updated / date_created aren't valid but
+            # this is the "simplest" way to show an empty state in the api
+            return ProjectOwnership(project=project, last_updated=None, date_created=None)  # type: ignore[misc]
 
     def refresh_ownership_schema(self, ownership: ProjectOwnership, project: Project) -> None:
         if hasattr(ownership, "schema") and (
