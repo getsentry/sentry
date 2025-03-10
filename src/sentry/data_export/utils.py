@@ -39,8 +39,7 @@ def handle_snuba_errors(logger):
                 message = "Internal error. Please try again."
                 recoverable = False
                 if isinstance(error, snuba.RateLimitExceeded):
-                    message = RATE_LIMIT_ERROR_MESSAGE
-                    raise Throttled(detail=message)
+                    raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
                 elif isinstance(
                     error,
                     (
