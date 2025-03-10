@@ -9,6 +9,7 @@ import type {AutofixRepository} from 'sentry/components/events/autofix/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SolutionsHubNoticesProps {
   autofixRepositories: AutofixRepository[];
@@ -16,6 +17,8 @@ interface SolutionsHubNoticesProps {
 }
 
 function GithubIntegrationSetupCard() {
+  const organization = useOrganization();
+
   return (
     <IntegrationCard key="no-readable-repos">
       <CardContent>
@@ -30,12 +33,20 @@ function GithubIntegrationSetupCard() {
             {tct(
               'Set up the [integrationLink:GitHub Integration] to allow Autofix to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
               {
-                integrationLink: <ExternalLink href="/settings/integrations/github/" />,
+                integrationLink: (
+                  <ExternalLink
+                    href={`/settings/${organization.slug}/integrations/github/`}
+                  />
+                ),
               }
             )}
           </span>
         </CardDescription>
-        <LinkButton href="/settings/integrations/github/" size="sm" priority="primary">
+        <LinkButton
+          href={`/settings/${organization.slug}/integrations/github/`}
+          size="sm"
+          priority="primary"
+        >
           {t('Set Up Now')}
         </LinkButton>
       </CardContent>
@@ -48,6 +59,7 @@ export function SolutionsHubNotices({
   autofixRepositories,
   hasGithubIntegration,
 }: SolutionsHubNoticesProps) {
+  const organization = useOrganization();
   const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
   const notices: JSX.Element[] = [];
 
@@ -80,14 +92,14 @@ export function SolutionsHubNotices({
                   <ExternalLink
                     href={
                       integrationId
-                        ? `/settings/integrations/github/${integrationId}/`
-                        : '/settings/integrations/github/'
+                        ? `/settings/${organization.slug}/integrations/github/${integrationId}/`
+                        : `/settings/${organization.slug}/integrations/github/`
                     }
                   />
                 ),
                 codeMappingsLink: integrationId ? (
                   <ExternalLink
-                    href={`/settings/integrations/github/${integrationId}/?tab=codeMappings`}
+                    href={`/settings/${organization.slug}/integrations/github/${integrationId}/?tab=codeMappings`}
                   />
                 ) : null,
               }
@@ -113,12 +125,12 @@ export function SolutionsHubNotices({
                 repo: <b>{unreadableRepo.name}</b>,
                 integrationLink: (
                   <ExternalLink
-                    href={`/settings/integrations/github/${unreadableRepo.integration_id}`}
+                    href={`/settings/${organization.slug}/integrations/github/${unreadableRepo.integration_id}`}
                   />
                 ),
                 codeMappingsLink: (
                   <ExternalLink
-                    href={`/settings/integrations/github/${unreadableRepo.integration_id}/?tab=codeMappings`}
+                    href={`/settings/${organization.slug}/integrations/github/${unreadableRepo.integration_id}/?tab=codeMappings`}
                   />
                 ),
               }

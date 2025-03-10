@@ -65,6 +65,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                 task=task,
                 values=kwargs,
             )
+
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
             if created:
