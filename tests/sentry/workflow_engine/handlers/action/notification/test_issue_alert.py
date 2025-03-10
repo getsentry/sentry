@@ -67,7 +67,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            target_identifier="channel456",
+            config={"target_identifier": "channel456"},
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
@@ -182,7 +182,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            target_identifier="channel456",
+            config={"target_identifier": "channel456"},
             data={"tags": "environment,user,my_tag"},
         )
         # self.project = self.create_project()
@@ -222,8 +222,10 @@ class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.MSTEAMS,
             integration_id="1234567890",
-            target_identifier="channel789",
-            target_display="General Channel",
+            config={
+                "target_identifier": "channel789",
+                "target_display": "General Channel",
+            },
         )
 
     def test_build_rule_action_blob(self):
@@ -246,9 +248,11 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.SLACK,
             integration_id="1234567890",
-            target_identifier="channel789",
-            target_display="#general",
             data={"tags": "environment,user", "notes": "Important alert"},
+            config={
+                "target_identifier": "channel789",
+                "target_display": "#general",
+            },
         )
 
     def test_build_rule_action_blob(self):
@@ -287,7 +291,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id="1234567890",
-            target_identifier="service789",
+            config={"target_identifier": "service789"},
             data={"priority": "P1"},
         )
 
@@ -323,7 +327,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id="1234567890",
-            target_identifier="team789",
+            config={"target_identifier": "team789"},
             data={"priority": "P1"},
         )
 
@@ -441,19 +445,19 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             {
                 "targetType": "Member",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 3234013,
+                "targetIdentifier": "3234013",
             },
             # Member Email
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 2160509,
+                "targetIdentifier": "2160509",
                 "targetType": "Member",
             },
             # Team Email
             {
                 "targetType": "Team",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 188022,
+                "targetIdentifier": "188022",
             },
         ]
 
@@ -465,17 +469,17 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             target_type = EmailActionHelper.get_target_type_object(action_data.pop("targetType"))
 
             # Handle all possible targetIdentifier formats
-            target_identifier = expected["targetIdentifier"]
+            target_identifier: str | None = str(expected["targetIdentifier"])
             if target_identifier in ("None", "", None):
                 target_identifier = None
-            elif str(target_identifier).isnumeric():
-                target_identifier = int(target_identifier)
 
             action = self.create_action(
                 type=Action.Type.EMAIL,
                 data=action_data,
-                target_type=target_type,
-                target_identifier=target_identifier,
+                config={
+                    "target_type": target_type,
+                    "target_identifier": target_identifier,
+                },
             )
             blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
@@ -508,8 +512,7 @@ class TestWebhookIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob(self):
         for expected in WEBHOOK_ACTION_DATA_BLOBS:
             action = self.create_action(
-                type=Action.Type.WEBHOOK,
-                target_identifier=expected["service"],
+                type=Action.Type.WEBHOOK, config={"target_identifier": expected["service"]}
             )
 
             # pop uuid from blob
@@ -540,32 +543,39 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.detector2 = self.create_detector(project=self.project2)
 
+    def build_sentry_app_form_config_data_blob(
+        self, include_null_label: bool = True
+    ) -> list[dict[str, str | None]]:
+        blob: list[dict[str, str | None]] = [
+            {
+                "name": "opsgenieResponders",
+                "value": '[{ "id": "8132bcc6-e697-44b2-8b61-c044803f9e6e", "type": "team" }]',
+            },
+            {"name": "tagsToInclude", "value": "environment", "label": "Tags to Include"},
+            {"name": "opsgeniePriority", "value": "P2"},
+        ]
+
+        if include_null_label:
+            blob[0]["label"] = None
+
+        return blob
+
     def test_build_rule_action_blob_sentry_app(self):
-        data_blob = {
-            "settings": [
-                {
-                    "name": "opsgenieResponders",
-                    "value": '[{ "id": "8132bcc6-e697-44b2-8b61-c044803f9e6e", "type": "team" }]',
-                },
-                {
-                    "name": "tagsToInclude",
-                    "value": "environment",
-                },
-                {"name": "opsgeniePriority", "value": "P2"},
-            ],
-        }
+        data_blob = self.build_sentry_app_form_config_data_blob()
+        cleaned_data_blob = self.build_sentry_app_form_config_data_blob(include_null_label=False)
+        target_id = str(self.sentry_app.id)
 
         # sentry app with settings
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            data=data_blob,
-            target_identifier=self.sentry_app.id,
+            data={"settings": data_blob},
+            config={"target_identifier": target_id},
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": data_blob["settings"],
+            "settings": cleaned_data_blob,
             "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
         }
 
@@ -573,14 +583,16 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            data=data_blob,
-            target_identifier=self.sentry_app.id,
+            data={
+                "settings": data_blob,
+            },
+            config={"target_identifier": target_id},
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": data_blob["settings"],
+            "settings": cleaned_data_blob,
             "sentryAppInstallationUuid": self.sentry_app_installation2.uuid,
         }
 
@@ -590,9 +602,11 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
         assert action_1_uuid != action_2_uuid
 
     def test_build_rule_action_blob_sentry_app_no_settings(self):
+        target_id = str(self.sentry_app.id)
+
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            target_identifier=self.sentry_app.id,
+            config={"target_identifier": target_id},
         )
 
         # sentry app with no settings
@@ -607,7 +621,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            target_identifier=self.sentry_app.id,
+            config={"target_identifier": target_id},
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
 

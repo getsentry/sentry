@@ -27,7 +27,7 @@ export function replaceTokensWithSpan(element: HTMLElement) {
 /**
  * Code snippet component that replaces `___ORG_AUTH_TOKEN___` inside snippets with AuthTokenGenerator.
  */
-export function OnboardingCodeSnippet(props: OnboardingCodeSnippetProps) {
+export function OnboardingCodeSnippet({children, ...props}: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
 
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
@@ -36,7 +36,10 @@ export function OnboardingCodeSnippet(props: OnboardingCodeSnippetProps) {
 
   return (
     <Fragment>
-      <CodeSnippet {...props} onAfterHighlight={handleAfterHighlight} />
+      <CodeSnippet {...props} onAfterHighlight={handleAfterHighlight}>
+        {/* Trim whitespace from code snippets */}
+        {children.trim()}
+      </CodeSnippet>
       {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
     </Fragment>
   );

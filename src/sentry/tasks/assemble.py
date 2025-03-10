@@ -96,7 +96,12 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
         organization = org_or_project
 
     # Load all FileBlobs from db since we can be sure here we already own all chunks need to build the file.
-    file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
+    #
+    # To guarantee that the blobs are owned by the org which is building this file, we check the ownership when checking
+    # the blobs.
+    file_blobs = FileBlob.objects.filter(
+        checksum__in=chunks, fileblobowner__organization_id=organization.id
+    ).values_list("id", "checksum", "size")
 
     # Reject all files that exceed the maximum allowed size for this organization.
     file_size = sum(size for _, _, size in file_blobs if size is not None)
@@ -113,11 +118,13 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
         return None
 
     # Sanity check. In case not all blobs exist at this point we have a race condition.
-    if {x[1] for x in file_blobs} != set(chunks):
+    if {checksum for _, checksum, _ in file_blobs} != set(chunks):
         # Most likely a previous check to `find_missing_chunks` or similar
         # reported a chunk exists by its checksum, but now it does not
         # exist anymore
-        logger.error("`FileBlob` disappeared during async `assemble_XXX` task")
+        logger.error(
+            "Not all chunks are available for assembly; they may have been removed or are not associated with the organization."
+        )
 
         set_assemble_status(
             task,

@@ -1,18 +1,17 @@
 import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -863,32 +862,33 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
         return <Tag>{dataType}</Tag>;
     }
   }
-  let text, tagType;
+  let text: string | undefined, tagType: TagProps['type'] | undefined;
+
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     case FieldValueKind.TAG:
       text = kind;
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     default:
       text = kind;

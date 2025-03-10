@@ -2,13 +2,17 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
@@ -23,6 +27,7 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from '../../colors';
+import {INGESTION_DELAY} from '../../settings';
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
@@ -31,29 +36,38 @@ export interface InsightsTimeSeriesWidgetProps {
   isLoading: boolean;
   series: DiscoverSeries[];
   title: string;
-  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
+  visualizationType: 'line' | 'area' | 'bar';
   aliases?: Aliases;
   stacked?: boolean;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {start, end, period, utc} = pageFilters.selection.datetime;
-  const {projects, environments} = pageFilters.selection;
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
-    visualizationType: props.visualizationType,
-    timeSeries: (props.series.filter(Boolean) ?? [])?.map(serie => {
+    plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
+      const PlottableDataConstructor =
+        props.visualizationType === 'line'
+          ? Line
+          : props.visualizationType === 'area'
+            ? Area
+            : Bars;
 
-      return {
-        ...timeSeries,
+      return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS[timeSeries.field],
-      };
+        delay: INGESTION_DELAY,
+        stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
+      });
     }),
-    dataCompletenessDelay: 90,
     aliases: props.aliases,
-    stacked: props.stacked,
   };
 
   const Title = <Widget.WidgetTitle title={props.title} />;
@@ -81,7 +95,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  if (visualizationProps.timeSeries.length === 0) {
+  if (props.series.filter(Boolean).length === 0) {
     return (
       <ChartContainer>
         <Widget
@@ -96,7 +110,14 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     <ChartContainer>
       <Widget
         Title={Title}
-        Visualization={<TimeSeriesWidgetVisualization {...visualizationProps} />}
+        Visualization={
+          <TimeSeriesWidgetVisualization
+            {...(organization.features.includes('release-bubbles-ui')
+              ? {releases, showReleaseAs: 'bubble'}
+              : {})}
+            {...visualizationProps}
+          />
+        }
         Actions={
           <Widget.WidgetToolbar>
             <Button
@@ -108,33 +129,12 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 openInsightChartModal({
                   title: props.title,
                   children: (
-                    <ReleaseSeries
-                      start={start}
-                      end={end}
-                      queryExtra={undefined}
-                      period={period}
-                      utc={utc}
-                      projects={projects}
-                      environments={environments}
-                    >
-                      {({releases}) => {
-                        return (
-                          <ModalChartContainer>
-                            <TimeSeriesWidgetVisualization
-                              {...visualizationProps}
-                              releases={
-                                releases
-                                  ? releases.map(release => ({
-                                      timestamp: release.date,
-                                      version: release.version,
-                                    }))
-                                  : []
-                              }
-                            />
-                          </ModalChartContainer>
-                        );
-                      }}
-                    </ReleaseSeries>
+                    <ModalChartContainer>
+                      <TimeSeriesWidgetVisualization
+                        {...visualizationProps}
+                        releases={releases ?? []}
+                      />
+                    </ModalChartContainer>
                   ),
                 });
               }}

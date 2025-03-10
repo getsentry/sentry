@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -116,11 +116,8 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      {group.hasSeen || !hasNewLayout ? null : (
-        <UnreadIndicator data-test-id="unread-issue-indicator" />
-      )}
       <CheckboxLabel hasNewLayout={hasNewLayout}>
-        <Checkbox
+        <CheckboxWithBackground
           id={group.id}
           aria-label={t('Select Issue')}
           checked={isSelected}
@@ -128,22 +125,51 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator data-test-id="unread-issue-indicator" />
+        </Tooltip>
+      )}
     </GroupCheckBoxWrapper>
   );
 }
 
-function GroupTimestamp({date, label}: {date: string | null | undefined; label: string}) {
-  if (!date) {
+function GroupLastSeen({group}: {group: Group}) {
+  if (!group.lifetime) {
     return <Placeholder height="18px" width="60px" />;
+  }
+
+  if (!group.lifetime.lastSeen) {
+    return null;
   }
 
   return (
     <PositionedTimeSince
-      aria-label={label}
-      tooltipPrefix={label}
-      date={date}
+      date={group.lifetime.lastSeen}
       suffix="ago"
       unitStyle="short"
+      aria-label={t('Last Seen')}
+      tooltipPrefix={t('Last Seen')}
+    />
+  );
+}
+
+function GroupFirstSeen({group}: {group: Group}) {
+  if (!group.lifetime) {
+    return <Placeholder height="18px" width="30px" />;
+  }
+
+  if (!group.lifetime.firstSeen) {
+    return null;
+  }
+
+  return (
+    <PositionedTimeSince
+      date={group.lifetime.firstSeen}
+      unitStyle="short"
+      suffix=""
+      aria-label={t('First Seen')}
+      tooltipPrefix={t('First Seen')}
     />
   );
 }
@@ -606,6 +632,18 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <GroupLastSeen group={group} />
+        </LastSeenWrapper>
+      )}
+
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <GroupFirstSeen group={group} />
+        </FirstSeenWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -622,10 +660,7 @@ function StreamGroup({
             ) : null}
           </NarrowChartWrapper>
         ) : (
-          <ChartWrapper
-            narrowGroups={narrowGroups}
-            margin={withColumns.includes('firstSeen')}
-          >
+          <ChartWrapper narrowGroups={narrowGroups}>
             {issueTypeConfig.stats.enabled ? (
               <GroupStatusChart
                 hideZeros
@@ -644,16 +679,6 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
-          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
@@ -662,9 +687,7 @@ function StreamGroup({
                 ) : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
-              <EventCountsWrapper
-                leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
-              >
+              <EventCountsWrapper>
                 {issueTypeConfig.stats.enabled ? groupCount : null}
               </EventCountsWrapper>
             )
@@ -740,9 +763,9 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 86px;
+      min-height: 82px;
 
-      &:not(:hover):not(:focus-within):not(:has(input:checked)) {
+      &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
         ${CheckboxLabel} {
           ${p.theme.visuallyHidden};
         }
@@ -812,13 +835,14 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
+  margin-right: ${space(1)};
   flex: 1;
   width: 66.66%;
 
   ${p =>
     p.hasNewLayout &&
     css`
+      margin-right: ${space(4)};
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -852,8 +876,12 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
   ${p =>
     p.hasNewLayout &&
     css`
-      padding-top: ${space(2)};
+      padding-top: 14px;
     `}
+`;
+
+const CheckboxWithBackground = styled(Checkbox)`
+  background-color: ${p => p.theme.background};
 `;
 
 const CountsWrapper = styled('div')`
@@ -913,10 +941,10 @@ const CountTooltipContent = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
+const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
-  margin-right: ${p => (p.margin ? space(2) : 0)};
+  margin-right: ${space(2)};
 
   @media (max-width: ${p =>
       p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
@@ -934,10 +962,25 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const TimestampWrapper = styled('div')<{breakpoint: string}>`
+const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  align-self: center;
-  width: 75px;
+  align-items: center;
+  justify-content: flex-end;
+  width: 86px;
+  padding-right: ${space(2)};
+  margin-right: ${space(2)};
+
+  @media (max-width: ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 50px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -948,6 +991,7 @@ const TimestampWrapper = styled('div')<{breakpoint: string}>`
 const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   align-self: center;
   margin-right: ${space(2)};
   width: 60px;
@@ -1071,5 +1115,5 @@ const UnreadIndicator = styled('div')`
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
   margin-left: ${space(3)};
-  margin-top: ${space(1.5)};
+  margin-top: 10px;
 `;

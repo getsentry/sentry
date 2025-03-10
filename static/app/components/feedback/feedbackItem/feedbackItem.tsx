@@ -50,7 +50,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const URL_NOT_FOUND = t('URL not found');
   const displayUrl =
-    eventData?.contexts?.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+    eventData?.contexts?.feedback || eventData?.tags ? (url ?? URL_NOT_FOUND) : '';
   const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
 
   return (

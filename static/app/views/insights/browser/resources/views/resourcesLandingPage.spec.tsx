@@ -27,6 +27,9 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
@@ -171,6 +174,13 @@ const setupMocks = () => {
     reloadProjects: jest.fn(),
     placeholders: [],
   });
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
+  });
 };
 
 const setupMockRequests = (organization: Organization) => {
@@ -264,12 +274,28 @@ const setupMockRequests = (organization: Organization) => {
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
+        meta: {
+          fields: {
+            [`${SPM}()`]: 'rate',
+          },
+          units: {
+            [`${SPM}()`]: '1/second',
+          },
+        },
       },
       [`avg(${SPAN_SELF_TIME})`]: {
         data: [
           [1699907700, [{count: 1111.2}]],
           [1699908000, [{count: 2222.8}]],
         ],
+        meta: {
+          fields: {
+            [`avg(${SPAN_SELF_TIME})`]: 'duration',
+          },
+          units: {
+            [`avg(${SPAN_SELF_TIME})`]: 'millisecond',
+          },
+        },
       },
     },
   });

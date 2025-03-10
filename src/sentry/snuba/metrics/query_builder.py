@@ -896,14 +896,8 @@ class SnubaQueryBuilder:
             except IndexError:
                 raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
-            action_by_name = None
-            if is_group_by:
-                action_by_name = "group by"
-            elif is_order_by:
-                action_by_name = "order by"
-
             raise NotImplementedError(
-                f"Unsupported {action_by_name} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
+                f"Unsupported {"group by" if is_group_by else "order by" if is_order_by else "None"} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
             )
 
     def _build_where(self) -> list[BooleanCondition | Condition]:

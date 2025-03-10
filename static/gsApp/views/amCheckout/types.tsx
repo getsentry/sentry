@@ -35,6 +35,7 @@ export type CheckoutAPIData = BaseCheckoutData & {
   reservedReplays?: number;
   reservedSpans?: number;
   reservedTransactions?: number;
+  reservedUptime?: number;
 };
 
 export type StepProps = {

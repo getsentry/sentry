@@ -61,12 +61,12 @@ export function OnboardingStatus({
     disabled: !isActive,
   });
 
-  const {overdueTasks} = useOverdueDoneTasks({doneTasks});
-
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
   const allTasksCompleted = allTasks.length === completeTasks.length;
   const allTasksDone = allTasks.length === doneTasks.length;
+
+  const {overdueTasks} = useOverdueDoneTasks({allTasksDone, doneTasks});
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
@@ -134,8 +134,9 @@ export function OnboardingStatus({
         source: 'onboarding_sidebar_user_second_visit',
       });
     }
+    // be careful when adding dependencies here as it can cause side-effects, e.g activateSidebar
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
+  }, [mutateUserOptions, orgId, skipQuickStart]);
 
   if (skipQuickStart) {
     return null;

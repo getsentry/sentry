@@ -48,7 +48,11 @@ class MsTeamsMessagingSpec(MessagingIntegrationSpec):
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
         return send_incident_alert_notification(
-            action, incident, metric_value, new_status, notification_uuid
+            action=action,
+            incident=incident,
+            metric_value=metric_value,
+            new_status=new_status,
+            notification_uuid=notification_uuid,
         )
 
     @property

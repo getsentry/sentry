@@ -1,6 +1,7 @@
 import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -9,27 +10,16 @@ import {
   Header,
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
+import {ReleaseDrawerTable} from 'sentry/components/releases/releasesDrawerTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
-import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import type {ReleaseMetaBasic} from 'sentry/types/release';
+import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-
-import {DateTime} from '../dateTime';
-
-import {ReleaseDrawerTable} from './releasesDrawerTable';
-
-type Bucket = [
-  start: number,
-  placeholder: number,
-  end: number,
-  numReleases: number,
-  releases: Release[],
-];
 
 interface ReleasesDrawerProps {
   /**
-   * This is a list of the release buckets used by eCharts to draw the release bubbles.
+   * This is a list of the release buckets used by ECharts to draw the release bubbles.
    * Currently unused, but we can use this to traverse through the release buckets within the drawer
    */
   buckets: Bucket[];
@@ -37,9 +27,8 @@ interface ReleasesDrawerProps {
   /**
    * A list of releases in the current release bucket
    */
-  releases: Release[];
+  releases: ReleaseMetaBasic[];
   startTs: number;
-  timeSeries: TimeSeriesWidgetVisualizationProps['timeSeries'];
   /**
    * A renderer function that returns a chart. It is called with the trimmed
    * list of releases and timeSeries. It currently uses the
@@ -47,9 +36,11 @@ interface ReleasesDrawerProps {
    * it to make the props more generic, e.g. pass start/end timestamps and do
    * the series manipulation when we call the bubble hook.
    */
-  chartRenderer?: (
-    rendererProps: Partial<TimeSeriesWidgetVisualizationProps>
-  ) => ReactElement;
+  chartRenderer?: (rendererProps: {
+    end: Date;
+    releases: ReleaseMetaBasic[];
+    start: Date;
+  }) => ReactElement;
 }
 
 export function ReleasesDrawer({
@@ -57,17 +48,9 @@ export function ReleasesDrawer({
   endTs,
   chartRenderer,
   releases,
-  timeSeries,
 }: ReleasesDrawerProps) {
   const start = new Date(startTs);
   const end = new Date(endTs);
-  const trimmedTimeSeries = timeSeries.map(s => ({
-    ...s,
-    data: s.data.filter(dataItem => {
-      const ts = new Date(dataItem.timestamp).getTime();
-      return ts >= startTs && ts <= endTs;
-    }),
-  }));
 
   return (
     <EventDrawerContainer>
@@ -89,7 +72,8 @@ export function ReleasesDrawer({
               }
               Visualization={chartRenderer?.({
                 releases,
-                timeSeries: trimmedTimeSeries,
+                start,
+                end,
               })}
             />
           </ChartContainer>

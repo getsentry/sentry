@@ -6,8 +6,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
-from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
@@ -19,31 +18,13 @@ from sentry.utils.sdk import Scope, bind_organization_context
 DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
 
 
-class OrganizationMonitorPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
-
-
-class ProjectMonitorPermission(ProjectPermission):
-    scope_map = {
-        "GET": ["project:read", "project:write", "project:admin"],
-        "POST": ["project:read", "project:write", "project:admin"],
-        "PUT": ["project:read", "project:write", "project:admin"],
-        "DELETE": ["project:read", "project:write", "project:admin"],
-    }
-
-
 class MonitorEndpoint(Endpoint):
     """
     Base endpoint class for monitors which will look up the monitor and
     convert it to a Monitor object.
     """
 
-    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectAlertRulePermission,)
 
     def convert_args(
         self,
@@ -108,7 +89,7 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     convert it to a Monitor object.
     """
 
-    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectAlertRulePermission,)
 
     def convert_args(
         self,
@@ -142,39 +123,13 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
         raise ResourceDoesNotExist
 
 
-class ProjectMonitorCheckinEndpoint(ProjectMonitorEndpoint):
-    """
-    Base endpoint class for monitors which will look up a checkin
-    and convert it to a MonitorCheckin object.
-    """
-
-    def convert_args(
-        self,
-        request: Request,
-        monitor_id_or_slug: str,
-        checkin_id: str,
-        *args,
-        **kwargs,
-    ):
-        args, kwargs = super().convert_args(request, monitor_id_or_slug, *args, **kwargs)
-        try:
-            kwargs["checkin"] = MonitorCheckIn.objects.get(
-                project_id=kwargs["project"].id,
-                guid=checkin_id,
-            )
-        except MonitorCheckIn.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return args, kwargs
-
-
 class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
     """
     Base endpoint class for monitor environment which will look up the monitor environment and
     convert it to a MonitorEnvironment object.
     """
 
-    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectAlertRulePermission,)
 
     def convert_args(
         self,

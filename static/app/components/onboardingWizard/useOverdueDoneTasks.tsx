@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import type {OnboardingTask} from 'sentry/types/onboarding';
@@ -11,7 +11,13 @@ function isTaskOverdue2Weeks(dateCompleted: string): boolean {
   return timeDifference > 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
 }
 
-export function useOverdueDoneTasks({doneTasks}: {doneTasks: OnboardingTask[]}): {
+export function useOverdueDoneTasks({
+  doneTasks,
+  allTasksDone,
+}: {
+  allTasksDone: boolean;
+  doneTasks: OnboardingTask[];
+}): {
   overdueTasks: OnboardingTask[];
 } {
   const api = useApi();
@@ -20,27 +26,38 @@ export function useOverdueDoneTasks({doneTasks}: {doneTasks: OnboardingTask[]}):
   // Tasks marked as "done" but not completed (user hasn't seen the completion),
   // and the date completed is equal or more than 14 days ago (overdue).
   const overdueTasks = useMemo(() => {
+    // Only update 'completionSeen' if the WHOLE onboarding is 'done'
+    if (!allTasksDone) {
+      return [];
+    }
+
     return doneTasks.filter(
       task =>
         task.dateCompleted &&
         !task.completionSeen &&
         isTaskOverdue2Weeks(task.dateCompleted)
     );
-  }, [doneTasks]);
+  }, [doneTasks, allTasksDone]);
+
+  const safeDependencies = useRef({overdueTasks, organization});
 
   useEffect(() => {
-    if (!overdueTasks.length) {
+    safeDependencies.current = {overdueTasks, organization};
+  });
+
+  useEffect(() => {
+    if (!safeDependencies.current.overdueTasks.length) {
       return;
     }
 
     // Mark overdue tasks as seen, so we can try to mark the onboarding as complete.
-    for (const overdueTask of overdueTasks) {
-      updateOnboardingTask(api, organization, {
+    for (const overdueTask of safeDependencies.current.overdueTasks) {
+      updateOnboardingTask(api, safeDependencies.current.organization, {
         task: overdueTask.task,
         completionSeen: true,
       });
     }
-  }, [overdueTasks, api, organization]);
+  }, [api]);
 
   return {overdueTasks};
 }

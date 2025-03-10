@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
+import {Radio} from 'sentry/components/core/radio';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -198,7 +198,10 @@ class OnDemandBudgetEdit extends Component<Props> {
           <BudgetDetails>
             <Description>
               {t(
-                "This budget ensures continued monitoring after you've used up your reserved event volume. We’ll only charge you for actual usage, so this is your maximum charge for overage."
+                "This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage.%s",
+                subscription.isSelfServePartner
+                  ? ` This will be part of your ${subscription.partner?.partnership.displayName} bill.`
+                  : ''
               )}
             </Description>
             {this.renderInputFields(OnDemandBudgetMode.SHARED)}

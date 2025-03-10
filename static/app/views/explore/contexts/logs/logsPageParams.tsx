@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
@@ -16,7 +17,10 @@ import {
 
 const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 const LOGS_CURSOR_KEY = 'logsCursor';
+export const LOGS_FIELDS_KEY = 'logsFields';
+
 interface LogsPageParams {
+  readonly cursor: string;
   readonly fields: string[];
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
@@ -24,7 +28,7 @@ interface LogsPageParams {
 
 type LogPageParamsUpdate = Partial<LogsPageParams>;
 
-const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
@@ -35,13 +39,16 @@ export function LogsPageParamsProvider({children}: {children: React.ReactNode}) 
   const search = new MutableSearch(logsQuery);
   const fields = getLogFieldsFromLocation(location);
   const sortBys = getLogSortBysFromLocation(location, fields);
+  const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider value={{fields, search, sortBys}}>
+    <LogsPageParamsContext.Provider value={{fields, search, sortBys, cursor}}>
       {children}
     </LogsPageParamsContext.Provider>
   );
 }
+
+export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query || !location.query[LOGS_QUERY_KEY]) {
@@ -56,6 +63,8 @@ const decodeLogsQuery = (location: Location): string => {
 function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
   const target: Location = {...location, query: {...location.query}};
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
+  updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
+  updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
   updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
   return target;
 }
@@ -81,7 +90,7 @@ function updateNullableLocation(
   return false;
 }
 
-function useSetLogsPageParams() {
+export function useSetLogsPageParams() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -109,6 +118,16 @@ export function useSetLogsQuery() {
   );
 }
 
+export function useSetLogsSearch() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (search: MutableSearch) => {
+      setPageParams({search});
+    },
+    [setPageParams]
+  );
+}
+
 export function useLogsSortBys() {
   const {sortBys} = useLogsPageParams();
   return sortBys;
@@ -117,6 +136,31 @@ export function useLogsSortBys() {
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
   return fields;
+}
+
+export function useSetLogsFields() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (fields: string[]) => {
+      setPageParams({fields});
+    },
+    [setPageParams]
+  );
+}
+
+export function useLogsCursor() {
+  const {cursor} = useLogsPageParams();
+  return cursor;
+}
+
+export function useSetLogsCursor() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback<CursorHandler>(
+    cursor => {
+      setPageParams({cursor});
+    },
+    [setPageParams]
+  );
 }
 
 export function useSetLogsSortBys() {
@@ -144,6 +188,14 @@ export function useSetLogsSortBys() {
     },
     [setPageParams, currentPageSortBys]
   );
+}
+
+function getLogCursorFromLocation(location: Location): string {
+  if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
+    return '';
+  }
+
+  return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
 interface ToggleableSortBy {

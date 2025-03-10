@@ -1,7 +1,11 @@
+import {useEffect} from 'react';
+import moment from 'moment-timezone';
+
 import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,6 +14,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withSubscription from 'getsentry/components/withSubscription';
 import {usePerformanceUsageStats} from 'getsentry/hooks/performance/usePerformanceUsageStats';
 import type {Subscription} from 'getsentry/types';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 const DATE_FORMAT = 'MMM DD, YYYY';
 
@@ -30,8 +35,10 @@ function getFormattedDateTime(dateTime: PageFilters['datetime']): string | null 
   return null;
 }
 
-function useQuotaExceededAlertMessage(subscription: Subscription) {
-  const organization = useOrganization();
+function useQuotaExceededAlertMessage(
+  subscription: Subscription,
+  organization: Organization
+) {
   const {selection} = usePageFilters();
 
   let hasExceededPerformanceUsageLimit: boolean | null = null;
@@ -71,10 +78,9 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
     />
   );
 
-  const subscriptionRenewalDate = getFormattedDate(
-    new Date(subscription.renewalDate),
-    DATE_FORMAT
-  );
+  const periodRenewalDate = moment(subscription.onDemandPeriodEnd)
+    .add(1, 'days')
+    .format('ll');
 
   if (!formattedDateRange) {
     return subscription?.onDemandBudgets?.enabled
@@ -82,21 +88,21 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
         ? tct(
             'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your on-demand budget].',
             {
-              subscriptionRenewalDate,
+              periodRenewalDate,
               billingPageLink,
             }
           )
         : tct(
-            'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your pay-as-you-go budget].',
+            'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your pay-as-you-go budget].',
             {
-              subscriptionRenewalDate,
+              periodRenewalDate,
               billingPageLink,
             }
           )
       : tct(
-          'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].',
+          'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].',
           {
-            subscriptionRenewalDate,
+            periodRenewalDate,
             billingPageLink,
           }
         );
@@ -106,9 +112,9 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
   return subscription?.onDemandBudgets?.enabled
     ? ['am1', 'am2'].includes(subscription.planTier)
       ? tct(
-          'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. [rest]',
+          'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
           {
-            subscriptionRenewalDate,
+            periodRenewalDate,
             rest: period
               ? tct(
                   'If you need more, [billingPageLink: increase your on-demand budget] or adjust your date range prior to [formattedDateRange].',
@@ -127,9 +133,9 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
           }
         )
       : tct(
-          'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. [rest]',
+          'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
           {
-            subscriptionRenewalDate,
+            periodRenewalDate,
             rest: period
               ? tct(
                   'If you need more, [billingPageLink: increase your pay-as-you-go budget] or adjust your date range prior to [formattedDateRange].',
@@ -148,9 +154,9 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
           }
         )
     : tct(
-        'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. [rest]',
+        'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
         {
-          subscriptionRenewalDate,
+          periodRenewalDate,
           rest: period
             ? tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range prior to [formattedDateRange].',
@@ -171,11 +177,24 @@ function useQuotaExceededAlertMessage(subscription: Subscription) {
 }
 
 type Props = {
+  referrer: string;
   subscription: Subscription;
 };
 
 export function QuotaExceededAlert(props: Props) {
-  const message = useQuotaExceededAlertMessage(props.subscription);
+  const organization = useOrganization();
+  const message = useQuotaExceededAlertMessage(props.subscription, organization);
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    trackGetsentryAnalytics('performance.quota_exceeded_alert.displayed', {
+      organization,
+      referrer: props.referrer,
+    });
+  }, [message, organization, props.referrer]);
 
   if (!message) {
     return null;

@@ -174,9 +174,6 @@ describe('EventTraceView', () => {
     );
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', {name: 'View Full Trace'})
-    ).toBeInTheDocument();
-    expect(
       screen.getByText('One other issue appears in the same trace.')
     ).toBeInTheDocument();
   });

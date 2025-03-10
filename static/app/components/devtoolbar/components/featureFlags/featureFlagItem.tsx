@@ -1,12 +1,12 @@
 import {Fragment, useContext, useState} from 'react';
 import {css} from '@emotion/react';
 
+import {Switch} from 'sentry/components/core/switch';
 import AnalyticsProvider, {
   AnalyticsContext,
 } from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import Switch from 'sentry/components/switchButton';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import {inlineLinkCss} from '../../styles/link';
@@ -104,8 +104,8 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
       <code>{String(isActive)}</code>
       <Switch
         id={`toggle-${flag.name}`}
-        isActive={isActive}
-        toggle={() => {
+        checked={isActive}
+        onChange={() => {
           setOverride(flag.name, !isActive);
           setIsActive(!isActive);
           trackAnalytics?.({

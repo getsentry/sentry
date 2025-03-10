@@ -52,7 +52,7 @@ function MobileTopbar() {
       >
         <IconSentry />
       </HomeLink>
-      <MenuButton
+      <Button
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
@@ -110,9 +110,8 @@ const Topbar = styled('header')`
   height: 40px;
   width: 100vw;
   padding-right: ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.translucentGray100};
-  background: #3e2648;
-  background: linear-gradient(180deg, #3e2648 0%, #442c4e 100%);
+  border-bottom: 1px solid ${p => p.theme.translucentGray200};
+  background: ${p => p.theme.surface300};
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -133,7 +132,7 @@ const HomeLink = styled(Link, {
   position: relative;
 
   svg {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
     width: ${space(3)};
     height: ${space(3)};
   }
@@ -155,14 +154,6 @@ const HomeLink = styled(Link, {
     `}
 `;
 
-const MenuButton = styled(Button)`
-  color: ${p => p.theme.white};
-
-  &:hover {
-    color: ${p => p.theme.white};
-  }
-`;
-
 const NavigationOverlay = styled('nav')`
   position: fixed;
   top: 40px;
@@ -171,7 +162,7 @@ const NavigationOverlay = styled('nav')`
   left: 0;
   display: flex;
   flex-direction: column;
-  background: ${p => p.theme.surface300};
+  background: ${p => p.theme.surface200};
   z-index: ${p => p.theme.zIndex.modal};
   --color: ${p => p.theme.textColor};
   --color-hover: ${p => p.theme.activeText};

@@ -15,6 +15,7 @@ import {
   type AutofixCodebaseChange,
   AutofixStatus,
   type AutofixUpdateEndpointResponse,
+  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -37,6 +38,7 @@ type AutofixChangesProps = {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
+  agentCommentThread?: CommentThread;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -423,9 +425,11 @@ export function AutofixChanges({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  agentCommentThread,
 }: AutofixChangesProps) {
-  const data = useAutofixData({groupId});
+  const {data} = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
+  const iconCodeRef = useRef<HTMLDivElement>(null);
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
@@ -471,7 +475,9 @@ export function AutofixChanges({
           <ClippedBox clipHeight={408}>
             <HeaderWrapper>
               <HeaderText>
-                <IconCode size="sm" />
+                <HeaderIconWrapper ref={iconCodeRef}>
+                  <IconCode size="sm" color="blue400" />
+                </HeaderIconWrapper>
                 {t('Code Changes')}
               </HeaderText>
               {!prsMade && (
@@ -541,6 +547,23 @@ export function AutofixChanges({
                   </ScrollCarousel>
                 ))}
             </HeaderWrapper>
+            <AnimatePresence>
+              {agentCommentThread && iconCodeRef.current && (
+                <AutofixHighlightPopup
+                  selectedText="Code Changes"
+                  referenceElement={iconCodeRef.current}
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={previousDefaultStepIndex ?? 0}
+                  retainInsightCardIndex={
+                    previousInsightCount !== undefined && previousInsightCount >= 0
+                      ? previousInsightCount
+                      : null
+                  }
+                  isAgentComment
+                />
+              )}
+            </AnimatePresence>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}
@@ -625,6 +648,12 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const HeaderIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

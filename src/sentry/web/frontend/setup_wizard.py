@@ -29,7 +29,7 @@ from sentry.projects.services.project_key.service import project_key_service
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils import json
+from sentry.utils import auth, json
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
@@ -58,6 +58,9 @@ class SetupWizardView(BaseView):
             # add the params to the signup url
             params = {"next": urlunparse(uri_components), **params_for_signup}
             return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
+        if request.GET.get("partner") is not None:
+            redirect_to = auth.get_login_url()
+            return self.redirect(add_params_to_url(redirect_to, request.GET))
         return super().handle_auth_required(request, *args, **kwargs)
 
     @allow_cors_options
