@@ -70,7 +70,7 @@ class ApiClientTest(TestCase):
         resp = ApiClient().get_cached("http://example.com")
         assert resp == {"key": "value1"}
 
-        key = "integration.undefined.client:a9b9f04336ce0181a08e774e01113b31"
+        key = "integration.undefined.client:41c2952996340270af611f0d7fad7286"
         cache.get.assert_called_with(key)
         cache.set.assert_called_with(key, {"key": "value1"}, 900)
 
@@ -119,6 +119,41 @@ class ApiClientTest(TestCase):
         assert len(responses.calls) == 1
 
         ApiClient().head_cached("http://example.com", params={"param": "different"})
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_get_and_head_cached(self):
+        # Same URL, different HTTP method
+        url = "http://example.com"
+        responses.add(
+            responses.GET,
+            url,
+            json={"key": "response-for-get"},
+            adding_headers={"x-method": "GET"},
+        )
+        responses.add(
+            responses.HEAD,
+            url,
+            json={},
+            adding_headers={"x-method": "HEAD"},
+        )
+
+        resp = ApiClient().head_cached(url)
+        assert resp.headers["x-method"] == "HEAD"
+        assert len(responses.calls) == 1
+
+        resp = ApiClient().head_cached(url)
+        assert resp.headers["x-method"] == "HEAD"
+        assert len(responses.calls) == 1
+
+        resp = ApiClient().get_cached(url, raw_response=True)
+        assert resp.headers["x-method"] == "GET"
+        assert resp.json() == {"key": "response-for-get"}
+        assert len(responses.calls) == 2
+
+        resp = ApiClient().get_cached(url, raw_response=True)
+        assert resp.headers["x-method"] == "GET"
+        assert resp.json() == {"key": "response-for-get"}
         assert len(responses.calls) == 2
 
     @responses.activate
