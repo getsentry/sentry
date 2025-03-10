@@ -108,11 +108,11 @@ export function OrganizationFeatureFlagsChangeTracking() {
         t('Removed the provider and signing secret for the organization.')
       );
 
-      setApiQueryData(
+      setApiQueryData<FetchSecretResponse>(
         queryClient,
         makeFetchSecretQueryKey({orgSlug: organization.slug}),
-        (oldData: FetchSecretResponse) => {
-          return {data: oldData.data.filter(oldSecret => oldSecret.id !== id)};
+        oldData => {
+          return {data: oldData?.data.filter(oldSecret => oldSecret.id !== id) ?? []};
         }
       );
     },
