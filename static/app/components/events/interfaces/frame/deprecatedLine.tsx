@@ -57,6 +57,7 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
   '.bundle', // React Native Android file ending
   '.hbc', // Hermes Bytecode (from Expo updates) file ending
   '.js.gz', // file ending idiomatic for Ember.js
+  '.vue', // Nuxt.js file ending
 ];
 
 export interface DeprecatedLineProps {
