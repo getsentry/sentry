@@ -747,7 +747,7 @@ const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const Heading = styled('div')<{gridColumns: number}>`
@@ -782,11 +782,11 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 
 const RemoveButton = styled(Button)`
   margin-left: ${space(1)};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 export default ColumnEditCollection;

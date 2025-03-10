@@ -9,7 +9,7 @@ from slack_sdk.web import SlackResponse
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
@@ -45,6 +45,7 @@ class SlackActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.spec = SlackMessagingSpec()
+        self.handler = MessagingActionHandler(self.spec)
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.integration = self.create_integration(
@@ -79,18 +80,12 @@ class SlackActionHandlerTest(FireTest):
         )
         self.alert_rule = self.create_alert_rule()
 
-    def _build_action_handler(
-        self, action: AlertRuleTriggerAction, incident: Incident
-    ) -> MessagingActionHandler:
-        return MessagingActionHandler(action, incident, self.project, self.spec)
-
     def run_test(self, incident, method, **kwargs):
         chart_url = kwargs.get("chart_url")
-        handler = self._build_action_handler(self.action, incident)
         metric_value = 1000
         status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, status)
+            getattr(self.handler, method)(self.action, incident, self.project, metric_value, status)
 
         return incident, chart_url
 
@@ -256,10 +251,11 @@ class SlackActionHandlerTest(FireTest):
             sentry_app_id=None,
         )
 
-        handler = self._build_action_handler(action, incident)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_rule_snoozed(self, mock_post):
@@ -267,10 +263,11 @@ class SlackActionHandlerTest(FireTest):
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
 
-        handler = self._build_action_handler(self.action, incident)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert not mock_post.called
 
@@ -283,10 +280,11 @@ class SlackActionHandlerTest(FireTest):
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(user_id=self.user.id, alert_rule=alert_rule)
 
-        handler = self._build_action_handler(self.action, incident)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         mock_post.assert_called
 

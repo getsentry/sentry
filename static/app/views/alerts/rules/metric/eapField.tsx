@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
@@ -146,6 +146,6 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   width: 200px;
 `;

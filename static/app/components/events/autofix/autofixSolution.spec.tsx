@@ -355,9 +355,7 @@ describe('AutofixSolution', () => {
     );
 
     // Find and fill the input
-    const input = screen.getByPlaceholderText(
-      'Add additional instructions for Autofix...'
-    );
+    const input = screen.getByPlaceholderText('Add more instructions...');
     await userEvent.type(input, 'This is a custom instruction');
 
     // Enable the Add button by typing non-empty text
@@ -422,9 +420,7 @@ describe('AutofixSolution', () => {
     );
 
     // Find and fill the input, then press Enter
-    const input = screen.getByPlaceholderText(
-      'Add additional instructions for Autofix...'
-    );
+    const input = screen.getByPlaceholderText('Add more instructions...');
     await userEvent.type(input, 'Enter key instruction{Enter}');
 
     // Verify the custom instruction was added

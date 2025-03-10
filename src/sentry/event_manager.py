@@ -103,14 +103,16 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import record_release_received
+from sentry.receivers.onboarding import (
+    record_first_insight_span,
+    record_first_transaction,
+    record_release_received,
+)
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
-    first_insight_span_received,
-    first_transaction_received,
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
@@ -454,23 +456,11 @@ class EventManager:
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
-            jobs = save_transaction_events([job], projects)
-
-            if not project.flags.has_transactions and not skip_send_first_transaction:
-                first_transaction_received.send_robust(
-                    project=project, event=jobs[0]["event"], sender=Project
-                )
-
-            for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if not get_project_insight_flag(project, module) and is_module(job["data"]):
-                    first_insight_span_received.send_robust(
-                        project=project, module=module, sender=Project
-                    )
+            jobs = save_transaction_events([job], projects, skip_send_first_transaction)
             return jobs[0]["event"]
         elif event_type == "generic":
             job["data"]["project"] = project.id
             jobs = save_generic_events([job], projects)
-
             return jobs[0]["event"]
         else:
             project = job["event"].project
@@ -2451,17 +2441,17 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
 
 @sentry_sdk.tracing.trace
-def _detect_performance_problems(
-    jobs: Sequence[Job], projects: ProjectsMapping, is_standalone_spans: bool = False
-) -> None:
+def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
+            job["data"], projects[job["project_id"]]
         )
 
 
 @sentry_sdk.tracing.trace
-def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _record_transaction_info(
+    jobs: Sequence[Job], projects: ProjectsMapping, skip_send_first_transaction: bool
+) -> None:
     for job in jobs:
         try:
             event = job["event"]
@@ -2470,16 +2460,19 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
                 record_transaction_name_for_clustering(project, event.data)
 
+            record_event_processed(project, event)
+
+            if not skip_send_first_transaction:
+                record_first_transaction(project, event.datetime)
+
+            for module, is_module in INSIGHT_MODULE_FILTERS.items():
+                if not get_project_insight_flag(project, module) and is_module(job["data"]):
+                    record_first_insight_span(project, module)
+
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None
                 record_latest_release(project, job["release"], environment)
-
-            # these are what the "transaction_processed" signal hooked into
-            # we should not use signals here, so call the recievers directly
-            # instead of sending a signal. we should consider potentially
-            # deleting these
-            record_event_processed(project, event)
-            record_release_received(project, event)
+                record_release_received(project, job["release"].version)
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2548,7 +2541,11 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
 
 @sentry_sdk.tracing.trace
-def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+def save_transaction_events(
+    jobs: Sequence[Job],
+    projects: ProjectsMapping,
+    skip_send_first_transaction: bool = False,
+) -> Sequence[Job]:
     from .ingest.types import ConsumerType
 
     organization_ids = {project.organization_id for project in projects.values()}
@@ -2591,7 +2588,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
     _send_occurrence_to_platform(jobs, projects)
-    _record_transaction_info(jobs, projects)
+    _record_transaction_info(jobs, projects, skip_send_first_transaction)
 
     return jobs
 
