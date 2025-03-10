@@ -24,6 +24,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -246,7 +247,9 @@ function DashboardTable({
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
         <BodyCellContainer>
-          <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
+          <Tooltip title={dataRow[ResponseKeys.OWNER].name} skipWrapper>
+            <UserAvatar user={dataRow[ResponseKeys.OWNER]} size={26} />
+          </Tooltip>
         </BodyCellContainer>
       ) : (
         <ActivityAvatar type="system" size={26} />

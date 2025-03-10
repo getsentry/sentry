@@ -34,6 +34,7 @@ type AvatarProps =
   | SentryAppAvatarProps;
 
 const Avatar = forwardRef<HTMLSpanElement | HTMLDivElement, AvatarProps>(
+  // @ts-expect-error - TODO(jonas): fix this later
   ({hasTooltip = false, ...props}, ref) => {
     const commonProps = {hasTooltip, ref, ...props};
 

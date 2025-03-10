@@ -10,7 +10,10 @@ import {
 
 export interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
-    BaseAvatarComponentProps {
+    Omit<
+      BaseAvatarComponentProps,
+      'hasTooltip' | 'tooltip' | 'tooltipOptions' | 'renderTooltip'
+    > {
   displayName?: string;
   identifier?: string;
 }

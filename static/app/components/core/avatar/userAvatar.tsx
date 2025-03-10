@@ -3,12 +3,13 @@ import {forwardRef} from 'react';
 import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
-import {userDisplayName} from 'sentry/utils/formatters';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
-export interface UserAvatarProps extends BaseAvatarProps {
+export interface UserAvatarProps
+  extends Omit<
+    BaseAvatarProps,
+    'hasTooltip' | 'tooltip' | 'tooltipOptions' | 'renderTooltip'
+  > {
   gravatar?: boolean;
-  renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
   user?: Actor | AvatarUser;
 }
 
@@ -20,7 +21,6 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
       // however gravatar sends back a transparent image when it does not find a gravatar,
       // so there's little we have to control whether we need to fallback to letter avatar
       gravatar = false,
-      renderTooltip,
       user,
       ...props
     },
@@ -32,22 +32,22 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
     }
 
     const type = inferAvatarType(user, gravatar);
-    let tooltip: React.ReactNode = null;
+    // let tooltip: React.ReactNode = null;
 
-    if (isRenderFunc(renderTooltip)) {
-      tooltip = renderTooltip(user);
-    } else if (props.tooltip) {
-      tooltip = props.tooltip;
-    } else {
-      tooltip = userDisplayName(user);
-    }
+    // if (isRenderFunc(renderTooltip)) {
+    //   tooltip = renderTooltip(user);
+    // } else if (props.tooltip) {
+    //   tooltip = props.tooltip;
+    // } else {
+    //   tooltip = userDisplayName(user);
+    // }
 
     return (
       <BaseAvatar
         round
         ref={ref}
         type={type}
-        tooltip={tooltip}
+        // tooltip={tooltip}
         {...props}
         {...getAvatarProps(user)}
       />
