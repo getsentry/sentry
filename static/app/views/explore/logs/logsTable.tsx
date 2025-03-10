@@ -21,7 +21,6 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useLogsCursor,
   useLogsFields,
   useLogsSearch,
   useLogsSortBys,
@@ -29,21 +28,17 @@ import {
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
+import {useLogsTableData} from 'sentry/views/explore/contexts/logs/logsTableData';
 
-export function LogsTable({perPage = 100}: {perPage?: number}) {
-  const search = useLogsSearch();
-  const cursor = useLogsCursor();
-  const setCursor = useSetLogsCursor();
+export function LogsTable() {
   const fields = useLogsFields();
-  const {data, isError, isPending, pageLinks, meta} = useExploreLogsTable({
-    limit: perPage,
-    search,
-    cursor,
-  });
+  const search = useLogsSearch();
+  const setCursor = useSetLogsCursor();
+  const {tableData} = useLogsTableData();
+  const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {

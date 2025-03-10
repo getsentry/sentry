@@ -19,6 +19,8 @@ export interface OurLogsTableResult {
   result: ReturnType<typeof useOurlogs>;
 }
 
+export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
+
 export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const search = useLogsSearch();
   const fields = useLogsFields();

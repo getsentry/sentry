@@ -14,7 +14,7 @@ import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function LogsIssuesSection() {
+export function LogsIssuesSection({initialCollapse}: {initialCollapse: boolean}) {
   return (
     <Feature features={['ourlogs-enabled']}>
       <InterimSection
@@ -22,6 +22,7 @@ export function LogsIssuesSection() {
         type={SectionKey.LOGS}
         title={t('Logs')}
         data-test-id="logs-data-section"
+        initialCollapse={initialCollapse}
       >
         <LogsPageParamsProvider>
           <LogsSectionContent />
@@ -46,7 +47,7 @@ function LogsSectionContent() {
         onSearch={setLogsQuery}
       />
       <TableContainer>
-        <LogsTable perPage={20} />
+        <LogsTable />
       </TableContainer>
     </Fragment>
   );

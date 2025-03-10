@@ -31,20 +31,21 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {LogsIssuesSection} from 'sentry/views/explore/logs/logsIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-interface BreadcrumbsDataSectionProps {
+export interface BreadcrumbsDataSectionProps {
   event: Event;
   group: Group;
   project: Project;
+  initialCollapse?: boolean;
 }
 
 export default function BreadcrumbsDataSection({
   event,
   group,
   project,
+  initialCollapse,
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -162,6 +163,7 @@ export default function BreadcrumbsDataSection({
         }
         data-test-id="breadcrumbs-data-section"
         actions={actions}
+        initialCollapse={initialCollapse}
       >
         <ErrorBoundary
           mini
@@ -196,7 +198,6 @@ export default function BreadcrumbsDataSection({
           )}
         </ErrorBoundary>
       </InterimSection>
-      <LogsIssuesSection />
     </Fragment>
   );
 }
