@@ -62,8 +62,8 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
 
   const spanThreadId = useMemo(() => {
     const value = isMissingInstrumentationNode(node)
-      ? node.previous.value ?? node.next.value ?? null
-      : node.value ?? null;
+      ? (node.previous.value ?? node.next.value ?? null)
+      : (node.value ?? null);
     return value.data?.['thread.id'];
   }, [node]);
 
@@ -247,8 +247,8 @@ function LegacyProfilePreview({event, node}: SpanProfileProps) {
 
   const spanThreadId = useMemo(() => {
     const value = isMissingInstrumentationNode(node)
-      ? node.previous.value ?? node.next.value ?? null
-      : node.value ?? null;
+      ? (node.previous.value ?? node.next.value ?? null)
+      : (node.value ?? null);
     return value.data?.['thread.id'];
   }, [node]);
 

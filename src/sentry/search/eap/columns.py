@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -23,7 +23,7 @@ from sentry.search.events.types import SnubaParams
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedAttribute:
+class ResolvedColumn:
     # The alias for this column
     public_alias: (
         str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
@@ -63,9 +63,10 @@ class ResolvedAttribute:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedColumn(ResolvedAttribute):
+class ResolvedAttribute(ResolvedColumn):
     # The internal rpc alias for this column
     internal_name: str
+    is_aggregate: bool = field(default=False, init=False)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -105,11 +106,13 @@ class VirtualColumnDefinition:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedFunction(ResolvedAttribute):
+class ResolvedFunction(ResolvedColumn):
     """
     A Function should be used as a non-attribute column, this means an aggregate or formula is a type of function.
     The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
     """
+
+    is_aggregate: bool
 
     @property
     def proto_definition(
@@ -149,6 +152,7 @@ class ResolvedAggregate(ResolvedFunction):
     internal_name: Function.ValueType
     # Whether to enable extrapolation
     extrapolation: bool = True
+    is_aggregate: bool = field(default=True, init=False)
 
     @property
     def proto_definition(self) -> AttributeAggregation:
@@ -219,6 +223,7 @@ class AggregateDefinition(FunctionDefinition):
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
     formula_resolver: Callable[[Any], Column.BinaryFormula]
+    is_aggregate: bool
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
@@ -234,26 +239,29 @@ class FormulaDefinition(FunctionDefinition):
             public_alias=alias,
             search_type=search_type,
             formula=self.formula_resolver(resolved_argument),
+            is_aggregate=self.is_aggregate,
             argument=resolved_argument,
             internal_type=self.internal_type,
             processor=self.processor,
         )
 
 
-def simple_sentry_field(field) -> ResolvedColumn:
+def simple_sentry_field(field) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     without the `sentry.` suffix. This helper functions makes defining them easier"""
-    return ResolvedColumn(public_alias=field, internal_name=f"sentry.{field}", search_type="string")
+    return ResolvedAttribute(
+        public_alias=field, internal_name=f"sentry.{field}", search_type="string"
+    )
 
 
 def simple_measurements_field(
     field,
     search_type: constants.SearchType = "number",
     secondary_alias: bool = False,
-) -> ResolvedColumn:
+) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     with the `measurements.` prefix. This helper functions makes defining them easier"""
-    return ResolvedColumn(
+    return ResolvedAttribute(
         public_alias=f"measurements.{field}",
         internal_name=field,
         search_type=search_type,
@@ -292,6 +300,6 @@ def project_term_resolver(
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
     formulas: dict[str, FormulaDefinition]
-    columns: dict[str, ResolvedColumn]
+    columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType

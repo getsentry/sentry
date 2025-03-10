@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LegacyOnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
+import {useOverdueDoneTasks} from 'sentry/components/onboardingWizard/useOverdueDoneTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -63,10 +64,15 @@ export function OnboardingStatus({
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
   const allTasksCompleted = allTasks.length === completeTasks.length;
+  const allTasksDone = allTasks.length === doneTasks.length;
+
+  const {overdueTasks} = useOverdueDoneTasks({allTasksDone, doneTasks});
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
-    (allTasksCompleted && !isActive);
+    (allTasksCompleted && !isActive) ||
+    // Skip if all tasks are completed and there are overdue tasks
+    (allTasksDone && overdueTasks.length > 0);
 
   const orgId = organization.id;
 
