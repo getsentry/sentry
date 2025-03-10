@@ -155,7 +155,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
         metrics.incr(
             "workflow_engine.process_workflows.triggered_actions",
-            len(actions),
+            amount=len(actions),
             tags={"detector_type": detector.type},
         )
 

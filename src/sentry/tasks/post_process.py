@@ -982,9 +982,16 @@ def process_rules(job: PostProcessJob) -> None:
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
-        for callback, futures in rp.apply():
+        callback_and_futures = rp.apply()
+        for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
+
+        metrics.incr(
+            "post_process.process_rules.triggered_actions",
+            amount=len(callback_and_futures),
+            tags={"event_type": group_event.group.type},
+        )
 
     job["has_alert"] = has_alert
     return

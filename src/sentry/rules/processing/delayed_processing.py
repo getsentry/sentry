@@ -464,9 +464,17 @@ def fire_rules(
             notification_uuid = str(uuid.uuid4())
             groupevent = group_to_groupevent[group]
             rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
-            for callback, futures in activate_downstream_actions(
+
+            callback_and_futures = activate_downstream_actions(
                 rule, groupevent, notification_uuid, rule_fire_history
-            ).values():
+            ).values()
+            metrics.incr(
+                "post_process.delayed_processing.triggered_actions",
+                amount=len(callback_and_futures),
+                tags={"event_type": groupevent.group.type},
+            )
+
+            for callback, futures in callback_and_futures:
                 safe_execute(callback, groupevent, futures)
 
 

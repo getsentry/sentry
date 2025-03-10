@@ -24,7 +24,7 @@ from sentry.rules.processing.buffer_processing import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -409,6 +409,12 @@ def fire_actions_for_groups(
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
+
+        metrics.incr(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            amount=len(filtered_actions),
+            tags={"event_type": group_event.group.type},
+        )
 
         for action in filtered_actions:
             action.trigger(job, detector)
