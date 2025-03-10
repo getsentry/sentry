@@ -1,10 +1,8 @@
-import {createContext, useEffect} from 'react';
+import {createContext, useCallback, useEffect} from 'react';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Alert} from 'sentry/components/core/alert';
-import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,11 +10,10 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {
   Deploy,
@@ -24,8 +21,8 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,7 +32,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
 
@@ -60,126 +56,92 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams> &
-  WithRouteAnalyticsProps & {
-    children: React.ReactNode;
-    organization: Organization;
-    releaseMeta: ReleaseMeta;
-    selection: PageFilters;
-  };
+type Props = {
+  children: React.ReactNode;
+  releaseMeta: ReleaseMeta;
+};
 
-type State = {
-  deploys: Deploy[];
-  release: ReleaseWithHealth;
-  sessions: SessionApiResponse | null;
-} & DeprecatedAsyncView['state'];
+function pickLocationQuery(location: Location) {
+  return pick(location.query, [
+    ...Object.values(URL_PARAM),
+    ...Object.values(PAGE_URL_PARAM),
+  ]);
+}
 
-class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
-  shouldReload = true;
+function ReleasesDetail({children, releaseMeta}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const {selection} = usePageFilters();
+  const {release} = useParams<RouteParams>();
 
-  getTitle() {
-    const {params, organization, selection} = this.props;
-    const {release} = this.state;
+  const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
+    release
+  )}/`;
 
-    // The release details page will always have only one project selected
-    const project = release?.projects.find(p => p.id === selection.projects[0]);
-
-    return routeTitleGen(
-      t('Release %s', formatVersion(params.release)),
-      organization.slug,
-      false,
-      project?.slug
-    );
-  }
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      deploys: [],
-      sessions: null,
-    };
-  }
-
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const {organization, params, location} = this.props;
-
-    if (
-      prevProps.params.release !== params.release ||
-      prevProps.organization.slug !== organization.slug ||
-      !isEqual(
-        this.pickLocationQuery(prevProps.location),
-        this.pickLocationQuery(location)
-      )
-    ) {
-      super.componentDidUpdate(prevProps, prevState);
-    }
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, location, params, releaseMeta} = this.props;
-
-    const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-      params.release
-    )}/`;
-
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
-      [
-        'release',
-        basePath,
-        {
-          query: {
-            adoptionStages: 1,
-            ...normalizeDateTimeParams(this.pickLocationQuery(location)),
-          },
+  const releaseQuery = useApiQuery<ReleaseWithHealth>(
+    [
+      basePath,
+      {
+        query: {
+          adoptionStages: 1,
+          ...normalizeDateTimeParams(pickLocationQuery(location)),
         },
-      ],
-    ];
-
-    if (releaseMeta.deployCount > 0) {
-      endpoints.push([
-        'deploys',
-        `${basePath}deploys/`,
-        {
-          query: {
-            project: location.query.project,
-          },
-        },
-      ]);
+      },
+    ],
+    {
+      staleTime: 0,
     }
+  );
 
-    // Used to figure out if the release has any health data
-    endpoints.push([
-      'sessions',
+  const deploysQuery = useApiQuery<Deploy[]>(
+    [
+      `${basePath}deploys/`,
+      {
+        query: {
+          project: location.query.project,
+        },
+      },
+    ],
+    {enabled: releaseMeta.deployCount > 0, staleTime: 0}
+  );
+
+  const sessionsQuery = useApiQuery<SessionApiResponse>(
+    [
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
           project: location.query.project,
           environment: location.query.environment ?? [],
-          query: searchReleaseVersion(params.release),
+          query: searchReleaseVersion(release),
           field: 'sum(session)',
           statsPeriod: '90d',
           interval: '1d',
         },
       },
-      {
-        allowError: (error: any) => error.status === 400,
-      },
-    ]);
+    ],
+    {staleTime: 0}
+  );
 
-    return endpoints;
-  }
+  const refetchData = useCallback(() => {
+    releaseQuery.refetch();
+    deploysQuery.refetch();
+    sessionsQuery.refetch();
+  }, [releaseQuery, deploysQuery, sessionsQuery]);
 
-  pickLocationQuery(location: Location) {
-    return pick(location.query, [
-      ...Object.values(URL_PARAM),
-      ...Object.values(PAGE_URL_PARAM),
-    ]);
-  }
+  const isLoading =
+    releaseQuery.isPending || deploysQuery.isLoading || sessionsQuery.isPending;
 
-  renderError(...args: any[]) {
-    const possiblyWrongProject = Object.values(this.state.errors).find(
-      e => e?.status === 404 || e?.status === 403
-    );
+  const isError =
+    releaseQuery.isError ||
+    deploysQuery.isError ||
+    (sessionsQuery.isError && sessionsQuery.error.status !== 400);
+
+  if (isError) {
+    const possiblyWrongProject = [
+      releaseQuery.error?.status,
+      deploysQuery.error?.status,
+      sessionsQuery.error?.status,
+    ].find(status => status === 404 || status === 403);
 
     if (possiblyWrongProject) {
       return (
@@ -193,10 +155,10 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
       );
     }
 
-    return super.renderError(...args);
+    return <LoadingError />;
   }
 
-  renderLoading() {
+  if (isLoading) {
     return (
       <Layout.Page>
         <LoadingIndicator />
@@ -204,49 +166,49 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderBody() {
-    const {organization, location, selection, releaseMeta} = this.props;
-    const {release, deploys, sessions, reloading} = this.state;
-    const project = release?.projects.find(p => p.id === selection.projects[0]);
-    const releaseBounds = getReleaseBounds(release);
+  const project = releaseQuery.data?.projects.find(p => p.id === selection.projects[0]);
+  const releaseBounds = getReleaseBounds(releaseQuery.data);
 
-    if (!project || !release) {
-      if (reloading) {
-        return <LoadingIndicator />;
-      }
-
-      return null;
-    }
-
-    return (
-      <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <ReleaseHeader
-            location={location}
-            organization={organization}
-            release={release}
-            project={project}
-            releaseMeta={releaseMeta}
-            refetchData={this.fetchData}
-          />
-          <ReleaseContext
-            value={{
-              release,
-              project,
-              deploys,
-              releaseMeta,
-              refetchData: this.fetchData,
-              hasHealthData:
-                getCount(sessions?.groups, SessionFieldWithOperation.SESSIONS) > 0,
-              releaseBounds,
-            }}
-          >
-            {this.props.children}
-          </ReleaseContext>
-        </NoProjectMessage>
-      </Layout.Page>
-    );
+  if (!project || !release) {
+    return null;
   }
+  return (
+    <Layout.Page>
+      <SentryDocumentTitle
+        title={routeTitleGen(
+          t('Release %s', formatVersion(release)),
+          organization.slug,
+          false,
+          project?.slug
+        )}
+      />
+      <NoProjectMessage organization={organization}>
+        <ReleaseHeader
+          location={location}
+          organization={organization}
+          release={releaseQuery.data}
+          project={project}
+          refetchData={refetchData}
+          releaseMeta={releaseMeta}
+        />
+        <ReleaseContext.Provider
+          value={{
+            refetchData,
+            release: releaseQuery.data,
+            project,
+            deploys: deploysQuery.data || [],
+            releaseMeta,
+            hasHealthData:
+              getCount(sessionsQuery.data?.groups, SessionFieldWithOperation.SESSIONS) >
+              0,
+            releaseBounds,
+          }}
+        >
+          {children}
+        </ReleaseContext.Provider>
+      </NoProjectMessage>
+    </Layout.Page>
+  );
 }
 
 // ========================================================================
@@ -259,7 +221,6 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
   const navigate = useNavigate();
   const router = useRouter();
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
   const {release} = params;
 
   useRouteAnalyticsParams({release});
@@ -340,12 +301,7 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
       }
       specificProjectSlugs={projects.map((p: ReleaseProject) => p.slug)}
     >
-      <ReleasesDetail
-        {...props}
-        organization={organization}
-        selection={pageFilters.selection}
-        releaseMeta={releaseMeta}
-      />
+      <ReleasesDetail {...props} releaseMeta={releaseMeta} />
     </PageFiltersContainer>
   );
 }
