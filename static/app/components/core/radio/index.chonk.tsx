@@ -49,8 +49,8 @@ export const chonkRadioStyles = (
   },
 
   '&:checked': {
-    backgroundColor: props.theme.colors.blue400,
-    border: `1px solid ${props.theme.colors.blue400}`,
+    backgroundColor: props.theme.colors.chonk.blue400,
+    border: `1px solid ${props.theme.colors.chonk.blue400}`,
 
     '&:after': {
       animation: `${growIn} 0.2s ease-in-out`,
