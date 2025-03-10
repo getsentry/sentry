@@ -3,8 +3,8 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import {Tooltip} from 'sentry/components/tooltip';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
@@ -19,10 +19,10 @@ type Props = {
     avatarSize: number,
     numCollapsedAvatars: number
   ) => React.ReactNode;
-  renderTooltip?: UserAvatarProps['renderTooltip'];
+  renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
   renderUsersFirst?: boolean;
   teams?: Team[];
-  tooltipOptions?: UserAvatarProps['tooltipOptions'];
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
   typeAvatars?: string;
   users?: Array<Actor | AvatarUser>;
 };
@@ -117,14 +117,14 @@ function AvatarList({
             />
           ))
         : visibleUserAvatars.map(user => (
-            <StyledUserAvatar
+            <Tooltip
               key={user.id}
-              user={user}
-              size={avatarSize}
-              tooltipOptions={tooltipOptions}
-              renderTooltip={renderTooltip}
-              hasTooltip
-            />
+              skipWrapper
+              title={renderTooltip?.(user)}
+              {...tooltipOptions}
+            >
+              <StyledUserAvatar user={user} size={avatarSize} />
+            </Tooltip>
           ))}
 
       {!renderUsersFirst
@@ -138,14 +138,14 @@ function AvatarList({
             />
           ))
         : visibleUserAvatars.map(user => (
-            <StyledUserAvatar
+            <Tooltip
               key={user.id}
-              user={user}
-              size={avatarSize}
-              tooltipOptions={tooltipOptions}
-              renderTooltip={renderTooltip}
-              hasTooltip
-            />
+              skipWrapper
+              title={renderTooltip?.(user)}
+              {...tooltipOptions}
+            >
+              <StyledUserAvatar user={user} size={avatarSize} />
+            </Tooltip>
           ))}
     </AvatarListWrapper>
   );

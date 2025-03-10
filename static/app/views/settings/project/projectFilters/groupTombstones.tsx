@@ -14,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -44,11 +45,9 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
       </StyledBox>
       <AvatarContainer>
         {actor && (
-          <UserAvatar
-            user={actor}
-            hasTooltip
-            tooltip={t('Discarded by %s', actor.name || actor.email)}
-          />
+          <Tooltip title={t('Discarded by %s', actor.name || actor.email)}>
+            <UserAvatar user={actor} />
+          </Tooltip>
         )}
       </AvatarContainer>
       <ActionContainer>
