@@ -121,7 +121,7 @@ function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
   const indexOfFrame = parent.children.indexOf(frame);
   // this should never happen, it would make our data structure invalid
   if (indexOfFrame === -1) {
-    throw Error('frame.parent.children does not include current frame');
+    throw new Error('frame.parent.children does not include current frame');
   }
 
   if (directionX === 'right') {

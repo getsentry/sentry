@@ -272,7 +272,7 @@ class ResultGrid extends Component<Props, State> {
   onSearch = (e: React.FormEvent<HTMLFormElement>) => {
     const location = this.props.location ?? {};
     const {query} = this.state;
-    const targetQueryParams = {...(location.query ?? {}), query, cursor: ''};
+    const targetQueryParams = {...location.query, query, cursor: ''};
 
     e.preventDefault();
 

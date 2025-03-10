@@ -286,7 +286,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
 
     const data = {
-      ...(dataModel ?? {}),
+      ...dataModel,
       secret: this.state.authenticator.secret,
     };
 

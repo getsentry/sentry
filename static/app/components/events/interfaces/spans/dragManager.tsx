@@ -181,7 +181,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
         break;
       }
       default: {
-        throw Error('this.state.currentDraggingHandle is undefined');
+        throw new Error('this.state.currentDraggingHandle is undefined');
       }
     }
   };
@@ -232,7 +232,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
         return;
       }
       default: {
-        throw Error('this.state.currentDraggingHandle is undefined');
+        throw new Error('this.state.currentDraggingHandle is undefined');
       }
     }
   };

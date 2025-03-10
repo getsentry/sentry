@@ -369,7 +369,7 @@ function TeamSelector(props: Props) {
     () => ({
       ...(includeUnassigned ? unassignedSelectStyles : {}),
       ...(multiple ? {} : placeholderSelectStyles),
-      ...(stylesProp ?? {}),
+      ...stylesProp,
     }),
     [includeUnassigned, multiple, stylesProp]
   );

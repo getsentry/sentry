@@ -602,7 +602,7 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(link).toHaveAttribute(
           'href',
           expect.stringMatching(
-            RegExp(
+            new RegExp(
               '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
             )
           )

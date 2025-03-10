@@ -10,13 +10,13 @@ export function renameDiscoverSeries(
     ...series,
     seriesName: newName,
     meta: {
-      ...(series.meta ?? {}),
+      ...series.meta,
       fields: {
-        ...(series.meta?.fields ?? {}),
+        ...series.meta?.fields,
         [newName]: series.meta?.fields?.[previousName] ?? 'number',
       },
       units: {
-        ...(series.meta?.units ?? {}),
+        ...series.meta?.units,
         [newName]: series.meta?.units?.[previousName] ?? '',
       },
     },

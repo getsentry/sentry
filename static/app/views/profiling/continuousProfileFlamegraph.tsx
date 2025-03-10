@@ -69,7 +69,7 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
         ...queryStringState.preferences,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-          ...(storedPreferences?.preferences?.timelines ?? {}),
+          ...storedPreferences?.preferences?.timelines,
         },
         layout:
           storedPreferences?.preferences?.layout ??

@@ -102,7 +102,7 @@ export function getDefaultWidgetHeight(displayType: DisplayType): number {
 }
 
 export function getInitialColumnDepths() {
-  return Array(NUM_DESKTOP_COLS).fill(0);
+  return new Array(NUM_DESKTOP_COLS).fill(0);
 }
 
 /**
