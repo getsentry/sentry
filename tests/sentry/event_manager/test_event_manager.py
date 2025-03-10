@@ -1655,7 +1655,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         event = manager.save(self.project.id)
 
-        mock_record_release.assert_called_once_with(self.project)
+        mock_record_release.assert_called_once_with(self.project, "foo@1.0.0")
         mock_record_insight.assert_called_once_with(self.project, InsightModules.DB)
         mock_record_transaction.assert_called_once_with(self.project, event.datetime)
         assert mock_record_sample.mock_calls == [
