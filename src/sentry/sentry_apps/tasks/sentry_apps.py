@@ -388,7 +388,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 )
 @retry_decorator
 def workflow_notification(
-    installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
+    installation_id: int, issue_id: int, type: str, user_id: int | None, *args: Any, **kwargs: Any
 ) -> None:
     try:
         event = SentryAppEventType(f"issue.{type}")
@@ -422,8 +422,6 @@ def build_comment_webhook(
     installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
 ) -> None:
     webhook_data = get_webhook_data(installation_id, issue_id, user_id)
-    if not webhook_data:
-        return None
     install, _, user = webhook_data
     data = kwargs.get("data", {})
     project_slug = data.get("project_slug")
@@ -448,8 +446,8 @@ def build_comment_webhook(
 
 
 def get_webhook_data(
-    installation_id: int, issue_id: int, user_id: int
-) -> tuple[RpcSentryAppInstallation, Group, RpcUser | None] | None:
+    installation_id: int, issue_id: int, user_id: int | None
+) -> tuple[RpcSentryAppInstallation, Group, RpcUser | None]:
     extra = {"installation_id": installation_id, "issue_id": issue_id}
     install = app_service.installation_by_id(id=installation_id)
     if not install:
@@ -468,7 +466,7 @@ def get_webhook_data(
     user = None
     if user_id:
         user = user_service.get_user(user_id=user_id)
-        if not user:
+        if user is None:
             raise SentryAppSentryError(
                 message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_USER}",
             )
