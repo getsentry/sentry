@@ -38,7 +38,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
 
   return (
     <GroupList
-      orgSlug={organization.slug}
       endpointPath={path}
       queryParams={queryParams}
       query={`release:${releaseDetails?.versionInfo.version.raw}`}

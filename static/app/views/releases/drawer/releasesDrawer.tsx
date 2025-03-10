@@ -9,7 +9,7 @@ import {
   Header,
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
-import PlatformList from 'sentry/components/platformList';
+import {PlatformList} from 'sentry/components/platformList';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
