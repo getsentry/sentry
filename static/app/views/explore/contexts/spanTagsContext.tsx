@@ -13,15 +13,9 @@ import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFiel
 
 import {SENTRY_SPAN_NUMBER_TAGS, SENTRY_SPAN_STRING_TAGS} from '../constants';
 
-type TypedSpanTags = {
-  number: TagCollection;
-  string: TagCollection;
-};
+type TypedSpanTags = {number: TagCollection; string: TagCollection};
 
-type TypedSpanTagsStatus = {
-  numberTagsLoading: boolean;
-  stringTagsLoading: boolean;
-};
+type TypedSpanTagsStatus = {numberTagsLoading: boolean; stringTagsLoading: boolean};
 
 type TypedSpanTagsResult = TypedSpanTags & TypedSpanTagsStatus;
 
@@ -54,46 +48,27 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
   const allNumberTags = useMemo(() => {
     const measurements = SENTRY_SPAN_NUMBER_TAGS.map(measurement => [
       measurement,
-      {
-        key: measurement,
-        name: measurement,
-        kind: FieldKind.MEASUREMENT,
-      },
+      {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
     ]);
 
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-      return {
-        ...Object.fromEntries(measurements),
-      };
+      return {...Object.fromEntries(measurements)};
     }
 
-    return {
-      ...numberTags,
-      ...Object.fromEntries(measurements),
-    };
+    return {...numberTags, ...Object.fromEntries(measurements)};
   }, [dataset, numberTags]);
 
   const allStringTags = useMemo(() => {
     const tags = SENTRY_SPAN_STRING_TAGS.map(tag => [
       tag,
-      {
-        key: tag,
-        name: tag,
-        kind: FieldKind.TAG,
-      },
+      {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-      return {
-        ...indexedTags,
-        ...Object.fromEntries(tags),
-      };
+      return {...indexedTags, ...Object.fromEntries(tags)};
     }
 
-    return {
-      ...stringTags,
-      ...Object.fromEntries(tags),
-    };
+    return {...stringTags, ...Object.fromEntries(tags)};
   }, [dataset, indexedTags, stringTags]);
 
   const tagsResult = useMemo(() => {
@@ -118,27 +93,14 @@ export function useSpanTags(type?: 'number' | 'string') {
   }
 
   if (type === 'number') {
-    return typedTagsResult.number;
-  }
-  return typedTagsResult.string;
-}
-
-export function useSpanTagsAndStatus(type?: 'number' | 'string') {
-  const typedTagsResult = useContext(SpanTagsContext);
-
-  if (typedTagsResult === undefined) {
-    throw new Error('useSpanTags must be used within a SpanTagsProvider');
-  }
-
-  if (type === 'number') {
     return {tags: typedTagsResult.number, isLoading: typedTagsResult.numberTagsLoading};
   }
   return {tags: typedTagsResult.string, isLoading: typedTagsResult.stringTagsLoading};
 }
 
 export function useSpanTag(key: string) {
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   return stringTags[key] ?? numberTags[key] ?? null;
 }
