@@ -75,14 +75,14 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
 
   &:checked + div {
     background: ${p => p.theme.colors.chonk.blue400};
-    border-top: 3px solid ${p => p.theme.colors.blue100};
-    border-right: 1px solid ${p => p.theme.colors.blue100};
-    border-bottom: 1px solid ${p => p.theme.colors.blue100};
-    border-left: 1px solid ${p => p.theme.colors.blue100};
+    border-top: 3px solid ${p => p.theme.colors.chonk.blue100};
+    border-right: 1px solid ${p => p.theme.colors.chonk.blue100};
+    border-bottom: 1px solid ${p => p.theme.colors.chonk.blue100};
+    border-left: 1px solid ${p => p.theme.colors.chonk.blue100};
 
     > div {
       background: ${p => p.theme.colors.surface500};
-      border: 1px solid ${p => p.theme.colors.blue100};
+      border: 1px solid ${p => p.theme.colors.chonk.blue100};
       transform: translateY(-1px) translateX(${p => toggleWrapperSize[p.nativeSize].width - toggleButtonSize[p.nativeSize].width}px);
 
       &:after {

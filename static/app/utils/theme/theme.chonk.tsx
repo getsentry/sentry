@@ -87,7 +87,7 @@ const formTheme: FormTheme = {
 function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
     content: {
-      primary: colorScheme.gray600,
+      primary: colorScheme.gray800,
       muted: colorScheme.gray500,
       accent: colorScheme.blue500,
       promotion: colorScheme.pink500,
@@ -272,7 +272,7 @@ const darkColors: typeof lightColors = {
   black: '#181423',
   white: '#F6F5FA',
 
-  surface500: '#312D40', // background.primary
+  surface500: '#2B2738', // background.primary
   surface400: '#272433', // background.secondary
   surface300: '#23202E', // background.teritary
   surface200: '#18151F', // border.muted
@@ -528,8 +528,8 @@ const generateAliases = (
    * it in the usual manner (implies that there is an "enabled" state)
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  disabled: colors.gray300,
-  disabledBorder: colors.gray300,
+  disabled: colors.gray400,
+  disabledBorder: colors.gray400,
 
   /**
    * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
