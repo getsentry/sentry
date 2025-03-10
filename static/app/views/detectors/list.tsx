@@ -33,7 +33,7 @@ function TableHeader() {
     <Flex gap={space(2)}>
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <SearchBar placeholder={t('Search by name')} />
+        <SearchBar placeholder={t('Search for events, users, tags, and more')} />
       </div>
     </Flex>
   );
