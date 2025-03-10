@@ -14,3 +14,8 @@ class TestSecurityTxt(TestCase):
             assert response.status_code == 200
             assert b"Contact: security@sentry.io" in response.content
             assert response["Content-Type"] == "text/plain"
+
+    def test_self_hosted_not_found(self):
+        with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
+            response = self.client.get(reverse("sentry-security-txt"))
+            assert response.status_code == 404
