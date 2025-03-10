@@ -28,11 +28,11 @@ export default function DocIntegrationDetailsView() {
   );
 
   const integrationType = 'document';
-  const description = useMemo(() => doc?.description ?? '', [doc]);
-  const author = useMemo(() => doc?.author ?? '', [doc]);
-  const resourceLinks = useMemo(() => doc?.resources ?? [], [doc]);
+  const description = doc?.description ?? '';
+  const author = doc?.author ?? '';
   const installationStatus = null;
-  const integrationName = useMemo(() => doc?.name ?? '', [doc]);
+  const resourceLinks = useMemo(() => doc?.resources ?? [], [doc]);
+  const integrationName = doc?.name ?? '';
   const featureData = useMemo(() => doc?.features ?? [], [doc]);
 
   useEffect(() => {
@@ -105,19 +105,11 @@ export default function DocIntegrationDetailsView() {
           additionalCTA={null}
         />
       }
-      tabs={
-        <IntegrationLayout.Tabs
-          tabs={tabs}
-          activeTab={'overview'}
-          onTabChange={() => {}}
-          getTabDisplay={(tab: Tab) => tab}
-        />
-      }
+      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab={'overview'} />}
       content={
         <IntegrationLayout.InformationCard
           integrationSlug={integrationSlug}
           description={description}
-          alerts={[]}
           featureData={featureData}
           author={author}
           resourceLinks={resourceLinks}
