@@ -69,7 +69,7 @@ describe('OnDemandBudgets', () => {
     expect(
       screen.getByText('On-Demand is not supported for your account.')
     ).toBeInTheDocument();
-    expect(screen.getByText('Subscribe To A Paid Plan')).toBeInTheDocument();
+    expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
   });
 
   it('renders credit card modal on the on-demand setting for account without a credit card', async function () {
