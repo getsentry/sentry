@@ -200,7 +200,9 @@ abstract class AbstractIntegrationDetailedView<
         featureData={this.featureData}
         hideButtonIfDisabled={hideButtonIfDisabled}
         requiresAccess={this.requiresAccess}
-        renderTopButton={this.renderTopButton}
+        renderTopButton={(disabledFromFeatures, userHasAccess) =>
+          this.renderTopButton(disabledFromFeatures, userHasAccess)
+        }
       />
     );
   }
