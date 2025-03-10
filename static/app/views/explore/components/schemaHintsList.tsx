@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
@@ -132,10 +132,7 @@ function SchemaHintsList({
       return hint.name;
     }
 
-    return tct('[tag] [operation] ...', {
-      tag: prettifyTagKey(hint.name),
-      operation: hint.kind === FieldKind.MEASUREMENT ? '>' : 'is',
-    });
+    return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
   };
 
   return (
