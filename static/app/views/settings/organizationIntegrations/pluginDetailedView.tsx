@@ -1,117 +1,181 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import * as modal from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
-import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types/integrations';
+import type {
+  IntegrationInstallationStatus,
+  PluginProjectItem,
+  PluginWithProjectList,
+} from 'sentry/types/integrations';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
+import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
+import {
+  INSTALLED,
+  NOT_INSTALLED,
+} from 'sentry/views/settings/organizationIntegrations/constants';
+import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
+import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
-import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import InstalledPlugin from './installedPlugin';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
-type State = {
-  plugins: PluginWithProjectList[];
-};
+function makePluginQueryKey({
+  orgSlug,
+  pluginSlug,
+}: {
+  orgSlug: string;
+  pluginSlug: string;
+}): ApiQueryKey {
+  return [`/organizations/${orgSlug}/plugins/configs/`, {query: {plugins: pluginSlug}}];
+}
 
-type Tab = AbstractIntegrationDetailedView['state']['tab'];
+function PluginDetailedView() {
+  const tabs: Tab[] = ['overview', 'configurations'];
+  const {activeTab, setActiveTab} = useIntegrationTabs<Tab>({
+    initialTab: 'overview',
+  });
 
-class PluginDetailedView extends AbstractIntegrationDetailedView<
-  AbstractIntegrationDetailedView['props'],
-  State & AbstractIntegrationDetailedView['state']
-> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-    const {integrationSlug} = this.props.params;
-    return [
-      [
-        'plugins',
-        `/organizations/${organization.slug}/plugins/configs/?plugins=${integrationSlug}`,
-      ],
-    ];
-  }
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
 
-  get integrationType() {
-    return 'plugin' as const;
-  }
+  const {data: plugins} = useApiQuery<PluginWithProjectList[]>(
+    makePluginQueryKey({orgSlug: organization.slug, pluginSlug: integrationSlug}),
+    {staleTime: Infinity, retry: false}
+  );
 
-  get plugin() {
-    return this.state.plugins[0]!;
-  }
+  // XXX: For the FC conversion, these all need to be memoized to prevent render callbacks being
+  // computed on every render.
+  const integrationType = 'plugin';
+  const plugin = useMemo(() => plugins?.[0], [plugins]);
+  const description = useMemo(() => plugin?.description || '', [plugin]);
+  const author = useMemo(() => plugin?.author?.name, [plugin]);
+  const resourceLinks = useMemo(() => plugin?.resourceLinks || [], [plugin]);
+  const installationStatus: IntegrationInstallationStatus = useMemo(
+    () => (plugin?.projectList?.length ? INSTALLED : NOT_INSTALLED),
+    [plugin]
+  );
+  const integrationName = useMemo(
+    () => `${plugin?.name}${plugin?.isHidden ? t(' (Legacy)') : ''}`,
+    [plugin]
+  );
+  const featureData = useMemo(() => plugin?.featureDescriptions ?? [], [plugin]);
 
-  get description() {
-    return this.plugin.description || '';
-  }
+  const getTabDisplay = useCallback((tab: Tab) => {
+    if (tab === 'configurations') {
+      return 'project configurations';
+    }
+    return 'overview';
+  }, []);
 
-  get author() {
-    return this.plugin.author?.name;
-  }
+  const onTabChange = useCallback(
+    (tab: Tab) => {
+      setActiveTab(tab);
+      trackIntegrationAnalytics('integrations.integration_tab_clicked', {
+        view: 'integrations_directory_integration_detail',
+        integration: integrationSlug,
+        integration_type: integrationType,
+        already_installed: installationStatus !== 'Not Installed', // pending counts as installed here
+        organization,
+        integration_tab: tab,
+      });
+    },
+    [integrationSlug, installationStatus, organization, integrationType, setActiveTab]
+  );
 
-  get resourceLinks() {
-    return this.plugin.resourceLinks || [];
-  }
+  const handleResetConfiguration = useCallback(
+    (projectId: string) => {
+      if (!plugin) {
+        return;
+      }
+      // make a copy of our project list
+      const projectList = plugin.projectList.slice();
+      // find the index of the project
+      const index = projectList.findIndex(item => item.projectId === projectId);
+      // should match but quit if it doesn't
+      if (index < 0) {
+        return;
+      }
+      // remove from array
+      projectList.splice(index, 1);
+      // update state
+      const updatedPlugin: PluginWithProjectList = {
+        ...plugin,
+        projectList,
+      };
+      setApiQueryData<PluginWithProjectList[]>(
+        queryClient,
+        makePluginQueryKey({orgSlug: organization.slug, pluginSlug: integrationSlug}),
+        existingData => (updatedPlugin ? [updatedPlugin] : existingData)
+      );
+    },
+    [plugin, organization.slug, integrationSlug, queryClient]
+  );
 
-  get installationStatus() {
-    return this.plugin.projectList.length > 0 ? 'Installed' : 'Not Installed';
-  }
+  const handlePluginEnableStatus = useCallback(
+    (projectId: string, enable = true) => {
+      if (!plugin) {
+        return;
+      }
+      // make a copy of our project list
+      const projectList = plugin.projectList.slice();
+      // find the index of the project
+      const index = projectList.findIndex(item => item.projectId === projectId);
+      // should match but quit if it doesn't
+      if (index < 0) {
+        return;
+      }
 
-  get integrationName() {
-    return `${this.plugin.name}${this.plugin.isHidden ? ' (Legacy)' : ''}`;
-  }
+      // update item in array
+      projectList[index] = {
+        ...projectList[index]!,
+        enabled: enable,
+      };
 
-  get featureData() {
-    return this.plugin.featureDescriptions;
-  }
+      // update state
+      const updatedPlugin: PluginWithProjectList = {
+        ...plugin,
+        projectList,
+      };
+      setApiQueryData<PluginWithProjectList[]>(
+        queryClient,
+        makePluginQueryKey({orgSlug: organization.slug, pluginSlug: integrationSlug}),
+        existingData => (updatedPlugin ? [updatedPlugin] : existingData)
+      );
+    },
+    [plugin, organization.slug, integrationSlug, queryClient]
+  );
 
-  handleResetConfiguration = (projectId: string) => {
-    // make a copy of our project list
-    const projectList = this.plugin.projectList.slice();
-    // find the index of the project
-    const index = projectList.findIndex(item => item.projectId === projectId);
-    // should match but quit if it doesn't
-    if (index < 0) {
+  const handleAddToProject = useCallback(() => {
+    if (!plugin) {
       return;
     }
-    // remove from array
-    projectList.splice(index, 1);
-    // update state
-    this.setState({
-      plugins: [{...this.state.plugins[0]!, projectList}],
+    trackIntegrationAnalytics('integrations.plugin_add_to_project_clicked', {
+      view: 'integrations_directory_integration_detail',
+      integration: integrationSlug,
+      integration_type: integrationType,
+      already_installed: installationStatus !== 'Not Installed', // pending counts as installed here
+      organization,
     });
-  };
-
-  handlePluginEnableStatus = (projectId: string, enable = true) => {
-    // make a copy of our project list
-    const projectList = this.plugin.projectList.slice();
-    // find the index of the project
-    const index = projectList.findIndex(item => item.projectId === projectId);
-    // should match but quit if it doesn't
-    if (index < 0) {
-      return;
-    }
-
-    // update item in array
-    projectList[index] = {
-      ...projectList[index]!,
-      enabled: enable,
-    };
-
-    // update state
-    this.setState({
-      plugins: [{...this.state.plugins[0]!, projectList}],
-    });
-  };
-
-  handleAddToProject = () => {
-    const plugin = this.plugin;
-    const {organization, router} = this.props;
-    this.trackIntegrationAnalytics('integrations.plugin_add_to_project_clicked');
-    modal.openModal(
+    openModal(
       modalProps => (
         <ContextPickerModal
           {...modalProps}
@@ -120,45 +184,42 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           needOrg={false}
           onFinish={to => {
             modalProps.closeModal();
-            router.push(normalizeUrl(to));
+            navigate(normalizeUrl(to));
           }}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  };
+  }, [integrationSlug, installationStatus, navigate, organization, plugin]);
 
-  getTabDisplay(tab: Tab) {
-    // we want to show project configurations to make it more clear
-    if (tab === 'configurations') {
-      return 'project configurations';
-    }
-    return 'overview';
-  }
-
-  renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    if (userHasAccess) {
+  const renderTopButton = useCallback(
+    (disabledFromFeatures: boolean, userHasAccess: boolean) => {
+      if (userHasAccess) {
+        return (
+          <AddButton
+            data-test-id="install-button"
+            disabled={disabledFromFeatures}
+            onClick={handleAddToProject}
+            size="sm"
+            priority="primary"
+          >
+            {t('Add to Project')}
+          </AddButton>
+        );
+      }
       return (
-        <AddButton
-          data-test-id="install-button"
-          disabled={disabledFromFeatures}
-          onClick={this.handleAddToProject}
-          size="sm"
-          priority="primary"
-        >
-          {t('Add to Project')}
-        </AddButton>
+        <RequestIntegrationButton
+          name={integrationName}
+          slug={integrationSlug}
+          type={integrationType}
+        />
       );
-    }
+    },
+    [handleAddToProject, integrationName, integrationSlug, integrationType]
+  );
 
-    return this.renderRequestIntegrationButton();
-  }
-
-  renderConfigurations() {
-    const plugin = this.plugin;
-    const {organization} = this.props;
-
-    if (plugin.projectList.length) {
+  const renderConfigurations = useCallback(() => {
+    if (plugin?.projectList.length) {
       return (
         <Fragment>
           <PluginDeprecationAlert organization={organization} plugin={plugin} />
@@ -169,17 +230,93 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
                 organization={organization}
                 plugin={plugin}
                 projectItem={projectItem}
-                onResetConfiguration={this.handleResetConfiguration}
-                onPluginEnableStatusChange={this.handlePluginEnableStatus}
-                trackIntegrationAnalytics={this.trackIntegrationAnalytics}
+                onResetConfiguration={handleResetConfiguration}
+                onPluginEnableStatusChange={handlePluginEnableStatus}
+                trackIntegrationAnalytics={eventKey => {
+                  trackIntegrationAnalytics(eventKey, {
+                    view: 'integrations_directory_integration_detail',
+                    integration: integrationSlug,
+                    integration_type: integrationType,
+                    already_installed: installationStatus !== 'Not Installed', // pending counts as installed here
+                    organization,
+                  });
+                }}
               />
             ))}
           </div>
         </Fragment>
       );
     }
-    return this.renderEmptyConfigurations();
-  }
+    return (
+      <IntegrationLayout.EmptyConfigurations
+        action={
+          <IntegrationLayout.AddInstallButton
+            featureData={featureData}
+            hideButtonIfDisabled
+            renderTopButton={renderTopButton}
+            requiresAccess
+          />
+        }
+      />
+    );
+  }, [
+    featureData,
+    handlePluginEnableStatus,
+    handleResetConfiguration,
+    installationStatus,
+    integrationSlug,
+    integrationType,
+    organization,
+    plugin,
+    renderTopButton,
+  ]);
+
+  return (
+    <IntegrationLayout.Body
+      integrationName={integrationName}
+      alert={null}
+      topSection={
+        <IntegrationLayout.TopSection
+          featureData={featureData}
+          integrationName={integrationName}
+          installationStatus={installationStatus}
+          integrationIcon={<PluginIcon pluginId={integrationSlug} size={50} />}
+          addInstallButton={
+            <IntegrationLayout.AddInstallButton
+              featureData={featureData}
+              hideButtonIfDisabled={false}
+              requiresAccess={false}
+              renderTopButton={renderTopButton}
+            />
+          }
+          additionalCTA={null}
+        />
+      }
+      tabs={
+        <IntegrationLayout.Tabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          getTabDisplay={getTabDisplay}
+        />
+      }
+      content={
+        activeTab === 'overview' ? (
+          <IntegrationLayout.InformationCard
+            integrationSlug={integrationSlug}
+            description={description}
+            alerts={[]}
+            featureData={featureData}
+            author={author}
+            resourceLinks={resourceLinks}
+            permissions={null}
+          />
+        ) : (
+          renderConfigurations()
+        )
+      }
+    />
+  );
 }
 
 const AddButton = styled(Button)`
