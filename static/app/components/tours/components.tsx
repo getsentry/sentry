@@ -88,8 +88,8 @@ export function TourContextProvider<T extends TourEnumType>({
           dispatch({type: 'END_TOUR'});
         },
       },
-      {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
-      {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
+      {match: ['left'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
+      {match: ['right'], callback: () => dispatch({type: 'NEXT_STEP'})},
     ];
   }, [dispatch, mutate, tourKey]);
 
