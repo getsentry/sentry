@@ -12,11 +12,11 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')`
   cursor: pointer;
 
   & + * {
-    color: ${p => p.theme.colors.static.white};
-    border: 1px solid ${p => p.theme.colors.dynamic.surface100};
+    color: ${p => p.theme.colors.white};
+    border: 1px solid ${p => p.theme.colors.surface100};
 
     svg {
-      stroke: ${p => p.theme.colors.static.white};
+      stroke: ${p => p.theme.colors.white};
     }
   }
 
@@ -26,21 +26,21 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')`
 
   &:disabled + *,
   &[aria-disabled='true'] + * {
-    background-color: ${p => p.theme.colors.dynamic.surface500};
-    border: 1px solid ${p => p.theme.colors.dynamic.surface100};
+    background-color: ${p => p.theme.colors.surface500};
+    border: 1px solid ${p => p.theme.colors.surface100};
     cursor: not-allowed;
   }
 
   &:checked + *,
   &:indeterminate + * {
-    background-color: ${p => p.theme.colors.static.blue400};
+    background-color: ${p => p.theme.colors.chonk.blue400};
     color: ${p => p.theme.white};
   }
 
   &:disabled:checked + *,
   &:disabled:indeterminate + * {
-    background-color: ${p => p.theme.colors.static.blue400};
-    border: 1px solid ${p => p.theme.colors.static.blue400};
+    background-color: ${p => p.theme.colors.chonk.blue400};
+    border: 1px solid ${p => p.theme.colors.chonk.blue400};
     opacity: 0.6;
   }
 `;
