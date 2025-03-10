@@ -1,5 +1,28 @@
+import * as Sentry from '@sentry/react';
+
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {
+  type ColumnValueType,
+  CurrencyUnit,
+  DurationUnit,
+  fieldAlignment,
+} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
+import {
+  type LogAttributeItem,
+  type LogAttributeUnits,
+  type LogRowItem,
+  type OurLogFieldKey,
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+
+const {warn, fmt} = Sentry._experiment_log;
 
 export function getLogSeverityLevel(
   severityNumber: number | null,
@@ -98,4 +121,79 @@ export function getLogBodySearchTerms(search: MutableSearch): string[] {
     }
   }
   return searchTerms;
+}
+
+export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
+  const field = args[0];
+  if (field === OurLogKnownFieldKey.TIMESTAMP) {
+    return 'right';
+  }
+  return fieldAlignment(...args);
+}
+
+export function removeSentryPrefix(key: string) {
+  return key.replace('sentry.', '');
+}
+
+export function getTableHeaderLabel(field: OurLogFieldKey) {
+  return LogAttributesHumanLabel[field] ?? removeSentryPrefix(field);
+}
+
+export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
+  return (
+    unit === null ||
+    unit === `${DurationUnit}` ||
+    unit === `${CurrencyUnit}` ||
+    unit === 'count' ||
+    unit === 'percentage' ||
+    unit === 'percent_change'
+  );
+}
+
+export function getLogRowItem(
+  field: OurLogFieldKey,
+  dataRow: OurLogsResponseItem,
+  meta: EventsMetaType | undefined
+): LogRowItem {
+  if (!defined(dataRow[field])) {
+    warn(fmt`Field ${field} in not defined in dataRow ${dataRow}`);
+  }
+
+  return {
+    fieldKey: field,
+    metaFieldType: meta?.fields?.[field] as ColumnValueType,
+    unit: isLogAttributeUnit(meta?.units?.[field] ?? null)
+      ? (meta?.units?.[field] as LogAttributeUnits)
+      : null,
+    value: dataRow[field] ?? '',
+  };
+}
+
+export function getLogAttributeItem(
+  field: OurLogFieldKey,
+  value: OurLogsResponseItem[OurLogFieldKey] | null
+): LogAttributeItem {
+  return {
+    fieldKey: field,
+    value,
+  };
+}
+
+export function logRowItemToTableColumn(
+  item: LogRowItem
+): TableColumn<keyof TableDataRow> {
+  return {
+    key: item.fieldKey,
+    name: item.fieldKey,
+    column: {
+      field: item.fieldKey,
+      kind: 'field',
+    },
+    isSortable: false,
+    type: item.metaFieldType,
+  };
+}
+
+export function adjustLogTraceID(traceID: string) {
+  return traceID.replace(/-/g, '');
 }

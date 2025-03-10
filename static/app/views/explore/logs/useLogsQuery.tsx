@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import type EventView from 'sentry/utils/discover/eventView';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -7,7 +9,10 @@ import {
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
+
+const {warn, fmt} = Sentry._experiment_log;
 
 export interface OurLogsTableResult {
   eventView: EventView;
@@ -19,17 +24,23 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
 
-  const {data, isError, isPending, pageLinks} = useOurlogs(
+  const extendedFields = new Set([...AlwaysPresentLogFields, ...fields]);
+
+  const {data, meta, isError, isPending, pageLinks} = useOurlogs(
     {
       ...options,
       sorts: sortBys,
-      fields,
+      fields: Array.from(extendedFields),
       search,
     },
     'api.logs-tab.view'
   );
 
-  return {data, isError, isPending, pageLinks};
+  if (!meta) {
+    warn(fmt`meta is 'undefined' for useExploreLogsTable`);
+  }
+
+  return {data, meta, isError, isPending, pageLinks};
 }
 
 export interface AttributeAnyValue {
