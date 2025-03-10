@@ -159,7 +159,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -183,7 +183,7 @@ function mockSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -197,7 +197,7 @@ function mockTransactionSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 

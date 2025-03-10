@@ -565,7 +565,7 @@ export default typescript.config([
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-unnecessary-await': 'error',
-      'unicorn/no-useless-fallback-in-spread': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-fallback-in-spread': 'error',
       'unicorn/no-useless-length-check': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
