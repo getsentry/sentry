@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -16,6 +15,7 @@ from sentry.testutils.performance_issues.event_generators import (
 from sentry.utils.performance_issues.detectors.consecutive_db_detector import (
     ConsecutiveDBSpanDetector,
 )
+from sentry.utils.performance_issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
