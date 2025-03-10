@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import {explodeSlug} from 'sentry/utils';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
@@ -108,13 +109,13 @@ function AvatarList({
 
       {renderUsersFirst
         ? visibleTeamAvatars.map(team => (
-            <StyledTeamAvatar
+            <Tooltip
               key={`${team.id}-${team.name}`}
-              team={team}
-              size={avatarSize}
-              tooltipOptions={tooltipOptions}
-              hasTooltip
-            />
+              title={`#${explodeSlug(team.slug || '')}`}
+              skipWrapper
+            >
+              <StyledTeamAvatar team={team} size={avatarSize} />
+            </Tooltip>
           ))
         : visibleUserAvatars.map(user => (
             <Tooltip
@@ -129,13 +130,13 @@ function AvatarList({
 
       {!renderUsersFirst
         ? visibleTeamAvatars.map(team => (
-            <StyledTeamAvatar
+            <Tooltip
               key={`${team.id}-${team.name}`}
-              team={team}
-              size={avatarSize}
-              tooltipOptions={tooltipOptions}
-              hasTooltip
-            />
+              title={`#${explodeSlug(team.slug || '')}`}
+              skipWrapper
+            >
+              <StyledTeamAvatar team={team} size={avatarSize} />
+            </Tooltip>
           ))
         : visibleUserAvatars.map(user => (
             <Tooltip
