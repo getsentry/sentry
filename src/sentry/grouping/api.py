@@ -37,6 +37,7 @@ from sentry.grouping.variants import (
     HashedChecksumVariant,
     SaltedComponentVariant,
 )
+from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS_OPTION_KEY
 from sentry.models.grouphash import GroupHash
 
 if TYPE_CHECKING:
@@ -87,6 +88,7 @@ class GroupingConfigLoader:
         }
 
     def _get_enhancements(self, project: Project) -> str:
+        derived_enhancements = project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
         project_enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -100,15 +102,27 @@ class GroupingConfigLoader:
         cache_prefix = self.cache_prefix
         cache_prefix += f"{LATEST_VERSION}:"
         cache_key = (
-            cache_prefix + md5_text(f"{enhancements_base}|{project_enhancements}").hexdigest()
+            cache_prefix
+            + md5_text(
+                f"{enhancements_base}|{derived_enhancements}|{project_enhancements}"
+            ).hexdigest()
         )
         enhancements = cache.get(cache_key)
         if enhancements is not None:
             return enhancements
 
         try:
+            # Automatic enhancements are always applied first, so they take precedence over
+            # project-specific enhancements.
+            enhancements_string = project_enhancements or ""
+            if derived_enhancements:
+                enhancements_string = (
+                    f"{derived_enhancements}\n{enhancements_string}"
+                    if enhancements_string
+                    else derived_enhancements
+                )
             enhancements = Enhancements.from_config_string(
-                project_enhancements, bases=[enhancements_base] if enhancements_base else []
+                enhancements_string, bases=[enhancements_base] if enhancements_base else []
             ).base64_string
         except InvalidEnhancerConfig:
             enhancements = get_default_enhancements()
@@ -441,7 +455,7 @@ def get_grouping_variants_for_event(
 
 
 def get_contributing_variant_and_component(
-    variants: dict[str, BaseVariant]
+    variants: dict[str, BaseVariant],
 ) -> tuple[BaseVariant, ContributingComponent | None]:
     if len(variants) == 1:
         contributing_variant = list(variants.values())[0]
