@@ -110,7 +110,6 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             sort=result["sort"],
             visibility=result["visibility"],
         )
-        assert saved_search.type is not None
         analytics.record(
             "organization_saved_search.created",
             search_type=SearchType(saved_search.type).name,

@@ -29,7 +29,7 @@ def _not_authenticated(request: HttpRequest) -> bool:
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
-    def get_next_uri(self, request: HttpRequest):
+    def get_next_uri(self, request: HttpRequest) -> str:
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):

@@ -456,6 +456,13 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Beta recording consumer rollout.
+register(
+    "replay.consumer.recording.beta-rollout",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Globally disables replay-video.
 register(
     "replay.replay-video.disabled",
@@ -858,14 +865,6 @@ register(
 
 register(
     "issues.priority.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of platforms that will run in dry-run mode by default.
-register(
-    "issues.auto_source_code_config.dry-run-platforms",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

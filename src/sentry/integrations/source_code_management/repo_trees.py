@@ -6,36 +6,13 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
+from sentry.issues.auto_source_code_config.utils import get_supported_extensions
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
 
-# We only care about extensions of files which would show up in stacktraces after symbolication
-SUPPORTED_EXTENSIONS = [
-    "clj",
-    "cljc",
-    "cljcs",
-    "cs",
-    "go",
-    "groovy",
-    "java",
-    "js",
-    "jsp",
-    "jsx",
-    "kt",
-    "kts",
-    "mjs",
-    "php",
-    "py",
-    "rake",
-    "rb",
-    "scala",
-    "sc",
-    "ts",
-    "tsx",
-]
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
@@ -248,8 +225,7 @@ def filter_source_code_files(files: list[str]) -> list[str]:
     # represent a directory in the path
     for file_path in files:
         try:
-            extension = get_extension(file_path)
-            if extension in SUPPORTED_EXTENSIONS and should_include(file_path):
+            if should_include(file_path):
                 supported_files.append(file_path)
         except Exception:
             logger.exception("We've failed to store the file path.")
@@ -268,9 +244,11 @@ def get_extension(file_path: str) -> str:
 
 
 def should_include(file_path: str) -> bool:
-    include = True
+    extension = get_extension(file_path)
+    if extension not in get_supported_extensions():
+        return False
     if any(file_path.endswith(ext) for ext in EXCLUDED_EXTENSIONS):
-        include = False
+        return False
     if any(file_path.startswith(path) for path in EXCLUDED_PATHS):
-        include = False
-    return include
+        return False
+    return True

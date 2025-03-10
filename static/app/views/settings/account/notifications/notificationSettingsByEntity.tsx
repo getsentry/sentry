@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -140,7 +140,7 @@ function NotificationSettingsByEntity({
               disableLink
             />
           </div>
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
@@ -234,7 +234,7 @@ function NotificationSettingsByEntity({
         </StyledPanelHeader>
         <ControlItem>
           {/* TODO: enable search for sentry projects */}
-          <SelectControl
+          <Select
             placeholder={
               entityType === 'project'
                 ? t('Project\u2026')
@@ -247,7 +247,7 @@ function NotificationSettingsByEntity({
             }}
             value={selectedEntityId}
           />
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={selectedValue}
             name="value"
