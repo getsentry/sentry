@@ -740,7 +740,9 @@ function StreamGroup({
                 />
               </AssigneeWrapper>
             ))}
-          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
+          {showLastTriggered && (
+            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+          )}
         </Fragment>
       )}
     </Wrapper>
@@ -1016,6 +1018,14 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
+`;
+
+const LastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 60px;
+  margin: 0 ${space(2)} 0 0;
 `;
 
 const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
