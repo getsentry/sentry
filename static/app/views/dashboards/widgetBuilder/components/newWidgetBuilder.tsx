@@ -1,6 +1,6 @@
 import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
-import {css, useTheme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
@@ -148,6 +148,13 @@ function WidgetBuilderV2({
     <Fragment>
       {isOpen && (
         <Fragment>
+          <Global
+            styles={css`
+              body {
+                overflow: hidden;
+              }
+            `}
+          />
           <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
           <AnimatePresence>
             {isOpen && (
