@@ -469,7 +469,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
-            project_subscription.update(uptime_status=UptimeStatus.FAILED)
+            project_subscription.update(
+                uptime_status=UptimeStatus.FAILED, uptime_status_update_date=datetime.now()
+            )
         elif (
             project_subscription.uptime_status == UptimeStatus.FAILED
             and result["status"] == CHECKSTATUS_SUCCESS
@@ -496,7 +498,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
-            project_subscription.update(uptime_status=UptimeStatus.OK)
+            project_subscription.update(
+                uptime_status=UptimeStatus.OK, uptime_status_update_date=datetime.now()
+            )
 
     def has_reached_status_threshold(
         self,
