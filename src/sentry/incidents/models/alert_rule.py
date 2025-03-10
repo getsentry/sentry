@@ -499,8 +499,8 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))
@@ -519,8 +519,8 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         handler = AlertRuleTriggerAction.build_handler(AlertRuleTriggerAction.Type(self.type))

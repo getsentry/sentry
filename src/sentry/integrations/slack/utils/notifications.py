@@ -43,8 +43,8 @@ _logger = logging.getLogger(__name__)
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
+    metric_value: float | int | None,
     new_status: IncidentStatus,
-    metric_value: float | int | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:

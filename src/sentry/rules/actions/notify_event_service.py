@@ -70,8 +70,8 @@ def build_incident_attachment(
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
+    metric_value: float | int | None,
     new_status: IncidentStatus,
-    metric_value: float | int | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     """

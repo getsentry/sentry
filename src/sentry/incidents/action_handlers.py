@@ -59,8 +59,8 @@ class ActionHandler(metaclass=abc.ABCMeta):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         pass
@@ -71,8 +71,8 @@ class ActionHandler(metaclass=abc.ABCMeta):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         pass
@@ -103,8 +103,8 @@ class DefaultActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=incident.alert_rule):
@@ -122,8 +122,8 @@ class DefaultActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=incident.alert_rule):
@@ -142,8 +142,8 @@ class DefaultActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         pass
@@ -213,8 +213,8 @@ class EmailActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         self.email_users(
@@ -231,8 +231,8 @@ class EmailActionHandler(ActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         self.email_users(
@@ -304,8 +304,8 @@ class PagerDutyActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
@@ -348,8 +348,8 @@ class OpsgenieActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
@@ -382,8 +382,8 @@ class SentryAppActionHandler(DefaultActionHandler):
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
-        metric_value: int | float | None = None,
         notification_uuid: str | None = None,
     ):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
