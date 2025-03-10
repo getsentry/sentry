@@ -5,7 +5,7 @@ import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
 from typing import Any
-from urllib.parse import parse_qs, quote, urlencode, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 from django import forms
 from django.http.request import HttpRequest
@@ -337,8 +337,12 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         filepath = filepath.lstrip("/")
-        project = quote(repo.config["project"])
-        repo_id = quote(repo.config["name"])
+        # First unquote to ensure we're starting with unencoded strings
+        # This prevents double-encoding if the strings are already encoded,
+        # as azure devops projects/repos can have spaces in them
+        project = quote(unquote(repo.config["project"]))
+        repo_id = quote(unquote(repo.config["name"]))
+
         query_string = urlencode(
             {
                 "path": f"/{filepath}",
