@@ -132,7 +132,11 @@ describe('Flamegraph', function () {
       {organization: initializeOrg().organization}
     );
 
-    expect(await screen.findByText('Error: Unable to load profiles')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'RequestError: GET /projects/{orgSlug}/{projectSlug}/profiling/profiles/profile-id/'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders a profile', async function () {
