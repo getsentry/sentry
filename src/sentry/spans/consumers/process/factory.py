@@ -1,8 +1,10 @@
 import dataclasses
 import logging
-from collections import defaultdict
+import threading
+import time
 from collections.abc import Mapping
-from datetime import datetime
+from concurrent import futures
+from functools import partial
 from typing import Any
 
 import orjson
@@ -11,27 +13,20 @@ import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
-from arroyo.processing.strategies.produce import Produce
-from arroyo.processing.strategies.run_task import RunTask
-from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import (
-    FILTERED_PAYLOAD,
-    BrokerValue,
-    Commit,
-    FilteredPayload,
-    Message,
-    Partition,
-    Value,
+from arroyo.processing.strategies.abstract import (
+    MessageRejected,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
 )
+from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
-from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
+from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span, segment_to_span_id
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -145,124 +140,6 @@ def process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata |
         return FILTERED_PAYLOAD
 
 
-def _batch_write_to_redis(message: Message[ValuesBatch[SpanMessageWithMetadata]]):
-    """
-    Gets a batch of `SpanMessageWithMetadata` and creates a dictionary with
-    segment_id as key and a list of spans belonging to that segment_id as value.
-    Pushes the batch of spans to redis.
-    """
-    with sentry_sdk.start_transaction(op="process", name="spans.process.expand_segments"):
-        batch = message.payload
-        latest_ts_by_partition: dict[int, int] = {}
-        spans_map: dict[SegmentKey, list[bytes]] = defaultdict(list)
-        segment_first_seen_ts: dict[SegmentKey, int] = {}
-
-        for item in batch:
-            payload = item.payload
-            partition = payload.partition
-            segment_id = payload.segment_id
-            project_id = payload.project_id
-            span = payload.span
-            timestamp = payload.timestamp
-
-            key = SegmentKey(segment_id, project_id, partition)
-
-            # Collects spans for each segment_id
-            spans_map[key].append(span)
-
-            # Collects "first_seen" timestamps for each segment in batch.
-            # Batch step doesn't guarantee order, so pick lowest ts.
-            if key not in segment_first_seen_ts or timestamp < segment_first_seen_ts[key]:
-                segment_first_seen_ts[key] = timestamp
-
-            # Collects latest timestamps processed in each partition. It is
-            # important to keep track of this per partition because message
-            # timestamps are guaranteed to be monotonic per partition only.
-            if (
-                partition not in latest_ts_by_partition
-                or timestamp > latest_ts_by_partition[partition]
-            ):
-                latest_ts_by_partition[partition] = timestamp
-
-        client = RedisSpansBuffer()
-
-        return client.batch_write_and_check_processing(
-            spans_map=spans_map,
-            segment_first_seen_ts=segment_first_seen_ts,
-            latest_ts_by_partition=latest_ts_by_partition,
-        )
-
-
-def batch_write_to_redis(
-    message: Message[ValuesBatch[SpanMessageWithMetadata]],
-):
-    try:
-        return _batch_write_to_redis(message)
-    except Exception:
-        sentry_sdk.capture_exception()
-        return FILTERED_PAYLOAD
-
-
-def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
-    with sentry_sdk.start_transaction(op="process", name="spans.process.expand_segments") as txn:
-        buffered_segments: list[Value] = []
-
-        for result in should_process_segments:
-            timestamp = result.timestamp
-            partition = result.partition
-            should_process = result.should_process_segments
-
-            if not should_process:
-                continue
-
-            client = RedisSpansBuffer()
-            payload_context = {}
-
-            with txn.start_child(op="process", name="fetch_unprocessed_segments"):
-                keys = client.get_unprocessed_segments_and_prune_bucket(timestamp, partition)
-
-            sentry_sdk.set_measurement("segments.count", len(keys))
-            if len(keys) > 0:
-                payload_context["sample_key"] = keys[0]
-
-            # With pipelining, redis server is forced to queue replies using
-            # up memory, so batching the keys we fetch.
-            with txn.start_child(op="process", name="read_and_expire_many_segments"):
-                for i in range(0, len(keys), BATCH_SIZE):
-                    segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
-
-                    for j, segment in enumerate(segments):
-                        if not segment:
-                            continue
-
-                        payload_data = prepare_buffered_segment_payload(segment)
-                        if len(payload_data) > MAX_PAYLOAD_SIZE:
-                            logger.warning(
-                                "Failed to produce message: max payload size exceeded.",
-                                extra={"segment_key": keys[i + j]},
-                            )
-                            metrics.incr("performance.buffered_segments.max_payload_size_exceeded")
-                            continue
-
-                        buffered_segments.append(
-                            Value(
-                                KafkaPayload(None, payload_data, []),
-                                {},
-                                datetime.fromtimestamp(timestamp),
-                            )
-                        )
-
-    return buffered_segments
-
-
-def expand_segments(should_process_segments: list[ProcessSegmentsContext]):
-    try:
-        return _expand_segments(should_process_segments)
-    except Exception:
-        sentry_sdk.capture_exception()
-        return []
-
-
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     1. Process spans and push them to redis
@@ -278,15 +155,27 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
+        max_flush_segments: int,
+        max_inflight_segments: int,
+        num_shards: int,
+        flush_shard: list[int],
         input_block_size: int | None,
         output_block_size: int | None,
     ):
         super().__init__()
+
+        # config
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
+        self.max_flush_segments = max_flush_segments
+        self.max_inflight_segments = max_inflight_segments
+        self.num_shards = num_shards
+        self.flush_shard = flush_shard
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.__pool = MultiprocessingPool(num_processes)
+
+        self.buffer = RedisSpansBufferV2(num_shards=self.num_shards)
 
         cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
@@ -301,31 +190,21 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        committer = CommitOffsets(commit)
 
-        produce_step = Produce(
-            producer=self.producer,
-            topic=self.output_topic,
-            next_step=NoOp(),
+        flusher = SpanFlusher(
+            self.buffer,
+            self.flush_shard,
+            self.producer,
+            self.output_topic,
+            self.max_flush_segments,
+            self.max_inflight_segments,
+            next_step=committer,
         )
 
-        unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
-
-        commit_step = CommitSpanOffsets(commit=commit, next_step=unfold_step)
-
-        batch_processor = RunTask(
-            function=batch_write_to_redis,
-            next_step=commit_step,
-        )
-
-        batch_step = BatchStep(
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            next_step=batch_processor,
-        )
-
-        return run_task_with_multiprocessing(
-            function=process_message,
-            next_step=batch_step,
+        run_task = run_task_with_multiprocessing(
+            function=partial(process_batch, self.buffer),
+            next_step=flusher,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             pool=self.__pool,
@@ -333,6 +212,132 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             output_block_size=self.output_block_size,
         )
 
+        batch = BatchStep(
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            next_step=run_task,
+        )
+
+        return batch
+
     def shutdown(self) -> None:
         self.producer.close()
         self.__pool.close()
+
+
+def process_batch(buffer: RedisSpansBufferV2, values: Message[ValuesBatch[KafkaPayload]]) -> int:
+    spans = []
+    for value in values.payload:
+        val = rapidjson.loads(value.payload.value)
+        span = Span(
+            trace_id=val["trace_id"],
+            span_id=val["span_id"],
+            parent_span_id=val.get("parent_span_id"),
+            project_id=val["project_id"],
+            payload=value.payload.value,
+            is_segment_span=val.get("parent_span_id") is None,
+        )
+        spans.append(span)
+
+    now = int(time.time())
+    buffer.process_spans(spans, now=now)
+    return now
+
+
+class SpanFlusher(ProcessingStrategy[int]):
+    def __init__(
+        self,
+        buffer: RedisSpansBufferV2,
+        flush_shard: list[int],
+        producer: KafkaProducer,
+        topic: ArroyoTopic,
+        max_flush_segments: int,
+        max_inflight_segments: int,
+        next_step: ProcessingStrategy[int],
+    ):
+        self.buffer = buffer
+        self.flush_shard = flush_shard
+        self.producer = producer
+        self.topic = topic
+        self.max_flush_segments = max_flush_segments
+        self.max_inflight_segments = max_inflight_segments
+        self.next_step = next_step
+
+        self.stopped = False
+        self.enable_backpressure = False
+        self.current_time = 0
+
+        self.thread = threading.Thread(target=self.main, daemon=True)
+        self.thread.start()
+
+    def main(self):
+        while not self.stopped:
+            now = self.current_time
+
+            producer_futures = []
+
+            queue_size, flushed_segments = self.buffer.flush_segments(
+                max_segments=self.max_flush_segments, now=now, flush_shard=self.flush_shard or None
+            )
+            self.enable_backpressure = queue_size >= self.max_inflight_segments
+
+            if not flushed_segments:
+                time.sleep(1)
+                continue
+
+            for segment_id, spans_set in flushed_segments.items():
+                # TODO: Check if this is correctly placed
+                segment_span_id = segment_to_span_id(segment_id)
+                if not spans_set:
+                    # TODO: Fix a bug where we flush empty segments
+                    logger.warning(
+                        "skipping segment without spans", extra={"segment_id": segment_span_id}
+                    )
+                    continue
+
+                segment_spans = []
+                for payload in spans_set:
+                    val = rapidjson.loads(payload)
+                    val["segment_id"] = segment_span_id
+                    val["is_segment"] = segment_span_id == val["span_id"]
+                    segment_spans.append(val)
+
+                kafka_payload = KafkaPayload(
+                    None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
+                )
+
+                producer_futures.append(self.producer.produce(self.topic, kafka_payload))
+
+            futures.wait(producer_futures)
+
+            self.buffer.done_flush_segments(flushed_segments)
+
+    def poll(self) -> None:
+        self.next_step.poll()
+
+    def submit(self, message: Message[int]) -> None:
+        self.current_time = max((self.current_time, message.payload))
+
+        if self.enable_backpressure:
+            raise MessageRejected()
+
+        self.next_step.submit(message)
+
+    def terminate(self) -> None:
+        self.stopped = True
+        self.next_step.terminate()
+
+    def close(self) -> None:
+        self.stopped = True
+        self.next_step.close()
+
+    def join(self, timeout: float | None = None):
+        # set stopped flag first so we can "flush" the background thread while
+        # next_step is also shutting down. we can do two things at once!
+        self.stopped = True
+        deadline = time.time() + timeout if timeout else None
+
+        self.next_step.join(timeout)
+
+        while self.thread.is_alive() and (deadline is None or deadline > time.time()):
+            time.sleep(0.1)
