@@ -18,7 +18,7 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
