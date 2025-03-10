@@ -1,5 +1,4 @@
 import {createContext, useEffect} from 'react';
-import {useRouter} from '@react-aria/utils';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -34,6 +33,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -260,8 +260,9 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
   const router = useRouter();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const {release} = params;
 
-  useRouteAnalyticsParams({release: params.release});
+  useRouteAnalyticsParams({release});
 
   // Remove global date time from URL
   useEffect(() => {
@@ -278,12 +279,7 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
     }
   }, [location, navigate]);
 
-  const {
-    data: releaseMeta,
-    isPending,
-    isError,
-    error,
-  } = useReleaseMeta({release: params.release});
+  const {data: releaseMeta, isPending, isError, error} = useReleaseMeta({release});
 
   if (isPending) {
     return (
@@ -324,7 +320,7 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
         router={router}
         nextPath={{
           pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-            params.release!
+            release!
           )}/`,
         }}
         noProjectRedirectPath={makeReleasesPathname({
