@@ -34,6 +34,7 @@ export function useGroupTagsDrawer({
               query: {
                 ...location.query,
                 tagDrawerSort: undefined,
+                tab: undefined,
               },
             },
             {replace: true}
