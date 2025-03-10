@@ -71,7 +71,7 @@ export function CommitsFilesSection({
                       ? '-'
                       : isMetaError
                         ? 'x'
-                        : releaseMeta?.commitCount ?? '0'}
+                        : (releaseMeta?.commitCount ?? '0')}
                   </Badge>
                 </TitleWithBadge>
               </TabList.Item>
@@ -83,7 +83,7 @@ export function CommitsFilesSection({
                       ? '-'
                       : isMetaError
                         ? 'x'
-                        : releaseMeta?.commitFilesChanged ?? '0'}
+                        : (releaseMeta?.commitFilesChanged ?? '0')}
                   </Badge>
                 </TitleWithBadge>
               </TabList.Item>

@@ -60,7 +60,7 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
           <TitleWithBadge>
             <span>{t('New Issues')}</span>
             <Badge type="default">
-              {isLoadingMeta ? '-' : releaseMeta?.newGroups ?? '0'}
+              {isLoadingMeta ? '-' : (releaseMeta?.newGroups ?? '0')}
             </Badge>
           </TitleWithBadge>
         }
