@@ -1599,7 +1599,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...Array(filters.length).keys()],
+        filterIndices: [...new Array(filters.length).keys()],
       };
     }
   }

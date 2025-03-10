@@ -112,7 +112,13 @@
     "plugins": [
       // The styled plugin provides language server autocompletion for styled
       // component template strings
-      { "name": "@styled/typescript-styled-plugin" }
+      {
+        "name": "@styled/typescript-styled-plugin",
+        "lint": {
+          "validProperties": ["container-type"],
+          "unknownAtRules": "ignore"
+        }
+      }
     ]
   },
   "include": ["../static/app", "../static/gsApp", "../tests/js"],

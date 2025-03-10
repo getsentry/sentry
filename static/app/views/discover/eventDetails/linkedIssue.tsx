@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import Times from 'sentry/components/group/times';
@@ -8,6 +7,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
+import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';

@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -22,7 +23,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
     );
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return node.value.op + (node.value.description ? ' - ' + node.value.description : '');
   }
 
