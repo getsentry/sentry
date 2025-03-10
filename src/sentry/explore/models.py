@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -38,7 +39,7 @@ class ExploreSavedQueryProject(Model):
 
 
 @region_silo_model
-class ExploreSavedQuery(Model):
+class ExploreSavedQuery(DefaultFieldsModel):
     """
     A saved Explore query
     """
@@ -50,8 +51,6 @@ class ExploreSavedQuery(Model):
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     name = models.CharField(max_length=255)
     query: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
-    date_created = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     dataset = BoundedPositiveIntegerField(
