@@ -2706,6 +2706,52 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[1]["description"] == "description 2"
         assert meta["dataset"] == self.dataset
 
+    def test_cache_miss_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["cache_miss_rate()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_miss_rate()"] == 0.25
+        assert meta["dataset"] == self.dataset
+
     def test_cache_hit(self):
         self.store_spans(
             [
