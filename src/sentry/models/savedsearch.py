@@ -63,7 +63,7 @@ class SavedSearch(Model):
 
     __relocation_scope__ = RelocationScope.Organization
     organization = FlexibleForeignKey("sentry.Organization", null=True)
-    type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value, null=True)
+    type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value)
     name = models.CharField(max_length=128)
     query = models.TextField()
     sort = CharField(
