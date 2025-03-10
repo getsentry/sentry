@@ -18,7 +18,7 @@ def backfill_desynced_groupsearchview_positions_to_gsvstarred(
     existing_gsv_ids = GroupSearchViewStarred.objects.values_list("group_search_view_id", flat=True)
 
     for gsv in RangeQuerySetWrapperWithProgressBar(
-        GroupSearchView.objects.filter(id__not_in=existing_gsv_ids)
+        GroupSearchView.objects.exclude(id__in=existing_gsv_ids)
     ):
         GroupSearchViewStarred.objects.update_or_create(
             group_search_view=gsv,
