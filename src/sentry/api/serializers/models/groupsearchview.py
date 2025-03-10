@@ -1,7 +1,8 @@
 from typing import TypedDict
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 
 
@@ -51,4 +52,27 @@ class GroupSearchViewSerializer(Serializer):
             "timeFilters": obj.time_filters,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
+        }
+
+
+@register(GroupSearchViewStarred)
+class GroupSearchViewStarredSerializer(Serializer):
+    def __init__(self, *args, **kwargs):
+        self.has_global_views = kwargs.pop("has_global_views", None)
+        self.default_project = kwargs.pop("default_project", None)
+        super().__init__(*args, **kwargs)
+
+    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
+        serialized_view: GroupSearchViewSerializerResponse = serialize(
+            obj.group_search_view,
+            user,
+            serializer=GroupSearchViewSerializer(
+                has_global_views=self.has_global_views,
+                default_project=self.default_project,
+            ),
+        )
+
+        return {
+            **serialized_view,
+            "position": obj.position,
         }
