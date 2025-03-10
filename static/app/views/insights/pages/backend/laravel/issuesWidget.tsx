@@ -69,7 +69,6 @@ export function IssuesWidget({query = ''}: {query?: string}) {
   // TODO(aknaus): Remove GroupList and use StreamGroup directly
   return (
     <GroupList
-      orgSlug={organization.slug}
       queryParams={queryParams}
       canSelectGroups={false}
       renderEmptyMessage={renderEmptyMessage}

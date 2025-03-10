@@ -115,7 +115,6 @@ function RelatedIssues({
 
       <TableWrapper>
         <GroupList
-          orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
           canSelectGroups={false}

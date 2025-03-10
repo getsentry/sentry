@@ -93,7 +93,6 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
         </LinkButton>
       </ControlsWrapper>
       <GroupList
-        orgSlug={organization.slug}
         queryParams={{
           query: issueQuery,
           project: monitor.project.id,

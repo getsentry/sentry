@@ -286,7 +286,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       </ControlsWrapper>
 
       <GroupList
-        orgSlug={organization.slug}
         queryParams={queryParams}
         canSelectGroups={false}
         renderEmptyMessage={renderEmptyMessage}

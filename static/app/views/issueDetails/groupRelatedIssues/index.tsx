@@ -112,7 +112,6 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
             </TextButtonWrapper>
           </HeaderWrapper>
           <GroupList
-            orgSlug={organization.slug}
             queryParams={{
               query,
               ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
