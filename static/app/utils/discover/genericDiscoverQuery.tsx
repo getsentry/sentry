@@ -24,12 +24,10 @@ interface _DiscoverQueryExtras {
   queryExtras?: DiscoverQueryExtras;
 }
 export class QueryError extends Error {
-  message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
   constructor(errorMessage: string, originalError?: any) {
     super(errorMessage);
-
-    this.message = errorMessage;
+    this.name = 'QueryError';
     this.originalError = originalError;
   }
 

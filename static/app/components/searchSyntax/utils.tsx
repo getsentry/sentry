@@ -7,11 +7,12 @@ import {allOperators, Token} from './parser';
  * Used internally within treeResultLocator to stop recursion once we've
  * located a matched result.
  */
-class TokenResultFound extends Error {
+class TokenResultFoundError extends Error {
   result: any;
 
   constructor(result: any) {
     super();
+    this.name = 'TokenResultFoundError';
     this.result = result;
   }
 }
@@ -25,7 +26,7 @@ type VisitorFn = (opts: {
   /**
    * Call this to return the provided value as the result of treeResultLocator
    */
-  returnResult: (result: any) => TokenResultFound;
+  returnResult: (result: any) => TokenResultFoundError;
   /**
    * Return this to skip visiting any inner tokens
    */
@@ -34,7 +35,7 @@ type VisitorFn = (opts: {
    * The token being visited
    */
   token: TokenResult<Token>;
-}) => null | TokenResultFound | typeof skipTokenMarker;
+}) => null | TokenResultFoundError | typeof skipTokenMarker;
 
 type TreeResultLocatorOpts = {
   /**
@@ -68,7 +69,7 @@ export function treeResultLocator<T>({
   visitorTest,
   noResultValue,
 }: TreeResultLocatorOpts): T {
-  const returnResult = (result: any) => new TokenResultFound(result);
+  const returnResult = (result: any) => new TokenResultFoundError(result);
 
   const nodeVisitor = (token: TokenResult<Token> | null) => {
     if (token === null) {
@@ -81,7 +82,7 @@ export function treeResultLocator<T>({
     //
     // XXX: Using a throw here is a bit easier than threading the return value
     // back up through the recursive call tree.
-    if (result instanceof TokenResultFound) {
+    if (result instanceof TokenResultFoundError) {
       throw result;
     }
 
@@ -138,7 +139,7 @@ export function treeResultLocator<T>({
   try {
     tree.forEach(nodeVisitor);
   } catch (error) {
-    if (error instanceof TokenResultFound) {
+    if (error instanceof TokenResultFoundError) {
       return error.result;
     }
 

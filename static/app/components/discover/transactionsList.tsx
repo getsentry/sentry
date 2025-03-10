@@ -179,7 +179,7 @@ function TableRender({
     }
 
     if (
-      !hasResults === performanceAtScaleContext.transactionListTableData?.empty &&
+      hasResults !== performanceAtScaleContext.transactionListTableData?.empty &&
       query === performanceAtScaleContext.transactionListTableData?.query
     ) {
       return;

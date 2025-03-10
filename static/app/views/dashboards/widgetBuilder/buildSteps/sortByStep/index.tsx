@@ -99,7 +99,7 @@ export function SortByStep({
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[...Array(maxLimit).keys()].map(resultLimit => {
+                options={[...new Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),

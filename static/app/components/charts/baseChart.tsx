@@ -421,13 +421,13 @@ function BaseChartUnwrapped({
             type: 'bar',
             barWidth: 40,
             barGap: 0,
-            itemStyle: {...(s.areaStyle ?? {})},
+            itemStyle: {...s.areaStyle},
           }))
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
               type: 'line',
-              itemStyle: {...(s.lineStyle ?? {})},
+              itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] !== undefined
                   ? MarkLine({

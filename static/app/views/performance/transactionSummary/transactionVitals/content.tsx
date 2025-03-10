@@ -41,7 +41,7 @@ function VitalsContent(props: Props) {
 
   const handleSearch = (newQuery: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query: newQuery,
     });
 

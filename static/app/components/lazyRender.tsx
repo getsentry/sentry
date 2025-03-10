@@ -58,7 +58,7 @@ export function LazyRender(props: LazyRenderProps) {
 
       const observerOptions: IntersectionObserverInit = {
         ...DEFAULT_OPTIONS,
-        ...(props.observerOptions ?? {}),
+        ...props.observerOptions,
       };
 
       const intersectionObserverCallback: IntersectionObserverCallback = entries => {

@@ -148,7 +148,12 @@ export function nextTokenKeyOfKind(
       makeTokenKey(kind);
 }
 
-class ArithmeticError extends Error {}
+class ArithmeticError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ArithmeticError';
+  }
+}
 
 class TokenConverter {
   tokenParenthesis(parenthesis: string, location: LocationRange): TokenParenthesis {

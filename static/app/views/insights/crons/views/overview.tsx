@@ -91,7 +91,7 @@ function CronsOverview() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    const currentQuery = {...location.query, cursor: undefined};
     navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),

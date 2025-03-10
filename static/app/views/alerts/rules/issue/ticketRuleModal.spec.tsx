@@ -97,7 +97,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         formFields={{}}
         link=""
         ticketType=""
-        instance={{...(props.data || {}), integration: 1}}
+        instance={{...props.data, integration: 1}}
         index={0}
         onSubmitAction={() => {}}
         organization={organization}

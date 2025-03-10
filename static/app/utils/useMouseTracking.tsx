@@ -9,7 +9,12 @@ type Opts<T extends Element> = {
   onPositionChange: (args: undefined | CallbackArgs) => void;
 } & DOMAttributes<T>;
 
-class AbortError extends Error {}
+class AbortError extends Error {
+  constructor() {
+    super();
+    this.name = 'AbortError';
+  }
+}
 
 /**
  * Replacement for `elem.getBoundingClientRect()` which is too laggy for onPositionChange

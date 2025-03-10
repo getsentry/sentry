@@ -472,7 +472,7 @@ export function generateGenericPerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
@@ -535,7 +535,7 @@ export function generateBackendPerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
@@ -602,7 +602,7 @@ export function generateMobilePerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
@@ -651,7 +651,7 @@ function generateFrontendPageloadPerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 
@@ -701,7 +701,7 @@ export function generateFrontendOtherPerformanceEventView(
     version: 2,
   };
 
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
   savedQuery.widths = widths;
 

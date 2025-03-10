@@ -56,7 +56,7 @@ export function formatHistogramData(
     return {
       value: item.count,
       name: formatter(item.bin),
-      ...(additionalFieldsFn?.(item.bin) ?? {}),
+      ...additionalFieldsFn?.(item.bin),
     };
   });
 }

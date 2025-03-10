@@ -307,7 +307,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
         {...props}
         project={{
           ...project,
-          ...(projectDetails || {}),
+          ...projectDetails,
         }}
       />
     );

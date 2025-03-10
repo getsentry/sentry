@@ -94,7 +94,7 @@ describe('AlertRuleDetails', () => {
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
+        new RegExp(
           `/organizations/${organization.slug}/issues/${
             GroupFixture().id
           }/events/eventId.*`

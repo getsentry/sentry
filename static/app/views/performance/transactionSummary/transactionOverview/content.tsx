@@ -105,7 +105,7 @@ function OTelSummaryContentInner({
   const handleSearch = useCallback(
     (query: string) => {
       const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
+        ...location.query,
         query,
       });
 
@@ -376,7 +376,7 @@ function SummaryContent({
   const handleSearch = useCallback(
     (query: string) => {
       const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
+        ...location.query,
         query,
       });
 

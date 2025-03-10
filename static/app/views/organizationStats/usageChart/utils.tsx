@@ -95,7 +95,7 @@ const MAX_NUMBER_OF_LABELS = 10;
 export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[]) {
   if (dataPeriod <= 24) {
     return {
-      xAxisLabelVisibility: Array(intervals.length).fill(false),
+      xAxisLabelVisibility: new Array(intervals.length).fill(false),
     };
   }
 
