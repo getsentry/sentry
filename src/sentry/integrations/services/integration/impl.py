@@ -45,11 +45,9 @@ from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
-    SentryAppWebhookFailureReason,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -380,20 +378,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 f"metric_alert.{INCIDENT_STATUS[IncidentStatus(new_status)].lower()}"
             )
         except ValueError as e:
-            raise SentryAppSentryError(
-                message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-            ) from e
+            sentry_sdk.capture_exception(e)
+            return False
 
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
             event_type=event,
-        ).capture():
+        ).capture() as lifecycle:
             try:
                 sentry_app = SentryApp.objects.get(id=sentry_app_id)
             except SentryApp.DoesNotExist as e:
-                raise SentryAppSentryError(
-                    message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP
-                ) from e
+                sentry_sdk.capture_exception(e)
+                lifecycle.record_failure(e)
+                return False
 
             metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 
@@ -404,9 +401,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
                     status=SentryAppInstallationStatus.INSTALLED,
                 )
             except SentryAppInstallation.DoesNotExist as e:
-                raise SentryAppSentryError(
-                    message=SentryAppWebhookFailureReason.MISSING_INSTALLATION
-                ) from e
+                sentry_sdk.capture_exception(e)
+                lifecycle.record_failure(e)
+                return False
 
             app_platform_event = AppPlatformEvent(
                 resource="metric_alert",

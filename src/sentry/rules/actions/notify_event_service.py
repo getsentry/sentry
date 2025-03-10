@@ -4,7 +4,6 @@ import logging
 from collections.abc import Generator, Sequence
 from typing import Any
 
-import sentry_sdk
 from django import forms
 
 from sentry.api.serializers import serialize
@@ -88,19 +87,15 @@ def send_incident_alert_notification(
         incident, new_status, metric_value, notification_uuid
     )
 
-    try:
-        success = integration_service.send_incident_alert_notification(
-            sentry_app_id=action.sentry_app_id,
-            action_id=action.id,
-            incident_id=incident.id,
-            organization_id=organization.id,
-            new_status=new_status.value,
-            incident_attachment_json=json.dumps(incident_attachment),
-            metric_value=metric_value,
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        success = False
+    success = integration_service.send_incident_alert_notification(
+        sentry_app_id=action.sentry_app_id,
+        action_id=action.id,
+        incident_id=incident.id,
+        organization_id=organization.id,
+        new_status=new_status.value,
+        incident_attachment_json=json.dumps(incident_attachment),
+        metric_value=metric_value,
+    )
 
     return success
 
