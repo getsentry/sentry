@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
@@ -74,26 +73,8 @@ export function TourContextProvider<T extends TourEnumType>({
     currentStepId: null,
     tourKey,
   });
-  const {dispatch, currentStepId} = tourContextValue;
+  const {currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
-
-  const tourHotkeys = useMemo(() => {
-    return [
-      {
-        match: 'Escape',
-        callback: () => {
-          if (tourKey) {
-            mutate({guide: tourKey, status: 'dismissed'});
-          }
-          dispatch({type: 'END_TOUR'});
-        },
-      },
-      {match: ['left'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
-      {match: ['right'], callback: () => dispatch({type: 'NEXT_STEP'})},
-    ];
-  }, [dispatch, mutate, tourKey]);
-
-  useHotkeys(tourHotkeys);
 
   useEffect(() => {
     if (isTourActive && tourKey) {
