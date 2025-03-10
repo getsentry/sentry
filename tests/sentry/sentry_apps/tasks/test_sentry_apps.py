@@ -825,7 +825,8 @@ class TestCommentWebhook(TestCase):
             "project_slug": self.note.project.slug,
         }
 
-    def test_sends_comment_created_webhook(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_comment_created_webhook(self, mock_record, safe_urlopen):
         build_comment_webhook(
             self.install.id, self.issue.id, "comment.created", self.user.id, data=self.data
         )
@@ -837,7 +838,18 @@ class TestCommentWebhook(TestCase):
         assert data["action"] == "created"
         assert data["data"]["issue_id"] == self.issue.id
 
-    def test_sends_comment_updated_webhook(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_comment_updated_webhook(self, mock_record, safe_urlopen):
         self.data.update(data={"text": "goodbye world"})
         build_comment_webhook(
             self.install.id, self.issue.id, "comment.updated", self.user.id, data=self.data
@@ -850,7 +862,18 @@ class TestCommentWebhook(TestCase):
         assert data["action"] == "updated"
         assert data["data"]["issue_id"] == self.issue.id
 
-    def test_sends_comment_deleted_webhook(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_comment_deleted_webhook(self, mock_record, safe_urlopen):
         self.note.delete()
         build_comment_webhook(
             self.install.id, self.issue.id, "comment.deleted", self.user.id, data=self.data
@@ -862,6 +885,16 @@ class TestCommentWebhook(TestCase):
         data = json.loads(kwargs["data"])
         assert data["action"] == "deleted"
         assert data["data"]["issue_id"] == self.issue.id
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
