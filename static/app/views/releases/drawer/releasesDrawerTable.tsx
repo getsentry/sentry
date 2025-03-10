@@ -64,7 +64,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          ...location.query,
+          ...Object.fromEntries(
+            Object.entries(location.query).filter(([key]) =>
+              ['project', 'environment'].includes(key)
+            )
+          ),
           ...normalizeDateTimeParams({
             start,
             end,
