@@ -6,6 +6,7 @@ from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
     AttributeKey,
     AttributeValue,
     ExtrapolationMode,
@@ -14,7 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry.search.eap.columns import ArgumentDefinition, AttributeAggregation, FormulaDefinition
+from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
