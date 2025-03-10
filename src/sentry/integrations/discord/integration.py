@@ -13,6 +13,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -21,7 +22,7 @@ from sentry.integrations.base import (
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
-from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -150,7 +151,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> list[PipelineView]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
-    def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         guild_id = str(state.get("guild_id"))
 
         if not guild_id.isdigit():
@@ -208,8 +209,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         if self._credentials_exist() and not self._has_application_commands():
             try:

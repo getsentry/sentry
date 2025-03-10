@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any, TypedDict
 from urllib.parse import urlencode
 
@@ -12,6 +13,7 @@ from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -19,7 +21,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
 from sentry.pipeline.views.base import PipelineView
@@ -288,10 +289,12 @@ class VercelIntegration(IntegrationInstallation):
                     details["target"],
                 )
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def create_env_var(self, client, vercel_project_id, key, value, type, target):
         data = {
@@ -362,7 +365,7 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
         access_token = data["access_token"]
         team_id = data.get("team_id")
@@ -379,7 +382,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             user = client.get_user()
             name = user.get("name") or user["username"]
 
-        integration = {
+        return {
             "name": name,
             "external_id": external_id,
             "metadata": {
@@ -390,13 +393,12 @@ class VercelIntegrationProvider(IntegrationProvider):
             "post_install_data": {"user_id": state["user_id"]},
         }
 
-        return integration
-
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         # check if we have an Vercel internal installation already
         if SentryAppInstallationForProvider.objects.filter(

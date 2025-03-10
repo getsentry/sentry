@@ -57,6 +57,7 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 @project_created.connect(weak=False)
+@sentry_sdk.trace
 def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     scope = sentry_sdk.get_current_scope()
@@ -97,14 +98,17 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         ),
     )
 
-    success = OrganizationOnboardingTask.objects.record(
+    _, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user_id,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
+        values={
+            "user_id": user_id,
+            "status": OnboardingTaskStatus.COMPLETE,
+            "project_id": project.id,
+        },
     )
-    if not success:
+    # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
+    if not created:
         # Check if the "first project" task already exists and log an error if needed
         first_project_task_exists = OrganizationOnboardingTask.objects.filter(
             organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
@@ -116,12 +120,14 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
                 level="warning",
             )
 
-        OrganizationOnboardingTask.objects.record(
+        OrganizationOnboardingTask.objects.create_or_update(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user_id,
-            status=OnboardingTaskStatus.COMPLETE,
-            project_id=project.id,
+            values={
+                "user_id": user_id,
+                "status": OnboardingTaskStatus.COMPLETE,
+                "project_id": project.id,
+            },
         )
         analytics.record(
             "second_platform.added",
