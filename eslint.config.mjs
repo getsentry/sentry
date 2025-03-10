@@ -549,11 +549,11 @@ export default typescript.config([
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
 
-      'unicorn/custom-error-definition': 'error', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/error-message': 'error', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/custom-error-definition': 'error',
+      'unicorn/error-message': 'error',
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/new-for-builtins': 'error', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-abusive-eslint-disable': 'error', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/new-for-builtins': 'error',
+      'unicorn/no-abusive-eslint-disable': 'error',
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-await-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-instanceof-array': 'error',
