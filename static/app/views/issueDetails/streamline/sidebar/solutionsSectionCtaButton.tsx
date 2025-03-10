@@ -1,10 +1,15 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
-import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
-import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {
+  AutofixStatus,
+  type AutofixStep,
+  AutofixStepType,
+} from 'sentry/components/events/autofix/types';
+import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -37,6 +42,7 @@ export function SolutionsSectionCtaButton({
 }: Props) {
   const openButtonRef = useRef<HTMLButtonElement>(null);
 
+  const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
   const {autofixData} = useAiAutofix(group, event);
 
   const openSolutionsDrawer = useOpenSolutionsDrawer(
@@ -45,12 +51,73 @@ export function SolutionsSectionCtaButton({
     event,
     openButtonRef
   );
+  const isDrawerOpenRef = useRef(false);
+
+  // Keep track of previous steps to detect state transitions and notify the user
+  const prevStepsRef = useRef<AutofixStep[]>();
+  useEffect(() => {
+    if (isDrawerOpenRef.current) {
+      return;
+    }
+
+    if (!autofixData?.steps || !prevStepsRef.current) {
+      prevStepsRef.current = autofixData?.steps;
+      return;
+    }
+
+    const prevSteps = prevStepsRef.current;
+    const currentSteps = autofixData.steps;
+
+    // Find the most recent step
+    const processingStep = currentSteps.findLast(
+      step => step.type === AutofixStepType.DEFAULT
+    );
+
+    if (processingStep && processingStep.status === AutofixStatus.COMPLETED) {
+      // Check if this is a new completion (wasn't completed in previous state)
+      const prevProcessingStep = prevSteps.findLast(
+        step => step.type === AutofixStepType.DEFAULT
+      );
+      if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
+        if (currentSteps.find(step => step.type === AutofixStepType.CHANGES)) {
+          addSuccessMessage(t('Autofix has finished coding.'));
+        } else if (currentSteps.find(step => step.type === AutofixStepType.SOLUTION)) {
+          addSuccessMessage(t('Autofix has found a solution.'));
+        } else if (
+          currentSteps.find(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
+        ) {
+          addSuccessMessage(t('Autofix has found the root cause.'));
+        }
+      }
+    }
+
+    prevStepsRef.current = autofixData?.steps;
+  }, [autofixData?.steps]);
+
+  // Update drawer state when opening
+  const handleOpenDrawer = () => {
+    isDrawerOpenRef.current = true;
+    openSolutionsDrawer();
+  };
+
+  // Listen for drawer close events
+  useEffect(() => {
+    const handleClickOutside = () => {
+      isDrawerOpenRef.current = false;
+    };
+
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   const showCtaButton =
     aiConfig.needsGenAIConsent ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
-  const isButtonLoading = aiConfig.isAutofixSetupLoading;
+  const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
 
   const lastStep = autofixData?.steps?.[autofixData.steps.length - 1];
   const isAutofixInProgress = lastStep?.status === AutofixStatus.PROCESSING;
@@ -63,7 +130,7 @@ export function SolutionsSectionCtaButton({
 
   const getButtonText = () => {
     if (aiConfig.needsGenAIConsent) {
-      return t('Set Up Seer');
+      return t('Set Up Autofix');
     }
 
     if (!aiConfig.hasAutofix) {
@@ -116,7 +183,7 @@ export function SolutionsSectionCtaButton({
   return (
     <StyledButton
       ref={openButtonRef}
-      onClick={() => openSolutionsDrawer()}
+      onClick={handleOpenDrawer}
       analyticsEventKey="issue_details.solutions_hub_opened"
       analyticsEventName="Issue Details: Solutions Hub Opened"
       analyticsParams={{

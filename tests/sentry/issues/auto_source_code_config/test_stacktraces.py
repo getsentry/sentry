@@ -9,6 +9,10 @@ def _exception_with_stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
     return {"exception": {"values": [{"stacktrace": {"frames": frames}}]}}
 
 
+def _stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"stacktrace": {"frames": frames}}
+
+
 @pytest.mark.parametrize(
     "frames, platform, expected",
     [
@@ -77,16 +81,14 @@ def test_get_frames_to_process(
     "frames, expected",
     [
         (None, []),
-        ([], []),
         ([None], []),
+        ([], []),
         ([{"in_app": True}], []),
     ],
 )
-def test_find_stacktrace_empty(frames: list[dict[str, Any]], expected: list[str]) -> None:
+def test_with_invalid_frames(frames: list[dict[str, Any]], expected: list[str]) -> None:
     frames = get_frames_to_process(_exception_with_stacktrace(frames), "python")
     assert frames == expected
 
-
-def test_none_stacktrace() -> None:
-    frames = get_frames_to_process({"stacktrace": None}, "python")
-    assert frames == []
+    frames = get_frames_to_process(_stacktrace(frames), "python")
+    assert frames == expected
