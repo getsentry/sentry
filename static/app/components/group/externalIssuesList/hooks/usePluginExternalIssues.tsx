@@ -57,7 +57,6 @@ export function usePluginExternalIssues({
           const endpoint = `/issues/${group.id}/plugins/${plugin.slug}/unlink/`;
           api.request(endpoint, {
             success: () => {
-              addSuccessMessage(t('Successfully unlinked issue.'));
               plugins.load(newPlugin, () => {
                 addSuccessMessage(t('Successfully unlinked issue.'));
               });
