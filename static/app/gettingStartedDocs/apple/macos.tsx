@@ -30,7 +30,11 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn.public}"
-        options.debug = true // Enabling debug when first installing is always helpful${
+        options.debug = true // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = true${
           params.isPerformanceSelected
             ? `
 
@@ -75,7 +79,11 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn.public}"
-            options.debug = true // Enabling debug when first installing is always helpful${
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true${
               params.isPerformanceSelected
                 ? `
 
