@@ -5,7 +5,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -13,13 +12,14 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
+import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
 
 const startTime = new Date('2025-01-01T11:00:00Z');
 
-jest.mock('sentry/components/checkInTimeline/hooks/useTimeWindowConfig');
+jest.mock('sentry/views/issueDetails/streamline/useIssueTimeWindowConfig');
 
 jest
-  .mocked(useTimeWindowConfig)
+  .mocked(useIssueTimeWindowConfig)
   .mockReturnValue(
     getConfigFromTimeRange(
       startTime,

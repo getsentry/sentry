@@ -11,8 +11,8 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 
 export function useIssueDetailsEventView({
   group,
@@ -21,10 +21,28 @@ export function useIssueDetailsEventView({
   group: Group;
   queryProps?: Partial<SavedQuery>;
 }) {
-  const {selection: pageFilters} = usePageFilters();
   const searchQuery = useEventQuery({groupId: group.id});
-  const periodQuery = getPeriod(pageFilters.datetime);
-  const interval = getInterval(pageFilters.datetime, 'issues');
+
+  const location = useLocation();
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
+  const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
+  const periodQuery = hasSetStatsPeriod
+    ? getPeriod({
+        start: location.query.start as string,
+        end: location.query.end as string,
+        period: location.query.statsPeriod as string,
+      })
+    : defaultStatsPeriod;
+
+  const interval = getInterval(
+    {
+      start: periodQuery?.start,
+      end: periodQuery?.end,
+      period: periodQuery?.statsPeriod,
+    },
+    'issues'
+  );
   const config = getConfigForIssueType(group, group.project);
 
   const query = [`issue:${group.shortId}`, searchQuery, queryProps?.query]
@@ -34,13 +52,13 @@ export function useIssueDetailsEventView({
   const discoverQuery: NewQuery = {
     ...periodQuery,
     interval,
-    environment: pageFilters.environments,
+    environment: location.query.environment as NewQuery['environment'],
     dataset: config.usesIssuePlatform
       ? DiscoverDatasets.ISSUE_PLATFORM
       : DiscoverDatasets.ERRORS,
     version: 2,
     projects: [Number(group.project.id)],
-    range: periodQuery.statsPeriod,
+    range: periodQuery?.statsPeriod,
     yAxis: ['count()', 'count_unique(user)'],
     fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
     name: group.title || group.type,
