@@ -78,14 +78,13 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
     if not frames_to_process:
         return []
 
-    code_mappings = []
+    code_mappings: list[CodeMapping] = []
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
-        trees_helper = CodeMappingTreesHelper(trees)
-        code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
-        dry_run = platform_config.is_dry_run_platform()
-        create_configurations(code_mappings, installation, project, platform, dry_run)
+        code_mappings = create_configurations(
+            installation, project, trees, frames_to_process, platform_config
+        )
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
@@ -163,16 +162,18 @@ def get_trees_for_org(
 
 
 def create_configurations(
-    code_mappings: list[CodeMapping],
     installation: IntegrationInstallation,
     project: Project,
-    platform: str,
-    dry_run: bool,
-) -> None:
+    trees: dict[str, Any],
+    frames_to_process: list[dict[str, str | bool]],
+    platform_config: PlatformConfig,
+) -> list[CodeMapping]:
     """
-    Given a list of code mappings, create a new repository project path
-    config for each mapping.
+    Given a set of trees and frames to process, create code mappings.
     """
+    trees_helper = CodeMappingTreesHelper(trees)
+    code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform_config.platform)
+
     organization_integration = installation.org_integration
     if not organization_integration:
         raise InstallationNotFoundError
@@ -180,13 +181,12 @@ def create_configurations(
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
         process_code_mapping(
-            organization_id,
-            organization_integration,
-            project,
-            code_mapping,
-            platform,
-            dry_run,
+            organization_id, organization_integration, project, code_mapping, platform_config
         )
+
+    # We return this to allow tests running in dry-run mode to assert
+    # what would have been created.
+    return code_mappings
 
 
 def process_code_mapping(
@@ -194,9 +194,10 @@ def process_code_mapping(
     organization_integration: RpcOrganizationIntegration,
     project: Project,
     code_mapping: CodeMapping,
-    platform: str,
-    dry_run: bool,
+    platform_config: PlatformConfig,
 ) -> None:
+    dry_run = platform_config.is_dry_run_platform()
+    platform = platform_config.platform
     repository = (
         Repository.objects.filter(name=code_mapping.repo.name, organization_id=organization_id)
         .order_by("-date_added")
