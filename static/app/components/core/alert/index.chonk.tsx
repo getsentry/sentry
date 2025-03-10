@@ -26,7 +26,7 @@ const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   border-width: ${p => (p.system ? '0px 0px 2px 0px' : '2px')};
   border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
 
-  cursor: ${p => (p.expand ? 'pointer' : 'default')};
+  cursor: ${p => (p.expand ? 'pointer' : 'inherit')};
   gap: ${p => p.theme.space.md};
 
   a,
