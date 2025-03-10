@@ -1,5 +1,6 @@
 import type React from 'react';
 import {forwardRef} from 'react';
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -42,11 +43,20 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
 
   rect {
     fill: ${props =>
-      props.suggested ? props.theme.background : getColor(props.identifier)};
+      props.theme.isChonk
+        ? getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).background
+        : props.suggested
+          ? props.theme.background
+          : getColor(props.identifier)};
   }
 
   text {
-    fill: ${props => (props.suggested ? props.theme.subText : props.theme.white)};
+    fill: ${props =>
+      props.theme.isChonk
+        ? getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).content
+        : props.suggested
+          ? props.theme.subText
+          : props.theme.white};
   }
 `;
 
@@ -86,6 +96,22 @@ function getColor(identifier: string | undefined): Color {
   return COLORS[id % COLORS.length]!;
 }
 
+function getChonkColor(
+  identifier: string | undefined,
+  theme: DO_NOT_USE_ChonkTheme
+): {
+  background: string;
+  content: string;
+} {
+  const colors = makeChonkLetterAvatarColors(theme);
+  if (identifier === undefined) {
+    return colors[0]!;
+  }
+
+  const id = hashIdentifier(identifier);
+  return colors[id % colors.length]!;
+}
+
 function getInitials(displayName: string | undefined) {
   const names = ((typeof displayName === 'string' && displayName.trim()) || '?').split(
     ' '
@@ -97,4 +123,32 @@ function getInitials(displayName: string | undefined) {
     initials += Array.from(names[names.length - 1]!)[0]!;
   }
   return initials.toUpperCase();
+}
+
+function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme): Array<{
+  background: string;
+  content: string;
+}> {
+  return [
+    {
+      background: theme.colors.static.blue400,
+      content: theme.colors.static.white,
+    },
+    {
+      background: theme.colors.static.pink400,
+      content: theme.colors.static.black,
+    },
+    {
+      background: theme.colors.static.red400,
+      content: theme.colors.static.white,
+    },
+    {
+      background: theme.colors.static.yellow400,
+      content: theme.colors.static.black,
+    },
+    {
+      background: theme.colors.static.green400,
+      content: theme.colors.static.black,
+    },
+  ];
 }
