@@ -90,9 +90,9 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -240,9 +240,9 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -267,9 +267,9 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -299,9 +299,9 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )

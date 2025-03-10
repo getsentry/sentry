@@ -48,9 +48,9 @@ class SentryAppActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             getattr(self.handler, method)(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -79,9 +79,9 @@ class SentryAppActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -145,11 +145,11 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             getattr(self.handler, method)(
-                self.action,
-                incident,
-                self.project,
-                IncidentStatus(incident.status),
-                metric_value,
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
             )
         data = responses.calls[0].request.body
         assert (

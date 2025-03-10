@@ -85,7 +85,13 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(self.handler, method)(self.action, incident, self.project, status, metric_value)
+            getattr(self.handler, method)(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                new_status=status,
+                metric_value=metric_value,
+            )
 
         return incident, chart_url
 
@@ -254,9 +260,9 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                action,
-                incident,
-                self.project,
+                action=action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -270,9 +276,9 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
@@ -291,9 +297,9 @@ class SlackActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )

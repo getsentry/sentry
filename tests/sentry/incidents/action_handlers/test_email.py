@@ -53,9 +53,9 @@ class EmailActionHandlerTest(FireTest):
         handler = EmailActionHandler()
         with self.tasks():
             handler.fire(
-                action,
-                incident,
-                self.project,
+                action=action,
+                incident=incident,
+                project=self.project,
                 metric_value=1000,
                 new_status=IncidentStatus(incident.status),
             )

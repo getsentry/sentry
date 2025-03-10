@@ -182,7 +182,11 @@ class PagerDutyActionHandlerTest(FireTest):
         new_status = IncidentStatus(incident.status)
         with self.tasks():
             getattr(self.handler, method)(
-                self.action, incident, self.project, metric_value, new_status
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=new_status,
             )
         data = responses.calls[0].request.body
 
@@ -195,7 +199,9 @@ class PagerDutyActionHandlerTest(FireTest):
             new_status=new_status,
             metric_value=metric_value,
         )
-        expected_payload = attach_custom_severity(expected_payload, self.action, new_status)
+        expected_payload = attach_custom_severity(
+            expected_payload, self.action.sentry_app_config, new_status
+        )
 
         assert json.loads(data) == expected_payload
 
@@ -248,9 +254,9 @@ class PagerDutyActionHandlerTest(FireTest):
         metric_value = 1000
         with self.tasks():
             self.handler.fire(
-                self.action,
-                incident,
-                self.project,
+                action=self.action,
+                incident=incident,
+                project=self.project,
                 metric_value=metric_value,
                 new_status=IncidentStatus(incident.status),
             )
