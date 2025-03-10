@@ -464,11 +464,10 @@ def validate_options(settings: Any) -> None:
 def validate_regions(settings: Any) -> None:
     from sentry.types.region import load_from_config
 
-    region_config = getattr(settings, "SENTRY_REGION_CONFIG", None)
-    if not region_config:
+    if not settings.SENTRY_REGION_CONFIG:
         return
 
-    load_from_config(region_config).validate_all()
+    load_from_config(settings.SENTRY_REGION_CONFIG).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:

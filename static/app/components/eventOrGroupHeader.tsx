@@ -119,7 +119,7 @@ function EventOrGroupHeader({
 
   return (
     <div data-test-id="event-issue-header">
-      <Title extraMargin={hasNewLayout}>{getTitle()}</Title>
+      <Title>{getTitle()}</Title>
       {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
       <StyledEventMessage
         data={data}
@@ -139,8 +139,8 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const Title = styled('div')<{extraMargin: boolean}>`
-  margin-bottom: ${p => (p.extraMargin ? space(0.5) : space(0.25))};
+const Title = styled('div')`
+  margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};

@@ -81,7 +81,7 @@ function DiffSides({
         beforeElemRef.current.style.width =
           viewDimensions.width === 0
             ? '100%'
-            : toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
+            : (toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px');
       }
       if (dividerElem.current) {
         dividerElem.current.style.left =

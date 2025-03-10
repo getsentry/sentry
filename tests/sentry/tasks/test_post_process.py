@@ -21,7 +21,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.auto_source_code_config.constants import SUPPORTED_LANGUAGES
+from sentry.issues.auto_source_code_config.utils import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -242,7 +242,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
-        for platform in SUPPORTED_LANGUAGES:
+        for platform in get_supported_platforms():
             event = self._create_event(self._generate_node_data("foo"))
             self._call_post_process_group(event)
 

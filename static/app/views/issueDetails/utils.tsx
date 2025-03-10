@@ -191,7 +191,7 @@ export function useEnvironmentsFromUrl(): string[] {
   const envs = location.query.environment;
 
   const envsArray = useMemo(() => {
-    return typeof envs === 'string' ? [envs] : envs ?? [];
+    return typeof envs === 'string' ? [envs] : (envs ?? []);
   }, [envs]);
 
   return envsArray;

@@ -21,7 +21,9 @@ def process_data_sources(
     # Fetch all data sources and associated detectors for the given data packets
     with sentry_sdk.start_span(op="workflow_engine.process_data_sources.fetch_data_sources"):
         data_sources = DataSource.objects.filter(
-            source_id__in=data_packet_ids, type=query_type
+            source_id__in=data_packet_ids,
+            type=query_type,
+            detectors__enabled=True,
         ).prefetch_related(Prefetch("detectors"))
 
     # Build a lookup dict for source_id to detectors

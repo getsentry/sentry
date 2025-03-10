@@ -2650,6 +2650,62 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             == response.data["detail"].title()
         )
 
+    def test_http_response_rate_group_by(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "200"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["http_response_rate(5)", "description"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "description",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["http_response_rate(5)"] == 0.5
+        assert data[0]["description"] == "description 1"
+        assert data[1]["http_response_rate(5)"] == 1.0
+        assert data[1]["description"] == "description 2"
+        assert meta["dataset"] == self.dataset
+
     def test_cache_hit(self):
         self.store_spans(
             [

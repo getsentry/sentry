@@ -69,6 +69,7 @@ FORMULA_RESOLVER: dict[Any, Callable[[Any], Column.BinaryFormula]] = {
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
+        is_aggregate=True,
         arguments=[
             ArgumentDefinition(
                 argument_types={"integer"},

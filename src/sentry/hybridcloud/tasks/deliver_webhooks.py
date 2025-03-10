@@ -5,7 +5,7 @@ from typing import Never
 
 import orjson
 import sentry_sdk
-from django.db.models import Min, Subquery
+from django.db.models import Case, CharField, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -58,6 +58,14 @@ The older a webhook gets the less valuable it is as there are likely other
 actions that have been made to the relevant resources.
 """
 
+# Define priorities for different webhook providers
+# Lower number means higher priority
+PROVIDER_PRIORITY = {
+    "stripe": 1,
+}
+# Default priority for providers not explicitly listed above
+DEFAULT_PROVIDER_PRIORITY = 10
+
 
 class DeliveryFailed(Exception):
     """
@@ -77,9 +85,11 @@ def schedule_webhook_delivery(**kwargs: Never) -> None:
     Find mailboxes that contain undelivered webhooks that were scheduled
     to be delivered now or in the past.
 
+    Prioritizes webhooks based on provider importance.
+
     Triggered frequently by celery beat.
     """
-    # The double call to .values() ensures that the group by includes mailbox_nam
+    # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
     head_of_line = (
         WebhookPayload.objects.all()
@@ -87,15 +97,35 @@ def schedule_webhook_delivery(**kwargs: Never) -> None:
         .annotate(id_min=Min("id"))
         .values("id_min")
     )
+
     # Get any heads that are scheduled to run
-    scheduled_mailboxes = WebhookPayload.objects.filter(
-        schedule_for__lte=timezone.now(),
-        id__in=Subquery(head_of_line),
-    ).values("id", "mailbox_name")
+    # Use provider field directly, with default priority for null values
+    scheduled_mailboxes = (
+        WebhookPayload.objects.filter(
+            schedule_for__lte=timezone.now(),
+            id__in=Subquery(head_of_line),
+        )
+        # Set priority value based on provider field
+        .annotate(
+            provider_priority=Case(
+                # For providers that match our priority list
+                *[
+                    When(provider=provider, then=Value(priority))
+                    for provider, priority in PROVIDER_PRIORITY.items()
+                ],
+                # Default value for all other cases (including null providers)
+                default=Value(DEFAULT_PROVIDER_PRIORITY),
+                output_field=CharField(),
+            )
+        )
+        # Order by priority first (lowest number = highest priority), then ID
+        .order_by("provider_priority", "id").values("id", "mailbox_name")
+    )
 
     metrics.distribution(
         "hybridcloud.schedule_webhook_delivery.mailbox_count", scheduled_mailboxes.count()
     )
+
     for record in scheduled_mailboxes[:BATCH_SIZE]:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.

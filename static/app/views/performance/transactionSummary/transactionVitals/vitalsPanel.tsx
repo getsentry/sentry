@@ -55,7 +55,9 @@ class VitalsPanel extends Component<Props> {
         {results => {
           const loading = zoomed ? results.isLoading : isLoading;
           const errored = zoomed ? results.error !== null : error;
-          const chartData = zoomed ? results.histograms?.[vital] ?? histogram : histogram;
+          const chartData = zoomed
+            ? (results.histograms?.[vital] ?? histogram)
+            : histogram;
           return (
             <VitalCard
               location={location}

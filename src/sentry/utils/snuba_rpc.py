@@ -97,6 +97,7 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
     return response
 
 
+@sentry_sdk.trace
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
@@ -229,6 +230,7 @@ def rpc(
     return resp
 
 
+@sentry_sdk.trace
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,

@@ -29,7 +29,7 @@ from .integration_utils import (
     get_installation,
 )
 from .stacktraces import get_frames_to_process
-from .utils import is_dry_run_platform, supported_platform
+from .utils import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,9 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
 
     platform = event.platform
     assert platform is not None
-    if not supported_platform(platform):
+
+    platform_config = PlatformConfig(platform)
+    if not platform_config.is_supported():
         return []
 
     frames_to_process = get_frames_to_process(event.data, platform)
@@ -80,7 +82,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
-        create_repos_and_code_mappings(code_mappings, installation, project, platform)
+        dry_run = platform_config.is_dry_run_platform()
+        create_repos_and_code_mappings(code_mappings, installation, project, platform, dry_run)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
@@ -162,12 +165,12 @@ def create_repos_and_code_mappings(
     installation: IntegrationInstallation,
     project: Project,
     platform: str,
+    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
-    dry_run = is_dry_run_platform(platform)
     organization_integration = installation.org_integration
     if not organization_integration:
         raise InstallationNotFoundError

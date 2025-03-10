@@ -392,7 +392,7 @@ export function SelectRow({
             options={columnOptions}
             value={
               field.kind === FieldValueKind.FUNCTION
-                ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
+                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
                 : field.field
             }
             onChange={newField => {

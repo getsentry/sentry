@@ -654,6 +654,7 @@ export type BillingMetricHistory = {
 
 export type BillingHistory = {
   categories: {[key: string]: BillingMetricHistory};
+  hadCustomDynamicSampling: boolean;
   hasReservedBudgets: boolean;
   id: string;
   isCurrent: boolean;

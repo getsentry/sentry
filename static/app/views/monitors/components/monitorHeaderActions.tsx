@@ -94,12 +94,13 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
+        disabled={!canEdit}
       >
         <Button
           size="sm"
           icon={<IconDelete size="xs" />}
           aria-label={t('Delete')}
-          {...disableProps}
+          title={!canEdit ? permissionTooltipText : undefined}
         />
       </Confirm>
       <LinkButton

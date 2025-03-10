@@ -67,7 +67,7 @@ export function DomainViewHeader({
   ];
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = extractSelectionParameters(location?.query);
 

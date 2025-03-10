@@ -494,10 +494,12 @@ class IssueDefaultTest(TestCase):
 
     def test_get_repository_choices_default_repo(self):
         assert self.installation.org_integration is not None
-        self.installation.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): {"repo": "user/repo2"}}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
         with mock.patch.object(
             self.installation,
             "get_repositories",

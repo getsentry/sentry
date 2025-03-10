@@ -5,8 +5,6 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.hybridcloud.models.outbox import ControlOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.relocation.models.relocation import Relocation, RelocationFile
@@ -222,8 +220,9 @@ class ProcessRelocationTransferRegionTest(TestCase):
         assert not RegionRelocationTransfer.objects.filter(id=transfer.id).exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            # For now the RPC call creates an outbox. This will change in the next step.
-            assert ControlOutbox.objects.filter(
-                shard_scope=OutboxScope.RELOCATION_SCOPE,
-                category=OutboxCategory.RELOCATION_EXPORT_REPLY,
+            assert ControlRelocationTransfer.objects.filter(
+                state=RelocationTransferState.Reply,
+                org_slug=organization.slug,
+                exporting_region=transfer.exporting_region,
+                requesting_region=transfer.requesting_region,
             ).exists()

@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import NumberDragControl from 'sentry/components/numberDragControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -106,7 +106,7 @@ class ThresholdControl extends Component<Props, State> {
       <Wrapper>
         <Container comparisonType={comparisonType}>
           <SelectContainer>
-            <SelectControl
+            <Select
               isDisabled={disabled || disableThresholdType}
               name={`${type}ThresholdType`}
               value={thresholdType}

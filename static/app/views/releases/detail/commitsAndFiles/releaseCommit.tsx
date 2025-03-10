@@ -86,7 +86,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
               isHoverable
             >
               <AuthorWrapper>
-                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+                {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
                 {commit.author && commit.author.id === undefined && (
                   <IconQuestion size="xs" />
                 )}

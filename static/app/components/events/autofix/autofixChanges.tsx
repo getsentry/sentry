@@ -427,7 +427,7 @@ export function AutofixChanges({
   previousInsightCount,
   agentCommentThread,
 }: AutofixChangesProps) {
-  const data = useAutofixData({groupId});
+  const {data} = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
   const iconCodeRef = useRef<HTMLDivElement>(null);
 
@@ -475,9 +475,9 @@ export function AutofixChanges({
           <ClippedBox clipHeight={408}>
             <HeaderWrapper>
               <HeaderText>
-                <div ref={iconCodeRef}>
-                  <IconCode size="sm" />
-                </div>
+                <HeaderIconWrapper ref={iconCodeRef}>
+                  <IconCode size="sm" color="blue400" />
+                </HeaderIconWrapper>
                 {t('Code Changes')}
               </HeaderText>
               {!prsMade && (
@@ -648,6 +648,12 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const HeaderIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

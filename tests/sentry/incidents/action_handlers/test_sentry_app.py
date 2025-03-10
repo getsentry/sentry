@@ -31,6 +31,8 @@ class SentryAppActionHandlerTest(FireTest):
             sentry_app=self.sentry_app,
         )
 
+        self.handler = SentryAppActionHandler()
+
     @responses.activate
     def run_test(self, incident, method):
         from sentry.rules.actions.notify_event_service import build_incident_attachment
@@ -43,10 +45,11 @@ class SentryAppActionHandlerTest(FireTest):
             body=json.dumps({"ok": "true"}),
         )
 
-        handler = SentryAppActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(self.handler, method)(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
         data = responses.calls[0].request.body
         assert (
             json.dumps(
@@ -69,10 +72,11 @@ class SentryAppActionHandlerTest(FireTest):
             body=json.dumps({"ok": "true"}),
         )
 
-        handler = SentryAppActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
 
         assert len(responses.calls) == 0
 
@@ -100,6 +104,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
         self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.organization, user=self.user
         )
+        self.handler = SentryAppActionHandler()
 
     @responses.activate
     def run_test(self, incident, method):
@@ -129,10 +134,11 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
             body=json.dumps({"ok": "true"}),
         )
 
-        handler = SentryAppActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(self.handler, method)(
+                self.action, incident, self.project, metric_value, IncidentStatus(incident.status)
+            )
         data = responses.calls[0].request.body
         assert (
             json.dumps(

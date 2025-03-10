@@ -57,6 +57,7 @@ export function BillingHistoryFixture(
     },
     hasReservedBudgets: false,
     reservedBudgetCategories: [],
+    hadCustomDynamicSampling: false,
     ...params,
   };
 }

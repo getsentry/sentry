@@ -11,11 +11,6 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
-from sentry.integrations.github.tasks.language_parsers import (
-    PATCH_PARSERS,
-    LanguageParser,
-    SimpleLanguageParser,
-)
 from sentry.integrations.github.tasks.open_pr_comment import (
     MAX_RECENT_ISSUES,
     OPEN_PR_MAX_FILES_CHANGED,
@@ -26,6 +21,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.fetch_issues.more_parsing import patch_parsers_more
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
@@ -53,15 +49,7 @@ The number of stack frames to check for function name and file name matches.
 class PrFile(TypedDict):
     filename: str
     patch: str
-    status: Literal[
-        "added",
-        "removed",
-        "modified",
-        "renamed",
-        "copied",
-        "changed",
-        "unchanged",
-    ]
+    status: Literal["added", "removed", "modified", "renamed", "copied", "changed", "unchanged"]
     changes: int
 
 
@@ -71,7 +59,7 @@ def safe_for_fetching_issues(pr_files: list[PrFile]) -> list[PrFile]:
     filtered_pr_files = []
     for file in pr_files:
         file_extension = file["filename"].split(".")[-1]
-        if file["status"] != "modified" or file_extension not in PATCH_PARSERS:
+        if file["status"] != "modified" or file_extension not in patch_parsers_more:
             continue
 
         changed_file_count += 1
@@ -102,14 +90,12 @@ def _get_issues_for_file(
     if not projects:
         return []
 
-    patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
-
     # Gets the appropriate parser for formatting the snuba query given the file extension.
     # The extension is never replaced in reverse codemapping.
     file_extension = sentry_filenames[0].split(".")[-1]
-    if file_extension not in patch_parsers:
+    if file_extension not in patch_parsers_more:
         return []
-    language_parser = patch_parsers[file_extension]
+    language_parser = patch_parsers_more[file_extension]
 
     # Fetch an initial, candidate set of groups.
     group_ids: list[int] = list(
@@ -376,7 +362,6 @@ def get_issues_related_to_file_patches(
     ]
 
     filename_to_issues = {}
-    patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
 
     for file in pullrequest_files:
         logger_extra = {"file": file.filename, "run_id": run_id}
@@ -390,15 +375,17 @@ def get_issues_related_to_file_patches(
             continue
 
         file_extension = file.filename.split(".")[-1]
-        if file_extension not in patch_parsers:
+        if file_extension not in patch_parsers_more:
             logger.warning("No language parser", extra=logger_extra)
             continue
-        language_parser = patch_parsers[file_extension]
 
+        language_parser = patch_parsers_more[file_extension]
         function_names = language_parser.extract_functions_from_patch(file.patch)
         if not function_names:
             logger.warning("No function names", extra=logger_extra)
             continue
+
+        logger.info("Function names", extra=logger_extra | {"function_names": function_names})
 
         issues = get_issues_with_event_details_for_file(
             list(projects),

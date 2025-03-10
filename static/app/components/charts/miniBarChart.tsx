@@ -6,11 +6,11 @@ import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
 import set from 'lodash/set';
 
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import type {BarChartProps, BarChartSeries} from './barChart';
-import {BarChart} from './barChart';
-import type {BaseChartProps} from './baseChart';
+import {BarChart, type BarChartProps, type BarChartSeries} from './barChart';
 
 function makeBaseChartOptions({
   animateBars,
@@ -224,6 +224,38 @@ export function getYAxisMaxFn(height: number) {
   };
 }
 
+function groupDataByName(
+  series: BarChartSeries[]
+): Record<string, SeriesDataUnit[] | undefined> {
+  const allData = series.flatMap(serie => serie.data);
+  return Object.groupBy<string, SeriesDataUnit>(allData, ({name}) => String(name));
+}
+
+// Adds rounded corners to a single bar or the last item of a stacked bar based on the datapoints
+function updateDataItemBorderRadius(
+  groupedData: Record<string, SeriesDataUnit[] | undefined>,
+  data: SeriesDataUnit[],
+  serieIndex: number
+) {
+  return data.map(dataItem => {
+    const datapointsByName = groupedData[dataItem.name] ?? [];
+    const allAreZero = datapointsByName.every(value => value.value === 0);
+    const lastNonZeroIndex = datapointsByName.findLastIndex(value => value.value > 0);
+    const isLastStackedItem = lastNonZeroIndex === serieIndex;
+
+    if (allAreZero || isLastStackedItem) {
+      return {
+        ...dataItem,
+        itemStyle: {
+          borderRadius: [1, 1, 0, 0],
+        },
+      };
+    }
+
+    return dataItem;
+  });
+}
+
 function MiniBarChart({
   animateBars = false,
   barOpacity = 0.6,
@@ -244,12 +276,15 @@ function MiniBarChart({
 }: Props) {
   const theme = useTheme();
   const xAxisLineColor: string = theme.gray200;
+
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {
       return [];
     }
 
     const chartSeries: BarChartSeries[] = [];
+
+    const groupedData = stacked ? groupDataByName(series) : {};
 
     const colorList = Array.isArray(colors)
       ? colors
@@ -273,8 +308,14 @@ function MiniBarChart({
         updated.stack = 'stack1';
       }
       set(updated, 'itemStyle.color', colorList[i]);
-      set(updated, 'itemStyle.borderRadius', [1, 1, 0, 0]); // Rounded corners on top of the bar
       set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
+
+      if (stacked) {
+        set(updated, 'data', updateDataItemBorderRadius(groupedData, original.data, i));
+      } else {
+        set(updated, 'itemStyle.borderRadius', [1, 1, 0, 0]); // Rounded corners on top of the bar
+      }
+
       chartSeries.push(updated);
     }
     return chartSeries;

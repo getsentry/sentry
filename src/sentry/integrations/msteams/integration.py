@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from django.http.request import HttpRequest
@@ -10,13 +11,14 @@ from django.utils.translation import gettext_lazy as _
 from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 
 from .card_builder.installation import (
@@ -87,7 +89,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> list[PipelineView]:
         return [MsTeamsPipelineView()]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state[self.key]
         external_id = data["external_id"]
         external_name = data["external_name"]
@@ -98,7 +100,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         # TODO: add try/except for request errors
         token_data = get_token_data()
 
-        integration = {
+        return {
             "name": external_name,
             "external_id": external_id,
             "metadata": {
@@ -116,13 +118,13 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
             },
             "post_install_data": {"conversation_id": conversation_id},
         }
-        return integration
 
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         client = MsTeamsClient(integration)
         card = (

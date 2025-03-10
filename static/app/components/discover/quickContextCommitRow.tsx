@@ -36,7 +36,7 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
           data-test-id="quick-context-commit-row-commit-link"
         >
           {tct('View commit [commitLink] by [author]', {
-            author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
+            author: isUser ? t('You') : (commit.author?.name ?? t('Unknown author')),
             commitLink: (
               <CommitLink
                 inline

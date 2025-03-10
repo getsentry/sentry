@@ -89,7 +89,7 @@ export function useProfilingTransactionQuickSummary(
   const durationUnits = slowestProfileQuery.data?.meta.units['transaction.duration'];
   const slowestProfileDurationMultiplier = durationUnits
     ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      DURATION_UNITS[durationUnits] ?? 1
+      (DURATION_UNITS[durationUnits] ?? 1)
     : 1;
 
   const latestProfile = latestProfileQuery?.data?.data[0] ?? null;

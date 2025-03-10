@@ -2,28 +2,27 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 interface QueriesDiscoverQueryResponse {
   data: Array<{
-    'avg(span.self_time)': number;
     'project.id': string;
-    'span.description': string;
+    'sentry.normalized_description': string;
     'span.group': string;
     'span.op': string;
-    'sum(span.self_time)': number;
+    'sum(span.duration)': number;
     'time_spent_percentage()': number;
     transaction: string;
   }>;
@@ -31,7 +30,9 @@ interface QueriesDiscoverQueryResponse {
 
 export function QueriesWidget({query}: {query?: string}) {
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const pageFilterChartParams = usePageFilterChartParams({
+    granularity: 'spans',
+  });
 
   const queriesRequest = useApiQuery<QueriesDiscoverQueryResponse>(
     [
@@ -39,67 +40,70 @@ export function QueriesWidget({query}: {query?: string}) {
       {
         query: {
           ...pageFilterChartParams,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           field: [
             'span.op',
             'span.group',
             'project.id',
-            'span.description',
-            'sum(span.self_time)',
-            'avg(span.self_time)',
-            'time_spent_percentage()',
+            'sentry.normalized_description',
+            'sum(span.duration)',
             'transaction',
           ],
-          query: `has:span.description span.module:db ${query}`,
-          sort: '-time_spent_percentage()',
+          query: `has:db.system !transaction.span_id:00 ${query}`,
+          sort: '-sum(span.duration)',
           per_page: 3,
+          useRpc: 1,
         },
       },
     ],
     {staleTime: 0}
   );
 
-  const timeSeriesRequest = useSpanMetricsTopNSeries({
-    search: new MutableSearch(
-      // Cannot use transaction:[value1, value2] syntax as
-      // MutableSearch might escape it to transactions:"[value1, value2]" for some values
-      queriesRequest.data?.data
-        .map(item => `span.group:"${item['span.group']}"`)
-        .join(' OR ') || ''
-    ),
-    fields: ['span.group', 'sum(span.self_time)'],
-    yAxis: ['sum(span.self_time)'],
-    sorts: [
+  const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
+    [
+      `/organizations/${organization.slug}/events-stats/`,
       {
-        field: 'sum(span.self_time)',
-        kind: 'desc',
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spans',
+          field: ['transaction', 'span.group', 'sum(span.duration)'],
+          yAxis: ['sum(span.duration)'],
+          query: `span.group:[${queriesRequest.data?.data.map(item => `"${item['span.group']}"`).join(',')}]`,
+          sort: '-sum(span.duration)',
+          topEvents: 3,
+          useRpc: 1,
+        },
       },
     ],
-    topEvents: 3,
-    enabled: !!queriesRequest.data?.data,
-  });
+    {staleTime: 0}
+  );
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+    if (!timeSeriesRequest.data) {
       return [];
     }
 
-    return Object.keys(timeSeriesRequest.data).map(key => {
-      const seriesData = timeSeriesRequest.data[key]!;
-      return {
-        ...seriesData,
-        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
-        meta: {
-          fields: {
-            [seriesData.seriesName]: 'duration',
+    return Object.keys(timeSeriesRequest.data)
+      .filter(key => key !== 'Other')
+      .map(key => {
+        const seriesData = timeSeriesRequest.data[key]!;
+        return {
+          data: seriesData.data.map(([time, value]) => ({
+            name: new Date(time * 1000).toISOString(),
+            value: value?.[0]?.count || 0,
+          })),
+          seriesName: key,
+          meta: {
+            fields: {
+              [key]: 'duration',
+            },
+            units: {
+              [key]: 'millisecond',
+            },
           },
-          units: {
-            [seriesData.seriesName]: 'millisecond',
-          },
-        },
-      };
-    });
-  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
+        } satisfies DiscoverSeries;
+      });
+  }, [timeSeriesRequest.data]);
 
   const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
   const error = timeSeriesRequest.error || queriesRequest.error;
@@ -119,14 +123,13 @@ export function QueriesWidget({query}: {query?: string}) {
           <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
         ) : (
           <TimeSeriesWidgetVisualization
-            visualizationType="line"
             aliases={Object.fromEntries(
               queriesRequest.data?.data.map(item => [
-                item['span.group'],
-                item['span.description'],
+                `${item.transaction},${item['span.group']}`,
+                item['sentry.normalized_description'],
               ]) ?? []
             )}
-            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+            plottables={timeSeries.map(convertSeriesToTimeseries).map(ts => new Line(ts))}
           />
         )
       }
@@ -135,21 +138,19 @@ export function QueriesWidget({query}: {query?: string}) {
         hasData && (
           <WidgetFooterTable>
             {queriesRequest.data?.data.map(item => (
-              <Fragment key={item['span.description']}>
+              <Fragment key={item['sentry.normalized_description']}>
                 <OverflowCell>
                   <SpanDescriptionCell
                     projectId={Number(item['project.id'])}
                     group={item['span.group']}
-                    description={item['span.description']}
+                    description={item['sentry.normalized_description']}
                     moduleName={ModuleName.DB}
                   />
                   <ControllerText>{item.transaction}</ControllerText>
                 </OverflowCell>
-                <TimeSpentCell
-                  percentage={item['time_spent_percentage()']}
-                  total={item['sum(span.self_time)']}
-                  op={item['span.op']}
-                />
+                <span>
+                  {getDuration((item['sum(span.duration)'] ?? 0) / 1000, 2, true)}
+                </span>
               </Fragment>
             ))}
           </WidgetFooterTable>
@@ -179,6 +180,7 @@ const WidgetFooterTable = styled('div')`
 
   & > *:nth-child(2n) {
     padding-right: ${space(2)};
+    text-align: right;
   }
 
   & > *:not(:nth-last-child(-n + 2)) {

@@ -284,7 +284,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(Mock(), Mock(), Mock())
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
         self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
 
     def test_handled(self):
@@ -293,10 +293,8 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
 
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        incident = Mock()
-        project = Mock()
-        trigger.build_handler(trigger, incident, project)
-        mock_handler.assert_called_once_with(trigger, incident, project)
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
+        mock_handler.assert_called_once_with()
         assert not self.metrics.incr.called
 
 

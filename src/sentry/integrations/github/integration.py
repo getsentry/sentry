@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
@@ -19,8 +19,10 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -39,7 +41,7 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -293,7 +295,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
-    integration_cls = GitHubIntegration
+    integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
@@ -314,8 +316,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Mapping[str, Any] | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -340,7 +343,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -348,7 +351,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
-    def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         try:
             installation = self.get_installation_info(state["installation_id"])
         except ApiError as api_error:
@@ -356,7 +359,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 raise IntegrationError("The GitHub installation could not be found.")
             raise
 
-        integration = {
+        integration: IntegrationData = {
             "name": installation["account"]["login"],
             # TODO(adhiraj): This should be a constant representing the entire github cloud.
             "external_id": installation["id"],

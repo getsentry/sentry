@@ -130,7 +130,7 @@ export function TraceProfiles({
                   <span>{node.value.op ?? '<unknown>'}</span> —{' '}
                   <span className="TraceDescription" title={node.value.description}>
                     {!node.value.description
-                      ? node.value.span_id ?? 'unknown'
+                      ? (node.value.span_id ?? 'unknown')
                       : node.value.description.length > 100
                         ? node.value.description.slice(0, 100).trim() + '\u2026'
                         : node.value.description}

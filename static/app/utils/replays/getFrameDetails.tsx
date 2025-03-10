@@ -475,7 +475,7 @@ export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   if ('message' in frame && frame.message) {
     return frame.message; // TODO(replay): Included for backwards compat
   }
-  return 'description' in frame ? frame.description ?? '' : '';
+  return 'description' in frame ? (frame.description ?? '') : '';
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {

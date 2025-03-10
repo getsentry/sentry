@@ -846,7 +846,7 @@ function IssueListOverview({router}: Props) {
     if (period !== getGroupStatsPeriod()) {
       const cursor = Array.isArray(location.query.cursor)
         ? location.query.cursor[0]
-        : location.query.cursor ?? undefined;
+        : (location.query.cursor ?? undefined);
       const queryPageInt = parsePageQueryParam(location, 0);
       const page = !location.query.cursor ? 0 : queryPageInt;
       transitionTo({cursor, page, groupStatsPeriod: period});

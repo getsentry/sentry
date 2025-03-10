@@ -16,7 +16,7 @@ function isResourceFrame(frame: SpanFrame): frame is ResourceFrame {
 }
 
 export function getFrameMethod(frame: SpanFrame) {
-  return isRequestFrame(frame) ? frame.data.method ?? 'GET' : 'GET';
+  return isRequestFrame(frame) ? (frame.data.method ?? 'GET') : 'GET';
 }
 
 export function getFrameStatus(frame: SpanFrame) {

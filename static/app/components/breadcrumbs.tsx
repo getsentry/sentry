@@ -110,7 +110,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
         const {label, to, preservePageFilters, key} = crumb;
         const labelKey = typeof label === 'string' ? label : '';
         const mapKey =
-          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
+          (key ?? typeof to === 'string') ? `${labelKey}${to}` : `${labelKey}${index}`;
 
         return (
           <Fragment key={mapKey}>

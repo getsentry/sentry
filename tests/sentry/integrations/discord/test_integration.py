@@ -438,14 +438,18 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             status=200,
         )
 
-        provider.post_install(integration=self.integration, organization=self.organization)
+        provider.post_install(
+            integration=self.integration, organization=self.organization, extra={}
+        )
         assert mock_set_application_command.call_count == 3  # one for each command
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def test_post_install_missing_credentials(self, mock_set_application_command):
         provider = self.provider()
         provider.application_id = None
-        provider.post_install(integration=self.integration, organization=self.organization)
+        provider.post_install(
+            integration=self.integration, organization=self.organization, extra={}
+        )
         assert mock_set_application_command.call_count == 0
 
     @responses.activate
@@ -465,7 +469,9 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             status=500,
         )
         with pytest.raises(ApiError):
-            provider.post_install(integration=self.integration, organization=self.organization)
+            provider.post_install(
+                integration=self.integration, organization=self.organization, extra={}
+            )
 
     @responses.activate
     def test_get_commands_failure(self):
@@ -478,7 +484,9 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             status=500,
         )
         with pytest.raises(ApiError):
-            provider.post_install(integration=self.integration, organization=self.organization)
+            provider.post_install(
+                integration=self.integration, organization=self.organization, extra={}
+            )
 
     def test_build_integration_invalid_guild_id(self):
         provider = self.provider()

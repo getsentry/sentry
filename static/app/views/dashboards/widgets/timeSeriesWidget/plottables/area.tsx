@@ -34,7 +34,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           ...commonOptions,
           stack: 'complete',
           areaStyle: {
-            color: completeTimeSeries.color,
+            color,
             opacity: 1.0,
           },
           data: completeTimeSeries.data.map(timeSeriesItemToEChartsDataPoint),

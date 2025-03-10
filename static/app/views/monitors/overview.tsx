@@ -4,11 +4,13 @@ import * as qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -20,7 +22,7 @@ import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -30,6 +32,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import {
   CronsLandingPanel,
@@ -56,6 +59,7 @@ export default function Monitors() {
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
   const project = decodeList(location.query?.project);
+  const {projects} = useProjects();
 
   const queryKey = makeMonitorListQueryKey(organization, location.query);
 
@@ -95,6 +99,14 @@ export default function Monitors() {
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
+  const canCreateAlert =
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
   return (
     <SentryDocumentTitle title={t(`Crons`)} orgSlug={organization.slug}>
       <CronsListPageHeader organization={organization} />
@@ -124,11 +136,18 @@ export default function Monitors() {
                 }
                 analyticsEventKey="crons.bulk_edit_modal_button_clicked"
                 analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+                disabled={!canCreateAlert}
+                title={!canCreateAlert ? permissionTooltipText : undefined}
               >
                 {t('Manage Monitors')}
               </Button>
               {showAddMonitor && (
-                <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
+                <NewMonitorButton
+                  size="sm"
+                  icon={<IconAdd isCircled />}
+                  disabled={!canCreateAlert}
+                  title={!canCreateAlert ? permissionTooltipText : undefined}
+                >
                   {t('Add Monitor')}
                 </NewMonitorButton>
               )}

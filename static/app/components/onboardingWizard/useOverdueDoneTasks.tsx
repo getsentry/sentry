@@ -11,7 +11,13 @@ function isTaskOverdue2Weeks(dateCompleted: string): boolean {
   return timeDifference > 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
 }
 
-export function useOverdueDoneTasks({doneTasks}: {doneTasks: OnboardingTask[]}): {
+export function useOverdueDoneTasks({
+  doneTasks,
+  allTasksDone,
+}: {
+  allTasksDone: boolean;
+  doneTasks: OnboardingTask[];
+}): {
   overdueTasks: OnboardingTask[];
 } {
   const api = useApi();
@@ -20,13 +26,18 @@ export function useOverdueDoneTasks({doneTasks}: {doneTasks: OnboardingTask[]}):
   // Tasks marked as "done" but not completed (user hasn't seen the completion),
   // and the date completed is equal or more than 14 days ago (overdue).
   const overdueTasks = useMemo(() => {
+    // Only update 'completionSeen' if the WHOLE onboarding is 'done'
+    if (!allTasksDone) {
+      return [];
+    }
+
     return doneTasks.filter(
       task =>
         task.dateCompleted &&
         !task.completionSeen &&
         isTaskOverdue2Weeks(task.dateCompleted)
     );
-  }, [doneTasks]);
+  }, [doneTasks, allTasksDone]);
 
   const safeDependencies = useRef({overdueTasks, organization});
 

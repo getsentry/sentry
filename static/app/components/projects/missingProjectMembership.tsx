@@ -5,8 +5,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {joinTeam} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
+import {Select} from 'sentry/components/core/select';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Panel from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -194,7 +194,7 @@ const Field = styled('div')`
   text-align: left;
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   width: 250px;
 `;
 

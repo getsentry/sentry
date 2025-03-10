@@ -154,7 +154,7 @@ export function parseQuickTrace(
    * the root of the trace, this favours showing it as the parent.
    */
   const parent = current.parent_event_id
-    ? trace.find(e => e.event_id === current.parent_event_id) ?? null
+    ? (trace.find(e => e.event_id === current.parent_event_id) ?? null)
     : null;
 
   /**

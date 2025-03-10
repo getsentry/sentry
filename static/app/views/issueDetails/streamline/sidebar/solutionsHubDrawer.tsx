@@ -188,7 +188,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
-          {t('Seer')}
+          {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
             tooltipProps={{
@@ -398,7 +398,8 @@ const StyledCard = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(3)};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`

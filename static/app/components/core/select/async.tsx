@@ -8,8 +8,8 @@ import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-import type {ControlProps, GeneralSelectValue} from './selectControl';
-import SelectControl from './selectControl';
+import type {ControlProps, GeneralSelectValue} from './';
+import {Select} from './';
 
 export type Result = {
   label: string;
@@ -108,7 +108,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   render() {
     const {value, forwardedRef, defaultOptions, ...props} = this.props;
     return (
-      <SelectControl
+      <Select
         // The key is used as a way to force a reload of the options:
         // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
         key={value}
@@ -125,9 +125,6 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   }
 }
 
-function RefForwarder(p: any, ref: any) {
+export const SelectAsync = forwardRef((p: any, ref: any) => {
   return <SelectAsyncControl {...p} forwardedRef={ref} />;
-}
-RefForwarder.displayName = 'SelectAsyncControl';
-
-export default forwardRef(RefForwarder);
+});

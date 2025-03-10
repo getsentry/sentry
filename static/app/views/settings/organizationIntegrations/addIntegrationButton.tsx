@@ -31,7 +31,7 @@ export function AddIntegrationButton({
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
-    buttonText ?? reinstall
+    (buttonText ?? reinstall)
       ? t('Enable')
       : installStatus === 'Disabled'
         ? t('Reinstall')

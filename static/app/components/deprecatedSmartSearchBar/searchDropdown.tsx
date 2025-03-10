@@ -404,7 +404,7 @@ function DropdownItem({
           !isDisabled
             ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
               ? undefined
-              : item.callback ?? onClick.bind(null, item.value, item)
+              : (item.callback ?? onClick.bind(null, item.value, item))
             : undefined
         }
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}

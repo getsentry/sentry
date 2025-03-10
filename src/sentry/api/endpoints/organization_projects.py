@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -81,6 +82,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         datasetName = request.GET.get("dataset", "discover")
         dataset = get_dataset(datasetName)
 
+        queryset: QuerySet[Project]
         if request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
@@ -116,8 +118,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                    value_s = " ".join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=value_s) | Q(slug__icontains=value_s)
+                    )
                 elif key == "id":
                     if all(v.isdigit() for v in value):
                         queryset = queryset.filter(id__in=value)

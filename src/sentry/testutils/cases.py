@@ -292,7 +292,6 @@ class BaseTestCase(Fixtures):
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
-        request.is_superuser = lambda: request.superuser.is_active
 
         if is_staff:
             request.staff.set_logged_in(user)
@@ -577,11 +576,9 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
 
         def detect_performance_problems_interceptor(
-            data: Event, project: Project, is_standalone_spans: bool = False
+            data: Event, project: Project, standalone: bool = False
         ):
-            perf_problems = detect_performance_problems(
-                data, project, is_standalone_spans=is_standalone_spans
-            )
+            perf_problems = detect_performance_problems(data, project, standalone=standalone)
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint

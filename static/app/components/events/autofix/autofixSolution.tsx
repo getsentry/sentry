@@ -10,6 +10,7 @@ import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {Input} from 'sentry/components/core/input';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,
@@ -183,7 +184,9 @@ function SolutionDescription({
       </AnimatePresence>
       <div ref={containerRef}>
         {description && (
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}} />
+          <Description
+            dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}}
+          />
         )}
         <SolutionEventList
           events={solution}
@@ -194,6 +197,12 @@ function SolutionDescription({
     </SolutionDescriptionWrapper>
   );
 }
+
+const Description = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 type SolutionEventListProps = {
   events: AutofixSolutionTimelineEvent[];
@@ -272,11 +281,11 @@ function SolutionEventList({
                       aria-label={isSelected ? t('Deselect item') : t('Select item')}
                     >
                       {isHumanAction ? (
-                        <IconDelete size="xs" />
+                        <IconDelete size="xs" color="red400" />
                       ) : isSelected ? (
-                        <IconClose size="xs" />
+                        <IconClose size="xs" color="red400" />
                       ) : (
-                        <IconAdd size="xs" />
+                        <IconAdd size="xs" color="green400" />
                       )}
                     </SelectionButton>
                   </SelectionButtonWrapper>
@@ -476,9 +485,9 @@ function AutofixSolutionDisplay({
         <CustomSolutionPadding>
           <HeaderWrapper>
             <HeaderText>
-              <div ref={iconFixRef}>
-                <IconFix size="sm" />
-              </div>
+              <HeaderIconWrapper ref={iconFixRef}>
+                <IconFix size="sm" color="green400" />
+              </HeaderIconWrapper>
               {t('Custom Solution')}
             </HeaderText>
             <CopySolutionButton solution={solution} customSolution={customSolution} />
@@ -496,9 +505,9 @@ function AutofixSolutionDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <div ref={iconFixRef}>
-              <IconFix size="sm" />
-            </div>
+            <HeaderIconWrapper ref={iconFixRef}>
+              <IconFix size="sm" color="green400" />
+            </HeaderIconWrapper>
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
@@ -619,27 +628,26 @@ function AutofixSolutionDisplay({
             onToggleActive={handleToggleActive}
           />
           <AddInstructionWrapper>
-            <InstructionsInputWrapper>
-              <form onSubmit={handleFormSubmit} style={{display: 'flex', width: '100%'}}>
-                <InstructionsInput
-                  type="text"
-                  name="additional-instructions"
-                  placeholder={t('Add additional instructions for Autofix...')}
-                  value={instructions}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setInstructions(e.target.value)
-                  }
-                />
-                <AddStepButton
-                  type="submit"
-                  size="xs"
-                  disabled={!instructions.trim()}
-                  aria-label={t('Add to solution')}
-                  icon={<IconAdd size="xs" />}
-                >
-                  <span>{t('Add')}</span>
-                </AddStepButton>
-              </form>
+            <InstructionsInputWrapper onSubmit={handleFormSubmit}>
+              <InstructionsInput
+                type="text"
+                name="additional-instructions"
+                placeholder={t('Add more instructions...')}
+                value={instructions}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setInstructions(e.target.value)
+                }
+                size="sm"
+              />
+              <SubmitButton
+                size="zero"
+                type="submit"
+                borderless
+                disabled={!instructions.trim()}
+                aria-label={t('Add to solution')}
+              >
+                <IconAdd size="xs" />
+              </SubmitButton>
             </InstructionsInputWrapper>
           </AddInstructionWrapper>
         </Content>
@@ -686,7 +694,7 @@ const SolutionContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${space(1)} 0 0;
 `;
 
 const HeaderWrapper = styled('div')`
@@ -753,6 +761,12 @@ const StyledSpan = styled('span')`
   }
 `;
 
+const HeaderIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: boolean}>`
   display: flex;
   align-items: center;
@@ -764,6 +778,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
+  text-decoration: ${p => (p.isSelected ? 'none' : 'line-through')};
   transition: opacity 0.2s ease;
 
   & > div:first-of-type {
@@ -834,38 +849,32 @@ const StyledIconChevron = styled(IconChevron)`
   }
 `;
 
-const InstructionsInputWrapper = styled('div')`
+const InstructionsInputWrapper = styled('form')`
   display: flex;
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.backgroundSecondary};
   margin-top: ${space(0.5)};
+  margin-right: ${space(0.25)};
 `;
 
-const InstructionsInput = styled('input')`
+const InstructionsInput = styled(Input)`
   flex-grow: 1;
-  border: none;
-  outline: none;
-  padding: ${space(1)};
-  line-height: 1.4;
-  color: ${p => p.theme.gray500};
-  background-color: transparent;
 
   &::placeholder {
     color: ${p => p.theme.gray300};
   }
-
-  &:focus {
-    outline: none;
-    color: ${p => p.theme.textColor};
-  }
 `;
 
-const AddStepButton = styled(Button)`
-  margin: ${space(0.5)};
-  min-width: 60px;
+const SubmitButton = styled(Button)`
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 24px;
   border-radius: 5px;
 `;
 
 const AddInstructionWrapper = styled('div')`
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
+  padding: ${space(1)} ${space(1)} 0 ${space(3)};
 `;

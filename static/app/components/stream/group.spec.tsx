@@ -184,7 +184,7 @@ describe('StreamGroup', function () {
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        withColumns={['firstLastSeen']}
+        withColumns={['firstSeen', 'lastSeen']}
       />,
       {
         organization: OrganizationFixture({

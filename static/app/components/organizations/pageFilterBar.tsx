@@ -10,7 +10,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
   display: flex;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
   ${p =>
     p.condensed &&
     `

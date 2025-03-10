@@ -272,8 +272,8 @@ const hasUnsavedChanges = (
   const queryTimeFilters =
     start || end || statsPeriod || utc
       ? {
-          start: statsPeriod ? null : start?.toString() ?? null,
-          end: statsPeriod ? null : end?.toString() ?? null,
+          start: statsPeriod ? null : (start?.toString() ?? null),
+          end: statsPeriod ? null : (end?.toString() ?? null),
           period: statsPeriod?.toString() ?? null,
           utc: statsPeriod ? null : utc?.toString() === 'true',
         }

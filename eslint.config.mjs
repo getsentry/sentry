@@ -11,13 +11,13 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
 import react from 'eslint-plugin-react';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import reactHooks from 'eslint-plugin-react-hooks';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
@@ -174,34 +174,31 @@ export default typescript.config([
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
     files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
-  {
-    name: 'eslint/global/ignores',
-    // Global ignores
-    // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
-    ignores: [
-      '.devenv/**/*',
-      '.github/**/*',
-      '.mypy_cache/**/*',
-      '.pytest_cache/**/*',
-      '.venv/**/*',
-      '**/*.benchmark.ts',
-      '**/*.d.ts',
-      '**/dist/**/*',
-      '**/tests/**/fixtures/**/*',
-      '**/vendor/**/*',
-      'build-utils/**/*',
-      'config/chartcuterie/config.js', // TODO: see if this file exists
-      'fixtures/artifact_bundle/**/*',
-      'fixtures/artifact_bundle_debug_ids/**/*',
-      'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
-      'fixtures/profiles/embedded.js',
-      'jest.config.ts',
-      'api-docs/**/*',
-      'src/sentry/static/sentry/js/**/*',
-      'src/sentry/templates/sentry/**/*',
-      'stylelint.config.js',
-    ],
-  },
+  // Global ignores
+  // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
+  globalIgnores([
+    '.devenv/**/*',
+    '.github/**/*',
+    '.mypy_cache/**/*',
+    '.pytest_cache/**/*',
+    '.venv/**/*',
+    '**/*.benchmark.ts',
+    '**/*.d.ts',
+    '**/dist/**/*',
+    '**/tests/**/fixtures/**/*',
+    '**/vendor/**/*',
+    'build-utils/**/*',
+    'config/chartcuterie/config.js',
+    'fixtures/artifact_bundle/**/*',
+    'fixtures/artifact_bundle_debug_ids/**/*',
+    'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
+    'fixtures/profiles/embedded.js',
+    'jest.config.ts',
+    'api-docs/**/*',
+    'src/sentry/static/sentry/js/**/*',
+    'src/sentry/templates/sentry/**/*',
+    'stylelint.config.js',
+  ]),
   /**
    * Rules are grouped by plugin. If you want to override a specific rule inside
    * the recommended set, then it's recommended to spread the new rule on top

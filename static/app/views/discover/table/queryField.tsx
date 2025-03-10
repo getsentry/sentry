@@ -5,10 +5,10 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Tag} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -448,7 +448,7 @@ class QueryField extends Component<Props> {
         });
 
         return (
-          <SelectControl
+          <Select
             key="select"
             name="parameter"
             menuPlacement="auto"
@@ -508,7 +508,7 @@ class QueryField extends Component<Props> {
       }
       if (descriptor.kind === 'dropdown') {
         return (
-          <SelectControl
+          <Select
             key="dropdown"
             name="dropdown"
             menuPlacement="auto"
@@ -689,7 +689,7 @@ class QueryField extends Component<Props> {
         data-test-id="queryField"
       >
         {!hidePrimarySelector && (
-          <SelectControl
+          <Select
             {...selectProps}
             styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
             components={this.FieldSelectComponents}
@@ -801,7 +801,7 @@ const StyledInput = styled(Input)`
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};

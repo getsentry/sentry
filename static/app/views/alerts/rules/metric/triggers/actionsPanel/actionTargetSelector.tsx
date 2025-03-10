@@ -1,5 +1,5 @@
 import {Input} from 'sentry/components/core/input';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import type {SelectValue} from 'sentry/types/core';
@@ -76,7 +76,7 @@ export default function ActionTargetSelector(props: Props) {
     }
     case TargetType.SPECIFIC:
       return availableAction?.options ? (
-        <SelectControl
+        <Select
           isDisabled={disabled || loading}
           value={action.targetIdentifier}
           options={availableAction.options}

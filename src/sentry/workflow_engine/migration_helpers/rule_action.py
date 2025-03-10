@@ -75,9 +75,11 @@ def translate_rule_data_actions_to_notification_actions(
                 type=translator.action_type,
                 data=translator.get_sanitized_data(),
                 integration_id=translator.integration_id,
-                target_identifier=translator.target_identifier,
-                target_display=translator.target_display,
-                target_type=translator.target_type,
+                config={
+                    "target_identifier": translator.target_identifier,
+                    "target_display": translator.target_display,
+                    "target_type": translator.target_type,
+                },
             )
 
             notification_actions.append(notification_action)

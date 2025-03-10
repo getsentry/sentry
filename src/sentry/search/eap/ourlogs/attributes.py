@@ -1,6 +1,6 @@
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    ResolvedColumn,
+    ResolvedAttribute,
     VirtualColumnDefinition,
     datetime_processor,
     project_context_constructor,
@@ -14,41 +14,41 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
     for column in COMMON_COLUMNS
     + [
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span_id",
             internal_name="sentry.span_id",
             search_type="string",
             validator=is_span_id,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="log.body",
             internal_name="sentry.body",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="log.severity_number",
             internal_name="sentry.severity_number",
             search_type="integer",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="log.severity_text",
             internal_name="sentry.severity_text",
             search_type="string",
         ),
         # Message maps to body, this is to allow wildcard searching
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="message",
             internal_name="sentry.body",
             search_type="string",
             secondary_alias=True,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="timestamp",
             internal_name="sentry.timestamp",
             search_type="string",

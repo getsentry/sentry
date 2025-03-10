@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Input} from 'sentry/components/core/input';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -183,7 +183,7 @@ const RequiredLabel = styled('label')`
   }
 `;
 
-const RegionSelect = styled(SelectControl)`
+const RegionSelect = styled(Select)`
   button {
     width: 709px;
   }

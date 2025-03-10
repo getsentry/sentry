@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -81,7 +81,7 @@ class MemberTeamFields extends Component<Props> {
     return (
       <PanelItemGrid>
         <SelectWrapper>
-          <SelectControl
+          <Select
             isClearable={false}
             isDisabled={disabled || loading}
             value={ruleData.targetType}
