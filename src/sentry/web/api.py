@@ -36,27 +36,28 @@ SECURITY = """-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA256
 
 # Sentry runs a private bug bounty program using HackerOne.
-# Please send us an email if you want to be invited:
-Contact: mailto:security@sentry.io
+# We are not currently providing invitations for new users.
+# Please submit your report to our mailbox and we will triage it.
+# If your report is valid we may then invite you to our program.
+Contact: security@sentry.io
 Policy: https://sentry.io/security/#vulnerability-disclosure
 Encryption: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x641d2f6c230dbe3b
-
 # Please refer to https://sentry.io/cookiebounty/ for details on Cookie Bounty
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCAAdFiEE5AbCeulxZRWhse2GZB0vbCMNvjsFAmYhkjMACgkQZB0vbCMN
-vjvEzA//UoHN1WN3fXHIGHfKirgPnIidnS6KrthYAXkTMYU7BNZLl31YCq2SVyfL
-IfZEwK2dgqNZI/WBxySdj7STFAVeskYP8dgAqkkM/Nc+I1KL8g4co6e3xRdtx/8W
-kK1Yn3F3f769tbAcBkX+UYCebLrcgB8akllp+q9x2s/0kYiW/NbL7Q5epdK9kdg4
-2p99kS1zcv01U0XUlmUU02cqxcqbj7H4GXKhTbtyEMH7xbLfoSbftgRXZVGxxLAb
-AF3+M5zRpBAfLnDxGGb2rj7hC12dXbGgH0PEWQX0Lj3cfde7nHySHE0SUFfAWDTg
-gMRmTUgzHimyeFZ22ndFwJJOXny+t+BCMYj0QcCrddp4o9LuHq5Ao8n8yUd3syfE
-uPj8GhK15E6rwewyRodKQXzN9zZrCpVMizfLLQNsGDlqr28Yfh+rxiLOC/gvceH1
-upyFS5kYr9oGA9rLqnrw2KByhzm+t1EHro1Wkv58eVbMJzJ5HmH/D8OXU+9XwyqX
-ZRcT4CWSEobXpytX8JR6EanEHZYfTw93o+EcuwkuZO5TYHY+pWPF1MQmy3XUHS98
-rxG3qWbgPqJwIB7fCnASoRqrpYz6p6Eq6Vt1TDwaXO1I/uC3lAmb477lyNe2RLIg
-Yei0NogNpSgL/Xa1RUTKdeC0NLDo33PIlMHLXPrQ39vEQ+DwZZY=
-=LO/F
+iQIzBAEBCAAdFiEE5AbCeulxZRWhse2GZB0vbCMNvjsFAmfPA7EACgkQZB0vbCMN
+vjt10hAAt7DYhdgnm03+VtrBfGD5ZGzdyVslkjhGSLmW0G8wy7krU/V6R3GcTy7V
+89DHrSBbf74KeA4XgzJdQvFtY+pxnWa/MGTP42YOyO0oVhU/gL4cTuqjgr70+XbA
+eoCWmqObLpbnInIEifw4/6fOHV9UJwbQ8l5RAn3jQiVy2SLPx4l2jdHef01SO/Xe
+T/S6ISTgB0nnxLVL/YfgIv/zt1n3nKiauaHYgv/wAbZX+9oSOtmGhWQnzVBb9dV+
+8nBaw2wgAOibpva62doSdEBioSa4BW/NwTV/Ie1/nYVUZfqsj3Kuz2Uk150woqca
+GkqleGeXOK2ge5Gij0UEytSrHjJjAJP1VsSJrDSPyFMv+/kywc7xFCYFLfNuGCQJ
+cc8Vibz+2++LEjjWegdfBoOLOJ6LjlMjRkHTdhvT3ktq1fMrVzeK6ISabomhvA1U
+oA2Qhm5f0NulzgFq0Rv3Fm/Btqcmfq0C0U5WMYhl7A93wRS1Jne5vLCELdKr6oFi
+9KhGUh/0wgxa5ym06OUDeUnafbW0DrGCevTvlA9aL0sylGi5VRzflkh/A/ZqqWxl
+qqhu0ruhXhdAnV0UJXDQ/kTkyQm0gfevrZe13Fk3zYvRXGPwaIt3qnCkUPhFEOuq
+O0niYEXndk4N2xsvaENku+59+201icBV2XKCtfCcPXWI1oRQrPc=
+=+eVN
 -----END PGP SIGNATURE-----
 """
 
