@@ -33,5 +33,5 @@ def view(request: HttpRequest, reason: str = "") -> HttpResponse:
             scope.set_tag("csrf_failure", "yes")
             logging.error("CSRF failure for staff or superuser")
 
-    logger.info("csrf_failure", extra={"request": request})
+    logger.info("csrf_failure", extra=extras)
     return render_to_response("sentry/403-csrf-failure.html", context, request, status=403)
