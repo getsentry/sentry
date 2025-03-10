@@ -142,6 +142,7 @@ DESKTOP = {
     "dotnet-wpf",
     "electron",
     "flutter",
+    "godot",
     "java",
     "javascript-electron",
     "kotlin",
