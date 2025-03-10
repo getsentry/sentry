@@ -127,7 +127,6 @@ runs:
 
         git config --get http.lowSpeedLimit || echo "Not set"
         git config --get http.lowSpeedTime || echo "Not set"
-        echo $GIT_HTTP_LOW_SPEED_TIME
-        echo $GIT_HTTP_LOW_SPEED_LIMIT
+        cat ~/.gitconfig
 
         docker ps -a
