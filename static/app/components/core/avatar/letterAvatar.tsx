@@ -44,7 +44,10 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
   rect {
     fill: ${props =>
       props.theme.isChonk
-        ? getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).background
+        ? props.suggested
+          ? props.theme.background
+          : getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme)
+              .background
         : props.suggested
           ? props.theme.background
           : getColor(props.identifier)};
@@ -53,7 +56,9 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
   text {
     fill: ${props =>
       props.theme.isChonk
-        ? getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).content
+        ? props.suggested
+          ? props.theme.subText
+          : getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).content
         : props.suggested
           ? props.theme.subText
           : props.theme.white};
@@ -116,12 +121,10 @@ function getInitials(displayName: string | undefined) {
   const names = ((typeof displayName === 'string' && displayName.trim()) || '?').split(
     ' '
   );
+
   // Use Array.from as slicing and substring() work on ucs2 segments which
   // results in only getting half of any 4+ byte character.
-  let initials = Array.from(names[0]!)[0]!;
-  if (names.length > 1) {
-    initials += Array.from(names[names.length - 1]!)[0]!;
-  }
+  const initials = Array.from(names[names.length - 1]!)[0]!;
   return initials.toUpperCase();
 }
 
