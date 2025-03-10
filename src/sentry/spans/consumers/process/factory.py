@@ -2,10 +2,8 @@ import dataclasses
 import logging
 import threading
 import time
-from collections import defaultdict
 from collections.abc import Mapping
 from concurrent import futures
-from datetime import datetime
 from functools import partial
 from typing import Any
 
@@ -22,21 +20,12 @@ from arroyo.processing.strategies.abstract import (
 )
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import (
-    FILTERED_PAYLOAD,
-    BrokerValue,
-    Commit,
-    FilteredPayload,
-    Message,
-    Partition,
-    Value,
-)
+from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
 from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span, segment_to_span_id
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -151,124 +140,6 @@ def process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata |
         return FILTERED_PAYLOAD
 
 
-def _batch_write_to_redis(message: Message[ValuesBatch[SpanMessageWithMetadata]]):
-    """
-    Gets a batch of `SpanMessageWithMetadata` and creates a dictionary with
-    segment_id as key and a list of spans belonging to that segment_id as value.
-    Pushes the batch of spans to redis.
-    """
-    with sentry_sdk.start_transaction(op="process", name="spans.process.expand_segments"):
-        batch = message.payload
-        latest_ts_by_partition: dict[int, int] = {}
-        spans_map: dict[SegmentKey, list[bytes]] = defaultdict(list)
-        segment_first_seen_ts: dict[SegmentKey, int] = {}
-
-        for item in batch:
-            payload = item.payload
-            partition = payload.partition
-            segment_id = payload.segment_id
-            project_id = payload.project_id
-            span = payload.span
-            timestamp = payload.timestamp
-
-            key = SegmentKey(segment_id, project_id, partition)
-
-            # Collects spans for each segment_id
-            spans_map[key].append(span)
-
-            # Collects "first_seen" timestamps for each segment in batch.
-            # Batch step doesn't guarantee order, so pick lowest ts.
-            if key not in segment_first_seen_ts or timestamp < segment_first_seen_ts[key]:
-                segment_first_seen_ts[key] = timestamp
-
-            # Collects latest timestamps processed in each partition. It is
-            # important to keep track of this per partition because message
-            # timestamps are guaranteed to be monotonic per partition only.
-            if (
-                partition not in latest_ts_by_partition
-                or timestamp > latest_ts_by_partition[partition]
-            ):
-                latest_ts_by_partition[partition] = timestamp
-
-        client = RedisSpansBuffer()
-
-        return client.batch_write_and_check_processing(
-            spans_map=spans_map,
-            segment_first_seen_ts=segment_first_seen_ts,
-            latest_ts_by_partition=latest_ts_by_partition,
-        )
-
-
-def batch_write_to_redis(
-    message: Message[ValuesBatch[SpanMessageWithMetadata]],
-):
-    try:
-        return _batch_write_to_redis(message)
-    except Exception:
-        sentry_sdk.capture_exception()
-        return FILTERED_PAYLOAD
-
-
-def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
-    with sentry_sdk.start_transaction(op="process", name="spans.process.expand_segments") as txn:
-        buffered_segments: list[Value] = []
-
-        for result in should_process_segments:
-            timestamp = result.timestamp
-            partition = result.partition
-            should_process = result.should_process_segments
-
-            if not should_process:
-                continue
-
-            client = RedisSpansBuffer()
-            payload_context = {}
-
-            with txn.start_child(op="process", name="fetch_unprocessed_segments"):
-                keys = client.get_unprocessed_segments_and_prune_bucket(timestamp, partition)
-
-            sentry_sdk.set_measurement("segments.count", len(keys))
-            if len(keys) > 0:
-                payload_context["sample_key"] = keys[0]
-
-            # With pipelining, redis server is forced to queue replies using
-            # up memory, so batching the keys we fetch.
-            with txn.start_child(op="process", name="read_and_expire_many_segments"):
-                for i in range(0, len(keys), BATCH_SIZE):
-                    segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
-
-                    for j, segment in enumerate(segments):
-                        if not segment:
-                            continue
-
-                        payload_data = prepare_buffered_segment_payload(segment)
-                        if len(payload_data) > MAX_PAYLOAD_SIZE:
-                            logger.warning(
-                                "Failed to produce message: max payload size exceeded.",
-                                extra={"segment_key": keys[i + j]},
-                            )
-                            metrics.incr("performance.buffered_segments.max_payload_size_exceeded")
-                            continue
-
-                        buffered_segments.append(
-                            Value(
-                                KafkaPayload(None, payload_data, []),
-                                {},
-                                datetime.fromtimestamp(timestamp),
-                            )
-                        )
-
-    return buffered_segments
-
-
-def expand_segments(should_process_segments: list[ProcessSegmentsContext]):
-    try:
-        return _expand_segments(should_process_segments)
-    except Exception:
-        sentry_sdk.capture_exception()
-        return []
-
-
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     1. Process spans and push them to redis
@@ -329,7 +200,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
         run_task = run_task_with_multiprocessing(
-            function=partial(process_batch_v2, self.buffer),
+            function=partial(process_batch, self.buffer),
             next_step=flusher,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -351,7 +222,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__pool.close()
 
 
-def process_batch_v2(buffer: RedisSpansBufferV2, values: Message[ValuesBatch[KafkaPayload]]) -> int:
+def process_batch(buffer: RedisSpansBufferV2, values: Message[ValuesBatch[KafkaPayload]]) -> int:
     spans = []
     for value in values.payload:
         val = rapidjson.loads(value.payload.value)
