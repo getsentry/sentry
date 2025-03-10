@@ -131,7 +131,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                     if (
                         action.type == Action.Type.EMAIL
                         and key == "fallthroughType"
-                        and action.target_type != ActionTarget.ISSUE_OWNERS
+                        and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthroughType should only be set for when targetType is ISSUE_OWNERS
                         continue
@@ -168,16 +168,16 @@ class TestNotificationActionMigrationUtils(TestCase):
             compare_val = compare_dict.get(target_identifier_key)
             # Handle both "None" string and None value
             if compare_val in ["None", None, ""]:
-                assert action.target_identifier is None
+                assert action.config.get("target_identifier") is None
             else:
-                assert action.target_identifier == compare_val
+                assert action.config.get("target_identifier") == compare_val
 
         # Assert target_display matches if specified
         if target_display_key:
-            assert action.target_display == compare_dict.get(target_display_key)
+            assert action.config.get("target_display") == compare_dict.get(target_display_key)
 
         # Assert target_type matches
-        assert action.target_type == translator.target_type
+        assert action.config.get("target_type") == translator.target_type
 
     def assert_actions_migrated_correctly(
         self,
@@ -691,9 +691,10 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 1
-        assert actions[0].type == Action.Type.SENTRY_APP
-        assert actions[0].target_identifier == str(app.id)
-        assert actions[0].target_type == ActionTarget.SENTRY_APP
+        # This will still be Webhook even though it's a Sentry App
+        assert actions[0].type == Action.Type.WEBHOOK
+        assert actions[0].config.get("target_identifier") == app.slug
+        assert actions[0].config.get("target_type") is None
         assert actions[0].data == {}
 
     def test_webhook_action_migration_malformed(self):
@@ -944,7 +945,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_sentry_app_action_migration(self):
-        app = self.create_sentry_app(
+        self.create_sentry_app(
             organization=self.organization,
             name="Test Application",
             is_alertable=True,
@@ -1094,24 +1095,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.target_identifier == str(app.id)
-
-    def test_sentry_app_migration_with_form_config(self):
-        action_data = [
-            {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": "fake-uuid",
-                "settings": [
-                    {"name": "destination", "value": "slack"},
-                    {"name": "systemid", "value": "test-system"},
-                ],
-                "hasSchemaFormConfig": True,
-                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
-            },
-        ]
-
-        with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+            assert action.config.get("target_identifier") == install.uuid
 
     def test_dry_run_flag(self):
         """Test that the dry_run flag prevents database writes."""
@@ -1137,21 +1121,16 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify the actions passed to bulk_create
         action = Action.objects.get(id=actions[0].id)
         assert action.type == Action.Type.SLACK
-        assert action.target_display == "#test-channel"
-        assert action.target_identifier == "C123456"
+        assert action.config.get("target_display") == "#test-channel"
+        assert action.config.get("target_identifier") == "C123456"
 
     def test_skip_failures_flag(self):
         """Test that the skip_failures flag skips invalid actions."""
         action_data: list[dict[str, str | Any]] = [
-            # Missing required fields, should skip
-            {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": "fake-uuid",
-            },
             # Invalid action type, should skip
             {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": "fake-uuid",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "server": "123456",
             },
             # Invalid action type, should skip
             {
@@ -1179,6 +1158,6 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify the actions passed to bulk_create
         action = Action.objects.get(id=actions[0].id)
         assert action.type == Action.Type.SLACK
-        assert action.target_display == "#test"
-        assert action.target_identifier == "C123"
+        assert action.config.get("target_display") == "#test"
+        assert action.config.get("target_identifier") == "C123"
         assert action.integration_id == 1

@@ -7,6 +7,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
@@ -122,14 +123,13 @@ export function QueriesWidget({query}: {query?: string}) {
           <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
         ) : (
           <TimeSeriesWidgetVisualization
-            visualizationType="line"
             aliases={Object.fromEntries(
               queriesRequest.data?.data.map(item => [
                 `${item.transaction},${item['span.group']}`,
                 item['sentry.normalized_description'],
               ]) ?? []
             )}
-            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
+            plottables={timeSeries.map(convertSeriesToTimeseries).map(ts => new Line(ts))}
           />
         )
       }

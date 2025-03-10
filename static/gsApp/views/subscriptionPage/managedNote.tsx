@@ -87,11 +87,11 @@ function ManagedNote({subscription}: Props) {
           {isSalesAccount
             ? // Sales-managed accounts are directed to the sales team
               SALES_MESSAGE
-            : (subscription.partner &&
+            : ((subscription.partner &&
                 // Partner accounts get partner-specific messages, others get the default support message
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 PARTNER_MESSAGES[subscription.partner?.partnership.id]) ??
-              DEFAULT_MESSAGE}
+              DEFAULT_MESSAGE)}
         </TextBlock>
       </PanelBody>
     </Panel>
