@@ -9,6 +9,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import * as RegionUtils from 'sentry/utils/regions';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {Tab} from 'sentry/views/issueDetails/types';
@@ -33,6 +34,66 @@ describe('SolutionsSection', () => {
     features: ['gen-ai-features'],
   });
 
+  const mockIssueTypeConfig: IssueTypeConfig = {
+    issueSummary: {
+      enabled: true,
+    },
+    resources: {
+      description: 'Test Resource',
+      links: [{link: 'https://example.com', text: 'Test Link'}],
+      linksByPlatform: {},
+    },
+    actions: {
+      archiveUntilOccurrence: {enabled: false},
+      delete: {enabled: false},
+      deleteAndDiscard: {enabled: false},
+      ignore: {enabled: false},
+      merge: {enabled: false},
+      resolve: {enabled: true},
+      resolveInRelease: {enabled: false},
+      share: {enabled: false},
+    },
+    customCopy: {
+      resolution: 'Resolved',
+      eventUnits: 'Events',
+    },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
+    detector: {enabled: false},
+    autofix: true,
+    discover: {enabled: false},
+    eventAndUserCounts: {enabled: true},
+    evidence: null,
+    header: {
+      filterBar: {enabled: true, fixedEnvironment: false},
+      graph: {enabled: true, type: 'discover-events'},
+      tagDistribution: {enabled: false},
+      occurrenceSummary: {enabled: false},
+    },
+    logLevel: {enabled: true},
+    mergedIssues: {enabled: false},
+    performanceDurationRegression: {enabled: false},
+    profilingDurationRegression: {enabled: false},
+    regression: {enabled: false},
+    showFeedbackWidget: false,
+    similarIssues: {enabled: false},
+    spanEvidence: {enabled: false},
+    stacktrace: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
+    useOpenPeriodChecks: false,
+    usesIssuePlatform: false,
+  };
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
@@ -52,65 +113,7 @@ describe('SolutionsSection', () => {
       },
     });
 
-    jest.mocked(getConfigForIssueType).mockReturnValue({
-      issueSummary: {
-        enabled: true,
-      },
-      resources: {
-        description: 'Test Resource',
-        links: [{link: 'https://example.com', text: 'Test Link'}],
-        linksByPlatform: {},
-      },
-      actions: {
-        archiveUntilOccurrence: {enabled: false},
-        delete: {enabled: false},
-        deleteAndDiscard: {enabled: false},
-        ignore: {enabled: false},
-        merge: {enabled: false},
-        resolve: {enabled: true},
-        resolveInRelease: {enabled: false},
-        share: {enabled: false},
-      },
-      customCopy: {
-        resolution: 'Resolved',
-        eventUnits: 'Events',
-      },
-      pages: {
-        landingPage: Tab.DETAILS,
-        events: {enabled: false},
-        openPeriods: {enabled: false},
-        checkIns: {enabled: false},
-        uptimeChecks: {enabled: false},
-        attachments: {enabled: false},
-        userFeedback: {enabled: false},
-        replays: {enabled: false},
-        tagsTab: {enabled: false},
-      },
-      detector: {enabled: false},
-      autofix: true,
-      discover: {enabled: false},
-      eventAndUserCounts: {enabled: true},
-      evidence: null,
-      header: {
-        filterBar: {enabled: true, fixedEnvironment: false},
-        graph: {enabled: true, type: 'discover-events'},
-        tagDistribution: {enabled: false},
-        occurrenceSummary: {enabled: false},
-      },
-      logLevel: {enabled: true},
-      mergedIssues: {enabled: false},
-      performanceDurationRegression: {enabled: false},
-      profilingDurationRegression: {enabled: false},
-      regression: {enabled: false},
-      showFeedbackWidget: false,
-      similarIssues: {enabled: false},
-      spanEvidence: {enabled: false},
-      stacktrace: {enabled: false},
-      stats: {enabled: false},
-      tags: {enabled: false},
-      useOpenPeriodChecks: false,
-      usesIssuePlatform: false,
-    });
+    jest.mocked(getConfigForIssueType).mockReturnValue(mockIssueTypeConfig);
   });
 
   it('renders loading state when summary is pending', () => {
@@ -122,6 +125,11 @@ describe('SolutionsSection', () => {
       body: new Promise(() => {}), // Never resolves, keeping the loading state
     });
 
+    jest.mocked(getConfigForIssueType).mockReturnValue({
+      ...mockIssueTypeConfig,
+      autofix: false,
+    });
+
     render(
       <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
       {
@@ -130,7 +138,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3); // whatsWrong, possibleCause, and Open Autofix
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3); // what's wrong, possible cause, and CTA button
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
@@ -199,7 +207,7 @@ describe('SolutionsSection', () => {
   });
 
   describe('Solutions Hub button text', () => {
-    it('shows "Set Up Seer" when AI needs setup', async () => {
+    it('shows "Set Up Autofix" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
@@ -227,10 +235,10 @@ describe('SolutionsSection', () => {
       });
 
       expect(
-        screen.getByText('Explore potential root causes and solutions with Seer.')
+        screen.getByText('Explore potential root causes and solutions with Autofix.')
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
@@ -376,7 +384,6 @@ describe('SolutionsSection', () => {
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set Up Autofix'})
       ).not.toBeInTheDocument();
