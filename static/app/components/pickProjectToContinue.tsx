@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor, LocationDescriptorObject} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
@@ -15,9 +15,7 @@ type Props = {
   /**
    * Path used on the redirect router if the user did select a project
    */
-  nextPath: Pick<LocationDescriptorObject, 'query'> & {
-    pathname: NonNullable<LocationDescriptorObject['pathname']>;
-  };
+  nextPath: LocationDescriptor;
   /**
    * Path used on the redirect router if the user did not select a project
    */
@@ -34,8 +32,8 @@ function PickProjectToContinue({
 }: Props) {
   const navigating = useRef(false);
   const navigate = useNavigate();
-  const nextPathQuery = nextPath.query;
-  let path = `${nextPath.pathname}?project=`;
+  const nextPathQuery = typeof nextPath === 'string' ? {} : nextPath.query;
+  let path = `${typeof nextPath === 'string' ? nextPath : nextPath.pathname}?project=`;
 
   if (nextPathQuery) {
     const filteredQuery = Object.entries(nextPathQuery)
@@ -44,7 +42,7 @@ function PickProjectToContinue({
 
     const newPathQuery = [...filteredQuery, 'project='].join('&');
 
-    path = `${nextPath.pathname}?${newPathQuery}`;
+    path = `${typeof nextPath === 'string' ? nextPath : nextPath.pathname}?${newPathQuery}`;
   }
 
   useEffect(() => {
