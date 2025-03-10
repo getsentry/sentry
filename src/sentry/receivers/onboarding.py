@@ -28,13 +28,16 @@ from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
     first_flag_received,
+    first_insight_span_received,
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
+    first_transaction_received,
     integration_added,
     member_invited,
     member_joined,
     project_created,
+    transaction_processed,
 )
 from sentry.users.services.user import RpcUser
 from sentry.utils.event import has_event_minified_stack_trace
@@ -221,6 +224,11 @@ def record_first_event(project, event, **kwargs):
             )
 
 
+@first_transaction_received.connect(weak=False)
+def _record_first_transaction(project, event, **kwargs):
+    return record_first_transaction(project, event.datetime, **kwargs)
+
+
 def record_first_transaction(project, datetime, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
@@ -359,6 +367,7 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
+@first_insight_span_received.connect(weak=False)
 def record_first_insight_span(project, module, **kwargs):
     flag = None
     if module == InsightModules.HTTP:
@@ -426,7 +435,14 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
     )
 
 
-def record_release_received(project, **kwargs):
+def _record_release_received(project, event, **kwargs):
+    return record_release_received(project, event.data.get("release"), **kwargs)
+
+
+def record_release_received(project, release, **kwargs):
+    if not release:
+        return
+
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.RELEASE_TRACKING,
@@ -450,6 +466,10 @@ def record_release_received(project, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
+
+
+event_processed.connect(_record_release_received, weak=False)
+transaction_processed.connect(_record_release_received, weak=False)
 
 
 @first_event_with_minified_stack_trace_received.connect(weak=False)

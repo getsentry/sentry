@@ -102,6 +102,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
+from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import (
     record_first_insight_span,
     record_first_transaction,
@@ -2458,6 +2459,8 @@ def _record_transaction_info(
             project = event.project
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
                 record_transaction_name_for_clustering(project, event.data)
+
+            record_event_processed(project, event)
 
             if not project.flags.has_transactions and not skip_send_first_transaction:
                 record_first_transaction(project, event.datetime)
