@@ -27,16 +27,16 @@ function GroupListHeader({
 
   return (
     <PanelHeader disablePadding>
-      <IssueWrapper>{t('Issue')}</IssueWrapper>
       {hasNewLayout ? (
         <Fragment>
+          <NarrowIssueWrapper hideDivider>{t('Issue')}</NarrowIssueWrapper>
           {withColumns.includes('firstSeen') && (
-            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
               {t('First Seen')}
             </FirstSeenWrapper>
           )}
           {withColumns.includes('lastSeen') && (
-            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
               {t('Age')}
             </LastSeenWrapper>
           )}
@@ -47,12 +47,12 @@ function GroupListHeader({
           )}
           {withColumns.includes('event') && (
             <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              {t('events')}
+              {t('Events')}
             </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('users') && (
             <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              {t('users')}
+              {t('Users')}
             </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('priority') && (
@@ -71,6 +71,7 @@ function GroupListHeader({
         </Fragment>
       ) : (
         <Fragment>
+          <IssueWrapper>{t('Issue')}</IssueWrapper>
           {withChart && withColumns.includes('graph') && (
             <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
           )}
@@ -98,7 +99,7 @@ function GroupListHeader({
 export default GroupListHeader;
 
 const GroupListHeaderLabel = styled(IssueStreamHeaderLabel)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  text-transform: capitalize;
 `;
 
 const Heading = styled('div')`
@@ -115,6 +116,11 @@ const IssueWrapper = styled(Heading)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
+`;
+
+const NarrowIssueWrapper = styled(GroupListHeaderLabel)`
+  flex: 1;
+  padding-left: ${space(2)};
 `;
 
 const FirstSeenWrapper = styled(GroupListHeaderLabel)`

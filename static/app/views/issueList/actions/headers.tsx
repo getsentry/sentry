@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
-import {HeaderDivider} from 'sentry/views/issueList/actions';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
 type Props = {
@@ -41,11 +40,9 @@ function Headers({
             <Fragment>
               <LastSeenLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
                 {t('Last Seen')}
-                <HeaderDivider />
               </LastSeenLabel>
               <FirstSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
                 {t('Age')}
-                <HeaderDivider />
               </FirstSeenLabel>
             </Fragment>
           ) : null}
@@ -70,7 +67,6 @@ function Headers({
                   </GraphToggle>
                 </NarrowGraphToggles>
               </NarrowGraphLabelContents>
-              <HeaderDivider />
             </NarrowGraphLabel>
           ) : (
             <GraphHeaderWrapper isSavedSearchesOpen={isSavedSearchesOpen}>
@@ -97,15 +93,12 @@ function Headers({
             <Fragment>
               <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
                 {t('Events')}
-                <HeaderDivider />
               </NarrowEventsOrUsersLabel>
               <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS}>
                 {t('Users')}
-                <HeaderDivider />
               </NarrowEventsOrUsersLabel>
               <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
                 {t('Priority')}
-                <HeaderDivider />
               </NarrowPriorityLabel>
               <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
                 {t('Assignee')}
