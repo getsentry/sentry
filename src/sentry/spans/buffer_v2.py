@@ -92,16 +92,28 @@ class Span(NamedTuple):
 class RedisSpansBufferV2:
     def __init__(
         self,
-        sharding_factor: int = 32,
+        num_shards: int = 32,
         span_buffer_timeout_secs: int = 60,
         span_buffer_root_timeout_secs: int = 10,
         redis_ttl: int = 3600,
     ):
         self.client: RedisCluster[bytes] | StrictRedis[bytes] = get_redis_client()
-        self.sharding_factor = sharding_factor
-        self.span_buffer_timeout = span_buffer_timeout_secs
-        self.span_buffer_root_timeout = span_buffer_root_timeout_secs
-        self.max_timeout = redis_ttl
+        self.num_shards = num_shards
+        self.span_buffer_timeout_secs = span_buffer_timeout_secs
+        self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
+        self.redis_ttl = redis_ttl
+
+    # make it pickleable
+    def __reduce__(self):
+        return (
+            RedisSpansBufferV2,
+            (
+                self.num_shards,
+                self.span_buffer_timeout_secs,
+                self.span_buffer_root_timeout_secs,
+                self.redis_ttl,
+            ),
+        )
 
     def _is_root_span(self, span: Span) -> bool:
         return span.parent_span_id is None or span.is_segment_span
@@ -118,7 +130,7 @@ class RedisSpansBufferV2:
             with self.client.pipeline(transaction=False) as p:
                 for span in spans:
                     # (parent_span_id) -> [Span]
-                    shard = int(span.trace_id, 16) % self.sharding_factor
+                    shard = int(span.trace_id, 16) % self.num_shards
                     queue_key = f"span-buf:q:{shard}"
                     parent_span_id = span.parent_span_id or span.span_id
 
@@ -139,7 +151,7 @@ class RedisSpansBufferV2:
                         "true" if is_root_span else "false",
                         span.span_id,
                         parent_span_id,
-                        self.max_timeout,
+                        self.redis_ttl,
                     )
 
                     queue_keys.append(queue_key)
@@ -159,12 +171,12 @@ class RedisSpansBufferV2:
                     # usual.
                     if has_root_span:
                         has_root_span_count += 1
-                        timestamp = now + self.span_buffer_root_timeout
+                        timestamp = now + self.span_buffer_root_timeout_secs
                     else:
-                        timestamp = now + self.span_buffer_timeout
+                        timestamp = now + self.span_buffer_timeout_secs
 
                     p.zadd(key, {item: timestamp})
-                    p.expire(key, self.max_timeout)
+                    p.expire(key, self.redis_ttl)
 
                 p.execute()
 
@@ -172,12 +184,14 @@ class RedisSpansBufferV2:
         metrics.timing("sentry.spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("sentry.spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
 
-    def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentId, set[bytes]]:
+    def flush_segments(
+        self, now: int, max_segments: int = 0, flush_shard: list[int] | None = None
+    ) -> dict[SegmentId, set[bytes]]:
         cutoff = now
 
         with metrics.timer("sentry.spans.buffer.flush_segments.step1"):
             with self.client.pipeline(transaction=False) as p:
-                for shard in range(self.sharding_factor):
+                for shard in flush_shard or range(self.num_shards):
                     key = f"span-buf:q:{shard}"
                     p.zrangebyscore(
                         key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
@@ -223,7 +237,7 @@ class RedisSpansBufferV2:
 
                     # parse trace_id out of SegmentId, then remove from queue
                     trace_id = segment_id.split(b":")[3][:-1]
-                    shard = int(trace_id, 16) % self.sharding_factor
+                    shard = int(trace_id, 16) % self.num_shards
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
                 results = iter(p.execute())

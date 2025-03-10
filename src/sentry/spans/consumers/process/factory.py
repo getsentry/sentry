@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent import futures
 from datetime import datetime
+from functools import partial
 from typing import Any
 
 import orjson
@@ -21,9 +22,6 @@ from arroyo.processing.strategies.abstract import (
 )
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.produce import Produce
-from arroyo.processing.strategies.run_task import RunTask
-from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import (
     FILTERED_PAYLOAD,
     BrokerValue,
@@ -40,7 +38,6 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
 from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span, segment_to_span_id
-from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -284,24 +281,28 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def __init__(
         self,
-        buffer_v2: bool,
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
         max_flush_segments: int,
+        num_shards: int,
+        flush_shard: list[int],
         input_block_size: int | None,
         output_block_size: int | None,
     ):
         super().__init__()
 
         # config
-        self.buffer_v2 = buffer_v2
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
+        self.num_shards = num_shards
+        self.flush_shard = flush_shard
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.__pool = MultiprocessingPool(num_processes)
+
+        self.buffer = RedisSpansBufferV2(num_shards=self.num_shards)
 
         cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
@@ -316,72 +317,41 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if self.buffer_v2:
-            committer = CommitOffsets(commit)
+        committer = CommitOffsets(commit)
 
-            flusher = SpanFlusher(
-                self.producer, self.output_topic, self.max_flush_segments, next_step=committer
-            )
+        flusher = SpanFlusher(
+            self.buffer,
+            self.flush_shard,
+            self.producer,
+            self.output_topic,
+            self.max_flush_segments,
+            next_step=committer,
+        )
 
-            run_task = run_task_with_multiprocessing(
-                function=process_batch_v2,
-                next_step=flusher,
-                max_batch_size=self.max_batch_size,
-                max_batch_time=self.max_batch_time,
-                pool=self.__pool,
-                input_block_size=self.input_block_size,
-                output_block_size=self.output_block_size,
-            )
+        run_task = run_task_with_multiprocessing(
+            function=partial(process_batch_v2, self.buffer),
+            next_step=flusher,
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            pool=self.__pool,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
+        )
 
-            batch = BatchStep(
-                max_batch_size=self.max_batch_size,
-                max_batch_time=self.max_batch_time,
-                next_step=run_task,
-            )
+        batch = BatchStep(
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            next_step=run_task,
+        )
 
-            return batch
-        else:
-            produce_step = Produce(
-                producer=self.producer,
-                topic=self.output_topic,
-                next_step=NoOp(),
-            )
-
-            unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
-
-            commit_step = CommitSpanOffsets(commit=commit, next_step=unfold_step)
-
-            batch_processor = RunTask(
-                function=batch_write_to_redis,
-                next_step=commit_step,
-            )
-
-            batch_step = BatchStep(
-                max_batch_size=self.max_batch_size,
-                max_batch_time=self.max_batch_time,
-                next_step=batch_processor,
-            )
-
-            return run_task_with_multiprocessing(
-                function=process_message,
-                next_step=batch_step,
-                # TODO: do we really need two levels of batching (especially tuning params) like in the indexer?
-                max_batch_size=1,
-                max_batch_time=1,
-                pool=self.__pool,
-                input_block_size=self.input_block_size,
-                output_block_size=self.output_block_size,
-            )
+        return batch
 
     def shutdown(self) -> None:
         self.producer.close()
         self.__pool.close()
 
 
-def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> int:
-    # TODO config
-    buffer = RedisSpansBufferV2()
-
+def process_batch_v2(buffer: RedisSpansBufferV2, values: Message[ValuesBatch[KafkaPayload]]) -> int:
     spans = []
     for value in values.payload:
         val = rapidjson.loads(value.payload.value)
@@ -403,11 +373,15 @@ def process_batch_v2(values: Message[ValuesBatch[KafkaPayload]]) -> int:
 class SpanFlusher(ProcessingStrategy[int]):
     def __init__(
         self,
+        buffer: RedisSpansBufferV2,
+        flush_shard: list[int],
         producer: KafkaProducer,
         topic: ArroyoTopic,
         max_segments: int,
         next_step: ProcessingStrategy[int],
     ):
+        self.buffer = buffer
+        self.flush_shard = flush_shard
         self.producer = producer
         self.topic = topic
         self.max_segments = max_segments
@@ -416,8 +390,6 @@ class SpanFlusher(ProcessingStrategy[int]):
         self.stopped = False
         self.enable_backpressure = False
         self.current_time = 0
-        # TODO config
-        self.buffer = RedisSpansBufferV2()
 
         self.thread = threading.Thread(target=self.main, daemon=True)
         self.thread.start()
@@ -428,7 +400,9 @@ class SpanFlusher(ProcessingStrategy[int]):
 
             producer_futures = []
 
-            flushed_segments = self.buffer.flush_segments(max_segments=self.max_segments, now=now)
+            flushed_segments = self.buffer.flush_segments(
+                max_segments=self.max_segments, now=now, flush_shard=self.flush_shard or None
+            )
             if not flushed_segments:
                 self.enable_backpressure = False
                 time.sleep(1)

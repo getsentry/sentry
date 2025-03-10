@@ -431,12 +431,23 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
         "click_options": [
-            click.Option(["--buffer-v2", "buffer_v2"], default=False, is_flag=True),
             click.Option(
                 ["--max-flush-segments", "max_flush_segments"],
                 type=int,
                 default=100,
                 help="The number of segments to download from redis at once. Defaults to 100.",
+            ),
+            click.Option(
+                ["--num-shards", "num_shards"],
+                type=int,
+                default=32,
+                help="The number of keys to distribute the segment flush queue across. Should be a multiple of the redis cluster size. Defaults to 32.",
+            ),
+            click.Option(
+                ["--flush-shard"],
+                type=int,
+                multiple=True,
+                help="All 0..<num_shards - 1> shards need to be covered for flushing by a consumer replica. By default all shards are being flushed.",
             ),
             *multiprocessing_options(default_max_batch_size=100),
         ],
