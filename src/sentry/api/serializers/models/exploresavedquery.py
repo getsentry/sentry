@@ -28,7 +28,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     projects: list[int]
     dataset: str
     expired: bool
-    dateCreated: str
+    dateAdded: str
     dateUpdated: str
     createdBy: UserSerializerResponse
 
@@ -76,7 +76,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "projects": [project.id for project in obj.projects.all()],
             "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
             "expired": False,
-            "dateCreated": obj.date_created,
+            "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
             "createdBy": attrs.get("created_by"),
         }
