@@ -196,6 +196,9 @@ describe('SpansTabContent', function () {
       },
     });
 
+    // Mock clientWidth before rendering to display hints
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+
     render(
       <SpansTabContent
         defaultPeriod="7d"
@@ -208,10 +211,10 @@ describe('SpansTabContent', function () {
       />,
       {disableRouterMocks: true, router, organization: schemaHintsOrganization}
     );
-
     expect(screen.getByText('stringTag1 is ...')).toBeInTheDocument();
     expect(screen.getByText('stringTag2 is ...')).toBeInTheDocument();
     expect(screen.getByText('numberTag1 is ...')).toBeInTheDocument();
     expect(screen.getByText('numberTag2 is ...')).toBeInTheDocument();
+    expect(screen.getByText('See full list')).toBeInTheDocument();
   });
 });
