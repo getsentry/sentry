@@ -2744,6 +2744,43 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[1]["cache.hit"] is True
         assert meta["dataset"] == self.dataset
 
+    def test_trace_status_rate(self):
+        statuses = ["unknown", "internal_error", "unauthenticated", "ok", "ok"]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"trace.status": status}}, start_ts=self.ten_mins_ago
+                )
+                for status in statuses
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "trace_status_rate(ok)",
+                    "trace_status_rate(unknown)",
+                    "trace_status_rate(internal_error)",
+                    "trace_status_rate(unauthenticated)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["trace_status_rate(ok)"] == 0.4
+        assert data[0]["trace_status_rate(unknown)"] == 0.2
+        assert data[0]["trace_status_rate(internal_error)"] == 0.2
+        assert data[0]["trace_status_rate(unauthenticated)"] == 0.2
+
+        assert meta["dataset"] == self.dataset
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self):
         super().test_replay_id()
