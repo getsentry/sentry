@@ -323,18 +323,21 @@ def process_resource_change_bound(
 def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwargs: Any) -> None:
     from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 
-    extra = {"installation_id": installation_id, "user_id": user_id}
-    try:
-        # we should send the webhook for pending installations on the install event in case that's part of the workflow
-        install = SentryAppInstallation.objects.get(id=installation_id)
-    except SentryAppInstallation.DoesNotExist:
-        logger.info("installation_webhook.missing_installation", extra=extra)
-        return
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=SentryAppEventType.INSTALLATION_CREATED,
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"installation_id": installation_id, "user_id": user_id})
 
-    user = user_service.get_user(user_id=user_id)
-    if not user:
-        logger.info("installation_webhook.missing_user", extra=extra)
-        return
+        try:
+            # we should send the webhook for pending installations on the install event in case that's part of the workflow
+            install = SentryAppInstallation.objects.get(id=installation_id)
+        except SentryAppInstallation.DoesNotExist:
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+
+        user = user_service.get_user(user_id=user_id)
+        if not user:
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_USER)
 
     SentryAppInstallationNotifier(
         sentry_app_installation=install, user=user, action="created"
