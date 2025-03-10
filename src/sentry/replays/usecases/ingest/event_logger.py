@@ -29,6 +29,7 @@ def emit_click_events(
     retention_days: int,
     start_time: float,
     event_cap: int = 20,
+    environment: str | None = None,
 ) -> None:
     # Skip event emission if no clicks specified.
     if len(click_events) == 0:
@@ -56,6 +57,7 @@ def emit_click_events(
     ]
 
     payload: ReplayActionsEventPayload = {
+        "environment": environment or "",
         "replay_id": replay_id,
         "type": "replay_actions",
         "clicks": clicks,
