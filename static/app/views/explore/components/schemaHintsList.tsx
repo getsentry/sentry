@@ -5,9 +5,9 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
@@ -17,6 +17,12 @@ interface SchemaHintsListProps {
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
 }
+
+const seeFullListTag: Tag = {
+  key: 'seeFullList',
+  name: t('See full list'),
+  kind: undefined,
+};
 
 function SchemaHintsList({
   supportedAggregates,
@@ -56,17 +62,21 @@ function SchemaHintsList({
       const containerRect = container.getBoundingClientRect();
 
       // First render all items
-      setVisibleHints(filterTagsSorted);
+      setVisibleHints([...filterTagsSorted, seeFullListTag]);
 
       // this guarantees that the items are rendered before we try to measure them and do calculations
       requestAnimationFrame(() => {
         // Get all rendered items
         const items = Array.from(container.children) as HTMLElement[];
 
+        const seeFullListTagRect = Array.from(container.children)[
+          Array.from(container.children).length - 1
+        ]?.getBoundingClientRect();
+
         // Find the last item that fits within the container
         let lastVisibleIndex = items.findIndex(item => {
           const itemRect = item.getBoundingClientRect();
-          return itemRect.right > containerRect.right;
+          return itemRect.right > containerRect.right - (seeFullListTagRect?.width ?? 0);
         });
 
         // If all items fit, show them all
@@ -74,7 +84,11 @@ function SchemaHintsList({
           lastVisibleIndex = items.length;
         }
 
-        setVisibleHints(filterTagsSorted.slice(0, lastVisibleIndex));
+        setVisibleHints(
+          lastVisibleIndex < items.length
+            ? [...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]
+            : filterTagsSorted
+        );
       });
     }, 50);
 
@@ -89,11 +103,19 @@ function SchemaHintsList({
     return () => resizeObserver.disconnect();
   }, [filterTagsSorted]);
 
+  const getHintText = (hint: Tag) => {
+    if (hint.key === 'seeFullList') {
+      return t('See full list');
+    }
+
+    return tct('[tag] is ...', {tag: prettifyTagKey(hint.key)});
+  };
+
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map(hint => (
         <SchemaHintOption key={hint.key} data-type={hint.key}>
-          {tct('[tag] is ...', {tag: prettifyTagKey(hint.key)})}
+          {getHintText(hint)}
         </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
