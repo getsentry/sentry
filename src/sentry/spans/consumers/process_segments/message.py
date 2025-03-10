@@ -238,8 +238,8 @@ def process_segment(spans: list[Span]) -> list[Span]:
         project = Project.objects.get_from_cache(id=segment_span["project_id"])
 
     _enrich_spans(segment_span, spans)
-    _detect_performance_problems(segment_span, spans, project)
     _create_models(segment_span, project)
+    _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
 
     return spans
