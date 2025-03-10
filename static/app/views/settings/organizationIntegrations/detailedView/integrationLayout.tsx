@@ -24,10 +24,11 @@ import type {
 } from 'sentry/types/integrations';
 import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
-import {useIntegrationFeatureProps} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatureProps';
+import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
 import IntegrationStatus from 'sentry/views/settings/organizationIntegrations/integrationStatus';
 
 interface AlertType extends AlertProps {
@@ -168,11 +169,13 @@ function AddInstallButton({
   renderTopButton: (disabled: boolean, hasAccess: boolean) => React.ReactNode;
   requiresAccess: boolean;
 }) {
-  const featureProps = useIntegrationFeatureProps({featureData});
+  const organization = useOrganization();
+  const features = useIntegrationFeatures({featureData});
+
   const {IntegrationFeatures} = getIntegrationFeatureGate();
 
   return (
-    <IntegrationFeatures {...featureProps}>
+    <IntegrationFeatures features={features} organization={organization}>
       {({disabled, disabledReason}) => (
         <DisableWrapper>
           <Access access={['org:integrations']}>
@@ -215,15 +218,21 @@ function InformationCard({
   permissions?: React.ReactNode;
   resourceLinks?: Array<{title: string; url: string}>;
 }) {
+  const organization = useOrganization();
+  const features = useIntegrationFeatures({featureData});
+
   const {FeatureList} = getIntegrationFeatureGate();
-  const featureProps = useIntegrationFeatureProps({featureData});
 
   return (
     <Fragment>
       <Flex align="center">
         <FlexContainer>
           <Description dangerouslySetInnerHTML={{__html: marked(description)}} />
-          <FeatureList {...featureProps} provider={{key: integrationSlug}} />
+          <FeatureList
+            features={features}
+            organization={organization}
+            provider={{key: integrationSlug}}
+          />
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
