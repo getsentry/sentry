@@ -548,9 +548,43 @@ export default typescript.config([
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
 
+      'unicorn/custom-error-definition': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/error-message': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/new-for-builtins': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-abusive-eslint-disable': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-await-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-invalid-remove-event-listener': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-negated-condition': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-negation-in-equality-check': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-unnecessary-await': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-fallback-in-spread': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-length-check': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-node-protocol': 'error',
+      'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
     },
   },
   {
