@@ -55,12 +55,12 @@ type LogsRowProps = {
   highlightTerms: string[];
 };
 
-export function LogsTable() {
+export function LogsTable({perPage = 100}: {perPage?: number}) {
   const search = useLogsSearch();
   const cursor = useLogsCursor();
   const setCursor = useSetLogsCursor();
   const {data, isError, isPending, pageLinks} = useExploreLogsTable({
-    limit: 100,
+    limit: perPage,
     search,
     cursor,
   });
