@@ -20,6 +20,7 @@ from arroyo.processing.strategies.abstract import (
 )
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
@@ -218,30 +219,48 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=run_task,
         )
 
-        return batch
+        def add_timestamp_cb(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
+            return (
+                int(message.timestamp.timestamp() if message.timestamp else time.time()),
+                message.payload,
+            )
+
+        add_timestamp = RunTask(
+            function=add_timestamp_cb,
+            next_step=batch,
+        )
+
+        return add_timestamp
 
     def shutdown(self) -> None:
         self.producer.close()
         self.__pool.close()
 
 
-def process_batch(buffer: RedisSpansBufferV2, values: Message[ValuesBatch[KafkaPayload]]) -> int:
+def process_batch(
+    buffer: RedisSpansBufferV2, values: Message[ValuesBatch[tuple[int, KafkaPayload]]]
+) -> int:
+    min_timestamp = None
     spans = []
     for value in values.payload:
-        val = rapidjson.loads(value.payload.value)
+        timestamp, payload = value.payload
+        if min_timestamp is None or timestamp < min_timestamp:
+            min_timestamp = timestamp
+
+        val = rapidjson.loads(payload.value)
         span = Span(
             trace_id=val["trace_id"],
             span_id=val["span_id"],
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
-            payload=value.payload.value,
+            payload=payload.value,
             is_segment_span=val.get("parent_span_id") is None,
         )
         spans.append(span)
 
-    now = int(time.time())
-    buffer.process_spans(spans, now=now)
-    return now
+    assert min_timestamp is not None
+    buffer.process_spans(spans, now=min_timestamp)
+    return min_timestamp
 
 
 class SpanFlusher(ProcessingStrategy[int]):
@@ -265,7 +284,7 @@ class SpanFlusher(ProcessingStrategy[int]):
 
         self.stopped = False
         self.enable_backpressure = False
-        self.current_time = 0
+        self.current_drift = 0
 
         self.thread = threading.Thread(target=self.main, daemon=True)
         self.thread.start()
@@ -274,7 +293,7 @@ class SpanFlusher(ProcessingStrategy[int]):
 
     def main(self):
         while not self.stopped:
-            now = self.current_time
+            now = int(time.time()) + self.current_drift
 
             producer_futures = []
 
@@ -310,6 +329,7 @@ class SpanFlusher(ProcessingStrategy[int]):
                     None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
                 )
 
+                logger.info("%s segments flushed", len(segment_spans))
                 producer_futures.append(self.producer.produce(self.topic, kafka_payload))
 
             futures.wait(producer_futures)
@@ -320,7 +340,8 @@ class SpanFlusher(ProcessingStrategy[int]):
         self.next_step.poll()
 
     def submit(self, message: Message[int]) -> None:
-        self.current_time = max((self.current_time, message.payload))
+        logger.info("timestamp: %s", message.payload)
+        self.current_drift = message.payload - int(time.time())
 
         if self.enable_backpressure:
             raise MessageRejected()
