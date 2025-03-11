@@ -64,8 +64,8 @@ function ExploreSamplesTable(props: SamplesExploreTablesProps) {
   const fields = useExploreFields();
   const setFields = useSetExploreFields();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const openColumnEditor = useCallback(() => {
     openModal(

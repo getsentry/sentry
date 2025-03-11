@@ -148,11 +148,11 @@ describe('SpansTabContent', function () {
     jest.spyOn(spanTagsModule, 'useSpanTags').mockImplementation(type => {
       switch (type) {
         case 'number':
-          return mockNumberTags;
+          return {tags: mockNumberTags, isLoading: false};
         case 'string':
-          return mockStringTags;
+          return {tags: mockStringTags, isLoading: false};
         default:
-          return {};
+          return {tags: {}, isLoading: false};
       }
     });
 

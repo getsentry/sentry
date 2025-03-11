@@ -27,8 +27,8 @@ function WidgetBuilderGroupBySelector({
   const organization = useOrganization();
 
   let tags: TagCollection = useTags();
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
   if (state.dataset === WidgetType.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
@@ -39,10 +39,7 @@ function WidgetBuilderGroupBySelector({
     : {};
 
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
-    dispatch({
-      type: BuilderStateAction.SET_FIELDS,
-      payload: newValue,
-    });
+    dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
   };
 
   return (

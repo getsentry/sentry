@@ -13,15 +13,12 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 
-type Props = {
-  index: number;
-  query: ReadableExploreQueryParts;
-};
+type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function SearchBarSection({query, index}: Props) {
   const {selection} = usePageFilters();
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 

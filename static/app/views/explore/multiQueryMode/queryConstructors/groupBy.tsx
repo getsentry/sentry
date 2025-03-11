@@ -15,13 +15,10 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 
-type Props = {
-  index: number;
-  query: ReadableExploreQueryParts;
-};
+type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function GroupBySection({query, index}: Props) {
-  const tags = useSpanTags();
+  const {tags} = useSpanTags();
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
@@ -37,11 +34,7 @@ export function GroupBySection({query, index}: Props) {
       return 1;
     });
 
-    return potentialOptions.map(key => ({
-      label: key,
-      value: key,
-      textValue: key,
-    }));
+    return potentialOptions.map(key => ({label: key, value: key, textValue: key}));
   }, [tags, query.groupBys]);
 
   return (
