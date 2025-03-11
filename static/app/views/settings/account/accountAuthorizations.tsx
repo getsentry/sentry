@@ -49,7 +49,7 @@ function AccountAuthorizations() {
   const handleRevoke = async (authorization: Authorization) => {
     const oldData = data;
     setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
-      prevData.filter(a => a.id !== authorization.id)
+      prevData?.filter(a => a.id !== authorization.id)
     );
     try {
       await api.requestPromise('/api-authorizations/', {
