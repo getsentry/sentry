@@ -212,7 +212,7 @@ export function useTrace(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.limit, options.timestamp, query.trace_format]);
 
-  const {trace_format, ...queryParamsWithoutView} = queryParams;
+  const {trace_format, ...queryParamsWithoutTraceFormat} = queryParams;
 
   const isDemoMode = Boolean(queryParams.demo);
   const isEAPEnabled =
@@ -224,7 +224,7 @@ export function useTrace(
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
-      {query: queryParamsWithoutView},
+      {query: queryParamsWithoutTraceFormat},
     ],
     {
       staleTime: Infinity,
@@ -235,7 +235,7 @@ export function useTrace(
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
-      {query: {...queryParamsWithoutView, project: -1}},
+      {query: {...queryParamsWithoutTraceFormat, project: -1}},
     ],
     {
       staleTime: Infinity,
