@@ -1,5 +1,6 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -13,12 +14,14 @@ export default function LogsPage() {
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
 
+  const prefersStackedNav = usePrefersStackedNav();
+
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('Logs')}
                 <FeatureBadge type="experimental" />

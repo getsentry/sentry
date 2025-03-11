@@ -27,7 +27,7 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import connection, connections
+from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import RequestFactory
@@ -49,6 +49,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     REQUESTTYPE_HEAD,
     CheckResult,
     CheckStatus,
+    CheckStatusReason,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -105,6 +106,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.new_migrations.monkey.state import SentryProjectState
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
@@ -290,7 +292,6 @@ class BaseTestCase(Fixtures):
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
-        request.is_superuser = lambda: request.superuser.is_active
 
         if is_staff:
             request.staff.set_logged_in(user)
@@ -575,11 +576,9 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
 
         def detect_performance_problems_interceptor(
-            data: Event, project: Project, is_standalone_spans: bool = False
+            data: Event, project: Project, standalone: bool = False
         ):
-            perf_problems = detect_performance_problems(
-                data, project, is_standalone_spans=is_standalone_spans
-            )
+            perf_problems = detect_performance_problems(data, project, standalone=standalone)
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint
@@ -2060,7 +2059,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
@@ -2369,7 +2367,7 @@ class UptimeCheckSnubaTestCase(TestCase):
     def store_snuba_uptime_check(
         self,
         subscription_id: str | None,
-        check_status: str,
+        check_status: CheckStatus,
         check_id: UUID | None = None,
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
@@ -2381,6 +2379,10 @@ class UptimeCheckSnubaTestCase(TestCase):
             incident_status = IncidentStatus.NO_INCIDENT
         if check_id is None:
             check_id = uuid.uuid4()
+
+        check_status_reason: CheckStatusReason | None = None
+        if check_status == "failure":
+            check_status_reason = {"type": "failure", "description": "Mock failure"}
 
         timestamp = scheduled_check_time + timedelta(seconds=1)
 
@@ -2402,7 +2404,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
                 "status": check_status,
-                "status_reason": None,
+                "status_reason": check_status_reason,
                 "trace_id": str(uuid.uuid4()),
                 "incident_status": incident_status.value,
                 "request_info": {
@@ -2675,9 +2677,8 @@ class TestMigrations(TransactionTestCase):
     Note that when running these tests locally you will need to use the `--migrations` flag
     """
 
-    @property
-    def app(self):
-        return "sentry"
+    app = "sentry"
+    connection = "default"
 
     @property
     def migrate_from(self):
@@ -2687,9 +2688,15 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @property
-    def connection(self):
-        return "default"
+    _project_state_cache: SentryProjectState | None = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        conn = connections[cls.connection]
+        executor = MigrationExecutor(conn)
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == cls.app]
+        cls.current_migration = [max(matching_migrations)]
 
     def setUp(self):
         super().setUp()
@@ -2697,32 +2704,38 @@ class TestMigrations(TransactionTestCase):
         migrate_from = [(self.app, self.migrate_from)]
         migrate_to = [(self.app, self.migrate_to)]
 
-        connection = connections[self.connection]
+        conn = connections[self.connection]
 
         self.setup_initial_state()
 
-        executor = MigrationExecutor(connection)
-        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
-        self.current_migration = [max(matching_migrations)]
+        executor = MigrationExecutor(conn)
         old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(migrate_from)
+        # XXX: We don't pass project state here, since Django doesn't use it when rolling back migrations.
+        self._project_state_cache = executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
-        executor = MigrationExecutor(connection)
+        executor = MigrationExecutor(conn)
         executor.loader.build_graph()  # reload.
-        executor.migrate(migrate_to)
+        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
         self.apps = executor.loader.project_state(migrate_to).apps
 
     def tearDown(self):
-        super().tearDown()
-        executor = MigrationExecutor(connection)
+        super().tearDownClass()
+        executor = MigrationExecutor(connections[self.connection])
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.current_migration)
+        self._project_state_cache = executor.migrate(
+            self.current_migration, state=self._project_state_cache
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls._project_state_cache = None
 
     def setup_initial_state(self):
         # Add code here that will run before we roll back the database to the `migrate_from`
@@ -3325,10 +3338,10 @@ class SpanTestCase(BaseTestCase):
 class _OptionalOurLogData(TypedDict, total=False):
     body: str
     trace_id: str
-    span_id: str
     severity_text: str
     severity_number: int
     trace_flags: int
+    item_id: int
 
 
 class OurLogTestCase(BaseTestCase):

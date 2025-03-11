@@ -107,6 +107,7 @@ function ExistingMemberAlert() {
 }
 
 function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
+  const sentryUrl = ConfigStore.get('links').sentryUrl;
   return (
     <Fragment>
       <p data-test-id="2fa-warning">
@@ -116,7 +117,11 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
         )}
       </p>
       <Actions>
-        <LinkButton priority="primary" to="/settings/account/security/">
+        <LinkButton
+          external
+          priority="primary"
+          href={`${sentryUrl}/settings/account/security/`}
+        >
           {t('Configure Two-Factor Auth')}
         </LinkButton>
       </Actions>

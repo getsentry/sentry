@@ -16,6 +16,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
@@ -705,3 +706,22 @@ class Quota(Service):
         Determines if the profile duration outcome should be emitted.
         """
         return True
+
+    def on_role_change(
+        self,
+        organization: Organization,
+        organization_member: OrganizationMember,
+        previous_role: str,
+        new_role: str,
+    ) -> None:
+        """
+        Called when an organization member's role is changed.
+        This is used to run any Subscription logic that needs to happen when a role is changed.
+
+        Args:
+            organization: The organization the member belongs to
+            organization_member: The member whose role is being changed
+            previous_role: The member's role before the change
+            new_role: The member's new role after the change
+        """
+        pass

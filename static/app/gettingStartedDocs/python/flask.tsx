@@ -23,8 +23,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[flask]'`;
 
-const getSdkSetupSnippet = (params: Params) => `
-import sentry_sdk
+const getSdkSetupSnippet = (params: Params) => `import sentry_sdk
 from flask import Flask
 
 sentry_sdk.init(
@@ -103,8 +102,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
+          code: `${getSdkSetupSnippet(params)}
 app = Flask(__name__)
 `,
         },
@@ -136,8 +134,7 @@ app = Flask(__name__)
         {
           language: 'python',
 
-          code: `
-${getSdkSetupSnippet(params)}
+          code: `${getSdkSetupSnippet(params)}
 app = Flask(__name__)
 
 @app.route("/")

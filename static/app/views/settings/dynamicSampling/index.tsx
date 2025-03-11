@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -12,11 +12,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {
+  useHasDynamicSamplingReadAccess,
+  useHasDynamicSamplingWriteAccess,
+} from 'sentry/views/settings/dynamicSampling/utils/access';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
   const hasWriteAccess = useHasDynamicSamplingWriteAccess();
+  const hasReadAccess = useHasDynamicSamplingReadAccess();
 
   if (!hasDynamicSamplingCustomFeature(organization)) {
     return (
@@ -54,15 +58,26 @@ export default function DynamicSamplingSettings() {
           </Alert>
         </Alert.Container>
       )}
-      <Paragraph>
-        {t(
-          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
-        )}
-      </Paragraph>
-      {organization.samplingMode === 'organization' ? (
-        <OrganizationSampling />
+
+      {!hasReadAccess ? (
+        <Alert.Container>
+          <Alert type="warning">
+            {t('You need at least member permissions to view these settings.')}
+          </Alert>
+        </Alert.Container>
       ) : (
-        <ProjectSampling />
+        <Fragment>
+          <Paragraph>
+            {t(
+              'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
+            )}
+          </Paragraph>
+          {organization.samplingMode === 'organization' ? (
+            <OrganizationSampling />
+          ) : (
+            <ProjectSampling />
+          )}
+        </Fragment>
       )}
     </Fragment>
   );

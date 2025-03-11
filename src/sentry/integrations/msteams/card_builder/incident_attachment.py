@@ -1,27 +1,38 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
-from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.incidents.models.incident import IncidentStatus
+from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
 from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,
     ColumnWidth,
     ImageSize,
     TextWeight,
 )
+from sentry.models.organization import Organization
+from sentry.snuba.models import SnubaQuery
 
 
 def build_incident_attachment(
-    incident: Incident,
+    alert_context: AlertContext,
+    open_period_identifier: int,
+    snuba_query: SnubaQuery,
+    organization: Organization,
+    date_started: datetime,
     new_status: IncidentStatus,
     metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
+
     data = incident_attachment_info(
-        incident,
-        new_status,
-        metric_value,
+        alert_context=alert_context,
+        open_period_identifier=open_period_identifier,
+        organization=organization,
+        snuba_query=snuba_query,
+        metric_value=metric_value,
+        new_status=new_status,
         notification_uuid=notification_uuid,
         referrer="metric_alert_msteams",
     )
@@ -29,11 +40,7 @@ def build_incident_attachment(
     colors: dict[str, Literal["good", "warning", "attention"]]
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = (
-        "Sentry Incident | {}".format(data["date_started"].strftime("%b %d"))
-        if data["date_started"] is not None
-        else "Sentry Incident"
-    )
+    footer_text = "Sentry Incident | {}".format(date_started.strftime("%b %d"))
 
     return {
         "type": "AdaptiveCard",

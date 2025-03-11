@@ -16,6 +16,10 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
@@ -561,7 +565,9 @@ describe('MultiQueryModeContent', function () {
     );
 
     const section = screen.getByTestId('section-visualization-0');
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(
+      await within(section).findByRole('button', {name: '1 hour'})
+    ).toBeInTheDocument();
     await userEvent.click(within(section).getByRole('button', {name: '1 hour'}));
     await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
     expect(router.push).toHaveBeenCalledWith({

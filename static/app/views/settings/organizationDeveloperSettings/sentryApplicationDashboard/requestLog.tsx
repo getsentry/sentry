@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
-import Tag from 'sentry/components/badge/tag';
 import {Button, StyledButton} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -85,7 +85,7 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 function ResponseCode({code}: {code: number}) {
-  let type: React.ComponentProps<typeof Tag>['type'] = 'error';
+  let type: TagProps['type'] = 'error';
   if (code <= 399 && code >= 300) {
     type = 'warning';
   } else if (code <= 299 && code >= 100) {
@@ -114,8 +114,11 @@ interface RequestLogProps {
   app: SentryApp;
 }
 
-function makeRequestLogQueryKey(slug: string): ApiQueryKey {
-  return [`/sentry-apps/${slug}/requests/`];
+function makeRequestLogQueryKey(
+  slug: string,
+  query: Record<string, string>
+): ApiQueryKey {
+  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
 }
 
 export default function RequestLog({app}: RequestLogProps) {
@@ -137,7 +140,9 @@ export default function RequestLog({app}: RequestLogProps) {
     data: requests = [],
     isLoading,
     refetch,
-  } = useApiQuery<SentryAppWebhookRequest[]>(makeRequestLogQueryKey(slug), query);
+  } = useApiQuery<SentryAppWebhookRequest[]>(makeRequestLogQueryKey(slug, query), {
+    staleTime: Infinity,
+  });
 
   const currentRequests = useMemo(
     () => requests.slice(currentPage * MAX_PER_PAGE, (currentPage + 1) * MAX_PER_PAGE),
@@ -168,13 +173,11 @@ export default function RequestLog({app}: RequestLogProps) {
 
   const handleNextPage = useCallback(() => {
     setCurrentPage(currentPage + 1);
-    refetch();
-  }, [currentPage, refetch]);
+  }, [currentPage]);
 
   const handlePrevPage = useCallback(() => {
     setCurrentPage(currentPage - 1);
-    refetch();
-  }, [currentPage, refetch]);
+  }, [currentPage]);
 
   return (
     <Fragment>
@@ -325,5 +328,4 @@ const Tags = styled('div')`
 
 const StyledTag = styled(Tag)`
   padding: ${space(0.5)};
-  display: inline-flex;
 `;

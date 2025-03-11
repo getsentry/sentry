@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,6 +18,7 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
   const {projects} = useProjects();
   const organization = useOrganization();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
+  const prefersStackedNav = usePrefersStackedNav();
 
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
@@ -29,26 +31,17 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
   const viewTitle = groupSearchViews?.find(v => v.id === viewId)?.name;
 
   return (
-    <StyledHeader noActionWrap>
-      <StyledHeaderContent>
+    <Layout.Header noActionWrap unified={prefersStackedNav}>
+      <Layout.HeaderContent unified={prefersStackedNav}>
         <Layout.Title>{viewTitle ?? t('Issues')}</Layout.Title>
-      </StyledHeaderContent>
+      </Layout.HeaderContent>
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-    </StyledHeader>
+    </Layout.Header>
   );
 }
 
 export default LeftNavViewsHeader;
-
-const StyledHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
-  border: 0;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
-`;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;

@@ -1,6 +1,11 @@
-import React from 'react';
+import React, {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -13,9 +18,15 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
+import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import ReleaseAdoption from 'sentry/views/insights/sessions/components/tables/releaseAdoption';
+import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
+import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
+import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
+import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
+import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
+import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
+import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -25,6 +36,33 @@ export function SessionsOverview() {
   };
 
   const {view} = useDomainViewFilters();
+  const [filters, setFilters] = useState<string[]>(['']);
+
+  const SESSION_HEALTH_CHARTS = (
+    <Fragment>
+      {view === FRONTEND_LANDING_SUB_PATH ? (
+        <ModuleLayout.Third>
+          <ErrorFreeSessionsChart />
+        </ModuleLayout.Third>
+      ) : view === MOBILE_LANDING_SUB_PATH ? (
+        <ModuleLayout.Third>
+          <CrashFreeSessionsChart />
+        </ModuleLayout.Third>
+      ) : undefined}
+      <ModuleLayout.Third>
+        <SessionHealthCountChart />
+      </ModuleLayout.Third>
+      <ModuleLayout.Third>
+        <SessionHealthRateChart />
+      </ModuleLayout.Third>
+      <ModuleLayout.Half>
+        <UserHealthCountChart />
+      </ModuleLayout.Half>
+      <ModuleLayout.Half>
+        <UserHealthRateChart />
+      </ModuleLayout.Half>
+    </Fragment>
+  );
 
   return (
     <React.Fragment>
@@ -39,22 +77,35 @@ export function SessionsOverview() {
                 <ModulePageFilterBar
                   moduleName={ModuleName.SESSIONS}
                   extraFilters={<SubregionSelector />}
+                  onProjectChange={() => {
+                    setFilters(['']);
+                  }}
                 />
+                <Alert type="info" icon={<IconInfo />} showIcon>
+                  {t(
+                    `This page is a temporary spot to put experimental release charts and tables currently in development. We will move things around eventually, but for now, it's a spot where we can put everything and get quick feedback.`
+                  )}
+                </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
-            {view === MOBILE_LANDING_SUB_PATH ? (
-              <ModuleLayout.Half>
-                <CrashFreeSessionChart />
-              </ModuleLayout.Half>
-            ) : (
-              <ModuleLayout.Third>
-                <ErrorFreeSessionsChart />
-              </ModuleLayout.Third>
+            {view === MOBILE_LANDING_SUB_PATH && (
+              <Fragment>
+                {SESSION_HEALTH_CHARTS}
+                <ModuleLayout.Half>
+                  <ReleaseSessionCountChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Half>
+                  <ReleaseSessionPercentageChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Full>
+                  <FilterWrapper>
+                    <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+                  </FilterWrapper>
+                  <ReleaseHealth filters={filters} />
+                </ModuleLayout.Full>
+              </Fragment>
             )}
-            <ModuleLayout.Full>
-              <ReleaseAdoption />
-              <ReleaseHealth />
-            </ModuleLayout.Full>
+            {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
@@ -74,3 +125,8 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
+
+const FilterWrapper = styled('div')`
+  display: flex;
+  margin: ${space(2)} 0;
+`;

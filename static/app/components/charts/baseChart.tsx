@@ -421,13 +421,13 @@ function BaseChartUnwrapped({
             type: 'bar',
             barWidth: 40,
             barGap: 0,
-            itemStyle: {...(s.areaStyle ?? {})},
+            itemStyle: {...s.areaStyle},
           }))
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
               type: 'line',
-              itemStyle: {...(s.lineStyle ?? {})},
+              itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] !== undefined
                   ? MarkLine({
@@ -750,6 +750,19 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
 
   .tooltip-arrow {
+    &.arrow-top {
+      bottom: 100%;
+      top: auto;
+      border-bottom: 8px solid ${p.theme.backgroundElevated};
+      border-top: none;
+      &:before {
+        border-top: none;
+        border-bottom: 8px solid ${p.theme.translucentBorder};
+        bottom: -7px;
+        top: auto;
+      }
+    }
+
     top: 100%;
     left: 50%;
     position: absolute;

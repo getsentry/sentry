@@ -3,40 +3,50 @@ from __future__ import annotations
 import time
 from datetime import datetime
 
-from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
+from sentry.models.organization import Organization
+from sentry.snuba.models import SnubaQuery
 
 
 class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
     def __init__(
         self,
-        alert_rule: AlertRule,
-        incident: Incident,
+        alert_context: AlertContext,
+        open_period_identifier: int,
+        snuba_query: SnubaQuery,
+        organization: Organization,
+        date_started: datetime,
         new_status: IncidentStatus,
         metric_value: float | None = None,
         chart_url: str | None = None,
     ) -> None:
-        self.alert_rule = alert_rule
-        self.incident = incident
+        self.alert_context = alert_context
+        self.open_period_identifier = open_period_identifier
+        self.snuba_query = snuba_query
+        self.organization = organization
+        self.date_started = date_started
         self.metric_value = metric_value
         self.new_status = new_status
         self.chart_url = chart_url
 
     def build(self, notification_uuid: str | None = None) -> dict[str, object]:
         data = incident_attachment_info(
-            self.incident,
-            self.new_status,
-            self.metric_value,
-            notification_uuid,
+            alert_context=self.alert_context,
+            open_period_identifier=self.open_period_identifier,
+            organization=self.organization,
+            snuba_query=self.snuba_query,
+            metric_value=self.metric_value,
+            new_status=self.new_status,
+            notification_uuid=notification_uuid,
             referrer="metric_alert_discord",
         )
 
-        description = f"{data['text']}{get_started_at(data['date_started'])}"
+        description = f"{data['text']}{get_started_at(self.date_started)}"
 
         embeds = [
             DiscordMessageEmbed(

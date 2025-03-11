@@ -32,6 +32,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -369,12 +370,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
 
-        if not repos:
-            return self._respond_with_error(
-                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
-                400,
-            )
-
         # find best profile for this event
         try:
             profile = self._get_profile_for_event(event, group.project) if event else None
@@ -425,7 +420,17 @@ class GroupAutofixEndpoint(GroupEndpoint):
         )
 
     def get(self, request: Request, group: Group) -> Response:
-        autofix_state = get_autofix_state(group_id=group.id)
+        access_check_cache_key = f"autofix_access_check:{group.id}"
+        access_check_cache_value = cache.get(access_check_cache_key)
+
+        check_repo_access = False
+        if not access_check_cache_value:
+            check_repo_access = True
+
+        autofix_state = get_autofix_state(group_id=group.id, check_repo_access=check_repo_access)
+
+        if check_repo_access:
+            cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
 
         response_state: dict[str, Any] | None = None
 

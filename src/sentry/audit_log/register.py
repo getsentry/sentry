@@ -26,14 +26,7 @@ default_manager.add(events.MemberRemoveAuditLogEvent())
 default_manager.add(events.MemberJoinTeamAuditLogEvent())
 default_manager.add(events.MemberLeaveTeamAuditLogEvent())
 default_manager.add(events.MemberPendingAuditLogEvent())
-default_manager.add(
-    AuditLogEvent(
-        event_id=10,
-        name="ORG_ADD",
-        api_name="org.create",
-        template="created the organization",
-    )
-)
+default_manager.add(events.OrgAddAuditLogEvent())
 default_manager.add(events.OrgEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
@@ -589,7 +582,7 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=213,
-        name="WORFKLOW_ADD",
+        name="WORKFLOW_ADD",
         api_name="workflow.add",
         template="added workflow {name}",
     )
@@ -597,7 +590,7 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=214,
-        name="WORFKLOW_EDIT",
+        name="WORKFLOW_EDIT",
         api_name="workflow.edit",
         template="edited workflow {name}",
     )
@@ -605,7 +598,7 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=215,
-        name="WORFKLOW_REMOVE",
+        name="WORKFLOW_REMOVE",
         api_name="workflow.remove",
         template="removed workflow {name}",
     )

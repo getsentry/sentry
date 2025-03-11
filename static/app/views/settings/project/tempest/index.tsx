@@ -134,13 +134,7 @@ export default function TempestSettings({organization, project}: Props) {
       </Form>
 
       <PanelTable
-        headers={[
-          t('Client ID'),
-          t('Client Secret'),
-          t('Created At'),
-          t('Created By'),
-          '',
-        ]}
+        headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
         isLoading={isLoading}
         isEmpty={!tempestCredentials?.length}
       >

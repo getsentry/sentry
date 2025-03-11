@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.sentry_apps.services.app import app_service
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 
@@ -518,10 +518,12 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
     def target_identifier(self) -> str | None:
         target_type = self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
-            return self.action.get(
-                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]
+            return str(
+                self.action.get(
+                    ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
+                        ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                    ]
+                )
             )
         return None
 
@@ -572,31 +574,12 @@ class PluginActionTranslator(BaseActionTranslator):
 
 @issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["id"])
 class WebhookActionTranslator(BaseActionTranslator):
-    def __init__(self, action: dict[str, Any]):
-        super().__init__(action)
-        # Fetch the sentry app id using app_service
-        # If the app exists, we should heal this action as a SentryAppAction
-        # Based on sentry/rules/actions/notify_event_service.py
-        if service := self.action.get(
-            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
-                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-            ]
-        ):
-            self.sentry_app = app_service.get_sentry_app_by_slug(slug=service)
-        else:
-            self.sentry_app = None
-
     @property
     def action_type(self) -> Action.Type:
-        if self.sentry_app:
-            return Action.Type.SENTRY_APP
-        else:
-            return Action.Type.WEBHOOK
+        return Action.Type.WEBHOOK
 
     @property
     def target_type(self) -> ActionTarget | None:
-        if self.sentry_app:
-            return ActionTarget.SENTRY_APP
         return None
 
     @property
@@ -606,18 +589,6 @@ class WebhookActionTranslator(BaseActionTranslator):
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ]
         ]
-
-    @property
-    def target_identifier(self) -> str | None:
-        # The service field identifies the webhook
-        # If the webhook goes to a sentry app, then we should identify the sentry app by id
-        if self.sentry_app:
-            return str(self.sentry_app.id)
-        return self.action.get(
-            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
-                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-            ]
-        )
 
 
 @issue_alert_action_translator_registry.register(
@@ -639,26 +610,6 @@ class SentryAppActionTranslator(BaseActionTranslator):
     @property
     def target_type(self) -> ActionTarget | None:
         return ActionTarget.SENTRY_APP
-
-    @property
-    def target_identifier(self) -> str | None:
-        # Fetch the sentry app id using app_service
-        # Based on sentry/rules/actions/sentry_apps/notify_event.py
-        sentry_app_installation = app_service.get_many(
-            filter=dict(
-                uuids=[
-                    self.action.get(
-                        ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["target_identifier_key"]
-                    )
-                ]
-            )
-        )
-
-        if sentry_app_installation:
-            assert len(sentry_app_installation) == 1, "Expected exactly one sentry app installation"
-            return str(sentry_app_installation[0].sentry_app.id)
-
-        raise ValueError("Sentry app installation not found")
 
     def get_sanitized_data(self) -> dict[str, Any]:
         data = SentryAppDataBlob()
@@ -731,10 +682,11 @@ class SentryAppFormConfigDataBlob(DataBlob):
     def from_dict(cls, data: dict[str, Any]) -> SentryAppFormConfigDataBlob:
         if not isinstance(data.get("name"), str) or not isinstance(data.get("value"), str):
             raise ValueError("Sentry app config must contain name and value keys")
-        return cls(name=data["name"], value=data["value"])
+        return cls(name=data["name"], value=data["value"], label=data.get("label"))
 
     name: str = ""
     value: str = ""
+    label: str | None = None
 
 
 @dataclass
@@ -759,3 +711,33 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
+
+
+@dataclass
+class NotificationContext:
+    """
+    NotificationContext is a dataclass that represents the context required send a notification.
+    """
+
+    integration_id: int | None = None
+    target_identifier: str | None = None
+    target_display: str | None = None
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
+
+    @classmethod
+    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
+        return cls(
+            integration_id=action.integration_id,
+            target_identifier=action.target_identifier,
+            target_display=action.target_display,
+            sentry_app_config=action.sentry_app_config,
+        )
+
+    @classmethod
+    def from_action_model(cls, action: Action) -> NotificationContext:
+        return cls(
+            integration_id=action.integration_id,
+            target_identifier=action.config.get("target_identifier"),
+            target_display=action.config.get("target_display"),
+            sentry_app_config=action.data,
+        )

@@ -2,8 +2,8 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -31,12 +31,12 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   if (badge === 'warning') {
     return (
       <Tooltip title={t('This setting needs review')} position="right">
-        <StyledBadge text={badge} type="warning" />
+        <StyledBadge type="warning">{badge}</StyledBadge>
       </Tooltip>
     );
   }
   if (typeof badge === 'string' || typeof badge === 'number') {
-    return <StyledBadge text={badge} />;
+    return <StyledBadge type="default">{badge}</StyledBadge>;
   }
 
   return badge;

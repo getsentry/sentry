@@ -1,18 +1,19 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -187,33 +188,36 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
-          {t('Sentry AI')}
+          {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
-            title={tct(
-              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {email: <a href="mailto:autofix@sentry.io" />}
-            )}
             tooltipProps={{
+              title: tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {email: <a href="mailto:autofix@sentry.io" />}
+              ),
               isHoverable: true,
             }}
           />
         </Header>
-        {autofixData && (
-          <ButtonBarWrapper>
+        {!aiConfig.needsGenAIConsent && (
+          <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
               <AutofixFeedback />
-              <Button
-                size="xs"
-                onClick={reset}
-                title={
-                  autofixData.created_at
-                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                    : null
-                }
-              >
-                {t('Start Over')}
-              </Button>
+              {aiConfig.hasAutofix && (
+                <Button
+                  size="xs"
+                  onClick={reset}
+                  title={
+                    autofixData?.created_at
+                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                      : null
+                  }
+                  disabled={!autofixData}
+                >
+                  {t('Start Over')}
+                </Button>
+              )}
             </ButtonBar>
           </ButtonBarWrapper>
         )}
@@ -245,7 +249,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
-                    onRetry={reset}
                   />
                 )}
               </Fragment>
@@ -256,6 +259,69 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
     </SolutionsDrawerContainer>
   );
 }
+
+export const useOpenSolutionsDrawer = (
+  group: Group,
+  project: Project,
+  event: Event | undefined,
+  buttonRef?: React.RefObject<HTMLButtonElement>
+) => {
+  const {openDrawer} = useDrawer();
+
+  return useCallback(() => {
+    if (!event) {
+      return;
+    }
+
+    openDrawer(
+      () => <SolutionsHubDrawer group={group} project={project} event={event} />,
+      {
+        ariaLabel: t('Solutions drawer'),
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = buttonRef?.current;
+
+          // Check if the element is inside any autofix input element
+          const isInsideAutofixInput = () => {
+            const rethinkInputs = document.querySelectorAll(
+              '[data-autofix-input-type="rethink"]'
+            );
+            const agentCommentInputs = document.querySelectorAll(
+              '[data-autofix-input-type="agent-comment"]'
+            );
+
+            // Check if element is inside any rethink input
+            for (const input of rethinkInputs) {
+              if (input.contains(element)) {
+                return true;
+              }
+            }
+
+            // Check if element is inside any agent comment input
+            for (const input of agentCommentInputs) {
+              if (input.contains(element)) {
+                return true;
+              }
+            }
+
+            return false;
+          };
+
+          if (
+            viewAllButton?.contains(element) ||
+            document.getElementById('sentry-feedback')?.contains(element) ||
+            isInsideAutofixInput() ||
+            document.getElementById('autofix-output-stream')?.contains(element) ||
+            document.getElementById('autofix-write-access-modal')?.contains(element) ||
+            element.closest('[data-overlay="true"]')
+          ) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  }, [openDrawer, buttonRef, event, group, project]);
+};
 
 const Wrapper = styled('div')`
   display: flex;
@@ -332,7 +398,8 @@ const StyledCard = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(3)};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`

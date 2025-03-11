@@ -1010,16 +1010,23 @@ function buildRoutes() {
         <IndexRoute
           component={make(() => import('sentry/views/settings/featureFlags'))}
         />
-        <Route
-          path="new-provider/"
-          name={t('Add New Provider')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/featureFlags/organizationFeatureFlagsNewSecret'
-              )
-          )}
-        />
+        <Route path="change-tracking/" name={t('Change Tracking')}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/settings/featureFlags/changeTracking')
+            )}
+          />
+          <Route
+            path="new-provider/"
+            name={t('Add New Provider')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret'
+                )
+            )}
+          />
+        </Route>
       </Route>
       <Route path="stats/" name={t('Stats')}>
         {statsChildRoutes}
@@ -2556,6 +2563,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp({children}: {children: JSX.Element}) {
+function NoOp({children}: {children: React.JSX.Element}) {
   return children;
 }

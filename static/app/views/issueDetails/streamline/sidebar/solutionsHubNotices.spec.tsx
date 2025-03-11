@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {AutofixRepository} from 'sentry/components/events/autofix/types';
 import {SolutionsHubNotices} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubNotices';
@@ -37,14 +37,21 @@ describe('SolutionsHubNotices', function () {
     );
 
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Now')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Install'})).toBeInTheDocument();
-  });
 
-  it('renders GitHub integration setup card when autofixRepositories is empty', function () {
-    render(<SolutionsHubNotices autofixRepositories={[]} hasGithubIntegration />);
+    // Test for text fragments with formatting
+    expect(screen.getByText(/Autofix is/, {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('a lot better')).toBeInTheDocument();
+    expect(
+      screen.getByText(/when it has your codebase as context/, {exact: false})
+    ).toBeInTheDocument();
 
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
+    // Test for text with links
+    expect(screen.getByText(/Set up the/, {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('GitHub Integration', {selector: 'a'})).toBeInTheDocument();
+    expect(
+      screen.getByText(/to allow Autofix to go deeper/, {exact: false})
+    ).toBeInTheDocument();
+
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Install'})).toBeInTheDocument();
   });
@@ -174,18 +181,6 @@ describe('SolutionsHubNotices', function () {
     expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
   });
 
-  it('handles navigation to GitHub integration setup when user clicks button', async function () {
-    render(<SolutionsHubNotices autofixRepositories={[]} hasGithubIntegration={false} />);
-
-    const setupButton = screen.getByText('Set Up Now');
-    // The button is a LinkButton which might not have href directly accessible in tests
-    // Instead, let's just check that it exists and can be clicked
-    expect(setupButton).toBeInTheDocument();
-
-    await userEvent.click(setupButton);
-    // We can't fully test navigation since it's handled by the router
-  });
-
   it('renders correct integration links based on integration_id', function () {
     const repositories = [
       createRepository({
@@ -200,12 +195,15 @@ describe('SolutionsHubNotices', function () {
     );
 
     const integrationLink = screen.getByText('GitHub integration');
-    expect(integrationLink).toHaveAttribute('href', '/settings/integrations/github/456');
+    expect(integrationLink).toHaveAttribute(
+      'href',
+      '/settings/org-slug/integrations/github/456'
+    );
 
     const codeMappingsLink = screen.getByText('code mappings');
     expect(codeMappingsLink).toHaveAttribute(
       'href',
-      '/settings/integrations/github/456/?tab=codeMappings'
+      '/settings/org-slug/integrations/github/456/?tab=codeMappings'
     );
   });
 
@@ -225,7 +223,7 @@ describe('SolutionsHubNotices', function () {
     // Should have both the GitHub setup card and the unreadable repos warning
     const setupCard = screen.getByText('Set Up the GitHub Integration').closest('div');
     const warningAlert = screen
-      .getByText(/Autofix can't access these repositories/)
+      .getByText(/Autofix can't access these repositories:/)
       .closest('div');
 
     expect(setupCard).toBeInTheDocument();

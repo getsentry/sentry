@@ -4,7 +4,7 @@ import logging
 import random
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import grpc
 from django.conf import settings
@@ -46,10 +46,15 @@ class ClientCallDetails(grpc.ClientCallDetails):
 ContinuationType = Callable[[ClientCallDetails, Message], Any]
 
 
-# The type stubs for grpc.UnaryUnaryClientInterceptor have generics
-# but the implementation in grpc does not, and providing the type parameters
-# results in a runtime error.
-class RequestSignatureInterceptor(grpc.UnaryUnaryClientInterceptor):  # type: ignore[type-arg]
+if TYPE_CHECKING:
+    InterceptorBase = grpc.UnaryUnaryClientInterceptor[Message, Message]
+    CallFuture = grpc.CallFuture[Message]
+else:
+    InterceptorBase = grpc.UnaryUnaryClientInterceptor
+    CallFuture = Any
+
+
+class RequestSignatureInterceptor(InterceptorBase):
     def __init__(self, shared_secret: str):
         self._secret = shared_secret.encode("utf-8")
 
@@ -58,7 +63,7 @@ class RequestSignatureInterceptor(grpc.UnaryUnaryClientInterceptor):  # type: ig
         continuation: ContinuationType,
         client_call_details: grpc.ClientCallDetails,
         request: Message,
-    ) -> Any:
+    ) -> CallFuture:
         request_body = request.SerializeToString()
         method = client_call_details.method.encode("utf-8")
 

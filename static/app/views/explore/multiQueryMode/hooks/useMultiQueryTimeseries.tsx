@@ -18,7 +18,7 @@ interface UseMultiQueryTimeseriesOptions {
   index: number;
 }
 
-interface UseMultiQueryTimeseriesResults {
+export interface UseMultiQueryTimeseriesResults {
   canUsePreviousResults: boolean;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }

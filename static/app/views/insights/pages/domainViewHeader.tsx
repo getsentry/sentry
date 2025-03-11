@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -67,7 +67,7 @@ export function DomainViewHeader({
   ];
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = extractSelectionParameters(location?.query);
 
@@ -86,6 +86,7 @@ export function DomainViewHeader({
       .map(moduleName => ({
         key: moduleName,
         children: <TabLabel moduleName={moduleName} />,
+        textValue: moduleName,
         to: {
           pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
           query: globalQuery,
@@ -134,7 +135,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new" text={t('New')} />}
+        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );

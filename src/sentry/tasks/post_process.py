@@ -982,9 +982,20 @@ def process_rules(job: PostProcessJob) -> None:
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
-        for callback, futures in rp.apply():
+        callback_and_futures = rp.apply()
+        for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
+
+        if features.has(
+            "organizations:workflow-engine-issue-alert-metrics",
+            group_event.project.organization,
+        ):
+            metrics.incr(
+                "post_process.process_rules.triggered_actions",
+                amount=len(callback_and_futures),
+                tags={"event_type": group_event.group.type},
+            )
 
     job["has_alert"] = has_alert
     return
@@ -1003,10 +1014,11 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project = event.project
         group_id = event.group_id
 
-        if not supported_platform(event.data.get("platform")):
+        platform = event.data.get("platform", "not_available")
+        if not supported_platform(platform):
             return
 
-        frames_to_process = get_frames_to_process(event.data, event.platform)
+        frames_to_process = get_frames_to_process(event.data, platform)
         if not frames_to_process:
             return
 

@@ -474,6 +474,7 @@ class _Table extends Component<Props, State> {
         onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
+
     if (field.field.startsWith('user_misery')) {
       if (title.tooltip) {
         return (
@@ -590,8 +591,12 @@ class _Table extends Component<Props, State> {
     const prependColumnWidths = ['max-content'];
 
     return (
-      <GuideAnchor target="performance_table" position="top-start">
-        <div data-test-id="performance-table">
+      <div data-test-id="performance-table">
+        <GuideAnchor
+          target="performance_table"
+          position="top-start"
+          wrapperComponent={TableWrapper}
+        >
           <MEPConsumer>
             {value => {
               return (
@@ -643,8 +648,8 @@ class _Table extends Component<Props, State> {
               );
             }}
           </MEPConsumer>
-        </div>
-      </GuideAnchor>
+        </GuideAnchor>
+      </div>
     );
   }
 }
@@ -674,6 +679,10 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 export default Table;

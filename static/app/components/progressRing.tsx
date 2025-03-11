@@ -98,7 +98,7 @@ function ProgressRing({
 
   let textNode = (
     <TextComponent
-      key={text?.toString()}
+      key={typeof text === 'object' && text !== null ? 'text-node' : text?.toString()}
       {...(animate ? animatedTextDefaultProps : {})}
       {...{textCss, percent}}
     >

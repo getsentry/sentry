@@ -21,7 +21,6 @@ export type TimeSeries = {
   data: TimeSeriesItem[];
   field: string;
   meta: Meta;
-  color?: string;
   confidence?: Confidence;
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
@@ -44,4 +43,4 @@ export type Release = {
 
 export type Aliases = Record<string, string>;
 
-export type TimeseriesSelection = {[key: string]: boolean};
+export type LegendSelection = {[key: string]: boolean};

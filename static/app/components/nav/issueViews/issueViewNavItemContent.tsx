@@ -31,21 +31,38 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export interface IssueViewNavItemContentProps {
   /**
-   * A callback function that deletes the view.
-   */
-  deleteView: () => void;
-  /**
-   * A callback function that duplicates the view.
-   */
-  duplicateView: () => void;
-  /**
    * Whether the item is active.
    */
   isActive: boolean;
   /**
+   * Whether an item is being dragged.
+   */
+  isDragging: boolean;
+  /**
+   * Whether the item is the last view in the list.
+   * This will be removed once view sharing/starring is implemented.
+   */
+  isLastView: boolean;
+  /**
+   * A callback function that's fired when the user clicks "Delete" on the view.
+   */
+  onDeleteView: () => void;
+  /**
+   * A callback function that's fired when the user clicks "Duplicate" on the view.
+   */
+  onDuplicateView: () => void;
+  /**
+   * A callback function that is called when the user has completed a reorder.
+   */
+  onReorderComplete: () => void;
+  /**
    * A callback function that updates the view with new params.
    */
-  updateView: (updatedView: IssueView) => void;
+  onUpdateView: (updatedView: IssueView) => void;
+  /**
+   * A callback function that updates the isDragging state.
+   */
+  setIsDragging: (isDragging: boolean) => void;
   /**
    * The issue view to display
    */
@@ -62,9 +79,13 @@ export function IssueViewNavItemContent({
   view,
   sectionRef,
   isActive,
-  updateView,
-  deleteView,
-  duplicateView,
+  onUpdateView,
+  onDeleteView,
+  onDuplicateView,
+  onReorderComplete,
+  isLastView,
+  isDragging,
+  setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -72,7 +93,6 @@ export function IssueViewNavItemContent({
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   const {projects} = useProjects();
 
@@ -85,19 +105,19 @@ export function IssueViewNavItemContent({
       const unsavedChanges = hasUnsavedChanges(view, location.query);
 
       if (unsavedChanges && !isEqual(unsavedChanges, view.unsavedChanges)) {
-        updateView({
+        onUpdateView({
           ...view,
           unsavedChanges,
         });
       } else if (!unsavedChanges && view.unsavedChanges) {
-        updateView({
+        onUpdateView({
           ...view,
           unsavedChanges: undefined,
         });
       }
     }
     return;
-  }, [view, isActive, location.query, navigate, baseUrl, updateView]);
+  }, [view, isActive, location.query, navigate, baseUrl, onUpdateView]);
 
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))
@@ -122,7 +142,16 @@ export function IssueViewNavItemContent({
       }}
       onDragEnd={() => {
         setIsDragging(false);
+        onReorderComplete();
         endInteraction();
+      }}
+      layoutId={`${view.id}`}
+      style={{
+        ...(isDragging
+          ? {}
+          : {
+              originY: '0px',
+            }),
       }}
     >
       <StyledSecondaryNavItem
@@ -137,11 +166,12 @@ export function IssueViewNavItemContent({
           >
             <IssueViewNavQueryCount view={view} />
             <IssueViewNavEllipsisMenu
+              isLastView={isLastView}
               setIsEditing={setIsEditing}
               view={view}
-              updateView={updateView}
-              deleteView={deleteView}
-              duplicateView={duplicateView}
+              onUpdateView={onUpdateView}
+              onDeleteView={onDeleteView}
+              onDuplicateView={onDuplicateView}
               baseUrl={baseUrl}
               sectionRef={sectionRef}
             />
@@ -166,7 +196,7 @@ export function IssueViewNavItemContent({
           isEditing={isEditing}
           isSelected={isActive}
           onChange={value => {
-            updateView({...view, label: value});
+            onUpdateView({...view, label: value});
             trackAnalytics('issue_views.renamed_view', {
               leftNav: true,
               organization: organization.slug,
@@ -242,8 +272,8 @@ const hasUnsavedChanges = (
   const queryTimeFilters =
     start || end || statsPeriod || utc
       ? {
-          start: statsPeriod ? null : start?.toString() ?? null,
-          end: statsPeriod ? null : end?.toString() ?? null,
+          start: statsPeriod ? null : (start?.toString() ?? null),
+          end: statsPeriod ? null : (end?.toString() ?? null),
           period: statsPeriod?.toString() ?? null,
           utc: statsPeriod ? null : utc?.toString() === 'true',
         }
@@ -312,21 +342,24 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
 
-  :hover {
+  /* Hide the ellipsis menu if not hovered, or if it's not expanded  */
+  :not(:hover):not(:has([data-ellipsis-menu-trigger][aria-expanded='true'])) {
     [data-ellipsis-menu-trigger] {
-      display: flex;
-    }
-    [data-issue-view-query-count] {
-      display: none;
+      ${p => p.theme.visuallyHidden}
     }
   }
 
-  [data-ellipsis-menu-trigger][aria-expanded='true'] {
-    display: flex;
+  /* Hide the query count if the ellipsis menu is not expanded */
+  :hover {
+    [data-issue-view-query-count] {
+      ${p => p.theme.visuallyHidden}
+    }
   }
+
+  /* Hide the query count if the ellipsis menu is expanded */
   &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
     [data-issue-view-query-count] {
-    display: none;
+    ${p => p.theme.visuallyHidden}
   }
 `;
 

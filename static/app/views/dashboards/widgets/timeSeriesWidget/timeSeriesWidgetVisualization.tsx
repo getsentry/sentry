@@ -1,7 +1,8 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {SeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -10,13 +11,12 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -27,47 +27,44 @@ import type {
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
+import type {Aliases, LegendSelection, Release} from '../common/types';
 
-import {Area} from './plottables/area';
-import {Bars} from './plottables/bars';
-import {Line} from './plottables/line';
-import {formatSeriesName} from './formatSeriesName';
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatXAxisTimestamp} from './formatXAxisTimestamp';
-import {formatYAxisValue} from './formatYAxisValue';
-import {isTimeSeriesOther} from './isTimeSeriesOther';
+import {formatSeriesName} from './formatters/formatSeriesName';
+import {formatTooltipValue} from './formatters/formatTooltipValue';
+import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
+import {formatYAxisValue} from './formatters/formatYAxisValue';
+import type {Plottable} from './plottables/plottable';
 import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
-import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
+import {
+  FALLBACK_TYPE,
+  FALLBACK_UNIT_FOR_FIELD_TYPE,
+  Y_AXIS_INTEGER_TOLERANCE,
+} from './settings';
 
-type VisualizationType = 'area' | 'line' | 'bar';
+const RELEASE_BUBBLE_SIZE = 14;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**
-   * An array of time series, each one representing a changing value over time. This is the chart's data. See documentation for examples
+   * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
-  timeSeries: Array<Readonly<TimeSeries>>;
-  /**
-   * Chart type
-   */
-  visualizationType: VisualizationType;
+  plottables: Plottable[];
   /**
    * A mapping of time series fields to their user-friendly labels, if needed
    */
   aliases?: Aliases;
   /**
-   * A duration in seconds. Any items in the time series that fall within that duration of the current time will be visually marked as "incomplete"
+   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
-  dataCompletenessDelay?: number;
+  legendSelection?: LegendSelection;
   /**
-   * Callback that returns an updated `timeseriesSelection` after a user manipulations the selection via the legend
+   * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
-  onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -77,21 +74,13 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   releases?: Release[];
   /**
-   * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
+   * Show releases as either lines per release or a bubble for a group of releases.
    */
-  stacked?: boolean;
-  /**
-   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
-   */
-  timeseriesSelection?: TimeseriesSelection;
+  showReleaseAs?: 'bubble' | 'line';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
-  if (
-    props.timeSeries
-      .flatMap(timeSeries => timeSeries.data)
-      .every(item => item.value === null)
-  ) {
+  if (props.plottables.every(plottable => plottable.isEmpty)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
@@ -105,39 +94,88 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
 
-  const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
-
   const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const hasReleaseBubbles =
+    organization.features.includes('release-bubbles-ui') &&
+    props.showReleaseAs === 'bubble';
 
-  let releaseSeries: Series | undefined = undefined;
-  if (props.releases) {
-    const onClick = (release: Release) => {
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: `/${encodeURIComponent(release.version)}/`,
-        })
-      );
-    };
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
-  }
+  const {
+    createReleaseBubbleHighlighter,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    bubbleSize: RELEASE_BUBBLE_SIZE,
+    chartRef,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
+  });
+
+  const releaseSeries = props.releases
+    ? hasReleaseBubbles
+      ? releaseBubbleSeries
+      : ReleaseSeries(
+          theme,
+          props.releases,
+          function onReleaseClick(release: Release) {
+            navigate(
+              makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(release.version)}/`,
+              })
+            );
+          },
+          utc ?? false
+        )
+    : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        createReleaseBubbleHighlighter(echartsInstance);
+      }
+    },
+    [
+      hasReleaseBubblesSeries,
+      createReleaseBubbleHighlighter,
+      registerWithWidgetSyncContext,
+    ]
+  );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
 
-  // TODO: The `meta.fields` property should be typed as
-  // Record<string, AggregationOutputType | null>, which is the reality
+  // Determine our chart Y axis type and units
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
-    props.timeSeries.map(timeserie => {
-      return timeserie?.meta?.fields?.[timeserie.field];
+    props.plottables.map(plottable => {
+      return plottable.dataType;
     })
-  ).filter(Boolean) as AggregationOutputType[];
+  ).filter(Boolean);
 
   if (types.length === 1) {
     // All timeseries have the same type. Use that as the Y axis type.
@@ -149,11 +187,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
 
-  const units = uniq(
-    props.timeSeries.map(timeserie => {
-      return timeserie?.meta?.units?.[timeserie.field];
-    })
-  ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
+  // N.B. Do not filter `boolean` because `null` is a valid unit
+  const units = uniq(props.plottables.map(plottable => plottable.dataUnit));
 
   if (units.length === 1) {
     // All timeseries have the same unit. Use that unit. This is especially
@@ -166,56 +201,33 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
   }
 
-  // Apply unit scaling to all series
-  const scaledSeries = props.timeSeries.map(timeserie => {
-    return scaleTimeSeriesData(timeserie, yAxisUnit);
-  });
-
-  // Construct plottable items
-  const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
+  // Set up a fallback palette for any plottable without a color
+  const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
 
   const palette =
-    numberOfSeriesNeedingColor > 0
-      ? getChartColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+    paletteSize > 0
+      ? getChartColorPalette(paletteSize - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
+  // Assign fallback colors if needed
   let seriesColorIndex = 0;
-  const plottables = scaledSeries.map(timeSeries => {
-    let color: string;
+  const series: SeriesOption[] = props.plottables.flatMap(plottable => {
+    let color: string | undefined;
 
-    if (timeSeries.color) {
-      // If the provided timeseries have a `color` property, preserve that color.
-      color = timeSeries.color;
-    } else if (isTimeSeriesOther(timeSeries)) {
-      // "Other" series, unless otherwise specified, have a predefined color
-      color = theme.chartOther;
-    } else {
+    if (plottable.needsColor) {
       // For any timeseries in need of a color, pull from the chart palette
-      color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of series exceeds the number of colors in the palette
+      color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
       seriesColorIndex += 1;
     }
 
-    if (props.visualizationType === 'area') {
-      return new Area(timeSeries, {
-        dataCompletenessDelay,
-        color,
-      });
-    }
-
-    if (props.visualizationType === 'bar') {
-      return new Bars(timeSeries, {
-        dataCompletenessDelay,
-        color,
-        stack: props.stacked ? GLOBAL_STACK_NAME : undefined,
-      });
-    }
-
-    return new Line(timeSeries, {
-      dataCompletenessDelay,
+    // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
+    return plottable.toSeries({
+      unit: yAxisUnit,
       color,
     });
   });
 
+  // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
@@ -261,13 +273,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeserie = scaledSeries.find(t => t.field === field);
-
-        return formatTooltipValue(
-          value,
-          timeserie?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeserie?.meta?.units?.[field] ?? undefined
-        );
+        return formatTooltipValue(value, yAxisFieldType, yAxisUnit ?? undefined);
       },
       nameFormatter: seriesName => {
         return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
@@ -277,34 +283,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = scaledSeries.length;
+  let visibleSeriesCount = props.plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
 
-  const dataSeries = plottables.flatMap(plottable => plottable.series);
-
   return (
     <BaseChart
-      ref={e => {
-        chartRef.current = e;
-
-        if (e?.getEchartsInstance) {
-          registerWithWidgetSyncContext(e.getEchartsInstance());
-        }
-      }}
+      ref={handleChartRef}
+      {...releaseBubbleEventHandlers}
       autoHeightResize
-      series={[
-        ...dataSeries,
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
-      ].filter(defined)}
+      series={[...series, releaseSeries].filter(defined)}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
@@ -314,6 +305,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         right: 8,
         bottom: 0,
         containLabel: true,
+        ...releaseBubbleGrid,
       }}
       legend={
         showLegend
@@ -330,12 +322,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
                   false
                 );
               },
-              selected: props.timeseriesSelection,
+              selected: props.legendSelection,
             }
           : undefined
       }
       onLegendSelectChanged={event => {
-        props?.onTimeseriesSelectionChange?.(event.selected);
+        props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
         trigger: 'axis',
@@ -359,6 +351,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
         },
         splitNumber: 5,
+        ...releaseBubbleXAxis,
       }}
       yAxis={{
         animation: false,
@@ -377,6 +370,26 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           label: {
             show: false,
           },
+        },
+        // @ts-expect-error ECharts types are wrong here. Returning `undefined` from the `max` function is 100% allowed and is listed in the documentation. See https://github.com/apache/echarts/pull/12215/
+        max: value => {
+          // Handle a very specific edge case with percentage formatting.
+          // Percentage charts values usually range from 0 to 1, but JavaScript
+          // floating math is such that the maximum value at any point in the
+          // chart might be something like 1.0000000002. This is not enough to
+          // be visible or significant, but _is_ enough for ECharts to add a
+          // whole additional axis tick. This makes charts looks stupid, because
+          // the Y axis will be from 0% to 120%, instead of from 0% to 100%. To
+          // prevent this case, if the maximum value is _just slightly above 1_,
+          // force it to be exactly 1. Only for percentages!
+          if (
+            yAxisFieldType === 'percentage' &&
+            value.max - 1 < Y_AXIS_INTEGER_TOLERANCE
+          ) {
+            return 1;
+          }
+
+          return null;
         },
       }}
       {...chartZoomProps}
@@ -416,19 +429,3 @@ const LoadingMask = styled(TransparentLoadingMask)`
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
-
-const needsColor = (timeSeries: TimeSeries) => {
-  // Any series that provides its own color doesn't need to be in the palette.
-  if (timeSeries.color) {
-    return false;
-  }
-
-  // "Other" series have a hard-coded color, they also don't need palette
-  if (isTimeSeriesOther(timeSeries)) {
-    return false;
-  }
-
-  return true;
-};
-
-const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

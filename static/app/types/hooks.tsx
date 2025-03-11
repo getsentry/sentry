@@ -22,7 +22,7 @@ import type {
   RouteComponentProps,
   RouteContextInterface,
 } from './legacyReactRouter';
-import type {Member, Organization} from './organization';
+import type {Member, Organization, OrgRole} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
 
@@ -231,6 +231,7 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
   'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
@@ -341,6 +342,7 @@ export type ReactHooks = {
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-experiment': UseExperiment;
+  'react-hook:use-get-max-retention-days': () => number | undefined;
 };
 
 /**

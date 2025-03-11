@@ -5,6 +5,10 @@ import {useNavContext} from 'sentry/components/nav/context';
 
 // Slightly delay closing the nav to prevent accidental dismissal
 const CLOSE_DELAY = 200;
+const IGNORE_ELEMENTS = [
+  // Tooltips are rendered in document.body so will cause the nav to close
+  '[data-tooltip="true"]',
+];
 
 /**
  * Handles logic for deciding when the collpased nav should be visible.
@@ -80,7 +84,17 @@ export function useCollapsedNav() {
       hoverIn();
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = (e: MouseEvent) => {
+      // Ignore mouse leave events on overlay elements like tooltips
+      if (
+        IGNORE_ELEMENTS.some(
+          selector =>
+            e.relatedTarget instanceof HTMLElement && e.relatedTarget.closest(selector)
+        )
+      ) {
+        return;
+      }
+
       hoverOut();
     };
 
@@ -131,10 +145,18 @@ export function useCollapsedNav() {
   // but this will catch instances where clicks on non-focusable elements
   useInteractOutside({
     ref: navParentRef,
-    onInteractOutside: () => {
+    onInteractOutside: e => {
+      if (
+        IGNORE_ELEMENTS.some(
+          selector => e.target instanceof HTMLElement && e.target.closest(selector)
+        )
+      ) {
+        return;
+      }
+
       closeNav();
     },
-    isDisabled: !isCollapsed,
+    isDisabled: !isCollapsed || !isOpen,
   });
 
   return {isOpen};

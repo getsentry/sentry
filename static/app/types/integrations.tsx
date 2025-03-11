@@ -302,6 +302,7 @@ export type SentryAppWebhookRequest = {
   webhookUrl: string;
   errorUrl?: string;
   organization?: {
+    id: string;
     name: string;
     slug: string;
   };
@@ -589,8 +590,10 @@ export type CodeownersFile = {
 
 export type FilesByRepository = {
   [repoName: string]: {
-    authors?: {[email: string]: CommitAuthor};
-    types?: Set<string>;
+    [fileName: string]: {
+      authors?: {[email: string]: CommitAuthor};
+      types?: Set<string>;
+    };
   };
 };
 

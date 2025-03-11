@@ -3,13 +3,15 @@ import {Fragment} from 'react';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
+import {Tag} from 'sentry/components/core/badge/tag';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
-import type {TempestCredentials} from './types';
+import {MessageType, type TempestCredentials} from './types';
 
 export function CredentialRow({
   credential,
@@ -22,9 +24,13 @@ export function CredentialRow({
 }) {
   return (
     <Fragment>
-      <Flex align="center">{credential.clientId}</Flex>
+      <Flex align="center" gap={space(1)}>
+        {credential.clientId}
+      </Flex>
 
-      <Flex align="center">{credential.clientSecret}</Flex>
+      <Flex align="center">
+        <StatusTag statusType={getStatusType(credential)} message={credential.message} />
+      </Flex>
 
       <Flex align="center">
         <TimeSince date={credential.dateAdded} />
@@ -65,4 +71,36 @@ export function CredentialRow({
       </Flex>
     </Fragment>
   );
+}
+
+type StatusTagProps = {
+  statusType: 'error' | 'success' | 'pending';
+  message?: string;
+};
+
+const STATUS_CONFIG = {
+  error: {label: 'Error', type: 'error'},
+  success: {label: 'Active', type: 'default'},
+  pending: {label: 'Pending', type: 'info'},
+} as const;
+
+function StatusTag({statusType, message}: StatusTagProps) {
+  const config = STATUS_CONFIG[statusType];
+  return (
+    <Tooltip title={message} skipWrapper>
+      <Tag type={config.type}>{config.label}</Tag>
+    </Tooltip>
+  );
+}
+
+function getStatusType(credential: {
+  message: TempestCredentials['message'];
+  messageType: TempestCredentials['messageType'];
+}) {
+  if (credential.messageType === null) {
+    // If messageType is null, it is pending and still it wasn't validated
+    return 'pending';
+  }
+
+  return credential.messageType === MessageType.ERROR ? 'error' : 'success';
 }

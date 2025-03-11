@@ -2,6 +2,8 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.rules.conditions.event_frequency import (
+    PERCENT_INTERVALS,
+    STANDARD_INTERVALS,
     ComparisonType,
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
@@ -94,6 +96,11 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
         self.payload["value"] = str(self.payload["value"])
         self._test_dual_write(int(self.payload["value"]))
 
+    def test_dual_write__value_floor(self):
+        # forces negative to zero for migration
+        self.payload["value"] = -1
+        self._test_dual_write(0)
+
     def test_json_schema(self):
         with pytest.raises(ValidationError):
             self.create_data_condition(
@@ -140,6 +147,8 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "1d",
         }
+        self.intervals = STANDARD_INTERVALS
+        self.other_intervals = PERCENT_INTERVALS
 
     def test_percent(self):
         dc = self.create_data_condition(
@@ -199,6 +208,11 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         self.payload["value"] = str(self.payload["value"])
         self._test_dual_write(int(self.payload["value"]))
 
+    def test_dual_write__value_floor(self):
+        # forces negative to zero for migration
+        self.payload["value"] = -1
+        self._test_dual_write(0)
+
     def test_json_schema(self):
         with pytest.raises(ValidationError):
             self.create_data_condition(
@@ -245,6 +259,18 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 condition_result=True,
             )
 
+        invalid_interval = list(set(self.other_intervals.keys()) - set(self.intervals.keys()))[0]
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": invalid_interval,
+                    "value": 100,
+                    "comparison_interval": "1d",
+                },
+                condition_result=True,
+            )
+
 
 class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountCondition):
     def setUp(self):
@@ -276,11 +302,19 @@ class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_COUNT
         self.payload: dict[str, int | str] = {
-            "interval": "1h",
+            "interval": "30m",  # only percent sessions allows 30m
             "id": EventFrequencyPercentCondition.id,
             "value": 17,
             "comparisonType": ComparisonType.COUNT,
         }
+        self.intervals = PERCENT_INTERVALS
+        self.other_intervals = STANDARD_INTERVALS
+
+    def test_dual_write_over_100(self):
+        self.payload["value"] = 500
+        dcg = self.create_data_condition_group()
+        with pytest.raises(ValidationError):
+            self.translate_to_data_condition(self.payload, dcg)
 
 
 class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
@@ -288,12 +322,21 @@ class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_PERCENT
         self.payload: dict[str, int | str] = {
-            "interval": "1h",
+            "interval": "30m",  # only percent sessions allows 30m
             "id": EventFrequencyPercentCondition.id,
             "value": 17,
             "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "1d",
         }
+        self.intervals = PERCENT_INTERVALS
+        self.other_intervals = STANDARD_INTERVALS
+
+    def test_dual_write_over_100(self):
+        self.payload["value"] = 500
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.comparison["value"] == self.payload["value"]
 
 
 class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
@@ -362,6 +405,11 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
         self.payload["value"] = str(self.payload["value"])
         self._test_dual_write_count(int(self.payload["value"]))
 
+    def test_dual_write_count__value_floor(self):
+        # forces negative to zero for migration
+        self.payload["value"] = -1
+        self._test_dual_write_count(0)
+
     def _test_dual_write_percent(self, value: int):
         self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
         dc = create_event_unique_user_frequency_condition_with_conditions(
@@ -384,6 +432,11 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
     def test_dual_write_percent__string_value(self):
         self.payload["value"] = str(self.payload["value"])
         self._test_dual_write_percent(int(self.payload["value"]))
+
+    def test_dual_write_count__percent_floor(self):
+        # forces negative to zero for migration
+        self.payload["value"] = -1
+        self._test_dual_write_percent(0)
 
     def test_dual_write__invalid(self):
         with pytest.raises(KeyError):
