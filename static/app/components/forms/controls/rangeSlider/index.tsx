@@ -1,5 +1,4 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
@@ -203,12 +202,12 @@ function RangeSlider({
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}
-            hasLabel={!showCustomInput}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
           />
           {showCustomInput && (
-            <Input
+            <StyledInput
+              hasLabel={!showCustomInput}
               placeholder={placeholder}
               value={sliderValue}
               onChange={handleCustomInputChange}
@@ -221,10 +220,12 @@ function RangeSlider({
   );
 }
 
-const StyledSlider = styled(Slider, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{hasLabel: boolean}>`
-  margin: ${space(1)} 0 ${p => space(p.hasLabel ? 2 : 1)};
+const StyledSlider = styled(Slider)`
+  margin: ${space(1)} 0;
+`;
+
+const StyledInput = styled(Input, {})<{hasLabel: boolean}>`
+  margin-top: ${p => space(p.hasLabel ? 2 : 1)};
 `;
 
 const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(

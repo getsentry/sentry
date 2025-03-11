@@ -6,11 +6,11 @@ import styled from '@emotion/styled';
 export interface SliderProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {}
 
-export const Slider = styled(
-  forwardRef<HTMLInputElement, SliderProps>((props, ref) => {
-    return <input ref={ref} type="range" {...props} />;
-  })
-)`
+export const Slider = forwardRef<HTMLInputElement, SliderProps>((props, ref) => {
+  return <StyledSlider ref={ref} type="range" {...props} />;
+});
+
+const StyledSlider = styled(Slider)<React.InputHTMLAttributes<HTMLInputElement>>`
   ${p => SliderStyles(p)}
 `;
 
