@@ -503,7 +503,7 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_issue_breakdown import OrganizationIssueBreakdownEndpoint
+from .endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
@@ -1611,9 +1611,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-index-stats",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/issues-breakdown/$",
-        OrganizationIssueBreakdownEndpoint.as_view(),
-        name="sentry-api-0-organization-issue-breakdown",
+        r"^(?P<organization_id_or_slug>[^\/]+)/issues-metrics/$",
+        OrganizationIssueMetricsEndpoint.as_view(),
+        name="sentry-api-0-organization-issue-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/integrations/$",

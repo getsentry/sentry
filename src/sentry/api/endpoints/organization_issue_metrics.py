@@ -26,7 +26,7 @@ CATEGORY_MAP = {
 
 
 @region_silo_endpoint
-class OrganizationIssueBreakdownEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 

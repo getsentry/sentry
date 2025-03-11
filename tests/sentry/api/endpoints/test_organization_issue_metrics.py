@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 @freeze_time()
 class OrganizationIssueBreakdownTest(APITestCase):
-    endpoint = "sentry-api-0-organization-issue-breakdown"
+    endpoint = "sentry-api-0-organization-issue-metrics"
 
     def setUp(self):
         super().setUp()
