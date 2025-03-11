@@ -27,7 +27,7 @@ class ExploreSavedQueryDataset(TypesClass):
 
 @region_silo_model
 class ExploreSavedQueryProject(Model):
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     explore_saved_query = FlexibleForeignKey("explore.ExploreSavedQuery")
@@ -44,7 +44,7 @@ class ExploreSavedQuery(DefaultFieldsModel):
     A saved Explore query
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     projects = models.ManyToManyField("sentry.Project", through=ExploreSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
