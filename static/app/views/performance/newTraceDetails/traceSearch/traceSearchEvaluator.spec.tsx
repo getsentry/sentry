@@ -36,6 +36,24 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   };
 }
 
+function makeEAPSpan(overrides: Partial<TraceTree.EAPSpan> = {}): TraceTree.EAPSpan {
+  return {
+    event_id: '',
+    op: '',
+    description: '',
+    start_timestamp: 0,
+    end_timestamp: 10,
+    is_transaction: false,
+    project_id: 1,
+    project_slug: 'project_slug',
+    transaction: '',
+    parent_span_id: null,
+    children: [],
+    duration: 10,
+    ...overrides,
+  } as TraceTree.EAPSpan;
+}
+
 function makeError(overrides: Partial<TraceTree.TraceError> = {}): TraceTree.TraceError {
   return {
     issue_id: 1,
@@ -359,6 +377,73 @@ describe('TraceSearchEvaluator', () => {
 
       const cb = jest.fn();
       search('exclusive_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+  });
+
+  // TODO Abdullah Khan: Add eap span tests for self_time/exclusive_time
+  describe('eap span', () => {
+    it('text filter', async () => {
+      const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
+
+      const cb = jest.fn();
+      search('op:db', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('text filter with prefix', async () => {
+      const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
+
+      const cb = jest.fn();
+      search('span.op:db', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('span.duration (milliseconds)', async () => {
+      const tree = makeTree([
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.duration:>500ms', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('span.duration (seconds)', async () => {
+      const tree = makeTree([
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.duration:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('span.total_time', async () => {
+      const tree = makeTree([
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.total_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
