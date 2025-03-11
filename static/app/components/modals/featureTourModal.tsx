@@ -156,7 +156,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     const {Body, steps, doneText, doneUrl, closeModal} = this.props;
     const {current} = this.state;
 
-    const step = steps[current] !== undefined ? steps[current] : steps[steps.length - 1]!;
+    const step = steps[current] === undefined ? steps[steps.length - 1]! : steps[current];
     const hasNext = steps[current + 1] !== undefined;
 
     return (

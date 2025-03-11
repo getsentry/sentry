@@ -188,7 +188,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   breakdownFunction={breakdownFunction}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
-                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    const nextIndex = expandedIndex === i ? (i + 1) % l.length : i;
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}

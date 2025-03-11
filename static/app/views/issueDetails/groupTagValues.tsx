@@ -193,7 +193,7 @@ export function GroupTagValues() {
         id: undefined,
         name: key ?? '',
         fields: [
-          ...(key !== undefined ? [key] : []),
+          ...(key === undefined ? [] : [key]),
           ...discoverFields.filter(field => field !== key),
         ],
         orderby: '-timestamp',

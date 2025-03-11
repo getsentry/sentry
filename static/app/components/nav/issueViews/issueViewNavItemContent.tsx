@@ -299,12 +299,12 @@ const hasUnsavedChanges = (
         : undefined,
     querySort:
       querySort && issueSortOption !== originalSort ? issueSortOption : undefined,
-    projects: !isEqual(queryProjects?.sort(), originalProjects.sort())
-      ? queryProjects
-      : undefined,
-    environments: !isEqual(queryEnvs?.sort(), originalEnvironments.sort())
-      ? queryEnvs
-      : undefined,
+    projects: isEqual(queryProjects?.sort(), originalProjects.sort())
+      ? undefined
+      : queryProjects,
+    environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
+      ? undefined
+      : queryEnvs,
     timeFilters:
       queryTimeFilters &&
       !isEqual(

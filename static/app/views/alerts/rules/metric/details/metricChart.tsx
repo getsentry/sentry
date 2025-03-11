@@ -544,9 +544,9 @@ export function getMetricChartTooltipFormatter({
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
     const comparisonPointYFormatted =
-      comparisonPointY !== undefined
-        ? alertTooltipValueFormatter(comparisonPointY, seriesName, rule.aggregate)
-        : undefined;
+      comparisonPointY === undefined
+        ? undefined
+        : alertTooltipValueFormatter(comparisonPointY, seriesName, rule.aggregate);
 
     const changePercentage =
       comparisonPointY === undefined

@@ -291,7 +291,7 @@ function AllocationForm({
             {/* TODO: calculate allocated target ids here */}
             <ProjectSelectControl
               filteredIdList={
-                !initializedData ? allocatedTargetIds[AllocationTargetTypes.PROJECT]! : []
+                initializedData ? [] : allocatedTargetIds[AllocationTargetTypes.PROJECT]!
               }
               value={targetId || ''}
               onChange={onTargetChange}
