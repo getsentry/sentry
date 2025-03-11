@@ -130,10 +130,17 @@ class TaskworkerClient:
             with metrics.timer("taskworker.get_task.rpc"):
                 response = self._stub.GetTask(request)
         except grpc.RpcError as err:
+            metrics.incr(
+                "taskworker.client.rpc_error", tags={"method": "GetTask", "status": err.code().name}
+            )
             if err.code() == grpc.StatusCode.NOT_FOUND:
                 return None
             raise
         if response.HasField("task"):
+            metrics.incr(
+                "taskworker.client.get_task",
+                tags={"namespace": response.task.namespace},
+            )
             return response.task
         return None
 
@@ -148,6 +155,7 @@ class TaskworkerClient:
 
         The return value is the next task that should be executed.
         """
+        metrics.incr("taskworker.client.fetch_next", tags={"next": fetch_next_task is not None})
         request = SetTaskStatusRequest(
             id=task_id,
             status=status,
@@ -157,6 +165,10 @@ class TaskworkerClient:
             with metrics.timer("taskworker.update_task.rpc"):
                 response = self._stub.SetTaskStatus(request)
         except grpc.RpcError as err:
+            metrics.incr(
+                "taskworker.client.rpc_error",
+                tags={"method": "SetTaskStatus", "status": err.code().name},
+            )
             if err.code() == grpc.StatusCode.NOT_FOUND:
                 return None
             raise
