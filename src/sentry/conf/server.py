@@ -2966,6 +2966,7 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "events": "default",
     "ingest-events-dlq": "default",
+    "ingest-events-backlog": "default",
     "snuba-commit-log": "default",
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
