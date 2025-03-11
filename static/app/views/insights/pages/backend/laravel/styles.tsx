@@ -21,11 +21,12 @@ export const WidgetFooterTable = styled('div')`
   }
 
   & > *:nth-child(3n + 1) {
-    padding-left: ${space(1.5)};
+    position: relative;
   }
 
   & > *:nth-child(3n + 2) {
     ${p => p.theme.overflowEllipsis};
+    padding-left: ${space(1.5)};
     min-width: 0px;
   }
 
@@ -40,7 +41,9 @@ export const WidgetFooterTable = styled('div')`
 `;
 
 export const SeriesColorIndicator = styled('div')`
-  width: 3px;
-  height: 100%;
-  flex-shrink: 0;
+  position: absolute;
+  left: -1px;
+  width: 8px;
+  height: 16px;
+  border-radius: 0 3px 3px 0;
 `;
