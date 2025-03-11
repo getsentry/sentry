@@ -144,11 +144,11 @@ function createReleaseBubbleMouseListeners({
 }
 
 interface ReleaseBubbleSeriesProps {
+  bubbleSize: number;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef>;
   releases: ReleaseMetaBasic[];
   theme: Theme;
-  bubbleSize?: number;
 }
 
 /**
@@ -158,7 +158,7 @@ function ReleaseBubbleSeries({
   buckets,
   chartRef,
   theme,
-  bubbleSize = DEFAULT_BUBBLE_SIZE,
+  bubbleSize,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -212,7 +212,7 @@ function ReleaseBubbleSeries({
       height: bubbleSize - RELEASE_BUBBLE_Y_PADDING,
 
       // border radius
-      r: 4,
+      r: 0,
     };
 
     return {
@@ -288,7 +288,7 @@ export function useReleaseBubbles({
   releases,
   minTime,
   maxTime,
-  bubbleSize,
+  bubbleSize = DEFAULT_BUBBLE_SIZE,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
