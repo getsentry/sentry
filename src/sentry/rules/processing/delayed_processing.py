@@ -471,7 +471,6 @@ def fire_rules(
             if features.has(
                 "organizations:workflow-engine-issue-alert-metrics",
                 project.organization,
-                actor=None,
             ):
                 metrics.incr(
                     "post_process.delayed_processing.triggered_actions",

@@ -413,7 +413,6 @@ def fire_actions_for_groups(
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
             group.project.organization,
-            actor=None,
         ):
             metrics.incr(
                 "workflow_engine.delayed_workflow.triggered_actions",

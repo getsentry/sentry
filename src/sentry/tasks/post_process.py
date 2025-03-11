@@ -990,7 +990,6 @@ def process_rules(job: PostProcessJob) -> None:
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
             group_event.project.organization,
-            actor=None,
         ):
             metrics.incr(
                 "post_process.process_rules.triggered_actions",

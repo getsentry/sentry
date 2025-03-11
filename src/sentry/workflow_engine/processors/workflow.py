@@ -156,7 +156,6 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
             detector.project.organization,
-            actor=None,
         ):
             metrics.incr(
                 "workflow_engine.process_workflows.triggered_actions",
