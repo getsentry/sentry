@@ -193,7 +193,7 @@ export function initializeSdk(config: Config) {
 
   if (process.env.NODE_ENV !== 'production') {
     if (
-      sentryConfig.environment === 'development' &&
+      sentryConfig.environment?.startsWith('dev') &&
       process.env.SENTRY_SPOTLIGHT &&
       !['false', 'f', 'n', 'no', 'off', '0'].includes(process.env.SENTRY_SPOTLIGHT)
     ) {

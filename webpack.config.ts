@@ -346,6 +346,7 @@ const appConfig: webpack.Configuration = {
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
       'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+      'process.env.SENTRY_SPOTLIGHT': JSON.stringify(env.SENTRY_SPOTLIGHT),
     }),
 
     /**
