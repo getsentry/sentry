@@ -19,12 +19,7 @@ import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
@@ -185,7 +180,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisFieldType = FALLBACK_TYPE;
   }
 
-  let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
+  let yAxisUnit: DataUnit;
 
   // N.B. Do not filter `boolean` because `null` is a valid unit
   const units = uniq(props.plottables.map(plottable => plottable.dataUnit));

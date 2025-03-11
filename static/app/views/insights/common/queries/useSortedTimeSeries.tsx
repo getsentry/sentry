@@ -6,6 +6,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import {DataUnit} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,

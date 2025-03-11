@@ -1,3 +1,4 @@
+import {DataUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';

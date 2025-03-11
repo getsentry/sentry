@@ -1,11 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import type {TimeSeries} from '../../common/types';
@@ -29,7 +24,7 @@ export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
-  unit: DurationUnit | SizeUnit | RateUnit | null;
+  unit: DataUnit;
 };
 
 /**
@@ -62,7 +57,7 @@ export abstract class ContinuousTimeSeries<
     return this.timeSeries.meta.fields[this.timeSeries.field]! as AggregationOutputType;
   }
 
-  get dataUnit(): DurationUnit | SizeUnit | RateUnit | null {
+  get dataUnit(): DataUnit {
     // TODO: Simplify this. `TimeSeries` units should already have this type
     return this.timeSeries.meta.units[this.timeSeries.field] as
       | DurationUnit
@@ -79,7 +74,7 @@ export abstract class ContinuousTimeSeries<
     return this.#timestamps.at(-1) ?? null;
   }
 
-  scaleToUnit(destinationUnit: DurationUnit | SizeUnit | RateUnit | null): TimeSeries {
+  scaleToUnit(destinationUnit: DataUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 

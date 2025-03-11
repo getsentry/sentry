@@ -1,12 +1,7 @@
 import * as Sentry from '@sentry/react';
 import partialRight from 'lodash/partialRight';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
@@ -24,7 +19,7 @@ import {
 
 export function scaleTimeSeriesData(
   timeSeries: Readonly<TimeSeries>,
-  destinationUnit: DurationUnit | SizeUnit | RateUnit | null
+  destinationUnit: DataUnit
 ): TimeSeries {
   // TODO: Instead of a fallback, allow this to be `null`, which might happen
   const sourceType =
