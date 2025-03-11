@@ -1,8 +1,6 @@
 from functools import wraps
 
-from rest_framework.exceptions import Throttled
-
-from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
@@ -38,9 +36,7 @@ def handle_snuba_errors(logger):
                 capture_exception(error)
                 message = "Internal error. Please try again."
                 recoverable = False
-                if isinstance(error, snuba.RateLimitExceeded):
-                    raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
-                elif isinstance(
+                if isinstance(
                     error,
                     (
                         snuba.RateLimitExceeded,

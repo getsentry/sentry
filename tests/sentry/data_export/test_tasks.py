@@ -7,7 +7,7 @@ from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
-from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -510,7 +510,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with self.tasks():
             assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
-        assert error == RATE_LIMIT_ERROR_MESSAGE
+        assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryMemoryLimitExceeded("test")
         with self.tasks():
