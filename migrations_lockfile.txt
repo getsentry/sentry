@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0841_create_organization_member_invite_table
+sentry: 0841_create_organization_member_invite_table_updated
 
 social_auth: 0002_default_auto_field
 

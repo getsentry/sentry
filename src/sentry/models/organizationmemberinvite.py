@@ -1,3 +1,4 @@
+import secrets
 from datetime import timedelta, timezone
 from enum import Enum
 
@@ -9,9 +10,8 @@ from structlog import get_logger
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models.base import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.roles import organization_roles
 
 INVITE_DAYS_VALID = 30
@@ -41,14 +41,17 @@ invite_status_names = {
 }
 
 
+def default_expiration():
+    return timezone.now() + INVITE_DAYS_VALID
+
+
 @region_silo_model
-class OrganizationMemberInvite(ReplicatedRegionModel):
+class OrganizationMemberInvite(Model):
     """
     Identifies relationships between organizations and their invited users.
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    category = OutboxCategory.ORGANIZATION_MEMBER_INVITE
 
     organization = FlexibleForeignKey("sentry.Organization")
     inviter_id = HybridCloudForeignKey(
@@ -60,13 +63,12 @@ class OrganizationMemberInvite(ReplicatedRegionModel):
     invite_status = models.PositiveSmallIntegerField(
         choices=InviteStatus.as_choices(),
         default=InviteStatus.APPROVED.value,
-        null=True,
     )
-    email = models.EmailField(null=True, blank=True, max_length=75)
+    email = models.EmailField(default="", max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     organization_member_team_data = models.JSONField(default=dict)
-    token = models.CharField(max_length=64, null=True, blank=True, unique=True)
-    token_expires_at = models.DateTimeField(default=None, null=True)
+    token = models.CharField(max_length=64, unique=True, default=secrets.token_hex(nbytes=32))
+    token_expires_at = models.DateTimeField(default=default_expiration)
 
     # the subsequent fields correspond to _OrganizationMemberFlags
     sso_linked = models.BooleanField(default=False)
@@ -120,6 +122,9 @@ class OrganizationMemberInvite(ReplicatedRegionModel):
         except Exception as e:
             mail_logger = get_logger(name="sentry.mail")
             mail_logger.exception(e)
+
+    def generate_token(self):
+        return secrets.token_hex(nbytes=32)
 
     def regenerate_token(self):
         self.token = self.generate_token()
