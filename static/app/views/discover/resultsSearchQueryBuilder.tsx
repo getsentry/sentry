@@ -328,8 +328,8 @@ function ResultsSearchQueryBuilder(props: Props) {
     };
 
     const featureFlagsSection: FilterKeySection = {
-      value: 'feature_flags',
-      label: 'Feature Flags',
+      value: FieldKind.FEATURE_FLAG,
+      label: t('Feature Flags'),
       children: Object.keys(featureFlagTags),
     };
 
