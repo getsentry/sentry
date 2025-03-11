@@ -674,12 +674,12 @@ if (IS_UI_DEV_ONLY) {
 
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? {}
-    : {
+  const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
-      };
+      }
+    : {};
 
   appConfig.devServer = {
     ...appConfig.devServer,

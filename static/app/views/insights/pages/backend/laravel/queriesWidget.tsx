@@ -131,9 +131,7 @@ export function QueriesWidget({query}: {query?: string}) {
     <TimeSeriesWidgetVisualization.LoadingPlaceholder />
   ) : error ? (
     <Widget.WidgetError error={error} />
-  ) : !hasData ? (
-    <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-  ) : (
+  ) : hasData ? (
     <TimeSeriesWidgetVisualization
       aliases={Object.fromEntries(
         queriesRequest.data?.data.map(item => [
@@ -145,6 +143,8 @@ export function QueriesWidget({query}: {query?: string}) {
         .map(convertSeriesToTimeseries)
         .map((ts, index) => new Line(ts, {color: colorPalette[index]}))}
     />
+  ) : (
+    <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
   );
 
   const footer = hasData && (

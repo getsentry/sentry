@@ -59,7 +59,7 @@ class OrganizationRoleSelect extends Component<Props> {
               <PanelItem
                 key={id}
                 onClick={() => !isDisabled && setSelected(id)}
-                css={!isDisabled ? {} : {color: 'grey', cursor: 'default'}}
+                css={isDisabled ? {color: 'grey', cursor: 'default'} : {}}
               >
                 <Label>
                   <Radio id={id} value={name} checked={id === roleSelected} readOnly />

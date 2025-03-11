@@ -59,7 +59,7 @@ function ProjectProguardRow({
               'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
               {
                 downloadRole,
-                orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
                 settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
               }
             )}

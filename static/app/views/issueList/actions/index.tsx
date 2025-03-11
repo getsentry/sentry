@@ -153,7 +153,15 @@ function ActionsBarPriority({
         </AnimatePresence>
       )}
       <AnimatePresence initial={false} mode="wait">
-        {!anySelected ? (
+        {anySelected ? (
+          !organization.features.includes('issue-stream-table-layout') && (
+            <motion.div key="sort" {...animationProps}>
+              <SortDropdownMargin>
+                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+              </SortDropdownMargin>
+            </motion.div>
+          )
+        ) : (
           <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
             <Headers
               onSelectStatsPeriod={onSelectStatsPeriod}
@@ -163,14 +171,6 @@ function ActionsBarPriority({
               isSavedSearchesOpen={isSavedSearchesOpen}
             />
           </AnimatedHeaderItemsContainer>
-        ) : (
-          !organization.features.includes('issue-stream-table-layout') && (
-            <motion.div key="sort" {...animationProps}>
-              <SortDropdownMargin>
-                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-              </SortDropdownMargin>
-            </motion.div>
-          )
         )}
       </AnimatePresence>
     </ActionsBarContainer>
