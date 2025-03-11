@@ -47,6 +47,10 @@ function LogsSectionContent() {
   const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
   const tableData = useExploreLogsTable({});
+  if (tableData?.data?.length === 0) {
+    // Like breadcrumbs, we don't show the logs section if there are no logs.
+    return null;
+  }
   return (
     <Fragment>
       <SearchQueryBuilder
