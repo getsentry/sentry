@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.project_management.metrics import (
@@ -17,7 +18,6 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.shared_integrations.exceptions import (
-    ApiUnauthorized,
     IntegrationFormError,
     IntegrationInstallationConfigurationError,
 )
@@ -136,7 +136,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             except (
                 IntegrationInstallationConfigurationError,
                 IntegrationFormError,
-                ApiUnauthorized,
+                InvalidIdentity,
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.
