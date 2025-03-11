@@ -15,8 +15,8 @@ function SpansSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
   return (
     <EAPSpanSearchQueryBuilder
       initialQuery={widgetQuery.conditions}

@@ -68,6 +68,49 @@ class CreateAuditEntryTest(TestCase):
 
         self.assert_no_delete_log_created()
 
+    def test_audit_entry_org_add_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("ORG_ADD"),
+            data=self.org.get_audit_log_data(),
+        )
+
+        assert entry.actor == self.user
+        assert entry.actor_label is None
+        assert entry.target_object == self.org.id
+        assert entry.event == audit_log.get_event_id("ORG_ADD")
+
+        audit_log_event = audit_log.get(entry.event)
+        assert audit_log_event.render(entry) == "created the organization"
+
+    def test_audit_entry_org_add_log_with_channel(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("ORG_ADD"),
+            data={
+                "channel": "vercel",
+                **self.org.get_audit_log_data(),
+            },
+        )
+
+        assert entry.actor == self.user
+        assert entry.actor_label is None
+        assert entry.target_object == self.org.id
+        assert entry.event == audit_log.get_event_id("ORG_ADD")
+
+        audit_log_event = audit_log.get(entry.event)
+        assert audit_log_event.render(entry) == "created the organization with vercel integration"
+
     def test_audit_entry_org_delete_log(self):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
