@@ -10,7 +10,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>((props, ref) => 
   return <StyledSlider ref={ref} type="range" {...props} />;
 });
 
-const StyledSlider = styled(Slider)<React.InputHTMLAttributes<HTMLInputElement>>`
+const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>>`
   ${p => SliderStyles(p)}
 `;
 
