@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -109,28 +109,25 @@ export const useSpanSamples = (options: Options) => {
     query: query.formatString(),
     ...(additionalFields?.length ? {additionalFields} : {}),
   };
-  const result = useQuery({
-    queryKey: [
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
-      {query: queryParams},
-    ] as const,
-    queryFn: async context => {
-      const [data] = await fetchDataQuery<SpanSample[]>(context);
-      return (
-        data
-          ?.map((d: SpanSample) => ({
-            ...d,
-            timestamp: moment(d.timestamp).format(DATE_FORMAT),
-          }))
-          .sort(
-            (a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]
-          ) ?? []
-      );
-    },
-    refetchOnWindowFocus: false,
-    enabled,
-    initialData: [],
-  });
+  const {data, ...result} = useApiQuery<{data: SpanSample[]}>(
+    [`/api/0/organizations/${organization.slug}/spans-samples/`, {query: queryParams}],
+    {
+      refetchOnWindowFocus: false,
+      enabled,
+      staleTime: 0,
+    }
+  );
 
-  return {...result, isEnabled: enabled};
+  return {
+    ...result,
+    isEnabled: enabled,
+    data:
+      data?.data
+        .map((d: SpanSample) => ({
+          ...d,
+          timestamp: moment(d.timestamp).format(DATE_FORMAT),
+        }))
+        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]) ??
+      [],
+  };
 };
