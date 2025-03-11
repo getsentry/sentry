@@ -235,7 +235,12 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     name = "Opsgenie"
     metadata = metadata
     integration_cls = OpsgenieIntegration
-    features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
+    features = frozenset(
+        [
+            IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
+            IntegrationFeatures.ENTERPRISE_ALERT_RULE,
+        ]
+    )
 
     def get_pipeline_views(self) -> list[PipelineView]:
         return [InstallationConfigView()]
