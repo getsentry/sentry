@@ -13,7 +13,7 @@ import moment from 'moment-timezone';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartMouseOutHandler,
