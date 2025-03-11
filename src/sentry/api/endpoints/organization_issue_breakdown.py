@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import TypedDict
 
@@ -29,50 +30,87 @@ class OrganizationIssueBreakdownEndpoint(OrganizationEndpoint, EnvironmentMixin)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Stats bucketed by time."""
-        start, end = get_date_range_from_params(request.GET)
-        end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
         environments = [e.id for e in get_environments(request, organization)]
         projects = self.get_projects(request, organization)
-        issue_category = CATEGORY_MAP.get(request.GET.get("category", "error"), GroupCategory.ERROR)
-        group_by = request.GET.get("group_by", "new")
+        issue_category = request.GET.get("category", "error")
+        type_filter = (
+            Q(type=GroupCategory.ERROR)
+            if issue_category == "error"
+            else Q(type=GroupCategory.FEEDBACK)
+        )
+        group_by = request.GET.get("group_by", "time")
 
-        if group_by == "new":
-            response = query_new_issues(projects, environments, issue_category, start, end)
-            return Response({"data": response}, status=200)
-        if group_by == "resolved":
-            response = query_resolved_issues(projects, environments, issue_category, start, end)
-            return Response({"data": response}, status=200)
-        if group_by == "release":
-            response = query_issues_by_release(projects, environments, issue_category, start, end)
-            return Response({"data": response}, status=200)
+        # Start/end truncation and interval generation.
+        interval = timedelta(days=1)  # interval = request.GET.get("interval", "1d")
+        start, end = get_date_range_from_params(request.GET)
+        end = end.replace(hour=0, minute=0, second=0, microsecond=0) + interval
+        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        if group_by == "time":
+            # Series queries.
+            new_series = query_new_issues(projects, environments, type_filter, start, end)
+            resolved_series = query_resolved_issues(projects, environments, type_filter, start, end)
+
+            # Filling and formatting.
+            series_response = empty_response(start, end, interval)
+            append_series(series_response, new_series)
+            append_series(series_response, resolved_series)
         else:
-            return Response("", status=404)
+            # Series queries.
+            series = query_issues_by_release(projects, environments, type_filter, start, end)
+
+            # Filling and formatting.
+            series_response = empty_response(start, end, interval)
+            append_series(series_response, series)
+
+        return Response(
+            {
+                "data": [[bucket, series] for bucket, series in series_response.items()],
+                "start": int(start.timestamp()),
+                "end": int(end.timestamp()),
+                # I have no idea what purpose this data serves on the front-end.
+                "isMetricsData": False,
+                "meta": {
+                    "fields": {"time": "date", "issues_count": "count"},
+                    "units": {"time": None, "issues_count": "int"},
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": False,
+                    "tips": {},
+                    "datasetReason": "unchanged",
+                    "dataset": "groups",
+                },
+            },
+            status=200,
+        )
 
 
-class BreakdownQueryResult(TypedDict):
-    bucket: str
+# Series generation.
+
+
+class Series(TypedDict):
+    bucket: datetime
     count: int
 
 
 def query_new_issues(
     projects: list[Project],
     environments: list[int],
-    issue_category: int,
+    type_filter: Q,
     start: datetime,
     end: datetime,
-) -> list[BreakdownQueryResult]:
+) -> list[Series]:
     # SELECT count(*), day(first_seen) FROM issues GROUP BY day(first_seen)
     group_environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
     )
+
     issues_query = (
         Group.objects.filter(
             group_environment_filter,
+            type_filter,
             first_seen__gte=start,
             first_seen__lte=end,
             project__in=projects,
-            type=issue_category,
         )
         .annotate(bucket=TruncDay("first_seen"))
         .order_by("bucket")
@@ -85,10 +123,10 @@ def query_new_issues(
 def query_resolved_issues(
     projects: list[Project],
     environments: list[int],
-    issue_category: int,
+    type_filter: Q,
     start: datetime,
     end: datetime,
-) -> list[BreakdownQueryResult]:
+) -> list[Series]:
     # SELECT count(*), day(resolved_at) FROM issues WHERE status = resolved GROUP BY day(resolved_at)
     group_environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
@@ -96,10 +134,10 @@ def query_resolved_issues(
     resolved_issues_query = (
         Group.objects.filter(
             group_environment_filter,
-            first_seen__gte=start,
-            first_seen__lte=end,
+            type_filter,
+            resolved_at__gte=start,
+            resolved_at__lte=end,
             project__in=projects,
-            type=issue_category,
             status=GroupStatus.RESOLVED,
         )
         .annotate(bucket=TruncDay("resolved_at"))
@@ -113,10 +151,10 @@ def query_resolved_issues(
 def query_issues_by_release(
     projects: list[Project],
     environments: list[int],
-    issue_category: int,
+    type_filter: Q,
     start: datetime,
     end: datetime,
-) -> list[BreakdownQueryResult]:
+) -> list[Series]:
     # SELECT count(*), first_release.version FROM issues JOIN release GROUP BY first_release.version
     group_environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
@@ -124,10 +162,10 @@ def query_issues_by_release(
     issues_by_release_query = (
         Group.objects.filter(
             group_environment_filter,
+            type_filter,
             first_seen__gte=start,
             first_seen__lte=end,
             project__in=projects,
-            type=issue_category,
         )
         .annotate(bucket=F("first_release__version"))
         .order_by("bucket")
@@ -135,3 +173,51 @@ def query_issues_by_release(
         .annotate(count=Count("id"))
     )
     return list(issues_by_release_query)
+
+
+# Response filling and formatting.
+
+
+class BucketNotFound(LookupError):
+    pass
+
+
+class SeriesResponseItem(TypedDict):
+    count: int
+
+
+SeriesResponse = dict[int, list[SeriesResponseItem]]
+
+
+def append_series(resp: SeriesResponse, series: list[Series]) -> None:
+    # We're going to increment this index as we consume the series.
+    idx = 0
+
+    for bucket in resp.keys():
+        try:
+            next_bucket = int(series[idx]["bucket"].timestamp())
+        except IndexError:
+            next_bucket = -1
+
+        # If the buckets match use the series count.
+        if next_bucket == bucket:
+            resp[bucket].append({"count": series[idx]["count"]})
+            idx += 1
+        # If the buckets do not match generate a value to fill its slot.
+        else:
+            resp[bucket].append({"count": 0})
+
+    # Programmer error. Requires code fix. Likely your query is not truncating timestamps the way
+    # you think it is.
+    if idx != len(series):
+        raise BucketNotFound("No buckets matched. Did your query truncate correctly?")
+
+
+def empty_response(start: datetime, end: datetime, interval: timedelta) -> SeriesResponse:
+    return {bucket: [] for bucket in iter_interval(start, end, interval)}
+
+
+def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[int]:
+    while start <= end:
+        yield int(start.timestamp())
+        start = start + interval
