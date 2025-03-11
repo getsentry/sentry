@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +22,7 @@ interface SchemaHintsListProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
+  isLoading?: boolean;
 }
 
 const seeFullListTag: Tag = {
@@ -33,6 +35,7 @@ function SchemaHintsList({
   supportedAggregates,
   numberTags,
   stringTags,
+  isLoading,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const exploreQuery = useExploreQuery();
@@ -135,6 +138,14 @@ function SchemaHintsList({
     return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
   };
 
+  if (isLoading) {
+    return (
+      <SchemaHintsLoadingContainer>
+        <LoadingIndicator mini />
+      </SchemaHintsLoadingContainer>
+    );
+  }
+
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map(hint => (
@@ -162,6 +173,13 @@ const SchemaHintsContainer = styled('div')`
   > * {
     flex-shrink: 0;
   }
+`;
+
+const SchemaHintsLoadingContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 24px;
 `;
 
 const SchemaHintOption = styled(Button)`
