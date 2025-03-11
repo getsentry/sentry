@@ -4267,7 +4267,16 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_actions_fired_for_incident(
             incident,
             [action_warning],
-            [(action_warning, incident, self.project, IncidentStatus.CRITICAL, 75.0, mock.ANY)],
+            [
+                {
+                    "action": action_warning,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": 75.0,
+                    "notification_uuid": mock.ANY,
+                }
+            ],
         )
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
@@ -4284,7 +4293,16 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_actions_resolved_for_incident(
             incident,
             [action_warning],
-            [(action_warning, incident, self.project, IncidentStatus.WARNING, 85.0, mock.ANY)],
+            [
+                {
+                    "action": action_warning,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": 85.0,
+                    "notification_uuid": mock.ANY,
+                }
+            ],
         )
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
