@@ -264,7 +264,7 @@ class Client implements ApiNamespace.Client {
         response.callCount++;
 
         const errorResponse = Object.assign(
-          new RequestError(options.method || 'GET', url, new Error()),
+          new RequestError(options.method || 'GET', url, new Error('Request failed')),
           {
             status: response.statusCode,
             responseText: JSON.stringify(body),
