@@ -2863,7 +2863,20 @@ SENTRY_BUILTIN_SOURCES = {
         "name": "Electron",
         "layout": {"type": "native"},
         "url": "https://symbols.electronjs.org/",
-        "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
+        "filters": {
+            "filetypes": ["pdb", "breakpad", "sourcebundle"],
+            # These file paths were empirically determined by examining
+            # logs of successful downloads from the Electron symbol server.
+            "file_paths": [
+                "*electron*",
+                "*ffmpeg*",
+                "*libEGL*",
+                "*libGLESv2*",
+                "*node*",
+                "*slack*",
+                "*vk_swiftshader*",
+            ],
+        },
         "is_public": True,
     },
     # === Various Linux distributions ===
