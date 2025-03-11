@@ -13,7 +13,7 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
 import {ReleasesDrawer} from 'sentry/components/releases/releasesDrawer';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartMouseOutHandler,
@@ -252,14 +252,14 @@ function ReleaseBubbleSeries({
         return `
 <div class="tooltip-series">
 <div>
-${numberReleases} Releases
+${tn('%s Release', '%s Releases', numberReleases)}
 </div>
 </div>
 
 ${
   numberReleases > 0
     ? `<div class="tooltip-footer">
-Click to expand
+${t('Click to expand')}
 </div>`
     : ''
 }
