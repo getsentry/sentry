@@ -6,39 +6,11 @@ import KeyValueData, {Card} from 'sentry/components/keyValueData';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Deploy} from 'sentry/types/release';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useReleaseDeploys} from 'sentry/views/releases/utils/useReleaseDeploys';
 
 interface DeploysCardProps {
   projectSlug: string;
   release: string;
-}
-
-function useReleaseDeploys({
-  release,
-  projectSlug,
-}: {
-  projectSlug: string;
-  release: string;
-}) {
-  const organization = useOrganization();
-  const project = useProjectFromSlug({organization, projectSlug});
-  return useApiQuery<Deploy[]>(
-    [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(release)}/deploys/`,
-      {
-        query: {
-          project: project!.id, // Should be disabled if project is undefined
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!project,
-    }
-  );
 }
 
 export function DeploysCard({release, projectSlug}: DeploysCardProps) {
