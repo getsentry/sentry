@@ -937,6 +937,12 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if not features.has(
+        "organizations:workflow-engine-issue-alert-rollout", job["event"].project.organization
+    ):
+        return
+
     from sentry.workflow_engine.processors.workflow import process_workflows
 
     # PostProcessJob event is optional, WorkflowJob event is required
@@ -958,15 +964,9 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    group_event = job["event"]
-
-    # TODO: only fire one system. to test, fire from both systems and observe metrics
-    organization = group_event.project.organization
-    if features.has("organizations:workflow-engine-issue-alert-rollout", organization):
-        process_workflow_engine(job)
-
     from sentry.rules.processing.processor import RuleProcessor
 
+    group_event = job["event"]
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
@@ -995,7 +995,7 @@ def process_rules(job: PostProcessJob) -> None:
 
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
-            organization,
+            group_event.project.organization,
         ):
             metrics.incr(
                 "post_process.process_rules.triggered_actions",
@@ -1524,6 +1524,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_owner_assignment,
         handle_auto_assignment,
         process_rules,
+        process_workflow_engine,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
