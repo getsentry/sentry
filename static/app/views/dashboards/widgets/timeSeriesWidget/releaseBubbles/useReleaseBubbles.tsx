@@ -259,7 +259,7 @@ ${numberReleases} Releases
 ${
   numberReleases > 0
     ? `<div class="tooltip-footer">
-Tap to view
+Click to expand
 </div>`
     : ''
 }
