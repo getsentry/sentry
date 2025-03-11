@@ -441,6 +441,7 @@ const StyledIdBadge = styled(IdBadge)`
 const SummaryLinks = styled('div')`
   display: flex;
   position: relative;
+  top: -${space(2)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
 
@@ -448,7 +449,7 @@ const SummaryLinks = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 
   /* Need to offset for the project icon and margin */
-  margin-left: 24px;
+  margin-left: 40px;
 
   a {
     color: ${p => p.theme.subText};
