@@ -157,7 +157,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
+            "organizations:workflow-engine-issue-alert-rollout",
             organization,
         ):
             metrics.incr(

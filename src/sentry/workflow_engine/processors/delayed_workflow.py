@@ -414,7 +414,7 @@ def fire_actions_for_groups(
         organization = group.project.organization
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
+            "organizations:workflow-engine-issue-alert-rollout",
             organization,
         ):
             metrics.incr(

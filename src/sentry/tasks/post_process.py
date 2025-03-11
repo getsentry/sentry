@@ -994,7 +994,7 @@ def process_rules(job: PostProcessJob) -> None:
             safe_execute(callback, group_event, futures)
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
+            "organizations:workflow-engine-issue-alert-rollout",
             group_event.project.organization,
         ):
             metrics.incr(

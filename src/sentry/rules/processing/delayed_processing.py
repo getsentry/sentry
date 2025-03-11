@@ -469,7 +469,7 @@ def fire_rules(
                 rule, groupevent, notification_uuid, rule_fire_history
             ).values()
             if features.has(
-                "organizations:workflow-engine-issue-alert-metrics",
+                "organizations:workflow-engine-issue-alert-rollout",
                 project.organization,
             ):
                 metrics.incr(
