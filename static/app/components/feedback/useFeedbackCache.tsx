@@ -26,7 +26,7 @@ export default function useFeedbackCache() {
 
   const updateCachedQueryKey = useCallback(
     (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
-      setApiQueryData(queryClient, queryKey, (feedbackIssue: FeedbackIssue) =>
+      setApiQueryData<FeedbackIssue>(queryClient, queryKey, feedbackIssue =>
         feedbackIssue ? {...feedbackIssue, ...payload} : feedbackIssue
       );
     },

@@ -78,7 +78,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
       queryClient,
       makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
       oldState =>
-        oldState.map(p => {
+        oldState?.map(p => {
           if (p.id !== plugin.id) {
             return p;
           }
