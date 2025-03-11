@@ -1,6 +1,6 @@
 import {
   type AggregationOutputType,
-  DataUnit,
+  type DataUnit,
   DurationUnit,
   RateUnit,
   SizeUnit,
