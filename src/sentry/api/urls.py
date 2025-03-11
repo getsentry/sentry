@@ -191,6 +191,7 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
+from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
 )
@@ -503,7 +504,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
