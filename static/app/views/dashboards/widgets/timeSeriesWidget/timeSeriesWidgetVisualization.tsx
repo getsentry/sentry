@@ -182,7 +182,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // Assign the rest of the field types to right
   const rightYAxisTypes = axisTypes.slice(1);
 
-  // Narrow down to just one type for the right Y axis If there's just one field
+  // Narrow down to just one type for the right Y axis. If there's just one field
   // type for the right axis, use it. If there are more than one, fall back to a
   // default. If there are 0, there's no type for the right axis, and we won't
   // plot one
@@ -302,7 +302,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
 
         if (!valueFormatterParams || !defined(valueFormatterParams?.seriesIndex)) {
-          // The series might be missing is this is a formatter for a mark line.
+          // The series might be missing if this is a formatter for a mark line.
           // We don't currently handle this, so this behaviour is just here for
           // safety. The series index might be missing in unknown circumstances
           warn(
