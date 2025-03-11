@@ -259,7 +259,7 @@ function Product({
     >
       <ProductWrapper
         onClick={disabled?.onClick ?? onClick}
-        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        disabled={(disabled?.onClick ?? permanentDisabled) ? false : !!disabled}
         priority={permanentDisabled || checked ? 'primary' : 'default'}
         aria-label={label}
       >
