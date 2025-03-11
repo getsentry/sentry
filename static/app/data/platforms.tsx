@@ -222,6 +222,13 @@ export const platforms: PlatformIntegration[] = [
     language: 'go',
   },
   {
+    link: 'https://docs.sentry.io/platforms/godot/',
+    type: 'framework',
+    id: 'godot',
+    name: 'Godot',
+    language: 'godot',
+  },
+  {
     id: 'ionic',
     name: 'Ionic',
     type: 'framework',
