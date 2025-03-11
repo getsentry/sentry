@@ -58,7 +58,7 @@ class OrganizationMemberInvite(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization = FlexibleForeignKey("sentry.Organization", related_name="invite_set")
     inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
