@@ -12,7 +12,6 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useApi from 'sentry/utils/useApi';
@@ -28,12 +27,8 @@ function createOrganizationMenuItem(): MenuItemProps {
 
   const menuItemProps: MenuItemProps = {
     key: 'create-organization',
-    label: (
-      <CreateOrganizationMenuItem>
-        <IconAdd />
-        {t('Create a new organization')}
-      </CreateOrganizationMenuItem>
-    ),
+    leadingItems: <IconAdd />,
+    label: t('Create a new organization'),
   };
 
   if (configFeatures.has('system:multi-region')) {
@@ -187,11 +182,4 @@ const SectionTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
-`;
-
-const CreateOrganizationMenuItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  line-height: normal;
 `;
