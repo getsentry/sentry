@@ -15,7 +15,6 @@ import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -49,8 +48,6 @@ function usePreloadGroupOnHover({
   const queryClient = useQueryClient();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {selection} = usePageFilters();
-  const api = useApi({persistInFlight: true});
-  const queryFn = fetchDataQuery(api);
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -61,7 +58,7 @@ function usePreloadGroupOnHover({
             organizationSlug: organization.slug,
             environments: selection.environments,
           }),
-          queryFn,
+          queryFn: fetchDataQuery,
           staleTime: 30_000,
         });
       }, 300);

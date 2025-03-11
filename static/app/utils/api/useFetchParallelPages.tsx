@@ -3,7 +3,6 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 
 interface Props {
   /**
@@ -92,7 +91,6 @@ export default function useFetchParallelPages<Data>({
   getQueryKey,
   perPage,
 }: Props): State<Data> {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
@@ -127,7 +125,7 @@ export default function useFetchParallelPages<Data>({
 
             const [data, , resp] = await queryClient.fetchQuery({
               queryKey: getQueryKey({cursor, per_page: perPage}),
-              queryFn: fetchDataQuery(api),
+              queryFn: fetchDataQuery<Data>,
               staleTime: Infinity,
             });
 
@@ -159,7 +157,7 @@ export default function useFetchParallelPages<Data>({
         })
       );
     },
-    [api, cursors, getQueryKey, perPage, queryClient]
+    [cursors, getQueryKey, perPage, queryClient]
   );
 
   useEffect(() => {
