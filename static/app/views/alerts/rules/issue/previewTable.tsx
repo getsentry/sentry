@@ -101,13 +101,13 @@ function PreviewTable({
 
   return (
     <Fragment>
-      <Panel>
+      <PanelContainer>
         <GroupListHeader
           withChart={false}
           withColumns={['assignee', 'event', 'lastTriggered', 'users']}
         />
         <PanelBody>{renderBody()}</PanelBody>
-      </Panel>
+      </PanelContainer>
       {renderPagination()}
     </Fragment>
   );
@@ -115,6 +115,10 @@ function PreviewTable({
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
+`;
+
+const PanelContainer = styled(Panel)`
+  container-type: inline-size;
 `;
 
 export default PreviewTable;

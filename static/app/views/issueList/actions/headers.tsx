@@ -232,10 +232,6 @@ const NarrowPriorityLabel = styled(IssueStreamHeaderLabel)`
   display: flex;
   justify-content: space-between;
   width: 70px;
-
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    display: none;
-  }
 `;
 
 const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
