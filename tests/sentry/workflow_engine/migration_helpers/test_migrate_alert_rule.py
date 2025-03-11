@@ -174,6 +174,53 @@ def build_sentry_app_compare_blob(
     return [{**config, "label": config.get("label", None)} for config in sentry_app_config]
 
 
+def assert_sentry_app_action_migrated(
+    action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
+):
+    # Verify target_identifier is the string representation of sentry_app_id
+    assert action.config.get("target_identifier") == str(alert_rule_trigger_action.sentry_app_id)
+
+    # Verify data blob has correct structure for Sentry apps
+    if not alert_rule_trigger_action.sentry_app_config:
+        assert action.data == {}
+    else:
+        assert action.data == {
+            "settings": build_sentry_app_compare_blob(alert_rule_trigger_action.sentry_app_config),
+        }
+
+
+def assert_oncall_action_migrated(
+    action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
+):
+    if action.type == Action.Type.OPSGENIE:
+        if not alert_rule_trigger_action.sentry_app_config:
+            assert action.data == {
+                "priority": OPSGENIE_DEFAULT_PRIORITY,
+            }
+        else:
+            assert action.data == {
+                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
+            }
+    else:
+        if not alert_rule_trigger_action.sentry_app_config:
+            assert action.data == {
+                "priority": PAGERDUTY_DEFAULT_SEVERITY,
+            }
+        else:
+            assert action.data == {
+                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
+            }
+
+
+def assert_action_migrated(action: Action, alert_rule_trigger_action: AlertRuleTriggerAction):
+    if action.type == Action.Type.SENTRY_APP:
+        assert_sentry_app_action_migrated(action, alert_rule_trigger_action)
+    elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
+        assert_oncall_action_migrated(action, alert_rule_trigger_action)
+    else:
+        assert action.data == {}
+
+
 def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
     aarta = ActionAlertRuleTriggerAction.objects.get(
         alert_rule_trigger_action=alert_rule_trigger_action
@@ -183,42 +230,7 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
         action_id=action.id,
     ).exists()
 
-    # Additional checks for Sentry app actions
-    if action_type == Action.Type.SENTRY_APP:
-        # Verify target_identifier is the string representation of sentry_app_id
-        assert action.config.get("target_identifier") == str(
-            alert_rule_trigger_action.sentry_app_id
-        )
-
-        # Verify data blob has correct structure for Sentry apps
-        if not alert_rule_trigger_action.sentry_app_config:
-            assert action.data == {}
-        else:
-            assert action.data == {
-                "settings": build_sentry_app_compare_blob(
-                    alert_rule_trigger_action.sentry_app_config
-                ),
-            }
-    elif action_type == Action.Type.OPSGENIE:
-        if not alert_rule_trigger_action.sentry_app_config:
-            assert action.data == {
-                "priority": OPSGENIE_DEFAULT_PRIORITY,
-            }
-        else:
-            assert action.data == {
-                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
-            }
-    elif action_type == Action.Type.PAGERDUTY:
-        if not alert_rule_trigger_action.sentry_app_config:
-            assert action.data == {
-                "priority": PAGERDUTY_DEFAULT_SEVERITY,
-            }
-        else:
-            assert action.data == {
-                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
-            }
-    else:
-        assert action.data == {}
+    assert_action_migrated(action, alert_rule_trigger_action)
 
 
 class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
