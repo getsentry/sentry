@@ -68,6 +68,136 @@ class GroupAutofixEndpoint(GroupEndpoint):
         serialized_event = serialize(event, user, EventSerializer())
         return serialized_event, event
 
+    def _get_trace_tree_for_event(
+        self, event: Event | GroupEvent, project: Project
+    ) -> dict[str, Any] | None:
+        """
+        Returns a tree of errors and transactions in the trace for a given event. Does not include non-transaction/non-error spans to reduce noise.
+        """
+        event_filter = eventstore.Filter(
+            project_ids=[project.id],
+            conditions=[
+                ["trace_id", "=", event.trace_id],
+            ],
+        )
+        results = eventstore.backend.get_events(
+            filter=event_filter,
+            dataset=Dataset.Discover,
+            referrer=Referrer.API_GROUP_AI_AUTOFIX,
+            tenant_ids={"organization_id": project.organization_id},
+        )
+
+        if not results:
+            return None
+
+        events_by_span_id = {}
+        children_by_parent_span_id = {}
+        root_events = []
+
+        # First pass: collect all events and their relationships
+        for result in results:
+            event_data = result.data
+            is_transaction = event_data.get("spans") is not None
+            is_error = not is_transaction
+
+            event_node = {
+                "event_id": event_data.get("event_id"),
+                "datetime": event_data.get("datetime"),
+                "span_id": event_data.get("contexts", {}).get("trace", {}).get("span_id"),
+                "parent_span_id": event_data.get("contexts", {})
+                .get("trace", {})
+                .get("parent_span_id"),
+                "is_transaction": is_transaction,
+                "is_error": is_error,
+                "children": [],
+            }
+
+            if is_transaction:
+                op = event_data.get("contexts", {}).get("trace", {}).get("op")
+                transaction_title = event_data.get("title")
+                duration_obj = event_data.get("breakdowns", {}).get("total.time", {})
+                duration_str = (
+                    f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
+                )
+                profile_id = event_data.get("contexts", {}).get("profile", {}).get("profile_id")
+                event_node.update(
+                    {
+                        "title": f"{op} - {transaction_title}" if op else transaction_title,
+                        "platform": event_data.get("platform"),
+                        "is_current_project": int(event_data.get("project", -1)) == project.id,
+                        "duration": duration_str,
+                        "profile_id": profile_id,
+                        "children_span_ids": [
+                            span.get("span_id") for span in event_data.get("spans", [])
+                        ],
+                    }
+                )
+            else:
+                event_node.update(
+                    {
+                        "title": event_data.get("title"),
+                        "platform": event_data.get("platform"),
+                        "is_current_project": int(event_data.get("project", -1)) == project.id,
+                    }
+                )
+
+            span_id = event_node["span_id"]
+            parent_span_id = event_node["parent_span_id"]
+
+            if span_id:
+                events_by_span_id[span_id] = event_node
+
+            # Add to children list of parent
+            if parent_span_id:
+                if parent_span_id not in children_by_parent_span_id:
+                    children_by_parent_span_id[parent_span_id] = []
+                children_by_parent_span_id[parent_span_id].append(event_node)
+            else:
+                # This is a root node (no parent)
+                root_events.append(event_node)
+
+            # Handle case where this event's span is a parent for events we've already seen
+            if span_id and span_id in children_by_parent_span_id:
+                event_node["children"] = children_by_parent_span_id[span_id]
+
+        # Second pass: add children from spans to parent events
+        for span_id, event_node in events_by_span_id.items():
+            if event_node["is_transaction"] and "children_span_ids" in event_node:
+                for child_span_id in event_node["children_span_ids"]:
+                    # If this span ID belongs to another event, establish parent-child relationship
+                    if (
+                        child_span_id in events_by_span_id
+                        and events_by_span_id[child_span_id] not in event_node["children"]
+                    ):
+                        event_node["children"].append(events_by_span_id[child_span_id])
+
+        # Function to recursively sort children by datetime
+        def sort_tree(node):
+            if node["children"]:
+                # Sort children by datetime
+                node["children"].sort(key=lambda x: x["datetime"])
+                # Recursively sort each child's children
+                for child in node["children"]:
+                    sort_tree(child)
+            return node
+
+        # Sort root events by datetime
+        root_events.sort(key=lambda x: x["datetime"])
+        # Sort children at each level
+        sorted_tree = [sort_tree(root) for root in root_events]
+
+        # Clean up temporary fields before returning
+        def cleanup_node(node):
+            if "children_span_ids" in node:
+                del node["children_span_ids"]
+            for child in node["children"]:
+                cleanup_node(child)
+            return node
+
+        cleaned_tree = [cleanup_node(root) for root in sorted_tree]
+
+        return {"trace_id": event.trace_id, "events": cleaned_tree}
+
     def _get_profile_for_event(
         self, event: Event | GroupEvent, project: Project
     ) -> dict[str, Any] | None:
@@ -279,6 +409,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         repos: list[dict],
         serialized_event: dict[str, Any],
         profile: dict[str, Any] | None,
+        trace_tree: dict[str, Any] | None,
         instruction: str,
         timeout_secs: int,
         pr_to_comment_on_url: str | None = None,
@@ -296,6 +427,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     "events": [serialized_event],
                 },
                 "profile": profile,
+                "trace_tree": trace_tree,
                 "instruction": instruction,
                 "timeout_secs": timeout_secs,
                 "last_updated": datetime.now().isoformat(),
@@ -384,6 +516,16 @@ class GroupAutofixEndpoint(GroupEndpoint):
             )
             profile = None
 
+        # get trace tree for this event
+        try:
+            trace_tree = self._get_trace_tree_for_event(event, group.project)
+        except Exception as e:
+            logger.exception(
+                "Failed to get trace tree for event",
+                extra={"group_id": group.id, "created_at": created_at, "exception": e},
+            )
+            trace_tree = None
+
         try:
             run_id = self._call_autofix(
                 request.user,
@@ -391,6 +533,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 repos,
                 serialized_event,
                 profile,
+                trace_tree,
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
                 data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
