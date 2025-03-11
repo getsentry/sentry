@@ -524,14 +524,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 })}
               </Row>
               <Row title={t('Origin')}>
-                {span.origin !== undefined ? String(span.origin) : null}
+                {span.origin === undefined ? null : String(span.origin)}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
               <Row title={t('Same Process as Parent')}>
-                {span.same_process_as_parent !== undefined
-                  ? String(span.same_process_as_parent)
-                  : null}
+                {span.same_process_as_parent === undefined
+                  ? null
+                  : String(span.same_process_as_parent)}
               </Row>
               <Row title={t('Span Group')}>
                 {defined(span.hash) ? String(span.hash) : null}
@@ -565,11 +565,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
-                !isHiddenDataKey(key) ? (
+                isHiddenDataKey(key) ? null : (
                   <Row title={key} key={key}>
                     <GeneralSpanDetailsValue value={value} />
                   </Row>
-                ) : null
+                )
               )}
               {unknownKeys.map(key => {
                 if (key === 'event' || key === 'childTransactions') {
@@ -696,10 +696,10 @@ export function Row({
   toolTipText,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
   toolTipText?: string;
 }) {
   if (!keep && !children) {

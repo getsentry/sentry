@@ -95,7 +95,7 @@ class Form<
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: {...this.state.data, ...(data || {})},
+      initialData: {...this.state.data, ...data},
     });
     this.props.onSubmitSuccess?.(data);
   };

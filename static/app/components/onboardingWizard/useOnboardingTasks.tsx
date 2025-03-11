@@ -2,7 +2,11 @@ import {useContext} from 'react';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {
+  findCompleteOrOverdueTasks,
+  findCompleteTasks,
+  taskIsDone,
+} from 'sentry/components/onboardingWizard/utils';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
@@ -38,6 +42,7 @@ function mergeTasks({
 export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}): {
   allTasks: OnboardingTask[];
   beyondBasicsTasks: OnboardingTask[];
+  completeOrOverdueTasks: OnboardingTask[];
   completeTasks: OnboardingTask[];
   doneTasks: OnboardingTask[];
   gettingStartedTasks: OnboardingTask[];
@@ -81,6 +86,7 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
   return {
     allTasks: mergedTasks,
     completeTasks: mergedTasks.filter(findCompleteTasks),
+    completeOrOverdueTasks: mergedTasks.filter(findCompleteOrOverdueTasks),
     doneTasks: mergedTasks.filter(taskIsDone),
     gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED

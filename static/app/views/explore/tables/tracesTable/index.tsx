@@ -70,7 +70,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {!query ? t('Total Spans') : t('Matching Spans')}
+            {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}

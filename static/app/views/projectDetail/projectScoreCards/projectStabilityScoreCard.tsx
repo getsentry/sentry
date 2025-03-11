@@ -127,13 +127,13 @@ function ProjectStabilityScoreCard(props: Props) {
   const {crashFreeRate, previousCrashFreeRate, isLoading, error, refetch} =
     useCrashFreeRate(props);
 
-  const score = !crashFreeRate
-    ? undefined
-    : crashFreeRate?.groups[0]?.totals[props.field]! * 100;
+  const score = crashFreeRate
+    ? crashFreeRate?.groups[0]?.totals[props.field]! * 100
+    : undefined;
 
-  const previousScore = !previousCrashFreeRate
-    ? undefined
-    : previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100;
+  const previousScore = previousCrashFreeRate
+    ? previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100
+    : undefined;
 
   if (hasSessions === false) {
     return (

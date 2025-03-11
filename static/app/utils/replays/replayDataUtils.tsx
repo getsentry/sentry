@@ -48,9 +48,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.started_at ? {started_at: startedAt} : {}),
     ...(apiResponse.finished_at ? {finished_at: finishedAt} : {}),
-    ...(apiResponse.duration !== undefined
-      ? {duration: duration(apiResponse.duration * 1000)}
-      : {}),
+    ...(apiResponse.duration === undefined
+      ? {}
+      : {duration: duration(apiResponse.duration * 1000)}),
     tags: unorderedTags,
   };
 }

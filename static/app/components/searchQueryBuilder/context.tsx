@@ -27,6 +27,10 @@ export interface SearchQueryBuilderContextData {
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement>;
   placeholder?: string;
+  /**
+   * The element to render the combobox popovers into.
+   */
+  portalTarget?: HTMLElement | null;
   recentSearches?: SavedSearchType;
 }
 
@@ -51,4 +55,5 @@ export const SearchQueryBuilderContext = createContext<SearchQueryBuilderContext
   disabled: false,
   disallowFreeText: false,
   disallowWildcard: false,
+  portalTarget: null,
 });

@@ -1,4 +1,4 @@
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import Placeholder from 'sentry/components/placeholder';
 import type {User} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';

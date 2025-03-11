@@ -49,7 +49,7 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
         }
         return onChangeFilter(opts.map(opt => opt.value));
       }}
-      triggerLabel={!selectedOwners.length ? t('All Owners') : undefined}
+      triggerLabel={selectedOwners.length ? undefined : t('All Owners')}
     />
   );
 }

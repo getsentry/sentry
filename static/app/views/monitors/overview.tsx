@@ -85,7 +85,7 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    const currentQuery = {...location.query, cursor: undefined};
     navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
@@ -137,7 +137,7 @@ export default function Monitors() {
                 analyticsEventKey="crons.bulk_edit_modal_button_clicked"
                 analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
                 disabled={!canCreateAlert}
-                title={!canCreateAlert ? permissionTooltipText : undefined}
+                title={canCreateAlert ? undefined : permissionTooltipText}
               >
                 {t('Manage Monitors')}
               </Button>
@@ -146,7 +146,7 @@ export default function Monitors() {
                   size="sm"
                   icon={<IconAdd isCircled />}
                   disabled={!canCreateAlert}
-                  title={!canCreateAlert ? permissionTooltipText : undefined}
+                  title={canCreateAlert ? undefined : permissionTooltipText}
                 >
                   {t('Add Monitor')}
                 </NewMonitorButton>

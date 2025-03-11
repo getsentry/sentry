@@ -444,7 +444,7 @@ function UsageTotals({
   const isDisplayingSpend = displayMode === 'cost' || hasReservedBudget; // always display as spend for reserved budgets
 
   // Calculate the width of the reserved bar relative to on demand
-  let reservedMaxWidth = showOnDemand ? (reserved !== 0 ? 50 : 0) : 100;
+  let reservedMaxWidth = showOnDemand ? (reserved === 0 ? 0 : 50) : 100;
   if (showOnDemand && reserved && onDemandUnitPrice) {
     const onDemandTotalUnitsAvailable = onDemandCategoryMax / onDemandUnitPrice;
     reservedMaxWidth =

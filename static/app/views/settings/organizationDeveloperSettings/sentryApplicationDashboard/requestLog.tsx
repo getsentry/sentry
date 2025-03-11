@@ -62,9 +62,9 @@ const getEventTypes = memoize((app: SentryApp) => {
   const events = [
     ALL_EVENTS,
     // Internal apps don't have installation webhooks
-    ...(app.status !== 'internal'
-      ? ['installation.created', 'installation.deleted']
-      : []),
+    ...(app.status === 'internal'
+      ? []
+      : ['installation.created', 'installation.deleted']),
     ...(app.events.includes('error') ? ['error.created'] : []),
     ...(app.events.includes('issue')
       ? ['issue.created', 'issue.resolved', 'issue.ignored', 'issue.assigned']
@@ -221,7 +221,9 @@ export default function RequestLog({app}: RequestLogProps) {
           </TableLayout>
         </PanelHeader>
 
-        {!isLoading ? (
+        {isLoading ? (
+          <LoadingIndicator />
+        ) : (
           <PanelBody>
             {currentRequests.length > 0 ? (
               currentRequests.map((request, idx) => (
@@ -243,8 +245,6 @@ export default function RequestLog({app}: RequestLogProps) {
               </EmptyMessage>
             )}
           </PanelBody>
-        ) : (
-          <LoadingIndicator />
         )}
       </Panel>
 

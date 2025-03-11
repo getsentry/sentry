@@ -731,7 +731,7 @@ class FormModel {
 
   setFieldState(id: string, key: string, value: FieldValue) {
     const state = {
-      ...(this.fieldState.get(id) || {}),
+      ...this.fieldState.get(id),
       [key]: value,
     };
     this.fieldState.set(id, state);
@@ -782,7 +782,7 @@ class FormModel {
       this.isValidRequiredField(field)
     );
 
-    this.formState = !formComplete ? FormState.INCOMPLETE : FormState.READY;
+    this.formState = formComplete ? FormState.READY : FormState.INCOMPLETE;
   }
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {

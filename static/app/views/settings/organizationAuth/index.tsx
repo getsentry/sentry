@@ -32,6 +32,10 @@ function OrganizationAuth() {
   const shouldRedirectToProvider = provider && organization.access.includes('org:write');
 
   useEffect(() => {
+    if (!shouldRedirectToProvider) {
+      return;
+    }
+
     // If SSO provider is configured, keep showing loading while we redirect
     // to django configuration view
     // XXX: This does not need to be normalized for customer-domains because we're going

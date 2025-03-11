@@ -15,12 +15,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0841_create_organization_member_invite_table_updated
+sentry: 0842_create_organization_member_invite_table_updated
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0029_uptime_subscription_index_domain_cols
+uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
 workflow_engine: 0035_action_model_drop_legacy_fields

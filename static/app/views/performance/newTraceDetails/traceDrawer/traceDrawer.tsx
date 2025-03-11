@@ -260,10 +260,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       type: 'minimize drawer',
       payload: !isDrawerMinimized,
     });
-    if (!isDrawerMinimized) {
-      onResize(0, 0, true, true);
-      size.current = drawerOptions.min;
-    } else {
+    if (isDrawerMinimized) {
       if (drawerOptions.initialSize === 0) {
         const userPreference =
           traceStateRef.current.preferences.drawer.sizes[
@@ -283,6 +280,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }
       onResize(drawerOptions.initialSize, drawerOptions.min, true, false);
       size.current = drawerOptions.initialSize;
+    } else {
+      onResize(0, 0, true, true);
+      size.current = drawerOptions.min;
     }
   }, [
     size,
