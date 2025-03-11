@@ -17,7 +17,7 @@ def count_processor(count_value: int | None) -> int:
 
 
 def resolve_count_op_filter(op_value: str) -> TraceItemFilter:
-    TraceItemFilter(
+    return TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=AttributeKey(
                 name="sentry.op",
@@ -34,6 +34,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[ArgumentDefinition(argument_types={"string"}, is_attribute=False)],
+        key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.op"),
         filter_resolver=resolve_count_op_filter,
     )
 }

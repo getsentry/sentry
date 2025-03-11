@@ -183,13 +183,14 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     extrapolation: bool = True
     is_aggregate: bool = field(default=True, init=False)
     filter: TraceItemFilter
+    key: AttributeKey
 
     @property
     def proto_definition(self) -> AttributeConditionalAggregation:
         """The definition of this function as needed by the RPC"""
         return AttributeConditionalAggregation(
             aggregate=self.internal_name,
-            key=self.argument,
+            key=self.key,
             filter=self.filter,
             label=self.public_alias,
             extrapolation_mode=(
@@ -250,8 +251,17 @@ class AggregateDefinition(FunctionDefinition):
         )
 
 
+@dataclass(kw_only=True)
 class ConditionalAggregateDefinition(FunctionDefinition):
+    """
+    The definition of a conditional aggregation,
+    Conditionally aggregates the `key`, if it passes the `filter`.
+    The type of aggregation is defined by the `internal_name`.
+    The `filter` is returned by the `filter_resolver` function which takes in the args from the user and returns a `TraceItemFilter`.
+    """
+
     internal_function: Function.ValueType
+    key: AttributeKey
     filter_resolver: Callable[..., TraceItemFilter]
 
     def resolve(
@@ -263,6 +273,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             filter=self.filter_resolver(resolved_argument),
+            key=self.key,
             processor=self.processor,
             extrapolation=self.extrapolation,
             argument=resolved_argument,
@@ -349,7 +360,7 @@ def project_term_resolver(
 @dataclass(frozen=True)
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
-    conditional_aggregated: dict[str, ConditionalAggregateDefinition] = {}
+    conditional_aggregates: dict[str, ConditionalAggregateDefinition]
     formulas: dict[str, FormulaDefinition]
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]

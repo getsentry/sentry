@@ -28,6 +28,8 @@ def categorize_column(
         return Column(formula=column.proto_definition, label=column.public_alias)
     if isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedConditionalAggregate):
+        return Column(conditional_aggregation=column.proto_definition, label=column.public_alias)
     else:
         return Column(key=column.proto_definition, label=column.public_alias)
 
