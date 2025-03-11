@@ -4,7 +4,11 @@ import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/ba
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-export interface OrganizationAvatarProps extends BaseAvatarProps {
+export interface OrganizationAvatarProps
+  extends Omit<
+    BaseAvatarProps,
+    'hasTooltip' | 'tooltip' | 'tooltipOptions' | 'renderTooltip'
+  > {
   organization?: OrganizationSummary;
 }
 
@@ -25,7 +29,6 @@ export const OrganizationAvatar = forwardRef<HTMLSpanElement, OrganizationAvatar
         type={organization.avatar?.avatarType || 'letter_avatar'}
         uploadUrl={organization.avatar?.avatarUrl}
         letterId={slug}
-        tooltip={slug}
         title={title}
       />
     );

@@ -82,7 +82,7 @@ function SuggestedOwnerHovercard(props: Props) {
       header={
         <Fragment>
           <HovercardHeader>
-            <ActorAvatar size={20} hasTooltip={false} actor={actor} />
+            <ActorAvatar size={20} actor={actor} />
             {actor.name || actor.email}
           </HovercardHeader>
           {actor.id === undefined && (

@@ -123,7 +123,6 @@ function IssueContext(props: BaseContextProps) {
             <ActorAvatar
               data-test-id="assigned-avatar"
               actor={issue.assignedTo}
-              hasTooltip={false}
               size={24}
             />
           ) : (

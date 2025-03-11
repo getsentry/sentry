@@ -150,7 +150,7 @@ function AlertListItem({item}: {item: Incident}) {
             `,
           ]}
         >
-          <ActorAvatar actor={teamActor} size={16} hasTooltip={false} />{' '}
+          <ActorAvatar actor={teamActor} size={16} />{' '}
           <TextOverflow>{teamActor.name}</TextOverflow>
         </div>
       ) : null}

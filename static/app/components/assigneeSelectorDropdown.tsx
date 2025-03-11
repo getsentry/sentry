@@ -133,11 +133,8 @@ export function AssigneeAvatar({
 
   if (assignedTo) {
     return (
-      <ActorAvatar
-        actor={assignedTo}
-        className="avatar"
-        size={24}
-        tooltip={
+      <Tooltip
+        title={
           <TooltipWrapper>
             {tct('Assigned to [name]', {
               name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
@@ -150,18 +147,19 @@ export function AssigneeAvatar({
               )}
           </TooltipWrapper>
         }
-      />
+        skipWrapper
+      >
+        <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+      </Tooltip>
     );
   }
 
   if (suggestedActors.length > 0) {
     const actor = suggestedActors[0]!;
     return (
-      <SuggestedAvatarStack
-        size={26}
-        owners={suggestedActors}
-        tooltipOptions={{isHoverable: true}}
-        tooltip={
+      <Tooltip
+        isHoverable
+        title={
           <TooltipWrapper>
             <div>
               {tct('Suggestion: [name]', {
@@ -173,7 +171,9 @@ export function AssigneeAvatar({
             <TooltipSubtext>{suggestedReasons[actor.suggestedReason]}</TooltipSubtext>
           </TooltipWrapper>
         }
-      />
+      >
+        <SuggestedAvatarStack size={26} owners={suggestedActors} />
+      </Tooltip>
     );
   }
 
