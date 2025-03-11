@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from re import Match
 from typing import Any, Union, cast
 
@@ -989,8 +989,8 @@ class BaseQueryBuilder:
             result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
+                start=self.params.start,
+                end=self.params.end,
             )
         # Don't fully fail if we can't get the CM, but still capture the exception
         except Exception as error:
