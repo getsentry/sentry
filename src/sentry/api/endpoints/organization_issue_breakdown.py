@@ -14,7 +14,8 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.models.group import Group, GroupCategory, GroupStatus
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -103,7 +104,7 @@ def query_new_issues(
     type_filter: Q,
     start: datetime,
     end: datetime,
-) -> list[Series]:
+) -> list[dict[str, Any]]:
     # SELECT count(*), day(first_seen) FROM issues GROUP BY day(first_seen)
     group_environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
@@ -131,7 +132,7 @@ def query_resolved_issues(
     type_filter: Q,
     start: datetime,
     end: datetime,
-) -> list[Series]:
+) -> list[dict[str, Any]]:
     # SELECT count(*), day(resolved_at) FROM issues WHERE status = resolved GROUP BY day(resolved_at)
     group_environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
@@ -188,7 +189,7 @@ class BucketNotFound(LookupError):
     pass
 
 
-def append_series(resp: SeriesResponse, series: list[Series]) -> None:
+def append_series(resp: SeriesResponse, series: list[dict[str, Any]]) -> None:
     # We're going to increment this index as we consume the series.
     idx = 0
 
