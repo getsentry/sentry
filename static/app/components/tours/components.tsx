@@ -78,6 +78,10 @@ export function TourContextProvider<T extends TourEnumType>({
   const isTourActive = currentStepId !== null;
 
   const tourHotkeys = useMemo(() => {
+    if (!isTourActive) {
+      return [];
+    }
+
     return [
       {
         match: 'Escape',
@@ -91,7 +95,7 @@ export function TourContextProvider<T extends TourEnumType>({
       {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
       {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
     ];
-  }, [dispatch, mutate, tourKey]);
+  }, [dispatch, mutate, tourKey, isTourActive]);
 
   useHotkeys(tourHotkeys);
 
