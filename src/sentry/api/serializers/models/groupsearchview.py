@@ -3,8 +3,8 @@ from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.groupsearchview import GroupSearchView
-from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 
 
@@ -28,14 +28,14 @@ class GroupSearchViewSerializer(Serializer):
     def __init__(self, *args, **kwargs):
         self.has_global_views = kwargs.pop("has_global_views", None)
         self.default_project = kwargs.pop("default_project", None)
+        self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
         attrs: MutableMapping[Any, Any] = {}
 
-        organization = item_list[0].organization
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=organization,
+            organization=self.organization,
             user_id=user.id,
             group_search_view_id__in=[item.id for item in item_list],
         )
@@ -83,6 +83,7 @@ class GroupSearchViewStarredSerializer(Serializer):
     def __init__(self, *args, **kwargs):
         self.has_global_views = kwargs.pop("has_global_views", None)
         self.default_project = kwargs.pop("default_project", None)
+        self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
@@ -92,6 +93,7 @@ class GroupSearchViewStarredSerializer(Serializer):
             serializer=GroupSearchViewSerializer(
                 has_global_views=self.has_global_views,
                 default_project=self.default_project,
+                organization=self.organization,
             ),
         )
 
