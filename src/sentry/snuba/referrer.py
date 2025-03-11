@@ -951,6 +951,7 @@ class Referrer(StrEnum):
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
     TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
+    TSDB_MODELID_4_batch_alert_event_frequency = "tsdb-modelid:4.batch_alert_event_frequency"
     TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
