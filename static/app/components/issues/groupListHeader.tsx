@@ -31,14 +31,19 @@ function GroupListHeader({
         <Fragment>
           <NarrowIssueWrapper hideDivider>{t('Issue')}</NarrowIssueWrapper>
           {withColumns.includes('firstSeen') && (
-            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
               {t('First Seen')}
             </FirstSeenWrapper>
           )}
           {withColumns.includes('lastSeen') && (
-            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
               {t('Age')}
             </LastSeenWrapper>
+          )}
+          {withColumns.includes('lastTriggered') && (
+            <NarrowLastTriggeredLabel align="right">
+              {t('Last Triggered')}
+            </NarrowLastTriggeredLabel>
           )}
           {withChart && (
             <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -46,27 +51,27 @@ function GroupListHeader({
             </NarrowGraphLabel>
           )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+            <NarrowEventsOrUsersLabel
+              breakpoint={COLUMN_BREAKPOINTS.EVENTS}
+              align="right"
+            >
               {t('Events')}
             </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS}>
+            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
               {t('Users')}
             </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('priority') && (
-            <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+            <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="right">
               {t('Priority')}
             </NarrowPriorityLabel>
           )}
           {withColumns.includes('assignee') && (
-            <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+            <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
               {t('Assignee')}
             </NarrowAssigneeLabel>
-          )}
-          {withColumns.includes('lastTriggered') && (
-            <NarrowLastTriggeredLabel>{t('Last Triggered')}</NarrowLastTriggeredLabel>
           )}
         </Fragment>
       ) : (
@@ -177,31 +182,21 @@ const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
 `;
 
 const NarrowGraphLabel = styled(GroupListHeaderLabel)`
-  display: flex;
-  justify-content: space-between;
   width: 175px;
 `;
 
 const NarrowEventsOrUsersLabel = styled(GroupListHeaderLabel)`
-  display: flex;
-  justify-content: space-between;
   width: 60px;
 `;
 
 const NarrowPriorityLabel = styled(GroupListHeaderLabel)`
-  display: flex;
-  justify-content: space-between;
   width: 70px;
 `;
 
 const NarrowAssigneeLabel = styled(GroupListHeaderLabel)`
-  justify-content: flex-end;
-  text-align: right;
-  width: 60px;
+  width: 66px;
 `;
 
 const NarrowLastTriggeredLabel = styled(GroupListHeaderLabel)`
-  width: 80px;
-  text-align: right;
-  justify-content: flex-end;
+  width: 100px;
 `;

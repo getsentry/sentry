@@ -679,12 +679,13 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
+          {showLastTriggered && hasNewLayout && (
+            <NarrowLastTriggeredWrapper>{lastTriggered}</NarrowLastTriggeredWrapper>
+          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-                {issueTypeConfig.stats.enabled ? (
-                  <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
-                ) : null}
+                {issueTypeConfig.stats.enabled ? groupCount : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper>
@@ -695,9 +696,7 @@ function StreamGroup({
           {withColumns.includes('users') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-                {issueTypeConfig.stats.enabled ? (
-                  <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
-                ) : null}
+                {issueTypeConfig.stats.enabled ? groupUsersCount : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper>
@@ -740,12 +739,9 @@ function StreamGroup({
                 />
               </AssigneeWrapper>
             ))}
-          {showLastTriggered &&
-            (hasNewLayout ? (
-              <NarrowLastTriggeredWrapper>{lastTriggered}</NarrowLastTriggeredWrapper>
-            ) : (
-              <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
-            ))}
+          {showLastTriggered && !hasNewLayout && (
+            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+          )}
         </Fragment>
       )}
     </Wrapper>
@@ -998,18 +994,16 @@ const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
 const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-end;
+  text-align: right;
   align-items: center;
   align-self: center;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   width: 60px;
 
   @container (width < ${p => p.breakpoint}) {
     display: none;
   }
-`;
-
-export const InnerCountsWrapper = styled('div')`
-  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
@@ -1037,16 +1031,18 @@ const NarrowLastTriggeredWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
-  width: 80px;
+  width: 100px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
 `;
 
 const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
   width: 64px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   align-self: center;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
 
   @container (width < ${p => p.breakpoint}) {
     display: none;
@@ -1081,7 +1077,8 @@ const NarrowAssigneeWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-end;
   text-align: right;
-  width: 60px;
+  width: 66px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   align-self: center;
 

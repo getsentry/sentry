@@ -238,7 +238,7 @@ const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
 `;
 
 export const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
-  width: 60px;
+  width: 66px;
 `;
 
 // Reprocessing
