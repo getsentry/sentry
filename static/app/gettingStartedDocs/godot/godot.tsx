@@ -1,8 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-// import createSentryNode from 'sentry-images/onboarding/godot/create-sentry-node.png';
-// import sentryNodePropertyEditor from 'sentry-images/onboarding/godot/sentry-node-property-editor.png';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -10,7 +7,6 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const getVerifySnippet = () => `SentrySdk.capture_message("Test event")`;
 
@@ -82,12 +78,3 @@ const onboarding: OnboardingConfig = {
 const docs: Docs = {onboarding};
 
 export default docs;
-
-export const Image = styled('img')`
-  height: 720px;
-  margin-bottom: ${space(4)}; /** override styles in less files */
-  max-width: 1280px !important;
-  box-shadow: none !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-`;
