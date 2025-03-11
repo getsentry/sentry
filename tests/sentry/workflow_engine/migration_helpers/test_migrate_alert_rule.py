@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -166,8 +167,8 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
 
 
 def build_sentry_app_compare_blob(
-    sentry_app_config: list[dict[str, str]],
-) -> list[dict[str, str | None]]:
+    sentry_app_config: list[dict[str, Any]],
+) -> list[dict[str, Any | None]]:
     """
     Add the label to the config
     """
@@ -184,8 +185,12 @@ def assert_sentry_app_action_migrated(
     if not alert_rule_trigger_action.sentry_app_config:
         assert action.data == {}
     else:
+        config_list = alert_rule_trigger_action.sentry_app_config
+        if isinstance(config_list, dict):
+            config_list = [config_list]
+
         assert action.data == {
-            "settings": build_sentry_app_compare_blob(alert_rule_trigger_action.sentry_app_config),
+            "settings": build_sentry_app_compare_blob(config_list),
         }
 
 
@@ -198,8 +203,10 @@ def assert_oncall_action_migrated(
                 "priority": OPSGENIE_DEFAULT_PRIORITY,
             }
         else:
+            config = alert_rule_trigger_action.sentry_app_config
+            assert isinstance(config, dict)
             assert action.data == {
-                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
+                "priority": config.get("priority"),
             }
     else:
         if not alert_rule_trigger_action.sentry_app_config:
@@ -207,8 +214,10 @@ def assert_oncall_action_migrated(
                 "priority": PAGERDUTY_DEFAULT_SEVERITY,
             }
         else:
+            config = alert_rule_trigger_action.sentry_app_config
+            assert isinstance(config, dict)
             assert action.data == {
-                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
+                "priority": config.get("priority"),
             }
 
 
