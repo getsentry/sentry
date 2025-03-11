@@ -89,6 +89,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "go-iris",
     "go-martini",
     "go-negroni",
+    "godot",
     "ionic",
     "java",
     "java-log4j2",
