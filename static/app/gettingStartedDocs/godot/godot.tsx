@@ -19,7 +19,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        "Install the SDK by downloading the [releasesLink:latest release] and placing the GDExtension into your project's bin directory.",
+        "To get started, download the latest release from [releasesLink: GitHub Releases page] and place the GDExtension in your project's [code:bin] directory.",
         {
           releasesLink: (
             <ExternalLink href="https://github.com/getsentry/sentry-godot/releases" />
@@ -27,7 +27,7 @@ const onboarding: OnboardingConfig = {
         }
       ),
       additionalInfo: tct(
-        'See the [godotSDKDocumentationLink:Godot SDK Documentation] for additional information.',
+        'Check the [godotSDKDocumentationLink:Godot SDK Documentation] for more details.',
         {
           godotSDKDocumentationLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/godot/" />
@@ -41,17 +41,13 @@ const onboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       description: (
         <Fragment>
-          {' '}
           <p>
-            {' '}
             {tct(
               'Create a [code:SentryNode] and make it the root of your project. If you have an existing project, change the root type of your project to [code:SentryNode]. Alternatively, if you cannot change the type of your root node, add a [code:SentryNode] as high up in your scene tree as possible.',
               {code: <code />}
-            )}{' '}
-          </p>{' '}
-          {/* <Image src={createSentryNode} />{' '} */}
+            )}
+          </p>
           <p>
-            {' '}
             {tct(
               'Configure the Sentry SDK directly on the [code:SentryNode] in the property editor. Read about the available options in the [link:Sentry SDK Documentation].',
               {
@@ -60,21 +56,16 @@ const onboarding: OnboardingConfig = {
                   <ExternalLink href="https://docs.sentry.io/platforms/native/configuration/options/" />
                 ),
               }
-            )}{' '}
-          </p>{' '}
-          {/* <Image src={sentryNodePropertyEditor} />{' '} */}
+            )}
+          </p>
           <p>
-            {' '}
             {tct('Enter the following DSN for the [code:Dsn] option.', {
               code: <code />,
-            })}{' '}
-          </p>{' '}
+            })}
+          </p>
         </Fragment>
       ),
       configurations: [{language: 'url', code: params.dsn.public}],
-      additionalInfo: t(
-        "And that's it! Now you can use Sentry to capture messages and other data."
-      ),
     },
   ],
   verify: () => [
