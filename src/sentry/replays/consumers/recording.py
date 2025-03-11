@@ -16,6 +16,7 @@ from sentry.replays.usecases.ingest import (
     commit_recording_message,
     parse_recording_message,
     process_recording_message,
+    track_recording_metadata,
 )
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ def commit_message(message: Message[ProcessedRecordingMessage]) -> None:
     ):
         try:
             commit_recording_message(message.payload)
+            track_recording_metadata(message.payload)
             return None
         except GCS_RETRYABLE_ERRORS:
             raise
