@@ -55,6 +55,7 @@ export function OnboardingStatus({
     beyondBasicsTasks,
     doneTasks,
     completeTasks,
+    completeOrOverdueTasks,
     refetch,
   } = useOnboardingTasks({
     disabled: !isActive,
@@ -62,7 +63,7 @@ export function OnboardingStatus({
 
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
-  const allTasksCompleted = allTasks.length === completeTasks.length;
+  const allTasksCompleted = allTasks.length === completeOrOverdueTasks.length;
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||

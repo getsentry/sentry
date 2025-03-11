@@ -6,12 +6,20 @@ function isTaskOverdue2Weeks(dateCompleted: string): boolean {
   return timeDifference > 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
 }
 
-export const taskIsDone = (task: OnboardingTask) =>
-  ['complete', 'skipped'].includes(task.status);
+export function taskIsDone(task: OnboardingTask) {
+  return ['complete', 'skipped'].includes(task.status);
+}
 
-export const findCompleteTasks = (task: OnboardingTask) => {
-  const isOverdue = task.dateCompleted && isTaskOverdue2Weeks(task.dateCompleted);
+export function findCompleteTasks(task: OnboardingTask) {
+  return taskIsDone(task) && task.completionSeen;
+}
+
+function findOverdueTasks(task: OnboardingTask) {
   return (
-    ['complete', 'skipped'].includes(task.status) && (task.completionSeen || isOverdue)
+    taskIsDone(task) && task.dateCompleted && isTaskOverdue2Weeks(task.dateCompleted)
   );
-};
+}
+
+export function findCompleteOrOverdueTasks(task: OnboardingTask) {
+  return findCompleteTasks(task) || findOverdueTasks(task);
+}
