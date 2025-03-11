@@ -196,6 +196,7 @@ function WidgetBuilderQueryFilterBuilder({
             }}
             widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
+            portalTarget={document.body}
           />
           {canHaveAlias && (
             <LegendAliasInput

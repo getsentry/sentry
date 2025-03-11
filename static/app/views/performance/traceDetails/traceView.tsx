@@ -40,7 +40,7 @@ import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/t
 import {
   getTraceInfo,
   hasTraceData,
-  isRootTransaction,
+  isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
@@ -296,7 +296,7 @@ export default function TraceView({
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
-        isOrphan: !isRootTransaction(trace),
+        isOrphan: !isRootEvent(trace),
         isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
           (!isLastTransaction && hasChildren) || hasOrphanErrors
@@ -323,11 +323,11 @@ export default function TraceView({
       const isVisible = isRowVisible(error, filteredEventIds);
       const currentHiddenCount = numOfHiddenErrorsAbove;
 
-      if (!isVisible) {
+      if (isVisible) {
+        numOfHiddenErrorsAbove = 0;
+      } else {
         numOfHiddenErrorsAbove += 1;
         totalNumOfHiddenErrors += 1;
-      } else {
-        numOfHiddenErrorsAbove = 0;
       }
 
       transactionGroups.push(

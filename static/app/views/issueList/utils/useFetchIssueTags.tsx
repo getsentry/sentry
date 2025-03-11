@@ -189,8 +189,8 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with flags[] and if necessary, quote to escape ':', which is used by our search syntax.
-      const key = tag.key.includes(':') ? `flags["${tag.key}"]` : `flags[${tag.key}]`;
+      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
+      const key = `flags["${tag.key}"]`;
       if (allTagsCollection[key]) {
         allTagsCollection[key]!.totalValues =
           (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);

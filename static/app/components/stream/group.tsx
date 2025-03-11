@@ -391,14 +391,14 @@ function StreamGroup({
           <TimeSince date={dateCreated} />
         </StartedColumn>
         <EventsReprocessedColumn>
-          {!defined(count) ? (
-            <Placeholder height="17px" />
-          ) : (
+          {defined(count) ? (
             <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
             </Fragment>
+          ) : (
+            <Placeholder height="17px" />
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
@@ -440,9 +440,7 @@ function StreamGroup({
     [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
-  const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupCount = defined(primaryCount) ? (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
         disabled={!useFilteredStats}
@@ -490,11 +488,11 @@ function StreamGroup({
         )}
       </Tooltip>
     </GuideAnchor>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupUsersCount = defined(primaryUserCount) ? (
     <Tooltip
       isHoverable
       disabled={!usePageFilters}
@@ -540,17 +538,19 @@ function StreamGroup({
         </Fragment>
       )}
     </Tooltip>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const lastTriggered = !defined(lastTriggeredDate) ? (
-    <Placeholder height="18px" />
-  ) : (
-    <TimeSince
+  const lastTriggered = defined(lastTriggeredDate) ? (
+    <PositionedTimeSince
       tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
       unitStyle="short"
     />
+  ) : (
+    <Placeholder height="18px" />
   );
 
   const issueStreamAnchor = isDemoModeEnabled() ? (
@@ -740,7 +740,12 @@ function StreamGroup({
                 />
               </AssigneeWrapper>
             ))}
-          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
+          {showLastTriggered &&
+            (hasNewLayout ? (
+              <NarrowLastTriggeredWrapper>{lastTriggered}</NarrowLastTriggeredWrapper>
+            ) : (
+              <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+            ))}
         </Fragment>
       )}
     </Wrapper>
@@ -957,7 +962,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   align-self: center;
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -970,7 +975,7 @@ const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -983,7 +988,7 @@ const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
   padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -996,7 +1001,7 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   margin-right: ${space(2)};
   width: 60px;
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -1018,6 +1023,22 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   }
 `;
 
+const LastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 80px;
+  margin: 0 ${space(2)};
+`;
+
+const NarrowLastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 80px;
+  margin-right: ${space(2)};
+`;
+
 const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
   width: 70px;
   margin-right: ${space(2)};
@@ -1025,7 +1046,7 @@ const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-start;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -1056,7 +1077,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
 
 const NarrowAssigneeWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   text-align: right;
   width: 60px;
   margin-right: ${space(2)};

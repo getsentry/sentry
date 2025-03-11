@@ -419,11 +419,11 @@ function WidgetViewerModal(props: Props) {
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
-      return parsedQuery !== null ? (
+      return parsedQuery === null ? undefined : (
         <HighlightContainer {...highlightedContainerProps}>
           <HighlightQuery parsedQuery={parsedQuery} />
         </HighlightContainer>
-      ) : undefined;
+      );
     };
 
     return {
@@ -831,9 +831,9 @@ function WidgetViewerModal(props: Props) {
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
-              widget.displayType !== DisplayType.BIG_NUMBER
-                ? HALF_CONTAINER_HEIGHT
-                : BIG_NUMBER_HEIGHT
+              widget.displayType === DisplayType.BIG_NUMBER
+                ? BIG_NUMBER_HEIGHT
+                : HALF_CONTAINER_HEIGHT
             }
           >
             {(!!seriesData || !!tableData) && chartUnmodified ? (

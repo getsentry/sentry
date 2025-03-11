@@ -14,9 +14,9 @@ export default function CreateProjectButton() {
       size="sm"
       disabled={!canUserCreateProject}
       title={
-        !canUserCreateProject
-          ? t('You do not have permission to create projects')
-          : undefined
+        canUserCreateProject
+          ? undefined
+          : t('You do not have permission to create projects')
       }
       to={`/organizations/${organization.slug}/projects/new/`}
       icon={<IconAdd isCircled />}

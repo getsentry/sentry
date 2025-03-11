@@ -257,7 +257,7 @@ describe('EventGraph', () => {
     await screen.findByRole('button', {name: '14D'});
 
     expect(mockStats).toHaveBeenCalled();
-    expect(screen.getByText(RegExp(errorMessage))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(errorMessage))).toBeInTheDocument();
     // Omit the graph
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });

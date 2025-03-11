@@ -1,15 +1,20 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
-import type {AggregationKey} from 'sentry/utils/fields';
+import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 interface SchemaHintsListProps {
@@ -30,6 +35,8 @@ function SchemaHintsList({
   stringTags,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
+  const exploreQuery = useExploreQuery();
+  const setExploreQuery = useSetExploreQuery();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -49,7 +56,7 @@ function SchemaHintsList({
     return [...sectionSortedTags, ...otherTags];
   }, [numberTags, stringTags, functionTags]);
 
-  const [visibleHints, setVisibleHints] = useState(filterTagsSorted);
+  const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
 
   useEffect(() => {
     // debounce calculation to prevent 'flickering' when resizing
@@ -61,36 +68,48 @@ function SchemaHintsList({
       const container = schemaHintsContainerRef.current;
       const containerRect = container.getBoundingClientRect();
 
-      // First render all items
-      setVisibleHints([...filterTagsSorted, seeFullListTag]);
+      // Create a temporary div to measure items without rendering them
+      const measureDiv = document.createElement('div');
+      measureDiv.style.visibility = 'hidden';
+      document.body.appendChild(measureDiv);
 
-      // this guarantees that the items are rendered before we try to measure them and do calculations
-      requestAnimationFrame(() => {
-        // Get all rendered items
-        const items = Array.from(container.children) as HTMLElement[];
+      // Clone the container styles
+      const styles = window.getComputedStyle(container);
+      measureDiv.style.display = styles.display;
+      measureDiv.style.gap = styles.gap;
+      measureDiv.style.width = styles.width;
 
-        const seeFullListTagRect = Array.from(container.children)[
-          Array.from(container.children).length - 1
-        ]?.getBoundingClientRect();
+      // Render items in hidden div to measure
+      [...filterTagsSorted, seeFullListTag].forEach(hint => {
+        const el = container.children[0]?.cloneNode(true) as HTMLElement;
+        el.innerHTML = getHintText(hint);
+        measureDiv.appendChild(el);
+      });
 
-        // Find the last item that fits within the container
-        let lastVisibleIndex = items.findIndex(item => {
+      // Get all rendered items
+      const items = Array.from(measureDiv.children) as HTMLElement[];
+
+      const seeFullListTagRect = Array.from(measureDiv.children)[
+        Array.from(measureDiv.children).length - 1
+      ]?.getBoundingClientRect();
+
+      // Find the last item that fits within the container
+      let lastVisibleIndex =
+        items.findIndex(item => {
           const itemRect = item.getBoundingClientRect();
           return itemRect.right > containerRect.right - (seeFullListTagRect?.width ?? 0);
-        });
+        }) - 1;
 
-        // If all items fit, show them all
-        if (lastVisibleIndex === -1) {
-          lastVisibleIndex = items.length;
-        }
+      // If all items fit, show them all
+      if (lastVisibleIndex < 0) {
+        lastVisibleIndex = items.length;
+      }
 
-        setVisibleHints(
-          lastVisibleIndex < items.length
-            ? [...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]
-            : filterTagsSorted
-        );
-      });
-    }, 50);
+      setVisibleHints([...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]);
+
+      // Remove the temporary div
+      document.body.removeChild(measureDiv);
+    }, 30);
 
     // initial calculation
     calculateVisibleHints();
@@ -103,18 +122,39 @@ function SchemaHintsList({
     return () => resizeObserver.disconnect();
   }, [filterTagsSorted]);
 
+  const onHintClick = useCallback(
+    (hint: Tag) => {
+      if (hint.key === seeFullListTag.key) {
+        return;
+      }
+
+      const newSearchQuery = new MutableSearch(exploreQuery);
+
+      newSearchQuery.addFilterValue(
+        hint.key,
+        hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+      );
+      setExploreQuery(newSearchQuery.formatString());
+    },
+    [exploreQuery, setExploreQuery]
+  );
+
   const getHintText = (hint: Tag) => {
-    if (hint.key === 'seeFullList') {
-      return t('See full list');
+    if (hint.key === seeFullListTag.key) {
+      return hint.name;
     }
 
-    return tct('[tag] is ...', {tag: prettifyTagKey(hint.key)});
+    return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
   };
 
   return (
     <SchemaHintsContainer ref={schemaHintsContainerRef}>
       {visibleHints.map(hint => (
-        <SchemaHintOption key={hint.key} data-type={hint.key}>
+        <SchemaHintOption
+          key={hint.key}
+          data-type={hint.key}
+          onClick={() => onHintClick(hint)}
+        >
           {getHintText(hint)}
         </SchemaHintOption>
       ))}

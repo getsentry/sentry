@@ -105,7 +105,7 @@ function KeyValueList({
   );
 }
 
-function MultiValueContainer({values}: {values: string[]}): JSX.Element {
+function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
   return (
     <Fragment>
       {values.map((val, idx) => (

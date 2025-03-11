@@ -170,7 +170,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             if compare_val in ["None", None, ""]:
                 assert action.config.get("target_identifier") is None
             else:
-                assert action.config.get("target_identifier") == compare_val
+                assert action.config.get("target_identifier") == str(compare_val)
 
         # Assert target_display matches if specified
         if target_display_key:

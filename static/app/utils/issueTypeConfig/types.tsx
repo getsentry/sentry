@@ -150,7 +150,7 @@ export type IssueTypeConfig = {
    * about the given issue type
    */
   resources: {
-    description: string | JSX.Element;
+    description: string | React.JSX.Element;
     /**
      * Resources to be shown for all platforms
      */

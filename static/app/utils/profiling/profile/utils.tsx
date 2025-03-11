@@ -120,9 +120,9 @@ export function createFrameIndex(
         {
           key: index,
           resource:
-            frame.resourceId !== undefined
-              ? trace.resources[frame.resourceId]
-              : undefined,
+            frame.resourceId === undefined
+              ? undefined
+              : trace.resources[frame.resourceId],
           ...frame,
         },
         'javascript'
@@ -323,7 +323,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean
 ) {
-  const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
+  const frameIds = [...new Array(frames.length).keys()].sort((a, b) => {
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 

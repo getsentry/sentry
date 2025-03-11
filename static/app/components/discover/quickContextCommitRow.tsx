@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';

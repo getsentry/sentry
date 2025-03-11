@@ -34,7 +34,7 @@ export const Header = styled('header')<{
 }>`
   display: grid;
   grid-template-columns: ${p =>
-    !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
+    p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: ${p => (p.unified ? p.theme.background : 'transparent')};
@@ -130,15 +130,14 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p =>
-      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
+    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
   }
 `;
 
