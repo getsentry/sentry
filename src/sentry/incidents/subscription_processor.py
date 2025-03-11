@@ -445,7 +445,10 @@ class SubscriptionProcessor:
                     aggregation_value=aggregation_value,
                 )
             # XXX (mifu67): log problematic rule, to be deleted later
-            if self.alert_rule.id == 319175:
+            if features.has(
+                "feature.organizations:failure-rate-metric-alert-logging",
+                self.subscription.project.organization,
+            ):
                 logger.info(
                     "Received this response from Seer",
                     extra={"potential_anomalies": potential_anomalies},
