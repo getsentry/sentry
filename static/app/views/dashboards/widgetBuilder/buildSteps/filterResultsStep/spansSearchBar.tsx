@@ -11,7 +11,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 function SpansSearchBar({
   widgetQuery,
   onSearch,
-}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch'>) {
+  portalTarget,
+}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch' | 'portalTarget'>) {
   const {
     selection: {projects},
   } = usePageFilters();
@@ -26,6 +27,7 @@ function SpansSearchBar({
       supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="dashboards"
       projects={projects}
+      portalTarget={portalTarget}
     />
   );
 }

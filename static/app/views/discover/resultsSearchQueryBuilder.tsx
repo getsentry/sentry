@@ -125,6 +125,7 @@ type Props = {
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
+  portalTarget?: HTMLElement | null;
   projectIds?: number[] | readonly number[];
   query?: string;
   recentSearches?: SavedSearchType;
@@ -144,6 +145,7 @@ function ResultsSearchQueryBuilder(props: Props) {
     dataset,
     includeTransactions = true,
     placeholder,
+    portalTarget,
   } = props;
 
   const api = useApi();
@@ -295,6 +297,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
       recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
+      portalTarget={portalTarget}
       showUnsubmittedIndicator
     />
   );
