@@ -9,7 +9,7 @@ import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueVie
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
-import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
+import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -157,7 +157,7 @@ export function IssueViewNavItemContent({
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
         isActive={isActive}
-        leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
+        leadingItems={<ProjectIcon projectPlatforms={projectPlatforms} />}
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {

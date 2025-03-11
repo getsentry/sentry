@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
-import {IconAllProjects} from 'sentry/components/nav/issueViews/iconAllProjects';
+import {IconAllProjects} from 'sentry/components/nav/iconAllProjects';
 import {space} from 'sentry/styles/space';
 
-interface IssueViewProjectIconsProps {
+interface ProjectIconProps {
   projectPlatforms: string[];
 }
 
-function IssueViewProjectIcons({projectPlatforms}: IssueViewProjectIconsProps) {
+function ProjectIcon({projectPlatforms}: ProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
@@ -88,4 +88,4 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
   `}
 `;
 
-export default IssueViewProjectIcons;
+export default ProjectIcon;
