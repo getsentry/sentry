@@ -221,21 +221,22 @@ function ReleaseBubbleSeries({
     // Width between two timestamps for timeSeries
     const width = bubbleEndX - bubbleStartX;
 
-    // Padding is on both left/right sides to try to center the bubble
-    //
-    //  bubbleStartX   bubbleEndX
-    //  |              |
-    //  v              v
-    //  ----------------  ----------------
-    //  |              |  |              |
-    //  ----------------  ----------------
-    //                 ^  ^
-    //                 |--|
-    //                 bubblePadding.x
     const shape = {
+      // Padding is on both left/right sides to try to center the bubble
+      //
+      //  bubbleStartX   bubbleEndX
+      //  |              |
+      //  v              v
+      //  ----------------  ----------------
+      //  |              |  |              |
+      //  ----------------  ----------------
+      //                 ^  ^
+      //                 |--|
+      //                 bubblePadding.x
+
       // No left-padding on first bubble
-      x: bubbleStartX + (params.dataIndex === 0 ? 0 : bubblePadding.x / 2),
-      y: bubbleStartY + bubblePadding.y / 2,
+      x: bubbleStartX + (params.dataIndex === 0 ? 0 : bubblePadding.x),
+
       // No right-padding on last bubble
       // We don't decrease width on first bubble to make up for lack of
       // left-padding
@@ -243,8 +244,23 @@ function ReleaseBubbleSeries({
         width -
         (params.dataIndex === 0 || params.dataIndex === data.length - 1
           ? 0
-          : bubblePadding.x / 2),
-      height: bubbleSize - bubblePadding.y,
+          : bubblePadding.x),
+
+      // We configure base chart's grid and xAxis to create a gap size of
+      // `bubbleSize`. We then have to configure `y` and `height` to fit within this
+      //
+      // ----------------- grid bottom
+      //   ^
+      //   | bubbleSize
+      //   v
+      // ----------------- = xAxis offset
+
+      // idk exactly what's happening but we need a 1 pixel buffer to make it
+      // properly centered. I want to guess because we are drawing below the
+      // xAxis, and we have to account for the pixel being drawn in the other
+      // direction. You can see this if you set the x-axis offset to 0 and compare.
+      y: bubbleStartY + bubblePadding.y + 1,
+      height: bubbleSize,
 
       // border radius
       r: 0,
@@ -388,7 +404,9 @@ export function useReleaseBubbles({
       // configure `axisLine` and `offset` to move axis line below 0 so that
       // bubbles sit between bottom of the main chart and the axis line
       axisLine: {onZero: false},
-      offset: bubbleSize,
+      // The +1 is needed because we add 1 pixel when drawing the bubbles in
+      // renderReleaseBubble (read comments there)
+      offset: bubbleSize + totalBubblePaddingY + 1,
     },
 
     /**
@@ -397,7 +415,7 @@ export function useReleaseBubbles({
     releaseBubbleGrid: {
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
       // drawn below grid (but above x axis label)
-      bottom: bubbleSize,
+      bottom: bubbleSize + totalBubblePaddingY + 1,
     },
   };
 }
