@@ -1573,7 +1573,6 @@ SENTRY_DEFAULT_LANGUAGE = "en"
 # Enable the Sentry Debugger (Beta)
 SENTRY_DEBUGGER = None
 
-SENTRY_IGNORE_EXCEPTIONS = ("OperationalError",)
 
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
