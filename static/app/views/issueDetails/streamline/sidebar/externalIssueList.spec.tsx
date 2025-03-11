@@ -13,7 +13,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 
-import {ExternalIssueList} from './externalIssueList';
+import {ExternalIssueList} from './externalIssueSidebarList';
 
 describe('ExternalIssueList', () => {
   const organization = OrganizationFixture();
