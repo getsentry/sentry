@@ -167,19 +167,19 @@ function ChonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
       width: 100%;
       height: 12px;
       cursor: pointer;
-      border: 1px solid ${p.theme.colors.dynamic.surface100};
-      background: ${p.theme.colors.dynamic.surface300};
+      border: 1px solid ${p.theme.colors.chonk.blue100};
+      background: ${p.theme.colors.surface300};
       border-radius: ${p.theme.radius.micro};
-      box-shadow: 0px 3px 0px 0px ${p.theme.colors.dynamic.surface100} inset;
+      box-shadow: 0px 3px 0px 0px ${p.theme.colors.surface100} inset;
     }
 
     &::-webkit-slider-thumb {
       appearance: none;
       width: 24px;
       height: 24px;
-      background: ${p.theme.colors.dynamic.surface300};
-      border: 1px solid ${p.theme.colors.dynamic.blue100};
-      border-bottom: 2px solid ${p.theme.colors.dynamic.blue100};
+      background: ${p.theme.colors.surface300};
+      border: 1px solid ${p.theme.colors.chonk.blue100};
+      border-bottom: 2px solid ${p.theme.colors.chonk.blue100};
       border-radius: ${p.theme.radius.lg};
       transform: translateY(-7px);
     }
@@ -189,19 +189,19 @@ function ChonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
       width: 100%;
       height: 12px;
       cursor: pointer;
-      border: 1px solid ${p.theme.colors.dynamic.surface100};
-      background: ${p.theme.colors.dynamic.surface300};
+      border: 1px solid ${p.theme.colors.surface100};
+      background: ${p.theme.colors.surface300};
       border-radius: ${p.theme.radius.micro};
-      box-shadow: 0px 3px 0px 0px ${p.theme.colors.dynamic.surface100} inset;
+      box-shadow: 0px 3px 0px 0px ${p.theme.colors.surface100} inset;
     }
 
     &::-moz-range-thumb {
       appearance: none;
       width: 24px;
       height: 24px;
-      background: ${p.theme.colors.dynamic.surface300};
-      border: 1px solid ${p.theme.colors.dynamic.blue100};
-      border-bottom: 2px solid ${p.theme.colors.dynamic.blue100};
+      background: ${p.theme.colors.surface300};
+      border: 1px solid ${p.theme.colors.chonk.blue100};
+      border-bottom: 2px solid ${p.theme.colors.chonk.blue100};
       border-radius: ${p.theme.radius.lg};
       transform: translateY(0);
     }
