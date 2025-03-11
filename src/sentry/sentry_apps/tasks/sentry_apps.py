@@ -203,7 +203,7 @@ def send_alert_webhook(
             "alert_rule_ui_component_webhook.sent",
             organization_id=organization.id,
             sentry_app_id=sentry_app_id,
-            event=str(SentryAppEventType.EVENT_ALERT_TRIGGERED),
+            event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
         )
 
 
@@ -491,8 +491,10 @@ def send_resource_change_webhook(
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
-            logger.info("notify_sentry_app.future_missing_sentry_app", extra={"future": f})
-            continue
+            logger.error(
+                "notify_sentry_app.future_missing_sentry_app",
+                extra={"event": event.as_dict(), "future": f, "event_id": event.event_id},
+            )
 
         extra_kwargs: dict[str, Any] = {
             "additional_payload_key": None,
