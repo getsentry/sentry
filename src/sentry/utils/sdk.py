@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import os
 import sys
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
@@ -457,6 +458,12 @@ def configure_sdk():
         "sync-options-control",
         "schedule-digests",
     ]
+
+    # Check if SENTRY_SPOTLIGHT is enabled and set additional environment variables to inject
+    # Spotlight Django middleware
+    if os.environ.get("SENTRY_SPOTLIGHT") == "1":
+        os.environ["SENTRY_SPOTLIGHT_ON_ERROR"] = "1"
+        os.environ["SENTRY_SPOTLIGHT_MIDDLEWARE"] = "1"
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
