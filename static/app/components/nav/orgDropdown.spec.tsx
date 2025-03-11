@@ -21,7 +21,7 @@ describe('OrgDropdown', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
 
-    expect(screen.getByText('Organization Name')).toBeInTheDocument();
+    expect(screen.getByText('org-slug')).toBeInTheDocument();
     expect(screen.getByText('0 Projects')).toBeInTheDocument();
 
     expect(screen.getByRole('link', {name: 'Organization Settings'})).toHaveAttribute(
@@ -105,11 +105,11 @@ describe('OrgDropdown', function () {
 
     await userEvent.hover(screen.getByText('Switch Organization'));
 
-    expect(await screen.findByRole('link', {name: /Org 1/})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: /org-1/})).toHaveAttribute(
       'href',
       `/organizations/org-1/issues/`
     );
-    expect(await screen.findByRole('link', {name: /Org 2/})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: /org-2/})).toHaveAttribute(
       'href',
       `/organizations/org-2/issues/`
     );
