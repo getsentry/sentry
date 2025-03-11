@@ -36,7 +36,7 @@ class OrganizationIssueBreakdownEndpoint(OrganizationEndpoint, EnvironmentMixin)
         projects = self.get_projects(request, organization)
         issue_category = request.GET.get("category", "error")
         type_filter = (
-            Q(type=GroupCategory.ERROR)
+            ~Q(type=GroupCategory.FEEDBACK)
             if issue_category == "error"
             else Q(type=GroupCategory.FEEDBACK)
         )
