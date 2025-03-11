@@ -17,6 +17,8 @@ from sentry.replays.usecases.ingest.dom_index import (
     log_canvas_size,
     parse_replay_actions,
 )
+from sentry.replays.usecases.ingest.event_logger import emit_click_events
+from sentry.replays.usecases.ingest.event_parser import ClickEvent
 from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -402,10 +404,12 @@ def test_parse_replay_dead_click_actions(
             }
         ):
             replay_actions = parse_replay_actions(
-                default_project, "1", 30, events, mock_replay_event(), org_id=1
+                default_project, "1", 30, events, mock_replay_event(environment="dev"), org_id=1
             )
     else:
-        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+        replay_actions = parse_replay_actions(
+            default_project, "1", 30, events, mock_replay_event(environment="dev")
+        )
 
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
@@ -419,6 +423,7 @@ def test_parse_replay_dead_click_actions(
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["type"] == "replay_actions"
     assert payload["replay_id"] == "1"
+    assert payload["environment"] == "dev"
     assert len(payload["clicks"]) == 3
 
     action = payload["clicks"][0]
@@ -1149,3 +1154,203 @@ def test_emit_click_negative_node_id(mock_project):
 
     user_actions = get_user_actions(mock_project, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 0
+
+
+@django_db_all
+def test_parse_clicks_with_replay_event_and_environment(default_project):
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                                "data-sentry-component": "SignUpForm",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+
+    default_project.update_option("sentry:replay_rage_click_issues", True)
+    replay_actions = parse_replay_actions(
+        default_project, "1", 30, events, mock_replay_event(environment="dev")
+    )
+    assert replay_actions is not None
+    assert isinstance(replay_actions["payload"], list)
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["environment"] == "dev"
+
+
+@django_db_all
+def test_parse_clicks_with_replay_event_null_environment(default_project):
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                                "data-sentry-component": "SignUpForm",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+
+    default_project.update_option("sentry:replay_rage_click_issues", True)
+    replay_actions = parse_replay_actions(
+        default_project, "1", 30, events, mock_replay_event(environment=None)
+    )
+    assert replay_actions is not None
+    assert isinstance(replay_actions["payload"], list)
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["environment"] == ""
+
+
+@django_db_all
+def test_parse_clicks_no_replay_event(default_project):
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                                "data-sentry-component": "SignUpForm",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+
+    default_project.update_option("sentry:replay_rage_click_issues", True)
+    replay_actions = parse_replay_actions(default_project, "1", 30, events, None)
+    assert replay_actions is not None
+    assert isinstance(replay_actions["payload"], list)
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["environment"] == ""
+
+
+@pytest.mark.parametrize(
+    "test_environment,expected_environment",
+    [
+        ("production", "production"),
+        ("dev", "dev"),
+        ("", ""),
+        (None, ""),
+    ],
+)
+def test_emit_click_events_environment_handling(test_environment, expected_environment):
+    click_events = [
+        ClickEvent(
+            timestamp=1,
+            node_id=1,
+            tag="div",
+            text="test",
+            is_dead=False,
+            is_rage=False,
+            url="http://example.com",
+            selector="div",
+            component_name="SignUpForm",
+            alt="1",
+            aria_label="test",
+            classes=["class1", "class2"],
+            id="id",
+            role="button",
+            testid="2",
+            title="3",
+        )
+    ]
+
+    with mock.patch(
+        "sentry.replays.usecases.ingest.event_logger._initialize_publisher"
+    ) as mock_init_publisher:
+        mock_publisher = mock.MagicMock()
+        mock_init_publisher.return_value = mock_publisher
+
+        emit_click_events(
+            click_events=click_events,
+            project_id=1,
+            replay_id=uuid.uuid4().hex,
+            retention_days=30,
+            start_time=1,
+            environment=test_environment,
+        )
+
+        call_args = mock_publisher.publish.call_args
+        assert call_args is not None
+
+        channel, data = call_args.args
+        action = json.loads(data)
+        payload = json.loads(bytes(action["payload"]))
+        assert payload["environment"] == expected_environment
