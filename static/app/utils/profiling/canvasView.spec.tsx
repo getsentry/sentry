@@ -8,9 +8,10 @@ import {
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {lightTheme} from 'sentry/utils/theme';
 
 const makeCanvasAndView = (
   canvas: HTMLCanvasElement,
@@ -25,8 +26,8 @@ const makeCanvasAndView = (
     options: {
       inverted: flamegraph.inverted,
       minWidth: flamegraph.profile.minFrameDuration,
-      barHeight: theme.SIZES.BAR_HEIGHT,
-      depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+      barHeight: makeLightFlamegraphTheme(lightTheme).SIZES.BAR_HEIGHT,
+      depthOffset: makeLightFlamegraphTheme(lightTheme).SIZES.FLAMEGRAPH_DEPTH_OFFSET,
       configSpaceTransform,
     },
   });
@@ -130,7 +131,12 @@ describe('CanvasView', () => {
         vec2.fromValues(250, 250),
         flamegraphCanvas
       );
-      expect(cursor).toEqual(vec2.fromValues(25, 2000 / theme.SIZES.BAR_HEIGHT / 8));
+      expect(cursor).toEqual(
+        vec2.fromValues(
+          25,
+          2000 / makeLightFlamegraphTheme(lightTheme).SIZES.BAR_HEIGHT / 8
+        )
+      );
     });
   });
 

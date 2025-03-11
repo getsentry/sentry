@@ -7,12 +7,15 @@ import {
 } from 'sentry/utils/profiling/colors/utils';
 import {
   LCH_LIGHT,
-  LightFlamegraphTheme,
+  makeLightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {lightTheme} from 'sentry/utils/theme';
 
 import {makeColorBucketTheme} from '../speedscope';
+
+const theme = makeLightFlamegraphTheme(lightTheme);
 
 const f = (key: number, name: string, file?: string, image?: string): FlamegraphFrame => {
   return {
@@ -54,7 +57,7 @@ describe('makeStackToColor', () => {
       frames,
       () => new Map(),
       makeColorBucketTheme(LCH_LIGHT),
-      LightFlamegraphTheme
+      theme
     );
     expect(colorBuffer.slice(0, 4)).toEqual(fallback);
     expect(colorBuffer).toHaveLength(24);
@@ -71,7 +74,7 @@ describe('makeStackToColor', () => {
       frames,
       makeColorMapBySymbolName,
       makeColorBucketTheme(LCH_LIGHT),
-      LightFlamegraphTheme
+      theme
     );
     expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
     expect(
@@ -96,7 +99,7 @@ describe('makeStackToColor', () => {
         return m;
       },
       makeColorBucketTheme(LCH_LIGHT),
-      LightFlamegraphTheme
+      theme
     );
     expect(colorBuffer.slice(0, 4)).toEqual([1, 0, 0, 1]);
     expect(colorBuffer).toHaveLength(24);
