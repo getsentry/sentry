@@ -13,7 +13,6 @@ from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.rules.processing.buffer_processing import (
@@ -412,8 +411,7 @@ def fire_actions_for_groups(
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
 
         # temporary fetching of organization, so not passing in as parameter
-        if organization is None:
-            organization = group.project.organization
+        organization = group.project.organization
 
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
