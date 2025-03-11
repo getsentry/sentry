@@ -109,9 +109,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("ORG_ADD")
 
         audit_log_event = audit_log.get(entry.event)
-        note = audit_log_event.render(entry)
-        assert note.startswith("created the organization")
-        assert "vercel" in note
+        assert audit_log_event.render(entry) == "created the organization with vercel integration"
 
     def test_audit_entry_org_delete_log(self):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
