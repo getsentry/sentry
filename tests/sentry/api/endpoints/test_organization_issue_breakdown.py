@@ -32,9 +32,9 @@ class OrganizationIssueBreakdownTest(APITestCase):
         response = self.client.get(self.url + "?statsPeriod=1d&category=error")
         response_json = response.json()
         assert response_json["data"] == [
-            [int(yday.timestamp()), [{"count": 0}, {"count": 0}]],
-            [int(today.timestamp()), [{"count": 2}, {"count": 1}]],
-            [int(tmrw.timestamp()), [{"count": 2}, {"count": 1}]],
+            [str(int(yday.timestamp())), [{"count": 0}, {"count": 0}]],
+            [str(int(today.timestamp())), [{"count": 2}, {"count": 1}]],
+            [str(int(tmrw.timestamp())), [{"count": 2}, {"count": 1}]],
         ]
 
     def test_issues_by_release(self):
@@ -51,11 +51,11 @@ class OrganizationIssueBreakdownTest(APITestCase):
         self.create_group(project=project1, status=0, type=1)
         self.create_group(project=project2, status=2, type=6)
 
-        response = self.client.get(self.url + "?statsPeriod=1d&category=error")
+        response = self.client.get(self.url + "?statsPeriod=1d&category=error&group_by=release")
         response_json = response.json()
         assert response_json["data"] == [
-            ["1.0.0", [{"count": 2}, {"count": 1}]],
-            ["1.2.0", [{"count": 2}, {"count": 1}]],
+            ["1.0.0", [{"count": 2}]],
+            ["1.2.0", [{"count": 2}]],
         ]
 
     def test_issues_invalid_group_by(self):

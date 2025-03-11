@@ -1,9 +1,10 @@
 from collections.abc import Iterator
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db.models import Count, F, Q
 from django.db.models.functions import TruncDay
+from django.db.models.query import QuerySet
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -56,12 +57,9 @@ class OrganizationIssueBreakdownEndpoint(OrganizationEndpoint, EnvironmentMixin)
             append_series(series_response, new_series)
             append_series(series_response, resolved_series)
         else:
-            # Series queries.
-            series = query_issues_by_release(projects, environments, type_filter, start, end)
-
-            # Filling and formatting.
-            series_response = empty_response(start, end, interval)
-            append_series(series_response, series)
+            series_response = query_issues_by_release(
+                projects, environments, type_filter, start, end
+            )
 
         return Response(
             {
@@ -90,6 +88,13 @@ class OrganizationIssueBreakdownEndpoint(OrganizationEndpoint, EnvironmentMixin)
 class Series(TypedDict):
     bucket: datetime
     count: int
+
+
+class SeriesResponseItem(TypedDict):
+    count: int
+
+
+SeriesResponse = dict[str, list[SeriesResponseItem]]
 
 
 def query_new_issues(
@@ -154,7 +159,7 @@ def query_issues_by_release(
     type_filter: Q,
     start: datetime,
     end: datetime,
-) -> list[Series]:
+) -> SeriesResponse:
     # SELECT count(*), first_release.version FROM issues JOIN release GROUP BY first_release.version
     group_environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
@@ -166,13 +171,14 @@ def query_issues_by_release(
             first_seen__gte=start,
             first_seen__lte=end,
             project__in=projects,
+            first_release__isnull=False,
         )
         .annotate(bucket=F("first_release__version"))
         .order_by("bucket")
         .values("bucket")
         .annotate(count=Count("id"))
     )
-    return list(issues_by_release_query)
+    return to_series(issues_by_release_query)
 
 
 # Response filling and formatting.
@@ -182,22 +188,15 @@ class BucketNotFound(LookupError):
     pass
 
 
-class SeriesResponseItem(TypedDict):
-    count: int
-
-
-SeriesResponse = dict[int, list[SeriesResponseItem]]
-
-
 def append_series(resp: SeriesResponse, series: list[Series]) -> None:
     # We're going to increment this index as we consume the series.
     idx = 0
 
     for bucket in resp.keys():
         try:
-            next_bucket = int(series[idx]["bucket"].timestamp())
+            next_bucket = str(int(series[idx]["bucket"].timestamp()))
         except IndexError:
-            next_bucket = -1
+            next_bucket = "-1"
 
         # If the buckets match use the series count.
         if next_bucket == bucket:
@@ -217,7 +216,11 @@ def empty_response(start: datetime, end: datetime, interval: timedelta) -> Serie
     return {bucket: [] for bucket in iter_interval(start, end, interval)}
 
 
-def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[int]:
+def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[str]:
     while start <= end:
-        yield int(start.timestamp())
+        yield str(int(start.timestamp()))
         start = start + interval
+
+
+def to_series(series: QuerySet[Any, dict[str, Any]]) -> SeriesResponse:
+    return {s["bucket"]: [{"count": s["count"]}] for s in series}
