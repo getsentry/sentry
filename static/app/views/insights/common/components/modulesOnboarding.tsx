@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
@@ -65,28 +66,23 @@ export function ModulesOnboarding({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasData]);
 
-  if (onboardingProject) {
+  // Show onboarding content if:
+  // 1. There's an onboarding project, or
+  // 2. showOnboardingOverride is true, or
+  // 3. There's no span data and showOnboardingOverride is undefined
+  const shouldShowOnboarding =
+    onboardingProject ||
+    showOnboardingOverride === true ||
+    (showOnboardingOverride === undefined && !hasData);
+
+  if (shouldShowOnboarding) {
     return (
       <ModuleLayout.Full>
-        <LegacyOnboarding organization={organization} project={onboardingProject} />
-      </ModuleLayout.Full>
-    );
-  }
-
-  if (showOnboardingOverride !== undefined) {
-    return showOnboardingOverride ? (
-      <ModuleLayout.Full>
-        <ModulesOnboardingPanel moduleName={moduleName} />
-      </ModuleLayout.Full>
-    ) : (
-      children
-    );
-  }
-
-  if (!hasData) {
-    return (
-      <ModuleLayout.Full>
-        <ModulesOnboardingPanel moduleName={moduleName} />
+        {onboardingProject ? (
+          <LegacyOnboarding organization={organization} project={onboardingProject} />
+        ) : (
+          <ModulesOnboardingPanel moduleName={moduleName} />
+        )}
       </ModuleLayout.Full>
     );
   }
@@ -154,7 +150,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
-              <Tooltip title={getSDKName(sdk) ?? ''} key={sdk} position="top">
+              <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
                   onMouseOver={() => setHoveredIcon(sdk)}
                   onMouseOut={() => setHoveredIcon(null)}
