@@ -5,4 +5,4 @@ export const DEFAULT_BUBBLE_SIZE = 12;
 // "padding" around the bubbles as it is drawn on canvas vs CSS, this may need
 // to move into `renderReleaseBubble` if it needs to be customizable
 export const RELEASE_BUBBLE_Y_PADDING = 8;
-export const RELEASE_BUBBLE_X_PADDING = 1;
+export const RELEASE_BUBBLE_X_PADDING = 2;

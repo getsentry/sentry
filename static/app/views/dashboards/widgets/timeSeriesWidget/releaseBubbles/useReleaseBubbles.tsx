@@ -237,9 +237,13 @@ function ReleaseBubbleSeries({
       x: bubbleStartX + (params.dataIndex === 0 ? 0 : bubblePadding.x / 2),
       y: bubbleStartY + bubblePadding.y / 2,
       // No right-padding on last bubble
-      width: width - (params.dataIndex === 0 ? 0 : bubblePadding.x),
-      // currently we have a static height, but this may need to change since
-      // we have charts of different dimensions
+      // We don't decrease width on first bubble to make up for lack of
+      // left-padding
+      width:
+        width -
+        (params.dataIndex === 0 || params.dataIndex === data.length - 1
+          ? 0
+          : bubblePadding.x / 2),
       height: bubbleSize - bubblePadding.y,
 
       // border radius
