@@ -6,16 +6,22 @@ import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 
-const getVerifySnippet = () => `SentrySdk.capture_message("Test event")`;
+const getVerifySnippet = () => `
+extends Node
+
+func _ready():
+	SentrySDK.add_breadcrumb("Just about to welcome the World.", "Note")
+	SentrySDK.capture_message("Hello, World!")
+`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        "To get started, download the latest release from [releasesLink: GitHub Releases page] and place the GDExtension in your project's [code:bin] directory.",
+        "To get started, download the latest release of sentry Godot GDExtension from [releasesLink: GitHub Releases page] and place the Sentry SDK addon in [code: addons/sentry] in your project's directory.",
         {
           releasesLink: (
             <ExternalLink href="https://github.com/getsentry/sentry-godot/releases" />
@@ -39,17 +45,11 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'Create a [code:SentryNode] and make it the root of your project. If you have an existing project, change the root type of your project to [code:SentryNode]. Alternatively, if you cannot change the type of your root node, add a [code:SentryNode] as high up in your scene tree as possible.',
-              {code: <code />}
-            )}
-          </p>
-          <p>
-            {tct(
-              'Configure the Sentry SDK directly on the [code:SentryNode] in the property editor. Read about the available options in the [link:Sentry SDK Documentation].',
+              'Sentry can be configured via Project Settings or with a [link: Configuration Script]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings...], then scroll down the sections list on the left until you find the Sentry section.',
               {
                 code: <code />,
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/native/configuration/options/" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/godot/configuration/options/" />
                 ),
               }
             )}
@@ -67,10 +67,13 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Once the SDK is configured with the DSN you can call the SDK from anywhere:'
+      description: tct(
+        'Once the SDK is configured with the DSN you can add a [code:Node] to your test scene and attach a script with the following content:',
+        {
+          code: <code />,
+        }
       ),
-      configurations: [{language: 'c', code: getVerifySnippet()}],
+      configurations: [{language: 'gdscript', code: getVerifySnippet()}],
     },
   ],
 };
