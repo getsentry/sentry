@@ -1,9 +1,7 @@
 import moment from 'moment-timezone';
-import * as qs from 'query-string';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -44,8 +42,6 @@ export type SpanSample = Pick<
 
 export const useSpanSamples = (options: Options) => {
   const organization = useOrganization();
-  const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
-  const api = useApi();
   const pageFilter = usePageFilters();
   const {
     groupId,
@@ -101,7 +97,6 @@ export const useSpanSamples = (options: Options) => {
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  const queryString = query.formatString();
   const queryParams = {
     ...dateCondtions,
     ...{utc: location.query.utc},
@@ -111,19 +106,26 @@ export const useSpanSamples = (options: Options) => {
     upperBound: maxYValue,
     project: pageFilter.selection.projects,
     environment: pageFilter.selection.environments,
-    query: queryString,
+    query: query.formatString(),
     ...(additionalFields?.length ? {additionalFields} : {}),
   };
-  const result = useQuery<SpanSample[]>({
-    queryKey: ['span-samples', {url, queryParams}],
-    queryFn: async () => {
-      const {data} = await api.requestPromise(`${url}?${qs.stringify(queryParams)}`);
-      return data
-        ?.map((d: SpanSample) => ({
-          ...d,
-          timestamp: moment(d.timestamp).format(DATE_FORMAT),
-        }))
-        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]);
+  const result = useQuery({
+    queryKey: [
+      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      {query: queryParams},
+    ] as const,
+    queryFn: async context => {
+      const [data] = await fetchDataQuery<SpanSample[]>(context);
+      return (
+        data
+          ?.map((d: SpanSample) => ({
+            ...d,
+            timestamp: moment(d.timestamp).format(DATE_FORMAT),
+          }))
+          .sort(
+            (a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]
+          ) ?? []
+      );
     },
     refetchOnWindowFocus: false,
     enabled,
