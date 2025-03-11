@@ -29,6 +29,7 @@ import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHeal
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
+import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
@@ -37,7 +38,12 @@ export function SessionsOverview() {
   };
 
   const {view} = useDomainViewFilters();
+
   const [filters, setFilters] = useState<string[]>(['']);
+
+  // only show onboarding if the project does not have session data
+  const hasSessionData = useProjectHasSessions();
+  const showOnboarding = !hasSessionData;
 
   const SESSION_HEALTH_CHARTS = (
     <Fragment>
@@ -89,7 +95,10 @@ export function SessionsOverview() {
                 </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
-            <ModulesOnboarding moduleName={ModuleName.SESSIONS}>
+            <ModulesOnboarding
+              moduleName={ModuleName.SESSIONS}
+              showOnboardingOverride={showOnboarding}
+            >
               {view === MOBILE_LANDING_SUB_PATH && (
                 <Fragment>
                   {SESSION_HEALTH_CHARTS}

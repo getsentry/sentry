@@ -36,13 +36,20 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
+type ModuleOnboardingProps = {
+  children: React.ReactNode;
+  moduleName: ModuleName;
+  /**
+   * Used to override the default logic for rendering module onboarding.
+   */
+  showOnboardingOverride?: boolean;
+};
+
 export function ModulesOnboarding({
   children,
   moduleName,
-}: {
-  children: React.ReactNode;
-  moduleName: ModuleName;
-}) {
+  showOnboardingOverride,
+}: ModuleOnboardingProps) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {reloadProjects} = useProjects();
@@ -63,6 +70,16 @@ export function ModulesOnboarding({
       <ModuleLayout.Full>
         <LegacyOnboarding organization={organization} project={onboardingProject} />
       </ModuleLayout.Full>
+    );
+  }
+
+  if (showOnboardingOverride !== undefined) {
+    return showOnboardingOverride ? (
+      <ModuleLayout.Full>
+        <ModulesOnboardingPanel moduleName={moduleName} />
+      </ModuleLayout.Full>
+    ) : (
+      children
     );
   }
 
