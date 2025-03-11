@@ -307,7 +307,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
         {...props}
         project={{
           ...project,
-          ...(projectDetails || {}),
+          ...projectDetails,
         }}
       />
     );
@@ -439,7 +439,6 @@ const StyledIdBadge = styled(IdBadge)`
 const SummaryLinks = styled('div')`
   display: flex;
   position: relative;
-  top: -${space(2)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
 
@@ -447,7 +446,7 @@ const SummaryLinks = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 
   /* Need to offset for the project icon and margin */
-  margin-left: 40px;
+  margin-left: 24px;
 
   a {
     color: ${p => p.theme.subText};

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo} from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -245,22 +245,6 @@ function AutofixSummary({
         ]
       : []),
   ];
-
-  // Add event listener to prevent propagation of click events from links
-  useEffect(() => {
-    const handleLinkClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const isLink = target.tagName === 'A' || target.closest('a');
-
-      if (isLink) {
-        event.stopPropagation();
-      }
-    };
-    document.addEventListener('click', handleLinkClick, true);
-    return () => {
-      document.removeEventListener('click', handleLinkClick, true);
-    };
-  }, []);
 
   return (
     <div data-testid="autofix-summary">

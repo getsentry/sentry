@@ -102,7 +102,7 @@ export function DetectorSection({group, project}: {group: Group; project: Projec
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={issueConfig.detector.ctaText ?? t('View detector details')}
-        href={detectorPath}
+        to={detectorPath}
         style={{width: '100%'}}
         size="sm"
       >
