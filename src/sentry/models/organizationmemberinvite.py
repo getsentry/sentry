@@ -1,10 +1,11 @@
 import secrets
-from datetime import timedelta, timezone
+from datetime import timedelta
 from enum import Enum
 
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
@@ -42,7 +43,11 @@ invite_status_names = {
 
 
 def default_expiration():
-    return timezone.now() + INVITE_DAYS_VALID
+    return timezone.now() + timedelta(days=INVITE_DAYS_VALID)
+
+
+def generate_token():
+    return secrets.token_hex(nbytes=32)
 
 
 @region_silo_model
@@ -67,7 +72,7 @@ class OrganizationMemberInvite(Model):
     email = models.EmailField(default="", max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     organization_member_team_data = models.JSONField(default=dict)
-    token = models.CharField(max_length=64, unique=True, default=secrets.token_hex(nbytes=32))
+    token = models.CharField(max_length=64, unique=True, default=generate_token)
     token_expires_at = models.DateTimeField(default=default_expiration)
 
     # the subsequent fields correspond to _OrganizationMemberFlags
@@ -86,13 +91,13 @@ class OrganizationMemberInvite(Model):
     __repr__ = sane_repr("organization_id", "email", "role")
 
     def get_invite_link(self, referrer: str | None = None):
-        if not self.is_pending or not self.invite_approved:
+        if not self.invite_approved:
             return None
         path = reverse(
             "sentry-accept-invite",
             kwargs={
                 "member_id": self.id,
-                "token": self.token or self.legacy_token,
+                "token": self.token,
             },
         )
         invite_link = self.organization.absolute_url(path)
@@ -118,7 +123,7 @@ class OrganizationMemberInvite(Model):
         )
 
         try:
-            msg.send_async([self.get_email()])
+            msg.send_async([self.email])
         except Exception as e:
             mail_logger = get_logger(name="sentry.mail")
             mail_logger.exception(e)
