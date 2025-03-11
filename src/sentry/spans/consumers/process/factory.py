@@ -301,7 +301,7 @@ class SpanFlusher(ProcessingStrategy[int]):
                 max_segments=self.max_flush_segments, now=now, flush_shard=self.flush_shard
             )
             self.enable_backpressure = (
-                self.max_inflight_segments >= 0 and queue_size >= self.max_inflight_segments
+                self.max_inflight_segments > 0 and queue_size >= self.max_inflight_segments
             )
 
             if not flushed_segments:
@@ -329,10 +329,10 @@ class SpanFlusher(ProcessingStrategy[int]):
                     None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
                 )
 
-                logger.info("%s segments flushed", len(segment_spans))
                 producer_futures.append(self.producer.produce(self.topic, kafka_payload))
 
             futures.wait(producer_futures)
+            logger.info("%s segments flushed", len(flushed_segments))
 
             self.buffer.done_flush_segments(flushed_segments)
 
@@ -344,8 +344,6 @@ class SpanFlusher(ProcessingStrategy[int]):
 
         if self.enable_backpressure:
             raise MessageRejected()
-
-        logger.info("timestamp: %s; drift: %s", message.payload, self.current_drift)
 
         self.next_step.submit(message)
 
