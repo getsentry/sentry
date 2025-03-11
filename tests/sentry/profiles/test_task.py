@@ -210,8 +210,7 @@ def sample_v1_profile_without_transaction_timestamps(sample_v1_profile):
     return sample_v1_profile
 
 
-@pytest.fixture
-def sample_v2_profile():
+def generate_sample_v2_profile():
     return json.loads(
         """{
   "event_id": "41fed0925670468bb0457f61a74688ec",
@@ -265,6 +264,26 @@ def sample_v2_profile():
   }
 }"""
     )
+
+
+@pytest.fixture
+def sample_v2_profile():
+    return generate_sample_v2_profile()
+
+
+@pytest.fixture
+def sample_v2_profile_long():
+    profile = generate_sample_v2_profile()
+    samples = profile["profile"]["samples"]
+    samples[len(samples) - 1]["timestamp"] += 300
+    return profile
+
+
+@pytest.fixture
+def sample_v2_profile_samples_not_sorted():
+    profile = generate_sample_v2_profile()
+    profile["profile"]["samples"][0]["timestamp"] += 300
+    return profile
 
 
 @django_db_all
@@ -505,6 +524,8 @@ def test_decode_signature(project, android_profile):
         ("sample_v2_profile", 3000),
         ("android_profile", 2020),
         ("sample_v1_profile_without_transaction_timestamps", 25),
+        ("sample_v2_profile_long", 66000),
+        ("sample_v2_profile_samples_not_sorted", 66000),
     ],
 )
 def test_calculate_profile_duration(profile, duration_ms, request):
