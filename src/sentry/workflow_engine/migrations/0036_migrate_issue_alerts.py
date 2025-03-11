@@ -279,7 +279,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0033_workflow_name_256_char"),
+        ("workflow_engine", "0035_action_model_drop_legacy_fields"),
     ]
 
     operations = [
