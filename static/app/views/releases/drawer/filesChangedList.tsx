@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
@@ -7,6 +8,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {useLocation} from 'sentry/utils/useLocation';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
@@ -44,12 +46,12 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   return (
     <div>
       {releaseRepos.length > 1 && (
-        <div>
+        <Actions>
           <RepositorySwitcher
             repositories={releaseRepos}
             activeRepository={activeReleaseRepo}
           />
-        </div>
+        </Actions>
       )}
       <div>
         {fileListError && <LoadingError onRetry={refetch} />}
@@ -97,3 +99,7 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
     </div>
   );
 }
+
+const Actions = styled('div')`
+  margin-bottom: ${space(2)};
+`;
