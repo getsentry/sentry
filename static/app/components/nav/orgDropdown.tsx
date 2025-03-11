@@ -5,7 +5,8 @@ import {logout} from 'sentry/actionCreators/account';
 import {Button} from 'sentry/components/button';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import IdBadge from 'sentry/components/idBadge';
+import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import {IconAdd, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -49,25 +50,6 @@ function createOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-function MenuOrgSummary() {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-
-  return (
-    <MenuOrgSummaryWrapper>
-      <OrganizationAvatar organization={organization} size={36} />
-      <div>
-        <MenuOrgSummaryName
-          pendingDeletion={organization.status.id === 'pending_deletion'}
-        >
-          {organization.name}
-        </MenuOrgSummaryName>
-        <ProjectCount>{tn('%s Project', '%s Projects', projects.length)}</ProjectCount>
-      </div>
-    </MenuOrgSummaryWrapper>
-  );
-}
-
 function SwitchOrganizationItem({organization}: {organization: OrganizationSummary}) {
   return (
     <SwitchOrganizationWrapper>
@@ -102,6 +84,8 @@ export function OrgDropdown() {
 
   const {organizations} = useLegacyStore(OrganizationsStore);
 
+  const {projects} = useProjects();
+
   function handleLogout() {
     logout(api);
   }
@@ -115,20 +99,22 @@ export function OrgDropdown() {
           aria-label={t('Toggle organization menu')}
           {...props}
         >
-          <AvatarWrapper>
-            <StyledOrganizationAvatar
-              size={32}
-              round={false}
-              organization={organization}
-            />
-          </AvatarWrapper>
+          <StyledOrganizationAvatar size={32} round={false} organization={organization} />
         </OrgDropdownTrigger>
       )}
       minMenuWidth={200}
       items={[
         {
           key: 'organization',
-          label: <MenuOrgSummary />,
+          label: (
+            <SectionTitleWrapper>
+              <OrganizationBadge
+                organization={organization}
+                description={tn('%s Project', '%s Projects', projects.length)}
+                avatarSize={32}
+              />
+            </SectionTitleWrapper>
+          ),
           children: [
             {
               key: 'organization-settings',
@@ -173,9 +159,9 @@ export function OrgDropdown() {
         {
           key: 'user',
           label: (
-            <UserSummaryWrapper>
-              <IdBadge user={user} avatarSize={36} />
-            </UserSummaryWrapper>
+            <SectionTitleWrapper>
+              <UserBadge user={user} avatarSize={32} />
+            </SectionTitleWrapper>
           ),
           textValue: t('User Summary'),
           children: [
@@ -212,24 +198,8 @@ const OrgDropdownTrigger = styled(Button)`
   width: 44px;
 `;
 
-const AvatarWrapper = styled('div')`
-  position: relative;
-`;
-
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`
   border-radius: 6px; /* Fixes background bleeding on corners */
-`;
-
-const MenuOrgSummaryWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
-  align-items: center;
-  padding: ${space(0.5)} 0;
-  text-transform: none;
 `;
 
 const SwitchOrganizationWrapper = styled('div')`
@@ -241,7 +211,7 @@ const SwitchOrganizationWrapper = styled('div')`
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
-const UserSummaryWrapper = styled('div')`
+const SectionTitleWrapper = styled('div')`
   text-transform: none;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
@@ -251,21 +221,6 @@ const UserSummaryWrapper = styled('div')`
 const SwitchOrganizationItemName = styled('div')<{pendingDeletion: boolean}>`
   color: ${p => (p.pendingDeletion ? p.theme.subText : p.theme.textColor)};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const MenuOrgSummaryName = styled('div')<{pendingDeletion: boolean}>`
-  color: ${p => (p.pendingDeletion ? p.theme.subText : p.theme.textColor)};
-  line-height: normal;
-  font-weight: ${p => p.theme.fontWeightBold};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const ProjectCount = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
-  margin-top: ${space(0.5)};
   ${p => p.theme.overflowEllipsis};
 `;
 
