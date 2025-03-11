@@ -265,7 +265,5 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["count_rage_clicks"] == 1
 
             # Test non-existent environment
-            response = self.client.get(self.url + "?environment=non-existent")
-            assert response.status_code == 200
-            response_data = response.json()
-            assert len(response_data["data"]) == 0
+            response = self.client.get(self.url + "?environment=nonexistent")
+            assert response.status_code == 404
