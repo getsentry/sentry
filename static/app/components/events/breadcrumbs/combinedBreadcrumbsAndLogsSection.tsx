@@ -4,11 +4,8 @@ import type {BreadcrumbsDataSectionProps} from 'sentry/components/events/breadcr
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {
-  LogsTableDataProvider,
-  useLogsTableData,
-} from 'sentry/views/explore/contexts/logs/logsTableData';
 import {LogsIssuesSection} from 'sentry/views/explore/logs/logsIssuesSection';
+import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 
 /**
  * This component is a coordinator and provider wrapper to determine which section to display, collapse etc. since only one section should be displayed by default.
@@ -27,13 +24,11 @@ export function CombinedBreadcrumbsAndLogsSection({
 
   return (
     <LogsPageParamsProvider isIssuesDetailView traceId={event.contexts?.trace?.trace_id}>
-      <LogsTableDataProvider>
-        <CombinedBreadcrumbsAndLogsSectionContent
-          event={event}
-          group={group}
-          project={project}
-        />
-      </LogsTableDataProvider>
+      <CombinedBreadcrumbsAndLogsSectionContent
+        event={event}
+        group={group}
+        project={project}
+      />
     </LogsPageParamsProvider>
   );
 }
@@ -43,7 +38,7 @@ function CombinedBreadcrumbsAndLogsSectionContent({
   group,
   project,
 }: BreadcrumbsDataSectionProps) {
-  const {tableData} = useLogsTableData();
+  const tableData = useExploreLogsTable({});
   const shouldCollapseLogs = tableData.data.length === 0;
   return (
     <Fragment>

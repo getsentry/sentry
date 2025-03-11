@@ -11,6 +11,7 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -35,7 +36,7 @@ export function LogsIssuesSection({initialCollapse}: {initialCollapse: boolean})
 function LogsSectionContent() {
   const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
-
+  const tableData = useExploreLogsTable({});
   return (
     <Fragment>
       <SearchQueryBuilder
@@ -47,7 +48,7 @@ function LogsSectionContent() {
         onSearch={setLogsQuery}
       />
       <TableContainer>
-        <LogsTable />
+        <LogsTable tableData={tableData} />
       </TableContainer>
     </Fragment>
   );

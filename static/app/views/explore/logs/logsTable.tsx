@@ -27,17 +27,16 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {useLogsTableData} from 'sentry/views/explore/contexts/logs/logsTableData';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-export function LogsTable() {
+export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
-  const {tableData} = useLogsTableData();
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
