@@ -137,14 +137,16 @@ const getConfigureStep = (params: Params) => {
         ],
       },
       {
-        description: tct('Then, configure your [codeSentry:Sentry.init:]', {
-          codeSentry: <code />,
-        }),
+        description: tct(
+          'Then, configure your [codeSentry:Sentry.init:]. For this, create a new file called [codeSentry:sentry.config.js] in the root of your project and add the following code:',
+          {codeSentry: <code />}
+        ),
         code: [
           {
             label: 'JavaScript',
             value: 'javascript',
             language: 'javascript',
+            filename: 'sentry.config.js',
             code: getSdkSetupSnippet(params),
           },
         ],
@@ -166,12 +168,7 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'npm install --save @sentry/gatsby',
       },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/gatsby',
-      },
+      {label: 'yarn', value: 'yarn', language: 'bash', code: 'yarn add @sentry/gatsby'},
     ],
   },
 ];
@@ -192,9 +189,7 @@ const onboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       description: tct(
         'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -235,9 +230,7 @@ const replayOnboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       description: tct(
         'You need a minimum version 7.27.0 of [code:@sentry/gatsby] in order to use Session Replay. You do not need to install any additional packages.',
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -254,9 +247,7 @@ const replayOnboarding: OnboardingConfig = {
           <TracePropagationMessage />
           {tct(
             'Note: If [code:gatsby-config.js] has any settings for the [code:@sentry/gatsby] plugin, they need to be moved into [code:sentry.config.js]. The [code:gatsby-config.js] file does not support non-serializable options, like [code:new Replay()].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           )}
         </Fragment>
       ),
@@ -272,9 +263,7 @@ const feedbackOnboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       description: tct(
         'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/gatsby]) installed, minimum version 7.85.0.',
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
