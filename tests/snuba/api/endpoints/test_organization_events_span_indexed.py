@@ -2826,7 +2826,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["trace_status_rate(unauthenticated)"] == 0.2
 
         assert meta["dataset"] == self.dataset
-
+        
     def test_count_op(self):
         self.store_spans(
             [
@@ -2865,6 +2865,49 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count_op(queue.process)"] == 2
         assert data[0]["count_op(queue.publish)"] == 1
 
+        assert meta["dataset"] == self.dataset
+
+    def test_ttif_ttfd_contribution_rate(self):
+        spans = []
+        for _ in range(8):
+            spans.append(
+                self.create_span(
+                    {"sentry_tags": {"ttid": "ttid", "ttfd": "ttfd"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            )
+
+        spans.extend(
+            [
+                self.create_span(
+                    {"sentry_tags": {"ttfd": "ttfd", "ttid": ""}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"ttfd": "", "ttid": ""}}, start_ts=self.ten_mins_ago
+                ),
+            ]
+        )
+
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "ttid_contribution_rate()",
+                    "ttfd_contribution_rate()",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["ttid_contribution_rate()"] == 0.8
+        assert data[0]["ttfd_contribution_rate()"] == 0.9
         assert meta["dataset"] == self.dataset
 
     @pytest.mark.skip(reason="replay id alias not migrated over")
