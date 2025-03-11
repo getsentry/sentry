@@ -23,9 +23,9 @@ function PlatformOrIntegration({params}: Props) {
   });
 
   const loadingProjects = !initiallyLoaded;
-  const project = !loadingProjects
-    ? projects.find(proj => proj.slug === params.projectId)
-    : undefined;
+  const project = loadingProjects
+    ? undefined
+    : projects.find(proj => proj.slug === params.projectId);
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);

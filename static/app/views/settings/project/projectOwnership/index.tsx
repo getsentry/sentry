@@ -162,7 +162,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
         )}
       </TextBlock>
       <ProjectPermissionAlert
-        access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
+        access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
         project={project}
       />
       {isCodeownersError && (

@@ -59,8 +59,8 @@ export default function useRouteActivatedHook(props: Props) {
         // optional way to override the event name for Reload and Amplitude
         // note null means something different than undefined for eventName so
         // checking for that explicitly
-        const eventKey = _eventKey !== undefined ? _eventKey : `page_view.${reloadPath}`;
-        const eventName = _eventName !== undefined ? _eventName : `Page View: ${route}`;
+        const eventKey = _eventKey === undefined ? `page_view.${reloadPath}` : _eventKey;
+        const eventName = _eventName === undefined ? `Page View: ${route}` : _eventName;
 
         rawTrackAnalyticsEvent(
           {

@@ -253,7 +253,7 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
       <Divider />
       {installed ? renderPostInstallInstructions() : renderIntegrationInstructions()}
       {getDynamicText({
-        value: !hasError ? null : loadingError,
+        value: hasError ? loadingError : null,
         fixed: testOnlyAlert,
       })}
     </Fragment>

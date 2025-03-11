@@ -28,8 +28,11 @@ function DisabledDataForwarding({organization, features}: Props) {
             icon={<IconArrow direction="right" size="xl" />}
             title={t('Your business intelligence workflow is missing crucial data')}
             description={
-              plan !== null
-                ? tct(
+              plan === null
+                ? t(
+                    'Data forwarding is not available on your plan. Contact us to migrate to a plan that supports sending your events for processing with your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk.'
+                  )
+                : tct(
                     '[strong:Data Forwarding] allows you to send processed events to your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk. This feature [planRequirement] or above.',
 
                     {
@@ -38,9 +41,6 @@ function DisabledDataForwarding({organization, features}: Props) {
                         <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
                       ),
                     }
-                  )
-                : t(
-                    'Data forwarding is not available on your plan. Contact us to migrate to a plan that supports sending your events for processing with your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk.'
                   )
             }
             action={

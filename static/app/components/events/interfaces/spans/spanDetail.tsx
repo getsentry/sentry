@@ -527,12 +527,12 @@ function SpanDetail(props: Props) {
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
               <Row title="Origin">
-                {span.origin !== undefined ? String(span.origin) : null}
+                {span.origin === undefined ? null : String(span.origin)}
               </Row>
               <Row title="Same Process as Parent">
-                {span.same_process_as_parent !== undefined
-                  ? String(span.same_process_as_parent)
-                  : null}
+                {span.same_process_as_parent === undefined
+                  ? null
+                  : String(span.same_process_as_parent)}
               </Row>
               <Row title="Span Group">
                 {defined(span.hash) ? String(span.hash) : null}
@@ -571,11 +571,11 @@ function SpanDetail(props: Props) {
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
-                !isHiddenDataKey(key) ? (
+                isHiddenDataKey(key) ? null : (
                   <Row title={key} key={key}>
                     {maybeStringify(value)}
                   </Row>
-                ) : null
+                )
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>

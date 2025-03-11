@@ -76,8 +76,8 @@ const Bar = styled('div')<BarProps>`
   ${p => p.empty && `background-color: #e2dee6;`}
   ${p => p.color && `background-color: ${p.color};`}
 
-  width: ${p => (!p.vertical ? p.thickness : p.size)}px;
-  height: ${p => (!p.vertical ? p.size : p.thickness)}px;
+  width: ${p => (p.vertical ? p.size : p.thickness)}px;
+  height: ${p => (p.vertical ? p.thickness : p.size)}px;
 `;
 
 export default ScoreBar;

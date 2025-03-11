@@ -120,15 +120,15 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     );
     // if no match, fall back to the
     let defaultValue: string;
-    if (!matchedOption) {
+    if (matchedOption) {
+      defaultValue = matchedOption.value;
+    } else {
       if (defaultSettings) {
         defaultValue = defaultSettings.typeDefaults[notificationType]!;
       } else {
         // should never happen
         defaultValue = 'never';
       }
-    } else {
-      defaultValue = matchedOption.value;
     }
     // if we have child types, map the default
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

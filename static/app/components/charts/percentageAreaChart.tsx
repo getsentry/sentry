@@ -36,7 +36,7 @@ export default class PercentageAreaChart extends Component<Props> {
   static defaultProps: DefaultProps = {
     // TODO(billyvg): Move these into BaseChart? or get rid completely
     getDataItemName: ({name}) => name,
-    getValue: ({value}, total) => (!total ? 0 : Math.round((value / total) * 1000) / 10),
+    getValue: ({value}, total) => (total ? Math.round((value / total) * 1000) / 10 : 0),
   };
 
   getSeries() {

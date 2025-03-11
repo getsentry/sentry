@@ -491,16 +491,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         });
                       }}
                     >
-                      {filter.id !== 'legacy-browsers' ? (
-                        <FieldFromConfig
-                          key={filter.id}
-                          getData={data => ({active: data[filter.id]})}
-                          field={{
-                            type: 'boolean',
-                            ...fieldProps,
-                          }}
-                        />
-                      ) : (
+                      {filter.id === 'legacy-browsers' ? (
                         <FormField
                           inline={false}
                           {...fieldProps}
@@ -519,6 +510,15 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                             />
                           )}
                         </FormField>
+                      ) : (
+                        <FieldFromConfig
+                          key={filter.id}
+                          getData={data => ({active: data[filter.id]})}
+                          field={{
+                            type: 'boolean',
+                            ...fieldProps,
+                          }}
+                        />
                       )}
                     </NestedForm>
                   </PanelItem>

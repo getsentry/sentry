@@ -740,7 +740,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;
 
-    if (!value) {
+    if (value) {
+      let autogroupCount = 0;
+      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+      addSuccessMessage(
+        autogroupCount > 0
+          ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
+              count: autogroupCount,
+            })
+          : t('Autogrouping enabled')
+      );
+    } else {
       let removeCount = 0;
       removeCount += TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
       removeCount += TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
@@ -751,17 +762,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               count: removeCount,
             })
           : t('Autogrouping disabled')
-      );
-    } else {
-      let autogroupCount = 0;
-      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
-      autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
-      addSuccessMessage(
-        autogroupCount > 0
-          ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
-              count: autogroupCount,
-            })
-          : t('Autogrouping enabled')
       );
     }
 
@@ -775,19 +775,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const onMissingInstrumentationChange = useCallback(() => {
     const value = !traceState.preferences.missing_instrumentation;
-    if (!value) {
-      const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
-      addSuccessMessage(
-        removeCount > 0
-          ? tct(
-              'Missing instrumentation disabled, removed [count] missing instrumentation spans',
-              {
-                count: removeCount,
-              }
-            )
-          : t('Missing instrumentation disabled')
-      );
-    } else {
+    if (value) {
       const missingInstrumentationCount = TraceTree.DetectMissingInstrumentation(
         props.tree.root
       );
@@ -800,6 +788,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               }
             )
           : t('Missing instrumentation enabled')
+      );
+    } else {
+      const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
+      addSuccessMessage(
+        removeCount > 0
+          ? tct(
+              'Missing instrumentation disabled, removed [count] missing instrumentation spans',
+              {
+                count: removeCount,
+              }
+            )
+          : t('Missing instrumentation disabled')
       );
     }
 

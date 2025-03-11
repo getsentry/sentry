@@ -145,13 +145,7 @@ class MissingProjectMembership extends Component<Props, State> {
 
     return (
       <StyledPanel>
-        {!teams.length ? (
-          <EmptyMessage icon={<IconFlag size="xl" />}>
-            {t(
-              'No teams have access to this project yet. Ask an admin to add your team to this project.'
-            )}
-          </EmptyMessage>
-        ) : (
+        {teams.length ? (
           <EmptyMessage
             icon={<IconFlag size="xl" />}
             title={t("You're not a member of this project.")}
@@ -177,6 +171,12 @@ class MissingProjectMembership extends Component<Props, State> {
               </Field>
             }
           />
+        ) : (
+          <EmptyMessage icon={<IconFlag size="xl" />}>
+            {t(
+              'No teams have access to this project yet. Ask an admin to add your team to this project.'
+            )}
+          </EmptyMessage>
         )}
       </StyledPanel>
     );

@@ -71,11 +71,11 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       data-test-id="grid-download-csv"
       icon={<IconDownload />}
       title={
-        !disabled
-          ? t(
+        disabled
+          ? undefined
+          : t(
               "There aren't that many results, start your export and it'll download immediately."
             )
-          : undefined
       }
     >
       {t('Export All')}

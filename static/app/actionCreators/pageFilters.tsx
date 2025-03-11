@@ -532,7 +532,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
     return;
   }
 
-  const targetFilter = filter !== null ? [filter] : [];
+  const targetFilter = filter === null ? [] : [filter];
   setPageFiltersStorage(
     orgSlug,
     new Set<PinnedPageFilter>(targetFilter),
@@ -663,7 +663,7 @@ function getNewQueryParams(
   });
 
   // Extract non page filter parameters.
-  const cursorParam = !keepCursor ? 'cursor' : null;
+  const cursorParam = keepCursor ? null : 'cursor';
   const omittedParameters = [...Object.values(URL_PARAM), cursorParam].filter(defined);
 
   const extraParams = omit(cleanCurrentQuery, omittedParameters);

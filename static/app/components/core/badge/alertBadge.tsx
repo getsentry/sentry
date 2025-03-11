@@ -56,7 +56,7 @@ export function AlertBadge(props: AlertBadgeProps) {
       <DiamondBackground
         {...props}
         role="presentation"
-        aria-label={!props.withText ? text : undefined}
+        aria-label={props.withText ? undefined : text}
       >
         <Icon width={13} height={13} />
       </DiamondBackground>

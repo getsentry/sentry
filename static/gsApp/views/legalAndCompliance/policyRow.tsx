@@ -94,19 +94,19 @@ export function PolicyRow({
       ({Header, Footer, Body, closeModal}) => (
         <Fragment>
           <Header>
-            {curPolicy.slug !== policy.slug ? (
-              <div style={{textAlign: 'center'}}>
-                {tct("You must first agree to Sentry's [policy]", {
-                  policy: <a onClick={showPolicy}>{curPolicy.name}</a>,
-                })}
-              </div>
-            ) : (
+            {curPolicy.slug === policy.slug ? (
               <PolicyHeader>
                 <h5>{curPolicy.name}</h5>
                 <Button size="sm" onClick={showPolicy}>
                   {t('Download')}
                 </Button>
               </PolicyHeader>
+            ) : (
+              <div style={{textAlign: 'center'}}>
+                {tct("You must first agree to Sentry's [policy]", {
+                  policy: <a onClick={showPolicy}>{curPolicy.name}</a>,
+                })}
+              </div>
             )}
           </Header>
           <Body>
@@ -216,11 +216,11 @@ export function PolicyRow({
               title={
                 activeSuperUser
                   ? t("Superusers can't consent to policies")
-                  : !hasBillingAccess
-                    ? t(
+                  : hasBillingAccess
+                    ? undefined
+                    : t(
                         "You don't have access to manage billing and subscription details."
                       )
-                    : undefined
               }
             >
               {t('Review and Accept')}

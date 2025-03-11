@@ -443,11 +443,11 @@ export function PageOverviewWebVitalsDetailPanel({
         {webVital && (
           <WebVitalDetailHeader
             value={
-              webVitalValue !== undefined
-                ? webVital !== 'cls'
-                  ? getDuration(webVitalValue / 1000, 2, true)
-                  : webVitalValue?.toFixed(2)
-                : undefined
+              webVitalValue === undefined
+                ? undefined
+                : webVital === 'cls'
+                  ? webVitalValue?.toFixed(2)
+                  : getDuration(webVitalValue / 1000, 2, true)
             }
             webVital={webVital}
             score={webVitalScore}

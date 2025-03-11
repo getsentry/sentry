@@ -13,13 +13,13 @@ type ItemRenderer = React.ComponentProps<typeof Search>['renderItem'];
 
 const renderResult: ItemRenderer = ({item, matches, itemProps, highlighted}) => {
   const sectionHeading =
-    item.sectionHeading !== undefined ? (
+    item.sectionHeading === undefined ? null : (
       <SectionHeading>
         <IconWindow />
         {t('From %s', item.sectionHeading)}
         <Count>{tn('%s result', '%s results', item.sectionCount ?? 0)}</Count>
       </SectionHeading>
-    ) : null;
+    );
 
   if (item.empty) {
     return (

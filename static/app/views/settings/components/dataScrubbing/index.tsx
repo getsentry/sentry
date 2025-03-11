@@ -181,17 +181,17 @@ export function DataScrubbing({
       </PanelAlert>
       <PanelBody>
         {project && <OrganizationRules organization={organization} />}
-        {!rules.length ? (
-          <EmptyMessage
-            icon={<IconWarning size="xl" />}
-            description={t('You have no data scrubbing rules')}
-          />
-        ) : (
+        {rules.length ? (
           <Rules
             rules={rules}
             onDeleteRule={handleDelete}
             onEditRule={handleEdit}
             disabled={disabled}
+          />
+        ) : (
+          <EmptyMessage
+            icon={<IconWarning size="xl" />}
+            description={t('You have no data scrubbing rules')}
           />
         )}
         <PanelAction>

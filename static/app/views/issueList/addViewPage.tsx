@@ -120,7 +120,7 @@ function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
     organization,
   });
 
-  return !isPromptDismissed ? (
+  return isPromptDismissed ? null : (
     <Banner>
       <BannerStar1 src={bannerStar} />
       <BannerStar2 src={bannerStar} />
@@ -173,7 +173,7 @@ function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
         {t('Read Docs')}
       </FittedLinkButton>
     </Banner>
-  ) : null;
+  );
 }
 
 function SearchSuggestionList({

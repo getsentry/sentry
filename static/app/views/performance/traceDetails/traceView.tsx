@@ -323,11 +323,11 @@ export default function TraceView({
       const isVisible = isRowVisible(error, filteredEventIds);
       const currentHiddenCount = numOfHiddenErrorsAbove;
 
-      if (!isVisible) {
+      if (isVisible) {
+        numOfHiddenErrorsAbove = 0;
+      } else {
         numOfHiddenErrorsAbove += 1;
         totalNumOfHiddenErrors += 1;
-      } else {
-        numOfHiddenErrorsAbove = 0;
       }
 
       transactionGroups.push(

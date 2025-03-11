@@ -77,7 +77,7 @@ function IssueSyncListElement({
   const link = (
     <IntegrationLink
       href={externalIssueLink || undefined}
-      onClick={!isLinked ? onOpen : undefined}
+      onClick={isLinked ? undefined : onOpen}
       disabled={disabled}
     >
       {text}

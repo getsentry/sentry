@@ -87,7 +87,7 @@ export function PagePerformanceTable() {
     isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
-    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
+    transaction: query === '' ? undefined : `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,

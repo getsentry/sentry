@@ -521,7 +521,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
-    return query !== null ? addSpace(query) : (defaultQuery ?? '');
+    return query === null ? (defaultQuery ?? '') : addSpace(query);
   }
 
   makeQueryState(query: string) {
@@ -1255,11 +1255,11 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: null,
       visitorTest: ({token, returnResult, skipToken}) =>
-        !matchedTokens.includes(token.type)
-          ? null
-          : isWithinToken(token, cursor)
+        matchedTokens.includes(token.type)
+          ? isWithinToken(token, cursor)
             ? returnResult(token)
-            : skipToken,
+            : skipToken
+          : null,
     });
   }
 
@@ -1511,9 +1511,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
     // filter existing items immediately, until API can return
     // with actual tag value results
-    const filteredSearchGroups = !preparedQuery
-      ? this.state.searchGroups
-      : this.state.searchGroups.filter(item => item.value?.includes(preparedQuery));
+    const filteredSearchGroups = preparedQuery
+      ? this.state.searchGroups.filter(item => item.value?.includes(preparedQuery))
+      : this.state.searchGroups;
 
     this.setState({
       searchTerm: query,
@@ -2106,13 +2106,13 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
         <InputWrapper>
           <Highlight>
-            {parsedQuery !== null ? (
+            {parsedQuery === null ? (
+              query
+            ) : (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={this.state.showDropdown ? cursor : -1}
               />
-            ) : (
-              query
             )}
           </Highlight>
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}

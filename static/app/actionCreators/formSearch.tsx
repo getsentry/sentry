@@ -30,8 +30,8 @@ const createSearchMap = ({
   return listOfFields.map<FormSearchField>(field => ({
     ...other,
     route,
-    title: typeof field !== 'function' ? (field?.label as string) : undefined,
-    description: typeof field !== 'function' ? (field?.help as string) : undefined,
+    title: typeof field === 'function' ? undefined : (field?.label as string),
+    description: typeof field === 'function' ? undefined : (field?.help as string),
     field: field!,
   }));
 };

@@ -183,15 +183,15 @@ function MonitorDetails({params, location}: Props) {
                 {t('Errors were encountered while ingesting check-ins for this monitor')}
               </MonitorProcessingErrors>
             )}
-            {!hasLastCheckIn(monitor) ? (
-              <MonitorOnboarding monitor={monitor} />
-            ) : (
+            {hasLastCheckIn(monitor) ? (
               <Fragment>
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
                 <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorCheckIns monitor={monitor} monitorEnvs={monitor.environments} />
               </Fragment>
+            ) : (
+              <MonitorOnboarding monitor={monitor} />
             )}
           </Layout.Main>
           <Layout.Side>

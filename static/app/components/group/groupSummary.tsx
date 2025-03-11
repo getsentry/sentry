@@ -133,16 +133,16 @@ export function GroupSummary({
             ),
       disabled: event?.id === data?.eventId,
     },
-    ...(event?.id !== data?.eventId
-      ? [
+    ...(event?.id === data?.eventId
+      ? []
+      : [
           {
             key: 'refresh',
             label: t('Summarize this event instead'),
             onAction: () => setForceEvent(true),
             disabled: isPending,
           },
-        ]
-      : []),
+        ]),
     ...(openFeedbackForm
       ? [
           {

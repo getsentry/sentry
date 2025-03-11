@@ -15,11 +15,11 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const results: string[] = [];
 
   if (hours) {
-    results.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
+    results.push(`${hours} hour${hours === 1 ? '' : 's'}`);
   }
 
   if (minutes) {
-    results.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
+    results.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
   }
 
   if (results.length === 0) {

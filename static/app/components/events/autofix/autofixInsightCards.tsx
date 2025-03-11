@@ -213,7 +213,7 @@ function AutofixInsightCard({
               </EditContainer>
             ) : (
               <InsightCardRow
-                onClick={!isUserMessage ? toggleExpand : undefined}
+                onClick={isUserMessage ? undefined : toggleExpand}
                 isUserMessage={isUserMessage}
               >
                 <MiniHeader
@@ -386,7 +386,7 @@ function AutofixInsightCards({
                 transition={{duration: 0.3}}
               >
                 {insights.map((insight, index) =>
-                  !insight ? null : (
+                  insight ? (
                     <AutofixInsightCard
                       key={index}
                       insight={insight}
@@ -398,7 +398,7 @@ function AutofixInsightCards({
                       runId={runId}
                       insightCount={validInsightCount}
                     />
-                  )
+                  ) : null
                 )}
               </motion.div>
             )}
@@ -551,8 +551,7 @@ const InsightCardRow = styled('div')<{isUserMessage?: boolean}>`
   align-items: stretch;
   cursor: ${p => (p.isUserMessage ? 'default' : 'pointer')};
   &:hover {
-    background-color: ${p =>
-      !p.isUserMessage ? p.theme.backgroundSecondary : 'inherit'};
+    background-color: ${p => (p.isUserMessage ? 'inherit' : p.theme.backgroundSecondary)};
   }
 `;
 

@@ -149,7 +149,7 @@ function PerformanceScoreRing({
         x={foreignObjectOffset}
         y={foreignObjectOffset}
       >
-        {text !== undefined ? <Text {...{textCss}}>{text}</Text> : null}
+        {text === undefined ? null : <Text {...{textCss}}>{text}</Text>}
       </foreignObject>
     </RingSvg>
   );

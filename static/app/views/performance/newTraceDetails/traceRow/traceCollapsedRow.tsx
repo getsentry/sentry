@@ -27,10 +27,10 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
 
       seen.add(c);
 
-      if (!isTraceErrorNode(c)) {
-        childStatistics.events++;
-      } else {
+      if (isTraceErrorNode(c)) {
         childStatistics.issues++;
+      } else {
+        childStatistics.events++;
       }
     });
     return childStatistics;

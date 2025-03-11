@@ -132,9 +132,9 @@ function VersionHoverCard({
                 <div>
                   <h6>
                     {release.commitCount}{' '}
-                    {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                    {release.commitCount === 1 ? t('commit ') : t('commits ')} {t('by ')}{' '}
                     {release.authors.length}{' '}
-                    {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
+                    {release.authors.length === 1 ? t('author') : t('authors')}{' '}
                   </h6>
                   <AvatarListContainer>
                     <AvatarList

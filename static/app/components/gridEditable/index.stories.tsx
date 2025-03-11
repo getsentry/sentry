@@ -104,7 +104,7 @@ export default storyBook('GridEditable', story => {
 
   story('Row Mouse Events', () => {
     const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
-    const activeRow = activeRowKey !== undefined ? data[activeRowKey] : undefined;
+    const activeRow = activeRowKey === undefined ? undefined : data[activeRowKey];
 
     return (
       <Fragment>

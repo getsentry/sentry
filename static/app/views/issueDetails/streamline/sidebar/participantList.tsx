@@ -73,9 +73,9 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
                   <UserAvatar user={user} size={20} />
                   <NameWrapper>
                     <div>{user.name}</div>
-                    {user.email !== user.name ? (
+                    {user.email === user.name ? null : (
                       <SmallText>{user.email}</SmallText>
-                    ) : null}
+                    )}
                     <LastSeen date={(user as AvatarUser).lastSeen} />
                   </NameWrapper>
                 </UserRow>

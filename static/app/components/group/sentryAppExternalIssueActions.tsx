@@ -101,7 +101,9 @@ function SentryAppExternalIssueActions({
   };
 
   const onAddRemoveClick = () => {
-    if (!externalIssue) {
+    if (externalIssue) {
+      deleteIssue();
+    } else {
       doOpenSentryAppIssueModal({
         organization,
         group,
@@ -109,8 +111,6 @@ function SentryAppExternalIssueActions({
         sentryAppComponent,
         sentryAppInstallation,
       });
-    } else {
-      deleteIssue();
     }
   };
 

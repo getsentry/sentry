@@ -322,7 +322,7 @@ type VitalPillProps = Omit<
   'showTooltip' | 'isAggregateMode' | 'onClick' | 'color'
 >;
 export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
-  const status = score !== undefined ? scoreToStatus(score) : 'none';
+  const status = score === undefined ? 'none' : scoreToStatus(score);
   const webVitalExists = score !== undefined;
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 

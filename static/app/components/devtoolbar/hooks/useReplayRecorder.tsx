@@ -47,13 +47,13 @@ export default function useReplayRecorder(): ReplayRecorderState {
   );
 
   const isDisabled = replay === undefined;
-  const disabledReason = !SentrySDK
-    ? 'Failed to load the Sentry SDK.'
-    : !('getReplay' in SentrySDK)
-      ? 'Your SDK version is too old to support Replays.'
-      : !replay
-        ? 'You need to install the SDK Replay integration.'
-        : undefined;
+  const disabledReason = SentrySDK
+    ? 'getReplay' in SentrySDK
+      ? replay
+        ? undefined
+        : 'You need to install the SDK Replay integration.'
+      : 'Your SDK version is too old to support Replays.'
+    : 'Failed to load the Sentry SDK.';
 
   const [isRecording, setIsRecording] = useState<boolean>(
     () => replayInternal?.isEnabled() ?? false

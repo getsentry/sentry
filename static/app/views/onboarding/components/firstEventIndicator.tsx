@@ -63,7 +63,7 @@ function Indicator({firstIssue}: IndicatorProps) {
   return (
     <Container>
       <AnimatePresence>
-        {!firstIssue ? <Waiting key="waiting" /> : <Success key="received" />}
+        {firstIssue ? <Success key="received" /> : <Waiting key="waiting" />}
       </AnimatePresence>
     </Container>
   );

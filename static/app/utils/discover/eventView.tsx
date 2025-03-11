@@ -155,7 +155,7 @@ const decodeFields = (location: Location): Field[] => {
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     const w = Number(widths[i]);
-    const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
+    const width = isNaN(w) ? COL_WIDTH_UNDEFINED : w;
 
     parsed.push({field, width});
   });

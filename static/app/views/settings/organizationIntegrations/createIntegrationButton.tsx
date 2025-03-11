@@ -31,7 +31,7 @@ function CreateIntegrationButton({
           size="sm"
           priority="primary"
           disabled={!hasAccess}
-          title={!hasAccess ? permissionTooltipText : undefined}
+          title={hasAccess ? undefined : permissionTooltipText}
           onClick={() => {
             openCreateNewIntegrationModal({organization});
             trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {

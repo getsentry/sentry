@@ -205,7 +205,7 @@ export function InviteMissingMembersModal({
     return tct('Invite [prefix][memberCount] missing member[isPlural]', {
       prefix: memberInvites.length === selectedCount ? 'all ' : '',
       memberCount: selectedCount === 0 ? '' : selectedCount,
-      isPlural: selectedCount !== 1 ? 's' : '',
+      isPlural: selectedCount === 1 ? '' : 's',
     });
   };
 

@@ -75,14 +75,12 @@ export function ProjectAnrScoreCard({
   useEffect(() => {
     let unmounted = false;
     if (
-      !shouldFetchPreviousPeriod({
+      shouldFetchPreviousPeriod({
         start,
         end,
         period,
       })
     ) {
-      setPreviousSessionsData(null);
-    } else {
       const requestData = {
         orgSlug: organization.slug,
         field: ['anr_rate()'],
@@ -113,6 +111,8 @@ export function ProjectAnrScoreCard({
 
         setPreviousSessionsData(response);
       });
+    } else {
+      setPreviousSessionsData(null);
     }
     return () => {
       unmounted = true;

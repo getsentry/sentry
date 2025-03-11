@@ -114,7 +114,7 @@ export function ScreenshotDataSection({
   };
   const title = tn('Screenshot', 'Screenshots', screenshots.length);
 
-  return !showScreenshot ? null : (
+  return showScreenshot ? (
     <InterimSection
       title={hasStreamlinedUI ? title : <Link to={linkPath}>{title}</Link>}
       showPermalink={false}
@@ -143,5 +143,5 @@ export function ScreenshotDataSection({
         openVisualizationModal={handleOpenVisualizationModal}
       />
     </InterimSection>
-  );
+  ) : null;
 }

@@ -298,8 +298,8 @@ function BaseButton({
       aria-disabled={disabled}
       busy={busy}
       disabled={disabled}
-      to={!disabled ? to : undefined}
-      href={!disabled ? href : undefined}
+      to={disabled ? undefined : to}
+      href={disabled ? undefined : href}
       replace={replace}
       size={size}
       priority={priority}
@@ -466,15 +466,15 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 
   // If using translucent borders, rewrite size styles to
   // prevent layout shifts
-  const borderStyles = !translucentBorder
-    ? {}
-    : {
+  const borderStyles = translucentBorder
+    ? {
         height: `calc(${formStyles.height} - 2px)`,
         minHeight: `calc(${formStyles.minHeight} - 2px)`,
         paddingTop: buttonPadding.paddingTop - 1,
         paddingBottom: buttonPadding.paddingBottom - 1,
         margin: 1,
-      };
+      }
+    : {};
 
   return {...formStyles, ...buttonPadding, ...borderStyles};
 };

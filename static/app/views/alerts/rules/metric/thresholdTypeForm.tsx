@@ -58,9 +58,7 @@ function ThresholdTypeForm({
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
       AlertRuleComparisonType.CHANGE,
-      comparisonType !== AlertRuleComparisonType.CHANGE ? (
-        t('Percent Change: {x%} higher or lower compared to previous period')
-      ) : (
+      comparisonType === AlertRuleComparisonType.CHANGE ? (
         // Prevent default to avoid dropdown menu closing on click
         <ComparisonContainer onClick={e => e.preventDefault()}>
           {t('Percent Change: {x%} higher or lower compared to')}
@@ -91,6 +89,8 @@ function ThresholdTypeForm({
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </ComparisonContainer>
+      ) : (
+        t('Percent Change: {x%} higher or lower compared to previous period')
       ),
     ],
   ];

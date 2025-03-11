@@ -482,7 +482,23 @@ export function AutofixChanges({
               </HeaderText>
               {!prsMade && (
                 <ButtonBar gap={1}>
-                  {!branchesMade ? (
+                  {branchesMade ? (
+                    step.changes.length === 1 && step.changes[0] ? (
+                      <BranchButton change={step.changes[0]} />
+                    ) : (
+                      <ScrollCarousel aria-label={t('Check out branches')}>
+                        {step.changes.map(
+                          change =>
+                            change.branch_name && (
+                              <BranchButton
+                                key={`${change.repo_external_id}-${Math.random()}`}
+                                change={change}
+                              />
+                            )
+                        )}
+                      </ScrollCarousel>
+                    )
+                  ) : (
                     <SetupAndCreateBranchButton
                       changes={step.changes}
                       groupId={groupId}
@@ -490,20 +506,6 @@ export function AutofixChanges({
                       isBusy={isBusy}
                       onBusyStateChange={setIsBusy}
                     />
-                  ) : step.changes.length === 1 && step.changes[0] ? (
-                    <BranchButton change={step.changes[0]} />
-                  ) : (
-                    <ScrollCarousel aria-label={t('Check out branches')}>
-                      {step.changes.map(
-                        change =>
-                          change.branch_name && (
-                            <BranchButton
-                              key={`${change.repo_external_id}-${Math.random()}`}
-                              change={change}
-                            />
-                          )
-                      )}
-                    </ScrollCarousel>
                   )}
                   <SetupAndCreatePRsButton
                     changes={step.changes}

@@ -11,7 +11,7 @@ const DEFAULT_STATUS = 'unresolved';
 export function getQuery(search: string) {
   const query = qs.parse(search);
 
-  const status = typeof query.status !== 'undefined' ? query.status : DEFAULT_STATUS;
+  const status = typeof query.status === 'undefined' ? DEFAULT_STATUS : query.status;
 
   const queryParams = {
     status,

@@ -763,11 +763,11 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!orderOptions.length) {
-          newQuery.orderby = '';
-        } else {
+        if (orderOptions.length) {
           orderOption = orderOptions[0]!.value;
           newQuery.orderby = `-${orderOption}`;
+        } else {
+          newQuery.orderby = '';
         }
       }
       return newQuery;
@@ -880,13 +880,13 @@ function WidgetBuilder({
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) ===
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
+      } else {
         nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
-      } else {
-        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(

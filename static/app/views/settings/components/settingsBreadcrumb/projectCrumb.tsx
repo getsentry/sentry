@@ -68,9 +68,7 @@ function ProjectCrumb({
       route={route}
       name={
         <ProjectName>
-          {!latestProject ? (
-            <LoadingIndicator mini />
-          ) : (
+          {latestProject ? (
             <CrumbLink
               to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
                 orgId: latestOrganization.slug,
@@ -79,6 +77,8 @@ function ProjectCrumb({
             >
               <IdBadge project={latestProject} avatarSize={18} disableLink />
             </CrumbLink>
+          ) : (
+            <LoadingIndicator mini />
           )}
         </ProjectName>
       }

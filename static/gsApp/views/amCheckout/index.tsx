@@ -141,10 +141,10 @@ class AMCheckout extends Component<Props, State> {
      */
     loadStripe();
 
-    if (!subscription.canSelfServe) {
-      this.handleRedirect();
-    } else {
+    if (subscription.canSelfServe) {
       this.fetchBillingConfig();
+    } else {
+      this.handleRedirect();
     }
 
     if (organization) {
@@ -158,10 +158,10 @@ class AMCheckout extends Component<Props, State> {
       return;
     }
 
-    if (!subscription.canSelfServe) {
-      this.handleRedirect();
-    } else {
+    if (subscription.canSelfServe) {
       this.fetchBillingConfig();
+    } else {
+      this.handleRedirect();
     }
   }
 

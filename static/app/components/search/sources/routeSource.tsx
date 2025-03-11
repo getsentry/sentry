@@ -42,7 +42,7 @@ type Context = Parameters<Extract<Config, (args: never) => unknown>>[0] &
  * of all navigation item objects
  */
 const mapFunc = (config: Config, context: Context | null = null) =>
-  (Array.isArray(config) ? config : context !== null ? config(context) : []).map(
+  (Array.isArray(config) ? config : context === null ? [] : config(context)).map(
     ({items}) =>
       items.filter(({show}) =>
         typeof show === 'function' && context !== null ? show(context) : true

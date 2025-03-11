@@ -39,7 +39,7 @@ export function Http({breadcrumb, searchTerm, meta}: Props) {
 
   return (
     <Summary
-      kvData={!data ? data : omit(data, ['method', 'url', 'status_code'])}
+      kvData={data ? omit(data, ['method', 'url', 'status_code']) : data}
       meta={meta}
     >
       {meta?.data?.method?.[''] ? (

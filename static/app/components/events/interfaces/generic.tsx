@@ -17,9 +17,7 @@ function getView({
 }) {
   switch (view) {
     case 'report':
-      return !data ? (
-        <AnnotatedText value={data} meta={meta?.['']} />
-      ) : (
+      return data ? (
         <KeyValueList
           data={Object.entries(data).map(([key, value]) => ({
             key,
@@ -29,6 +27,8 @@ function getView({
           }))}
           isContextData
         />
+      ) : (
+        <AnnotatedText value={data} meta={meta?.['']} />
       );
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;

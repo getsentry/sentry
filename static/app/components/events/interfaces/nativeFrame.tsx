@@ -536,8 +536,8 @@ const RowHeader = styled('span')<{
       : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(1)};
-  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
-  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

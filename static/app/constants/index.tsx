@@ -14,12 +14,12 @@ import type {OrgRole} from 'sentry/types/organization';
 export const ROOT_ELEMENT = 'blk_router';
 
 export const USING_CUSTOMER_DOMAIN =
-  typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
+  typeof window === 'undefined' ? false : Boolean(window?.__initialData?.customerDomain);
 
 export const CUSTOMER_DOMAIN =
-  typeof window !== 'undefined'
-    ? window?.__initialData?.customerDomain?.subdomain
-    : undefined;
+  typeof window === 'undefined'
+    ? undefined
+    : window?.__initialData?.customerDomain?.subdomain;
 
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context

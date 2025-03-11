@@ -487,7 +487,7 @@ class _QueryField extends Component<Props> {
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
               ...portalProps.styles,
-              ...(!inFieldLabels ? this.FieldSelectStyles : undefined),
+              ...(inFieldLabels ? undefined : this.FieldSelectStyles),
             }}
             components={this.FieldSelectComponents}
           />
@@ -690,9 +690,7 @@ class _QueryField extends Component<Props> {
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
-      if (fieldValue.kind !== 'function') {
-        gridColumnsQuantity = 1;
-      } else {
+      if (fieldValue.kind === 'function') {
         const operation =
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           AGGREGATIONS[fieldValue.function[0]] ??
@@ -707,6 +705,8 @@ class _QueryField extends Component<Props> {
         } else {
           gridColumnsQuantity = 1;
         }
+      } else {
+        gridColumnsQuantity = 1;
       }
     }
 
@@ -720,7 +720,7 @@ class _QueryField extends Component<Props> {
         {!hidePrimarySelector && (
           <Select
             {...selectProps}
-            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            styles={inFieldLabels ? undefined : this.FieldSelectStyles}
             components={this.FieldSelectComponents}
           />
         )}

@@ -191,15 +191,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         <RegressedFunctionsQueryState>
           {t('Failed to fetch regressed functions')}
         </RegressedFunctionsQueryState>
-      ) : !trends.length ? (
-        <RegressedFunctionsQueryState>
-          {trendType === 'regression' ? (
-            <p>{t('No regressed functions detected')}</p>
-          ) : (
-            <p>{t('No improved functions detected')}</p>
-          )}
-        </RegressedFunctionsQueryState>
-      ) : (
+      ) : trends.length ? (
         trends.map((fn, i) => {
           const {before, after} = findWorstProfileIDBeforeAndAfter(fn);
           return (
@@ -252,6 +244,14 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
             </RegressedFunctionRow>
           );
         })
+      ) : (
+        <RegressedFunctionsQueryState>
+          {trendType === 'regression' ? (
+            <p>{t('No regressed functions detected')}</p>
+          ) : (
+            <p>{t('No improved functions detected')}</p>
+          )}
+        </RegressedFunctionsQueryState>
       )}
     </RegressedFunctionsContainer>
   );

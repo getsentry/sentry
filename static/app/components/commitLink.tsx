@@ -91,7 +91,12 @@ function CommitLink({
 
   const Icon = providerData.icon;
 
-  return !inline ? (
+  return inline ? (
+    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
+      {showIcon ? <Icon size="xs" /> : null}
+      {' ' + label}
+    </ExternalLink>
+  ) : (
     <LinkButton
       external
       href={commitUrl}
@@ -102,11 +107,6 @@ function CommitLink({
     >
       {label}
     </LinkButton>
-  ) : (
-    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
-      {showIcon ? <Icon size="xs" /> : null}
-      {' ' + label}
-    </ExternalLink>
   );
 }
 

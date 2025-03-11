@@ -154,7 +154,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                 </PageFilterBar>
                 <SegmentedControl
                   aria-label={t('Issue Status')}
-                  value={!Array.isArray(status) ? status || '' : ''}
+                  value={Array.isArray(status) ? '' : status || ''}
                   onChange={key =>
                     router.replace({
                       pathname,

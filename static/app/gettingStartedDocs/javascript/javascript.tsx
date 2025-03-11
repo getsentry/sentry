@@ -359,10 +359,10 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 <script>
   Sentry.onLoad(function() {
     Sentry.init({${
-      !(params.isPerformanceSelected || params.isReplaySelected)
-        ? `
+      params.isPerformanceSelected || params.isReplaySelected
+        ? ''
+        : `
         // You can add any additional configuration here`
-        : ''
     }${
       params.isPerformanceSelected
         ? `

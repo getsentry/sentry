@@ -147,9 +147,9 @@ export default function DataSecrecy() {
     disabled: allowAccess || !organization.access.includes('org:write'),
     disabledReason: allowAccess
       ? t('Disable permanent access first to set temporary access')
-      : !organization.access.includes('org:write')
-        ? t('You do not have permission to modify access settings')
-        : undefined,
+      : organization.access.includes('org:write')
+        ? undefined
+        : t('You do not have permission to modify access settings'),
     value: allowDateFormData,
     onBlur: updateTempAccessDate,
     onChange: (v: any) => {

@@ -187,7 +187,7 @@ export default function CreateAlertButton({
   const renderButton = (hasAccess: boolean) => (
     <Button
       disabled={!hasAccess}
-      title={!hasAccess ? permissionTooltipText : undefined}
+      title={hasAccess ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
       to={projectSlug ? createAlertUrl(projectSlug) : undefined}
       tooltipProps={{

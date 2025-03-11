@@ -246,9 +246,9 @@ function Controls({
               icon={<IconEdit />}
               disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
               title={
-                !hasEditAccess
-                  ? t('You do not have permission to edit this dashboard')
-                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                hasEditAccess
+                  ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                  : t('You do not have permission to edit this dashboard')
               }
               priority="default"
               size="sm"

@@ -195,10 +195,10 @@ export function transformToSeriesMap(
           groupName
         );
 
-        if (!acc[seriesName]) {
-          acc[seriesName] = [series];
-        } else {
+        if (acc[seriesName]) {
           acc[seriesName].push(series);
+        } else {
+          acc[seriesName] = [series];
         }
       });
       return acc;

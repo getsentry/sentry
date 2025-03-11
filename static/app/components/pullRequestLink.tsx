@@ -39,7 +39,12 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
     return <span>{displayId}</span>;
   }
 
-  return !inline ? (
+  return inline ? (
+    <ExternalPullLink href={pullRequest.externalUrl}>
+      {renderIcon(repository)}
+      {displayId}
+    </ExternalPullLink>
+  ) : (
     <LinkButton
       external
       href={pullRequest.externalUrl}
@@ -48,11 +53,6 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
     >
       {displayId}
     </LinkButton>
-  ) : (
-    <ExternalPullLink href={pullRequest.externalUrl}>
-      {renderIcon(repository)}
-      {displayId}
-    </ExternalPullLink>
   );
 }
 

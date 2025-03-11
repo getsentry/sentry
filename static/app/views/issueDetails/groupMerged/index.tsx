@@ -68,8 +68,8 @@ class GroupMergedView extends Component<Props, State> {
       this.setState({
         mergedItems,
         mergedLinks,
-        loading: typeof loading !== 'undefined' ? loading : false,
-        error: typeof error !== 'undefined' ? error : false,
+        loading: typeof loading === 'undefined' ? false : loading,
+        error: typeof error === 'undefined' ? false : error,
       });
     }
   };

@@ -183,15 +183,15 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? t('Open in GitHub is not supported for this platform')
-                  : sourceCodeLink.isPending
+                isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? sourceCodeLink.isPending
                     ? 'Resolving link'
                     : sourceCodeLink.isSuccess &&
                         (!sourceCodeLink.data.sourceUrl ||
                           sourceCodeLink.data.config?.provider?.key !== 'github')
                       ? t('Could not find source code location in GitHub')
                       : undefined
+                  : t('Open in GitHub is not supported for this platform')
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,

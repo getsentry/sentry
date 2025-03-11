@@ -84,18 +84,18 @@ function HookStats() {
     <Panel>
       <PanelHeader>{t('Events in the last 30 days (by day)')}</PanelHeader>
       <PanelBody withPadding>
-        {!emptyStats ? (
+        {emptyStats ? (
+          <EmptyMessage
+            title={t('Nothing recorded in the last 30 days.')}
+            description={t('Total webhooks fired for this configuration.')}
+          />
+        ) : (
           <MiniBarChart
             isGroupedByDate
             showTimeInTooltip
             labelYAxisExtents
             series={[series]}
             height={150}
-          />
-        ) : (
-          <EmptyMessage
-            title={t('Nothing recorded in the last 30 days.')}
-            description={t('Total webhooks fired for this configuration.')}
           />
         )}
       </PanelBody>

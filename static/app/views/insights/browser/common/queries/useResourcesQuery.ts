@@ -77,7 +77,7 @@ export const useResourcesQuery = ({
   const {slug: orgSlug} = useOrganization();
 
   const queryConditions = [
-    ...(!query ? getResourcesEventViewQuery(resourceFilters, defaultResourceTypes) : []),
+    ...(query ? [] : getResourcesEventViewQuery(resourceFilters, defaultResourceTypes)),
     query,
   ];
 

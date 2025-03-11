@@ -145,13 +145,13 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               onToggleStatus={status => handleUpdate({status})}
               size="sm"
               disabled={!canEdit}
-              title={!canEdit ? permissionTooltipText : undefined}
+              title={canEdit ? undefined : permissionTooltipText}
             />
             <LinkButton
               size="sm"
               icon={<IconEdit />}
               disabled={!canEdit}
-              title={!canEdit ? permissionTooltipText : undefined}
+              title={canEdit ? undefined : permissionTooltipText}
               to={makeAlertsPathname({
                 path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
                 organization,

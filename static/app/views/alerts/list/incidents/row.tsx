@@ -72,7 +72,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
       </NoWrapNumeric>
 
       <FlexCenter>
-        <ProjectBadge avatarSize={18} project={!projectsLoaded ? {slug} : project} />
+        <ProjectBadge avatarSize={18} project={projectsLoaded ? project : {slug}} />
       </FlexCenter>
       <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 

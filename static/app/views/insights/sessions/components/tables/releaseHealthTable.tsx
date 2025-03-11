@@ -93,7 +93,10 @@ export default function ReleaseHealthTable({
       const value = dataRow[column.key];
 
       if (column.key === 'lifespan') {
-        return value !== undefined ? (
+        return value === undefined ? (
+          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
+          '--'
+        ) : (
           <CellWrapper>
             <Duration
               precision="hours"
@@ -101,9 +104,6 @@ export default function ReleaseHealthTable({
               seconds={(value as number) * (1 / 1000)}
             />
           </CellWrapper>
-        ) : (
-          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
-          '--'
         );
       }
 

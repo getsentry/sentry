@@ -138,7 +138,7 @@ export function FunctionTrendsWidget({
                   trendType={trendType}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
-                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    const nextIndex = expandedIndex === i ? (i + 1) % l.length : i;
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}

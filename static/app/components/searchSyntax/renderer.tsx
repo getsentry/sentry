@@ -327,15 +327,15 @@ const Key = styled('span')<{negated: boolean}>`
   border-right: none;
   font-weight: ${p => p.theme.fontWeightBold};
   ${p =>
-    !p.negated
+    p.negated
       ? css`
+          border-left: none;
+          margin-left: 0;
+        `
+      : css`
           border-radius: 2px 0 0 2px;
           padding-left: 1px;
           margin-left: -2px;
-        `
-      : css`
-          border-left: none;
-          margin-left: 0;
         `};
 `;
 

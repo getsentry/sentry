@@ -53,7 +53,7 @@ function UserStats({
 
   const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
 
-  let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
+  let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 
   if (!isLoading && error === null && totals) {
     const threshold: number | undefined = totals.project_threshold_config

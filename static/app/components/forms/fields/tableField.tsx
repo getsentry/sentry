@@ -150,7 +150,7 @@ export default class TableField extends Component<InputFieldProps> {
                 <RowInput>
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v)}
-                    value={!defined(row[fieldKey]) ? '' : row[fieldKey]}
+                    value={defined(row[fieldKey]) ? row[fieldKey] : ''}
                   />
                 </RowInput>
                 {i === mappedKeys.length - 1 && (

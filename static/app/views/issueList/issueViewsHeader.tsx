@@ -480,7 +480,7 @@ function IssueViewsIssueListHeaderTabsContent({
               ...router.location.query,
               query: view.unsavedChanges?.query ?? view.query,
               sort: view.unsavedChanges?.querySort ?? view.querySort,
-              viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+              viewId: view.id === TEMPORARY_TAB_KEY ? undefined : view.id,
               project: view.unsavedChanges?.projects ?? view.projects,
               environment: view.unsavedChanges?.environments ?? view.environments,
               ...normalizeDateTimeParams(

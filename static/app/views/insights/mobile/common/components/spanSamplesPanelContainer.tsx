@@ -70,9 +70,9 @@ export function SpanSamplesContainer({
   const {selection} = usePageFilters();
 
   const searchQuery =
-    searchQueryKey !== undefined
-      ? decodeScalar(location.query[searchQueryKey])
-      : undefined;
+    searchQueryKey === undefined
+      ? undefined
+      : decodeScalar(location.query[searchQueryKey]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(

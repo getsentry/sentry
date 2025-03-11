@@ -11,7 +11,7 @@ type Props = {
 };
 
 const Category = memo(function Category({category, searchTerm}: Props) {
-  const title = !defined(category) ? t('generic') : category;
+  const title = defined(category) ? category : t('generic');
   return (
     <Wrapper title={title}>
       <Highlight text={searchTerm}>{title}</Highlight>

@@ -71,15 +71,7 @@ export default function ApiNewToken() {
             }
           )}
         </TextBlock>
-        {newToken !== null ? (
-          <NewTokenHandler
-            token={
-              getDynamicText({value: newToken.token, fixed: 'CI_AUTH_TOKEN'}) ||
-              'CI_AUTH_TOKEN'
-            }
-            handleGoBack={handleGoBack}
-          />
-        ) : (
+        {newToken === null ? (
           <div>
             <ApiForm
               apiMethod="POST"
@@ -130,6 +122,14 @@ export default function ApiNewToken() {
               </Panel>
             </ApiForm>
           </div>
+        ) : (
+          <NewTokenHandler
+            token={
+              getDynamicText({value: newToken.token, fixed: 'CI_AUTH_TOKEN'}) ||
+              'CI_AUTH_TOKEN'
+            }
+            handleGoBack={handleGoBack}
+          />
         )}
       </div>
     </SentryDocumentTitle>
