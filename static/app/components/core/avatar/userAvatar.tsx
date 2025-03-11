@@ -32,15 +32,6 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
     }
 
     const type = inferAvatarType(user, gravatar);
-    // let tooltip: React.ReactNode = null;
-
-    // if (isRenderFunc(renderTooltip)) {
-    //   tooltip = renderTooltip(user);
-    // } else if (props.tooltip) {
-    //   tooltip = props.tooltip;
-    // } else {
-    //   tooltip = userDisplayName(user);
-    // }
 
     return (
       <BaseAvatar
