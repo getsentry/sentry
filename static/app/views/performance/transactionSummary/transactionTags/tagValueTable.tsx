@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -26,6 +26,8 @@ import type {
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
@@ -42,7 +44,6 @@ type Props = {
   aggregateColumn: string;
   eventView: EventView;
   isLoading: boolean;
-  location: Location;
   organization: Organization;
   pageLinks: string | null;
   projects: Project[];
@@ -56,7 +57,6 @@ export function TagValueTable({
   aggregateColumn,
   eventView,
   isLoading,
-  location,
   organization,
   pageLinks,
   tableData,
@@ -64,6 +64,8 @@ export function TagValueTable({
   tagKey,
 }: Props) {
   const [widths, setWidths] = useState<number[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const renderHeadCell = (
     sortedEventView: EventView,
@@ -117,14 +119,18 @@ export function TagValueTable({
 
     conditions.addFilterValues(tagKey ?? '', [tagValue]);
 
-    const query = conditions.formatString();
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: String(query).trim(),
+    // const query = conditions.formatString();
+
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          query: conditions.formatString(),
+        },
       },
-    });
+      {replace: false}
+    );
   };
 
   const handleCellAction = (
@@ -213,19 +219,20 @@ export function TagValueTable({
       const disabled = searchConditions.hasFilter(dataRow.tags_key);
       return (
         <AlignRight>
-          <Link
+          <LinkContainer
             disabled={disabled}
-            to=""
             onClick={() => {
+              if (disabled) {
+                return;
+              }
+
               trackTagPageInteraction(organization);
               handleTagValueClick(dataRow.tags_value);
             }}
           >
-            <LinkContainer>
-              <IconAdd isCircled />
-              {t('Add to filter')}
-            </LinkContainer>
-          </Link>
+            <IconAdd isCircled />
+            {t('Add to filter')}
+          </LinkContainer>
         </AlignRight>
       );
     }
@@ -326,12 +333,21 @@ const AlignRight = styled('div')`
   flex: 1;
 `;
 
-const LinkContainer = styled('div')`
+const LinkContainer = styled('div')<{disabled?: boolean}>`
+  cursor: pointer;
+  color: ${p => p.theme.linkColor};
   display: grid;
   grid-auto-flow: column;
   gap: ${space(0.5)};
   justify-content: flex-end;
   align-items: center;
+  ${p =>
+    p.disabled &&
+    `
+    opacity: 0.5;
+    color: ${p.theme.gray300};
+    cursor: default;
+  `}
 `;
 
 export default TagValueTable;
