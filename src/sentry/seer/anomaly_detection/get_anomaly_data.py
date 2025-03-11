@@ -51,8 +51,15 @@ def get_anomaly_data_from_seer(
         or not alert_rule.sensitivity
         or not alert_rule.seasonality
         or not snuba_query.time_window
-        or not aggregation_value
     ):
+        return None
+
+    if aggregation_value is None:
+        extra_data["threshold_type"] = alert_rule.threshold_type
+        extra_data["sensitivity"] = alert_rule.sensitivity
+        extra_data["seasonality"] = alert_rule.seasonality
+        extra_data["aggregation_value"] = aggregation_value
+
         metrics.incr("anomaly_detection.aggregation_value.none")
         logger.warning("Aggregation value is none", extra=extra_data)
         return None
