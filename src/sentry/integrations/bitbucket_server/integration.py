@@ -63,7 +63,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Link your Sentry stack traces back to your Bitbucket source code with stack
+        Link your Sentry stack traces back to your Bitbucket Server source code with stack
         trace linking.
         """,
         IntegrationFeatures.STACKTRACE_LINK,
