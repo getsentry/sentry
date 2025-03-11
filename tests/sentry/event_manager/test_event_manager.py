@@ -16,11 +16,12 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import F
 from django.utils import timezone
 
 from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.constants import MAX_VERSION_LENGTH, DataCategory
+from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
 from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
     Platform,
@@ -59,6 +60,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -1577,15 +1579,19 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @patch("sentry.event_manager.record_event_processed")
+    @patch("sentry.event_manager.record_first_transaction")
+    @patch("sentry.event_manager.record_first_insight_span")
     @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
         self,
         mock_record_sample: mock.MagicMock,
         mock_record_release: mock.MagicMock,
-        mock_record_event: mock.MagicMock,
+        mock_record_insight: mock.MagicMock,
+        mock_record_transaction: mock.MagicMock,
     ) -> None:
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_transactions))
+
         manager = EventManager(
             make_event(
                 **{
@@ -1606,8 +1612,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                             "start_timestamp": 0,
                             "timestamp": 1,
                             "same_process_as_parent": True,
-                            "op": "default",
-                            "description": "span a",
+                            "op": "db.redis",
+                            "description": "EXEC *",
+                            "sentry_tags": {
+                                "description": "EXEC *",
+                                "category": "db",
+                                "op": "db.redis",
+                                "transaction": "/app/index",
+                            },
                         },
                         {
                             "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
@@ -1633,6 +1645,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     "timestamp": "2019-06-14T14:01:40Z",
                     "start_timestamp": "2019-06-14T14:01:40Z",
                     "type": "transaction",
+                    "release": "foo@1.0.0",
                     "transaction_info": {
                         "source": "url",
                     },
@@ -1642,8 +1655,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         event = manager.save(self.project.id)
 
-        mock_record_event.assert_called_once_with(self.project, event)
-        mock_record_release.assert_called_once_with(self.project, event)
+        mock_record_release.assert_called_once_with(self.project, "foo@1.0.0")
+        mock_record_insight.assert_called_once_with(self.project, InsightModules.DB)
+        mock_record_transaction.assert_called_once_with(self.project, event.datetime)
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]

@@ -43,7 +43,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Dataset specific search bar for the 'Filter' step in the
    * widget builder.
    */
-  SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
+  SearchBar: (props: WidgetBuilderSearchBarProps) => React.JSX.Element;
   /**
    * Default field to add to the widget query when adding a new field.
    */

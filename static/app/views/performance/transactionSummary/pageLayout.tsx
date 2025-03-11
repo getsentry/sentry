@@ -77,7 +77,7 @@ export type ChildProps = {
 };
 
 type Props = {
-  childComponent: (props: ChildProps) => JSX.Element;
+  childComponent: (props: ChildProps) => React.JSX.Element;
   generateEventView: (props: {
     location: Location;
     organization: Organization;
