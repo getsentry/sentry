@@ -7,13 +7,12 @@ import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvat
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import {IconAdd, IconWarning} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useApi from 'sentry/utils/useApi';
@@ -48,25 +47,6 @@ function createOrganizationMenuItem(): MenuItemProps {
     children: [menuItemProps],
     hidden: !canCreateOrg,
   };
-}
-
-function SwitchOrganizationItem({organization}: {organization: OrganizationSummary}) {
-  return (
-    <SwitchOrganizationWrapper>
-      {organization.status.id === 'pending_deletion' ? (
-        <PendingDeletionAvatar data-test-id="pending-deletion-icon">
-          <IconWarning size="xs" color="gray200" />
-        </PendingDeletionAvatar>
-      ) : (
-        <OrganizationAvatar organization={organization} size={22} />
-      )}
-      <SwitchOrganizationItemName
-        pendingDeletion={organization.status.id === 'pending_deletion'}
-      >
-        {organization.name}
-      </SwitchOrganizationItemName>
-    </SwitchOrganizationWrapper>
-  );
 }
 
 export function OrgDropdown() {
@@ -143,7 +123,7 @@ export function OrgDropdown() {
               children: [
                 ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
                   key: switchOrg.id,
-                  label: <SwitchOrganizationItem organization={switchOrg} />,
+                  label: <OrganizationBadge organization={switchOrg} />,
                   textValue: switchOrg.name,
                   to: resolveRoute(
                     `/organizations/${switchOrg.slug}/issues/`,
@@ -202,36 +182,11 @@ const StyledOrganizationAvatar = styled(OrganizationAvatar)`
   border-radius: 6px; /* Fixes background bleeding on corners */
 `;
 
-const SwitchOrganizationWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  text-transform: none;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;
-
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
-`;
-
-const SwitchOrganizationItemName = styled('div')<{pendingDeletion: boolean}>`
-  color: ${p => (p.pendingDeletion ? p.theme.subText : p.theme.textColor)};
-  line-height: normal;
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const PendingDeletionAvatar = styled('div')`
-  height: 22px;
-  width: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px dashed ${p => p.theme.gray200};
-  border-radius: 4px;
 `;
 
 const CreateOrganizationMenuItem = styled('div')`
