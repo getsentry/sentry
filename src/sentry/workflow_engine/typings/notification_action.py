@@ -517,10 +517,12 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
     def target_identifier(self) -> str | None:
         target_type = self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
-            return self.action.get(
-                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]
+            return str(
+                self.action.get(
+                    ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
+                        ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                    ]
+                )
             )
         return None
 
