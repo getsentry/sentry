@@ -93,7 +93,12 @@ export function SwitchToNonEAPTraceButton({
 
   return (
     <Feature organization={organization} features="visibility-explore-admin">
-      <Button size="xs" aria-label="non-eap-trace" onClick={switchToNonEAPTrace}>
+      <Button
+        disabled={location.query.trace_format === 'non-eap'}
+        size="xs"
+        aria-label="non-eap-trace-btn"
+        onClick={switchToNonEAPTrace}
+      >
         {t('Switch to Non-EAP Trace')}
       </Button>
     </Feature>
