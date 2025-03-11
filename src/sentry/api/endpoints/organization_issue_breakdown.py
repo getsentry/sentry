@@ -57,10 +57,12 @@ class OrganizationIssueBreakdownEndpoint(OrganizationEndpoint, EnvironmentMixin)
             series_response = empty_response(start, end, interval)
             append_series(series_response, new_series)
             append_series(series_response, resolved_series)
-        else:
+        elif group_by == "release":
             series_response = query_issues_by_release(
                 projects, environments, type_filter, start, end
             )
+        else:
+            return Response("", status=404)
 
         return Response(
             {

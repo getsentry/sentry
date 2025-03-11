@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils import json
 
 
 @freeze_time()
@@ -67,34 +66,28 @@ class OrganizationIssueBreakdownTest(APITestCase):
         project2 = self.create_project(teams=[self.team], slug="bar")
 
         today = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        tomorrow = today + timedelta(days=1)
+        tmrw = today + timedelta(days=1)
+        yday = today - timedelta(days=1)
+        # New cohort
         self.create_group(project=project1, status=0, first_seen=today, type=1)
         self.create_group(project=project1, status=1, first_seen=today, type=1)
-        self.create_group(project=project2, status=1, first_seen=tomorrow, type=1)
-        self.create_group(project=project2, status=2, first_seen=tomorrow, type=1)
-        self.create_group(project=project2, status=2, first_seen=tomorrow, type=6)
-
-        response = self.client.get(self.url + "?statsPeriod=7d&category=feedback&group_by=new")
-        assert json.loads(response.content) == {
-            "data": [{"bucket": tomorrow.isoformat().replace("+00:00", "Z"), "count": 1}]
-        }
-
-    def test_resolved_feedback(self):
-        project1 = self.create_project(teams=[self.team], slug="foo")
-        project2 = self.create_project(teams=[self.team], slug="bar")
-
-        today = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        tomorrow = today + timedelta(days=1)
+        self.create_group(project=project2, status=1, first_seen=tmrw, type=1)
+        self.create_group(project=project2, status=2, first_seen=tmrw, type=1)
+        self.create_group(project=project2, status=2, first_seen=tmrw, type=6)
+        # Resolved cohort
         self.create_group(project=project1, status=0, resolved_at=today, type=1)
         self.create_group(project=project1, status=1, resolved_at=today, type=1)
-        self.create_group(project=project2, status=1, resolved_at=tomorrow, type=1)
-        self.create_group(project=project2, status=1, resolved_at=tomorrow, type=6)
-        self.create_group(project=project2, status=2, resolved_at=tomorrow, type=1)
+        self.create_group(project=project2, status=1, resolved_at=today, type=6)
+        self.create_group(project=project2, status=1, resolved_at=tmrw, type=1)
+        self.create_group(project=project2, status=2, resolved_at=tmrw, type=1)
 
-        response = self.client.get(self.url + "?statsPeriod=7d&category=feedback&group_by=resolved")
-        assert json.loads(response.content) == {
-            "data": [{"bucket": tomorrow.isoformat().replace("+00:00", "Z"), "count": 1}]
-        }
+        response = self.client.get(self.url + "?statsPeriod=1d&category=feedback&group_by=time")
+        response_json = response.json()
+        assert response_json["data"] == [
+            [str(int(yday.timestamp())), [{"count": 0}, {"count": 0}]],
+            [str(int(today.timestamp())), [{"count": 1}, {"count": 1}]],
+            [str(int(tmrw.timestamp())), [{"count": 1}, {"count": 0}]],
+        ]
 
     def test_feedback_by_release(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
@@ -107,5 +100,6 @@ class OrganizationIssueBreakdownTest(APITestCase):
         self.create_group(project=project2, status=2, first_release=release_two, type=1)
         self.create_group(project=project2, status=2, first_release=release_two, type=6)
 
-        response = self.client.get(self.url + "?statsPeriod=7d&category=feedback&group_by=release")
-        assert json.loads(response.content) == {"data": [{"bucket": "1.2.0", "count": 1}]}
+        response = self.client.get(self.url + "?statsPeriod=1d&category=feedback&group_by=release")
+        response_json = response.json()
+        assert response_json["data"] == [["1.2.0", [{"count": 1}]]]
