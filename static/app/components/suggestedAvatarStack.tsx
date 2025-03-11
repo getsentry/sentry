@@ -32,7 +32,6 @@ function SuggestedAvatarStack({
         <Avatar
           round={firstSuggestion!.type === 'user'}
           actor={owner}
-          hasTooltip={false}
           {...props}
           key={i}
           index={i}

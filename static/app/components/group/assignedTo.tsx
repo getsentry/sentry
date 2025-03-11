@@ -244,7 +244,6 @@ function AssignedTo({
             <ActorAvatar
               data-test-id="assigned-avatar"
               actor={group.assignedTo}
-              hasTooltip={false}
               size={24}
             />
           ) : (
