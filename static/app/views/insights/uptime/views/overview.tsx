@@ -78,7 +78,7 @@ export default function UptimeOverview() {
   const uptimeListPageLinks = uptimeListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    const currentQuery = {...location.query, cursor: undefined};
     navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
@@ -117,7 +117,7 @@ export default function UptimeOverview() {
               })}
               icon={<IconAdd isCircled />}
               disabled={!canCreateAlert}
-              title={!canCreateAlert ? permissionTooltipText : undefined}
+              title={canCreateAlert ? undefined : permissionTooltipText}
             >
               {t('Add Uptime Monitor')}
             </LinkButton>

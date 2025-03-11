@@ -227,10 +227,10 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     // Only show loading when submitting OTP
     this.setState({sendingCode: !hasSentCode});
 
-    if (!hasSentCode) {
-      addLoadingMessage(t('Sending code to %s...', data.phone));
-    } else {
+    if (hasSentCode) {
       addLoadingMessage(t('Verifying OTP...'));
+    } else {
+      addLoadingMessage(t('Sending code to %s...', data.phone));
     }
 
     try {
@@ -253,13 +253,13 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       return;
     }
 
-    if (!hasSentCode) {
+    if (hasSentCode) {
+      // OTP was accepted and SMS was added as a 2fa method
+      this.handleEnrollSuccess();
+    } else {
       // Just successfully finished sending OTP to user
       this.setState({hasSentCode: true, sendingCode: false});
       addSuccessMessage(t('Sent code to %s', data.phone));
-    } else {
-      // OTP was accepted and SMS was added as a 2fa method
-      this.handleEnrollSuccess();
     }
   };
 
@@ -286,7 +286,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
 
     const data = {
-      ...(dataModel ?? {}),
+      ...dataModel,
       secret: this.state.authenticator.secret,
     };
 
@@ -414,7 +414,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
           )
           .map(field => [
             field.name,
-            typeof field !== 'function' ? field.defaultValue : '',
+            typeof field === 'function' ? '' : field.defaultValue,
           ])
           .reduce((acc, [name, value]) => {
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

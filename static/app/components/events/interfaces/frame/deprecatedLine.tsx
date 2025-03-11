@@ -501,8 +501,8 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
-  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
 
 const LeftLineTitle = styled('div')`

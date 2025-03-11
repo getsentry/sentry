@@ -18,8 +18,10 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
+import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
+import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
 import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
@@ -44,7 +46,7 @@ export function SessionsOverview() {
         </ModuleLayout.Third>
       ) : view === MOBILE_LANDING_SUB_PATH ? (
         <ModuleLayout.Third>
-          <CrashFreeSessionChart />
+          <CrashFreeSessionsChart />
         </ModuleLayout.Third>
       ) : undefined}
       <ModuleLayout.Third>
@@ -89,6 +91,12 @@ export function SessionsOverview() {
             {view === MOBILE_LANDING_SUB_PATH && (
               <Fragment>
                 {SESSION_HEALTH_CHARTS}
+                <ModuleLayout.Half>
+                  <ReleaseSessionCountChart />
+                </ModuleLayout.Half>
+                <ModuleLayout.Half>
+                  <ReleaseSessionPercentageChart />
+                </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <FilterWrapper>
                     <FilterReleaseDropdown filters={filters} setFilters={setFilters} />

@@ -171,7 +171,7 @@ export function FeedbackModal<T extends Data>({
         } else {
           feedbackClient.captureEvent({
             ...commonEventProps,
-            ...(submitEventData ?? {}),
+            ...submitEventData,
           });
         }
       }
@@ -225,9 +225,9 @@ export function FeedbackModal<T extends Data>({
               priority="primary"
               title={
                 props.children === undefined
-                  ? !defined(state.subject)
-                    ? t('Required fields must be filled out')
-                    : undefined
+                  ? defined(state.subject)
+                    ? undefined
+                    : t('Required fields must be filled out')
                   : primaryDisabledReason
               }
               onClick={onNext ?? (() => handleSubmit(submitEventData))}

@@ -59,7 +59,7 @@ function MobileTopbar() {
         size="sm"
         borderless
       />
-      {view !== 'closed' ? (
+      {view === 'closed' ? null : (
         <NavigationOverlayPortal
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
         >
@@ -68,7 +68,7 @@ function MobileTopbar() {
             <SecondaryMobile handleClickBack={() => setView('primary')} />
           ) : null}
         </NavigationOverlayPortal>
-      ) : null}
+      )}
     </Topbar>
   );
 }
@@ -84,12 +84,12 @@ function updateNavStyleAttributes(view: ActiveView) {
     );
   }
 
-  if (view !== 'closed') {
-    mainContent.setAttribute('inert', '');
-    document.body.style.setProperty('overflow', 'hidden');
-  } else {
+  if (view === 'closed') {
     mainContent.removeAttribute('inert');
     document.body.style.removeProperty('overflow');
+  } else {
+    mainContent.setAttribute('inert', '');
+    document.body.style.setProperty('overflow', 'hidden');
   }
 }
 

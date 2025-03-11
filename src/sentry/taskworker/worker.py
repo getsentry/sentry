@@ -117,7 +117,7 @@ def child_worker(
             break
 
         try:
-            activation = child_tasks.get(timeout=0.1)
+            activation = child_tasks.get(timeout=1.0)
         except queue.Empty:
             metrics.incr("taskworker.worker.child_task_queue_empty")
             continue
@@ -363,10 +363,11 @@ class TaskWorker:
             with iopool as executor:
                 while not self._shutdown_event.is_set():
                     try:
-                        result = self._processed_tasks.get(timeout=0.1)
+                        result = self._processed_tasks.get(timeout=1.0)
+                        executor.submit(self._send_result, result)
                     except queue.Empty:
+                        metrics.incr("taskworker.worker.result_thread.queue_empty")
                         continue
-                    executor.submit(self._send_result, result)
 
         self._result_thread = threading.Thread(target=result_thread)
         self._result_thread.start()
@@ -387,7 +388,6 @@ class TaskWorker:
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
-            metrics.incr("taskworker.worker.fetch_next", tags={"next": fetch_next is not None})
             logger.debug(
                 "taskworker.workers._send_result",
                 extra={"task_id": result.task_id, "next": fetch_next is not None},
@@ -453,22 +453,16 @@ class TaskWorker:
         try:
             activation = self.client.get_task(self._namespace)
         except grpc.RpcError as e:
-            metrics.incr("taskworker.worker.fetch_task", tags={"status": "failed"})
             logger.info("taskworker.fetch_task.failed", extra={"error": e})
             return None
 
         if not activation:
-            metrics.incr("taskworker.worker.fetch_task", tags={"status": "notfound"})
             logger.debug("taskworker.fetch_task.not_found")
 
             self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
             time.sleep(self.backoff_sleep_seconds)
             return None
 
-        metrics.incr(
-            "taskworker.worker.fetch_task",
-            tags={"status": "success", "namespace": activation.namespace},
-        )
         self.backoff_sleep_seconds = 0
         self._task_receive_timing[activation.id] = time.time()
         return activation

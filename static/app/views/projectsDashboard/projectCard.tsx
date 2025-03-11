@@ -210,30 +210,32 @@ class ProjectCard extends Component<Props> {
           </ChartContainer>
           <FooterWrapper>
             <ScoreCardWrapper>
-              {!stats ? (
+              {stats ? (
+                hasHealthData ? (
+                  <ScoreCard
+                    title={t('Crash Free Sessions')}
+                    score={
+                      defined(currentCrashFreeRate)
+                        ? displayCrashFreePercent(currentCrashFreeRate)
+                        : '\u2014'
+                    }
+                    trend={this.renderTrend()}
+                    trendStatus={
+                      this.crashFreeTrend
+                        ? this.crashFreeTrend > 0
+                          ? 'good'
+                          : 'bad'
+                        : undefined
+                    }
+                  />
+                ) : (
+                  this.renderMissingFeatureCard()
+                )
+              ) : (
                 <Fragment>
                   <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
                   <FooterPlaceholder />
                 </Fragment>
-              ) : hasHealthData ? (
-                <ScoreCard
-                  title={t('Crash Free Sessions')}
-                  score={
-                    defined(currentCrashFreeRate)
-                      ? displayCrashFreePercent(currentCrashFreeRate)
-                      : '\u2014'
-                  }
-                  trend={this.renderTrend()}
-                  trendStatus={
-                    this.crashFreeTrend
-                      ? this.crashFreeTrend > 0
-                        ? 'good'
-                        : 'bad'
-                      : undefined
-                  }
-                />
-              ) : (
-                this.renderMissingFeatureCard()
               )}
             </ScoreCardWrapper>
             <DeploysWrapper>
@@ -307,7 +309,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
         {...props}
         project={{
           ...project,
-          ...(projectDetails || {}),
+          ...projectDetails,
         }}
       />
     );
@@ -439,6 +441,7 @@ const StyledIdBadge = styled(IdBadge)`
 const SummaryLinks = styled('div')`
   display: flex;
   position: relative;
+  top: -${space(2)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
 
@@ -446,7 +449,7 @@ const SummaryLinks = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 
   /* Need to offset for the project icon and margin */
-  margin-left: 24px;
+  margin-left: 40px;
 
   a {
     color: ${p => p.theme.subText};

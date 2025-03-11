@@ -769,7 +769,8 @@ class TestInstallationWebhook(TestCase):
         )
 
     @responses.activate
-    def test_sends_installation_notification(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_installation_notification(self, mock_record):
         responses.add(responses.POST, "https://example.com/webhook")
         installation_webhook(self.install.id, self.user.id)
 
@@ -779,19 +780,57 @@ class TestInstallationWebhook(TestCase):
         assert self.rpc_user, "User should exist in test to test installation webhook unless noted"
         assert response_body.get("actor")["id"] == self.rpc_user.id
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @responses.activate
-    def test_gracefully_handles_missing_install(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_gracefully_handles_missing_install(self, mock_record):
         responses.add(responses.POST, "https://example.com/webhook")
 
         installation_webhook(999, self.user.id)
         assert len(responses.calls) == 0
 
+        # SLO assertions
+        assert_failure_metric(
+            mock_record,
+            SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION),
+        )
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
     @responses.activate
-    def test_gracefully_handles_missing_user(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_gracefully_handles_missing_user(self, mock_record):
         responses.add(responses.POST, "https://example.com/webhook")
 
         installation_webhook(self.install.id, 999)
         assert len(responses.calls) == 0
+
+        # SLO assertions
+        assert_failure_metric(
+            mock_record,
+            SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_USER),
+        )
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -881,7 +920,8 @@ class TestWorkflowNotification(TestCase):
 
         self.issue = self.create_group(project=self.project)
 
-    def test_sends_resolved_webhook(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_resolved_webhook(self, mock_record, safe_urlopen):
         workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
 
         ((_, kwargs),) = safe_urlopen.call_args_list
@@ -891,7 +931,18 @@ class TestWorkflowNotification(TestCase):
         assert data["action"] == "resolved"
         assert data["data"]["issue"]["id"] == str(self.issue.id)
 
-    def test_sends_resolved_webhook_as_Sentry_without_user(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_resolved_webhook_as_Sentry_without_user(self, mock_record, safe_urlopen):
         workflow_notification(self.install.id, self.issue.id, "resolved", None)
 
         ((_, kwargs),) = safe_urlopen.call_args_list
@@ -900,7 +951,18 @@ class TestWorkflowNotification(TestCase):
         assert data["actor"]["id"] == "sentry"
         assert data["actor"]["name"] == "Sentry"
 
-    def test_does_not_send_if_no_service_hook_exists(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_does_not_send_if_no_service_hook_exists(self, mock_record, safe_urlopen):
         sentry_app = self.create_sentry_app(
             name="Another App", organization=self.project.organization, events=[]
         )
@@ -910,7 +972,23 @@ class TestWorkflowNotification(TestCase):
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
-    def test_does_not_send_if_event_not_in_app_events(self, safe_urlopen):
+        # SLO assertions
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+        )
+        # PREPARE_WEBHOOK (success) -> send_webhook (error)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_does_not_send_if_event_not_in_app_events(self, mock_record, safe_urlopen):
         sentry_app = self.create_sentry_app(
             name="Another App",
             organization=self.project.organization,
@@ -921,6 +999,21 @@ class TestWorkflowNotification(TestCase):
         )
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
+
+        # SLO assertions
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
+        )
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
 
 
 class TestWebhookRequests(TestCase):

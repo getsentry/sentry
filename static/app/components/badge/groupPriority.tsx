@@ -277,8 +277,6 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  display: flex;
-  align-items: center;
   gap: ${space(0.25)};
   position: relative;
   height: 24px;

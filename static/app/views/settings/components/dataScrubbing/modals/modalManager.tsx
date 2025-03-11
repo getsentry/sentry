@@ -75,7 +75,7 @@ class ModalManager extends Component<Props, State> {
       isFormValid: false,
       eventId: {
         value: eventId,
-        status: !eventId ? EventIdStatus.UNDEFINED : EventIdStatus.LOADED,
+        status: eventId ? EventIdStatus.LOADED : EventIdStatus.UNDEFINED,
       },
       sourceSuggestions,
     } as Readonly<State>;

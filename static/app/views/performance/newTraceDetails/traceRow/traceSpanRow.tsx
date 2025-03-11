@@ -72,11 +72,11 @@ export function TraceSpanRow(
           <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
           <strong className="TraceEmDash"> — </strong>
           <span className="TraceDescription" title={props.node.value.description}>
-            {!props.node.value.description
-              ? (spanId ?? 'unknown')
-              : props.node.value.description.length > 100
+            {props.node.value.description
+              ? props.node.value.description.length > 100
                 ? props.node.value.description.slice(0, 100).trim() + '\u2026'
-                : props.node.value.description}
+                : props.node.value.description
+              : (spanId ?? 'unknown')}
           </span>
         </div>
       </div>
