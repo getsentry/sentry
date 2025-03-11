@@ -4,10 +4,8 @@ from enum import Enum
 
 from django.conf import settings
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from structlog import get_logger
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
@@ -91,42 +89,10 @@ class OrganizationMemberInvite(Model):
     __repr__ = sane_repr("organization_id", "email", "role")
 
     def get_invite_link(self, referrer: str | None = None):
-        if not self.invite_approved:
-            return None
-        path = reverse(
-            "sentry-accept-invite",
-            kwargs={
-                "member_id": self.id,
-                "token": self.token,
-            },
-        )
-        invite_link = self.organization.absolute_url(path)
-        if referrer:
-            invite_link += "?referrer=" + referrer
-        return invite_link
+        pass
 
     def send_invite_email(self, referrer: str | None = None):
-        from sentry.utils.email import MessageBuilder
-
-        context = {
-            "email": self.email,
-            "organization": self.organization,
-            "url": self.get_invite_link(referrer),
-        }
-
-        msg = MessageBuilder(
-            subject="Join %s in using Sentry" % self.organization.name,
-            template="sentry/emails/member-invite.txt",
-            html_template="sentry/emails/member-invite.html",
-            type="organization.invite",
-            context=context,
-        )
-
-        try:
-            msg.send_async([self.email])
-        except Exception as e:
-            mail_logger = get_logger(name="sentry.mail")
-            mail_logger.exception(e)
+        pass
 
     def generate_token(self):
         return secrets.token_hex(nbytes=32)
