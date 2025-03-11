@@ -1,5 +1,5 @@
 import pytest
-import pytest_jsonreport.plugin  # type:ignore[import-untyped]
+import pytest_jsonreport.plugin
 
 TestItem = dict[str, list[object]]
 
