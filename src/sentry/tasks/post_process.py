@@ -937,8 +937,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
-    # If the flag is enabled, use the code below
     from sentry.workflow_engine.processors.workflow import process_workflows
 
     # PostProcessJob event is optional, WorkflowJob event is required
@@ -960,9 +958,15 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    group_event = job["event"]
+
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    organization = group_event.project.organization
+    if features.has("organizations:workflow-engine-issue-alert-rollout", organization):
+        process_workflow_engine(job)
+
     from sentry.rules.processing.processor import RuleProcessor
 
-    group_event = job["event"]
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
@@ -983,13 +987,15 @@ def process_rules(job: PostProcessJob) -> None:
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
+
+        # TODO(cathy): add opposite of the FF organizations:workflow-engine-issue-alert-fire-actions
         for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
 
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
-            group_event.project.organization,
+            organization,
         ):
             metrics.incr(
                 "post_process.process_rules.triggered_actions",

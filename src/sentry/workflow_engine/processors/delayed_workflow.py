@@ -13,6 +13,7 @@ from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.rules.processing.buffer_processing import (
@@ -389,6 +390,7 @@ def fire_actions_for_groups(
     trigger_type_to_dcg_model: dict[DataConditionHandler.Type, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
+    organization: Organization | None = None
     for group, group_event in group_to_groupevent.items():
         job = WorkflowJob({"event": group_event})
         detector = get_detector_by_event(job)
@@ -410,9 +412,13 @@ def fire_actions_for_groups(
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
 
+        # temporary fetching of organization, so not passing in as parameter
+        if organization is None:
+            organization = group.project.organization
+
         if features.has(
             "organizations:workflow-engine-issue-alert-metrics",
-            group.project.organization,
+            organization,
         ):
             metrics.incr(
                 "workflow_engine.delayed_workflow.triggered_actions",
@@ -420,8 +426,12 @@ def fire_actions_for_groups(
                 tags={"event_type": group_event.group.type},
             )
 
-        for action in filtered_actions:
-            action.trigger(job, detector)
+        if features.has(
+            "organizations:workflow-engine-issue-alert-fire-actions",
+            organization,
+        ):
+            for action in filtered_actions:
+                action.trigger(job, detector)
 
 
 def cleanup_redis_buffer(

@@ -12,7 +12,7 @@ from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -738,6 +738,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert group_to_groupevent == self.group_to_groupevent
 
     @patch("sentry.workflow_engine.models.action.Action.trigger")
+    @with_feature("organizations:workflow-engine-issue-alert-fire-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
             self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
