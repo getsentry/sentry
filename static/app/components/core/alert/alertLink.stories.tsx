@@ -53,7 +53,6 @@ export default storyBook('AlertLink', (story, APIReference) => {
           <JSXProperty name="openInNewTab" value /> prop - this prop is not supported for
           internal or manual links.{' '}
         </p>
-
         <p>
           AlertLink as an external link using{' '}
           <JSXProperty name="href" value={`https://santry.io${DUMMY_LINK}`} />
@@ -73,7 +72,7 @@ export default storyBook('AlertLink', (story, APIReference) => {
           AlertLink as a manual link using{' '}
           <JSXProperty name="onClick" value={`() => window.alert('Clicked!')`} />:
         </p>
-        {/* eslint-disable-next-line */}
+        {/* eslint-disable-next-line no-alert */}
         <AlertLink type="info" onClick={() => window.alert('Clicked!')}>
           Info Link
         </AlertLink>
@@ -110,7 +109,7 @@ export default storyBook('AlertLink', (story, APIReference) => {
           <AlertLink type="info" href={DUMMY_LINK} openInNewTab={false}>
             Are nicely spaced out
           </AlertLink>
-          {/* eslint-disable-next-line */}
+          {/* eslint-disable-next-line no-alert */}
           <AlertLink type="info" onClick={() => window.alert('Clicked!')}>
             ... all of them
           </AlertLink>

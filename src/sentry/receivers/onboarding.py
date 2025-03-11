@@ -57,7 +57,6 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 @project_created.connect(weak=False)
-@sentry_sdk.trace
 def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     scope = sentry_sdk.get_current_scope()
@@ -225,14 +224,21 @@ def record_first_event(project, event, **kwargs):
 
 
 @first_transaction_received.connect(weak=False)
-def record_first_transaction(project, event, **kwargs):
+def _record_first_transaction(project, event, **kwargs):
+    return record_first_transaction(project, event.datetime, **kwargs)
+
+
+def record_first_transaction(project, datetime, **kwargs):
+    if project.flags.has_transactions:
+        return
+
     project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
     OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_TRANSACTION,
         status=OnboardingTaskStatus.COMPLETE,
-        date_completed=event.datetime,
+        date_completed=datetime,
     )
 
     try:
@@ -431,8 +437,12 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
     )
 
 
-def record_release_received(project, event, **kwargs):
-    if not event.data.get("release"):
+def _record_release_received(project, event, **kwargs):
+    return record_release_received(project, event.data.get("release"), **kwargs)
+
+
+def record_release_received(project, release, **kwargs):
+    if not release:
         return
 
     success = OrganizationOnboardingTask.objects.record(
@@ -460,8 +470,8 @@ def record_release_received(project, event, **kwargs):
         )
 
 
-event_processed.connect(record_release_received, weak=False)
-transaction_processed.connect(record_release_received, weak=False)
+event_processed.connect(_record_release_received, weak=False)
+transaction_processed.connect(_record_release_received, weak=False)
 
 
 @first_event_with_minified_stack_trace_received.connect(weak=False)
