@@ -9,6 +9,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -34,14 +35,6 @@ const sampleDurationTimeSeries2 = {
       value: datum.value * 0.3 + 30 * Math.random(),
     };
   }),
-  meta: {
-    fields: {
-      'p50(span.duration)': 'duration',
-    },
-    units: {
-      'p50(span.duration)': 'millisecond',
-    },
-  },
 };
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
@@ -223,12 +216,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         };
       }),
       meta: {
-        fields: {
-          'p99(span.self_time)': 'duration',
-        },
-        units: {
-          'p99(span.self_time)': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -340,12 +329,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
-        fields: {
-          'error_rate()': 'rate',
-        },
-        units: {
-          'error_rate()': '1/second',
-        },
+        type: 'rate',
+        unit: RateUnit.PER_SECOND,
       },
     };
 
@@ -504,14 +489,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               new Line({
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
-                meta: {
-                  fields: {
-                    'error_rate()': 'rate',
-                  },
-                  units: {
-                    'error_rate()': '1/second',
-                  },
-                },
               }),
             ]}
             releases={releases}

@@ -53,17 +53,12 @@ export abstract class ContinuousTimeSeries<
   }
 
   get dataType(): AggregationOutputType {
-    // TODO: Simplify this. `TimeSeries` types should already have this type
-    return this.timeSeries.meta.fields[this.timeSeries.field]! as AggregationOutputType;
+    // TODO: Remove the `as` cast. `TimeSeries` meta should use `AggregationOutputType` instead of `string`
+    return this.timeSeries.meta.type as AggregationOutputType;
   }
 
   get dataUnit(): DataUnit {
-    // TODO: Simplify this. `TimeSeries` units should already have this type
-    return this.timeSeries.meta.units[this.timeSeries.field] as
-      | DurationUnit
-      | SizeUnit
-      | RateUnit
-      | null;
+    return this.timeSeries.meta.unit;
   }
 
   get start(): string | null {

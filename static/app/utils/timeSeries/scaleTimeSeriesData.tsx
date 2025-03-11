@@ -23,7 +23,7 @@ export function scaleTimeSeriesData(
 ): TimeSeries {
   // TODO: Instead of a fallback, allow this to be `null`, which might happen
   const sourceType =
-    (timeSeries.meta?.fields[timeSeries.field] as AggregationOutputType) ??
+    (timeSeries.meta?.type as AggregationOutputType) ??
     (FALLBACK_TYPE as AggregationOutputType);
 
   // Don't bother trying to convert numbers, dates, etc.
@@ -31,7 +31,7 @@ export function scaleTimeSeriesData(
     return timeSeries;
   }
 
-  const sourceUnit = timeSeries.meta?.units?.[timeSeries.field] ?? null;
+  const sourceUnit = timeSeries.meta?.unit;
 
   if (!destinationUnit || sourceUnit === destinationUnit) {
     return timeSeries;
@@ -82,12 +82,8 @@ export function scaleTimeSeriesData(
     }),
     meta: {
       ...timeSeries.meta,
-      fields: {
-        [timeSeries.field]: sourceType,
-      },
-      units: {
-        [timeSeries.field]: destinationUnit,
-      },
+      type: sourceType,
+      unit: destinationUnit,
     },
   };
 }
