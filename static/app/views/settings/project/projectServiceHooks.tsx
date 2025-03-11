@@ -101,7 +101,7 @@ function ProjectServiceHooks() {
         queryClient,
         [`/projects/${organization.slug}/${projectId}/hooks/`],
         oldHookList => {
-          return oldHookList.map(h => {
+          return oldHookList?.map(h => {
             if (h.id === data.id) {
               return {
                 ...h,

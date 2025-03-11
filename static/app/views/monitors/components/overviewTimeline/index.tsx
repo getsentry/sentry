@@ -55,7 +55,10 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      if (!oldMonitorList) {
+        return undefined;
+      }
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       if (oldMonitorIdx < 0) {
         return oldMonitorList;
@@ -97,11 +100,11 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
-      oldMonitorList[monitorIdx] = resp;
-      return oldMonitorList;
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      return oldMonitorList
+        ? // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+          oldMonitorList.map(m => (m.slug === monitor.slug ? resp : m))
+        : undefined;
     });
   };
 
@@ -114,11 +117,12 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx]!, status: resp.status};
-
-      return oldMonitorList;
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      return oldMonitorList
+        ? oldMonitorList.map(m =>
+            m.slug === monitor.slug ? {...m, status: resp.status} : m
+          )
+        : undefined;
     });
   };
 
