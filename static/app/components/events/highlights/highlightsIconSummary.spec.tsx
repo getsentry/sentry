@@ -100,6 +100,25 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getAllByRole('img')).toHaveLength(4);
   });
 
+  it('deduplicates client_os and os contexts', function () {
+    const duplicateOsContextEvent = EventFixture({
+      contexts: {
+        client_os: {
+          type: 'client_os',
+          name: 'macOS',
+        },
+        os: {
+          type: 'os',
+          name: 'macOS',
+          version: '15.3',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={duplicateOsContextEvent} group={group} />);
+    expect(screen.getByText('macOS')).toBeInTheDocument();
+    expect(screen.getByText('15.3')).toBeInTheDocument();
+  });
+
   it('hides device for non mobile/native', function () {
     const groupWithPlatform = GroupFixture({
       project: ProjectFixture({
