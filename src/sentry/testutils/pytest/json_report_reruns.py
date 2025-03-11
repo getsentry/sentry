@@ -1,3 +1,4 @@
+import pytest
 import pytest_jsonreport.plugin  # type:ignore[import-untyped]
 
 TestItem = dict[str, list[object]]
@@ -6,12 +7,11 @@ TestItem = dict[str, list[object]]
 class PytestRerunJSONReporter:
     json_tests: None | dict[str, TestItem] = None
 
-    def pytest_plugin_registered(self, plugin, manager):
-        del manager
+    def pytest_plugin_registered(self, plugin: object) -> None:
         if isinstance(plugin, pytest_jsonreport.plugin.JSONReport):
-            self.json_tests = plugin._json_tests
+            self.json_tests = getattr(plugin, "_json_tests")
 
-    def pytest_json_runtest_stage(self, report):
+    def pytest_json_runtest_stage(self, report: pytest.TestReport) -> None:
         assert self.json_tests is not None
 
         nodeid = report.nodeid
@@ -29,5 +29,5 @@ class PytestRerunJSONReporter:
             )
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     config.pluginmanager.register(PytestRerunJSONReporter())
