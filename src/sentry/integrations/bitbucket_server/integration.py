@@ -70,7 +70,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Import your Bitbucket [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
+        Import your Bitbucket Server [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
     ),
