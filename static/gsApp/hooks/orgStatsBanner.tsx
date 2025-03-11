@@ -43,7 +43,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
   const isPaidPlan = subscription.planDetails.price > 0;
   // only show start trial if on a free plan and trial available
   const showStartTrial = !isPaidPlan && subscription.canTrial;
-  const getTextContent = (): [string | JSX.Element, string | JSX.Element] => {
+  const getTextContent = (): [string, string | React.JSX.Element] => {
     const action = getBestActionToIncreaseEventLimits(organization, subscription);
     switch (action) {
       case 'start_trial':

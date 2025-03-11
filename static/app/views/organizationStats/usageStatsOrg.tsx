@@ -108,7 +108,7 @@ class UsageStatsOrganization<
   }
 
   /** List of components to render on single-project view */
-  get projectDetails(): JSX.Element[] {
+  get projectDetails(): React.JSX.Element[] {
     return [];
   }
 

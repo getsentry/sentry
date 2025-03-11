@@ -26,7 +26,7 @@ const options: Array<ComboBoxOptionOrSection<string>> = [
       <Fragment>
         <strong>{'Option Three (deprecated)'}</strong>
         <Divider />
-        This is a description using JSX.
+        This is a description using React.JSX.
         <Divider />
         <KeyValueTable>
           <KeyValueTableRow keyName="Coffee" value="Black hot drink" />

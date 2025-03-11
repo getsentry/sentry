@@ -25,7 +25,7 @@ function getActionLabelAndTextValue({
 }: {
   action: ExternalIssueAction;
   integrationDisplayName: string;
-}): {label: string | JSX.Element; textValue: string} {
+}): {label: string | React.JSX.Element; textValue: string} {
   // If there's no subtext or subtext matches name, just show name
   if (!action.nameSubText || action.nameSubText === action.name) {
     return {

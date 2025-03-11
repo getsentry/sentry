@@ -109,7 +109,7 @@ export function SegmentedControl<Value extends string>({
 
 SegmentedControl.Item = Item as <Value extends string>(
   props: SegmentedControlItemProps<Value>
-) => JSX.Element;
+) => React.JSX.Element;
 
 interface SegmentProps<Value extends string>
   extends SegmentedControlItemProps<Value>,

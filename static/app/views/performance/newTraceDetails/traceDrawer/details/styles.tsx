@@ -289,7 +289,7 @@ const MIN_PCT_DURATION_DIFFERENCE = 10;
 
 type DurationComparison = {
   deltaPct: number;
-  deltaText: JSX.Element;
+  deltaText: React.JSX.Element;
   status: 'faster' | 'slower' | 'equal';
 } | null;
 
@@ -385,10 +385,10 @@ function TableRow({
   toolTipText,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
   toolTipText?: string;
 }) {
   if (!keep && !children) {

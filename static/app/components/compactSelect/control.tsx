@@ -148,7 +148,9 @@ export interface ControlProps
   /**
    * Optional content to display below the menu's header and above the options.
    */
-  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => JSX.Element);
+  menuBody?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.JSX.Element);
   /**
    * Footer to be rendered at the bottom of the menu.
    */

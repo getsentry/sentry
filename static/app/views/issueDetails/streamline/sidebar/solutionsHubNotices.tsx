@@ -61,7 +61,7 @@ export function SolutionsHubNotices({
 }: SolutionsHubNoticesProps) {
   const organization = useOrganization();
   const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
-  const notices: JSX.Element[] = [];
+  const notices: React.JSX.Element[] = [];
 
   const integrationId = autofixRepositories.find(repo =>
     repo.provider.includes('github')
