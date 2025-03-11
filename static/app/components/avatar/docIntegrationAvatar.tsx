@@ -1,23 +1,6 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import type {DocIntegration} from 'sentry/types/integrations';
+import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 
-interface Props extends BaseAvatarProps {
-  docIntegration?: DocIntegration;
-}
-
-function DocIntegrationAvatar({docIntegration, ...props}: Props) {
-  if (!docIntegration?.avatar) {
-    return <PluginIcon size={props.size} pluginId={docIntegration?.slug} />;
-  }
-  return (
-    <BaseAvatar
-      {...props}
-      type="upload"
-      uploadUrl={docIntegration.avatar.avatarUrl}
-      title={docIntegration.name}
-    />
-  );
-}
-
+/**
+ * @deprecated Use `sentry/components/core/avatar/docIntegrationAvatar` instead.
+ */
 export default DocIntegrationAvatar;

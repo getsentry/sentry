@@ -90,7 +90,7 @@ export default function formatDuration({
       const str = formatSecondsToClock(valueInSec, {padAll});
       const [head, tail] = str.split('.');
       return includeMs
-        ? [head, precision === 'ms' ? tail ?? '000' : '000'].join('.')
+        ? [head, precision === 'ms' ? (tail ?? '000') : '000'].join('.')
         : String(head);
     }
     case 'ISO8601': {

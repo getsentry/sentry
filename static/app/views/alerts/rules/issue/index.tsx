@@ -669,7 +669,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               key,
               hasChangeAlerts && key === 'interval'
                 ? '1h'
-                : formField?.initial ?? formField?.choices?.[0]?.[0],
+                : (formField?.initial ?? formField?.choices?.[0]?.[0]),
             ])
             .filter(([, initial]) => !!initial)
         )
@@ -1599,7 +1599,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...Array(filters.length).keys()],
+        filterIndices: [...new Array(filters.length).keys()],
       };
     }
   }
