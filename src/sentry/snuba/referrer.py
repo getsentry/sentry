@@ -193,6 +193,10 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES = (
         "api.performance.browser.web-vitals.transactions-scores"
     )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES = (
+        "api.performance.browser.web-vitals.timeseries-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_SPANS = "api.performance.browser.web-vitals.spans"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -951,6 +955,7 @@ class Referrer(StrEnum):
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
     TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
+    TSDB_MODELID_4_batch_alert_event_frequency = "tsdb-modelid:4.batch_alert_event_frequency"
     TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
