@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 
@@ -16,6 +17,7 @@ interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   isLoading: boolean;
   isMultiSelect: boolean;
   items: T[];
+  portalTarget?: HTMLElement | null;
 }
 
 function Footer({
@@ -52,6 +54,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   isMultiSelect,
   items,
   canUseWildcard,
+  portalTarget,
 }: ValueListBoxProps<T>) {
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -63,7 +66,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     return null;
   }
 
-  return (
+  const valueListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SectionedOverlay ref={popoverRef}>
         {isLoading && hiddenOptions.size >= totalOptions ? (
@@ -90,6 +93,12 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
       </SectionedOverlay>
     </StyledPositionWrapper>
   );
+
+  if (portalTarget) {
+    return createPortal(valueListBoxContent, portalTarget);
+  }
+
+  return valueListBoxContent;
 }
 
 const SectionedOverlay = styled(Overlay)`

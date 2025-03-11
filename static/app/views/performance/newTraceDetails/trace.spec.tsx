@@ -159,7 +159,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -183,7 +183,7 @@ function mockSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -197,7 +197,7 @@ function mockTransactionSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -817,12 +817,12 @@ function printVirtualizedList(container: HTMLElement) {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join('\n'));
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
@@ -836,7 +836,7 @@ function printTabs() {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join(' | '));
 }
 

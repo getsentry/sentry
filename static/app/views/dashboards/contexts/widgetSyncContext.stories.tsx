@@ -8,6 +8,7 @@ import storyBook from 'sentry/stories/storyBook';
 
 import {sampleDurationTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
+import {Line} from '../widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from '../widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {WidgetSyncContextProvider} from './widgetSyncContext';
@@ -33,15 +34,13 @@ export default storyBook('WidgetSyncContext', story => {
           <SideBySide>
             <MediumWidget>
               <TimeSeriesWidgetVisualization
-                visualizationType="line"
-                timeSeries={[sampleDurationTimeSeries]}
+                plottables={[new Line(sampleDurationTimeSeries)]}
               />
             </MediumWidget>
             {visible && (
               <MediumWidget>
                 <TimeSeriesWidgetVisualization
-                  visualizationType="area"
-                  timeSeries={[sampleThroughputTimeSeries]}
+                  plottables={[new Line(sampleThroughputTimeSeries)]}
                 />
               </MediumWidget>
             )}

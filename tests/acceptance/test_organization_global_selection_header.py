@@ -43,6 +43,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.create_environment(name="prod", project=self.project_2)
 
         self.login_as(self.user)
+        self.dismiss_assistant()
+
         self.issues_list = IssueListPage(self.browser, self.client)
         self.issue_details = IssueDetailsPage(self.browser, self.client)
 
@@ -68,7 +70,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         )
 
     def test_global_selection_header_dropdown(self):
-        self.dismiss_assistant()
         self.project.update(first_event=django_timezone.now())
         self.issues_list.visit_issue_list(
             self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id)

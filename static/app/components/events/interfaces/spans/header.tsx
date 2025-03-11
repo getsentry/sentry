@@ -752,7 +752,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
       }
 
       default: {
-        throw Error(`Invalid tick alignment: ${align}`);
+        throw new Error(`Invalid tick alignment: ${align}`);
       }
     }
   }};

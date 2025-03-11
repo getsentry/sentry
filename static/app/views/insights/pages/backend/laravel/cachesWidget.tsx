@@ -1,17 +1,27 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
+import {IconExpand} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {
+  ModalChartContainer,
+  ModalTableWrapper,
+  SeriesColorIndicator,
+  WidgetFooterTable,
+} from 'sentry/views/insights/pages/backend/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 
 export function CachesWidget({query}: {query?: string}) {
@@ -89,69 +99,75 @@ export function CachesWidget({query}: {query?: string}) {
   const hasData =
     cachesRequest.data && cachesRequest.data.data.length > 0 && timeSeries.length > 0;
 
+  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+
+  const visualization = isLoading ? (
+    <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+  ) : error ? (
+    <Widget.WidgetError error={error} />
+  ) : !hasData ? (
+    <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
+  ) : (
+    <TimeSeriesWidgetVisualization
+      plottables={timeSeries
+        .map(convertSeriesToTimeseries)
+        .map((ts, index) => new Line(ts, {color: colorPalette[index]}))}
+    />
+  );
+
+  const footer = hasData && (
+    <WidgetFooterTable>
+      {cachesRequest.data?.data.map((item, index) => (
+        <Fragment key={item.transaction}>
+          <div>
+            <SeriesColorIndicator
+              style={{
+                backgroundColor: colorPalette[index],
+              }}
+            />
+          </div>
+          <div>
+            <Link
+              to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+            >
+              {item.transaction}
+            </Link>
+          </div>
+          <span>{(item['cache_miss_rate()'] * 100).toFixed(2)}%</span>
+        </Fragment>
+      ))}
+    </WidgetFooterTable>
+  );
+
   return (
     <Widget
-      Title={<Widget.WidgetTitle title="Caches" />}
-      Visualization={
-        isLoading ? (
-          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-        ) : error ? (
-          <Widget.WidgetError error={error} />
-        ) : !hasData ? (
-          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-        ) : (
-          <TimeSeriesWidgetVisualization
-            visualizationType="line"
-            timeSeries={timeSeries.map(convertSeriesToTimeseries)}
-          />
-        )
-      }
-      Footer={
+      Title={<Widget.WidgetTitle title={t('Cache Miss Rates')} />}
+      Visualization={visualization}
+      Actions={
         hasData && (
-          <WidgetFooterTable>
-            {cachesRequest.data?.data.map(item => (
-              <Fragment key={item.transaction}>
-                <OverflowCell>
-                  <Link
-                    to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
-                  >
-                    {item.transaction}
-                  </Link>
-                </OverflowCell>
-                <span>{(item['cache_miss_rate()'] * 100).toFixed(2)}%</span>
-              </Fragment>
-            ))}
-          </WidgetFooterTable>
+          <Widget.WidgetToolbar>
+            <Button
+              size="xs"
+              aria-label={t('Open Full-Screen View')}
+              borderless
+              icon={<IconExpand />}
+              onClick={() => {
+                openInsightChartModal({
+                  title: t('Cache Miss Rates'),
+                  children: (
+                    <Fragment>
+                      <ModalChartContainer>{visualization}</ModalChartContainer>
+                      <ModalTableWrapper>{footer}</ModalTableWrapper>
+                    </Fragment>
+                  ),
+                });
+              }}
+            />
+          </Widget.WidgetToolbar>
         )
       }
+      noFooterPadding
+      Footer={footer}
     />
   );
 }
-
-const OverflowCell = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  min-width: 0px;
-`;
-
-const WidgetFooterTable = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  margin: -${space(1)} -${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  & > * {
-    padding: ${space(1)} ${space(1)};
-  }
-
-  & > *:nth-child(2n + 1) {
-    padding-left: ${space(2)};
-  }
-
-  & > *:nth-child(2n) {
-    padding-right: ${space(2)};
-  }
-
-  & > *:not(:nth-last-child(-n + 2)) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-`;

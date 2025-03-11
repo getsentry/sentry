@@ -21,6 +21,7 @@ from sentry.utils import json, metrics
 logger = logging.getLogger()
 
 
+@sentry_sdk.trace
 def emit_click_events(
     click_events: list[ClickEvent],
     project_id: int,
@@ -30,6 +31,10 @@ def emit_click_events(
     event_cap: int = 20,
     environment: str | None = None,
 ) -> None:
+    # Skip event emission if no clicks specified.
+    if len(click_events) == 0:
+        return None
+
     clicks: list[ReplayActionsEventPayloadClick] = [
         {
             "alt": click.alt,

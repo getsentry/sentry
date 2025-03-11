@@ -4,6 +4,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useApi from 'sentry/utils/useApi';
@@ -15,7 +16,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 
 interface SaveButtonProps {
   isEditing: boolean;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   setError: (error: Record<string, any>) => void;
 }
 
@@ -37,7 +38,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
-      onSave({index: Number(widgetIndex), widget});
+      onSave({index: defined(widgetIndex) ? Number(widgetIndex) : undefined, widget});
     } catch (error) {
       setIsSaving(false);
       const errorDetails = error.responseJSON || error;

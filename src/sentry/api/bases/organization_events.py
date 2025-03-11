@@ -436,6 +436,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_columns: list[str] | None = None,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query_creation"):
@@ -464,6 +465,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         default_interval=None,
                         error=InvalidSearchQuery(),
                         top_events=top_events,
+                        allow_interval_over_range=not use_rpc,
                     )
                 # If the user sends an invalid interval, use the default instead
                 except InvalidSearchQuery:

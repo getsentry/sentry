@@ -100,7 +100,7 @@ export function ListBoxOption({
       isPressed={isPressed}
       isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
-      priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
+      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
