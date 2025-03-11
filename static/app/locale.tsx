@@ -404,9 +404,9 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 export function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): JSX.Element {
+): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
+  return mark(renderTemplate(parsedTemplate, components) as React.JSX.Element);
 }
 
 /**
