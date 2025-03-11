@@ -54,7 +54,7 @@ def get_anomaly_data_from_seer(
     ):
         return None
 
-    if aggregation_value is None:
+    if not aggregation_value and aggregation_value != 0:
         extra_data["threshold_type"] = alert_rule.threshold_type
         extra_data["sensitivity"] = alert_rule.sensitivity
         extra_data["seasonality"] = alert_rule.seasonality
