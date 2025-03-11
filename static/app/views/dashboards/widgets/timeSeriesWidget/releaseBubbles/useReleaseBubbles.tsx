@@ -145,7 +145,7 @@ function createReleaseBubbleMouseListeners({
 
 interface ReleaseBubbleSeriesProps {
   buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   releases: ReleaseMetaBasic[];
   theme: Theme;
   bubbleSize?: number;
@@ -271,7 +271,7 @@ Tap to view
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;

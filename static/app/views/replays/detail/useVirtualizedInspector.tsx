@@ -7,7 +7,7 @@ import useVirtualListDimensionChange from 'sentry/views/replays/detail/useVirtua
 type Opts = {
   cache: CellMeasurerCache;
   expandPathsRef: RefObject<Map<number, Set<string>>>;
-  listRef: RefObject<List>;
+  listRef: RefObject<List | null>;
 };
 
 export type OnExpandCallback = (

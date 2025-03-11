@@ -329,9 +329,11 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
                       // prevent the blur event on the input from firing
                       onMouseDown={event => event.preventDefault()}
                       // scroll into view if it is the active element
-                      ref={element =>
-                        option.active && element?.scrollIntoView?.({block: 'nearest'})
-                      }
+                      ref={element => {
+                        if (option.active) {
+                          element?.scrollIntoView?.({block: 'nearest'});
+                        }
+                      }}
                       aria-label={option.value}
                     >
                       <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>

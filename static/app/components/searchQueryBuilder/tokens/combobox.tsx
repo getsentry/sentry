@@ -116,9 +116,9 @@ export type CustomComboboxMenuProps<T> = {
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
-  listBoxRef: React.RefObject<HTMLUListElement>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
   overlayProps: OverlayProps;
-  popoverRef: React.RefObject<HTMLDivElement>;
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
   portalTarget?: HTMLElement | null;
 };
@@ -198,7 +198,7 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition,
   isOpen,
 }: {
-  contentRef: React.RefObject<HTMLDivElement>;
+  contentRef: React.RefObject<HTMLDivElement | null>;
   isOpen: boolean;
   updateOverlayPosition: (() => void) | null;
 }) {
@@ -254,9 +254,9 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
-  listBoxRef: React.RefObject<HTMLUListElement>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
   overlayProps: OverlayProps;
-  popoverRef: React.RefObject<HTMLDivElement>;
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
   customMenu?: CustomComboboxMenu<T>;
   portalTarget?: HTMLElement | null;
@@ -277,9 +277,13 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <ListBoxOverlay ref={popoverRef}>
+      <ListBoxOverlay
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+        ref={popoverRef}
+      >
         <ListBox
           {...listBoxProps}
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={!!filterValue}

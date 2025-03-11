@@ -264,7 +264,7 @@ export const useOpenSolutionsDrawer = (
   group: Group,
   project: Project,
   event: Event | undefined,
-  buttonRef?: React.RefObject<HTMLButtonElement>
+  buttonRef?: React.RefObject<HTMLButtonElement | null>
 ) => {
   const {openDrawer} = useDrawer();
 
