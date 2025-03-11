@@ -186,9 +186,11 @@ def get_task_kwargs_for_message_from_headers(
                 "is_new": is_new,
                 "is_regression": is_regression,
                 "is_new_group_environment": is_new_group_environment,
-                "queue": decode_str(_required("queue"))
-                if "queue" in header_data
-                else "post_process_errors",
+                "queue": (
+                    decode_str(_required("queue"))
+                    if "queue" in header_data
+                    else "post_process_errors"
+                ),
             }
 
         else:
