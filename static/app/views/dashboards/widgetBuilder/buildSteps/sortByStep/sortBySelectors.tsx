@@ -21,8 +21,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  type SortDirection,
+  sortDirections,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 
@@ -167,6 +169,9 @@ export function SortBySelectors({
                 sortDirection: values.sortDirection,
               });
             }}
+            useMenuPortal={organization.features.includes(
+              'dashboards-widget-builder-redesign'
+            )}
           />
         )}
       </Tooltip>

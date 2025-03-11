@@ -1,4 +1,5 @@
 import {Component, createRef} from 'react';
+import {type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -105,6 +106,12 @@ type Props = {
   shouldRenderTag?: boolean;
   skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
+  theme?: Theme;
+  /**
+   * Whether or not to mount the popover menu in the document.body.
+   * Useful for rendering query fields in scroll containers.
+   */
+  useMenuPortal?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -113,7 +120,7 @@ type OptionType = {
   value: FieldValue;
 };
 
-class QueryField extends Component<Props> {
+class _QueryField extends Component<Props> {
   FieldSelectComponents = {
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
       return (
@@ -430,6 +437,8 @@ class QueryField extends Component<Props> {
       hideParameterSelector,
       skipParameterPlaceholder,
       fieldValue,
+      useMenuPortal,
+      theme,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -447,6 +456,22 @@ class QueryField extends Component<Props> {
           opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
         });
 
+        const portalProps = useMenuPortal
+          ? {
+              menuPortalTarget: document.body,
+              styles: {
+                menuPortal: (provided: any) => ({
+                  ...provided,
+                  // This ensures that the dropdown appears above the widget builder
+                  // because the default dropdown z-index is too low
+                  zIndex: theme?.zIndex.widgetBuilderDrawer
+                    ? theme.zIndex.widgetBuilderDrawer + 1
+                    : undefined,
+                }),
+              },
+            }
+          : {};
+
         return (
           <Select
             key="select"
@@ -459,7 +484,11 @@ class QueryField extends Component<Props> {
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
-            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            menuPortalTarget={portalProps.menuPortalTarget}
+            styles={{
+              ...portalProps.styles,
+              ...(!inFieldLabels ? this.FieldSelectStyles : undefined),
+            }}
             components={this.FieldSelectComponents}
           />
         );
@@ -821,6 +850,8 @@ const ArithmeticError = styled(Tooltip)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;
+
+const QueryField = withTheme(_QueryField);
 
 export {QueryField};
 
