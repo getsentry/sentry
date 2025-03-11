@@ -1210,6 +1210,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
     },
+    "uptime-broken-monitor-checker": {
+        "task": "sentry.uptime.tasks.broken_monitor_checker",
+        "schedule": crontab(minute="0", hour="*/1"),
+        "options": {"expires": 10 * 60},
+    },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
         # Run every minute
