@@ -53,35 +53,35 @@ function makeTagPillTheme(
     case undefined:
     case 'default':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.grayTransparent400,
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
       };
 
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'info':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.blue400,
-      };
-    case 'success':
-      return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.green400,
-      };
-    case 'warning':
-      return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.yellow400,
-      };
-    case 'danger':
-      return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.red400,
+        color: theme.colors.blue500,
+        background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.pink400,
+        color: theme.colors.pink500,
+        background: theme.colors.pink100,
+      };
+    case 'danger':
+      return {
+        color: theme.colors.red500,
+        background: theme.colors.red100,
+      };
+    case 'warning':
+      return {
+        color: theme.colors.yellow500,
+        background: theme.colors.yellow100,
+      };
+    case 'success':
+      return {
+        color: theme.colors.green500,
+        background: theme.colors.green100,
       };
     default:
       unreachable(type);

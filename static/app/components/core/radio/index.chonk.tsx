@@ -31,7 +31,7 @@ export const chonkRadioStyles = (
 
   /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: '0 !important',
-  border: `1px solid ${props.theme.colors.dynamic.surface100} !important`,
+  border: `1px solid ${props.theme.colors.surface100} !important`,
 
   '&:after': {
     content: '""',
@@ -39,7 +39,7 @@ export const chonkRadioStyles = (
     width: radioConfig[props.size ?? 'md'].innerSize,
     height: radioConfig[props.size ?? 'md'].innerSize,
     borderRadius: '50%',
-    backgroundColor: props.theme.colors.static.white,
+    backgroundColor: props.theme.colors.white,
     transition: 'all 0.2s ease-in-out',
     opacity: 0,
   },
@@ -49,8 +49,8 @@ export const chonkRadioStyles = (
   },
 
   '&:checked': {
-    backgroundColor: props.theme.colors.static.blue400,
-    border: `1px solid ${props.theme.colors.static.blue400}`,
+    backgroundColor: props.theme.colors.chonk.blue400,
+    border: `1px solid ${props.theme.colors.chonk.blue400}`,
 
     '&:after': {
       animation: `${growIn} 0.2s ease-in-out`,
