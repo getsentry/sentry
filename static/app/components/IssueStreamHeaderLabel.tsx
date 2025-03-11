@@ -15,7 +15,7 @@ const IssueStreamHeaderLabel = styled('div')<{breakpoint?: string}>`
   ${p =>
     p.breakpoint &&
     css`
-      @media (max-width: ${p.breakpoint}) {
+      @container (width < ${p.breakpoint}) {
         display: none;
       }
     `}

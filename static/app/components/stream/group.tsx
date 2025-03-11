@@ -962,7 +962,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   align-self: center;
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -975,7 +975,7 @@ const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -988,7 +988,7 @@ const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
   padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -1001,7 +1001,7 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   margin-right: ${space(2)};
   width: 60px;
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -1046,7 +1046,7 @@ const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-start;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
