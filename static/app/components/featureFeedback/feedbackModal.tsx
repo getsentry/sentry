@@ -171,7 +171,7 @@ export function FeedbackModal<T extends Data>({
         } else {
           feedbackClient.captureEvent({
             ...commonEventProps,
-            ...(submitEventData ?? {}),
+            ...submitEventData,
           });
         }
       }

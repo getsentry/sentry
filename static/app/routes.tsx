@@ -2563,6 +2563,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp({children}: {children: JSX.Element}) {
+function NoOp({children}: {children: React.JSX.Element}) {
   return children;
 }

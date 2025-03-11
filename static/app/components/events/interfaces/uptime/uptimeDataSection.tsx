@@ -125,7 +125,7 @@ export function UptimeDataSection({group, event, project}: Props) {
     ruleIds: alertRuleId ? [alertRuleId] : [],
     timeWindowConfig,
   });
-  const bucketedData = alertRuleId ? uptimeStats?.[alertRuleId] ?? [] : [];
+  const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
 
   const actions = (
     <ButtonBar gap={1}>

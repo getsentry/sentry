@@ -565,7 +565,7 @@ export function getCurrentPageFilters(
           ? [Number(project)]
           : project.map(Number),
     environment:
-      typeof environment === 'string' ? [environment] : environment ?? undefined,
+      typeof environment === 'string' ? [environment] : (environment ?? undefined),
     period: statsPeriod as string | undefined,
     start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,

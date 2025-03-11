@@ -40,8 +40,8 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
 function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? activeColor ?? 'pink400' : 'gray400',
-    iconBorder: isActive ? activeColor ?? 'pink400' : 'gray400',
+    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
   };
 }
 
