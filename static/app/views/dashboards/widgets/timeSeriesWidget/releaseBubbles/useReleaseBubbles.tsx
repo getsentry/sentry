@@ -8,6 +8,7 @@ import type {
   CustomSeriesRenderItemReturn,
 } from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
+import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
@@ -22,7 +23,9 @@ import type {
 } from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import {getFormat} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
@@ -147,6 +150,9 @@ interface ReleaseBubbleSeriesProps {
   bubbleSize: number;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef>;
+  dateFormatOptions: {
+    timezone: string;
+  };
   releases: ReleaseMetaBasic[];
   theme: Theme;
 }
@@ -159,6 +165,7 @@ function ReleaseBubbleSeries({
   chartRef,
   theme,
   bubbleSize,
+  dateFormatOptions,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -168,6 +175,18 @@ function ReleaseBubbleSeries({
     end,
     releases,
   }));
+
+  const formatBucketTimestamp = (timestamp: number) => {
+    // TODO: we might want to be smarter about formatting when the buckets are
+    // both in the same day, or if time difference is very small (e.g. hours)
+    const format = getFormat({
+      dateOnly: false,
+      timeOnly: false,
+      year: moment().year() !== moment(timestamp).year(),
+    });
+
+    return moment.tz(timestamp, dateFormatOptions.timezone).format(format);
+  };
 
   /**
    * Renders release bubbles underneath the main chart
@@ -250,15 +269,18 @@ function ReleaseBubbleSeries({
         const bucket = params.data as Bucket;
         const numberReleases = bucket.releases.length;
         return `
-<div class="tooltip-series">
+<div class="tooltip-series tooltip-release">
 <div>
 ${tn('%s Release', '%s Releases', numberReleases)}
+</div>
+<div class="tooltip-release-timerange">
+${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.end)}
 </div>
 </div>
 
 ${
   numberReleases > 0
-    ? `<div class="tooltip-footer">
+    ? `<div class="tooltip-footer tooltip-release">
 ${t('Click to expand')}
 </div>`
     : ''
@@ -293,6 +315,7 @@ export function useReleaseBubbles({
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
   const theme = useTheme();
+  const {options} = useUser();
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const buckets =
     (hasReleaseBubbles &&
@@ -334,6 +357,9 @@ export function useReleaseBubbles({
       chartRef,
       theme,
       releases,
+      dateFormatOptions: {
+        timezone: options.timezone,
+      },
     }),
 
     /**

@@ -697,6 +697,17 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
   }
+  .tooltip-release.tooltip-series > div,
+  .tooltip-release.tooltip-footer {
+    justify-content: center;
+  }
+  .tooltip-release.tooltip-series {
+    color: ${p.theme.textColor};
+  }
+  .tooltip-release-timerange {
+    font-size: ${p.theme.fontSizeExtraSmall};
+    color: ${p.theme.textColor};
+  }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
