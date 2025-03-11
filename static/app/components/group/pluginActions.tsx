@@ -209,7 +209,10 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
               project,
               organization,
               actionType,
-              onSuccess,
+              onSuccess: (...args) => {
+                onSuccess(...args);
+                this.props.closeModal();
+              },
             })}
           </Body>
         )}
