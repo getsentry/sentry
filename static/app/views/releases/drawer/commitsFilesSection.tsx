@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -17,7 +16,7 @@ import {
 } from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {CommitsList} from 'sentry/views/releases/drawer/commitsList';
 import {FilesChangedList} from 'sentry/views/releases/drawer/filesChangedList';
-import {FoldSection, SectionDivider} from 'sentry/views/releases/drawer/foldSection';
+import {FoldSection} from 'sentry/views/releases/drawer/foldSection';
 
 interface CommitsSectionProps {
   isLoadingMeta: boolean;
@@ -57,74 +56,71 @@ export function CommitsFilesSection({
   const noRepositoryOrgRelatedFound = !repositories?.length;
 
   return (
-    <Fragment>
-      <Tabs disabled={isError}>
-        <FoldSection
-          sectionKey="commits"
-          title={
-            <TabList hideBorder>
-              <TabList.Item key="commits">
-                <TitleWithBadge>
-                  <span>{t('Commits')}</span>
-                  <Badge type="default">
-                    {isLoadingMeta
-                      ? '-'
-                      : isMetaError
-                        ? 'x'
-                        : (releaseMeta?.commitCount ?? '0')}
-                  </Badge>
-                </TitleWithBadge>
-              </TabList.Item>
-              <TabList.Item key="files">
-                <TitleWithBadge>
-                  <span>{t('File Changes')}</span>
-                  <Badge type="default">
-                    {isLoadingMeta
-                      ? '-'
-                      : isMetaError
-                        ? 'x'
-                        : (releaseMeta?.commitFilesChanged ?? '0')}
-                  </Badge>
-                </TitleWithBadge>
-              </TabList.Item>
-            </TabList>
-          }
-        >
-          {isLoading ? (
-            <Placeholder height="100px" />
-          ) : isError ? (
-            <LoadingError
-              onRetry={() => {
-                releaseReposQuery.refetch();
-                repositoriesQuery.refetch();
-              }}
-            />
-          ) : noReleaseReposFound ? (
-            <NoReleaseRepos />
-          ) : noRepositoryOrgRelatedFound ? (
-            <NoRepositories orgSlug={organization.slug} />
-          ) : (
-            <TabPanels>
-              <TabPanels.Item key="commits">
-                {releaseRepos?.length && (
-                  <CommitsList
-                    release={release}
-                    releaseRepos={releaseRepos}
-                    projectSlug={projectSlug}
-                  />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="files">
-                {releaseRepos?.length && (
-                  <FilesChangedList release={release} releaseRepos={releaseRepos} />
-                )}
-              </TabPanels.Item>
-            </TabPanels>
-          )}
-        </FoldSection>
-      </Tabs>
-      <SectionDivider />
-    </Fragment>
+    <Tabs disabled={isError}>
+      <FoldSection
+        sectionKey="commits"
+        title={
+          <TabList hideBorder>
+            <TabList.Item key="commits">
+              <TitleWithBadge>
+                <span>{t('Commits')}</span>
+                <Badge type="default">
+                  {isLoadingMeta
+                    ? '-'
+                    : isMetaError
+                      ? 'x'
+                      : (releaseMeta?.commitCount ?? '0')}
+                </Badge>
+              </TitleWithBadge>
+            </TabList.Item>
+            <TabList.Item key="files">
+              <TitleWithBadge>
+                <span>{t('File Changes')}</span>
+                <Badge type="default">
+                  {isLoadingMeta
+                    ? '-'
+                    : isMetaError
+                      ? 'x'
+                      : (releaseMeta?.commitFilesChanged ?? '0')}
+                </Badge>
+              </TitleWithBadge>
+            </TabList.Item>
+          </TabList>
+        }
+      >
+        {isLoading ? (
+          <Placeholder height="100px" />
+        ) : isError ? (
+          <LoadingError
+            onRetry={() => {
+              releaseReposQuery.refetch();
+              repositoriesQuery.refetch();
+            }}
+          />
+        ) : noReleaseReposFound ? (
+          <NoReleaseRepos />
+        ) : noRepositoryOrgRelatedFound ? (
+          <NoRepositories orgSlug={organization.slug} />
+        ) : (
+          <TabPanels>
+            <TabPanels.Item key="commits">
+              {releaseRepos?.length && (
+                <CommitsList
+                  release={release}
+                  releaseRepos={releaseRepos}
+                  projectSlug={projectSlug}
+                />
+              )}
+            </TabPanels.Item>
+            <TabPanels.Item key="files">
+              {releaseRepos?.length && (
+                <FilesChangedList release={release} releaseRepos={releaseRepos} />
+              )}
+            </TabPanels.Item>
+          </TabPanels>
+        )}
+      </FoldSection>
+    </Tabs>
   );
 }
 

@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {CommitsFilesSection} from 'sentry/views/releases/drawer/commitsFilesSection';
 import {DeploysCard} from 'sentry/views/releases/drawer/deploysCard';
-import {FoldSection} from 'sentry/views/releases/drawer/foldSection';
+import {FoldSection, SectionDivider} from 'sentry/views/releases/drawer/foldSection';
 import {GeneralCard} from 'sentry/views/releases/drawer/generalCard';
 import {NewIssues} from 'sentry/views/releases/drawer/newIssues';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
@@ -53,6 +53,7 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
         projectSlug={projectSlug}
         release={release}
       />
+      <SectionDivider />
 
       <FoldSection
         sectionKey="issues"
