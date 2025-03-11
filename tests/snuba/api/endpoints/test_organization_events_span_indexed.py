@@ -2826,7 +2826,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["trace_status_rate(unauthenticated)"] == 0.2
 
         assert meta["dataset"] == self.dataset
-        
+
     def test_count_op(self):
         self.store_spans(
             [
