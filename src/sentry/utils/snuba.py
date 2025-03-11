@@ -504,21 +504,40 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
-        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
-            raise error.with_traceback(_stacktrace)
+        with sentry_sdk.start_span(op="snuba_pool.retry.increment") as span:
+            # This next block is all debugging to try to track down a bug where we're seeing duplicate snuba requests
+            # Wrapping the entire thing in a try/except to be safe cause none of it actually needs to run
+            try:
+                if error:
+                    error_class = error.__class__
+                    module = error_class.__module__
+                    name = error_class.__name__
+                    span.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+                else:
+                    span.set_tag("snuba_pool.retry.error", "None")
+                span.set_tag("snuba_pool.retry.total", self.total)
+                span.set_tag("snuba_pool.response.status", "unknown")
+                if response:
+                    if response.status:
+                        span.set_tag("snuba_pool.response.status", response.status)
+            except Exception:
+                pass
 
-        metrics.incr(
-            "snuba.client.retry",
-            tags={"method": method, "path": urlparse(url).path if url else None},
-        )
-        return super().increment(
-            method=method,
-            url=url,
-            response=response,
-            error=error,
-            _pool=_pool,
-            _stacktrace=_stacktrace,
-        )
+            if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+                raise error.with_traceback(_stacktrace)
+
+            metrics.incr(
+                "snuba.client.retry",
+                tags={"method": method, "path": urlparse(url).path if url else None},
+            )
+            return super().increment(
+                method=method,
+                url=url,
+                response=response,
+                error=error,
+                _pool=_pool,
+                _stacktrace=_stacktrace,
+            )
 
 
 _snuba_pool = connection_from_url(

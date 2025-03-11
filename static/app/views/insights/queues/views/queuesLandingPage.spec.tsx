@@ -6,13 +6,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('queuesLandingPage', () => {
   const organization = OrganizationFixture({

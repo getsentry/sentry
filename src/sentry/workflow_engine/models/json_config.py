@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
 from django.db import models
 from jsonschema import ValidationError, validate
+
+logger = logging.getLogger("sentry.workflow_engine.json_config")
 
 
 class JSONConfigBase(models.Model):

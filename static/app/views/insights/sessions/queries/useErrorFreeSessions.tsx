@@ -2,6 +2,7 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useErrorFreeSessions() {
   const location = useLocation();
@@ -11,10 +12,8 @@ export default function useErrorFreeSessions() {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -44,12 +43,8 @@ export default function useErrorFreeSessions() {
     };
   }
 
-  const getStatusSeries = (status: string, groups: typeof sessionData.groups) =>
-    groups.find(group => group.by['session.status'] === status)?.series['sum(session)'] ??
-    [];
-
   // Returns series data not grouped by release
-  const seriesData = getStatusSeries('healthy', sessionData.groups).map(
+  const seriesData = getSessionStatusSeries('healthy', sessionData.groups).map(
     (healthyCount, idx) => {
       const intervalTotal = sessionData.groups.reduce(
         (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),

@@ -165,6 +165,15 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     ).exists()
 
 
+def build_sentry_app_compare_blob(
+    sentry_app_config: list[dict[str, str]]
+) -> list[dict[str, str | None]]:
+    """
+    Add the label to the config
+    """
+    return [{**config, "label": config.get("label", None)} for config in sentry_app_config]
+
+
 def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
     aarta = ActionAlertRuleTriggerAction.objects.get(
         alert_rule_trigger_action=alert_rule_trigger_action
@@ -177,14 +186,18 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
     # Additional checks for Sentry app actions
     if action_type == Action.Type.SENTRY_APP:
         # Verify target_identifier is the string representation of sentry_app_id
-        assert action.target_identifier == str(alert_rule_trigger_action.sentry_app_id)
+        assert action.config.get("target_identifier") == str(
+            alert_rule_trigger_action.sentry_app_id
+        )
 
         # Verify data blob has correct structure for Sentry apps
         if not alert_rule_trigger_action.sentry_app_config:
             assert action.data == {}
         else:
             assert action.data == {
-                "settings": alert_rule_trigger_action.sentry_app_config,
+                "settings": build_sentry_app_compare_blob(
+                    alert_rule_trigger_action.sentry_app_config
+                ),
             }
 
     if action_type == Action.Type.OPSGENIE:
@@ -926,7 +939,7 @@ class DualDeleteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
     def setUp(self):
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.metric_alert, label="critical", alert_threshold=200
+            alert_rule=self.metric_alert, label="critical"
         )
         self.alert_rule_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger
@@ -1060,9 +1073,9 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
         self.action.refresh_from_db()
         assert self.action.integration_id == self.integration.id
-        assert self.action.target_display == "cool-team"
-        assert self.action.target_identifier == "123-id"
-        assert self.action.target_type == ActionTarget.USER
+        assert self.action.config.get("target_display") == "cool-team"
+        assert self.action.config.get("target_identifier") == "123-id"
+        assert self.action.config.get("target_type") == ActionTarget.USER
 
     def test_dual_update_trigger_action_data(self):
         """
@@ -1138,11 +1151,12 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             {
                 "name": "mifu",
                 "value": "matcha",
+                "label": None,
             },
         ]
-        assert action.target_display == "oolong"
-        assert action.target_identifier == str(sentry_app.id)
-        assert action.target_type == ActionTarget.SENTRY_APP
+        assert action.config.get("target_display") == "oolong"
+        assert action.config.get("target_identifier") == str(sentry_app.id)
+        assert action.config.get("target_type") == ActionTarget.SENTRY_APP
 
 
 class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
@@ -1165,6 +1179,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
+
         resolve_threshold = get_resolve_threshold(detector_dcg)
         assert resolve_threshold == self.alert_rule_trigger.alert_threshold
 

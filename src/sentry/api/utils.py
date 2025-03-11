@@ -14,7 +14,6 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError
-from rest_framework.request import Request
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -266,7 +265,7 @@ def clamp_date_range(
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
 # If you can use the wider more correct type, please do.
 def is_member_disabled_from_limit(
-    request: Request,
+    request: HttpRequest,
     organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
 ) -> bool:
     user = request.user

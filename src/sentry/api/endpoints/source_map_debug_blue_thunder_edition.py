@@ -318,15 +318,12 @@ class ReleaseLookupData:
         self.source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"] = (
             "unsuccessful"
         )
-        self.found_source_file_name: None | (str) = (
-            None  # The name of the source file artifact that was found, e.g. "~/static/bundle.min.js"
-        )
-        self.source_map_reference: None | (str) = (
-            None  # The source map reference as found in the source file or its headers, e.g. "https://example.com/static/bundle.min.js.map"
-        )
-        self.matching_source_map_name: None | (str) = (
-            None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
-        )
+        # The name of the source file artifact that was found, e.g. "~/static/bundle.min.js"
+        self.found_source_file_name: str | None = None
+        # The source map reference as found in the source file or its headers, e.g. "https://example.com/static/bundle.min.js.map"
+        self.source_map_reference: str | None = None
+        # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
+        self.matching_source_map_name: str | None = None
 
         # Cached db objects across operations
         self.artifact_index_release_files: QuerySet | list[ReleaseFile] | None = None
@@ -364,7 +361,7 @@ class ReleaseLookupData:
             "source_map_lookup_result": self.source_map_lookup_result,
         }
 
-    def _find_source_file_in_basic_uploaded_files(self):
+    def _find_source_file_in_basic_uploaded_files(self) -> None:
         if self.source_file_lookup_result == "found":
             return
 

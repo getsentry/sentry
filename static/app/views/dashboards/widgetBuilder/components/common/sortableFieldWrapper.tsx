@@ -65,7 +65,7 @@ function SortableVisualizeFieldWrapper({
 export default SortableVisualizeFieldWrapper;
 
 const DragAndReorderButton = styled(Button)<{isDragging: boolean}>`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 
   ${p => p.isDragging && p.theme.visuallyHidden}
 `;

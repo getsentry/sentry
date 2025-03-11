@@ -423,7 +423,7 @@ export class Results extends Component<Props, State> {
     const {router, location} = this.props;
 
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 

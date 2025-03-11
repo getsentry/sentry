@@ -39,14 +39,14 @@ function Headers({
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
-                {t('First Seen')}
-                <HeaderDivider />
-              </TimestampLabel>
-              <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
+              <LastSeenLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
                 {t('Last Seen')}
                 <HeaderDivider />
-              </TimestampLabel>
+              </LastSeenLabel>
+              <FirstSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+                {t('Age')}
+                <HeaderDivider />
+              </FirstSeenLabel>
             </Fragment>
           ) : null}
           {organization.features.includes('issue-stream-table-layout') ? (
@@ -179,16 +179,18 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const TimestampLabel = styled(IssueStreamHeaderLabel)`
-  width: 75px;
+const LastSeenLabel = styled(IssueStreamHeaderLabel)`
+  width: 86px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  text-align: left;
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
-    display: none;
-  }
+const FirstSeenLabel = styled(IssueStreamHeaderLabel)`
+  width: 50px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 `;
 
 const EventsOrUsersLabel = styled(ToolbarHeader)`

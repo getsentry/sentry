@@ -287,7 +287,7 @@ function ClippedBox(props: ClippedBoxProps) {
         {props.title ? <Title>{props.title}</Title> : null}
         {props.children}
         {clipped
-          ? props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>
+          ? (props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>)
           : null}
       </div>
     </Wrapper>

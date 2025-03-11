@@ -20,6 +20,7 @@ type Results = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
@@ -86,7 +87,7 @@ export function WidgetCardDataLoader({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={widget.limit ?? tableItemLimit}
+        limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
       >

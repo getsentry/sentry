@@ -8,6 +8,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 export type WidgetViewerContextProps = {
   setData: (data: {
     confidence?: Confidence;
+    isSampled?: boolean | null;
     pageLinks?: string;
     sampleCount?: number;
     seriesData?: Series[];
@@ -16,6 +17,7 @@ export type WidgetViewerContextProps = {
     totalIssuesCount?: string;
   }) => void;
   confidence?: Confidence;
+  isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   seriesData?: Series[];

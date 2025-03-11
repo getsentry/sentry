@@ -13,9 +13,9 @@ import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomain
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-import {useReleaseStats} from 'sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/views/dashboards/widgets/timeSeriesWidget/useReleaseStats');
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
@@ -124,6 +124,14 @@ describe('HTTPSummaryPage', function () {
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/second',
+          },
+        },
       },
     });
 
@@ -140,6 +148,14 @@ describe('HTTPSummaryPage', function () {
           [1699907700, [{count: 710.2}]],
           [1699908000, [{count: 116.8}]],
         ],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'rate',
+          },
+          units: {
+            'avg(span.duration)': '1/second',
+          },
+        },
       },
     });
 
@@ -154,12 +170,30 @@ describe('HTTPSummaryPage', function () {
       body: {
         'http_response_rate(3)': {
           data: [[1699908000, [{count: 0.2}]]],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'percentage',
+            },
+            units: {},
+          },
         },
         'http_response_rate(4)': {
           data: [[1699908000, [{count: 0.1}]]],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'percentage',
+            },
+            units: {},
+          },
         },
         'http_response_rate(5)': {
           data: [[1699908000, [{count: 0.3}]]],
+          meta: {
+            fields: {
+              'http_response_rate(5)': 'percentage',
+            },
+            units: {},
+          },
         },
       },
     });

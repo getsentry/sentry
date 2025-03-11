@@ -535,13 +535,6 @@ describe('ProductSelectionAvailability', function () {
         organization: {
           features: ['performance-view', 'profiling-view'],
         },
-        router: {
-          location: {
-            query: {
-              product: [ProductSolution.PROFILING],
-            },
-          },
-        },
       });
 
       renderMockRequests({planTier: PlanTier.AM2, organization});
@@ -556,14 +549,16 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
+      await userEvent.click(screen.getByRole('button', {name: 'Profiling'}));
+
       // Performance is added to the query string, so it will be checked
       await waitFor(() => {
         expect(router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               product: [
-                ProductSolution.PERFORMANCE_MONITORING,
                 ProductSolution.PROFILING,
+                ProductSolution.PERFORMANCE_MONITORING,
               ],
             }),
           })

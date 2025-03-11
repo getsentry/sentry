@@ -2,8 +2,8 @@ import {useContext, useState} from 'react';
 import {css} from '@emotion/react';
 
 import {Input} from 'sentry/components/core/input';
+import {Switch} from 'sentry/components/core/switch';
 import {resetButtonCss} from 'sentry/components/devtoolbar/styles/reset';
-import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 
 import useConfiguration from '../../hooks/useConfiguration';
@@ -52,8 +52,8 @@ export default function CustomOverride({
       />
       <Switch
         size="lg"
-        isActive={isActive}
-        toggle={() => {
+        checked={isActive}
+        onChange={() => {
           setIsActive(!isActive);
         }}
         css={css`

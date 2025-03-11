@@ -12,12 +12,13 @@ import type {
   TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {isRootTransaction} from '../../traceDetails/utils';
+import {isRootEvent} from '../../traceDetails/utils';
 import {getTraceQueryParams} from '../traceApi/useTrace';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
@@ -25,7 +26,9 @@ import {
   isAutogroupedNode,
   isBrowserRequestSpan,
   isCollapsedNode,
-  isJavascriptSDKTransaction,
+  isEAPSpanNode,
+  isEAPTraceNode,
+  isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
   isParentAutogroupedNode,
@@ -45,6 +48,8 @@ import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 import {TraceTreeNode} from './traceTreeNode';
+
+const {info, fmt} = Sentry._experiment_log;
 
 /**
  *
@@ -118,6 +123,23 @@ export declare namespace TraceTree {
     ['trace timeline change']: (view: [number, number]) => void;
   }
 
+  type EAPSpan = {
+    children: EAPSpan[];
+    duration: number;
+    end_timestamp: number;
+    event_id: string;
+    is_transaction: boolean;
+    op: string;
+    parent_span_id: string;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    description?: string;
+  };
+
+  type EAPTrace = EAPSpan[];
+
   // Raw node values
   interface Span extends RawSpanType {
     measurements?: Record<string, Measurement>;
@@ -128,7 +150,7 @@ export declare namespace TraceTree {
     sdk_name: string;
   }
 
-  type Trace = TraceSplitResults<Transaction>;
+  type Trace = TraceSplitResults<Transaction> | EAPTrace;
   type TraceError = TraceErrorType;
   type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string} | {profiler_id: string};
@@ -143,6 +165,7 @@ export declare namespace TraceTree {
     | Transaction
     | TraceError
     | Span
+    | EAPSpan
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
@@ -292,7 +315,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
     ) {
       tree.eventsCount++;
       tree.projects.set(value.project_id, {
@@ -323,7 +346,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
       parent.children.push(node);
 
       if (node.value && 'children' in node.value) {
-        for (const child of node.value.children) {
+        // EAP spans are not sorted by default
+        const children = node.value.children.sort(
+          (a, b) => a.start_timestamp - b.start_timestamp
+        );
+        for (const child of children) {
           visit(node, child);
         }
       }
@@ -454,6 +481,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         Sentry.withScope(scope => {
           scope.setFingerprint(['trace-span-id-hash-collision']);
           scope.captureMessage('Span ID hash collision detected');
+          info(fmt`Span ID hash collision detected: ${span.span_id}`);
         });
       }
 
@@ -468,7 +496,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     for (const span of spanNodes) {
       // If the span has no parent span id, nest it under the root
       const parent = span.value.parent_span_id
-        ? spanIdToNode.get(span.value.parent_span_id) ?? node
+        ? (spanIdToNode.get(span.value.parent_span_id) ?? node)
         : node;
 
       span.parent = parent;
@@ -492,6 +520,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           scope.captureMessage(
             'Span is a parent of its own transaction, this should not be possible'
           );
+          info(fmt`Span is a parent of its own transaction, this should not be possible`);
         });
         continue;
       }
@@ -774,7 +803,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         {
           ...head.value,
           autogrouped_by: {
-            op: head.value && 'op' in head.value ? head.value.op ?? '' : '',
+            op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
         },
         {
@@ -1167,6 +1196,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       Sentry.withScope(scope => {
         scope.setFingerprint(['trace-view-path-error']);
         scope.captureMessage('Invalid path to trace tree node ');
+        info(fmt`Invalid path to trace tree node: ${path}`);
       });
       return null;
     }
@@ -1412,6 +1442,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             Sentry.withScope(scope => {
               scope.setFingerprint(['trace-view-transaction-parent']);
               scope.captureMessage('Failed to find parent transaction when zooming out');
+              info(fmt`Failed to find parent transaction when zooming out`);
             });
             continue;
           }
@@ -1598,6 +1629,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         Sentry.withScope(scope => {
           scope.setFingerprint(['trace-view-expand-to-path-error']);
           scope.captureMessage('Failed to expand to path');
+          info(fmt`Failed to expand to path`);
           scope.captureException(e);
         });
       });
@@ -1746,36 +1778,48 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return TraceShape.EMPTY_TRACE;
     }
 
-    if (!isTraceNode(trace)) {
-      throw new TypeError('Not trace node');
-    }
-
-    const traceStats = trace.value.transactions?.reduce<{
-      javascriptRootTransactions: TraceTree.Transaction[];
+    let traceStats: {
+      javascriptRootTransactions: Array<TraceTree.Transaction | TraceTree.EAPSpan>;
       orphans: number;
       roots: number;
-    }>(
-      (stats, transaction) => {
-        if (isRootTransaction(transaction)) {
-          stats.roots++;
+    };
 
-          if (isJavascriptSDKTransaction(transaction)) {
-            stats.javascriptRootTransactions.push(transaction);
+    if (isEAPTraceNode(trace)) {
+      traceStats = {
+        javascriptRootTransactions: trace.value.filter(isJavascriptSDKEvent),
+        orphans: trace.value.filter(span => span.parent_span_id !== null).length,
+        roots: trace.value.filter(span => span.parent_span_id === null).length,
+      };
+    } else if (isTraceNode(trace)) {
+      traceStats = trace.value.transactions?.reduce<{
+        javascriptRootTransactions: TraceTree.Transaction[];
+        orphans: number;
+        roots: number;
+      }>(
+        (stats, transaction) => {
+          if (isRootEvent(transaction)) {
+            stats.roots++;
+
+            if (isJavascriptSDKEvent(transaction)) {
+              stats.javascriptRootTransactions.push(transaction);
+            }
+          } else {
+            stats.orphans++;
           }
-        } else {
-          stats.orphans++;
-        }
-        return stats;
-      },
-      {roots: 0, orphans: 0, javascriptRootTransactions: []}
-    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+          return stats;
+        },
+        {roots: 0, orphans: 0, javascriptRootTransactions: []}
+      );
+    } else {
+      throw new Error('Unknown trace type');
+    }
 
     if (traceStats.roots === 0) {
       if (traceStats.orphans > 0) {
         return TraceShape.NO_ROOT;
       }
 
-      if ((trace.value.orphan_errors?.length ?? 0) > 0) {
+      if (isTraceNode(trace) && (trace.value.orphan_errors?.length ?? 0) > 0) {
         return TraceShape.ONLY_ERRORS;
       }
 
@@ -1798,7 +1842,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return TraceShape.MULTIPLE_ROOTS;
     }
 
-    throw new Error('Unknown trace type');
+    throw new Error('Not a valid trace');
   }
 
   fetchAdditionalTraces(options: {
@@ -1911,8 +1955,9 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isTransactionNode(n)) {
     return `txn-${n.value.event_id}`;
   }
-  if (isSpanNode(n)) {
-    return `span-${n.value.span_id}`;
+  if (isSpanNode(n) || isEAPSpanNode(n)) {
+    const spanId = isEAPSpanNode(n) ? n.value.event_id : n.value.span_id;
+    return `span-${spanId}`;
   }
   if (isTraceNode(n)) {
     return `trace-root`;
@@ -1953,7 +1998,7 @@ function printTraceTreeNode(
 
     return padding + 'autogroup';
   }
-  if (isSpanNode(t)) {
+  if (isSpanNode(t) || isEAPSpanNode(t)) {
     return (
       padding +
       (t.value.op || 'unknown span') +
@@ -1979,6 +2024,10 @@ function printTraceTreeNode(
     return padding + 'trace root';
   }
 
+  if (isEAPTraceNode(t)) {
+    return padding + 'eap trace root';
+  }
+
   if (isTraceErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
@@ -1997,9 +2046,18 @@ function traceQueueIterator(
   root: TraceTreeNode<TraceTree.NodeValue>,
   visitor: (
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    value: TraceTree.Transaction | TraceTree.TraceError
+    value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
   ) => void
 ) {
+  if (!isTraceSplitResult(trace)) {
+    // Eap spans are not sorted by default
+    const spans = [...trace].sort((a, b) => a.start_timestamp - b.start_timestamp);
+    for (const span of spans) {
+      visitor(root, span);
+    }
+    return;
+  }
+
   let tIdx = 0;
   let oIdx = 0;
 
