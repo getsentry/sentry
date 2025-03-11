@@ -43,7 +43,7 @@ function DashboardsSecondaryNav({children}: DashboardsNavigationProps) {
               {t('All')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          <SecondaryNav.Section title={t('Starred')}>
+          <SecondaryNav.Section title={t('Starred Dashboards')}>
             {starredDashboards.data?.map(dashboard => (
               <SecondaryNav.Item
                 key={dashboard.id}
