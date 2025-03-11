@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -79,7 +78,14 @@ export function JobsWidget({query}: {query?: string}) {
           value: stats.data[index]?.[1][0]?.count! || 0,
         })),
         seriesName: name,
-        meta: stats.meta as EventsMetaType,
+        meta: {
+          fields: {
+            [name]: 'integer',
+          },
+          units: {
+            [name]: '',
+          },
+        },
         color,
       };
     },
