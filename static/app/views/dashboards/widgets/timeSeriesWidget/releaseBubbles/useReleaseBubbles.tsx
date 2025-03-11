@@ -250,9 +250,9 @@ function ReleaseBubbleSeries({
       // `bubbleSize`. We then have to configure `y` and `height` to fit within this
       //
       // ----------------- grid bottom
-      //   ^
+      //   | bubblePadding.y
       //   | bubbleSize
-      //   v
+      //   | bubblePadding.y
       // ----------------- = xAxis offset
 
       // idk exactly what's happening but we need a 1 pixel buffer to make it
