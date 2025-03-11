@@ -6,6 +6,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
 import type {GroupListColumn} from './groupList';
 
@@ -30,23 +31,39 @@ function GroupListHeader({
       {hasNewLayout ? (
         <Fragment>
           {withColumns.includes('firstSeen') && (
-            <FirstSeenWrapper>{t('First Seen')}</FirstSeenWrapper>
+            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+              {t('First Seen')}
+            </FirstSeenWrapper>
           )}
           {withColumns.includes('lastSeen') && (
-            <LastSeenWrapper>{t('Age')}</LastSeenWrapper>
+            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+              {t('Age')}
+            </LastSeenWrapper>
           )}
-          {withChart && <NarrowGraphLabel>{t('Graph')}</NarrowGraphLabel>}
+          {withChart && (
+            <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
+              {t('Graph')}
+            </NarrowGraphLabel>
+          )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersLabel>{t('events')}</NarrowEventsOrUsersLabel>
+            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+              {t('events')}
+            </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersLabel>{t('users')}</NarrowEventsOrUsersLabel>
+            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS}>
+              {t('users')}
+            </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('priority') && (
-            <NarrowPriorityLabel>{t('Priority')}</NarrowPriorityLabel>
+            <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+              {t('Priority')}
+            </NarrowPriorityLabel>
           )}
           {withColumns.includes('assignee') && (
-            <NarrowAssigneeLabel>{t('Assignee')}</NarrowAssigneeLabel>
+            <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+              {t('Assignee')}
+            </NarrowAssigneeLabel>
           )}
           {withColumns.includes('lastTriggered') && (
             <NarrowLastTriggeredLabel>{t('Last Triggered')}</NarrowLastTriggeredLabel>
@@ -163,20 +180,12 @@ const NarrowEventsOrUsersLabel = styled(GroupListHeaderLabel)`
   display: flex;
   justify-content: space-between;
   width: 60px;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    display: none;
-  }
 `;
 
 const NarrowPriorityLabel = styled(GroupListHeaderLabel)`
   display: flex;
   justify-content: space-between;
   width: 70px;
-
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    display: none;
-  }
 `;
 
 const NarrowAssigneeLabel = styled(GroupListHeaderLabel)`
