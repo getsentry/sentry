@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import Any
+
+
 def register_scheme(name: str) -> None:
     from urllib import parse as urlparse
 
@@ -25,15 +30,24 @@ def patch_celery_imgcat() -> None:
 patch_celery_imgcat()
 
 
-def patch_django_generics() -> None:
-    # not all django types are generic at runtime
-    # this is a lightweight version of `django-stubs-ext`
-    try:
-        from django.db.models.fields import Field
-    except ImportError:
-        pass
-    else:
-        Field.__class_getitem__ = classmethod(lambda cls, *a: cls)  # type: ignore[attr-defined]
+def _add_class_getitem(cls: Any) -> None:
+    cls.__class_getitem__ = classmethod(lambda cls, *a: cls)
 
 
-patch_django_generics()
+def _patch_generics() -> None:
+    for modname, clsname in (
+        # not all django types are generic at runtime
+        # this is a lightweight version of `django-stubs-ext`
+        ("django.db.models.fields", "Field"),
+        # only generic in stubs
+        ("parsimonious.nodes", "NodeVisitor"),
+    ):
+        try:
+            mod = __import__(modname, fromlist=["_trash"])
+        except ImportError:
+            pass
+        else:
+            getattr(mod, clsname).__class_getitem__ = classmethod(lambda cls, *a: cls)
+
+
+_patch_generics()
