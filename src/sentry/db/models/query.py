@@ -166,7 +166,7 @@ def update_or_create(
         with transaction.atomic(using=using):
             return objects.create(**create_kwargs), True
     except IntegrityError:
-        metrics.incr(
+        metrics.gauge(
             "db.models.query.update_or_create.integrity_error",
             tags={"model": model.__name__},
         )
@@ -224,7 +224,7 @@ def create_or_update(
         with transaction.atomic(using=using):
             return objects.create(**create_kwargs), True
     except IntegrityError:
-        metrics.incr(
+        metrics.gauge(
             "db.models.query.create_or_update.integrity_error",
             tags={"model": model.__name__},
         )
