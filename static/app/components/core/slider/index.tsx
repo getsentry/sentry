@@ -1,5 +1,5 @@
 import {forwardRef} from 'react';
-import type {Theme} from '@emotion/react';
+import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>((props, ref) => 
 });
 
 const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>>`
-  ${p => SliderStyles(p)}
+  ${p => (p.theme.isChonk ? ChonkSliderStyles(p as any) : SliderStyles(p))}
 `;
 
 function SliderStyles(p: {theme: Theme}) {
@@ -125,6 +125,85 @@ function SliderStyles(p: {theme: Theme}) {
       box-shadow:
         ${p.theme.background} 0 0 0 3px,
         ${p.theme.focus} 0 0 0 6px;
+    }
+  `;
+}
+
+function ChonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
+  return css`
+    /* stylelint-disable-next-line property-no-vendor-prefix */
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    border-radius: ${p.theme.radius.lg};
+    transition: box-shadow 0.1s;
+    box-shadow:
+      0 0 0 8px transparent,
+      0 0 0 10px transparent;
+
+    &:focus {
+      outline: none;
+      box-shadow:
+        0 0 0 8px ${p.theme.background},
+        0 0 0 10px ${p.theme.focusBorder};
+    }
+
+    &[disabled] {
+      cursor: not-allowed;
+      opacity: 0.6;
+
+      &::-webkit-slider-runnable-track {
+        cursor: not-allowed;
+      }
+
+      &::-webkit-slider-thumb {
+        cursor: not-allowed;
+      }
+    }
+
+    /* Chrome styling */
+    &::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 12px;
+      cursor: pointer;
+      border: 1px solid ${p.theme.colors.chonk.blue100};
+      background: ${p.theme.colors.surface300};
+      border-radius: ${p.theme.radius.micro};
+      box-shadow: 0px 3px 0px 0px ${p.theme.colors.surface100} inset;
+    }
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      background: ${p.theme.colors.surface300};
+      border: 1px solid ${p.theme.colors.chonk.blue100};
+      border-bottom: 2px solid ${p.theme.colors.chonk.blue100};
+      border-radius: ${p.theme.radius.lg};
+      transform: translateY(-7px);
+    }
+
+    /* Firefox styling */
+    &::-moz-range-track {
+      width: 100%;
+      height: 12px;
+      cursor: pointer;
+      border: 1px solid ${p.theme.colors.surface100};
+      background: ${p.theme.colors.surface300};
+      border-radius: ${p.theme.radius.micro};
+      box-shadow: 0px 3px 0px 0px ${p.theme.colors.surface100} inset;
+    }
+
+    &::-moz-range-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      background: ${p.theme.colors.surface300};
+      border: 1px solid ${p.theme.colors.chonk.blue100};
+      border-bottom: 2px solid ${p.theme.colors.chonk.blue100};
+      border-radius: ${p.theme.radius.lg};
+      transform: translateY(0);
     }
   `;
 }
