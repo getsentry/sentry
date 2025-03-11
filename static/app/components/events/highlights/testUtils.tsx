@@ -8,10 +8,14 @@ export const TEST_EVENT_CONTEXTS = {
       brand: 'wuque studios',
     },
   },
-  client_os: {
+  os: {
     type: 'os',
-    name: 'Mac OS X',
-    version: '10.15',
+    name: 'macOS',
+    version: '15.3',
+  },
+  client_os: {
+    type: 'client_os',
+    name: 'macOS',
   },
   runtime: {
     type: 'runtime',

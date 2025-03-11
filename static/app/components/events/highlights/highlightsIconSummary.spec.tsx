@@ -89,9 +89,9 @@ describe('HighlightsIconSummary', function () {
 
   it('renders appropriate icons and text', async function () {
     render(<HighlightsIconSummary event={event} group={group} />);
-    expect(screen.getByText('Mac OS X')).toBeInTheDocument();
-    expect(screen.getByText('10.15')).toBeInTheDocument();
-    await userEvent.hover(screen.getByText('10.15'));
+    expect(screen.getByText('macOS')).toBeInTheDocument();
+    expect(screen.getByText('15.3')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('15.3'));
     expect(await screen.findByText('Operating System Version')).toBeInTheDocument();
     expect(screen.getByText('CPython')).toBeInTheDocument();
     expect(screen.getByText('3.8.13')).toBeInTheDocument();
