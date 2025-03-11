@@ -428,7 +428,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 ["--max-inflight-segments", "max_inflight_segments"],
                 type=int,
                 default=10000,
-                help="The number of segments that can exist in Redis before the consumer applies backpressure. Defaults to 10000.",
+                help="The number of segments that can exist in Redis before the consumer applies backpressure. 0 is unlimited. Defaults to 10000.",
             ),
             click.Option(
                 ["--num-shards", "num_shards"],
@@ -440,7 +440,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 ["--flush-shard"],
                 type=int,
                 multiple=True,
-                help="All 0..<num_shards - 1> shards need to be covered for flushing by a consumer replica. By default all shards are being flushed.",
+                help="All 0..<num_shards - 1> shards need to be covered for flushing by a consumer replica. By default shards corresponding to assigned partitions are being flushed.",
             ),
             *multiprocessing_options(default_max_batch_size=100),
         ],

@@ -194,7 +194,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         flusher = SpanFlusher(
             self.buffer,
-            self.flush_shard,
+            self.flush_shard or [p.index for p in partitions],
             self.producer,
             self.output_topic,
             self.max_flush_segments,
@@ -270,6 +270,8 @@ class SpanFlusher(ProcessingStrategy[int]):
         self.thread = threading.Thread(target=self.main, daemon=True)
         self.thread.start()
 
+        # start_check_hang()
+
     def main(self):
         while not self.stopped:
             now = self.current_time
@@ -277,9 +279,11 @@ class SpanFlusher(ProcessingStrategy[int]):
             producer_futures = []
 
             queue_size, flushed_segments = self.buffer.flush_segments(
-                max_segments=self.max_flush_segments, now=now, flush_shard=self.flush_shard or None
+                max_segments=self.max_flush_segments, now=now, flush_shard=self.flush_shard
             )
-            self.enable_backpressure = queue_size >= self.max_inflight_segments
+            self.enable_backpressure = (
+                self.max_inflight_segments >= 0 and queue_size >= self.max_inflight_segments
+            )
 
             if not flushed_segments:
                 time.sleep(1)
@@ -341,3 +345,18 @@ class SpanFlusher(ProcessingStrategy[int]):
 
         while self.thread.is_alive() and (deadline is None or deadline > time.time()):
             time.sleep(0.1)
+
+
+def start_check_hang():
+    main_thread = threading.get_ident()
+
+    def main():
+        import sys
+        import traceback
+
+        while True:
+            traceback.print_stack(sys._current_frames()[main_thread])
+            time.sleep(10)
+
+    hang_thread = threading.Thread(target=main, daemon=True)
+    hang_thread.start()

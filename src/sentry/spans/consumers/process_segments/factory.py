@@ -8,7 +8,6 @@ from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, Message, Partition, Value
@@ -79,23 +78,21 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
+        # start_check_hang()
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        produce_step = Produce(
-            producer=self.producer,
-            topic=self.output_topic,
-            next_step=CommitOffsets(commit),
-        )
+        commit_step = CommitOffsets(commit)
 
         # XXX: Remove after https://github.com/getsentry/arroyo/pull/427: Unfold
         # does not pass through the commit and there is no way to access it from
         # the generator function.
         zip_commit = RunTask(
             function=lambda m: (m.payload, m.committable),
-            next_step=Unfold(generator=explode_segment, next_step=produce_step),
+            next_step=Unfold(generator=explode_segment, next_step=commit_step),
         )
 
         return run_task_with_multiprocessing(
