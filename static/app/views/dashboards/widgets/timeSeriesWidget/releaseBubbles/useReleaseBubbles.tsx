@@ -13,7 +13,7 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
 import {ReleasesDrawer} from 'sentry/components/releases/releasesDrawer';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartMouseOutHandler,
@@ -144,11 +144,11 @@ function createReleaseBubbleMouseListeners({
 }
 
 interface ReleaseBubbleSeriesProps {
+  bubbleSize: number;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef>;
   releases: ReleaseMetaBasic[];
   theme: Theme;
-  bubbleSize?: number;
 }
 
 /**
@@ -158,7 +158,7 @@ function ReleaseBubbleSeries({
   buckets,
   chartRef,
   theme,
-  bubbleSize = DEFAULT_BUBBLE_SIZE,
+  bubbleSize,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -212,7 +212,7 @@ function ReleaseBubbleSeries({
       height: bubbleSize - RELEASE_BUBBLE_Y_PADDING,
 
       // border radius
-      r: 4,
+      r: 0,
     };
 
     return {
@@ -252,14 +252,14 @@ function ReleaseBubbleSeries({
         return `
 <div class="tooltip-series">
 <div>
-${numberReleases} Releases
+${tn('%s Release', '%s Releases', numberReleases)}
 </div>
 </div>
 
 ${
   numberReleases > 0
     ? `<div class="tooltip-footer">
-Tap to view
+${t('Click to expand')}
 </div>`
     : ''
 }
@@ -288,7 +288,7 @@ export function useReleaseBubbles({
   releases,
   minTime,
   maxTime,
-  bubbleSize,
+  bubbleSize = DEFAULT_BUBBLE_SIZE,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
