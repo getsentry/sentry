@@ -16,7 +16,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,8 @@ def get_anomaly_data_from_seer(
         or not snuba_query.time_window
         or not aggregation_value
     ):
+        metrics.incr("anomaly_detection.aggregation_value.none")
+        logger.warning("Aggregation value is none", extra=extra_data)
         return None
 
     anomaly_detection_config = AnomalyDetectionConfig(
