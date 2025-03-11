@@ -1041,8 +1041,8 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
         # Invalid formats fall back to text match
-        search_value = operator + search_value.text if operator != "=" else search_value
-        return AggregateFilter(search_key, "=", SearchValue(search_value))
+        search_value_s = operator + search_value.text if operator != "=" else search_value.text
+        return AggregateFilter(search_key, "=", SearchValue(search_value_s))
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
