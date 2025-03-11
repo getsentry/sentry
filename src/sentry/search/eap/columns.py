@@ -16,11 +16,11 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     VirtualColumnContext,
 )
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.spans_rpc import TraceItemFilter
 
 
 @dataclass(frozen=True, kw_only=True)
