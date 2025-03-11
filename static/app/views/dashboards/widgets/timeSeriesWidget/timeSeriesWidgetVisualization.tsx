@@ -44,8 +44,6 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn} = Sentry._experiment_log;
 
-const RELEASE_BUBBLE_SIZE = 14;
-
 export interface TimeSeriesWidgetVisualizationProps {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
@@ -113,7 +111,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    bubbleSize: RELEASE_BUBBLE_SIZE,
     chartRef,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
@@ -189,7 +186,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // type for the right axis, use it. If there are more than one, fall back to a
   // default. If there are 0, there's no type for the right axis, and we won't
   // plot one
-  const rightAxisType =
+  const rightYAxisType =
     rightYAxisTypes.length === 1
       ? rightYAxisTypes[0]!
       : rightYAxisTypes.length > 2
@@ -224,26 +221,32 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
-  const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis({
-    axisLabel: {
-      formatter: (value: number) =>
-        formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
+  const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
+    {
+      axisLabel: {
+        formatter: (value: number) =>
+          formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
+      },
+      position: 'left',
     },
-    position: 'left',
-  });
+    leftYAxisType
+  );
 
-  const rightYAxis: YAXisComponentOption | undefined = rightAxisType
-    ? TimeSeriesWidgetYAxis({
-        axisLabel: {
-          formatter: (value: number) =>
-            formatYAxisValue(
-              value,
-              rightAxisType,
-              unitForType[rightAxisType] ?? undefined
-            ),
+  const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
+    ? TimeSeriesWidgetYAxis(
+        {
+          axisLabel: {
+            formatter: (value: number) =>
+              formatYAxisValue(
+                value,
+                rightYAxisType,
+                unitForType[rightYAxisType] ?? undefined
+              ),
+          },
+          position: 'right',
         },
-        position: 'right',
-      })
+        rightYAxisType
+      )
     : undefined;
 
   // Set up a fallback palette for any plottable without a color
@@ -377,7 +380,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         error(message, {
           dataType: plottable.dataType,
           leftAxisType: leftYAxisType,
-          rightAxisType,
+          rightAxisType: rightYAxisType,
         });
       });
 

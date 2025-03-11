@@ -79,8 +79,8 @@ export function SpansTabContentImpl({
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
@@ -158,6 +158,13 @@ export function SpansTabContentImpl({
 
   const hasResults = !!resultsLength;
 
+  const resultsLoading =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.isPending
+      : queryType === 'samples'
+        ? spansTableResult.result.isPending
+        : tracesTableResult.result.isPending;
+
   return (
     <Body
       withToolbar={expanded}
@@ -226,7 +233,7 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {!hasResults && <QuotaExceededAlert referrer="explore" />}
+        {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
@@ -275,9 +282,7 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
-type OnboardingContentProps = SpanTabProps & {
-  onboardingProject: Project;
-};
+type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
 
 function OnboardingContent(props: OnboardingContentProps) {
   const organization = useOrganization();

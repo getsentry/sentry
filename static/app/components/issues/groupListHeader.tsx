@@ -1,8 +1,11 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {GroupListColumn} from './groupList';
 
@@ -17,30 +20,69 @@ function GroupListHeader({
   narrowGroups = false,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
+  const organization = useOrganization();
+
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+
   return (
     <PanelHeader disablePadding>
       <IssueWrapper>{t('Issue')}</IssueWrapper>
-      {withChart && withColumns.includes('graph') && (
-        <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
-      )}
-      {withColumns.includes('event') && (
-        <EventUserWrapper>{t('events')}</EventUserWrapper>
-      )}
-      {withColumns.includes('users') && <EventUserWrapper>{t('users')}</EventUserWrapper>}
-      {withColumns.includes('priority') && (
-        <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
-      )}
-      {withColumns.includes('assignee') && (
-        <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
-      )}
-      {withColumns.includes('lastTriggered') && (
-        <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>
+      {hasNewLayout ? (
+        <Fragment>
+          {withColumns.includes('firstSeen') && (
+            <FirstSeenWrapper>{t('First Seen')}</FirstSeenWrapper>
+          )}
+          {withColumns.includes('lastSeen') && (
+            <LastSeenWrapper>{t('Age')}</LastSeenWrapper>
+          )}
+          {withChart && <NarrowGraphLabel>{t('Graph')}</NarrowGraphLabel>}
+          {withColumns.includes('event') && (
+            <NarrowEventsOrUsersLabel>{t('events')}</NarrowEventsOrUsersLabel>
+          )}
+          {withColumns.includes('users') && (
+            <NarrowEventsOrUsersLabel>{t('users')}</NarrowEventsOrUsersLabel>
+          )}
+          {withColumns.includes('priority') && (
+            <NarrowPriorityLabel>{t('Priority')}</NarrowPriorityLabel>
+          )}
+          {withColumns.includes('assignee') && (
+            <NarrowAssigneeLabel>{t('Assignee')}</NarrowAssigneeLabel>
+          )}
+          {withColumns.includes('lastTriggered') && (
+            <NarrowLastTriggeredLabel>{t('Last Triggered')}</NarrowLastTriggeredLabel>
+          )}
+        </Fragment>
+      ) : (
+        <Fragment>
+          {withChart && withColumns.includes('graph') && (
+            <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
+          )}
+          {withColumns.includes('event') && (
+            <EventUserWrapper>{t('events')}</EventUserWrapper>
+          )}
+          {withColumns.includes('users') && (
+            <EventUserWrapper>{t('users')}</EventUserWrapper>
+          )}
+          {withColumns.includes('priority') && (
+            <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
+          )}
+          {withColumns.includes('lastTriggered') && (
+            <LastTriggeredWrapper>{t('Last Triggered')}</LastTriggeredWrapper>
+          )}
+        </Fragment>
       )}
     </PanelHeader>
   );
 }
 
 export default GroupListHeader;
+
+const GroupListHeaderLabel = styled(IssueStreamHeaderLabel)`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const Heading = styled('div')`
   display: flex;
@@ -58,6 +100,14 @@ const IssueWrapper = styled(Heading)`
   }
 `;
 
+const FirstSeenWrapper = styled(GroupListHeaderLabel)`
+  width: 80px;
+`;
+
+const LastSeenWrapper = styled(GroupListHeaderLabel)`
+  width: 50px;
+`;
+
 const EventUserWrapper = styled(Heading)`
   justify-content: flex-end;
   width: 60px;
@@ -66,6 +116,11 @@ const EventUserWrapper = styled(Heading)`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
+`;
+
+const LastTriggeredWrapper = styled(Heading)`
+  justify-content: flex-end;
+  width: 80px;
 `;
 
 const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
@@ -96,4 +151,42 @@ const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
       p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
+`;
+
+const NarrowGraphLabel = styled(GroupListHeaderLabel)`
+  display: flex;
+  justify-content: space-between;
+  width: 175px;
+`;
+
+const NarrowEventsOrUsersLabel = styled(GroupListHeaderLabel)`
+  display: flex;
+  justify-content: space-between;
+  width: 60px;
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const NarrowPriorityLabel = styled(GroupListHeaderLabel)`
+  display: flex;
+  justify-content: space-between;
+  width: 70px;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
+`;
+
+const NarrowAssigneeLabel = styled(GroupListHeaderLabel)`
+  justify-content: flex-end;
+  text-align: right;
+  width: 60px;
+`;
+
+const NarrowLastTriggeredLabel = styled(GroupListHeaderLabel)`
+  width: 80px;
+  text-align: right;
+  justify-content: flex-end;
 `;

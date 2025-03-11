@@ -114,8 +114,8 @@ def build_notification_actions_from_rule_data_actions(
         actions, skip_failures=not is_dry_run
     )
 
-    # Bulk create the actions if not a dry run
+    # Create the actions if not a dry run
     if not is_dry_run:
-        Action.objects.bulk_create(notification_actions)
-
+        for action in notification_actions:
+            action.save()
     return notification_actions

@@ -9,4 +9,4 @@ export interface DraggableTabListItemProps extends ItemProps<any> {
   to?: LocationDescriptor;
 }
 
-export const Item = _Item as (props: DraggableTabListItemProps) => JSX.Element;
+export const Item = _Item as (props: DraggableTabListItemProps) => React.JSX.Element;

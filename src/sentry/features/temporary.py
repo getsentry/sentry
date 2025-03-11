@@ -199,6 +199,9 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Only enabled in sentry.io to enable onboarding flows.
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enables loading Getting Started docs on platform selection in onboarding.
+    # Also disables the project deletion confirmation modal when the back button is clicked.
+    manager.add("organizations:onboarding-load-docs-on-platform-click-and-silent-delete-on-back", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -332,8 +335,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable replay web vital breadcrumbs
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
-    # Enable GA banner for mobile replay beta orgs about the grace period that will last 2 months. Flag can be removed after March 7th 2024.
-    manager.add("organizations:mobile-replay-beta-orgs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable Dev Toolbar frontend features (ex project settings page)
     manager.add("organizations:dev-toolbar-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable feature flag audit log (to show flag series)
@@ -470,6 +471,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable dual writing for issue alert issues (see: alerts create issues)
     manager.add("organizations:workflow-engine-issue-alert-dual-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable issue alert metrics for shadow rollout (see: alerts create issues)
+    manager.add("organizations:workflow-engine-issue-alert-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dual writing for metric alert issues (see: alerts create issues)
     manager.add("organizations:workflow-engine-metric-alert-dual-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Processing for Metric Alerts in the workflow_engine
@@ -490,13 +493,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable updated form for 3p publishing flow
     manager.add("organizations:streamlined-publishing-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable new find missing chunks algorithm
-    manager.add(
-        "organizations:find-missing-chunks-new",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=False
-    )
     # Enable per-project selection for Jira integration
     manager.add("organizations:jira-per-project-statuses", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Relay extracting logs from breadcrumbs for a project.
@@ -529,6 +525,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
 
     manager.add("projects:profiling-ingest-unsampled-profiles", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
 
     # Partner oauth

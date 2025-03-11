@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
@@ -188,7 +188,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
-          {t('Seer')}
+          {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
             tooltipProps={{
@@ -398,7 +398,8 @@ const StyledCard = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(3)};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`

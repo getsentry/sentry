@@ -422,13 +422,13 @@ function BaseChartUnwrapped({
             type: 'bar',
             barWidth: 40,
             barGap: 0,
-            itemStyle: {...(s.areaStyle ?? {})},
+            itemStyle: {...s.areaStyle},
           }))
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
               type: 'line',
-              itemStyle: {...(s.lineStyle ?? {})},
+              itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] !== undefined
                   ? MarkLine({
@@ -697,6 +697,17 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+  }
+  .tooltip-release.tooltip-series > div,
+  .tooltip-release.tooltip-footer {
+    justify-content: center;
+  }
+  .tooltip-release.tooltip-series {
+    color: ${p.theme.textColor};
+  }
+  .tooltip-release-timerange {
+    font-size: ${p.theme.fontSizeExtraSmall};
+    color: ${p.theme.textColor};
   }
   .tooltip-series {
     border-bottom: none;
