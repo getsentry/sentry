@@ -193,6 +193,10 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES = (
         "api.performance.browser.web-vitals.transactions-scores"
     )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES = (
+        "api.performance.browser.web-vitals.timeseries-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_SPANS = "api.performance.browser.web-vitals.spans"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
