@@ -17,6 +17,7 @@ from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
@@ -221,6 +222,20 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         with pytest.raises(ApiUnauthorized):
             installation.update_organization_config(data)
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": False,
+            "organizations:integrations-enterprise-incident-management": False,
+        }
+    )
+    def test_disallow_when_no_business_plan(self):
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 200
+        assert (
+            b"At least one feature from this list has to be enabled in order to setup the integration"
+            in resp.content
+        )
 
 
 class OpsgenieMigrationIntegrationTest(APITestCase):
