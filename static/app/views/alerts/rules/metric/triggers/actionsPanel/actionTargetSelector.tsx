@@ -22,7 +22,7 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.OPSGENIE:
       return 'team';
     default:
-      throw Error('Not implemented');
+      throw new Error('Not implemented');
   }
 };
 

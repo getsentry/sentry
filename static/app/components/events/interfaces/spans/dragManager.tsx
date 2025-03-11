@@ -47,7 +47,7 @@ export type DragManagerChildrenProps = {
 };
 
 type DragManagerProps = {
-  children: (props: DragManagerChildrenProps) => JSX.Element;
+  children: (props: DragManagerChildrenProps) => React.JSX.Element;
 
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
@@ -181,7 +181,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
         break;
       }
       default: {
-        throw Error('this.state.currentDraggingHandle is undefined');
+        throw new Error('this.state.currentDraggingHandle is undefined');
       }
     }
   };
@@ -232,7 +232,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
         return;
       }
       default: {
-        throw Error('this.state.currentDraggingHandle is undefined');
+        throw new Error('this.state.currentDraggingHandle is undefined');
       }
     }
   };

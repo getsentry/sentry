@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Avatar from 'sentry/components/avatar';
-import AvatarList from 'sentry/components/avatar/avatarList';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
@@ -70,7 +70,7 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
               )}
               {users.map(user => (
                 <UserRow key={user.id}>
-                  <Avatar user={user} size={20} />
+                  <UserAvatar user={user} size={20} />
                   <NameWrapper>
                     <div>{user.name}</div>
                     {user.email !== user.name ? (
