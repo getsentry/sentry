@@ -340,11 +340,12 @@ class SpanFlusher(ProcessingStrategy[int]):
         self.next_step.poll()
 
     def submit(self, message: Message[int]) -> None:
-        logger.info("timestamp: %s", message.payload)
         self.current_drift = message.payload - int(time.time())
 
         if self.enable_backpressure:
             raise MessageRejected()
+
+        logger.info("timestamp: %s; drift: %s", message.payload, self.current_drift)
 
         self.next_step.submit(message)
 
