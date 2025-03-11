@@ -1,3 +1,4 @@
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -63,77 +64,6 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
-
-function getIntegrations(params: Params, siblingOption: string) {
-  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
-
-  if (params.isPerformanceSelected) {
-    integrations.push(`
-          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          ${
-            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
-          }})`);
-  }
-
-  if (params.isFeedbackSelected) {
-    const feedbackIntegration: string[] = [
-      `// Additional SDK configuration goes in here, for example:
-        colorScheme: "system"`,
-    ];
-    const feedbackConfigOptions = getFeedbackConfigOptions(params.feedbackOptions);
-
-    if (feedbackConfigOptions) {
-      feedbackIntegration.push(feedbackConfigOptions);
-    }
-
-    integrations.push(
-      `
-        Sentry.feedbackIntegration({
-          ${feedbackIntegration.join(',')}
-        }),`
-    );
-  }
-
-  if (params.isReplaySelected) {
-    integrations.push(
-      `
-        new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
-          params.replayOptions
-        )}),`
-    );
-  }
-
-  return integrations.join(',');
-}
-
-const getSentryInitLayout = (params: Params, siblingOption: string): string => {
-  return `${
-    siblingOption === SiblingOption.VUE2
-      ? `Vue,`
-      : siblingOption === SiblingOption.VUE3
-        ? 'app,'
-        : ''
-  }dsn: "${params.dsn.public}",
-   integrations: [
-    ${getIntegrations(params, siblingOption)}
-   ],
-  ${
-    params.isPerformanceSelected
-      ? `
-        // Tracing
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }`;
-};
 
 const isAngular = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.ANGULARV10 ||
@@ -291,6 +221,68 @@ function getVueConstSetup(siblingOption: string): string {
   }
 }
 
+const getIntegrations = (params: Params): string[] => {
+  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
+
+  if (params.isPerformanceSelected) {
+    integrations.push(`
+          new ${getSiblingImportName(params.platformOptions.siblingOption)}.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          ${getPerformanceIntegration(params.platformOptions.siblingOption)}
+          })`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `new ${getSiblingImportName(params.platformOptions.siblingOption)}.Replay(${getReplayConfigOptions(
+        params.replayOptions
+      )})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      })`);
+  }
+
+  return integrations;
+};
+
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
+      // Tracing
+      tracesSampleRate: 1.0 //  Capture 100% of the transactions`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  return dynamicParts;
+};
+
+const getStaticParts = (params: Params): string[] => {
+  const staticParts = [`dsn: "${params.dsn.public}"`];
+
+  if (params.platformOptions.siblingOption === SiblingOption.VUE2) {
+    staticParts.unshift(`Vue`);
+  } else if (params.platformOptions.siblingOption === SiblingOption.VUE3) {
+    staticParts.unshift(`app`);
+  }
+
+  return staticParts;
+};
+
 function getSetupConfiguration({
   params,
   showExtraStep,
@@ -301,7 +293,13 @@ function getSetupConfiguration({
   showDescription?: boolean;
 }) {
   const siblingOption = params.platformOptions.siblingOption;
-  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
+
+  const config = buildSdkConfig({
+    params,
+    staticParts: getStaticParts(params),
+    getIntegrations,
+    getDynamicParts,
+  });
 
   const configuration = [
     {
@@ -322,7 +320,7 @@ function getSetupConfiguration({
           )}';
           ${getVueConstSetup(siblingOption)}
           Sentry.init({
-            ${sentryInitLayout}
+            ${config}
 },
 // Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
 ${getSiblingImportName(siblingOption)}.init
