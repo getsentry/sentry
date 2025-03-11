@@ -1,7 +1,12 @@
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap import constants
-from sentry.search.eap.columns import AggregateDefinition, ArgumentDefinition
+from sentry.search.eap.columns import (
+    AggregateDefinition,
+    ArgumentDefinition,
+    ConditionalAggregateDefinition,
+)
 
 
 def count_processor(count_value: int | None) -> int:
@@ -10,6 +15,28 @@ def count_processor(count_value: int | None) -> int:
     else:
         return count_value
 
+
+def resolve_count_op_filter(op_value: str) -> TraceItemFilter:
+    TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(
+                name="sentry.op",
+                type=AttributeKey.TYPE_STRING,
+            ),
+            op=ComparisonFilter.OP_EQUALS,
+            value=AttributeValue(val_str=op_value),
+        )
+    )
+
+
+SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
+    "count_op": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[ArgumentDefinition(argument_types={"string"}, is_attribute=False)],
+        filter_resolver=resolve_count_op_filter,
+    )
+}
 
 SPAN_AGGREGATE_DEFINITIONS = {
     "sum": AggregateDefinition(

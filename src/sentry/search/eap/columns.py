@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.spans_rpc import TraceItemFilter
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -169,6 +170,36 @@ class ResolvedAggregate(ResolvedFunction):
         )
 
 
+@dataclass(frozen=True, kw_only=True)
+class ResolvedConditionalAggregate(ResolvedFunction):
+    """
+    An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
+    Examples of this are `sum()` and `avg()`.
+    """
+
+    # The internal rpc alias for this column
+    internal_name: Function.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
+    is_aggregate: bool = field(default=True, init=False)
+    filter: TraceItemFilter
+
+    @property
+    def proto_definition(self) -> AttributeConditionalAggregation:
+        """The definition of this function as needed by the RPC"""
+        return AttributeConditionalAggregation(
+            aggregate=self.internal_name,
+            key=self.argument,
+            filter=self.filter,
+            label=self.public_alias,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+        )
+
+
 @dataclass(kw_only=True)
 class FunctionDefinition:
     """
@@ -197,7 +228,7 @@ class FunctionDefinition:
         alias: str,
         search_type: constants.SearchType,
         resolved_argument: AttributeKey | Any | None,
-    ) -> ResolvedFormula | ResolvedAggregate:
+    ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
 
@@ -213,6 +244,25 @@ class AggregateDefinition(FunctionDefinition):
             internal_name=self.internal_function,
             search_type=search_type,
             internal_type=self.internal_type,
+            processor=self.processor,
+            extrapolation=self.extrapolation,
+            argument=resolved_argument,
+        )
+
+
+class ConditionalAggregateDefinition(FunctionDefinition):
+    internal_function: Function.ValueType
+    filter_resolver: Callable[..., TraceItemFilter]
+
+    def resolve(
+        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+    ) -> ResolvedConditionalAggregate:
+        return ResolvedConditionalAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            filter=self.filter_resolver(resolved_argument),
             processor=self.processor,
             extrapolation=self.extrapolation,
             argument=resolved_argument,
@@ -299,6 +349,7 @@ def project_term_resolver(
 @dataclass(frozen=True)
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
+    conditional_aggregated: dict[str, ConditionalAggregateDefinition] = {}
     formulas: dict[str, FormulaDefinition]
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
