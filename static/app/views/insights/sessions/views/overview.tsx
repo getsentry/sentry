@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -88,24 +89,26 @@ export function SessionsOverview() {
                 </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
-            {view === MOBILE_LANDING_SUB_PATH && (
-              <Fragment>
-                {SESSION_HEALTH_CHARTS}
-                <ModuleLayout.Half>
-                  <ReleaseSessionCountChart />
-                </ModuleLayout.Half>
-                <ModuleLayout.Half>
-                  <ReleaseSessionPercentageChart />
-                </ModuleLayout.Half>
-                <ModuleLayout.Full>
-                  <FilterWrapper>
-                    <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
-                  </FilterWrapper>
-                  <ReleaseHealth filters={filters} />
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
-            {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
+            <ModulesOnboarding moduleName={ModuleName.SESSIONS}>
+              {view === MOBILE_LANDING_SUB_PATH && (
+                <Fragment>
+                  {SESSION_HEALTH_CHARTS}
+                  <ModuleLayout.Half>
+                    <ReleaseSessionCountChart />
+                  </ModuleLayout.Half>
+                  <ModuleLayout.Half>
+                    <ReleaseSessionPercentageChart />
+                  </ModuleLayout.Half>
+                  <ModuleLayout.Full>
+                    <FilterWrapper>
+                      <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+                    </FilterWrapper>
+                    <ReleaseHealth filters={filters} />
+                  </ModuleLayout.Full>
+                </Fragment>
+              )}
+              {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
+            </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

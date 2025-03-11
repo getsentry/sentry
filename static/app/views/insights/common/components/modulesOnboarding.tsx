@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
@@ -18,6 +17,7 @@ import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 import {LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
@@ -119,6 +119,11 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 
 type ModulePreviewProps = {moduleName: ModuleName};
 
+function getSDKName(sdk: PlatformKey) {
+  const currentPlatform = platforms.find(p => p.id === sdk);
+  return currentPlatform?.name;
+}
+
 function ModulePreview({moduleName}: ModulePreviewProps) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
@@ -132,7 +137,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
-              <Tooltip title={startCase(sdk)} key={sdk} position="top">
+              <Tooltip title={getSDKName(sdk) ?? ''} key={sdk} position="top">
                 <SupportedSdkIconContainer
                   onMouseOver={() => setHoveredIcon(sdk)}
                   onMouseOut={() => setHoveredIcon(null)}
@@ -509,8 +514,23 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     }),
     valuePropPoints: [
       t('Understanding the rate of errored sessions across active releases.'),
+      t('Comparing adoption rates across different releases.'),
+      t('Visualizing user adoption over time.'),
     ],
     imageSrc: screenLoadsPreviewImg, // TODO: need new img
-    supportedSdks: [], // TODO: add supported sdks
+    supportedSdks: [
+      'android',
+      'flutter',
+      'apple-ios',
+      'javascript',
+      'electron',
+      'native',
+      'php',
+      'python',
+      'react-native',
+      'dotnet',
+      'rust',
+      'unity',
+    ], // this techncially isn't the full list - we support JS browser & node but it seems like too many SDKs to list here
   },
 };
