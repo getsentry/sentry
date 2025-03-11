@@ -15,17 +15,18 @@ def backfill_desynced_groupsearchview_positions_to_gsvstarred(
     GroupSearchViewStarred = apps.get_model("sentry", "GroupSearchViewStarred")
 
     # List of all GroupSearchView IDs that already have corresponding entries in GroupSearchViewStarred
-    existing_gsv_ids = GroupSearchViewStarred.objects.values_list("group_search_view_id", flat=True)
+    existing_gsv_ids = set(
+        GroupSearchViewStarred.objects.values_list("group_search_view_id", flat=True)
+    )
 
-    for gsv in RangeQuerySetWrapperWithProgressBar(
-        GroupSearchView.objects.exclude(id__in=existing_gsv_ids)
-    ):
-        GroupSearchViewStarred.objects.update_or_create(
-            group_search_view=gsv,
-            user_id=gsv.user_id,
-            organization_id=gsv.organization_id,
-            defaults={"position": gsv.position},
-        )
+    for gsv in RangeQuerySetWrapperWithProgressBar(GroupSearchView.objects.all()):
+        if gsv.id not in existing_gsv_ids:
+            GroupSearchViewStarred.objects.update_or_create(
+                group_search_view=gsv,
+                user_id=gsv.user_id,
+                organization_id=gsv.organization_id,
+                defaults={"position": gsv.position},
+            )
 
 
 class Migration(CheckedMigration):
