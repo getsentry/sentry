@@ -120,6 +120,7 @@ export type CustomComboboxMenuProps<T> = {
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<T>;
+  portalTarget?: HTMLElement | null;
 };
 
 export type CustomComboboxMenu<T> = (
@@ -247,6 +248,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef,
   state,
   overlayProps,
+  portalTarget,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
@@ -257,6 +259,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<any>;
   customMenu?: CustomComboboxMenu<T>;
+  portalTarget?: HTMLElement | null;
 }) {
   if (customMenu) {
     return customMenu({
@@ -268,6 +271,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       state,
       overlayProps,
       filterValue,
+      portalTarget,
     });
   }
 
@@ -322,7 +326,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
-  const {disabled} = useSearchQueryBuilder();
+  const {disabled, portalTarget} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -546,6 +550,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         popoverRef={popoverRef}
         state={state}
         overlayProps={overlayProps}
+        portalTarget={portalTarget}
       />
     </Wrapper>
   );

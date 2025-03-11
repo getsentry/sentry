@@ -290,7 +290,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query} = useSearchQueryBuilder();
+  const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
 
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
@@ -360,7 +360,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     );
   }
 
-  return (
+  const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
         {isOpen ? (
@@ -379,6 +379,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       </SectionedOverlay>
     </StyledPositionWrapper>
   );
+
+  if (portalTarget) {
+    return createPortal(filterKeyListBoxContent, portalTarget);
+  }
+
+  return filterKeyListBoxContent;
 }
 
 const SectionedOverlay = styled(Overlay, {

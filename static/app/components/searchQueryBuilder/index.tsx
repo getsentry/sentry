@@ -102,6 +102,13 @@ export interface SearchQueryBuilderProps {
    */
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
+  /**
+   * If provided, will render the combobox popovers into the given element.
+   * This is useful when the search query builder is rendered as a child of an
+   * element that has CSS styling that prevents popovers from overflowing, e.g.
+   * a scrollable container.
+   */
+  portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
   /**
    * If provided, saves and displays recent searches of the given type.
@@ -197,6 +204,7 @@ export function SearchQueryBuilder({
   showUnsubmittedIndicator,
   trailingItems,
   getFilterTokenWarning,
+  portalTarget,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -270,6 +278,7 @@ export function SearchQueryBuilder({
       recentSearches,
       searchSource,
       size,
+      portalTarget,
     };
   }, [
     state,
@@ -288,6 +297,7 @@ export function SearchQueryBuilder({
     recentSearches,
     searchSource,
     size,
+    portalTarget,
   ]);
 
   return (
