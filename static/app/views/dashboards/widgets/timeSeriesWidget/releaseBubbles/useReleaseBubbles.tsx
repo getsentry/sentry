@@ -369,6 +369,8 @@ export function useReleaseBubbles({
     };
   }
 
+  const totalBubblePaddingY = bubblePadding.y * 2;
+
   return {
     createReleaseBubbleHighlighter,
 
