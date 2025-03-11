@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from rest_framework.response import Response
@@ -9,6 +9,11 @@ class SentryAppErrorType(Enum):
     CLIENT = "client"
     INTEGRATOR = "integrator"
     SENTRY = "sentry"
+
+
+class SentryAppPublicErrorBody(TypedDict, total=False):
+    detail: str
+    context: dict[str, Any]
 
 
 class SentryAppBaseError(Exception):
@@ -28,6 +33,13 @@ class SentryAppBaseError(Exception):
         # Info that gets sent to the end user via endpoint Response AND sent to integrator
         self.webhook_context = webhook_context or {}
         self.message = message
+
+    def to_public_dict(self) -> SentryAppPublicErrorBody:
+        error_body: SentryAppPublicErrorBody = {"detail": self.message}
+        if public_context := self.public_context:
+            error_body.update({"context": public_context})
+
+        return error_body
 
     def response_from_exception(self) -> Response:
         response: dict[str, Any] = {"detail": self.message}
@@ -52,6 +64,12 @@ class SentryAppIntegratorError(SentryAppBaseError):
 class SentryAppSentryError(SentryAppBaseError):
     error_type = SentryAppErrorType.SENTRY
     status_code = 500
+
+    def to_public_dict(self) -> SentryAppPublicErrorBody:
+        error_id = sentry_sdk.capture_exception(self)
+        return {
+            "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
+        }
 
     def response_from_exception(self) -> Response:
         sentry_sdk.capture_exception(self)
