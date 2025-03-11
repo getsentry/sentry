@@ -104,6 +104,9 @@ export interface SearchQueryBuilderProps {
   placeholder?: string;
   /**
    * If provided, will render the combobox popovers into the given element.
+   * This is useful when the search query builder is rendered as a child of an
+   * element that has CSS styling that prevents popovers from overflowing, e.g.
+   * a scrollable container.
    */
   portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
