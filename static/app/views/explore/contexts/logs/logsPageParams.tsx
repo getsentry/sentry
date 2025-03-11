@@ -26,6 +26,10 @@ interface LogsPageParams {
   readonly isTableSortFrozen: boolean | undefined;
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
+  /**
+   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc..
+   */
+  readonly baseSearch?: MutableSearch;
 }
 
 type LogPageParamsUpdate = Partial<LogsPageParams>;
@@ -35,18 +39,23 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
     name: 'LogsPageParamsContext',
   });
 
-export function LogsPageParamsProvider({
-  children,
-  traceId,
-  isIssuesDetailView,
-}: {
+export interface LogsPageParamsProviderProps {
   children: React.ReactNode;
   isIssuesDetailView?: boolean;
-  traceId?: string;
-}) {
+  limitToTraceId?: string;
+}
+
+export function LogsPageParamsProvider({
+  children,
+  limitToTraceId,
+  isIssuesDetailView,
+}: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
+  const baseSearch = limitToTraceId
+    ? new MutableSearch('').addFilterValues('trace_id', [limitToTraceId])
+    : undefined;
   const fields = getLogFieldsFromLocation(location);
   const sortBys = isIssuesDetailView
     ? [logsTimestampDescendingSortBy]
@@ -55,13 +64,10 @@ export function LogsPageParamsProvider({
   const isTableSortFrozen = isIssuesDetailView;
 
   const cursor = getLogCursorFromLocation(location);
-  if (traceId) {
-    search.addFilterValues('trace_id', [traceId]);
-  }
 
   return (
     <LogsPageParamsContext.Provider
-      value={{fields, search, sortBys, cursor, isTableSortFrozen}}
+      value={{fields, search, sortBys, cursor, isTableSortFrozen, baseSearch}}
     >
       {children}
     </LogsPageParamsContext.Provider>
@@ -130,6 +136,11 @@ export function useLogsSearch(): MutableSearch {
   return search;
 }
 
+export function useLogsBaseSearch(): MutableSearch | undefined {
+  const {baseSearch} = useLogsPageParams();
+  return baseSearch;
+}
+
 export function useSetLogsQuery() {
   const setPageParams = useSetLogsPageParams();
   return useCallback(
@@ -148,6 +159,11 @@ export function useSetLogsSearch() {
     },
     [setPageParams]
   );
+}
+
+export function useLogsIsTableSortFrozen() {
+  const {isTableSortFrozen} = useLogsPageParams();
+  return isTableSortFrozen;
 }
 
 export function useLogsSortBys() {

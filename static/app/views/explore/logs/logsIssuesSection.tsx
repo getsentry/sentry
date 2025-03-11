@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   LogsPageParamsProvider,
+  type LogsPageParamsProviderProps,
   useLogsSearch,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -15,7 +16,13 @@ import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function LogsIssuesSection({initialCollapse}: {initialCollapse: boolean}) {
+export function LogsIssuesSection({
+  initialCollapse,
+  isIssuesDetailView,
+  limitToTraceId: traceId,
+}: {
+  initialCollapse: boolean;
+} & Omit<LogsPageParamsProviderProps, 'children'>) {
   return (
     <Feature features={['ourlogs-enabled']}>
       <InterimSection
@@ -25,7 +32,10 @@ export function LogsIssuesSection({initialCollapse}: {initialCollapse: boolean})
         data-test-id="logs-data-section"
         initialCollapse={initialCollapse}
       >
-        <LogsPageParamsProvider>
+        <LogsPageParamsProvider
+          isIssuesDetailView={isIssuesDetailView}
+          limitToTraceId={traceId}
+        >
           <LogsSectionContent />
         </LogsPageParamsProvider>
       </InterimSection>

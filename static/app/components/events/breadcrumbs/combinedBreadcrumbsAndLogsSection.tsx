@@ -23,7 +23,10 @@ export function CombinedBreadcrumbsAndLogsSection({
   }
 
   return (
-    <LogsPageParamsProvider isIssuesDetailView traceId={event.contexts?.trace?.trace_id}>
+    <LogsPageParamsProvider
+      isIssuesDetailView
+      limitToTraceId={event.contexts?.trace?.trace_id}
+    >
       <CombinedBreadcrumbsAndLogsSectionContent
         event={event}
         group={group}
@@ -48,7 +51,11 @@ function CombinedBreadcrumbsAndLogsSectionContent({
         project={project}
         initialCollapse={!shouldCollapseLogs}
       />
-      <LogsIssuesSection initialCollapse={shouldCollapseLogs} />
+      <LogsIssuesSection
+        initialCollapse={shouldCollapseLogs}
+        isIssuesDetailView
+        limitToTraceId={event.contexts?.trace?.trace_id}
+      />
     </Fragment>
   );
 }

@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {
   useLogsFields,
+  useLogsIsTableSortFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsCursor,
@@ -37,6 +38,7 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
+  const isTableSortFrozen = useLogsIsTableSortFrozen();
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
@@ -70,7 +72,10 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
                   key={index}
                   isFirst={index === 0}
                 >
-                  <TableHeadCellContent onClick={() => setSortBys([{field}])}>
+                  <TableHeadCellContent
+                    onClick={isTableSortFrozen ? undefined : () => setSortBys([{field}])}
+                    isFrozen={isTableSortFrozen}
+                  >
                     <Tooltip showOnlyOnOverflow title={headerLabel}>
                       {headerLabel}
                     </Tooltip>
