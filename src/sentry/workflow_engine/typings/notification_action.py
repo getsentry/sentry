@@ -735,7 +735,7 @@ class NotificationContext:
     def from_action_model(cls, action: Action) -> NotificationContext:
         return cls(
             integration_id=action.integration_id,
-            target_identifier=action.target_identifier,
-            target_display=action.target_display,
+            target_identifier=action.config.get("target_identifier"),
+            target_display=action.config.get("target_display"),
             sentry_app_config=action.data,
         )
