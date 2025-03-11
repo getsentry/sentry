@@ -47,14 +47,14 @@ export function getTraceQueryParams(
   pageEnd?: string;
   pageStart?: string;
   statsPeriod?: string;
-  view?: string;
+  trace_format?: string;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
-  const view = decodeScalar(normalizedParams.view);
+  const trace_format = decodeScalar(normalizedParams.trace_format);
   const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
   let limit = options.limit ?? decodeScalar(normalizedParams.limit);
   if (typeof limit === 'string') {
@@ -88,7 +88,7 @@ export function getTraceQueryParams(
     timestamp: timestamp?.toString(),
     targetId,
     useSpans: 1,
-    view,
+    trace_format,
   };
   for (const key in queryParams) {
     if (
@@ -210,13 +210,13 @@ export function useTrace(
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
     // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.limit, options.timestamp, query.view]);
+  }, [options.limit, options.timestamp, query.trace_format]);
 
-  const {view, ...queryParamsWithoutView} = queryParams;
+  const {trace_format, ...queryParamsWithoutView} = queryParams;
 
   const isDemoMode = Boolean(queryParams.demo);
   const isEAPEnabled =
-    organization.features.includes('trace-spans-format') && view !== 'non-eap-trace';
+    organization.features.includes('trace-spans-format') && trace_format !== 'non-eap';
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const demoTrace = useDemoTrace(queryParams.demo, organization);

@@ -73,7 +73,7 @@ function FeedbackButton() {
   ) : null;
 }
 
-function SwitchToNonEAPTraceButton({
+export function SwitchToNonEAPTraceButton({
   location,
   organization,
 }: {
@@ -86,7 +86,7 @@ function SwitchToNonEAPTraceButton({
       ...location,
       query: {
         ...location.query,
-        view: 'non-eap-trace',
+        trace_format: 'non-eap',
       },
     });
   }, [location, navigate]);
