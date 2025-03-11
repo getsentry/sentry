@@ -29,9 +29,7 @@ import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
   DEFAULT_BUBBLE_SIZE,
-  RELEASE_BUBBLE_X_HALF_PADDING,
   RELEASE_BUBBLE_X_PADDING,
-  RELEASE_BUBBLE_Y_HALF_PADDING,
   RELEASE_BUBBLE_Y_PADDING,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
@@ -147,6 +145,7 @@ function createReleaseBubbleMouseListeners({
 }
 
 interface ReleaseBubbleSeriesProps {
+  bubblePadding: {x: number; y: number};
   bubbleSize: number;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
@@ -165,6 +164,7 @@ function ReleaseBubbleSeries({
   chartRef,
   theme,
   bubbleSize,
+  bubblePadding,
   dateFormatOptions,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
@@ -192,10 +192,10 @@ function ReleaseBubbleSeries({
    * Renders release bubbles underneath the main chart
    */
   const renderReleaseBubble: CustomSeriesRenderItem = (
-    _params: CustomSeriesRenderItemParams,
+    params: CustomSeriesRenderItemParams,
     api: CustomSeriesRenderItemAPI
   ) => {
-    const dataItem = data[_params.dataIndex];
+    const dataItem = data[params.dataIndex];
 
     if (!dataItem) {
       return null;
@@ -221,14 +221,26 @@ function ReleaseBubbleSeries({
     // Width between two timestamps for timeSeries
     const width = bubbleEndX - bubbleStartX;
 
+    // Padding is on both left/right sides to try to center the bubble
     //
+    //  bubbleStartX   bubbleEndX
+    //  |              |
+    //  v              v
+    //  ----------------  ----------------
+    //  |              |  |              |
+    //  ----------------  ----------------
+    //                 ^  ^
+    //                 |--|
+    //                 bubblePadding.x
     const shape = {
-      x: bubbleStartX + RELEASE_BUBBLE_X_HALF_PADDING,
-      y: bubbleStartY + RELEASE_BUBBLE_Y_HALF_PADDING,
-      width: width - RELEASE_BUBBLE_X_PADDING,
+      // No left-padding on first bubble
+      x: bubbleStartX + (params.dataIndex === 0 ? 0 : bubblePadding.x / 2),
+      y: bubbleStartY + bubblePadding.y / 2,
+      // No right-padding on last bubble
+      width: width - (params.dataIndex === 0 ? 0 : bubblePadding.x),
       // currently we have a static height, but this may need to change since
       // we have charts of different dimensions
-      height: bubbleSize - RELEASE_BUBBLE_Y_PADDING,
+      height: bubbleSize - bubblePadding.y,
 
       // border radius
       r: 0,
@@ -294,6 +306,7 @@ ${t('Click to expand')}
 
 interface UseReleaseBubblesParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
+  bubblePadding?: {x: number; y: number};
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;
@@ -311,6 +324,7 @@ export function useReleaseBubbles({
   minTime,
   maxTime,
   bubbleSize = DEFAULT_BUBBLE_SIZE,
+  bubblePadding = {x: RELEASE_BUBBLE_X_PADDING, y: RELEASE_BUBBLE_Y_PADDING},
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
@@ -354,6 +368,7 @@ export function useReleaseBubbles({
     releaseBubbleSeries: ReleaseBubbleSeries({
       buckets,
       bubbleSize,
+      bubblePadding,
       chartRef,
       theme,
       releases,
