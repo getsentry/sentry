@@ -11,16 +11,21 @@ from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
     UptimeRegionScheduleMode,
+    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
+BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
 
 
 @instrumented_task(
@@ -182,3 +187,27 @@ def subscription_checker(**kwargs):
             delete_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
 
     metrics.incr("uptime.subscriptions.repair", amount=count, sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.broken_monitor_checker",
+    queue="uptime",
+)
+def broken_monitor_checker(**kwargs):
+    """
+    This checks for auto created uptime monitors that have been broken for a long time and disables them.
+    """
+    from sentry.uptime.subscriptions.subscriptions import disable_project_uptime_subscription
+
+    count = 0
+    for uptime_monitor in RangeQuerySetWrapper(
+        ProjectUptimeSubscription.objects.filter(
+            uptime_status=UptimeStatus.FAILED,
+            uptime_status_update_date__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        )
+    ):
+        disable_project_uptime_subscription(uptime_monitor)
+        count += 1
+
+    metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)
