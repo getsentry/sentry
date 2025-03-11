@@ -372,7 +372,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         metric_value: float,
         notification_uuid: str | None = None,
     ) -> bool:
-
         try:
             event = SentryAppEventType(
                 f"metric_alert.{INCIDENT_STATUS[IncidentStatus(new_status)].lower()}"

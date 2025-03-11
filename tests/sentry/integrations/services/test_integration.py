@@ -18,8 +18,9 @@ from sentry.integrations.services.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
+from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
@@ -334,7 +335,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             sentry_app_id=9876,  # does not exist
             action_id=1,
             incident_id=1,
-            new_status=0,
+            new_status=10,
             metric_value=100,
             organization_id=self.organization.id,
             incident_attachment_json="{}",
@@ -342,12 +343,14 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         assert not result
 
         # SLO asserts
-        assert_success_metric(mock_record)
+        assert_failure_metric(
+            mock_record, SentryApp.DoesNotExist("SentryApp matching query does not exist.")
+        )
 
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
