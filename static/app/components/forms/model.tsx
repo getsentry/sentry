@@ -731,7 +731,7 @@ class FormModel {
 
   setFieldState(id: string, key: string, value: FieldValue) {
     const state = {
-      ...(this.fieldState.get(id) || {}),
+      ...this.fieldState.get(id),
       [key]: value,
     };
     this.fieldState.set(id, state);
