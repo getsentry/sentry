@@ -27,11 +27,11 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsTableData} from 'sentry/views/explore/contexts/logs/logsTableData';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
-import {useLogsTableData} from 'sentry/views/explore/contexts/logs/logsTableData';
 
 export function LogsTable() {
   const fields = useLogsFields();
