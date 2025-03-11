@@ -1,8 +1,10 @@
-import pytest_jsonreport.plugin
+import pytest_jsonreport.plugin  # type:ignore[import-untyped]
+
+TestItem = dict[str, list[object]]
 
 
 class PytestRerunJSONReporter:
-    json_tests: None | dict[str, object] = None
+    json_tests: None | dict[str, TestItem] = None
 
     def pytest_plugin_registered(self, plugin, manager):
         del manager
