@@ -40,17 +40,9 @@ import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 type ModuleOnboardingProps = {
   children: React.ReactNode;
   moduleName: ModuleName;
-  /**
-   * Used to override the default logic for rendering module onboarding.
-   */
-  showOnboardingOverride?: boolean;
 };
 
-export function ModulesOnboarding({
-  children,
-  moduleName,
-  showOnboardingOverride,
-}: ModuleOnboardingProps) {
+export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {reloadProjects} = useProjects();
@@ -66,23 +58,18 @@ export function ModulesOnboarding({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasData]);
 
-  // Show onboarding content if:
-  // 1. There's an onboarding project, or
-  // 2. showOnboardingOverride is true, or
-  // 3. There's no span data and showOnboardingOverride is undefined
-  const shouldShowOnboarding =
-    onboardingProject ||
-    showOnboardingOverride === true ||
-    (showOnboardingOverride === undefined && !hasData);
-
-  if (shouldShowOnboarding) {
+  if (onboardingProject) {
     return (
       <ModuleLayout.Full>
-        {onboardingProject ? (
-          <LegacyOnboarding organization={organization} project={onboardingProject} />
-        ) : (
-          <ModulesOnboardingPanel moduleName={moduleName} />
-        )}
+        <LegacyOnboarding organization={organization} project={onboardingProject} />
+      </ModuleLayout.Full>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <ModuleLayout.Full>
+        <ModulesOnboardingPanel moduleName={moduleName} />
       </ModuleLayout.Full>
     );
   }
@@ -90,7 +77,7 @@ export function ModulesOnboarding({
   return children;
 }
 
-function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
