@@ -125,11 +125,7 @@ def build_action_data_blob(
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
         return build_on_call_data_blob(alert_rule_trigger_action, action_type)
     else:
-        return {
-            "type": alert_rule_trigger_action.type,
-            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-        }
+        return {}
 
 
 def get_target_identifier(
