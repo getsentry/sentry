@@ -159,7 +159,7 @@ def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
         if "error" in config["outcome"] or "sourcePath" not in config["outcome"]:
             data = {"status": status.HTTP_400_BAD_REQUEST}
             return data
-            
+
         repo = config["repository"].name
         service = config["config"]["provider"]["key"]
         path = config["outcome"]["sourcePath"]
