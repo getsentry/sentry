@@ -22,7 +22,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
-import {ExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
+import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
@@ -79,7 +79,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         )}
         {event && (
           <ErrorBoundary mini>
-            <ExternalIssueList group={group} event={event} project={project} />
+            <ExternalIssueSidebarList group={group} event={event} project={project} />
           </ErrorBoundary>
         )}
         <StreamlinedActivitySection group={group} />

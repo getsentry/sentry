@@ -13,9 +13,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 
-import {ExternalIssueList} from './externalIssueList';
+import {ExternalIssueSidebarList} from './externalIssueSidebarList';
 
-describe('ExternalIssueList', () => {
+describe('ExternalIssueSidebarList', () => {
   const organization = OrganizationFixture();
   const event = EventFixture();
   const group = GroupFixture();
@@ -57,7 +57,7 @@ describe('ExternalIssueList', () => {
       method: 'DELETE',
     });
 
-    render(<ExternalIssueList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
     expect(await screen.findByRole('button', {name: issueKey})).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('button', {name: issueKey}));
@@ -119,7 +119,7 @@ describe('ExternalIssueList', () => {
       }),
     ]);
 
-    render(<ExternalIssueList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
     expect(
       await screen.findByRole('button', {name: 'ClickUp: hello#1'})
@@ -158,7 +158,7 @@ describe('ExternalIssueList', () => {
       ],
     });
 
-    render(<ExternalIssueList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
     expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
@@ -182,7 +182,7 @@ describe('ExternalIssueList', () => {
       body: [],
     });
 
-    render(<ExternalIssueList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
@@ -215,7 +215,7 @@ describe('ExternalIssueList', () => {
       ],
     });
 
-    render(<ExternalIssueList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
     expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));
@@ -244,7 +244,11 @@ describe('ExternalIssueList', () => {
       pluginActions: [['Create Redmine Issue', '/path/to/redmine']],
     });
     render(
-      <ExternalIssueList event={event} group={groupWithPluginActions} project={project} />
+      <ExternalIssueSidebarList
+        event={event}
+        group={groupWithPluginActions}
+        project={project}
+      />
     );
 
     expect(
