@@ -12,6 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {getLogFieldsFromLocation} from 'sentry/views/explore/contexts/logs/fields';
 import {
   getLogSortBysFromLocation,
+  logsTimestampDescendingSortBy,
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 
@@ -22,6 +23,7 @@ export const LOGS_FIELDS_KEY = 'logsFields';
 interface LogsPageParams {
   readonly cursor: string;
   readonly fields: string[];
+  readonly isTableSortFrozen: boolean | undefined;
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
 }
@@ -36,22 +38,31 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 export function LogsPageParamsProvider({
   children,
   traceId,
+  isIssuesDetailView,
 }: {
   children: React.ReactNode;
+  isIssuesDetailView?: boolean;
   traceId?: string;
 }) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
   const fields = getLogFieldsFromLocation(location);
-  const sortBys = getLogSortBysFromLocation(location, fields);
+  const sortBys = isIssuesDetailView
+    ? [logsTimestampDescendingSortBy]
+    : getLogSortBysFromLocation(location, fields);
+
+  const isTableSortFrozen = isIssuesDetailView;
+
   const cursor = getLogCursorFromLocation(location);
   if (traceId) {
     search.addFilterValues('trace_id', [traceId]);
   }
 
   return (
-    <LogsPageParamsContext.Provider value={{fields, search, sortBys, cursor}}>
+    <LogsPageParamsContext.Provider
+      value={{fields, search, sortBys, cursor, isTableSortFrozen}}
+    >
       {children}
     </LogsPageParamsContext.Provider>
   );
@@ -74,7 +85,9 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+  if (!pageParams.isTableSortFrozen) {
+    updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+  }
   return target;
 }
 

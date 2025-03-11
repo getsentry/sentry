@@ -26,7 +26,7 @@ export function CombinedBreadcrumbsAndLogsSection({
   }
 
   return (
-    <LogsPageParamsProvider>
+    <LogsPageParamsProvider isIssuesDetailView traceId={event.contexts?.trace?.trace_id}>
       <LogsTableDataProvider>
         <CombinedBreadcrumbsAndLogsSectionContent
           event={event}
@@ -44,16 +44,16 @@ function CombinedBreadcrumbsAndLogsSectionContent({
   project,
 }: BreadcrumbsDataSectionProps) {
   const {tableData} = useLogsTableData();
-  const collapseLogs = tableData.data.length === 0;
+  const shouldCollapseLogs = tableData.data.length === 0;
   return (
     <Fragment>
       <BreadcrumbsDataSection
         event={event}
         group={group}
         project={project}
-        initialCollapse={!collapseLogs}
+        initialCollapse={!shouldCollapseLogs}
       />
-      <LogsIssuesSection initialCollapse={collapseLogs} />
+      <LogsIssuesSection initialCollapse={shouldCollapseLogs} />
     </Fragment>
   );
 }
