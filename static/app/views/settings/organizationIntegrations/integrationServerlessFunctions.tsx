@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -50,11 +50,13 @@ export function IntegrationServerlessFunctions({
 
   return (
     <Fragment>
-      <Alert type="info">
-        {t(
-          'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info">
+          {t(
+            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
+          )}
+        </Alert>
+      </Alert.Container>
       <Panel>
         <StyledPanelHeader disablePadding hasButtons>
           <NameHeader>{t('Name')}</NameHeader>

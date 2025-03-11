@@ -9,7 +9,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -140,7 +140,7 @@ interface QueryData {
   queryOrderby: string;
 }
 
-interface Props extends RouteComponentProps<RouteParams, {}> {
+interface Props extends RouteComponentProps<RouteParams> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   selection: PageFilters;

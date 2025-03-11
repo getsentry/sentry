@@ -14,6 +14,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry import options
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
 from sentry.integrations.models.integration import Integration
@@ -106,7 +107,7 @@ def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
     )
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REQUEST)
 def process_relocation_request_new_export(payload: Mapping[str, Any], **kwds):
@@ -124,7 +125,7 @@ def process_relocation_request_new_export(payload: Mapping[str, Any], **kwds):
     )
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
 def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
@@ -133,6 +134,18 @@ def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
     # it into memory and attempt the RPC call back to the requesting region.
     uuid = payload["relocation_uuid"]
     slug = payload["org_slug"]
+
+    killswitch_orgs = options.get("relocation.outbox-orgslug.killswitch")
+    if slug in killswitch_orgs:
+        logger.info(
+            "relocation.killswitch.org",
+            extra={
+                "org_slug": slug,
+                "relocation_uuid": uuid,
+            },
+        )
+        return
+
     relocation_storage = get_relocation_storage()
     path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
     try:

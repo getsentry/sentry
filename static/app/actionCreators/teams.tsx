@@ -5,8 +5,8 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 
 type CallbackOptions = {
-  error?: Function;
-  success?: Function;
+  error?: (...args: unknown[]) => void;
+  success?: (...args: unknown[]) => void;
 };
 
 const doCallback = (

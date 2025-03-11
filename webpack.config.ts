@@ -435,6 +435,10 @@ const appConfig: webpack.Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
+      getsentry: path.join(staticPrefix, 'gsApp'),
+      'getsentry-images': path.join(staticPrefix, 'images'),
+      'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),

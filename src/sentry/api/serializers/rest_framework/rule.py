@@ -59,10 +59,9 @@ class RuleNodeField(serializers.Field):
             node.self_validate()
             return data
 
-        if not node.form_cls:
-            return data
-
         form = node.get_form_instance()
+        if not form:
+            return data
 
         if not form.is_valid():
             # XXX(epurkhiser): Very hacky, but we really just want validation

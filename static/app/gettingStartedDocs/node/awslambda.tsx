@@ -10,7 +10,6 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
@@ -34,15 +33,6 @@ exports.handler = Sentry.wrapHandler(async (event, context) => {
 const getVerifySnippet = () => `
 exports.handler = Sentry.wrapHandler(async (event, context) => {
   throw new Error("This should show up in Sentry!")
-});`;
-
-const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Only needed for SDK versions < 8.0.0
-  // _experiments: {
-  //   metricsAggregator: true,
-  // },
 });`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
@@ -109,38 +99,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   },
 };
 
-const customMetricsOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [code:8.0.0] of [code:@sentry/aws-serverless]:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: '@sentry/aws-serverless',
-      }),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'With the default snippet in place, there is no need for any further configuration.'
-      ),
-      configurations: [
-        {
-          code: getMetricsConfigureSnippet(params),
-          language: 'javascript',
-        },
-      ],
-    },
-  ],
-  verify: getJSServerMetricsOnboarding().verify,
-};
-
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
@@ -158,7 +116,6 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
-  customMetricsOnboarding,
   crashReportOnboarding,
   platformOptions,
 };

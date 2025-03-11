@@ -23,7 +23,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -66,9 +65,10 @@ import {
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import TraceActionsMenu from './traceActionsMenu';
-import {traceAnalytics} from './traceAnalytics';
+import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
 import {
   isAutogroupedNode,
+  isEAPTraceNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isTraceNode,
@@ -104,7 +104,7 @@ export interface TraceWaterfallProps {
   replay: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
+  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string | undefined;
   tree: TraceTree;
@@ -325,7 +325,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       if (node) {
         // The new ui has the trace info and web vitals in the bottom drawer and
         // we don't treat the trace node as a clickable node
-        if (isTraceNode(node) && hasTraceNewUi) {
+        if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
           return;
         }
 
@@ -383,7 +383,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // The new ui has the trace info and web vitals in the bottom drawer and
       // we don't treat the trace node as a clickable node
-      if (isTraceNode(node) && hasTraceNewUi) {
+      if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',
@@ -521,6 +521,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
+  const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -530,7 +532,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        source
       );
     }
     // The tree has the data fetched, but does not yet respect the user preferences.
@@ -633,6 +636,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    source,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -827,6 +831,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
         <TraceShortcuts />
         <TraceActionsMenu
+          traceSlug={props.traceSlug}
           rootEventResults={props.rootEvent}
           traceEventView={props.traceEventView}
         />
@@ -846,6 +851,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         hideBottomBorder={hasTraceNewUi}
       >
         <Trace
+          metaQueryResults={props.meta}
           trace={props.tree}
           rerender={rerender}
           trace_id={props.traceSlug}

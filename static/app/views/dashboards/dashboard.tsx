@@ -26,7 +26,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -48,7 +47,6 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
-  isValidLayout,
   METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
 } from './layoutUtils';
@@ -326,7 +324,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+  handleDuplicateWidget = (widget: Widget) => () => {
     const {
       organization,
       dashboard,
@@ -344,8 +342,7 @@ class Dashboard extends Component<Props, State> {
       assignTempId({...widget, id: undefined, tempId: undefined})
     );
 
-    let nextList = [...dashboard.widgets];
-    nextList.splice(index, 0, widgetCopy);
+    let nextList = [...dashboard.widgets, widgetCopy];
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
@@ -442,7 +439,7 @@ class Dashboard extends Component<Props, State> {
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
-      onDuplicate: this.handleDuplicateWidget(widget, index),
+      onDuplicate: this.handleDuplicateWidget(widget),
       onSetTransactionsDataset: () => this.handleChangeSplitDataset(widget, index),
 
       isPreview,
@@ -571,7 +568,6 @@ class Dashboard extends Component<Props, State> {
       isEditingDashboard,
       dashboard,
       widgetLimitReached,
-      organization,
       isPreview,
       onAddWidgetFromNewWidgetBuilder,
     } = this.props;
@@ -582,10 +578,6 @@ class Dashboard extends Component<Props, State> {
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditingDashboard;
-
-    const displayInlineAddWidget =
-      hasCustomMetrics(organization) &&
-      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
       <GridLayout
@@ -614,19 +606,17 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || displayInlineAddWidget) &&
-          !widgetLimitReached &&
-          !isPreview && (
-            <AddWidgetWrapper
-              key={ADD_WIDGET_BUTTON_DRAG_ID}
-              data-grid={this.addWidgetLayout}
-            >
-              <AddWidget
-                onAddWidget={this.handleStartAdd}
-                onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
-              />
-            </AddWidgetWrapper>
-          )}
+        {isEditingDashboard && !widgetLimitReached && !isPreview && (
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
+            <AddWidget
+              onAddWidget={this.handleStartAdd}
+              onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
+            />
+          </AddWidgetWrapper>
+        )}
       </GridLayout>
     );
   }

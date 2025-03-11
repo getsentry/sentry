@@ -54,9 +54,9 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
               <LinkButton
                 size="xs"
                 to={generateProfileFlamechartRouteWithHighlightFrame({
+                  organization,
                   profileId: evidenceData.profileId,
                   projectSlug,
-                  orgSlug: organization.slug,
                   frameName: evidenceData.frameName,
                   framePackage: evidenceData.framePackage,
                   query: {

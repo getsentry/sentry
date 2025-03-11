@@ -4,6 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
@@ -13,6 +14,11 @@ jest.mock('sentry/utils/analytics');
 const mockFeedbackForm = jest.fn();
 jest.mock('sentry/utils/useFeedbackForm', () => ({
   useFeedbackForm: () => mockFeedbackForm(),
+}));
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
 }));
 
 describe('NewIssueExperienceButton', function () {
@@ -35,7 +41,7 @@ describe('NewIssueExperienceButton', function () {
     expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
-  it('does not appear when an organization has the single interface option', function () {
+  it('appears correctly when organization has the single interface option', function () {
     const {unmount: unmountOptionTrue} = render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
@@ -61,7 +67,7 @@ describe('NewIssueExperienceButton', function () {
         },
       }
     );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
     unmountOptionFalse();
   });
 

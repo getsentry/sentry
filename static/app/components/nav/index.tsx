@@ -6,10 +6,10 @@ import {Sidebar} from 'sentry/components/nav/sidebar';
 import {NavLayout} from 'sentry/components/nav/types';
 
 function Nav() {
-  const {layout} = useNavContext();
+  const {layout, navParentRef} = useNavContext();
 
   return (
-    <NavContainer>
+    <NavContainer ref={navParentRef}>
       {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
     </NavContainer>
   );

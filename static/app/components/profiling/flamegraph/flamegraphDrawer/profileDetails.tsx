@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -28,6 +28,7 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
@@ -456,9 +457,10 @@ function ProfileEventDetails({
               <strong>{label}:</strong>
               <Link
                 to={{
-                  pathname: `/organizations/${
-                    organization.slug
-                  }/releases/${encodeURIComponent(release.version)}/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: `/${encodeURIComponent(release.version)}/`,
+                  }),
                   query: {
                     project: profileGroup.metadata.projectID,
                   },

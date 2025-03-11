@@ -162,6 +162,7 @@ interface SlowestFunctionEntryProps {
   project: Project | null;
 }
 function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
+  const organization = useOrganization();
   const frame = useMemo(() => {
     return new Frame(
       {
@@ -182,7 +183,7 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   const example = props.func['all_examples()']?.[0];
   if (defined(example)) {
     const target = generateProfileRouteFromProfileReference({
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.project?.slug ?? '',
       frameName: frame.name,
       framePackage: frame.package as string,

@@ -29,7 +29,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {
+  getPerformanceBaseUrl,
+  platformToDomainView,
+} from 'sentry/views/performance/utils';
 import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -123,6 +127,12 @@ class ProjectCard extends Component<Props> {
       transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
+    const hasPerfLandingRemovalFlag = organization.features?.includes(
+      'insights-performance-landing-removal'
+    );
+    const domainView: DomainView | undefined = project
+      ? platformToDomainView([project], [parseInt(project.id, 10)])
+      : 'backend';
 
     return (
       <div data-test-id={slug}>
@@ -159,7 +169,11 @@ class ProjectCard extends Component<Props> {
                       <em>|</em>
                       <TransactionsLink
                         data-test-id="project-transactions"
-                        to={`${getPerformanceBaseUrl(organization.slug)}/?project=${project.id}`}
+                        to={`${
+                          hasPerfLandingRemovalFlag
+                            ? getPerformanceBaseUrl(organization.slug, domainView)
+                            : getPerformanceBaseUrl(organization.slug)
+                        }/?project=${project.id}`}
                       >
                         {t(
                           'Transactions: %s',
@@ -293,7 +307,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
         {...props}
         project={{
           ...project,
-          ...(projectDetails || {}),
+          ...projectDetails,
         }}
       />
     );
@@ -328,9 +342,12 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   align-items: flex-start;
   gap: 0 ${space(0.5)};
-
-  ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const StyledProjectCard = styled(Panel)`
@@ -422,7 +439,6 @@ const StyledIdBadge = styled(IdBadge)`
 const SummaryLinks = styled('div')`
   display: flex;
   position: relative;
-  top: -${space(2)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
 
@@ -430,7 +446,7 @@ const SummaryLinks = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 
   /* Need to offset for the project icon and margin */
-  margin-left: 40px;
+  margin-left: 24px;
 
   a {
     color: ${p => p.theme.subText};

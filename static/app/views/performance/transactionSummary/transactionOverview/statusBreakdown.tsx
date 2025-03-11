@@ -71,6 +71,12 @@ function StatusBreakdown({eventView, location, organization}: Props) {
             value: parseInt(String(row['count()']), 10),
             onClick: () => {
               const query = new MutableSearch(eventView.query);
+
+              // Strip default filters, as we don't want them to show in the
+              // search bar. See `generateEventView` in
+              // static/app/views/performance/transactionSummary/transactionOverview/index.tsx.
+              query.removeFilter('event.type').removeFilter('transaction');
+
               query
                 .removeFilter('!transaction.status')
                 .setFilterValues('transaction.status', [

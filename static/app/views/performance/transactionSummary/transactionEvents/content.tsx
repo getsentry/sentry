@@ -189,7 +189,7 @@ function Search(props: Props) {
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 
@@ -247,7 +247,7 @@ function Search(props: Props) {
       />
       <LinkButton
         to={eventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}

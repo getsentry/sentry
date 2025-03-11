@@ -32,7 +32,6 @@ from snuba_sdk import (
     OrderBy,
     Request,
 )
-from snuba_sdk.conditions import Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
@@ -70,7 +69,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query_with_override
+from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -161,7 +160,7 @@ def get_search_filter(
         # <, <=, >, >=
         if search_filter.key.name == name and search_filter.operator.startswith(operator):
             val = search_filter.value.raw_value
-            found_val = comparator(val, found_val) if found_val else val
+            found_val = comparator(val, found_val) if found_val else val  # type: ignore[type-var]  # SearchFilter is an unsound union
     return found_val
 
 
@@ -397,7 +396,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization,
+            organization.id,
             project_ids,
             environments,
             group_ids,
@@ -500,10 +499,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     query_params_for_categories[gc] = query_params
 
         try:
-            bulk_query_results = bulk_raw_query_with_override(
-                list(query_params_for_categories.values()),
-                referrer=referrer,
-                organization=organization,
+            bulk_query_results = bulk_raw_query(
+                list(query_params_for_categories.values()), referrer=referrer
             )
         except Exception:
             metrics.incr(
@@ -516,10 +513,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
             # we'll fallback to querying for errors only
             if GroupCategory.ERROR.value in query_params_for_categories.keys():
-                bulk_query_results = bulk_raw_query_with_override(
-                    [query_params_for_categories[GroupCategory.ERROR.value]],
-                    referrer=referrer,
-                    organization=organization,
+                bulk_query_results = bulk_raw_query(
+                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
                 )
             else:
                 raise
@@ -1305,15 +1300,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         Returns the suggested lookup for a search filter.
         """
         attr_entity = self.entities["attrs"]
-        users = filter(lambda x: isinstance(x, RpcUser), search_filter.value.raw_value)
+        users = [x for x in search_filter.value.raw_value if isinstance(x, RpcUser)]
         user_ids = [user.id for user in users]
-        teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
+        teams = [x for x in search_filter.value.raw_value if isinstance(x, Team)]
         team_ids = [team.id for team in teams]
 
         operator = Op.NOT_IN if search_filter.is_negation else Op.IN
         null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
 
-        conditions = []
+        conditions: list[Condition] = []
         if user_ids:
             suspect_commit_user = Condition(
                 Column("owner_suspect_commit_user_id", attr_entity), operator, user_ids
@@ -1812,16 +1807,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
-                        if features.has(
-                            "organizations:feature-flag-autocomplete", organization
-                        ) and has_tags_filter(condition.lhs):
-                            feature_condition = Condition(
-                                lhs=substitute_tags_filter(condition.lhs),
-                                op=condition.op,
-                                rhs=condition.rhs,
-                            )
-                            condition = Or(conditions=[condition, feature_condition])
-
                         where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
@@ -1952,33 +1937,3 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
-
-
-def has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if (
-            condition.entity
-            and condition.entity.name == "events"
-            and condition.name.startswith("tags[")
-            and condition.name.endswith("]")
-        ):
-            return True
-    elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return has_tags_filter(parameter)
-    return False
-
-
-def substitute_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if condition.name.startswith("tags[") and condition.name.endswith("]"):
-            return Column(
-                name=f"flags[{condition.name[5:-1]}]",
-                entity=condition.entity,
-            )
-    elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return substitute_tags_filter(parameter)
-    return condition

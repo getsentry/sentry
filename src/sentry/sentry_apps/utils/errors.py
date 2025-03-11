@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any, TypedDict
 
 import sentry_sdk
+from rest_framework.response import Response
 
 
 class SentryAppErrorType(Enum):
@@ -40,6 +41,12 @@ class SentryAppBaseError(Exception):
 
         return error_body
 
+    def response_from_exception(self) -> Response:
+        response: dict[str, Any] = {"detail": self.message}
+        if public_context := self.public_context:
+            response.update({"context": public_context})
+        return Response(response, status=self.status_code)
+
 
 # Represents a user/client error that occured during a Sentry App process
 class SentryAppError(SentryAppBaseError):
@@ -63,3 +70,12 @@ class SentryAppSentryError(SentryAppBaseError):
         return {
             "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
         }
+
+    def response_from_exception(self) -> Response:
+        sentry_sdk.capture_exception(self)
+        response: dict[str, Any] = {
+            "detail": "Something went wrong during the custom integration process!"
+        }
+        if public_context := self.public_context:
+            response.update({"context": public_context})
+        return Response(response, status=self.status_code)

@@ -15,6 +15,9 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
+
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -36,6 +39,10 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     preferredPolarity,
     meta,
   } = props;
+
+  if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
+    throw new Error(NON_FINITE_NUMBER_MESSAGE);
+  }
 
   const location = useLocation();
   const organization = useOrganization();
@@ -133,11 +140,22 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
 function Wrapper({children}: any) {
   return (
-    <AutoResizeParent>
-      <AutoSizedText>{children}</AutoSizedText>
-    </AutoResizeParent>
+    <GrowingWrapper>
+      <AutoResizeParent>
+        <AutoSizedText>{children}</AutoSizedText>
+      </AutoResizeParent>
+    </GrowingWrapper>
   );
 }
+
+// Takes up 100% of the parent. If within flex context, grows to fill.
+// Otherwise, takes up 100% horizontally and vertically
+const GrowingWrapper = styled('div')`
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+`;
 
 const AutoResizeParent = styled('div')`
   position: absolute;
@@ -169,3 +187,12 @@ const NumberContainerOverride = styled('div')`
     white-space: nowrap;
   }
 `;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+BigNumberWidgetVisualization.LoadingPlaceholder = function () {
+  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+};

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import abc
 import logging
+import multiprocessing
 from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
+from functools import partial
 from typing import Generic, Literal, TypeVar
 
 import sentry_sdk
@@ -19,6 +21,7 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +65,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
 class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T, U]):
     parallel_executor: ThreadPoolExecutor | None = None
 
-    parallel = False
+    batched_parallel = False
     """
     Does the consumer process unrelated messages in parallel?
     """
@@ -77,22 +80,39 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     The maximum time in seconds to accumulate a bach of check-ins.
     """
 
+    parallel = False
+    """
+    Does the consumer process all messages in parallel.
+    """
+
+    multiprocessing_pool: MultiprocessingPool | None = None
+    input_block_size: int | None = None
+    output_block_size: int | None = None
+
     def __init__(
         self,
-        mode: Literal["parallel", "serial"] = "serial",
+        mode: Literal["batched-parallel", "parallel", "serial"] = "serial",
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
+        num_processes: int | None = None,
+        input_block_size: int | None = None,
+        output_block_size: int | None = None,
     ) -> None:
         self.mode = mode
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
-        if mode == "parallel":
-            self.parallel = True
+        if mode == "batched-parallel":
+            self.batched_parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
             if max_workers is None:
                 metric_tags["workers"] = "default"
             else:
                 metric_tags["workers"] = str(max_workers)
+        if mode == "parallel":
+            self.parallel = True
+            if num_processes is None:
+                num_processes = multiprocessing.cpu_count()
+            self.multiprocessing_pool = MultiprocessingPool(num_processes)
 
         metrics.incr(
             "remote_subscriptions.result_consumer.start",
@@ -104,9 +124,12 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.max_batch_size = max_batch_size
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
+        if input_block_size is not None:
+            self.input_block_size = input_block_size
+        if output_block_size is not None:
+            self.output_block_size = output_block_size
 
         self.result_processor = self.result_processor_cls()
-        self.codec = get_topic_codec(self.topic_for_codec)
 
     @property
     @abc.abstractmethod
@@ -138,10 +161,12 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         if self.parallel_executor:
             self.parallel_executor.shutdown()
 
-    def decode_payload(self, payload: KafkaPayload | FilteredPayload) -> T | None:
+    def decode_payload(self, topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
         assert not isinstance(payload, FilteredPayload)
+
         try:
-            return self.codec.decode(payload.value)
+            codec = get_topic_codec(topic_for_codec)
+            return codec.decode(payload.value)
         except Exception:
             logger.exception(
                 "Failed to decode message payload",
@@ -154,21 +179,30 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if self.parallel:
+        if self.batched_parallel:
             return self.create_thread_parallel_worker(commit)
+        if self.parallel:
+            return self.create_multiprocess_worker(commit)
         else:
             return self.create_serial_worker(commit)
 
     def create_serial_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=self.process_single,
+            function=partial(self.process_single, self.result_processor, self.topic_for_codec),
             next_step=CommitOffsets(commit),
         )
 
-    def process_single(self, message: Message[KafkaPayload | FilteredPayload]):
-        result = self.decode_payload(message.payload)
-        if result is not None:
-            self.result_processor(result)
+    def create_multiprocess_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        assert self.multiprocessing_pool is not None
+        return run_task_with_multiprocessing(
+            function=partial(self.process_single, self.result_processor, self.topic_for_codec),
+            next_step=CommitOffsets(commit),
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            pool=self.multiprocessing_pool,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
+        )
 
     def create_thread_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.parallel_executor is not None
@@ -193,7 +227,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         for item in batch:
             assert isinstance(item, BrokerValue)
 
-            result = self.decode_payload(item.payload)
+            result = self.decode_payload(self.topic_for_codec, item.payload)
             if result is None:
                 continue
 
@@ -214,6 +248,16 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         )
 
         return list(batch_mapping.values())
+
+    def process_single(
+        self,
+        result_processor: ResultProcessor,
+        topic: Topic,
+        message: Message[KafkaPayload | FilteredPayload],
+    ):
+        result = self.decode_payload(topic, message.payload)
+        if result is not None:
+            result_processor(result)
 
     def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
         """

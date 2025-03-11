@@ -47,7 +47,13 @@ class DiscordMessagingSpec(MessagingIntegrationSpec):
             send_incident_alert_notification,
         )
 
-        return send_incident_alert_notification(action, incident, metric_value, new_status)
+        return send_incident_alert_notification(
+            action=action,
+            incident=incident,
+            new_status=new_status,
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
+        )
 
     @property
     def notify_service_action(self) -> type[IntegrationEventAction] | None:

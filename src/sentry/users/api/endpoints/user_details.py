@@ -6,6 +6,7 @@ from django.contrib.auth import logout
 from django.db import router, transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,6 +39,17 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 TIMEZONE_CHOICES = get_timezone_choices()
 
 
+def validate_quick_start_display(value: dict[str, int] | None) -> None:
+    if value is not None:
+        for display_value in value.values():
+            if not isinstance(display_value, int):
+                raise ValidationError("The value should be an integer.")
+            if display_value <= 0:
+                raise ValidationError("The value cannot be less than or equal to 0.")
+            if display_value > 2:
+                raise ValidationError("The value cannot exceed 2.")
+
+
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
     stacktraceOrder = serializers.ChoiceField(
@@ -67,6 +79,14 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
+    prefersStackedNavigation = serializers.BooleanField(required=False)
+
+    quickStartDisplay = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        validators=[validate_quick_start_display],
+        help_text="Tracks whether the quick start guide was already automatically shown to the user during their second visit.",
+    )
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
@@ -230,15 +250,33 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
+            "prefersStackedNavigation": "prefers_stacked_navigation",
+            "quickStartDisplay": "quick_start_display",
         }
 
         options_result = serializer_options.validated_data
 
         for key in key_map:
             if key in options_result:
-                UserOption.objects.set_value(
-                    user=user, key=key_map.get(key, key), value=options_result.get(key)
-                )
+                if key == "quickStartDisplay":
+                    current_value = UserOption.objects.get_value(
+                        user=user, key=key_map.get(key, key)
+                    )
+
+                    if current_value is None:
+                        current_value = {}
+
+                    new_value = options_result.get(key)
+
+                    current_value.update(new_value)
+
+                    UserOption.objects.set_value(
+                        user=user, key=key_map.get(key, key), value=current_value
+                    )
+                else:
+                    UserOption.objects.set_value(
+                        user=user, key=key_map.get(key, key), value=options_result.get(key)
+                    )
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()

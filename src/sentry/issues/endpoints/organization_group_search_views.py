@@ -13,12 +13,16 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
+from sentry.api.serializers.models.groupsearchview import (
+    GroupSearchViewSerializer,
+    GroupSearchViewStarredSerializer,
+)
 from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
@@ -31,6 +35,9 @@ DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
         "query": "is:unresolved issue.priority:[high, medium]",
         "querySort": SortOptions.DATE.value,
         "position": 0,
+        "isAllProjects": False,
+        "environments": [],
+        "timeFilters": DEFAULT_TIME_FILTER,
         "dateCreated": None,
         "dateUpdated": None,
     }
@@ -65,23 +72,74 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
+        has_global_views = features.has("organizations:global-views", organization)
 
-        # Return only the prioritized view if user has no custom views yet
+        query = GroupSearchView.objects.filter(
+            organization=organization, user_id=request.user.id
+        ).prefetch_related("projects")
+
+        # Return only the default view(s) if user has no custom views yet
         if not query.exists():
             return self.paginate(
                 request=request,
                 paginator=SequencePaginator(
-                    [(idx, view) for idx, view in enumerate(DEFAULT_VIEWS)]
+                    [
+                        (
+                            idx,
+                            {
+                                **view,
+                                "projects": (
+                                    []
+                                    if has_global_views
+                                    else [pick_default_project(organization, request.user)]
+                                ),
+                            },
+                        )
+                        for idx, view in enumerate(DEFAULT_VIEWS)
+                    ]
                 ),
                 on_results=lambda results: serialize(results, request.user),
+            )
+
+        default_project = None
+        if not has_global_views:
+            default_project = pick_default_project(organization, request.user)
+            if default_project is None:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "You do not have access to any projects."},
+                )
+
+        if features.has("organizations:issue-view-sharing", organization):
+            starred_views = GroupSearchViewStarred.objects.filter(
+                organization=organization, user_id=request.user.id
+            )
+
+            return self.paginate(
+                request=request,
+                queryset=starred_views,
+                order_by="position",
+                on_results=lambda x: serialize(
+                    x,
+                    request.user,
+                    serializer=GroupSearchViewStarredSerializer(
+                        has_global_views=has_global_views,
+                        default_project=default_project,
+                    ),
+                ),
             )
 
         return self.paginate(
             request=request,
             queryset=query,
             order_by="position",
-            on_results=lambda x: serialize(x, request.user, serializer=GroupSearchViewSerializer()),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=GroupSearchViewSerializer(
+                    has_global_views=has_global_views, default_project=default_project
+                ),
+            ),
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
@@ -90,7 +148,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         will delete any views that are not included in the request, add views if
         they are new, and update existing views if they are included in the request.
         This endpoint is explcititly designed to be used by our frontend.
-
         """
         if not features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
@@ -166,7 +223,7 @@ def bulk_update_views(
             _update_existing_view(org, user_id, view, position=idx)
 
 
-def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
     user_teams = Team.objects.get_for_user(organization=org, user=user)
     user_team_ids = [team.id for team in user_teams]
     default_user_project = (
@@ -175,8 +232,6 @@ def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
         .values_list("id", flat=True)
         .first()
     )
-    if default_user_project is None:
-        raise ValidationError("You do not have access to any projects")
     return default_user_project
 
 
@@ -207,6 +262,12 @@ def _update_existing_view(
             gsv.time_filters = view["timeFilters"]
 
         gsv.save()
+        GroupSearchViewStarred.objects.update_or_create(
+            organization=org,
+            user_id=user_id,
+            group_search_view=gsv,
+            defaults={"position": position},
+        )
     except GroupSearchView.DoesNotExist:
         # It is possible – though unlikely under normal circumstances – for a view to come in that
         # doesn't exist anymore. If, for example, the user has the issue stream open in separate
@@ -231,3 +292,10 @@ def _create_view(
     )
     if "projects" in view:
         gsv.projects.set(view["projects"] or [])
+
+    GroupSearchViewStarred.objects.create(
+        organization=org,
+        user_id=user_id,
+        group_search_view=gsv,
+        position=position,
+    )

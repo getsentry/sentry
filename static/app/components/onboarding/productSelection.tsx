@@ -1,12 +1,12 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -76,7 +76,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [ProductSolution.PERFORMANCE_MONITORING],
+  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
@@ -162,7 +162,7 @@ export const platformProductAvailability = {
   'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -192,6 +192,20 @@ export const platformProductAvailability = {
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
+
+/**
+ * Defines which products are selected per default for each platform
+ * If not defined in here, all products are selected
+ *
+ * UPDATE Mar 2025, we're running an experiment that has only error monitoring enabled by default
+ */
+const platformDefaultProducts = Object.keys(platformProductAvailability).reduce(
+  (acc, key) => {
+    acc[key as PlatformKey] = [];
+    return acc;
+  },
+  {} as Record<PlatformKey, ProductSolution[]>
+);
 
 type ProductProps = {
   /**
@@ -255,7 +269,7 @@ function Product({
     >
       <ProductWrapper
         onClick={disabled?.onClick ?? onClick}
-        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        disabled={(disabled?.onClick ?? permanentDisabled) ? false : !!disabled}
         priority={permanentDisabled || checked ? 'primary' : 'default'}
         aria-label={label}
       >
@@ -296,17 +310,12 @@ export type ProductSelectionProps = {
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
-  /**
-   * A custom list of products per platform. If not provided, the default list is used.
-   */
-  productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
 };
 
 export function ProductSelection({
   disabledProducts: disabledProductsProp,
   organization,
   platform,
-  productsPerPlatform = platformProductAvailability,
   onChange,
   onLoad,
 }: ProductSelectionProps) {
@@ -314,24 +323,38 @@ export function ProductSelection({
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
 
   const products: ProductSolution[] | undefined = platform
-    ? productsPerPlatform[platform]
+    ? platformProductAvailability[platform]
     : undefined;
 
   const disabledProducts = useMemo(
     () => disabledProductsProp ?? getDisabledProducts(organization),
     [organization, disabledProductsProp]
   );
+
   const defaultProducts = useMemo(() => {
-    return products?.filter(product => !(product in disabledProducts)) ?? [];
-  }, [products, disabledProducts]);
+    const productsArray = products ?? [];
+    const definedDefaults = platform ? platformDefaultProducts[platform] : undefined;
+    let selectedDefaults: ProductSolution[] = productsArray;
+
+    if (definedDefaults) {
+      selectedDefaults = definedDefaults.filter(product =>
+        // Make sure the default product is available for the platform
+        productsArray.includes(product)
+      );
+    }
+    return selectedDefaults.filter(product => !(product in disabledProducts));
+  }, [products, platform, disabledProducts]);
+
+  const safeDependencies = useRef({onLoad, urlProducts});
 
   useEffect(() => {
-    onLoad?.(defaultProducts);
-    setParams({
-      product: defaultProducts,
-    });
-    // Adding defaultProducts to the dependency array causes an max-depth error
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    safeDependencies.current = {onLoad, urlProducts};
+  });
+
+  useEffect(() => {
+    safeDependencies.current.onLoad?.(
+      safeDependencies.current.urlProducts as ProductSolution[]
+    );
   }, []);
 
   const handleClickProduct = useCallback(

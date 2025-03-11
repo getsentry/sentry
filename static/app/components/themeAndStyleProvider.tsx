@@ -7,7 +7,7 @@ import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
 
 type Props = {
   children: React.ReactNode;
@@ -28,10 +28,11 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
+  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const theme = useThemeSwitcher();
 
   return (
     <ThemeProvider theme={theme}>

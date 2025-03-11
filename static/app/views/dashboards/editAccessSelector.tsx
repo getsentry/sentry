@@ -5,14 +5,13 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Avatar from 'sentry/components/avatar';
-import AvatarList, {CollapsedAvatars} from 'sentry/components/avatar/avatarList';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
+import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {Badge} from 'sentry/components/core/badge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -73,7 +72,9 @@ function EditAccessSelector({
         : [],
   });
   const {teams: allSelectedTeams} = useTeamsById({
-    ids: selectedOptions.filter(option => option !== '_allUsers'),
+    ids: selectedOptions.filter(
+      option => option !== '_allUsers' && option !== '_creator'
+    ),
   });
 
   // Gets selected options for the dropdown from dashboard object
@@ -151,7 +152,7 @@ function EditAccessSelector({
                 marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
               }}
             >
-              <Avatar team={team} size={18} />
+              <TeamAvatar team={team} size={18} />
               <div>#{team.name}</div>
             </CollapsedAvatarTooltipListItem>
           ))}
@@ -218,7 +219,9 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" text={'All'} size={listOnly ? 26 : 20} />
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="default">
+        {t('All')}
+      </StyledBadge>
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
@@ -238,7 +241,7 @@ function EditAccessSelector({
         key="avatar-list-many-teams"
         listonly={listOnly}
         typeAvatars="users"
-        users={Array(selectedOptions.length).fill(dashboardCreator)}
+        users={new Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}

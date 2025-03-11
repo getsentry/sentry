@@ -179,7 +179,7 @@ function TableRender({
     }
 
     if (
-      !hasResults === performanceAtScaleContext.transactionListTableData?.empty &&
+      hasResults !== performanceAtScaleContext.transactionListTableData?.empty &&
       query === performanceAtScaleContext.transactionListTableData?.query
     ) {
       return;
@@ -218,7 +218,7 @@ function TableRender({
         />
       </Header>
       {target ? (
-        <GuideAnchor target={target} position="top-start">
+        <GuideAnchor target={target} position="top-start" wrapperComponent={TableWrapper}>
           {content}
         </GuideAnchor>
       ) : (
@@ -336,7 +336,7 @@ class _TransactionsList extends Component<Props> {
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   false,
                   hasDatasetSelector(organization)
                     ? SavedQueryDatasets.TRANSACTIONS
@@ -515,6 +515,10 @@ const StyledPagination = styled(Pagination)`
 
 const InvestigationRuleWrapper = styled('div')`
   margin-right: ${space(1)};
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 function TransactionsList(

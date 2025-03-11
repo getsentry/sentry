@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -15,6 +16,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {checkStatusPrecedent, statusToText, tickStyle} from '../../timelineConfig';
@@ -50,7 +52,10 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
     <DetailsArea>
       <DetailsLink
         to={{
-          pathname: `/organizations/${organization.slug}/alerts/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
+            organization,
+          }),
           query,
         }}
       >
@@ -73,6 +78,9 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
             <IconTimer size="xs" />
             {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
           </ScheduleDetails>
+          <MonitorStatuses>
+            {uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}
+          </MonitorStatuses>
         </DetailsContainer>
       </DetailsLink>
     </DetailsArea>
@@ -132,6 +140,7 @@ const DetailsContainer = styled('div')`
 
 const OwnershipDetails = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
@@ -156,6 +165,11 @@ const ScheduleDetails = styled('small')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const MonitorStatuses = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;
 
 interface TimelineRowProps {

@@ -1955,6 +1955,7 @@ class Factories:
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
+        host_provider_name: str,
         interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
         method,
@@ -1975,6 +1976,7 @@ class Factories:
             url_domain=url_domain,
             url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
+            host_provider_name=host_provider_name,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -2019,10 +2021,14 @@ class Factories:
 
     @staticmethod
     def create_uptime_subscription_region(
-        subscription: UptimeSubscription, region_slug: str
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode,
     ) -> UptimeSubscriptionRegion:
         return UptimeSubscriptionRegion.objects.create(
-            uptime_subscription=subscription, region_slug=region_slug
+            uptime_subscription=subscription,
+            region_slug=region_slug,
+            mode=mode,
         )
 
     @staticmethod
@@ -2129,17 +2135,17 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_data_source(
         organization: Organization | None = None,
-        query_id: int | None = None,
+        source_id: str | None = None,
         type: str | None = None,
         **kwargs,
     ) -> DataSource:
         if organization is None:
             organization = Factories.create_organization()
-        if query_id is None:
-            query_id = random.randint(1, 10000)
+        if source_id is None:
+            source_id = str(random.randint(1, 10000))
         if type is None:
             type = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
-        return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
+        return DataSource.objects.create(organization=organization, source_id=source_id, type=type)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2185,8 +2191,18 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_action(**kwargs) -> Action:
-        return Action.objects.create(**kwargs)
+    def create_action(
+        config: dict[str, Any] | None = None,
+        type: Action.Type | None = None,
+        **kwargs,
+    ) -> Action:
+        if config is None:
+            config = {}
+
+        if type is None:
+            type = Action.Type.SLACK
+
+        return Action.objects.create(type=type, config=config, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

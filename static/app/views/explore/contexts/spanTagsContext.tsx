@@ -136,7 +136,6 @@ function useTypedSpanTags({
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
       dataset: 'spans',
-      process: 1,
       type,
     },
   };

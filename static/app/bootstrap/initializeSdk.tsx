@@ -65,6 +65,9 @@ function getSentryIntegrations() {
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
+      _experiments: {
+        enableStandaloneClsSpans: true,
+      },
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
@@ -182,6 +185,9 @@ export function initializeSdk(config: Config) {
       lastEventId = event.event_id || hint.event_id;
 
       return event;
+    },
+    _experiments: {
+      enableLogs: true,
     },
   });
 

@@ -125,3 +125,25 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         resp = self.post_webhook(substring="bbb", original_message=self.original_message)
 
         assert resp.status_code == 400
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_escapes_characters_in_substring_but_not_string(self):
+        self.team1 = self.create_team(name="aaaa", slug="aaaa")
+        self.project = self.create_project(teams=[self.team1])
+        self.group = self.create_group(project=self.project)
+        self.original_message["blocks"][0]["block_id"] = orjson.dumps(
+            {"issue": self.group.id}
+        ).decode()
+
+        self.user1 = self.create_user(email="aaa@testing.com", name="Alice")
+        self.create_member(organization=self.organization, user=self.user1, teams=[self.team1])
+        self.store_event(data=self.event_data, project_id=self.project.id)
+
+        # shouldn't fail even though substring has special characters
+        resp = self.post_webhook(
+            substring="aaa@testing.com", original_message=self.original_message
+        )
+
+        assert resp.status_code == 200
+        assert len(resp.data["option_groups"]) == 1
+        assert len(resp.data["option_groups"][0]["options"]) == 1

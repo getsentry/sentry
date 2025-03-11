@@ -9,7 +9,7 @@ export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
 const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
 
-function getParser(local: boolean = false): typeof moment | typeof moment.utc {
+function getParser(local = false): typeof moment | typeof moment.utc {
   return local ? moment : moment.utc;
 }
 

@@ -174,6 +174,7 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_EXPLORE_SPANS_EXTRAPOLATION_META.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
+    Referrer.API_EXPLORE_COMPARE_TABLE.value,
 }
 
 
@@ -274,7 +275,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    snuba_methods = ["GET"]
 
     enforce_rate_limit = True
 

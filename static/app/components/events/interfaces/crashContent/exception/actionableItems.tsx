@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import type {EventErrorData} from 'sentry/components/events/errorItem';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
@@ -338,7 +338,7 @@ function groupedErrors(
   event: Event,
   data?: ActionableItemsResponse,
   progaurdErrors?: EventErrorData[]
-): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
+): Partial<Record<ActionableItemTypes, ErrorMessageType[]>> {
   if (!data || !progaurdErrors || !event) {
     return {};
   }
@@ -362,11 +362,10 @@ function groupedErrors(
 
 interface ActionableItemsProps {
   event: Event;
-  isShare: boolean;
   project: Project;
 }
 
-export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
+export function ActionableItems({event, project}: ActionableItemsProps) {
   const organization = useOrganization();
   const {data, isPending} = useActionableItems({
     eventId: event.id,
@@ -377,7 +376,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
     event,
     project,
-    isShare,
+    isShare: false,
   });
 
   useEffect(() => {

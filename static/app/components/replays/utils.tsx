@@ -17,7 +17,7 @@ const HOUR = 60 * MINUTE;
  * @param minWidth Minimum space for each column, pixels. Ex: So we can show formatted time like `1:00:00` between major ticks
  * @returns
  */
-export function countColumns(durationMs: number, width: number, minWidth: number = 50) {
+export function countColumns(durationMs: number, width: number, minWidth = 50) {
   let maxCols = Math.floor(width / minWidth);
   const remainder = durationMs - maxCols * width > 0 ? 1 : 0;
   maxCols -= remainder;

@@ -12,4 +12,7 @@ export const MODULES = [
   ModuleName.QUEUE,
   ModuleName.CRONS,
   ModuleName.UPTIME,
+  ModuleName.SESSIONS,
 ];
+
+export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];

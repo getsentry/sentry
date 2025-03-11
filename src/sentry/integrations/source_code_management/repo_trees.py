@@ -6,14 +6,13 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
+from sentry.issues.auto_source_code_config.utils import get_supported_extensions
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
 
-# We only care about extensions of files which would show up in stacktraces after symbolication
-SUPPORTED_EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
@@ -25,7 +24,7 @@ class RepoAndBranch(NamedTuple):
 
 class RepoTree(NamedTuple):
     repo: RepoAndBranch
-    files: list[str]
+    files: Sequence[str]
 
 
 # Tasks which hit the API multiple connection errors should give up.
@@ -109,10 +108,12 @@ class RepoTreesIntegration(ABC):
         remaining_requests = MINIMUM_REQUESTS_REMAINING
         try:
             remaining_requests = self.get_client().get_remaining_api_requests()
-        except ApiError:
+        except Exception:
             use_cache = True
             # Report so we can investigate
-            logger.warning("Loading trees from cache. Execution will continue. Check logs.")
+            logger.warning(
+                "Loading trees from cache. Execution will continue. Check logs.", exc_info=True
+            )
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -224,8 +225,7 @@ def filter_source_code_files(files: list[str]) -> list[str]:
     # represent a directory in the path
     for file_path in files:
         try:
-            extension = get_extension(file_path)
-            if extension in SUPPORTED_EXTENSIONS and should_include(file_path):
+            if should_include(file_path):
                 supported_files.append(file_path)
         except Exception:
             logger.exception("We've failed to store the file path.")
@@ -244,9 +244,11 @@ def get_extension(file_path: str) -> str:
 
 
 def should_include(file_path: str) -> bool:
-    include = True
+    extension = get_extension(file_path)
+    if extension not in get_supported_extensions():
+        return False
     if any(file_path.endswith(ext) for ext in EXCLUDED_EXTENSIONS):
-        include = False
+        return False
     if any(file_path.startswith(path) for path in EXCLUDED_PATHS):
-        include = False
-    return include
+        return False
+    return True

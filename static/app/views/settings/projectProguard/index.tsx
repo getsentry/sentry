@@ -20,7 +20,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 
-export type ProjectProguardProps = RouteComponentProps<{projectId: string}, {}> & {
+export type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };

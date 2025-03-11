@@ -44,7 +44,7 @@ describe('AutofixSteps', () => {
                     file_path: 'file.py',
                     repo_name: 'owner/repo',
                   },
-                  timeline_item_type: 'code',
+                  timeline_item_type: 'internal_code',
                 },
               ],
             },
@@ -68,7 +68,6 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     expect(screen.getByText('step 1')).toBeInTheDocument();
-    expect(screen.getByText('Find Fix')).toBeInTheDocument();
   });
 
   it('renders output stream when last step is processing', async () => {

@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
 import Legend from './components/legend';
@@ -103,9 +104,7 @@ class PieChart extends Component<Props> {
       <BaseChart
         ref={this.chart}
         colors={
-          firstSeries?.data && [
-            ...(theme.charts.getColorPalette(firstSeries.data.length) ?? []),
-          ]
+          firstSeries?.data && getChartColorPalette(firstSeries.data.length).slice()
         }
         // when legend highlights it does NOT pass dataIndex :(
         onHighlight={({name}) => {

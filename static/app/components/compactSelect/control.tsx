@@ -16,8 +16,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -468,7 +468,9 @@ export function Control({
     return (
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
-        {options.length > 1 && <StyledBadge text={`+${options.length - 1}`} />}
+        {options.length > 1 && (
+          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+        )}
       </Fragment>
     );
   }, [triggerLabelProp, selectedOptions]);
@@ -587,7 +589,7 @@ const ControlWrap = styled('div')`
   width: max-content;
 `;
 
-const TriggerLabel = styled('span')`
+export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
   line-height: normal;

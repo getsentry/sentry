@@ -34,7 +34,7 @@ interface GuidedStepsContextState {
 interface StepProps {
   children: React.ReactNode;
   stepKey: string;
-  title: string;
+  title: React.ReactNode;
   isCompleted?: boolean;
   optional?: boolean;
 }

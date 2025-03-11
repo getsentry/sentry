@@ -300,7 +300,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _featureFlags: string[] | undefined = [];
-  private _fetching: boolean = true;
+  private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -725,6 +725,8 @@ export default class ReplayReader {
   });
 
   isVideoReplay = () => this.getVideoEvents().length > 0;
+
+  isNetworkCaptureBodySetup = () => Boolean(this.getSDKOptions()?.networkCaptureBodies);
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();

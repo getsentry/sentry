@@ -45,12 +45,12 @@ class SpanTreeModel {
 
   // readable/writable state
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
-  showEmbeddedChildren: boolean = false;
+  showEmbeddedChildren = false;
   embeddedChildren: SpanTreeModel[] = [];
-  isEmbeddedTransactionTimeAdjusted: boolean = false;
+  isEmbeddedTransactionTimeAdjusted = false;
   // This controls if a chain of nested spans that are the only sibling to be visually grouped together or not.
   // On initial render, they're visually grouped together.
-  isNestedSpanGroupExpanded: boolean = false;
+  isNestedSpanGroupExpanded = false;
   // Entries in this set will follow the format 'op.description'.
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
   expandedSiblingGroups: Set<string> = new Set();
@@ -61,7 +61,7 @@ class SpanTreeModel {
     parentSpan: SpanType,
     childSpans: SpanChildrenLookupType,
     api: Client,
-    isRoot: boolean = false,
+    isRoot = false,
     traceInfo?: TraceInfo
   ) {
     this.api = api;

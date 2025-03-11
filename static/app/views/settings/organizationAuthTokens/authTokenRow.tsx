@@ -39,7 +39,7 @@ function LastUsed({
             />
           ),
           project: (
-            <Link to={`/settings/${organization.slug}/${projectLastUsed.slug}/`}>
+            <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
             </Link>
           ),

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
+import {Alert} from 'sentry/components/core/alert';
+import {Input} from 'sentry/components/core/input';
+import {NumberInput} from 'sentry/components/core/input/numberInput';
+import {Select} from 'sentry/components/core/select';
 import ExternalLink from 'sentry/components/links/externalLink';
-import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -593,7 +593,7 @@ const InlineNumberInput = styled(NumberInput)`
   min-height: 28px;
 `;
 
-const InlineSelectControl = styled(SelectControl)`
+const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 
@@ -632,6 +632,5 @@ const MarginlessAlert = styled(Alert)`
   border-top-right-radius: 0;
   border-width: 0;
   border-top: 1px ${p => p.theme.innerBorder} solid;
-  margin: 0;
   padding: ${space(1)} ${space(1)};
 `;

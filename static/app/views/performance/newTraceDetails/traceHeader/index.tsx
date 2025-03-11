@@ -27,10 +27,10 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {isRootTransaction} from '../../traceDetails/utils';
+import {isRootEvent} from '../../traceDetails/utils';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
-import {isTraceNode} from '../traceGuards';
+import {isEAPTraceNode, isTraceNode} from '../traceGuards';
 import type {TraceTree} from '../traceModels/traceTree';
 import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
@@ -38,7 +38,7 @@ import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 
-interface TraceMetadataHeaderProps {
+export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -76,7 +76,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
   const location = useLocation();
 
   return (
-    <Layout.Header>
+    <HeaderLayout>
       <HeaderContent>
         <HeaderRow>
           <Breadcrumbs
@@ -109,7 +109,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
           <StyledPlaceholder _width={50} _height={28} />
         </HeaderRow>
       </HeaderContent>
-    </Layout.Header>
+    </HeaderLayout>
   );
 }
 
@@ -133,45 +133,48 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
-export const getRepresentativeTransaction = (
+export const getRepresentativeEvent = (
   tree: TraceTree
-): TraceTree.Transaction | null => {
+): TraceTree.Transaction | TraceTree.EAPSpan | null => {
   const traceNode = tree.root.children[0];
 
   if (!traceNode) {
     return null;
   }
 
-  if (!isTraceNode(traceNode)) {
+  if (!isTraceNode(traceNode) && !isEAPTraceNode(traceNode)) {
     throw new TypeError('Not trace node');
   }
 
-  let firstRootTransaction: TraceTree.Transaction | null = null;
-  let candidateTransaction: TraceTree.Transaction | null = null;
-  let firstTransaction: TraceTree.Transaction | null = null;
+  let firstRootEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let candidateEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let firstEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
 
-  for (const transaction of traceNode.value.transactions || []) {
+  const events = isTraceNode(traceNode) ? traceNode.value.transactions : traceNode.value;
+  for (const event of events) {
     // If we find a root transaction, we can stop looking and use it for the title.
-    if (!firstRootTransaction && isRootTransaction(transaction)) {
-      firstRootTransaction = transaction;
+    if (!firstRootEvent && isRootEvent(event)) {
+      firstRootEvent = event;
       break;
     } else if (
       // If we haven't found a root transaction, but we found a candidate transaction
       // with an op that we care about, we can use it for the title. We keep looking for
       // a root.
-      !candidateTransaction &&
-      CANDIDATE_TRACE_TITLE_OPS.includes(transaction['transaction.op'])
+      !candidateEvent &&
+      CANDIDATE_TRACE_TITLE_OPS.includes(
+        'transaction.op' in event ? event['transaction.op'] : event.op
+      )
     ) {
-      candidateTransaction = transaction;
+      candidateEvent = event;
       continue;
-    } else if (!firstTransaction) {
+    } else if (!firstEvent) {
       // If we haven't found a root or candidate transaction, we can use the first transaction
       // in the trace for the title.
-      firstTransaction = transaction;
+      firstEvent = event;
     }
   }
 
-  return firstRootTransaction ?? candidateTransaction ?? firstTransaction;
+  return firstRootEvent ?? candidateEvent ?? firstEvent;
 };
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
@@ -203,7 +206,7 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
           <DiscoverButton
             size="sm"
             to={props.traceEventView.getResultsViewUrlTarget(
-              props.organization.slug,
+              props.organization,
               false,
               hasDatasetSelector(props.organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -252,7 +255,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} />;
   }
 
-  const representativeTransaction = getRepresentativeTransaction(props.tree);
+  const representativeTransaction = getRepresentativeEvent(props.tree);
 
   return (
     <HeaderLayout>
@@ -270,6 +273,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         </HeaderRow>
         <HeaderRow>
           <Title
+            tree={props.tree}
             traceSlug={props.traceSlug}
             representativeTransaction={representativeTransaction}
           />
@@ -310,9 +314,10 @@ const ProjectsRendererWrapper = styled('div')`
   }
 `;
 
-const HeaderLayout = styled(Layout.Header)`
+const HeaderLayout = styled('div')`
   background-color: ${p => p.theme.background};
-  padding: ${space(2)} ${space(4)} 0 !important;
+  padding: ${space(1)} ${space(3)} ${space(1)} ${space(3)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const HeaderRow = styled('div')`
@@ -320,10 +325,6 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   gap: ${space(2)};
   align-items: center;
-
-  &:not(:first-child) {
-    margin: ${space(1)} 0;
-  }
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     gap: ${space(1)};
@@ -337,7 +338,7 @@ const HeaderContent = styled('div')`
 `;
 
 const StyledBreak = styled('hr')`
-  margin: 0;
+  margin: ${space(1)} 0;
   border-color: ${p => p.theme.border};
 `;
 

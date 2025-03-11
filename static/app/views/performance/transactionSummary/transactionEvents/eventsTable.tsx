@@ -217,7 +217,7 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'id' || field === 'trace') {
       const {issueId, isRegressionIssue} = this.props;
-      const isIssue: boolean = !!issueId;
+      const isIssue = !!issueId;
       let target: LocationDescriptor = {};
       const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
       // TODO: set referrer properly

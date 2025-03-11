@@ -12,7 +12,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {DataScrubbing} from '../components/dataScrubbing';
 
@@ -41,7 +41,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
     <Fragment>
       <SentryDocumentTitle title={title} projectSlug={projectSlug} />
       <SettingsPageHeader title={title} />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <Form
         saveOnBlur

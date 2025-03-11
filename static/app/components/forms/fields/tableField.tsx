@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Input} from 'sentry/components/core/input';
 import FormField from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
-import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -61,7 +61,7 @@ export default class TableField extends Component<InputFieldProps> {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? (props.value as any[]) : [];
 
-    const saveChanges = (nextValue: object[]) => {
+    const saveChanges = (nextValue: Array<Record<PropertyKey, unknown>>) => {
       onChange?.(nextValue, []);
 
       // nextValue is an array of ObservableObjectAdministration objects
@@ -117,15 +117,18 @@ export default class TableField extends Component<InputFieldProps> {
     const renderConfirmMessage = () => {
       return (
         <Fragment>
-          <Alert type="error">
-            <span
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(
-                  confirmDeleteMessage || t('Are you sure you want to delete this item?')
-                ),
-              }}
-            />
-          </Alert>
+          <Alert.Container>
+            <Alert type="error">
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(
+                    confirmDeleteMessage ||
+                      t('Are you sure you want to delete this item?')
+                  ),
+                }}
+              />
+            </Alert>
+          </Alert.Container>
         </Fragment>
       );
     };
@@ -135,9 +138,7 @@ export default class TableField extends Component<InputFieldProps> {
         <HeaderContainer>
           {mappedKeys.map((fieldKey, i) => (
             <Header key={fieldKey}>
-              <HeaderLabel>
-                {columnLabels?.[fieldKey as keyof typeof columnLabels]}
-              </HeaderLabel>
+              <HeaderLabel>{columnLabels?.[fieldKey]}</HeaderLabel>
               {i === mappedKeys.length - 1 && button}
             </Header>
           ))}

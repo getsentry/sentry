@@ -34,7 +34,7 @@ import {
   MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import PerformanceOnboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 export function ModulesOnboarding({
   children,
@@ -61,7 +61,7 @@ export function ModulesOnboarding({
   if (onboardingProject) {
     return (
       <ModuleLayout.Full>
-        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+        <LegacyOnboarding organization={organization} project={onboardingProject} />
       </ModuleLayout.Full>
     );
   }
@@ -495,5 +495,22 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: null,
     valuePropDescription: null,
     valuePropPoints: [],
+  },
+  sessions: {
+    heading: t(`Get insights about your application's session health`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+    ],
+    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    supportedSdks: [], // TODO: add supported sdks
   },
 };

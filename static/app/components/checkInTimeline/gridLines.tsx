@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
@@ -11,9 +12,11 @@ import useRouter from 'sentry/utils/useRouter';
 
 import QuestionTooltip from '../questionTooltip';
 
-import {useTimelineCursor} from './timelineCursor';
+import {type CursorOffsets, useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
+
+type LabelPosition = 'left-top' | 'center-bottom';
 
 interface TimeMarker {
   date: Date;
@@ -88,24 +91,41 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig) {
 interface GridLineLabelsProps {
   timeWindowConfig: TimeWindowConfig;
   className?: string;
+  labelPosition?: LabelPosition;
 }
 
-export function GridLineLabels({timeWindowConfig, className}: GridLineLabelsProps) {
+export function GridLineLabels({
+  timeWindowConfig,
+  className,
+  labelPosition = 'left-top',
+}: GridLineLabelsProps) {
   const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   return (
-    <LabelsContainer aria-hidden className={className}>
-      {markers.map(({date, position, dateTimeProps}) => (
-        <TimeLabelContainer key={date.getTime()} left={position}>
+    <LabelsContainer aria-hidden className={className} labelPosition={labelPosition}>
+      {markers.map(({date, position, dateTimeProps}, index) => (
+        <TimeLabelContainer
+          key={date.getTime()}
+          left={position}
+          labelPosition={labelPosition}
+          isFirst={index === 0}
+        >
           <TimeLabel date={date} {...dateTimeProps} />
         </TimeLabelContainer>
       ))}
       {timeWindowConfig.showUnderscanHelp && (
-        <TimeLabelContainer left={timeWindowConfig.timelineWidth}>
+        <TimeLabelContainer
+          left={
+            labelPosition === 'left-top'
+              ? timeWindowConfig.timelineWidth
+              : timeWindowConfig.timelineWidth - 12
+          }
+          labelPosition={labelPosition}
+        >
           <QuestionTooltip
             size="xs"
             title={t(
-              'This area of the timeline is outside of your selected time range to allow for improved rendering of markers.'
+              'This area of the timeline is outside of your selected time range to allow for accurate rendering of markers.'
             )}
           />
         </TimeLabelContainer>
@@ -126,6 +146,16 @@ interface GridLineOverlayProps {
   allowZoom?: boolean;
   className?: string;
   /**
+   * Configures clamped offsets on the left and right of the cursor overlay
+   * element when enabled. May be useful in scenarios where you do not want the
+   * overlay to cover some additional UI elements
+   */
+  cursorOffsets?: CursorOffsets;
+  /**
+   * Configres where the timeline labels are displayed
+   */
+  labelPosition?: LabelPosition;
+  /**
    * Enable the timeline cursor
    */
   showCursor?: boolean;
@@ -140,8 +170,10 @@ export function GridLineOverlay({
   showCursor,
   additionalUi,
   stickyCursor,
+  cursorOffsets,
   allowZoom,
   className,
+  labelPosition = 'left-top',
 }: GridLineOverlayProps) {
   const router = useRouter();
   const {start, timelineWidth, dateLabelFormat, rollupConfig} = timeWindowConfig;
@@ -165,7 +197,8 @@ export function GridLineOverlay({
           start: dateFromPosition(startX).startOf('minute').toDate(),
           end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
-        router
+        router,
+        {keepCursor: true}
       ),
     [dateFromPosition, router]
   );
@@ -179,6 +212,7 @@ export function GridLineOverlay({
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
     enabled: !!showCursor && !selectionIsActive,
     sticky: stickyCursor,
+    offsets: cursorOffsets,
     labelText: makeCursorLabel,
   });
 
@@ -202,10 +236,15 @@ export function GridLineOverlay({
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
-      <Underscan style={{width: rollupConfig.timelineUnderscanWidth - 1}} />
+      <Underscan
+        labelPosition={labelPosition}
+        style={{
+          width: rollupConfig.timelineUnderscanWidth - 1,
+        }}
+      />
       <GridLineContainer>
         {markers.map(({date, position}) => (
-          <Gridline key={date.getTime()} left={position} />
+          <Gridline key={date.getTime()} left={position} labelPosition={labelPosition} />
         ))}
       </GridLineContainer>
     </Overlay>
@@ -226,27 +265,83 @@ const GridLineContainer = styled('div')`
   pointer-events: none;
 `;
 
-const LabelsContainer = styled('div')`
-  height: 50px;
+const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
   overflow: hidden;
-  box-shadow: -1px 0 0 ${p => p.theme.translucentInnerBorder};
   position: relative;
   align-self: stretch;
+  ${p =>
+    p.labelPosition === 'left-top' &&
+    css`
+      height: 50px;
+      box-shadow: -1px 0 0 0 ${p.theme.translucentInnerBorder};
+    `}
+  ${p =>
+    p.labelPosition === 'center-bottom' &&
+    // The pseudo element is used to create the left-most notch
+    css`
+      height: 24px;
+      border-top: 1px solid ${p.theme.translucentBorder};
+      top: 68px;
+      &:before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: ${space(0.5)};
+        width: 1px;
+        border-radius: 1px;
+        background: ${p.theme.translucentBorder};
+      }
+    `}
 `;
 
-const Gridline = styled('div')<{left: number}>`
+export const Gridline = styled('div')<{labelPosition: LabelPosition; left: number}>`
   position: absolute;
   left: ${p => p.left}px;
-  border-left: 1px solid ${p => p.theme.translucentInnerBorder};
-  height: 100%;
+  ${p =>
+    p.labelPosition === 'left-top' &&
+    css`
+      height: 100%;
+      border-left: 1px solid ${p.theme.translucentInnerBorder};
+    `}
+  ${p =>
+    p.labelPosition === 'center-bottom' &&
+    css`
+      height: 6px;
+      width: 1px;
+      border-radius: 1px;
+      background: ${p.theme.translucentBorder};
+      top: 68px;
+    `}
 `;
 
-const TimeLabelContainer = styled(Gridline)`
+const TimeLabelContainer = styled('div')<{
+  labelPosition: LabelPosition;
+  left: number;
+  isFirst?: boolean;
+}>`
+  position: absolute;
+  left: ${p => p.left}px;
   display: flex;
-  height: 100%;
   align-items: center;
-  border-left: none;
-  padding-left: ${space(1)};
+  height: 100%;
+  ${p =>
+    p.labelPosition === 'left-top' &&
+    css`
+      padding-left: ${space(1)};
+    `}
+  ${p =>
+    p.labelPosition === 'center-bottom' &&
+    css`
+      padding-top: ${space(1)};
+    `}
+  ${p =>
+    p.labelPosition === 'center-bottom' &&
+    // Skip the translation for the first label
+    !p.isFirst &&
+    css`
+      transform: translateX(-50%);
+    `}
 `;
 
 const TimeLabel = styled(DateTime)`
@@ -256,12 +351,9 @@ const TimeLabel = styled(DateTime)`
   pointer-events: none;
 `;
 
-const Underscan = styled('div')`
+const Underscan = styled('div')<{labelPosition: LabelPosition}>`
   position: absolute;
   right: 0;
-  height: calc(100% - 51px);
-  margin-top: 51px;
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
   background-size: 3px 3px;
   background-image: linear-gradient(
     45deg,
@@ -273,4 +365,15 @@ const Underscan = styled('div')`
     transparent 75%,
     transparent
   );
+  ${p =>
+    p.labelPosition === 'left-top' &&
+    css`
+      height: calc(100% - 51px);
+      margin-top: 51px;
+    `}
+  ${p =>
+    p.labelPosition === 'center-bottom' &&
+    css`
+      height: 100%;
+    `}
 `;

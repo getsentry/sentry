@@ -2,41 +2,34 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {ColorConfig} from 'sentry/components/timeline';
 import Timeline from 'sentry/components/timeline';
-import {
-  IconBroadcast,
-  IconChevron,
-  IconCode,
-  IconTable,
-  IconTerminal,
-  IconUser,
-} from 'sentry/icons';
+import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import type {Color} from 'sentry/utils/theme';
 
 import type {AutofixTimelineEvent} from './types';
 
 type Props = {
   events: AutofixTimelineEvent[];
+  activeColor?: Color;
+  getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode;
 };
 
 function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   const iconProps = {
     style: {
-      marginLeft: 3,
+      margin: 3,
     },
   };
 
   switch (eventType) {
-    case 'environment':
-      return <IconTerminal {...iconProps} />;
-    case 'database':
-      return <IconTable {...iconProps} />;
-    case 'code':
-      return <IconCode {...iconProps} />;
-    case 'api_request':
+    case 'external_system':
       return <IconBroadcast {...iconProps} />;
+    case 'internal_code':
+      return <IconCode {...iconProps} />;
     case 'human_action':
       return <IconUser {...iconProps} />;
     default:
@@ -44,16 +37,26 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive: boolean): ColorConfig {
+function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? 'pink400' : 'gray400',
-    iconBorder: isActive ? 'pink400' : 'gray400',
+    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
   };
 }
 
-export function AutofixTimeline({events}: Props) {
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
+  const [expandedItems, setExpandedItems] = useState<number[]>(() => {
+    if (!events?.length || events.length > 3) {
+      return [];
+    }
+
+    // For 3 or fewer items, find the first highlighted item or default to first item
+    const firstHighlightedIndex = events.findIndex(
+      event => event.is_most_important_event
+    );
+    return [firstHighlightedIndex !== -1 ? firstHighlightedIndex : 0];
+  });
 
   if (!events?.length) {
     return null;
@@ -69,6 +72,7 @@ export function AutofixTimeline({events}: Props) {
     <Timeline.Container>
       {events.map((event, index) => {
         const isActive = event.is_most_important_event && index !== events.length - 1;
+
         return (
           <Timeline.Item
             key={index}
@@ -78,15 +82,20 @@ export function AutofixTimeline({events}: Props) {
                 isActive={isActive}
                 data-test-id={`autofix-root-cause-timeline-item-${index}`}
               >
-                {event.title}
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: singleLineRenderer(event.title),
+                  }}
+                />
                 <StyledIconChevron
                   direction={expandedItems.includes(index) ? 'down' : 'right'}
                   size="xs"
                 />
               </StyledTimelineHeader>
             }
-            icon={getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive)}
+            isActive={isActive}
+            icon={getCustomIcon?.(event) ?? getEventIcon(event.timeline_item_type)}
+            colorConfig={getEventColor(isActive, activeColor)}
           >
             <AnimatePresence>
               {expandedItems.includes(index) && (
@@ -99,7 +108,9 @@ export function AutofixTimeline({events}: Props) {
                   <Timeline.Text>
                     <StyledSpan
                       dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(event.code_snippet_and_analysis),
+                        __html: singleLineRenderer(
+                          replaceHeadersWithBold(event.code_snippet_and_analysis)
+                        ),
                       }}
                     />
                   </Timeline.Text>
@@ -149,4 +160,5 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.gray300};
   flex-shrink: 0;
+  margin-right: ${space(0.25)};
 `;

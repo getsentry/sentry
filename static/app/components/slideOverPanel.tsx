@@ -70,7 +70,7 @@ function SlideOverPanel(
       slidePosition={slidePosition}
       transition={{
         type: 'spring',
-        stiffness: 500,
+        stiffness: 1000,
         damping: 50,
         ...transitionProps,
       }}

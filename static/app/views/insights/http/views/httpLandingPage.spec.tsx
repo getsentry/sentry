@@ -13,14 +13,20 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules', 'insights-entry-points'],
   });
 
+  let throughputRequestMock!: jest.Mock;
+  let durationRequestMock!: jest.Mock;
+  let statusRequestMock!: jest.Mock;
+
   let spanListRequestMock!: jest.Mock;
-  let spanChartsRequestMock!: jest.Mock;
   let regionFilterRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
@@ -70,6 +76,14 @@ describe('HTTPLandingPage', function () {
     hasMore: null,
     fetchError: null,
     initiallyLoaded: false,
+  });
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 
   beforeEach(function () {
@@ -166,15 +180,89 @@ describe('HTTPLandingPage', function () {
       },
     });
 
-    spanChartsRequestMock = MockApiClient.addMockResponse({
+    throughputRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-throughput-chart',
+        }),
+      ],
       body: {
-        'spm()': {
-          data: [
-            [1699907700, [{count: 7810.2}]],
-            [1699908000, [{count: 1216.8}]],
-          ],
+        data: [
+          [1699907700, [{count: 7810.2}]],
+          [1699908000, [{count: 1216.8}]],
+        ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/second',
+          },
+        },
+      },
+    });
+
+    durationRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-duration-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [1699907700, [{count: 710.2}]],
+          [1699908000, [{count: 116.8}]],
+        ],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'duration',
+          },
+          units: {
+            'avg(span.duration)': 'millisecond',
+          },
+        },
+      },
+    });
+
+    statusRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-response-code-chart',
+        }),
+      ],
+      body: {
+        'http_response_rate(3)': {
+          data: [[1699908000, [{count: 0.2}]]],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'percentage',
+            },
+            units: {},
+          },
+        },
+        'http_response_rate(4)': {
+          data: [[1699908000, [{count: 0.1}]]],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'percentage',
+            },
+            units: {},
+          },
+        },
+        'http_response_rate(5)': {
+          data: [[1699908000, [{count: 0.3}]]],
+          meta: {
+            fields: {
+              'http_response_rate(5)': 'percentage',
+            },
+            units: {},
+          },
         },
       },
     });
@@ -187,7 +275,7 @@ describe('HTTPLandingPage', function () {
   it('fetches module data', async function () {
     render(<HTTPLandingPage />, {organization});
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+    expect(throughputRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -231,8 +319,8 @@ describe('HTTPLandingPage', function () {
       })
     );
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
-      2,
+    expect(durationRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',
@@ -257,8 +345,8 @@ describe('HTTPLandingPage', function () {
       })
     );
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
-      3,
+    expect(statusRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',

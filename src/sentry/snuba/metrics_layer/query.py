@@ -31,7 +31,6 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     bulk_reverse_resolve,
-    resolve_many_weak,
     resolve_weak,
     reverse_resolve_weak,
     string_to_use_case_id,
@@ -639,70 +638,3 @@ def _query_meta_table(
             grouped_results.setdefault(row["project_id"], list()).append(val)
 
     return grouped_results
-
-
-def fetch_metric_tag_values(
-    org_id: int,
-    project_ids: list[int],
-    use_case_id: UseCaseID,
-    mri: str,
-    tag_key: str,
-    tag_value_prefix: str = "",
-    app_id: str = "",
-) -> list[str]:
-    """
-    Find all the unique tag values for a given MRI and tag key. This will reverse resolve
-    all the values.
-    """
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is None:
-        raise InvalidParams(f"'{mri}' is not a valid MRI")
-
-    metric_type = {
-        "c": "counters",
-        "d": "distributions",
-        "g": "gauges",
-        "s": "sets",
-    }[parsed_mri.entity]
-
-    resolved = resolve_many_weak(use_case_id, org_id, [mri, tag_key])
-    if len(resolved) != 2:
-        raise InvalidParams("Unknown metric or tag key")
-    metric_id, tag_key_id = resolved
-
-    conditions = [
-        Condition(Column("project_id"), Op.IN, project_ids),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("tag_key"), Op.EQ, tag_key_id),
-        Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
-        Condition(Column("timestamp"), Op.LT, datetime.now(UTC) + timedelta(days=1)),
-    ]
-
-    if tag_value_prefix:
-        conditions.append(Condition(Column("tag_value"), Op.LIKE, f"{tag_value_prefix}%"))
-
-    tag_values_query = (
-        Query(Storage(f"generic_metrics_{metric_type}_meta_tag_values"))
-        .set_select([Column("tag_value")])
-        .set_groupby([Column("tag_value")])
-        .set_where(conditions)
-        .set_orderby([OrderBy(Column("tag_value"), Direction.ASC)])
-        .set_limit(1000)
-    )
-
-    request = Request(
-        dataset="generic_metrics",
-        app_id=use_case_id.value if app_id == "" else app_id,
-        query=tag_values_query,
-        tenant_ids={
-            "organization_id": org_id,
-            "referrer": "generic_metrics_meta_tag_values",
-        },
-    )
-
-    results = bulk_snuba_queries([request], "generic_metrics_meta_tag_values")
-    values = []
-    for result in results:
-        values.extend([row["tag_value"] for row in result["data"]])
-
-    return values

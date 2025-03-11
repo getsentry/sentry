@@ -101,7 +101,7 @@ class IssueTrackingPlugin2(Plugin):
     def has_project_conf(self):
         return True
 
-    def get_group_body(self, request: Request, group, event, **kwargs):
+    def get_group_body(self, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event)
@@ -109,15 +109,15 @@ class IssueTrackingPlugin2(Plugin):
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_group_description(self, request: Request, group, event):
+    def get_group_description(self, group, event):
         referrer = self.get_conf_key() + "_plugin"
         output = [absolute_uri(group.get_absolute_url(params={"referrer": referrer}))]
-        body = self.get_group_body(request, group, event)
+        body = self.get_group_body(group, event)
         if body:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_group_title(self, request: Request, group, event):
+    def get_group_title(self, group, event):
         return event.title
 
     def is_configured(self, project) -> bool:
@@ -172,13 +172,13 @@ class IssueTrackingPlugin2(Plugin):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.get_group_title(request, group, event),
+                "default": self.get_group_title(group, event),
                 "type": "text",
             },
             {
                 "name": "description",
                 "label": "Description",
-                "default": self.get_group_description(request, group, event),
+                "default": self.get_group_description(group, event),
                 "type": "textarea",
             },
         ]

@@ -286,6 +286,16 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
 )
+@click.option(
+    "--result-queue-maxsize",
+    help="Size of multiprocessing queue for child process results",
+    default=5,
+)
+@click.option(
+    "--child-tasks-queue-maxsize",
+    help="Size of multiprocessing queue for pending tasks for child processes",
+    default=5,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -304,6 +314,8 @@ def run_taskworker(
     max_task_count: int,
     namespace: str | None,
     concurrency: int,
+    child_tasks_queue_maxsize: int,
+    result_queue_maxsize: int,
     **options: Any,
 ) -> None:
     """
@@ -318,6 +330,8 @@ def run_taskworker(
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,
+            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+            result_queue_maxsize=result_queue_maxsize,
             **options,
         )
         exitcode = worker.start()
@@ -493,14 +507,14 @@ def cron(**options: Any) -> None:
 )
 @click.option(
     "--enable-dlq/--disable-dlq",
-    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    help="Enable dlq to route invalid messages to the dlq topic. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
     default=True,
 )
 @click.option(
     "--stale-threshold-sec",
-    type=click.IntRange(min=60),
-    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+    type=click.IntRange(min=120),
+    help="Enable backlog queue to route stale messages to the blq topic.",
 )
 @click.option(
     "--log-level",

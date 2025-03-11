@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -19,6 +19,7 @@ import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfi
 
 const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
 const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
+// These thresholds were used when embedding the cause and computing simliarities.
 
 interface GroupSummaryData {
   groupId: string;
@@ -49,7 +50,7 @@ export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
   project: Project,
-  forceEvent: boolean = false
+  forceEvent = false
 ) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, event, project);
@@ -170,14 +171,14 @@ export function GroupSummary({
   const insightCards = [
     {
       id: 'whats_wrong',
-      title: t("What's wrong"),
+      title: t("What's Wrong"),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
       showWhenLoading: true,
     },
     {
       id: 'trace',
-      title: t('In the trace'),
+      title: t('In the Trace'),
       insight: data?.trace,
       icon: <IconSpan size="sm" />,
       showWhenLoading: false,
@@ -186,10 +187,10 @@ export function GroupSummary({
       ? [
           {
             id: 'possible_cause',
-            title: t('Possible cause'),
+            title: t('Possible Cause'),
             insight: data?.possibleCause,
             icon: <IconFocus size="sm" />,
-            showWhenLoading: false,
+            showWhenLoading: true,
           },
         ]
       : []),
@@ -198,7 +199,10 @@ export function GroupSummary({
           {
             id: 'resources',
             title: t('Resources'),
-            insight: `${config.resources?.description ?? ''}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insight: `${isValidElement(config.resources?.description) ? '' : (config.resources?.description ?? '')}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insightElement: isValidElement(config.resources?.description)
+              ? config.resources?.description
+              : null,
             icon: <IconDocs size="sm" />,
             showWhenLoading: true,
           },
@@ -248,17 +252,18 @@ export function GroupSummary({
                       <Placeholder height="1.5rem" />
                     </CardContent>
                   ) : (
-                    card.insight && (
-                      <CardContent
-                        dangerouslySetInnerHTML={{
-                          __html: marked(
-                            preview
-                              ? card.insight.replace(/\*\*/g, '') ?? ''
-                              : card.insight ?? ''
-                          ),
-                        }}
-                      />
-                    )
+                    <CardContent>
+                      {card.insightElement}
+                      {card.insight && (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                            ),
+                          }}
+                        />
+                      )}
+                    </CardContent>
                   )}
                 </CardContentContainer>
               </InsightCard>
@@ -327,7 +332,7 @@ const CardLineDecorationWrapper = styled('div')`
 `;
 
 const CardLineDecoration = styled('div')`
-  width: 2px;
+  width: 1px;
   align-self: stretch;
   background-color: ${p => p.theme.border};
 `;

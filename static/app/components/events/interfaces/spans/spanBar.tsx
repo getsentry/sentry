@@ -246,8 +246,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
   spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
-  zoomLevel: number = 1; // assume initial zoomLevel is 100%
-  _mounted: boolean = false;
+  zoomLevel = 1; // assume initial zoomLevel is 100%
+  _mounted = false;
 
   handleWheel = (event: WheelEvent) => {
     // https://stackoverflow.com/q/57358640

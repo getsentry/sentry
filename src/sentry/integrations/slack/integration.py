@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
-from django.views import View
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -21,8 +21,9 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -119,7 +120,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self) -> Sequence[View]:
+    def get_pipeline_views(self) -> list[PipelineView]:
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
             "user_scopes": self.user_scopes,
@@ -148,7 +149,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             _logger.exception("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
         assert data["ok"]
 
@@ -170,7 +171,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "installation_type": "born_as_bot",
         }
 
-        integration = {
+        return {
             "name": team_name,
             "external_id": team_id,
             "metadata": metadata,
@@ -182,13 +183,12 @@ class SlackIntegrationProvider(IntegrationProvider):
             },
         }
 
-        return integration
-
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack

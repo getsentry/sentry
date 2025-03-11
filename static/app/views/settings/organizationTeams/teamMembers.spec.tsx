@@ -293,14 +293,6 @@ describe('TeamMembers', function () {
       id: '123',
       email: 'foo@example.com',
       role: 'owner',
-      flags: {
-        'idp:provisioned': true,
-        'idp:role-restricted': false,
-        'member-limit:restricted': false,
-        'partnership:restricted': false,
-        'sso:invalid': false,
-        'sso:linked': false,
-      },
     });
     const idpMembers = members.map(teamMember => ({
       ...teamMember,
@@ -330,5 +322,47 @@ describe('TeamMembers', function () {
       (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
     ).toBeDisabled();
     expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeDisabled();
+  });
+
+  it('can add or remove members if non-idp team', async function () {
+    const team2 = TeamFixture({
+      flags: {
+        'idp:provisioned': false,
+      },
+    });
+
+    const me = MemberFixture({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'owner',
+    });
+    const idpMembers = members.map(teamMember => ({
+      ...teamMember,
+      flags: {...teamMember.flags, 'idp:provisioned': true},
+    }));
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [...idpMembers, me],
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/members/`,
+      method: 'GET',
+      body: idpMembers,
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/`,
+      method: 'GET',
+      body: team2,
+    });
+
+    render(<TeamMembers team={team2} />, {router, organization});
+
+    expect(
+      (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
+    ).toBeEnabled();
+    expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeEnabled();
   });
 });

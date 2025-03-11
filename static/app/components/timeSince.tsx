@@ -97,7 +97,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * extraShort:
    *   Like short but uses very short units (h, m, s)
    *
-   * NOTE: shot and extraShort do NOT currently support times in the future.
+   * NOTE: short and extraShort do NOT currently support times in the future.
    *
    * @default human
    */
@@ -200,7 +200,7 @@ function getRelativeDate(
   const momentDate = moment(getDateObj(currentDateTime));
   const isFuture = momentDate.isAfter(moment());
 
-  let deltaText: string = '';
+  let deltaText = '';
 
   if (unitStyle === 'human') {
     // Moment provides a nice human relative date that uses "a few" for various units

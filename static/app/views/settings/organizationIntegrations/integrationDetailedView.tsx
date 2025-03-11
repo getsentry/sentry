@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -289,9 +289,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <Fragment>
         {alertText && (
-          <Alert type="warning" showIcon>
-            {alertText}
-          </Alert>
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {alertText}
+            </Alert>
+          </Alert.Container>
         )}
         <Panel>
           {configurations.map(integration => (

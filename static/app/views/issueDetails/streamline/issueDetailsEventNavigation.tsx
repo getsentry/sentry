@@ -95,10 +95,11 @@ export function IssueDetailsEventNavigation({
     [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
     [EventNavOptions.LATEST]: t('Last'),
+    [EventNavOptions.CUSTOM]: t('Custom'),
   };
 
   const EventNavTooltips = {
-    [EventNavOptions.RECOMMENDED]: t('Recommended event matching filters'),
+    [EventNavOptions.RECOMMENDED]: t('Recent event with richer content'),
     [EventNavOptions.OLDEST]: t('First event matching filters'),
     [EventNavOptions.LATEST]: t('Last event matching filters'),
   };

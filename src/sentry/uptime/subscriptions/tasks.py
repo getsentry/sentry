@@ -10,8 +10,11 @@ from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.config_producer import produce_config, produce_config_removal
-from sentry.uptime.models import UptimeRegionScheduleMode, UptimeSubscription
-from sentry.uptime.subscriptions.regions import get_active_region_configs
+from sentry.uptime.models import (
+    UptimeRegionScheduleMode,
+    UptimeSubscription,
+    UptimeSubscriptionRegion,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -38,14 +41,8 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         metrics.incr("uptime.subscriptions.create.incorrect_status", sample_rate=1.0)
         return
 
-    region_slugs = [s.region_slug for s in subscription.regions.all()]
-    if not region_slugs:
-        # XXX: Hack to make sure that region configs are sent even if we don't have region rows present.
-        # Remove once everything is in place
-        region_slugs = [get_active_region_configs()[0].slug]
-
-    for region_slug in region_slugs:
-        send_uptime_subscription_config(region_slug, subscription)
+    for region in subscription.regions.all():
+        send_uptime_subscription_config(region, subscription)
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value,
         subscription_id=subscription.subscription_id,
@@ -71,14 +68,8 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         metrics.incr("uptime.subscriptions.update.incorrect_status", sample_rate=1.0)
         return
 
-    region_slugs = [s.region_slug for s in subscription.regions.all()]
-    if not region_slugs:
-        # XXX: Hack to make sure that region configs are sent even if we don't have region rows present.
-        # Remove once everything is in place
-        region_slugs = [get_active_region_configs()[0].slug]
-
-    for region_slug in region_slugs:
-        send_uptime_subscription_config(region_slug, subscription)
+    for region in subscription.regions.all():
+        send_uptime_subscription_config(region, subscription)
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value,
         subscription_id=subscription.subscription_id,
@@ -106,10 +97,6 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         return
 
     region_slugs = [s.region_slug for s in subscription.regions.all()]
-    if not region_slugs:
-        # XXX: Hack to make sure that region configs are sent even if we don't have regions present.
-        # Remove once everything is in place
-        region_slugs = [get_active_region_configs()[0].slug]
 
     subscription_id = subscription.subscription_id
     if subscription.status == QuerySubscription.Status.DELETING.value:
@@ -122,16 +109,25 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
             send_uptime_config_deletion(region_slug, subscription_id)
 
 
-def send_uptime_subscription_config(region_slug: str, subscription: UptimeSubscription):
+def send_uptime_subscription_config(
+    region: UptimeSubscriptionRegion, subscription: UptimeSubscription
+):
     if subscription.subscription_id is None:
         subscription.subscription_id = uuid4().hex
     produce_config(
-        region_slug, uptime_subscription_to_check_config(subscription, subscription.subscription_id)
+        region.region_slug,
+        uptime_subscription_to_check_config(
+            subscription,
+            subscription.subscription_id,
+            UptimeSubscriptionRegion.RegionMode(region.mode),
+        ),
     )
 
 
 def uptime_subscription_to_check_config(
-    subscription: UptimeSubscription, subscription_id: str
+    subscription: UptimeSubscription,
+    subscription_id: str,
+    region_mode: UptimeSubscriptionRegion.RegionMode,
 ) -> CheckConfig:
     headers = subscription.headers
     # XXX: Temporary translation code. We want to support headers with the same keys, so convert to a list
@@ -146,7 +142,7 @@ def uptime_subscription_to_check_config(
         "request_method": subscription.method,
         "request_headers": headers,
         "trace_sampling": subscription.trace_sampling,
-        "active_regions": [r.region_slug for r in subscription.regions.all()],
+        "active_regions": [r.region_slug for r in subscription.regions.filter(mode=region_mode)],
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
     }
     if subscription.body is not None:

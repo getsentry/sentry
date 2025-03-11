@@ -36,7 +36,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.TRANSACTION_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.PROFILE_ID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanIndexedField.TRACE
@@ -125,6 +125,7 @@ export const useSpanSamples = (options: Options) => {
           secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
           project: pageFilter.selection.projects,
+          environment: pageFilter.selection.environments,
           query: queryString,
           ...(additionalFields?.length ? {additionalFields} : {}),
         })}`

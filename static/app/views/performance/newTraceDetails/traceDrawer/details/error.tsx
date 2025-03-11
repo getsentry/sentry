@@ -10,7 +10,6 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -47,7 +46,8 @@ export function ErrorNodeDetails(
               {t('Error')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              text={`ID: ${props.node.value.event_id}`}
+              subTitle={`ID: ${props.node.value.event_id}`}
+              clipboardText={props.node.value.event_id}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
@@ -58,23 +58,14 @@ export function ErrorNodeDetails(
         />
       </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
-        <Description>
-          {t(
-            'This error is related to an ongoing issue. For details about how many users this affects and more, go to the issue below.'
-          )}
-        </Description>
+        {t(
+          'This error is related to an ongoing issue. For details about how many users this affects and more, go to the issue below.'
+        )}
         <IssueList issues={issues} node={node} organization={organization} />
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-const Description = styled('div')`
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  line-height: 1.5;
-  text-align: left;
-`;
 
 function LegacyErrorNodeDetails({
   node,

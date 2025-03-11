@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
-import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
+import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';

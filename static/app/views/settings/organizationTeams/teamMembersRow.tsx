@@ -51,6 +51,7 @@ function TeamMembersRow({
           hasWriteAccess={hasWriteAccess}
           isSelf={isSelf}
           onClick={() => removeMember({memberId: member.id})}
+          team={team}
           member={member}
         />
       </div>
@@ -63,8 +64,9 @@ function RemoveButton(props: {
   isSelf: boolean;
   member: TeamMember;
   onClick: () => void;
+  team: Team;
 }) {
-  const {member, hasWriteAccess, isSelf, onClick} = props;
+  const {member, hasWriteAccess, isSelf, onClick, team} = props;
 
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
@@ -81,7 +83,7 @@ function RemoveButton(props: {
     );
   }
 
-  const isIdpProvisioned = member.flags['idp:provisioned'];
+  const isIdpProvisioned = team.flags['idp:provisioned'];
   const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');

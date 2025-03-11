@@ -85,7 +85,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     });
   };
 
-  handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
+  handlePluginEnableStatus = (projectId: string, enable = true) => {
     // make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     // find the index of the project

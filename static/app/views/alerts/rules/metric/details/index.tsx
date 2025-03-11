@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client, ResponseMeta} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -38,7 +38,7 @@ import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
 
-interface Props extends RouteComponentProps<{ruleId: string}, {}> {
+interface Props extends RouteComponentProps<{ruleId: string}> {
   api: Client;
   location: Location;
   organization: Organization;
@@ -252,11 +252,13 @@ class MetricAlertDetails extends Component<Props, State> {
 
     return (
       <Layout.Page withPadding>
-        <Alert type="error" showIcon>
-          {error?.status === 404
-            ? t('This alert rule could not be found.')
-            : t('An error occurred while fetching the alert rule.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {error?.status === 404
+              ? t('This alert rule could not be found.')
+              : t('An error occurred while fetching the alert rule.')}
+          </Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }
@@ -281,9 +283,11 @@ class MetricAlertDetails extends Component<Props, State> {
         forceProject={project}
       >
         {warning && (
-          <Alert type="warning" showIcon>
-            {warning}
-          </Alert>
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {warning}
+            </Alert>
+          </Alert.Container>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
 
@@ -295,7 +299,6 @@ class MetricAlertDetails extends Component<Props, State> {
           onSnooze={this.onSnooze}
         />
         <MetricDetailsBody
-          {...this.props}
           rule={rule}
           project={project}
           incidents={incidents}

@@ -177,7 +177,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
     : undefined;
 
   const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectSlug: event?.projectSlug ?? '',
     profileId,
     query,

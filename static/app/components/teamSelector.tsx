@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -11,8 +10,9 @@ import type {
   ControlProps,
   GeneralSelectValue,
   StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -369,7 +369,7 @@ function TeamSelector(props: Props) {
     () => ({
       ...(includeUnassigned ? unassignedSelectStyles : {}),
       ...(multiple ? {} : placeholderSelectStyles),
-      ...(stylesProp ?? {}),
+      ...stylesProp,
     }),
     [includeUnassigned, multiple, stylesProp]
   );
@@ -392,7 +392,7 @@ function TeamSelector(props: Props) {
   }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <SelectControl
+    <Select
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}

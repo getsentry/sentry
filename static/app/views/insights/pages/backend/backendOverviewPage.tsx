@@ -1,3 +1,4 @@
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,6 +13,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -19,10 +21,12 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -30,10 +34,26 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
+import {
+  hasLaravelInsightsFeature,
+  useIsLaravelInsightsEnabled,
+} from 'sentry/views/insights/pages/backend/laravel/features';
+import {LaravelInsightsProvider} from 'sentry/views/insights/pages/backend/laravel/laravelInsightsContext';
+import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
+import {
+  BACKEND_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  FRONTEND_PLATFORMS,
+  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  MOBILE_PLATFORMS,
+  OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -44,7 +64,7 @@ import {
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
@@ -76,6 +96,37 @@ export const BACKEND_COLUMN_TITLES = [
 
 function BackendOverviewPage() {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const [isLaravelInsightsEnabled, setIsLaravelInsightsEnabled] =
+    useIsLaravelInsightsEnabled();
+
+  const selectedProjects: Project[] = useMemo(
+    () => getSelectedProjectList(selection.projects, projects),
+    [projects, selection.projects]
+  );
+
+  let renderLaravelInsights = false;
+  const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
+  if (
+    selectedProject?.platform === 'php-laravel' &&
+    hasLaravelInsightsFeature(organization) &&
+    isLaravelInsightsEnabled
+  ) {
+    renderLaravelInsights = true;
+  }
+
+  return (
+    <LaravelInsightsProvider
+      value={{isLaravelInsightsEnabled, setIsLaravelInsightsEnabled}}
+    >
+      {renderLaravelInsights ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />}
+    </LaravelInsightsProvider>
+  );
+}
+
+function GenericBackendOverviewPage() {
+  const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
   const {projects} = useProjects();
@@ -83,13 +134,11 @@ function BackendOverviewPage() {
   const navigate = useNavigate();
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
+  const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+  const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -113,8 +162,39 @@ function BackendOverviewPage() {
     ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
   ];
 
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
+  );
+
+  const selectedMobileProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
+  );
+
   const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addOp('(');
+  existingQuery.addOp('(');
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
+
+  if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
+    existingQuery.addFilterValue(
+      '!project.id',
+      `[${[
+        ...selectedFrontendProjects.map(project => project.id),
+        ...selectedMobileProjects.map(project => project.id),
+      ]}]`
+    );
+  }
+  existingQuery.addOp(')');
+  existingQuery.addOp('OR');
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp(')');
+
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -186,7 +266,12 @@ function BackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
+        headerActions={
+          <Fragment>
+            <ViewTrendsButton />
+            <NewLaravelExperienceButton />
+          </Fragment>
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -201,7 +286,7 @@ function BackendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
@@ -242,7 +327,10 @@ function BackendOverviewPage() {
               )}
 
               {showOnboarding && (
-                <Onboarding project={onboardingProject} organization={organization} />
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

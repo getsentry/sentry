@@ -2,6 +2,7 @@ import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
@@ -42,6 +43,7 @@ function ResourcesLandingPage() {
                     extraFilters={
                       <Fragment>
                         <DomainSelector
+                          domainAlias={t('Domain')}
                           moduleName={ModuleName.RESOURCE}
                           emptyOptionLocation="top"
                           value={filters[SPAN_DOMAIN] || ''}

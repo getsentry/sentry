@@ -173,15 +173,13 @@ export function memoizeByReference<Arguments, Value>(
   };
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-
 export function memoizeVariadicByReference<
   T extends (...args: any[]) => V,
   V = ReturnType<T>,
->(fn: T): (...t: Arguments<T>) => V {
-  let cache: Cache<Arguments<T>, V> | null = null;
+>(fn: T): (...t: Parameters<T>) => V {
+  let cache: Cache<Parameters<T>, V> | null = null;
 
-  return function memoizeByReferenceCallback(...args: Arguments<T>): V {
+  return function memoizeByReferenceCallback(...args: Parameters<T>): V {
     // If this is the first run then eval the fn and cache the result
     if (!cache) {
       cache = {args, value: fn(...args)};
@@ -246,26 +244,26 @@ function indexNodeToParents(
       return;
     }
 
-    for (let i = 0; i < node.children.length; i++) {
-      indexNode(node.children[i]!, node); // iterating over non empty array
+    for (const child of node.children) {
+      indexNode(child, node);
     }
   }
 
   // Begin in each root node
-  for (let i = 0; i < roots.length; i++) {
+  for (const root of roots) {
     // If the root is a leaf node, push it to the leafs array
-    if (!roots[i]!.children?.length) {
-      leafs.push(roots[i]!);
+    if (!root.children?.length) {
+      leafs.push(root);
     }
 
     // Init the map for the root in case we havent yet
-    if (!map[roots[i]!.key]) {
-      map[roots[i]!.key] = [];
+    if (!map[root.key]) {
+      map[root.key] = [];
     }
 
     // descend down to each child and index them
-    for (let j = 0; j < roots[i]!.children.length; j++) {
-      indexNode(roots[i]!.children[j]!, roots[i]!);
+    for (const child of root.children) {
+      indexNode(child, root);
     }
   }
 }
@@ -325,7 +323,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean
 ) {
-  const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
+  const frameIds = [...new Array(frames.length).keys()].sort((a, b) => {
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 

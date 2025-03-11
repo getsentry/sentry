@@ -40,7 +40,7 @@ class GridRenderer {
     physicalViewRect: Rect,
     configViewToPhysicalSpace: mat3,
     logicalSpaceToConfigView: mat3,
-    drawGridTicks: boolean = true
+    drawGridTicks = true
   ): void {
     this.context.font = `${
       this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio
@@ -79,14 +79,14 @@ class GridRenderer {
         getIntervalTimeAtX
       );
 
-      for (let i = 0; i < intervals.length; i++) {
+      for (const interval of intervals) {
         // Compute the x position of our interval from config space to physical
         const physicalIntervalPosition = Math.round(
-          intervals[i]! * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
+          interval * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
         );
 
         // Format the label text
-        const labelText = this.formatter(intervals[i]!);
+        const labelText = this.formatter(interval);
 
         this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
         // Subtract width of the text and padding so that the text is align to the left of our interval

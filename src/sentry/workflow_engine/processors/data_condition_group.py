@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-DataConditionGroupResult = tuple[bool, list[DataConditionResult], list[DataCondition]]
+DataConditionGroupResult = tuple[ProcessedDataConditionResult, list[DataCondition]]
 
 
 @cache_func_for_models(
@@ -21,9 +21,9 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
-def process_condition_group_results(
+def evaluate_condition_group_results(
     results: list[tuple[bool, DataConditionResult]],
-    logic_type: str,
+    logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionResult:
     logic_result = False
     condition_results = []
@@ -49,62 +49,47 @@ def process_condition_group_results(
     return logic_result, condition_results
 
 
-def evaluate_condition_group(
-    data_condition_group: DataConditionGroup,
-    value: T,
-    is_fast: bool = True,
-) -> DataConditionGroupResult:
+def evaluate_data_conditions(
+    conditions_to_evaluate: list[tuple[DataCondition, T]],
+    logic_type: DataConditionGroup.Type,
+) -> ProcessedDataConditionResult:
     """
-    Evaluate the conditions for a given group and value.
+    Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
+    Then we apply the logic_type to get the results of the list of conditions.
     """
     results: list[tuple[bool, DataConditionResult]] = []
-    conditions = get_data_conditions_for_group(data_condition_group.id)
 
-    if is_fast:
-        conditions, remaining_conditions = split_conditions_by_speed(conditions)
-    else:
-        _, conditions = split_conditions_by_speed(conditions)
-        remaining_conditions = []
-
-    if len(conditions) == 0:
+    if len(conditions_to_evaluate) == 0:
         # if we don't have any conditions, always return True
-        return True, [], remaining_conditions
+        return True, []
 
-    for condition in conditions:
+    for condition, value in conditions_to_evaluate:
         evaluation_result = condition.evaluate_value(value)
         is_condition_triggered = evaluation_result is not None
 
         if is_condition_triggered:
             # Check for short-circuiting evaluations
-            if data_condition_group.logic_type == data_condition_group.Type.ANY_SHORT_CIRCUIT:
-                return is_condition_triggered, [evaluation_result], []
+            if logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
+                return is_condition_triggered, [evaluation_result]
 
-            if data_condition_group.logic_type == data_condition_group.Type.NONE:
-                return False, [], []
+            if logic_type == DataConditionGroup.Type.NONE:
+                return False, []
 
         results.append((is_condition_triggered, evaluation_result))
 
-    logic_type = data_condition_group.logic_type
-    logic_result, condition_results = process_condition_group_results(
+    return evaluate_condition_group_results(
         results,
         logic_type,
     )
 
-    if (not logic_result and logic_type == DataConditionGroup.Type.ALL) or (
-        logic_result and logic_type == DataConditionGroup.Type.ANY
-    ):
-        # if we have a logic type of all and a False result,
-        # or if we have a logic type of any and a True result
-        # then we can short-circuit any remaining conditions since we have a completd logic result
-        remaining_conditions = []
-
-    return logic_result, condition_results, remaining_conditions
-
 
 def process_data_condition_group(
     data_condition_group_id: int,
-    value: Any,
+    value: T,
+    is_fast: bool = True,
 ) -> DataConditionGroupResult:
+    invalid_group_result: DataConditionGroupResult = (False, []), []
+
     try:
         group = DataConditionGroup.objects.get_from_cache(id=data_condition_group_id)
     except DataConditionGroup.DoesNotExist:
@@ -112,6 +97,34 @@ def process_data_condition_group(
             "DataConditionGroup does not exist",
             extra={"id": data_condition_group_id},
         )
-        return False, [], []
+        return invalid_group_result
 
-    return evaluate_condition_group(group, value)
+    try:
+        logic_type = DataConditionGroup.Type(group.logic_type)
+    except ValueError:
+        logger.exception(
+            "Invalid DataConditionGroup.logic_type found in process_data_condition_group",
+            extra={"logic_type": group.logic_type},
+        )
+        return invalid_group_result
+
+    conditions = get_data_conditions_for_group(data_condition_group_id)
+
+    if is_fast:
+        conditions, remaining_conditions = split_conditions_by_speed(conditions)
+    else:
+        _, conditions = split_conditions_by_speed(conditions)
+        remaining_conditions = []
+
+    conditions_to_evaluate = [(condition, value) for condition in conditions]
+    logic_result, condition_results = evaluate_data_conditions(conditions_to_evaluate, logic_type)
+
+    if (not logic_result and logic_type == DataConditionGroup.Type.ALL) or (
+        logic_result and logic_type == DataConditionGroup.Type.ANY
+    ):
+        # if we have a logic type of all and a False result,
+        # or if we have a logic type of any and a True result, then
+        #  we can short-circuit any remaining conditions since we have a completed logic result
+        remaining_conditions = []
+
+    return (logic_result, condition_results), remaining_conditions

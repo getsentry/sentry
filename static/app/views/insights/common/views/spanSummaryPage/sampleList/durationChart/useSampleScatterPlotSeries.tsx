@@ -13,7 +13,7 @@ export function useSampleScatterPlotSeries(
   spans: Array<Partial<SpanIndexedResponse>>,
   average?: number,
   highlightedSpanId?: string,
-  key: string = 'span.self_time'
+  key = 'span.self_time'
 ): Series[] {
   const theme = useTheme();
 

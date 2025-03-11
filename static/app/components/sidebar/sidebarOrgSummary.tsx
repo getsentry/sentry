@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {IconWarning} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,7 +38,8 @@ const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props)
   grid-template-columns: max-content minmax(0, 1fr);
   gap: ${space(1)};
   align-items: center;
-  padding: ${space(1)} ${p => p.theme.sidebar.menuSpacing};
+  /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */
+  padding: ${space(1)} 15px;
 `;
 
 const Name = styled('div')<{pendingDeletion: boolean}>`

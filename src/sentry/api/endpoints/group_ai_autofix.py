@@ -18,9 +18,11 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba.dataset import Dataset
@@ -30,6 +32,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -261,16 +264,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         return execution_tree
 
-    def _make_error_metadata(self, autofix: dict, reason: str):
-        return {
-            **autofix,
-            "completed_at": datetime.now().isoformat(),
-            "status": "ERROR",
-            "fix": None,
-            "error_message": reason,
-            "steps": [],
-        }
-
     def _respond_with_error(self, reason: str, status: int):
         return Response(
             {
@@ -367,16 +360,15 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if serialized_event is None:
             return self._respond_with_error("Cannot fix issues without an event.", 400)
 
-        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
+        if not any(
+            [
+                entry.get("type") == "exception" or entry.get("type") == "threads"
+                for entry in serialized_event["entries"]
+            ]
+        ):
             return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
-
-        if not repos:
-            return self._respond_with_error(
-                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
-                400,
-            )
 
         # find best profile for this event
         try:
@@ -421,11 +413,24 @@ class GroupAutofixEndpoint(GroupEndpoint):
         check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
         return Response(
+            {
+                "run_id": run_id,
+            },
             status=202,
         )
 
     def get(self, request: Request, group: Group) -> Response:
-        autofix_state = get_autofix_state(group_id=group.id)
+        access_check_cache_key = f"autofix_access_check:{group.id}"
+        access_check_cache_value = cache.get(access_check_cache_key)
+
+        check_repo_access = False
+        if not access_check_cache_value:
+            check_repo_access = True
+
+        autofix_state = get_autofix_state(group_id=group.id, check_repo_access=check_repo_access)
+
+        if check_repo_access:
+            cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
 
         response_state: dict[str, Any] | None = None
 
@@ -444,19 +449,39 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
             project = group.project
             repositories = []
+
+            autofix_codebase_state = response_state.get("codebases", {})
+
+            repo_code_mappings: dict[str, RepositoryProjectPathConfig] = {}
             if project:
                 code_mappings = get_sorted_code_mapping_configs(project=project)
                 for mapping in code_mappings:
-                    repo = mapping.repository
-                    repositories.append(
-                        {
-                            "url": repo.url,
-                            "external_id": repo.external_id,
-                            "name": repo.name,
-                            "provider": repo.provider,
-                            "default_branch": mapping.default_branch,
-                        }
-                    )
+                    if mapping.repository.external_id:
+                        repo_code_mappings[mapping.repository.external_id] = mapping
+
+            for repo_external_id, repo_state in autofix_codebase_state.items():
+                retrieved_mapping: RepositoryProjectPathConfig | None = repo_code_mappings.get(
+                    repo_external_id, None
+                )
+
+                if not retrieved_mapping:
+                    continue
+
+                mapping_repo: Repository = retrieved_mapping.repository
+
+                repositories.append(
+                    {
+                        "integration_id": mapping_repo.integration_id,
+                        "url": mapping_repo.url,
+                        "external_id": repo_external_id,
+                        "name": mapping_repo.name,
+                        "provider": mapping_repo.provider,
+                        "default_branch": retrieved_mapping.default_branch,
+                        "is_readable": repo_state.get("is_readable", None),
+                        "is_writeable": repo_state.get("is_writeable", None),
+                    }
+                )
+
             response_state["repositories"] = repositories
 
         return Response({"autofix": response_state})

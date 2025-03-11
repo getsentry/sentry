@@ -4,13 +4,14 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {
   EAPSpanProperty,
   EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
-  OurlogsFields,
+  SpanIndexedField,
   SpanIndexedProperty,
   SpanIndexedResponse,
   SpanMetricsProperty,
@@ -32,33 +33,35 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseMetricsOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscover<Fields, SpanIndexedResponse>(
+  // Indexed spans dataset always returns an `id`
+  return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
     DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
 };
 
-export const useOurlogs = <Fields extends Array<keyof OurlogsFields>>(
+export const useOurlogs = <Fields extends OurLogFieldKey[]>(
   options: UseMetricsOptions<Fields> = {},
   referrer: string
 ) => {
-  const {data, ...rest} = useDiscover<Fields, OurlogsFields>(
+  const {data, ...rest} = useDiscover<Fields, OurLogsResponseItem>(
     options,
     DiscoverDatasets.OURLOGS,
     referrer
   );
-  const castData = data as OurlogsFields[];
+  const castData = data as OurLogsResponseItem[];
   return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
   options: UseMetricsOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  useRpc?: boolean
 ) => {
   return useDiscover<Fields, EAPSpanResponse>(
     options,
-    DiscoverDatasets.SPANS_EAP,
+    useRpc ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_EAP,
     referrer
   );
 };
@@ -137,7 +140,7 @@ function getEventView(
   pageFilters: PageFilters,
   dataset: DiscoverDatasets
 ) {
-  const query = typeof search === 'string' ? search : search?.formatString() ?? '';
+  const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {

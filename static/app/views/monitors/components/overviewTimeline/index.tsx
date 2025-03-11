@@ -149,6 +149,7 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
         stickyCursor
         allowZoom
         showCursor
+        cursorOffsets={{right: 40}}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
@@ -179,8 +180,8 @@ const Header = styled(Sticky)`
 
   z-index: 1;
   background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {

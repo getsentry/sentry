@@ -342,7 +342,7 @@ export class Client {
   wrapCallback<T extends any[]>(
     id: string,
     func: FunctionCallback<T> | undefined,
-    cleanup: boolean = false
+    cleanup = false
   ) {
     return (...args: T) => {
       const req = this.activeRequests[id];

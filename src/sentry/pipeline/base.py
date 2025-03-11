@@ -2,19 +2,17 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Mapping, Sequence
-from types import LambdaType
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from django.views import View
-from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.pipeline.views.base import PipelineView
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
@@ -95,13 +93,14 @@ class Pipeline(abc.ABC):
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
-        provider: PipelineProvider = self.provider_manager.get(provider_key)
-        return provider
+    def get_provider(
+        self, provider_key: str, *, organization: RpcOrganization | None
+    ) -> PipelineProvider:
+        return self.provider_manager.get(provider_key)
 
     def __init__(
         self,
-        request: Request | HttpRequest,
+        request: HttpRequest,
         provider_key: str,
         organization: Organization | RpcOrganization | None = None,
         provider_model: Model | None = None,
@@ -111,14 +110,14 @@ class Pipeline(abc.ABC):
             bind_organization_context(organization)
 
         self.request = request
-        self.organization: RpcOrganization | None = (
+        self.organization = (
             serialize_rpc_organization(organization)
             if isinstance(organization, Organization)
             else organization
         )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key, organization=organization)
+        self.provider = self.get_provider(provider_key, organization=self.organization)
 
         self.config = config or {}
         self.provider.set_pipeline(self)
@@ -132,7 +131,7 @@ class Pipeline(abc.ABC):
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self) -> Sequence[View]:
+    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -140,24 +139,21 @@ class Pipeline(abc.ABC):
         providers should inherit, or customize the provider method called to
         retrieve the views.
         """
-        views: Sequence[View] = self.provider.get_pipeline_views()
-        return views
+        return self.provider.get_pipeline_views()
 
     def is_valid(self) -> bool:
-        _is_valid: bool = (
+        return (
             self.state.is_valid()
             and self.state.signature == self.signature
             and self.state.step_index is not None
         )
-        return _is_valid
 
     def initialize(self) -> None:
         self.state.regenerate(self.get_initial_state())
 
     def get_initial_state(self) -> Mapping[str, Any]:
-        user: Any = self.request.user
         return {
-            "uid": user.id if user.is_authenticated else None,
+            "uid": self.request.user.id if self.request.user.is_authenticated else None,
             "provider_model_id": self.provider_model.id if self.provider_model else None,
             "provider_key": self.provider.key,
             "org_id": self.organization.id if self.organization else None,
@@ -182,12 +178,12 @@ class Pipeline(abc.ABC):
         step = self.pipeline_views[step_index]
 
         # support late binding steps
-        if isinstance(step, LambdaType):
+        if callable(step):
             step = step()
 
         return self.dispatch_to(step)
 
-    def dispatch_to(self, step: View) -> HttpResponseBase:
+    def dispatch_to(self, step: PipelineView) -> HttpResponseBase:
         """
         Dispatch to a view expected by this pipeline.
 
@@ -222,10 +218,9 @@ class Pipeline(abc.ABC):
 
         analytics_entry = self.get_analytics_entry()
         if analytics_entry and self.organization:
-            user: Any = self.request.user
             analytics.record(
                 analytics_entry.event_type,
-                user_id=user.id,
+                user_id=self.request.user.id,
                 organization_id=self.organization.id,
                 integration=self.provider.key,
                 step_index=self.step_index,

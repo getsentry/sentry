@@ -23,6 +23,7 @@ const tickConfig: TimeWindowConfig = {
     interval: 0,
     timelineUnderscanWidth: 0,
     totalBuckets: 0,
+    underscanPeriod: 0,
   },
   showUnderscanHelp: false,
 };

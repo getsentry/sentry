@@ -143,7 +143,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     this.props.api.clear();
   }
 
-  _isMounted: boolean = false;
+  _isMounted = false;
 
   async fetchData() {
     const {

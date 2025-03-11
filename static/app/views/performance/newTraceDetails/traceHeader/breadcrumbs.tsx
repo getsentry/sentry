@@ -15,7 +15,6 @@ import {
 } from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -68,7 +67,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   metrics: 'metrics',
   discover: 'discover',
   profiling_flamegraph: 'profiling',
-  performance_transaction_summary: 'performance',
+  performance_transaction_summary: 'traces',
   issue_details: 'issues',
   feedback_details: 'feedback',
   dashboards: 'dashboards',
@@ -93,13 +92,24 @@ function getPerformanceBreadCrumbs(
 ) {
   const crumbs: Crumb[] = [];
 
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
+
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
-  crumbs.push({
-    label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
-    to: getBreadCrumbTarget(performanceUrl, location.query, organization),
-  });
+  if (!view && hasPerfLandingRemovalFlag) {
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
+    });
+  } else {
+    crumbs.push({
+      label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
+      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+    });
+  }
 
   switch (location.query.tab) {
     case Tab.EVENTS:
@@ -239,10 +249,6 @@ function getInsightsModuleBreadcrumbs(
 
   if (view && DOMAIN_VIEW_TITLES[view]) {
     crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
-    });
-    crumbs.push({
       label: DOMAIN_VIEW_TITLES[view],
       to: getBreadCrumbTarget(
         `${DOMAIN_VIEW_BASE_URL}/${view}/`,
@@ -267,14 +273,6 @@ function getInsightsModuleBreadcrumbs(
     moduleName = TRACE_SOURCE_TO_INSIGHTS_MODULE[
       location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
     ] as RoutableModuleNames;
-    crumbs.push({
-      label: MODULE_TITLES[moduleName],
-      to: getBreadCrumbTarget(
-        `${moduleURLBuilder(moduleName, view)}/`,
-        location.query,
-        organization
-      ),
-    });
   }
 
   switch (moduleName) {

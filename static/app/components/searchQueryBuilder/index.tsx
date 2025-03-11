@@ -2,7 +2,7 @@ import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {inputStyles} from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {
   SearchQueryBuilderContext,
   type SearchQueryBuilderContextData,
@@ -126,11 +126,7 @@ function SearchIndicator({
   initialQuery?: string;
   showUnsubmittedIndicator?: boolean;
 }) {
-  const {size, query} = useSearchQueryBuilder();
-
-  if (size === 'small') {
-    return null;
-  }
+  const {query} = useSearchQueryBuilder();
 
   const unSubmittedChanges = query !== initialQuery;
   const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;
@@ -301,7 +297,7 @@ export function SearchQueryBuilder({
         onBlur={() =>
           onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
         }
-        ref={wrapperRef}
+        ref={wrapperRef as React.RefObject<HTMLInputElement>}
         aria-disabled={disabled}
         data-test-id="search-query-builder"
       >
@@ -324,8 +320,7 @@ export function SearchQueryBuilder({
   );
 }
 
-const Wrapper = styled('div')`
-  ${inputStyles}
+const Wrapper = styled(Input.withComponent('div'))`
   min-height: 38px;
   padding: 0;
   height: auto;
@@ -333,11 +328,6 @@ const Wrapper = styled('div')`
   position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: text;
-
-  :focus-within {
-    border: 1px solid ${p => p.theme.focusBorder};
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
-  }
 `;
 
 const ButtonsWrapper = styled('div')`

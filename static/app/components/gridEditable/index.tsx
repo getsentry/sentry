@@ -202,7 +202,7 @@ class GridEditable<
     }
   };
 
-  onResizeMouseDown = (e: React.MouseEvent, i: number = -1) => {
+  onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
     e.stopPropagation();
 
     // Block right-click and other funky stuff

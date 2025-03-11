@@ -115,8 +115,8 @@ export function useSpanProfileDetails(
   const maxNodes = useMemo(() => {
     // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i]!.count >= TOP_NODE_MIN_COUNT) {
+    for (const node of nodes) {
+      if (node.count >= TOP_NODE_MIN_COUNT) {
         hasMinCount += 1;
       } else {
         break;
@@ -146,7 +146,7 @@ export function useSpanProfileDetails(
 
       if (defined(profileContext.profile_id)) {
         return generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profileId: profileContext.profile_id,
           query: {
@@ -157,7 +157,7 @@ export function useSpanProfileDetails(
 
       if (defined(profileContext.profiler_id)) {
         return generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profilerId: profileContext.profiler_id,
           start: new Date(event.startTimestamp * 1000).toISOString(),

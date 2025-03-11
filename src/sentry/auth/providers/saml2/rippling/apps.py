@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import RipplingSAML2Provider
 
-        register("rippling", RipplingSAML2Provider)
+        register(RipplingSAML2Provider)

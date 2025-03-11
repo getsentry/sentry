@@ -15,6 +15,7 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
     parse_search_query,
+    translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
 from sentry.exceptions import InvalidSearchQuery
@@ -98,6 +99,15 @@ def result_transformer(result):
 
         if token["type"] == "keyExplicitNumberTag":
             return SearchKey(name=f"tags[{token['key']['value']},number]")
+
+        if token["type"] == "keyExplicitFlag":
+            return SearchKey(name=f"flags[{token['key']['value']}]")
+
+        if token["type"] == "keyExplicitStringFlag":
+            return SearchKey(name=f"flags[{token['key']['value']},string]")
+
+        if token["type"] == "keyExplicitNumberFlag":
+            return SearchKey(name=f"flags[{token['key']['value']},number]")
 
         if token["type"] == "keyAggregate":
             name = node_visitor(token["name"]).name
@@ -536,7 +546,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_allowed_keys(self):
-        config = SearchConfig(allowed_keys=["good_key"])
+        config = SearchConfig(allowed_keys={"good_key"})
 
         assert parse_search_query("good_key:123 bad_key:123 text") == [
             SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
@@ -553,7 +563,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_blocked_keys(self):
-        config = SearchConfig(blocked_keys=["bad_key"])
+        config = SearchConfig(blocked_keys={"bad_key"})
 
         assert parse_search_query("some_key:123 bad_key:123 text") == [
             SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
@@ -747,3 +757,31 @@ def test_search_value_classify_and_format_wildcard(value, expected_kind, expecte
     search_value = SearchValue(value)
     kind, wildcard = search_value.classify_and_format_wildcard()
     assert (kind, wildcard) == (expected_kind, expected_value)
+
+
+@pytest.mark.parametrize(
+    ["pattern", "clickhouse"],
+    [
+        pytest.param("simple", "simple", id="simple"),
+        pytest.param("wild * card", "wild % card", id="wildcard"),
+        pytest.param("under_score", "under\\_score", id="underscore"),
+        pytest.param("per%centage", "per\\%centage", id="percentage"),
+        pytest.param("ast\\*erisk", "ast*erisk", id="asterisk"),
+        pytest.param("c*o_m%p\\*lex", "c%o\\_m\\%p*lex", id="complex"),
+    ],
+)
+def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
+    assert translate_wildcard_as_clickhouse_pattern(pattern) == clickhouse
+
+
+@pytest.mark.parametrize(
+    ["pattern"],
+    [
+        pytest.param("\\."),
+        pytest.param("\\%"),
+        pytest.param("\\_"),
+    ],
+)
+def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
+    with pytest.raises(InvalidSearchQuery):
+        assert translate_wildcard_as_clickhouse_pattern(pattern)

@@ -1,9 +1,11 @@
 import {Fragment, useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {Radio} from 'sentry/components/core/radio';
 import Count from 'sentry/components/count';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -16,7 +18,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -53,12 +54,12 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getTrendProjectId,
+  makeTrendToColorMapping,
   modifyTrendView,
   normalizeTrends,
   transformDeltaSpread,
   transformValueDelta,
   trendCursorNames,
-  trendToColor,
 } from './utils';
 
 type Props = {
@@ -377,6 +378,8 @@ function TrendsListItem(props: TrendsListItemProps) {
     handleSelectTransaction,
     trendView,
   } = props;
+  const theme = useTheme();
+  const trendToColor = makeTrendToColorMapping(theme);
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const color = trendToColor[trendChangeType].default;
 

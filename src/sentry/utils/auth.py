@@ -16,6 +16,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
@@ -417,6 +418,8 @@ class EmailAuthBackend(ModelBackend):
         if users:
             for user in users:
                 try:
+                    if is_demo_mode_enabled() and is_demo_user(user):
+                        return user
                     if user.password:
                         # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
                         # password checking as a mechanism to drop old password hashers immediately and
@@ -439,7 +442,7 @@ class EmailAuthBackend(ModelBackend):
         return None
 
 
-def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
+def construct_link_with_query(path: str, query_params: Mapping[str, str | None]) -> str:
     """
     constructs a link with url encoded query params given a base path
     """

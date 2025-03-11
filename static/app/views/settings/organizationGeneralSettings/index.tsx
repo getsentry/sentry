@@ -24,7 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
@@ -113,7 +113,7 @@ export default function OrganizationGeneralSettings() {
           title={t('Organization Settings')}
           action={organizationRegionInfo}
         />
-        <PermissionAlert />
+        <OrganizationPermissionAlert />
 
         <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 

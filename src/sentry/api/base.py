@@ -228,14 +228,8 @@ class Endpoint(APIView):
         | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
     ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-    snuba_methods: list[HTTP_METHOD_NAME] = []
 
-    def build_link_header(self, request: Request, path: str, rel: str):
-        # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
-        uri = request.build_absolute_uri(urlquote(path))
-        return f'<{uri}>; rel="{rel}">'
-
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -356,7 +350,7 @@ class Endpoint(APIView):
             if rv.auth is None:
                 rv.auth = orig_auth
             if rv.user is None:
-                rv.user = orig_user
+                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
         return rv
 
     def has_pagination(self, response: Response) -> bool:
@@ -380,6 +374,8 @@ class Endpoint(APIView):
             request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
+
+        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
 
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -52,7 +53,7 @@ function UnstyledSettingsPageHeader({
           {icon && <Icon>{icon}</Icon>}
           {title && (
             <Title tabs={tabs} styled={noTitleStyles}>
-              <HeaderTitle>{title}</HeaderTitle>
+              <Layout.Title>{title}</Layout.Title>
               {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
             </Title>
           )}
@@ -70,13 +71,6 @@ interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
   styled?: boolean;
   tabs?: React.ReactNode;
 }
-
-const HeaderTitle = styled('h4')`
-  ${p => p.theme.text.pageTitle};
-  color: ${p => p.theme.headingColor};
-  flex: 1;
-  margin: 0;
-`;
 
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;

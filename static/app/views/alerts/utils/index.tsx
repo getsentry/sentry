@@ -8,18 +8,13 @@ import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {
-  formatMetricUsingFixedUnit,
-  formatMetricUsingUnit,
-} from 'sentry/utils/metrics/formatters';
-import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {
   Dataset,
   Datasource,
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
 import type {CombinedAlerts, Incident, IncidentStats} from '../types';
 import {AlertRuleStatus, CombinedAlertType} from '../types';
@@ -131,7 +126,7 @@ export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
 
-export const SESSION_AGGREGATE_TO_FIELD = {
+export const SESSION_AGGREGATE_TO_FIELD: Record<string, SessionFieldWithOperation> = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionFieldWithOperation.SESSIONS,
   [SessionsAggregate.CRASH_FREE_USERS]: SessionFieldWithOperation.USERS,
 };
@@ -139,12 +134,6 @@ export const SESSION_AGGREGATE_TO_FIELD = {
 export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
-  }
-
-  if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri);
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
   const type = aggregateOutputType(seriesName);
@@ -163,12 +152,6 @@ export function alertTooltipValueFormatter(
 ) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${value}%` : '\u2015';
-  }
-
-  if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri);
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));

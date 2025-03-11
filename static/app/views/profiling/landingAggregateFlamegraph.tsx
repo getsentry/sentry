@@ -2,10 +2,10 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -662,7 +662,7 @@ function AggregateFlamegraphProfileReference(props: {
   }
 
   const to = generateProfileRouteFromProfileReference({
-    orgSlug: organization.slug,
+    organization,
     projectSlug: project.slug,
     reference: props.profile,
     frameName: props.frameName,
@@ -680,7 +680,7 @@ function AggregateFlamegraphProfileReference(props: {
     <AggregateFlamegraphProfileReferenceContainer>
       <AggregateFlamegraphProfileReferenceProject>
         <ProjectAvatar project={project} />
-        {project.name || project.slug}
+        {project.slug}
       </AggregateFlamegraphProfileReferenceProject>
       <Link to={to}>
         <TextOverflow>{reference.substring(0, 8)}</TextOverflow>
@@ -864,7 +864,6 @@ const AggregateFlamegraphContainer = styled('div')`
   flex: 1 1 100%;
   height: 100%;
   width: 100%;
-  overflow: hidden;
   position: absolute;
   left: 0px;
   top: 0px;

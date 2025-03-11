@@ -11,6 +11,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
   const organization = useOrganization();
   const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
+
   return (
     <ToggleContainer
       sidebarOpen={isSidebarOpen ?? true}
@@ -43,7 +44,7 @@ const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
 
 // The extra 1px on width is to display above the sidebar border
 const ToggleButton = styled(Button)`
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   border-right-color: ${p => p.theme.background} !important;
   box-shadow: none;
   position: absolute;

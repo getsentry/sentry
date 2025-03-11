@@ -4,7 +4,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.fields import CharField
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +14,7 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields import MultipleChoiceField
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -62,7 +62,7 @@ class ApiTokensEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:

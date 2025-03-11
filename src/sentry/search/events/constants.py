@@ -60,6 +60,9 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
+REPLAY_ALIAS = "replay"
+MESSAGING_OPERATION_TYPE_ALIAS = "messaging.operation.type"
+MESSAGING_OPERATION_NAME_ALIAS = "messaging.operation.name"
 
 
 class ThresholdDict(TypedDict):
@@ -105,6 +108,7 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
 
 MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+FLAG_KEY_RE = re.compile(r"^(flags)\[(?P<flag>.*)\]$")
 
 TYPED_TAG_KEY_RE = re.compile(
     r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
@@ -374,6 +378,8 @@ DEFAULT_METRIC_TAGS = {
     "span.op",
     "trace.status",
     "messaging.destination.name",
+    "messaging.operation.name",
+    "messaging.operation.type",
 }
 SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"

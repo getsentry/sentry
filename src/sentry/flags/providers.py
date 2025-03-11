@@ -11,10 +11,12 @@ from rest_framework.exceptions import ValidationError
 from sentry.flags.models import (
     ACTION_MAP,
     CREATED_BY_TYPE_MAP,
+    PROVIDER_MAP,
     FlagAuditLogModel,
     FlagWebHookSigningSecretModel,
 )
 from sentry.silo.base import SiloLimit
+from sentry.utils.safe import get_path
 
 
 def write(rows: list["FlagAuditLogRow"]) -> None:
@@ -38,7 +40,7 @@ T = TypeVar("T", contravariant=True)
 
 
 class FlagAuditLogRow(TypedDict):
-    """A complete flag audit log row instance."""
+    """A complete flag audit log row instance. Corresponds to the FlagAuditLogModel."""
 
     action: int
     created_at: datetime.datetime
@@ -46,6 +48,7 @@ class FlagAuditLogRow(TypedDict):
     created_by_type: int | None
     flag: str
     organization_id: int
+    provider: int  # This is only nullable in the model for backwards compatibility.
     tags: dict[str, Any]
 
 
@@ -54,7 +57,9 @@ class ProviderProtocol(Protocol[T]):
     provider_name: str
     signature: str | None
 
-    def __init__(self, organization_id: int, signature: str | None) -> None: ...
+    def __init__(
+        self, organization_id: int, signature: str | None, request_timestamp: str | None
+    ) -> None: ...
     def handle(self, message: T) -> list[FlagAuditLogRow]: ...
     def validate(self, message_bytes: bytes) -> bool: ...
 
@@ -82,6 +87,12 @@ def get_provider(
             return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
         case "unleash":
             return UnleashProvider(organization_id, signature=headers.get("Authorization"))
+        case "statsig":
+            return StatsigProvider(
+                organization_id,
+                signature=headers.get("X-Statsig-Signature"),
+                request_timestamp=headers.get("X-Statsig-Request-Timestamp"),
+            )
         case _:
             return None
 
@@ -121,7 +132,9 @@ SUPPORTED_LAUNCHDARKLY_ACTIONS = {
 class LaunchDarklyProvider:
     provider_name = "launchdarkly"
 
-    def __init__(self, organization_id: int, signature: str | None) -> None:
+    def __init__(
+        self, organization_id: int, signature: str | None, _request_timestamp: str | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.signature = signature
 
@@ -151,6 +164,7 @@ class LaunchDarklyProvider:
                 "created_by_type": CREATED_BY_TYPE_MAP["email"] if created_by else None,
                 "flag": result["name"],
                 "organization_id": self.organization_id,
+                "provider": PROVIDER_MAP["launchdarkly"],
                 "tags": {"description": result["description"]},
             }
         ]
@@ -208,7 +222,9 @@ class GenericRequestSerializer(serializers.Serializer):
 class GenericProvider:
     provider_name = "generic"
 
-    def __init__(self, organization_id: int, signature: str | None) -> None:
+    def __init__(
+        self, organization_id: int, signature: str | None, _request_timestamp: str | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.signature = signature
 
@@ -230,6 +246,7 @@ class GenericProvider:
                         "created_by_type": CREATED_BY_TYPE_MAP[item["created_by"]["type"]],
                         "flag": item["flag"],
                         "organization_id": self.organization_id,
+                        "provider": PROVIDER_MAP["generic"],
                         "tags": {},
                     }
                 )
@@ -300,7 +317,9 @@ def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
 class UnleashProvider:
     provider_name = "unleash"
 
-    def __init__(self, organization_id: int, signature: str | None) -> None:
+    def __init__(
+        self, organization_id: int, signature: str | None, _request_timestamp: str | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.signature = signature
 
@@ -333,6 +352,7 @@ class UnleashProvider:
                 "created_by_type": created_by_type,
                 "flag": result["featureName"],
                 "organization_id": self.organization_id,
+                "provider": PROVIDER_MAP["unleash"],
                 "tags": tags,
             }
         ]
@@ -353,6 +373,131 @@ def _handle_unleash_actions(action: str) -> int:
         return ACTION_MAP["deleted"]
     else:
         return ACTION_MAP["updated"]
+
+
+"""Statsig provider."""
+
+SUPPORTED_STATSIG_EVENTS = {"statsig::config_change"}
+
+# Case-insensitive set. Config_change is subclassed by the type of Statsig
+# feature. There's "Gate", "Experiment", and more. Feature gates are boolean
+# release flags, but all other types are unstructured JSON. To reduce noise,
+# Gate is the only type we audit for now.
+SUPPORTED_STATSIG_TYPES = {
+    "gate",
+}
+
+
+class StatsigEventSerializer(serializers.Serializer):
+    eventName = serializers.CharField(required=True)
+    timestamp = serializers.CharField(required=True)
+    metadata = serializers.DictField(required=True)
+
+    user = serializers.DictField(required=False, child=serializers.CharField())
+    userID = serializers.CharField(required=False)
+    value = serializers.CharField(required=False)
+    statsigMetadata = serializers.DictField(required=False)
+    timeUUID = serializers.UUIDField(required=False)
+    unitID = serializers.CharField(required=False)
+
+
+class StatsigItemSerializer(serializers.Serializer):
+    data = serializers.ListField(child=StatsigEventSerializer(), required=True)  # type: ignore[assignment]
+
+
+class StatsigProvider:
+    provider_name = "statsig"
+    version = "v0"
+
+    def __init__(
+        self,
+        organization_id: int,
+        signature: str | None,
+        request_timestamp: str | None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.signature = signature
+        self.request_timestamp = request_timestamp
+
+        # Strip the signature's version prefix. For example, signature format for v0 is "v0+{hash}"
+        prefix_len = len(self.version) + 1
+        if signature and len(signature) > prefix_len:
+            self.signature = signature[prefix_len:]
+
+    def handle(self, message: dict[str, Any]) -> list[FlagAuditLogRow]:
+        serializer = StatsigItemSerializer(data=message)
+        if not serializer.is_valid():
+            raise DeserializationError(serializer.errors)
+
+        events = serializer.validated_data["data"]
+        audit_logs = []
+        for event in events:
+            event_name = event["eventName"]
+
+            if event_name not in SUPPORTED_STATSIG_EVENTS:
+                continue
+
+            metadata = event.get("metadata") or {}
+            flag = metadata.get("name")
+            statsig_type = metadata.get("type")
+            action = (metadata.get("action") or "").lower()
+
+            if (
+                not flag
+                or not statsig_type
+                or statsig_type.lower() not in SUPPORTED_STATSIG_TYPES
+                or action not in ACTION_MAP
+            ):
+                continue
+
+            action = ACTION_MAP[action]
+
+            # Prioritize email > id > name for created_by.
+            if created_by := get_path(event, "user", "email"):
+                created_by_type = CREATED_BY_TYPE_MAP["email"]
+            elif created_by := event.get("userID") or get_path(event, "user", "userID"):
+                created_by_type = CREATED_BY_TYPE_MAP["id"]
+            elif created_by := get_path(event, "user", "name"):
+                created_by_type = CREATED_BY_TYPE_MAP["name"]
+            else:
+                created_by, created_by_type = None, None
+
+            created_at_ms = float(event["timestamp"])
+            created_at = datetime.datetime.fromtimestamp(created_at_ms / 1000.0, datetime.UTC)
+
+            tags = {}
+            if projectName := metadata.get("projectName"):
+                tags["projectName"] = projectName
+            if projectID := metadata.get("projectID"):
+                tags["projectID"] = projectID
+            if environments := metadata.get("environments"):
+                tags["environments"] = environments
+
+            audit_logs.append(
+                FlagAuditLogRow(
+                    action=action,
+                    created_at=created_at,
+                    created_by=created_by,
+                    created_by_type=created_by_type,
+                    flag=flag,
+                    organization_id=self.organization_id,
+                    provider=PROVIDER_MAP["statsig"],
+                    tags=tags,
+                )
+            )
+
+        return audit_logs
+
+    def validate(self, message_bytes: bytes) -> bool:
+        if self.request_timestamp is None:
+            return False
+
+        signature_basestring = f"{self.version}:{self.request_timestamp}:".encode() + message_bytes
+
+        validator = PayloadSignatureValidator(
+            self.organization_id, self.provider_name, signature_basestring, self.signature
+        )
+        return validator.validate()
 
 
 """Flagpole provider."""
@@ -378,6 +523,7 @@ def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_
                 "created_by_type": CREATED_BY_TYPE_MAP["name"],
                 "flag": item["flag"],
                 "organization_id": organization_id,
+                "provider": PROVIDER_MAP["flagpole"],
                 "tags": item["tags"],
             }
             for item in items
@@ -389,10 +535,11 @@ def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_
 
 
 class AuthTokenValidator:
-    """Abstract payload validator.
+    """Abstract validator for injecting dependencies in tests. Use this when a
+    provider does not support signing.
 
-    Similar to the SecretValidator class below, except we do not need
-    to validate the authorization string.
+    Similar to the PayloadSignatureValidator class below, except we do not
+    validate the authorization string with the payload.
     """
 
     def __init__(
@@ -419,7 +566,7 @@ class AuthTokenValidator:
 
 
 class PayloadSignatureValidator:
-    """Abstract payload validator.
+    """Abstract payload validator. Uses HMAC-SHA256 by default.
 
     Allows us to inject dependencies for differing use cases. Specifically
     the test suite.
@@ -429,14 +576,14 @@ class PayloadSignatureValidator:
         self,
         organization_id: int,
         provider: str,
-        request_body: bytes,
+        message: bytes,
         signature: str | None,
         secret_finder: Callable[[int, str], Iterator[str]] | None = None,
         secret_validator: Callable[[str, bytes], str] | None = None,
     ) -> None:
         self.organization_id = organization_id
         self.provider = provider
-        self.request_body = request_body
+        self.message = message
         self.signature = signature
         self.secret_finder = secret_finder or _query_signing_secrets
         self.secret_validator = secret_validator or hmac_sha256_hex_digest
@@ -446,7 +593,7 @@ class PayloadSignatureValidator:
             return False
 
         for secret in self.secret_finder(self.organization_id, self.provider):
-            if self.secret_validator(secret, self.request_body) == self.signature:
+            if self.secret_validator(secret, self.message) == self.signature:
                 return True
         return False
 

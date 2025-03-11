@@ -62,9 +62,9 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
 
   const spanThreadId = useMemo(() => {
     const value = isMissingInstrumentationNode(node)
-      ? node.previous.value ?? node.next.value ?? null
-      : node.value ?? null;
-    return value.data?.['thread.id'];
+      ? (node.previous.value ?? node.next.value ?? null)
+      : (node.value ?? null);
+    return 'data' in value ? value.data?.['thread.id'] : null;
   }, [node]);
 
   const profile = useMemo(() => {
@@ -109,7 +109,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
             }
           : undefined;
         return generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profileId: profileContext.profile_id,
           query,
@@ -122,7 +122,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
           tid: spanThreadId,
         };
         return generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profilerId: profileContext.profiler_id,
           start: new Date(event.startTimestamp * 1000).toISOString(),
@@ -247,9 +247,9 @@ function LegacyProfilePreview({event, node}: SpanProfileProps) {
 
   const spanThreadId = useMemo(() => {
     const value = isMissingInstrumentationNode(node)
-      ? node.previous.value ?? node.next.value ?? null
-      : node.value ?? null;
-    return value.data?.['thread.id'];
+      ? (node.previous.value ?? node.next.value ?? null)
+      : (node.value ?? null);
+    return 'data' in value ? value.data?.['thread.id'] : null;
   }, [node]);
 
   const profile = useMemo(() => {
@@ -371,7 +371,7 @@ function ProfilePreviewHeader({
             }
           : undefined;
         return generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profileId: profileContext.profile_id,
           query,
@@ -384,7 +384,7 @@ function ProfilePreviewHeader({
           tid: spanThreadId,
         };
         return generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profilerId: profileContext.profiler_id,
           start: new Date(event.startTimestamp * 1000).toISOString(),

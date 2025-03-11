@@ -1,10 +1,11 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -13,16 +14,36 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useIssueDetailsTour} from 'sentry/views/issueDetails/issueDetailsTour';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
   const user = useUser();
   const organization = useOrganization();
+  const {
+    dispatch: tourDispatch,
+    isAvailable: isTourAvailable,
+    isRegistered: isTourRegistered,
+    isCompleted: isTourCompleted,
+  } = useIssueDetailsTour();
+
+  // XXX: We use a ref to track the previous state of tour completion
+  // since we only show the banner when the tour goes from incomplete to complete
+  const isTourCompletedRef = useRef(isTourCompleted);
+  const [isReminderVisible, setIsReminderVisible] = useState(false);
+  useEffect(() => {
+    // If the tour becomes completed, and started off incomplete, show the reminder.
+    if (isTourCompleted && !isTourCompletedRef.current) {
+      setIsReminderVisible(true);
+    }
+    isTourCompletedRef.current = isTourCompleted;
+  }, [isTourCompleted]);
+
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
-  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
+  const hasNewUIOnly = organization.streamlineOnly;
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
@@ -42,8 +63,8 @@ export function NewIssueExperienceButton() {
     !hasStreamlinedUIFlag ||
     // has the 'remove opt-out' flag,
     hasEnforceStreamlinedUIFlag ||
-    // has access to only one interface (via the organization option).
-    hasOnlyOneUIOption
+    // has access to only the updated experience through the experiment
+    hasNewUIOnly
   ) {
     return null;
   }
@@ -55,80 +76,97 @@ export function NewIssueExperienceButton() {
     const text = hasStreamlinedUI ? null : t('Try New UI');
 
     return (
-      <ToggleButtonWrapper>
-        <ToggleButton
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          icon={
-            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+      <ToggleButton
+        enabled={hasStreamlinedUI}
+        size={hasStreamlinedUI ? 'xs' : 'sm'}
+        icon={
+          defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+            <IconLab isSolid={hasStreamlinedUI} />
+          ) : (
+            <motion.div
+              style={{height: 14}}
+              animate={{
+                rotate: [null, 6, -6, 12, -12, 6, -6, 0],
+              }}
+              transition={{
+                duration: 1,
+                delay: 1,
+                repeatDelay: 3,
+                repeat: 3,
+              }}
+            >
               <IconLab isSolid={hasStreamlinedUI} />
-            ) : (
-              <motion.div
-                style={{height: 14}}
-                animate={{
-                  rotate: [null, 6, -6, 12, -12, 6, -6, 0],
-                }}
-                transition={{
-                  duration: 1,
-                  delay: 1,
-                  repeatDelay: 3,
-                  repeat: 3,
-                }}
-              >
-                <IconLab isSolid={hasStreamlinedUI} />
-              </motion.div>
-            )
-          }
-          title={label}
-          aria-label={label}
-          borderless={!hasStreamlinedUI}
-          onClick={handleToggle}
-        >
-          {text ? <span>{text}</span> : null}
-          <ToggleBorder />
-        </ToggleButton>
-      </ToggleButtonWrapper>
+            </motion.div>
+          )
+        }
+        title={label}
+        aria-label={label}
+        onClick={handleToggle}
+      >
+        {text}
+      </ToggleButton>
     );
   }
 
-  return (
-    <DropdownMenu
-      trigger={triggerProps => (
-        <StyledDropdownButton
-          {...triggerProps}
-          enabled={hasStreamlinedUI}
-          size={hasStreamlinedUI ? 'xs' : 'sm'}
-          aria-label={t('Switch issue experience')}
-        >
-          {/* Passing icon as child to avoid extra icon margin */}
-          <IconLab isSolid={hasStreamlinedUI} />
-        </StyledDropdownButton>
-      )}
-      items={[
-        {
-          key: 'switch-to-old-ui',
-          label: t('Switch to the old issue experience'),
-          onAction: handleToggle,
-        },
-        {
-          key: 'give-feedback',
-          label: t('Give feedback on new UI'),
-          hidden: !openForm,
-          onAction: () => {
-            openForm({
-              messagePlaceholder: t(
-                'Excluding bribes, what would make you excited to use the new UI?'
-              ),
-              tags: {
-                ['feedback.source']: 'streamlined_issue_details',
-                ['feedback.owner']: 'issues',
-              },
-            });
+  const items = [
+    {
+      key: 'switch-to-old-ui',
+      label: t('Switch to the old issue experience'),
+      onAction: handleToggle,
+    },
+    {
+      key: 'give-feedback',
+      label: t('Give feedback on new UI'),
+      hidden: !openForm,
+      onAction: () => {
+        openForm({
+          messagePlaceholder: t(
+            'Excluding bribes, what would make you excited to use the new UI?'
+          ),
+          tags: {
+            ['feedback.source']: 'streamlined_issue_details',
+            ['feedback.owner']: 'issues',
           },
-        },
-      ]}
-      position="bottom-end"
-    />
+        });
+      },
+    },
+  ];
+
+  if (isTourAvailable && isTourRegistered) {
+    items.unshift({
+      key: 'start-tour',
+      label: t('Take a tour'),
+      onAction: () => tourDispatch({type: 'START_TOUR'}),
+    });
+  }
+
+  return (
+    <TourGuide
+      title={t('Come back anytime')}
+      description={t('Click here to take the tour or share feedback with the team.')}
+      actions={
+        <TourAction size="xs" onClick={() => setIsReminderVisible(false)}>
+          {t('Got it')}
+        </TourAction>
+      }
+      isOpen={isReminderVisible}
+    >
+      <DropdownMenu
+        trigger={triggerProps => (
+          <StyledDropdownButton
+            {...triggerProps}
+            enabled={hasStreamlinedUI}
+            size={hasStreamlinedUI ? 'xs' : 'sm'}
+            aria-label={t('Switch issue experience')}
+          >
+            {/* Passing icon as child to avoid extra icon margin */}
+            <IconLab isSolid={hasStreamlinedUI} />
+          </StyledDropdownButton>
+        )}
+        items={items}
+        position="bottom-end"
+      />
+    </TourGuide>
   );
 }
 
@@ -139,45 +177,11 @@ const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
   }
 `;
 
-const ToggleButtonWrapper = styled('div')`
-  overflow: hidden;
-  margin: 0 -1px;
-  border-radius: 7px;
-`;
-
 const ToggleButton = styled(Button)<{enabled: boolean}>`
-  position: relative;
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
+  background: ${p =>
+    p.enabled ? 'inherit' : `linear-gradient(90deg, #3468D8, #248574)`};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
   }
-  &:after {
-    position: absolute;
-    content: '';
-    inset: 0;
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
-  }
-  span {
-    z-index: 1;
-  }
-`;
-
-const ToggleBorder = styled('div')`
-  @keyframes rotating {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  position: absolute;
-  content: '';
-  z-index: -1;
-  width: 125px;
-  height: 125px;
-  border-radius: 7px;
-  background: ${p => p.theme.badge.beta.background};
-  animation: rotating 10s linear infinite;
 `;

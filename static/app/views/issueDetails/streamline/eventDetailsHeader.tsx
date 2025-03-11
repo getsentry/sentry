@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -16,15 +17,20 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
+import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
-import {IssueCheckInTimeline} from 'sentry/views/issueDetails/streamline/issueCheckInTimeline';
+import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
-import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
+import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
@@ -68,42 +74,50 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <FilterContainer
+      <DetailsContainer
         role="group"
         aria-description={t('Event filtering controls')}
         hasFilterBar={issueTypeConfig.header.filterBar.enabled}
       >
         {issueTypeConfig.header.filterBar.enabled && (
-          <Fragment>
-            <EnvironmentSelector group={group} event={event} project={project} />
-            <DateFilter
-              triggerProps={{
-                borderless: true,
-                style: {
-                  borderRadius: 0,
-                },
-              }}
-            />
-            <Flex style={{gridArea: 'search'}}>
-              <SearchFilter
-                group={group}
-                handleSearch={query => {
-                  navigate(
-                    {...location, query: {...location.query, query}},
-                    {replace: true}
-                  );
-                }}
-                environments={environments}
-                query={searchQuery}
-                queryBuilderProps={{
-                  disallowFreeText: true,
-                  placeholder: searchText,
-                  label: searchText,
+          <TourElement<IssueDetailsTour>
+            tourContext={IssueDetailsTourContext}
+            id={IssueDetailsTour.FILTERS}
+            title={t('Narrow your focus')}
+            description={t(
+              'Filtering data to a specific environment, timeframe, tag value, or user can speed up debugging.'
+            )}
+            position="bottom-start"
+          >
+            <FilterContainer>
+              <EnvironmentSelector group={group} event={event} project={project} />
+              <DateFilter
+                triggerProps={{
+                  borderless: true,
+                  style: {borderRadius: 0},
                 }}
               />
-              <ToggleSidebar />
-            </Flex>
-          </Fragment>
+              <Flex>
+                <SearchFilter
+                  group={group}
+                  handleSearch={query => {
+                    navigate(
+                      {...location, query: {...location.query, query}},
+                      {replace: true}
+                    );
+                  }}
+                  environments={environments}
+                  query={searchQuery}
+                  queryBuilderProps={{
+                    disallowFreeText: true,
+                    placeholder: searchText,
+                    label: searchText,
+                  }}
+                />
+                <ToggleSidebar />
+              </Flex>
+            </FilterContainer>
+          </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
@@ -111,10 +125,13 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               <EventGraph event={event} group={group} style={{flex: 1}} />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssueChart group={group} project={project} event={event} />
+              <MetricIssueChart group={group} project={project} />
             )}
-            {issueTypeConfig.header.graph.type === 'checkin-timeline' && (
-              <IssueCheckInTimeline />
+            {issueTypeConfig.header.graph.type === 'uptime-checks' && (
+              <IssueUptimeCheckTimeline group={group} />
+            )}
+            {issueTypeConfig.header.graph.type === 'cron-checks' && (
+              <IssueCronCheckTimeline group={group} />
             )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview
@@ -128,7 +145,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
         )}
-      </FilterContainer>
+      </DetailsContainer>
     </PageErrorBoundary>
   );
 }
@@ -140,7 +157,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
 
   const environmentCss = css`
-    grid-area: env;
+    display: block;
     &:before {
       right: 0;
       top: ${space(1)};
@@ -174,29 +191,32 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   );
 }
 
-const FilterContainer = styled('div')<{
+const DetailsContainer = styled('div')<{
   hasFilterBar: boolean;
 }>`
   padding-left: 24px;
-  display: grid;
-  grid-template-columns: auto auto minmax(100px, 1fr) auto;
-  grid-template-rows: ${p => (p.hasFilterBar ? 'minmax(38px, auto) auto auto' : 'auto')};
-  grid-template-areas:
-    'env      date      search    toggle'
-    'graph    graph     graph     graph'
-    'timeline timeline  timeline  timeline';
+  display: flex;
+  flex-direction: column;
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
 `;
 
+const FilterContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto minmax(100px, 1fr) auto;
+  grid-template-rows: minmax(38px, auto);
+  width: 100%;
+`;
+
 const SearchFilter = styled(EventSearch)`
+  display: block;
   border-color: transparent;
   border-radius: 0;
   box-shadow: none;
 `;
 
 const DateFilter = styled(DatePageFilter)`
-  grid-area: date;
+  display: block;
   &:before {
     right: 0;
     top: ${space(1)};
@@ -209,7 +229,6 @@ const DateFilter = styled(DatePageFilter)`
 `;
 
 const GraphSection = styled('div')`
-  grid-area: graph;
   display: flex;
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
@@ -217,9 +236,9 @@ const GraphSection = styled('div')`
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
-  grid-area: timeline;
-  padding: ${space(2)};
-  padding-right: 0;
+  white-space: unset;
+  padding: ${space(1)};
+  padding-left: 0;
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }

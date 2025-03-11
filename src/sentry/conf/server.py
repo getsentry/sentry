@@ -20,8 +20,9 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
+from sentry.conf.types.region_config import RegionConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -108,10 +109,10 @@ ENFORCE_PAGINATION = True if DEBUG else False
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-INTERNAL_IPS = ()
+INTERNAL_IPS: tuple[str, ...] = ()
 
 # List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS = ()
+SENTRY_DISALLOWED_IPS: tuple[str, ...] = ()
 
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
@@ -428,6 +429,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.issues.apps.Config",
     "sentry.feedback",
     "sentry.hybridcloud",
+    "sentry.relocation",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
@@ -527,7 +529,7 @@ STATIC_URL = "/_static/{version}/"
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # URL origin from where the static files are served.
-STATIC_ORIGIN = None
+STATIC_ORIGIN: str | None = None
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -686,9 +688,8 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions, or a JSON string
-# that is parsed.
-SENTRY_REGION_CONFIG: Any = ()
+# List of the available regions
+SENTRY_REGION_CONFIG: list[RegionConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -773,6 +774,8 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -799,11 +802,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
-    "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -837,6 +838,7 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
+    "sentry.demo_mode.tasks",
 )
 
 # Enable split queue routing
@@ -893,6 +895,12 @@ CELERY_QUEUES_CONTROL = [
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
+    Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
+    Queue(
+        "release_registry.control",
+        routing_key="release_registry.control",
+        exchange=control_exchange,
+    ),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -995,6 +1003,8 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue("demo_mode", routing_key="demo_mode"),
+    Queue("release_registry", routing_key="release_registry"),
 ]
 
 from celery.schedules import crontab
@@ -1049,6 +1059,16 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         # Run every 10 seconds as integration webhooks are delivered by this task
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
+    },
+    "relocation-find-transfer-control": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": crontab(minute="*/5"),
+    },
+    "fetch-release-registry-data-control": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+        "options": {"expires": 3600, "queue": "release_registry.control"},
     },
 }
 
@@ -1177,7 +1197,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
+        "options": {"expires": 3600, "queue": "release_registry"},
     },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
@@ -1276,6 +1296,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
     },
+    "demo_mode_sync_artifact_bundles": {
+        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+        # Run every hour
+        "schedule": crontab(minute="0", hour="*/1"),
+    },
+    "relocation-find-transfer-region": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": crontab(minute="*/5"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1344,6 +1373,9 @@ BGTASKS = {
 }
 
 # Taskworker settings #
+# Shared secret used to sign RPC requests to taskbrokers
+TASKWORKER_SHARED_SECRET: str | None = None
+
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -1353,6 +1385,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
+
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
 
@@ -1812,8 +1845,6 @@ SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.Pos
 SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1  # relative to SENTRY_BACKEND_APM_SAMPLING
-
-SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
 SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
@@ -2542,7 +2573,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.1.0"
+SELF_HOSTED_STABLE_VERSION = "25.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2737,7 +2768,11 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:nuget",
         "name": "NuGet.org",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["portablepdb"]},
+        # We mark this source as "requires checksum" so that downloads of
+        # portable PDB fies that don't have a debug checksum won't even be
+        # attempted. Such downloads always fail with a 403 error. See
+        # https://github.com/getsentry/team-ingest/issues/643.
+        "filters": {"filetypes": ["portablepdb"], "requires_checksum": True},
         "url": "https://symbols.nuget.org/download/symbols/",
         "is_public": True,
     },
@@ -2750,15 +2785,21 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "is_public": True,
-    },
+    # Right now Symbolicator is not able to successfully download from
+    # the Intel source because the source doesn't accept custom user agents.
+    # Until we are confident we can spoof Symbolicator's user agent without
+    # abusing the source, we are disabling it. See
+    # https://github.com/getsentry/team-ingest/issues/642.
+    #
+    # "intel": {
+    #     "type": "http",
+    #     "id": "sentry:intel",
+    #     "name": "Intel",
+    #     "layout": {"type": "symstore"},
+    #     "filters": {"filetypes": ["pe", "pdb"]},
+    #     "url": "https://software.intel.com/sites/downloads/symbols/",
+    #     "is_public": True,
+    # },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -2940,6 +2981,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-transactions": "default",
     "ingest-transactions-dlq": "default",
     "ingest-transactions-backlog": "default",
+    "ingest-spans": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
@@ -3088,9 +3130,6 @@ SENTRY_REPROCESSING_PAGE_SIZE = 10
 # is about "remaining events" exclusively.
 SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
-# XXX(meredith): Temporary metrics indexer
-SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
-
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with
 # save_event tasks from single project.
@@ -3120,7 +3159,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
-ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
@@ -3440,9 +3479,6 @@ APIGATEWAY_PROXY_SKIP_RELAY = False
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
-# Disable DDM entirely
-SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
-
 SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
@@ -3465,19 +3501,15 @@ UPTIME_REGIONS = [
     UptimeRegionConfig(
         slug="default",
         name="Default Region",
-        config_topic=Topic.UPTIME_CONFIGS,
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
-        enabled=True,
     ),
 ]
 UPTIME_CONFIG_PARTITIONS = 128
 
-MARKETO: Mapping[str, Any] = {
-    "base-url": os.getenv("MARKETO_BASE_URL"),
-    "client-id": os.getenv("MARKETO_CLIENT_ID"),
-    "client-secret": os.getenv("MARKETO_CLIENT_SECRET"),
-    "form-id": os.getenv("MARKETO_FORM_ID"),
-}
+MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
+MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
+MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
+MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
@@ -3516,7 +3548,6 @@ if SILO_DEVSERVER:
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
-            "api_token": "dev-region-silo-token",
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]

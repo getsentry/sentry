@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
@@ -22,14 +22,16 @@ function DeletionInProgress({organization}: OrganizationProps) {
   return (
     <Layout.Body>
       <Layout.Main>
-        <Alert type="warning" showIcon>
-          {tct(
-            'The [organization] organization is currently in the process of being deleted from Sentry.',
-            {
-              organization: <strong>{organization.slug}</strong>,
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {tct(
+              'The [organization] organization is currently in the process of being deleted from Sentry.',
+              {
+                organization: <strong>{organization.slug}</strong>,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       </Layout.Main>
     </Layout.Body>
   );

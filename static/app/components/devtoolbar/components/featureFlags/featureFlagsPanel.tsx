@@ -1,8 +1,8 @@
 import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 import {css} from '@emotion/react';
 
+import {Input} from 'sentry/components/core/input';
 import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
-import Input from 'sentry/components/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconChevron, IconClose} from 'sentry/icons';

@@ -71,7 +71,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const [isHeld, setIsHeld] = useState(false);
 
   const updateSize = useCallback(
-    (newSize: number, userEvent: boolean = false) => {
+    (newSize: number, userEvent = false) => {
       setSize(newSize);
       options.onResize(newSize, undefined, userEvent);
       if (options.sizeStorageKey) {

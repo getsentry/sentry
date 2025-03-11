@@ -2265,11 +2265,22 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             in response.content.decode()
         )
 
-    def test_manager_or_owner_can_update_dashboard_edit_perms(self):
+    def test_only_owner_can_update_dashboard_edit_perms(self):
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
 
         user = self.create_user(id=28193)
         self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"permissions": {"is_editable_by_everyone": False}},
+        )
+        assert response.status_code == 403
+
+        user = self.create_user(id=28194)
+        self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
 
         response = self.do_request(
@@ -3079,7 +3090,6 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "widgets": [
                 {**widget, "widgetType": "issue"},
                 {**widget, "widgetType": "metrics"},
-                {**widget, "widgetType": "custom-metrics"},
             ],
         }
 

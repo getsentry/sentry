@@ -3,9 +3,9 @@ import logging
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
+from sentry.search.eap.columns import ResolvedAggregate, ResolvedAttribute, ResolvedFormula
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
@@ -16,8 +16,10 @@ from sentry.utils.snuba import process_value
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
-    if isinstance(column, ResolvedFunction):
+def categorize_column(column: ResolvedAttribute | ResolvedAggregate | ResolvedFormula) -> Column:
+    if isinstance(column, ResolvedFormula):
+        return Column(formula=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
     else:
         return Column(key=column.proto_definition, label=column.public_alias)
@@ -59,9 +61,8 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
-    has_aggregations = any(
-        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
-    )
+
+    has_aggregations = any(col for col in columns if col.is_aggregate)
 
     labeled_columns = [categorize_column(col) for col in columns]
 
@@ -111,19 +112,26 @@ def run_table_query(
             assert len(column_value.results) == len(column_value.reliabilities), Exception(
                 "Length of rpc results do not match length of rpc reliabilities"
             )
+        sentry_sdk.set_measurement(
+            f"SearchResolver.result_size.{attribute}", len(column_value.results)
+        )
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
             final_confidence.append({})
 
         for index, result in enumerate(column_value.results):
-            result_value: str | int | float
-            result_value = getattr(result, str(result.WhichOneof("value")))
+            result_value: str | int | float | None
+            if result.is_null:
+                result_value = None
+            else:
+                result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
                 final_confidence[index][attribute] = CONFIDENCES.get(
                     column_value.reliabilities[index], None
                 )
+    sentry_sdk.set_measurement("SearchResolver.result_size.final_data", len(final_data))
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}

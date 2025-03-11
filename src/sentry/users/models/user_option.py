@@ -163,8 +163,12 @@ class UserOption(Model):
         - unused
      - issues:defaults:jira_server
         - unused
-    - prefers_issue_details_streamlined_ui
+     - prefers_issue_details_streamlined_ui
         - Whether the user prefers the new issue details experience (boolean)
+     - prefers_stacked_navigation
+        - Whether the user prefers the new stacked navigation experience (boolean)
+     - quick_start_display
+        - Tracks whether the quick start guide was already automatically shown to the user during their second visit
      - language
         - which language to display the app in
      - mail:email

@@ -96,7 +96,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query: mutableSearch.formatString(),
-      orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
+      orderby:
+        (mapWebVitalToOrderBy(orderBy) ?? withProfiles) ? '-profile.id' : undefined,
       version: 2,
     },
     pageFilters.selection

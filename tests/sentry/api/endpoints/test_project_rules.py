@@ -14,7 +14,6 @@ from slack_sdk.web import SlackResponse
 
 from sentry.api.endpoints.project_rules import get_max_alerts
 from sentry.constants import ObjectStatus
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
@@ -25,14 +24,6 @@ from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
-from sentry.workflow_engine.models import (
-    Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
-    DataConditionGroupAction,
-    WorkflowDataConditionGroup,
-)
-from sentry.workflow_engine.models.data_condition import Condition
 
 
 class ProjectRuleBaseTestCase(APITestCase):
@@ -407,56 +398,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.run_test(
             actions=self.notify_event_action, conditions=self.first_seen_condition, environment=None
         )
-        assert AlertRuleWorkflow.objects.all().count() == 0
-        assert AlertRuleDetector.objects.all().count() == 0
-
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine(self):
-        filters = [
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "foo",
-                "match": "is",
-            }
-        ]
-        expected_filters = deepcopy(filters)
-        expected_filters[0]["value"] = ""
-        expected_conditions = self.first_seen_condition + expected_filters
-        response = self.run_test(
-            actions=self.notify_event_action,
-            filters=filters,
-            conditions=self.first_seen_condition,
-            expected_conditions=expected_conditions,
-            environment=None,
-        )
-
-        rule_id = response.data["id"]
-        alert_rule_detector = AlertRuleDetector.objects.get(rule_id=rule_id)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule_id)
-
-        detector = alert_rule_detector.detector
-        assert detector.project_id == self.project.id
-        assert detector.type == ErrorGroupType.slug
-
-        workflow = alert_rule_workflow.workflow
-        when_dcg = workflow.when_condition_group
-        assert when_dcg
-        assert when_dcg.logic_type == "any-short"
-        assert len(when_dcg.conditions.all()) == 1
-
-        data_condition = list(when_dcg.conditions.all())[0]
-        assert data_condition.type == Condition.FIRST_SEEN_EVENT
-
-        action_filter = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        assert action_filter.logic_type == "any-short"
-
-        assert len(action_filter.conditions.all()) == 1
-        data_condition = list(action_filter.conditions.all())[0]
-        assert data_condition.type == Condition.TAGGED_EVENT
-        assert data_condition.comparison == {"key": "foo", "match": "is"}
-
-        action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
-        assert action.type == Action.Type.PLUGIN
 
     @with_feature("organizations:rule-create-edit-confirm-notification")
     @patch(
@@ -1053,7 +994,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             **payload,
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=500,
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]

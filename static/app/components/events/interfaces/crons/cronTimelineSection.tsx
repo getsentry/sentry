@@ -21,20 +21,20 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 import {CronServiceIncidents} from 'sentry/views/monitors/components/serviceIncidents';
-import type {MonitorBucket} from 'sentry/views/monitors/types';
 import {
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
 } from 'sentry/views/monitors/utils';
 import {selectCheckInData} from 'sentry/views/monitors/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/monitors/utils/useMonitorStats';
 
 interface Props {
   event: Event;
@@ -57,26 +57,12 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
-  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isPending} = useApiQuery<Record<string, MonitorBucket[]>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          until: Math.floor(end.getTime() / 1000),
-          since: Math.floor(start.getTime() / 1000),
-          monitor: monitorId,
-          resolution: `${rollup}s`,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !!monitorId && timelineWidth > 0,
-    }
-  );
+  const {data: monitorStats, isPending} = useMonitorStats({
+    timeWindowConfig,
+    monitors: [monitorId ?? ''],
+    enabled: monitorId !== undefined,
+  });
 
   if (!monitorId) {
     return null;
@@ -92,7 +78,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
         size="xs"
         icon={<IconOpen />}
         to={{
-          pathname: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${monitorSlug}/details/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/crons/${project.slug}/${monitorSlug}/details/`,
+            organization,
+          }),
           query: {environment},
         }}
       >

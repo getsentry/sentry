@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:12.739370+00:00'
+created: '2025-02-26T00:31:52.498115+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,22 +30,22 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_dispatch_root_queues_init_once"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "start_wqthread"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_pthread_wqthread"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_dispatch_worker_thread2"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_dispatch_root_queue_drain"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "_dispatch_client_callout"
             frame*

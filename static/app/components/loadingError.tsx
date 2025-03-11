@@ -1,5 +1,5 @@
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -18,21 +18,23 @@ function LoadingError({
   message = t('There was an error loading data.'),
 }: Props) {
   return (
-    <Alert
-      type="error"
-      data-test-id="loading-error"
-      showIcon
-      className={className}
-      trailingItems={
-        onRetry && (
-          <Button onClick={onRetry} priority="default" size="sm">
-            {t('Retry')}
-          </Button>
-        )
-      }
-    >
-      {message}
-    </Alert>
+    <Alert.Container>
+      <Alert
+        type="error"
+        data-test-id="loading-error"
+        showIcon
+        className={className}
+        trailingItems={
+          onRetry && (
+            <Button onClick={onRetry} priority="default" size="sm">
+              {t('Retry')}
+            </Button>
+          )
+        }
+      >
+        {message}
+      </Alert>
+    </Alert.Container>
   );
 }
 

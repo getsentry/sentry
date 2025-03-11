@@ -9,13 +9,13 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixChangesStep,
   type AutofixCodebaseChange,
   AutofixStatus,
-  AutofixStepType,
+  type AutofixUpdateEndpointResponse,
+  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -25,7 +25,7 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconCopy, IconFix, IconOpen} from 'sentry/icons';
+import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -38,6 +38,7 @@ type AutofixChangesProps = {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
+  agentCommentThread?: CommentThread;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -69,8 +70,8 @@ function AutofixRepoChange({
           stepIndex={previousDefaultStepIndex ?? 0}
           retainInsightCardIndex={
             previousInsightCount !== undefined && previousInsightCount >= 0
-              ? previousInsightCount - 1
-              : -1
+              ? previousInsightCount
+              : null
           }
         />
       )}
@@ -205,11 +206,17 @@ function CreatePRsButton({
         },
       });
     },
-    onSuccess: () => {
-      addSuccessMessage(t('Created pull requests.'));
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      setHasClickedCreatePr(false);
-      onBusyStateChange(false);
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedCreatePr(false);
+        onBusyStateChange(false);
+      } else {
+        addSuccessMessage(t('Created pull requests.'));
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+        setHasClickedCreatePr(false);
+        onBusyStateChange(false);
+      }
     },
     onError: () => {
       setHasClickedCreatePr(false);
@@ -275,7 +282,12 @@ function CreateBranchButton({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: AutofixUpdateEndpointResponse) => {
+      if (data.status === 'error') {
+        addErrorMessage(data.message ?? t('Failed to create a pull request'));
+        setHasClickedPushToBranch(false);
+        onBusyStateChange(false);
+      }
       addSuccessMessage(t('Pushed to branches.'));
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       setHasClickedPushToBranch(false);
@@ -413,25 +425,11 @@ export function AutofixChanges({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  agentCommentThread,
 }: AutofixChangesProps) {
-  const data = useAutofixData({groupId});
+  const {data} = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
-
-  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
-
-  const handleAddTests = () => {
-    const planStep = data?.steps?.[data.steps.length - 2];
-    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
-      return;
-    }
-
-    sendFeedbackOnChanges({
-      step_index: planStep.index,
-      retain_insight_card_index: planStep.insights.length - 1,
-      message:
-        'Please write a unit test that reproduces the issue to make sure it is fixed. Put it in the appropriate test file in the codebase. If there is none, create one.',
-    });
-  };
+  const iconCodeRef = useRef<HTMLDivElement>(null);
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
@@ -460,8 +458,6 @@ export function AutofixChanges({
     );
   }
 
-  const allChangesHavePullRequests = step.changes.every(change => change.pull_request);
-
   const prsMade =
     step.status === AutofixStatus.COMPLETED &&
     step.changes.length >= 1 &&
@@ -475,27 +471,17 @@ export function AutofixChanges({
   return (
     <AnimatePresence initial>
       <AnimationWrapper key="card" {...cardAnimationProps}>
-        <ChangesContainer allChangesHavePullRequests={allChangesHavePullRequests}>
+        <ChangesContainer>
           <ClippedBox clipHeight={408}>
             <HeaderWrapper>
               <HeaderText>
-                <IconFix size="sm" />
-                {t('Fixes')}
+                <HeaderIconWrapper ref={iconCodeRef}>
+                  <IconCode size="sm" color="blue400" />
+                </HeaderIconWrapper>
+                {t('Code Changes')}
               </HeaderText>
               {!prsMade && (
                 <ButtonBar gap={1}>
-                  {!branchesMade && (
-                    <Button
-                      size="sm"
-                      onClick={handleAddTests}
-                      disabled={isBusy}
-                      analyticsEventName="Autofix: Add Tests Clicked"
-                      analyticsEventKey="autofix.add_tests_clicked"
-                      analyticsParams={{group_id: groupId}}
-                    >
-                      {t('Add Tests')}
-                    </Button>
-                  )}
                   {!branchesMade ? (
                     <SetupAndCreateBranchButton
                       changes={step.changes}
@@ -561,6 +547,23 @@ export function AutofixChanges({
                   </ScrollCarousel>
                 ))}
             </HeaderWrapper>
+            <AnimatePresence>
+              {agentCommentThread && iconCodeRef.current && (
+                <AutofixHighlightPopup
+                  selectedText="Code Changes"
+                  referenceElement={iconCodeRef.current}
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={previousDefaultStepIndex ?? 0}
+                  retainInsightCardIndex={
+                    previousInsightCount !== undefined && previousInsightCount >= 0
+                      ? previousInsightCount
+                      : null
+                  }
+                  isAgentComment
+                />
+              )}
+            </AnimatePresence>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}
@@ -593,17 +596,12 @@ const AnimationWrapper = styled(motion.div)`
 
 const PrefixText = styled('span')``;
 
-const ChangesContainer = styled('div')<{allChangesHavePullRequests: boolean}>`
-  border: 2px solid
-    ${p =>
-      p.allChangesHavePullRequests
-        ? p.theme.alert.success.border
-        : p.theme.alert.info.border};
+const ChangesContainer = styled('div')`
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${space(2)};
   padding-right: ${space(2)};
-  padding-top: ${space(1)};
 `;
 
 const Content = styled('div')`
@@ -636,7 +634,7 @@ const Separator = styled('hr')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: 1.2em;
+  font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -650,6 +648,12 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const HeaderIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

@@ -1,5 +1,6 @@
 import logging
 import operator
+from enum import StrEnum
 from typing import Any, TypeVar, cast
 
 from django.db import models
@@ -16,13 +17,19 @@ from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLe
 logger = logging.getLogger(__name__)
 
 
-class Condition(models.TextChoices):
+class Condition(StrEnum):
+    # Base conditions - Most DETECTOR_TRIGGERS will use these
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
+
+    # Anomaly detection
+    ANOMALY_DETECTION = "anomaly_detection"
+
+    # Issue conditions
     AGE_COMPARISON = "age_comparison"
     ASSIGNED_TO = "assigned_to"
     EVENT_ATTRIBUTE = "event_attribute"
@@ -40,6 +47,7 @@ class Condition(models.TextChoices):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -48,12 +56,9 @@ class Condition(models.TextChoices):
     EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
     PERCENT_SESSIONS_COUNT = "percent_sessions_count"
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
-    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = (
-        "event_unique_user_frequency_with_conditions_count"
-    )
-    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = (
-        "event_unique_user_frequency_with_conditions_percent"
-    )
+
+    # Migration Only
+    EVERY_EVENT = "every_event"
 
 
 CONDITION_OPS = {
@@ -69,14 +74,12 @@ PERCENT_CONDITIONS = [
     Condition.EVENT_FREQUENCY_PERCENT,
     Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
     Condition.PERCENT_SESSIONS_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
 ]
 
 SLOW_CONDITIONS = [
     Condition.EVENT_FREQUENCY_COUNT,
     Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
     Condition.PERCENT_SESSIONS_COUNT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
 ] + PERCENT_CONDITIONS
 
 
@@ -99,7 +102,9 @@ class DataCondition(DefaultFieldsModel):
     condition_result = models.JSONField()
 
     # The type of condition, this is used to initialize the condition classes
-    type = models.CharField(max_length=200, choices=Condition.choices, default=Condition.EQUAL)
+    type = models.CharField(
+        max_length=200, choices=[(t.value, t.value) for t in Condition], default=Condition.EQUAL
+    )
 
     condition_group = models.ForeignKey(
         "workflow_engine.DataConditionGroup",
@@ -158,10 +163,8 @@ def is_slow_condition(condition: DataCondition) -> bool:
     return Condition(condition.type) in SLOW_CONDITIONS
 
 
-@receiver(pre_save, sender=DataCondition)
-def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
-
-    condition_type = Condition(instance.type)
+def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
+    condition_type = Condition(data_condition.type)
     if condition_type in CONDITION_OPS:
         # don't enforce schema for default ops, this can be any type
         return
@@ -171,13 +174,18 @@ def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
     except NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
-            extra={"type": instance.type, "id": instance.id},
+            extra={"type": data_condition.type, "id": data_condition.id},
         )
         return None
 
     schema = handler.comparison_json_schema
 
     try:
-        validate(instance.comparison, schema)
+        validate(data_condition.comparison, schema)
     except ValidationError as e:
         raise ValidationError(f"Invalid config: {e.message}")
+
+
+@receiver(pre_save, sender=DataCondition)
+def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
+    enforce_data_condition_json_schema(instance)

@@ -14,10 +14,12 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {AlertType, AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
@@ -75,7 +77,10 @@ function CreateAlertFromViewButton({
     : DEFAULT_WIZARD_TEMPLATE;
 
   const to = {
-    pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+    pathname: makeAlertsPathname({
+      path: '/new/metric/',
+      organization,
+    }),
     query: {
       ...queryParams,
       createFromDiscover: true,
@@ -143,7 +148,12 @@ export default function CreateAlertButton({
     if (alertOption) {
       params.append('alert_option', alertOption);
     }
-    return `/organizations/${organization.slug}/alerts/wizard/?${params.toString()}`;
+    return (
+      makeAlertsPathname({
+        path: '/wizard/',
+        organization,
+      }) + `?${params.toString()}`
+    );
   };
 
   function handleClickWithoutProject(event: React.MouseEvent) {
@@ -196,6 +206,7 @@ export default function CreateAlertButton({
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
   const canCreateAlert =
+    isDemoModeEnabled() ||
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
   const hasOrgWrite = hasEveryAccess(['org:write'], {organization});

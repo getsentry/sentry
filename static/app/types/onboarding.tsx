@@ -4,7 +4,6 @@ import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardi
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
-import type {Group} from './group';
 import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
@@ -51,11 +50,6 @@ interface OnboardingTaskDescriptorBase {
    * Should the onboarding task currently be displayed
    */
   display: boolean;
-  /**
-   * A list of require task keys that must have been completed before these
-   * tasks may be completed.
-   */
-  requisites: OnboardingTaskKey[];
   /**
    * Can this task be skipped?
    */
@@ -110,29 +104,15 @@ export interface OnboardingTaskStatus {
 
 interface OnboardingTaskWithAction
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAction {
-  /**
-   * Onboarding tasks that are currently incomplete and must be completed
-   * before this task should be completed.
-   */
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithAction {}
 
 interface OnboardingTaskWithExternal
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithExternal {
-  /**
-   * Onboarding tasks that are currently incomplete and must be completed
-   * before this task should be completed.
-   */
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithExternal {}
 
 interface OnboardingTaskWithAppLink
   extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAppLink {
-  requisiteTasks: OnboardingTaskDescriptor[];
-}
+    OnboardingTypeDescriptorWithAppLink {}
 
 export type OnboardingTask =
   | OnboardingTaskWithAction
@@ -160,13 +140,9 @@ export interface OnboardingSelectedSDK
   key: PlatformKey;
 }
 
-export type OnboardingRecentCreatedProject = Project & {
-  firstError: boolean;
-  firstTransaction: boolean;
-  hasReplays: boolean;
-  hasSessions: boolean;
-  olderThanOneHour: boolean;
-  firstIssue?: Group;
+export type OnboardingRecentCreatedProject = {
+  isProjectActive: boolean | undefined;
+  project: Project | undefined;
 };
 
 export type OnboardingPlatformDoc = {html: string; link: string};

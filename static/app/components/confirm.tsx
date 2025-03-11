@@ -247,7 +247,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     this.props.onRender?.();
   }
 
-  confirming: boolean = false;
+  confirming = false;
 
   handleClose = () => {
     const {disableConfirmButton, onCancel, closeModal} = this.props;

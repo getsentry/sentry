@@ -1,4 +1,3 @@
-import type {MRI} from 'sentry/types/metrics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {SpanBarProps} from './spanBar';
@@ -28,18 +27,6 @@ interface SpanDatabaseAttributes {
   'db.operation'?: string;
   'db.system'?: string;
   'db.user'?: string;
-}
-
-export interface MetricsSummaryItem {
-  count: number | null;
-  max: number | null;
-  min: number | null;
-  sum: number | null;
-  tags: Record<string, string> | null;
-}
-
-export interface MetricsSummary {
-  [mri: MRI]: MetricsSummaryItem[] | null;
 }
 
 export type RawSpanType = {

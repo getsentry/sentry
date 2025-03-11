@@ -294,13 +294,18 @@ class _Table extends Component<Props, State> {
       if (dataRow.hasOwnProperty('transaction.op')) {
         existingQuery.removeFilter('!transaction.op');
         existingQuery.removeFilter('transaction.op');
-        summaryView.query = existingQuery.formatString();
         if (dataRow['transaction.op']) {
           summaryView.additionalConditions.setFilterValues('transaction.op', [
             dataRow['transaction.op'] as string,
           ]);
         }
       }
+
+      // This is carried forward from the insight overview pages
+      existingQuery.removeFilter('project.id');
+      existingQuery.removeFilter('!project.id');
+
+      summaryView.query = existingQuery.formatString();
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
       if (isUnparameterizedRow && !this.unparameterizedMetricSet) {
         this.sendUnparameterizedAnalytic(project);
@@ -469,6 +474,7 @@ class _Table extends Component<Props, State> {
         onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
+
     if (field.field.startsWith('user_misery')) {
       if (title.tooltip) {
         return (
@@ -585,8 +591,12 @@ class _Table extends Component<Props, State> {
     const prependColumnWidths = ['max-content'];
 
     return (
-      <GuideAnchor target="performance_table" position="top-start">
-        <div data-test-id="performance-table">
+      <div data-test-id="performance-table">
+        <GuideAnchor
+          target="performance_table"
+          position="top-start"
+          wrapperComponent={TableWrapper}
+        >
           <MEPConsumer>
             {value => {
               return (
@@ -638,8 +648,8 @@ class _Table extends Component<Props, State> {
               );
             }}
           </MEPConsumer>
-        </div>
-      </GuideAnchor>
+        </GuideAnchor>
+      </div>
     );
   }
 }
@@ -669,6 +679,10 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 export default Table;

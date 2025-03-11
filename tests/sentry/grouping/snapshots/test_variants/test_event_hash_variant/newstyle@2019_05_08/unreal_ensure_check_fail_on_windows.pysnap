@@ -1,0 +1,364 @@
+---
+created: '2025-02-19T15:25:03.421732+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "RtlUserThreadStart"
+          frame (non app frame)
+            function*
+              "BaseThreadInitThunk"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (non app frame)
+            function*
+              "WinMain"
+          frame (non app frame)
+            function*
+              "LaunchWindowsStartup"
+          frame (non app frame)
+            function*
+              "GuardedMainWrapper"
+          frame (non app frame)
+            function*
+              "GuardedMain"
+          frame (non app frame)
+            function*
+              "FEngineLoop::Tick"
+          frame (non app frame)
+            function*
+              "FWindowsPlatformApplicationMisc::PumpMessages"
+          frame (non app frame)
+            function*
+              "DispatchMessageWorker"
+          frame (non app frame)
+            function*
+              "UserCallWinProcCheckWow"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::AppWndProc"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::ProcessMessage"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::DeferMessage"
+          frame (non app frame)
+            function*
+              "FWindowsApplication::ProcessDeferredMessage"
+          frame (non app frame)
+            function*
+              "FSlateApplication::OnMouseUp"
+          frame (non app frame)
+            function*
+              "FSlateApplication::ProcessMouseButtonUpEvent"
+          frame (non app frame)
+            function*
+              "FSlateApplication::RoutePointerUpEvent"
+          frame (non app frame)
+            function*
+              "SharedPointerInternals::NewIntrusiveReferenceController<T>"
+          frame (non app frame)
+            function*
+              "`TArray<T>::Remove'::`2'::<T>::operator()"
+          frame (non app frame)
+            function*
+              "SButton::OnMouseButtonUp"
+          frame (non app frame)
+            function*
+              "SButton::ExecuteOnClick"
+          frame (non app frame)
+            function*
+              "TBaseUObjectMethodDelegateInstance<T>::Execute"
+          frame (non app frame)
+            function*
+              "UButton::SlateHandleClicked"
+          frame (non app frame)
+            function*
+              "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+          frame (non app frame)
+            function*
+              "UObject::ProcessEvent"
+          frame (non app frame)
+            function*
+              "UFunction::Invoke"
+          frame (non app frame)
+            function*
+              "UObject::ProcessInternal"
+          frame (non app frame)
+            function*
+              "ProcessLocalScriptFunction"
+          frame (non app frame)
+            function*
+              "ProcessLocalFunction"
+          frame (non app frame)
+            function*
+              "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
+          frame (non app frame)
+            function*
+              "ProcessScriptFunction<T>"
+          frame (non app frame)
+            function*
+              "ProcessLocalScriptFunction"
+          frame (non app frame)
+            function*
+              "UObject::execCallMathFunction"
+          frame (non app frame)
+            filename*
+              "sentryplaygroundutils.gen.cpp"
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame (non app frame)
+            filename*
+              "sentryplaygroundutils.cpp"
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame (non app frame)
+            function*
+              "UE::Assert::Private::ExecCheckImplInternal"
+          frame (non app frame)
+            function*
+              "CheckVerifyImpl"
+          frame (non app frame)
+            function*
+              "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl"
+          frame (non app frame)
+            function*
+              "FDebug::EnsureFailed"
+          frame (non app frame)
+            function*
+              "TMulticastDelegate<T>::Broadcast"
+          frame (non app frame)
+            filename*
+              "delegateinstancesimpl.h"
+            function*
+              "TBaseFunctorDelegateInstance<T>::ExecuteIfSafe"
+          frame (non app frame)
+            filename*
+              "tuple.h"
+            function*
+              "UE::Core::Private::Tuple::TTupleBase<T>::ApplyAfter"
+          frame (non app frame)
+            filename*
+              "invoke.h"
+            function*
+              "Invoke"
+          frame (non app frame)
+            filename*
+              "sentrysubsystem.cpp"
+            function*
+              "`USentrySubsystem::Initialize'::`2'::<T>::operator()"
+          frame (non app frame)
+            filename*
+              "sentrysubsystemdesktop.cpp"
+            function*
+              "SentrySubsystemDesktop::CaptureEnsure"
+          frame (non app frame)
+            function*
+              "sentry_value_set_stacktrace"
+          frame (non app frame)
+            function*
+              "sentry_value_new_stacktrace"
+          frame (non app frame)
+            function*
+              "sentry_unwind_stack_from_ucontext"
+        type*
+          "Ensure failed"
+        value* (stripped event-specific values)
+          "Ensure condition failed: ensurePtr != nullptr [File:D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp] [Line: <int>]"
+--------------------------------------------------------------------------
+system:
+  hash: "e7fcadedd547b7ab9677f58d2547d479"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "RtlUserThreadStart"
+          frame*
+            function*
+              "BaseThreadInitThunk"
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            function*
+              "WinMain"
+          frame*
+            function*
+              "LaunchWindowsStartup"
+          frame*
+            function*
+              "GuardedMainWrapper"
+          frame*
+            function*
+              "GuardedMain"
+          frame*
+            function*
+              "FEngineLoop::Tick"
+          frame*
+            function*
+              "FWindowsPlatformApplicationMisc::PumpMessages"
+          frame*
+            function*
+              "DispatchMessageWorker"
+          frame*
+            function*
+              "UserCallWinProcCheckWow"
+          frame*
+            function*
+              "FWindowsApplication::AppWndProc"
+          frame*
+            function*
+              "FWindowsApplication::ProcessMessage"
+          frame*
+            function*
+              "FWindowsApplication::DeferMessage"
+          frame*
+            function*
+              "FWindowsApplication::ProcessDeferredMessage"
+          frame*
+            function*
+              "FSlateApplication::OnMouseUp"
+          frame*
+            function*
+              "FSlateApplication::ProcessMouseButtonUpEvent"
+          frame*
+            function*
+              "FSlateApplication::RoutePointerUpEvent"
+          frame*
+            function*
+              "SharedPointerInternals::NewIntrusiveReferenceController<T>"
+          frame*
+            function*
+              "`TArray<T>::Remove'::`2'::<T>::operator()"
+          frame*
+            function*
+              "SButton::OnMouseButtonUp"
+          frame*
+            function*
+              "SButton::ExecuteOnClick"
+          frame*
+            function*
+              "TBaseUObjectMethodDelegateInstance<T>::Execute"
+          frame*
+            function*
+              "UButton::SlateHandleClicked"
+          frame*
+            function*
+              "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+          frame*
+            function*
+              "UObject::ProcessEvent"
+          frame*
+            function*
+              "UFunction::Invoke"
+          frame*
+            function*
+              "UObject::ProcessInternal"
+          frame*
+            function*
+              "ProcessLocalScriptFunction"
+          frame*
+            function*
+              "ProcessLocalFunction"
+          frame*
+            function*
+              "`TThreadSingleton<T>::Get'::`2'::<T>::operator()"
+          frame*
+            function*
+              "ProcessScriptFunction<T>"
+          frame*
+            function*
+              "ProcessLocalScriptFunction"
+          frame*
+            function*
+              "UObject::execCallMathFunction"
+          frame*
+            filename*
+              "sentryplaygroundutils.gen.cpp"
+            function*
+              "USentryPlaygroundUtils::execTerminate"
+          frame*
+            filename*
+              "sentryplaygroundutils.cpp"
+            function*
+              "USentryPlaygroundUtils::Terminate"
+          frame*
+            function*
+              "UE::Assert::Private::ExecCheckImplInternal"
+          frame*
+            function*
+              "CheckVerifyImpl"
+          frame*
+            function*
+              "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl"
+          frame*
+            function*
+              "FDebug::EnsureFailed"
+          frame*
+            function*
+              "TMulticastDelegate<T>::Broadcast"
+          frame*
+            filename*
+              "delegateinstancesimpl.h"
+            function*
+              "TBaseFunctorDelegateInstance<T>::ExecuteIfSafe"
+          frame*
+            filename*
+              "tuple.h"
+            function*
+              "UE::Core::Private::Tuple::TTupleBase<T>::ApplyAfter"
+          frame*
+            filename*
+              "invoke.h"
+            function*
+              "Invoke"
+          frame*
+            filename*
+              "sentrysubsystem.cpp"
+            function*
+              "`USentrySubsystem::Initialize'::`2'::<T>::operator()"
+          frame*
+            filename*
+              "sentrysubsystemdesktop.cpp"
+            function*
+              "SentrySubsystemDesktop::CaptureEnsure"
+          frame*
+            function*
+              "sentry_value_set_stacktrace"
+          frame*
+            function*
+              "sentry_value_new_stacktrace"
+          frame*
+            function*
+              "sentry_unwind_stack_from_ucontext"
+        type*
+          "Ensure failed"
+        value (ignored because stacktrace takes precedence)
+          "Ensure condition failed: ensurePtr != nullptr [File:D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp] [Line: <int>]"

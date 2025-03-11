@@ -148,7 +148,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        'issue_details'
       );
     }
 
@@ -319,6 +320,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       >
         <IssuesPointerDisabled>
           <Trace
+            metaQueryResults={props.meta}
             trace={props.tree}
             rerender={rerender}
             trace_id={props.traceSlug}

@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+
 const Slider = styled('input')<{hasLabel: boolean}>`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   background: transparent;
-  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * (p.hasLabel ? 2 : 1)}px;
+  margin: ${space(1)} 0 ${p => space(p.hasLabel ? 2 : 1)};
 
   &::-webkit-slider-runnable-track {
     width: 100%;
@@ -59,6 +62,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
+    appearance: none;
     margin-top: -7px;
     border: 0;
     transition:
@@ -75,6 +79,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
+    appearance: none;
     margin-top: -7px;
     border: 0;
     transition:

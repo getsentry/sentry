@@ -360,7 +360,11 @@ type Props = WithRouterProps &
     /**
      * Get a list of tag values for the passed tag
      */
-    onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+    onGetTagValues?: (
+      tag: Tag,
+      query: string,
+      params: Record<PropertyKey, unknown>
+    ) => Promise<string[]>;
     /**
      * Called on key down
      */
@@ -517,7 +521,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
-    return query !== null ? addSpace(query) : defaultQuery ?? '';
+    return query !== null ? addSpace(query) : (defaultQuery ?? '');
   }
 
   makeQueryState(query: string) {
@@ -2218,7 +2222,7 @@ export type {Props as SmartSearchBarProps};
 export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
-  min-height: ${p => p.theme.form.md.height}px;
+  min-height: ${p => p.theme.form.md.height};
   border: ${p =>
     p.inputHasFocus ? `1px solid ${p.theme.focusBorder}` : `1px solid ${p.theme.border}`};
   box-shadow: ${p =>

@@ -6,12 +6,23 @@ import pytest
 from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.data_blobs import (
+    AZURE_DEVOPS_ACTION_DATA_BLOBS,
+    EMAIL_ACTION_DATA_BLOBS,
+    GITHUB_ACTION_DATA_BLOBS,
+    JIRA_ACTION_DATA_BLOBS,
+    JIRA_SERVER_ACTION_DATA_BLOBS,
+    WEBHOOK_ACTION_DATA_BLOBS,
+)
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
 )
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    SentryAppDataBlob,
+    TicketDataBlob,
+    TicketFieldMappingKeys,
     issue_alert_action_translator_registry,
 )
 
@@ -20,6 +31,43 @@ class TestNotificationActionMigrationUtils(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
+
+    def assert_ticketing_action_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+
+        # Check dynamic_form_fields
+        assert action.data.get(
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
+        ) == compare_dict.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
+
+        # Check that additional_fields contains all other non-excluded fields
+        additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
+        for key, value in compare_dict.items():
+            if (
+                key not in exclude_keys
+                and key not in TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value
+                and key != "id"
+            ):
+                assert additional_fields.get(key) == value
+
+    def assert_sentry_app_form_config_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+        settings = action.data.get("settings", None)
+        settings_dict = compare_dict.get("settings", None)
+        if not settings or not settings_dict:
+            raise ValueError("Settings are required for SentryAppDataBlob")
+        for setting, setting_to_compare in zip(settings, settings_dict):
+            name = setting.get("name")
+            value = setting.get("value")
+            label = setting.get("label")
+            # Check that the name and value are present
+            if not name or not value:
+                raise ValueError("Name and value are required for SentryAppDataBlob")
+            assert name == setting_to_compare.get("name")
+            assert value == setting_to_compare.get("value")
+            assert label == setting_to_compare.get("label")
 
     def assert_action_data_blob(
         self,
@@ -50,23 +98,32 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # If we have a blob type, verify the data matches the blob structure
         if translator.blob_type:
-            for field in translator.blob_type.__dataclass_fields__:
-                mapping = translator.field_mappings.get(field)
-                if mapping:
-                    # For mapped fields, check against the source field with default value
-                    source_value = compare_dict.get(mapping.source_field, mapping.default_value)
-                    assert action.data.get(field) == source_value
-                else:
-                    # For unmapped fields, check directly with empty string default
-                    if action.type == Action.Type.EMAIL and field == "fallthroughType":
-                        # for email actions, the default value for fallthroughType should be "ActiveMembers"
-                        assert action.data.get(field) == compare_dict.get(field, "ActiveMembers")
+            # Special handling for TicketDataBlob which has additional_fields
+            if translator.blob_type == TicketDataBlob:
+                self.assert_ticketing_action_data_blob(action, compare_dict, exclude_keys)
+            elif translator.blob_type == SentryAppDataBlob:
+                self.assert_sentry_app_form_config_data_blob(action, compare_dict, exclude_keys)
+            else:
+                # Original logic for other blob types
+                for field in translator.blob_type.__dataclass_fields__:
+                    mapping = translator.field_mappings.get(field)
+                    if mapping:
+                        # For mapped fields, check against the source field with default value
+                        source_value = compare_dict.get(mapping.source_field, mapping.default_value)
+                        assert action.data.get(field) == source_value
                     else:
-                        assert action.data.get(field) == compare_dict.get(field, "")
-            # Ensure no extra fields
-            assert set(action.data.keys()) == {
-                f.name for f in translator.blob_type.__dataclass_fields__.values()
-            }
+                        # For unmapped fields, check directly with empty string default
+                        if action.type == Action.Type.EMAIL and field == "fallthroughType":
+                            # for email actions, the default value for fallthroughType should be "ActiveMembers"
+                            assert action.data.get(field) == compare_dict.get(
+                                field, "ActiveMembers"
+                            )
+                        else:
+                            assert action.data.get(field) == compare_dict.get(field, "")
+                # Ensure no extra fields
+                assert set(action.data.keys()) == {
+                    f.name for f in translator.blob_type.__dataclass_fields__.values()
+                }
         else:
             # Assert the rest of the data is the same
             for key in compare_dict:
@@ -74,7 +131,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                     if (
                         action.type == Action.Type.EMAIL
                         and key == "fallthroughType"
-                        and action.target_type != ActionTarget.ISSUE_OWNERS
+                        and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthroughType should only be set for when targetType is ISSUE_OWNERS
                         continue
@@ -111,16 +168,16 @@ class TestNotificationActionMigrationUtils(TestCase):
             compare_val = compare_dict.get(target_identifier_key)
             # Handle both "None" string and None value
             if compare_val in ["None", None, ""]:
-                assert action.target_identifier is None
+                assert action.config.get("target_identifier") is None
             else:
-                assert action.target_identifier == compare_val
+                assert action.config.get("target_identifier") == compare_val
 
         # Assert target_display matches if specified
         if target_display_key:
-            assert action.target_display == compare_dict.get(target_display_key)
+            assert action.config.get("target_display") == compare_dict.get(target_display_key)
 
         # Assert target_type matches
-        assert action.target_type == translator.target_type
+        assert action.config.get("target_type") == translator.target_type
 
     def assert_actions_migrated_correctly(
         self,
@@ -167,7 +224,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -186,7 +243,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -279,7 +336,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -332,7 +389,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -389,7 +446,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -453,7 +510,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_opsgenie_action_migration(self):
         action_data = [
@@ -507,231 +564,12 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_github_action_migration(self):
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
         # The Github Enterprise action should have the same shape as the Github action.
-        action_data = [
-            {
-                "integration": "123456",
-                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "repo",
-                        "label": "GitHub Repository",
-                        "type": "select",
-                        "default": "bufobot/bufo-bot",
-                        "choices": [
-                            ["bufobot/bufo-bot", "bufo-bot"],
-                            ["bufobot/bufo-bot-2", "bufo-bot-2"],
-                            [
-                                "bufobot/bufo-bot-3",
-                                {
-                                    "key": "bufobot/bufo-bot-3",
-                                    "ref": None,
-                                    "props": {
-                                        "children": [
-                                            {
-                                                "key": "bufobot/bufo-bot-3",
-                                                "ref": None,
-                                                "props": {
-                                                    "title": {
-                                                        "key": "bufobot/bufo-bot-3",
-                                                        "ref": None,
-                                                        "_owner": None,
-                                                    },
-                                                    "size": "xs",
-                                                },
-                                            },
-                                            " ",
-                                            "bufo-bot-3",
-                                        ]
-                                    },
-                                    "_owner": None,
-                                },
-                            ],
-                        ],
-                        "url": "/extensions/github/search/bufobot/123456/",
-                        "updatesForm": True,
-                        "required": True,
-                    },
-                    {
-                        "name": "assignee",
-                        "label": "Assignee",
-                        "default": "",
-                        "type": "select",
-                        "required": False,
-                        "choices": [
-                            ["", "Unassigned"],
-                            ["bufo-bot", "bufo-bot"],
-                            ["bufo-bot-2", "bufo-bot-2"],
-                            ["bufo-bot-3", "bufo-bot-3"],
-                        ],
-                    },
-                    {
-                        "name": "labels",
-                        "label": "Labels",
-                        "default": [],
-                        "type": "select",
-                        "multiple": True,
-                        "required": False,
-                        "choices": [
-                            ["bug", "bug"],
-                            ["documentation", "documentation"],
-                            ["duplicate", "duplicate"],
-                            ["enhancement", "enhancement"],
-                            ["good first issue", "good first issue"],
-                            ["invalid", "invalid"],
-                            ["question", "question"],
-                            ["security", "security"],
-                        ],
-                    },
-                ],
-                "repo": "bufobot/bufo-bot",
-                "labels": ["bug", "documentation"],
-                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
-            },
-            {
-                "integration": "00000",
-                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "repo",
-                        "label": "GitHub Repository",
-                        "type": "select",
-                        "default": "bufobot/bufo-bot-3",
-                        "choices": [
-                            [
-                                "bufobot/bufo-bot-3",
-                                "bufo-bot-3",
-                            ]
-                        ],
-                        "url": "/extensions/github/search/bufobot/00000/",
-                        "updatesForm": True,
-                        "required": True,
-                    },
-                    {
-                        "name": "assignee",
-                        "label": "Assignee",
-                        "default": "",
-                        "type": "select",
-                        "required": False,
-                        "choices": [["", "Unassigned"], ["bufo-bot", "bufo-bot"]],
-                    },
-                    {
-                        "name": "labels",
-                        "label": "Labels",
-                        "default": [],
-                        "type": "select",
-                        "multiple": True,
-                        "required": False,
-                        "choices": [
-                            ["bug", "bug"],
-                            ["documentation", "documentation"],
-                            ["duplicate", "duplicate"],
-                            ["enhancement", "enhancement"],
-                            ["good first issue", "good first issue"],
-                            ["help wanted", "help wanted"],
-                            ["invalid", "invalid"],
-                            ["question", "question"],
-                            ["wontfix", "wontfix"],
-                        ],
-                    },
-                ],
-                "repo": "bufobot/bufo-bot-3",
-                "assignee": "bufo-bot-3",
-                "labels": ["bug", "documentation"],
-                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
-            },
-            {
-                "integration": "22222",
-                "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "repo",
-                        "label": "GitHub Repository",
-                        "type": "select",
-                        "default": "bufobot/bufo-bot-3",
-                        "choices": [
-                            ["bufobot/bufo-bot-3", "bufo-bot-3"],
-                            [
-                                "bufobot/bufo-bot-3",
-                                {
-                                    "key": "bufobot/bufo-bot-3",
-                                    "ref": None,
-                                    "props": {
-                                        "children": [
-                                            {
-                                                "key": "bufobot/bufo-bot-3",
-                                                "ref": None,
-                                                "props": {
-                                                    "title": {
-                                                        "key": "bufobot/bufo-bot-3",
-                                                        "ref": None,
-                                                        "props": {
-                                                            "children": {
-                                                                "key": "5",
-                                                                "ref": None,
-                                                                "_owner": None,
-                                                            }
-                                                        },
-                                                        "_owner": None,
-                                                    },
-                                                    "size": "xs",
-                                                },
-                                                "_owner": None,
-                                            },
-                                            " ",
-                                            "Project_topup",
-                                        ]
-                                    },
-                                    "_owner": None,
-                                },
-                            ],
-                        ],
-                        "url": "/extensions/github/search/bufobot/22222/",
-                        "updatesForm": True,
-                        "required": True,
-                    },
-                    {
-                        "name": "assignee",
-                        "label": "Assignee",
-                        "default": "",
-                        "type": "select",
-                        "required": False,
-                        "choices": [
-                            ["", "Unassigned"],
-                            ["bufo-bot", "bufo-bot"],
-                            ["bufo-bot-2", "bufo-bot-2"],
-                            ["bufo-bot-3", "bufo-bot-3"],
-                        ],
-                    },
-                    {
-                        "name": "labels",
-                        "label": "Labels",
-                        "default": [],
-                        "type": "select",
-                        "multiple": True,
-                        "required": False,
-                        "choices": [
-                            ["bug", "bug"],
-                            ["documentation", "documentation"],
-                            ["duplicate", "duplicate"],
-                            ["enhancement", "enhancement"],
-                            ["good first issue", "good first issue"],
-                            ["help wanted", "help wanted"],
-                            ["invalid", "invalid"],
-                            ["question", "question"],
-                        ],
-                    },
-                ],
-                "repo": "bufobot/bufo-bot-3",
-                "assignee": "",
-                "labels": [],
-                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
-            },
-        ]
+        action_data = GITHUB_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
 
@@ -747,150 +585,10 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_azure_devops_migration(self):
-        action_data = [
-            {
-                "integration": "999999",
-                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "project",
-                        "required": True,
-                        "type": "choice",
-                        "choices": [
-                            ["12345678-90ab-cdef-0123-456789abcdef", "Test Octo"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "Octopus"],
-                        ],
-                        "defaultValue": "12345678-90ab-cdef-0123-456789abcdef",
-                        "label": "Project",
-                        "placeholder": "12345678-90ab-cdef-0123-456789abcdef",
-                        "updatesForm": True,
-                    },
-                    {
-                        "name": "work_item_type",
-                        "required": True,
-                        "type": "choice",
-                        "choices": [
-                            ["Microsoft.VSTS.WorkItemTypes.Bug", "Bug"],
-                            ["Microsoft.VSTS.WorkItemTypes.Epic", "Epic"],
-                            ["Microsoft.VSTS.WorkItemTypes.Feature", "Feature"],
-                            ["Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"],
-                            ["Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"],
-                            ["Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"],
-                            ["Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"],
-                            [
-                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
-                                "Code Review Request",
-                            ],
-                            [
-                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
-                                "Code Review Response",
-                            ],
-                            ["Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"],
-                            ["Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"],
-                            ["Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"],
-                            ["Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"],
-                            ["Microsoft.VSTS.WorkItemTypes.Task", "Task"],
-                        ],
-                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
-                        "label": "Work Item Type",
-                        "placeholder": "Bug",
-                    },
-                ],
-                "project": "12345678-90ab-cdef-0123-456789abcdef",
-                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Bug",
-                "uuid": "7a48abdb-60d7-4d1c-ab00-0eedb2189933",
-            },
-            {
-                "integration": "123456",
-                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "project",
-                        "required": True,
-                        "type": "choice",
-                        "choices": [
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-125"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-121"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-122"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-127"],
-                            ["99999999-90ab-cdef-0123-456789abcdef", "O-129"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-131"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-128"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-107"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-120"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-123"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-119"],
-                            ["cb72f217-bcb2-495c-b7ad-d6883e696990", "O-116"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-115"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "Alpha Octo"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-126"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-102"],
-                            ["23ff99ca-92f2-492f-b8a1-d13ed66c465c", "O-124"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-114"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-112"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-108"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-000"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-101"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-104"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-110"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-111"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-130"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-117"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "Design"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-118"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-109"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-106"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-103"],
-                            ["12345678-90ab-cdef-0123-456789abcdef", "O-105"],
-                        ],
-                        "defaultValue": "12345678-90ab-cdef-0123-456789abcdef",
-                        "label": "Project",
-                        "placeholder": "12345678-90ab-cdef-0123-456789abcdef",
-                        "updatesForm": True,
-                    },
-                    {
-                        "name": "work_item_type",
-                        "required": True,
-                        "type": "choice",
-                        "choices": [
-                            ["Microsoft.VSTS.WorkItemTypes.Bug", "Bug"],
-                            ["Microsoft.VSTS.WorkItemTypes.Epic", "Epic"],
-                            ["Microsoft.VSTS.WorkItemTypes.Feature", "Feature"],
-                            [
-                                "Microsoft.VSTS.WorkItemTypes.ProductBacklogItem",
-                                "Product Backlog Item",
-                            ],
-                            ["Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"],
-                            ["Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"],
-                            ["Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"],
-                            [
-                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
-                                "Code Review Request",
-                            ],
-                            [
-                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
-                                "Code Review Response",
-                            ],
-                            ["Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"],
-                            ["Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"],
-                            ["Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"],
-                            ["Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"],
-                            ["Microsoft.VSTS.WorkItemTypes.Task", "Task"],
-                        ],
-                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
-                        "label": "Work Item Type",
-                        "placeholder": "Bug",
-                    },
-                ],
-                "project": "23ff99ca-92f2-492f-b8a1-d13ed66c465c",
-                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Bug",
-                "uuid": "4d42b17d-911d-4085-be7f-cc5f32d66371",
-            },
-        ]
-
+        action_data = AZURE_DEVOPS_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
@@ -904,59 +602,10 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_email_migration(self):
-        action_data: list[dict[str, Any]] = [
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "None",
-                "fallthroughType": "ActiveMembers",
-                "uuid": "2e8847d7-8fe4-44d2-8a16-e25040329790",
-            },
-            {
-                "targetType": "IssueOwners",
-                "targetIdentifier": "",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
-                "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
-            },
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": None,
-                "fallthroughType": "AllMembers",
-                "uuid": "41f13756-8f90-4afe-b162-55268c6e3cdb",
-            },
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "None",
-                "fallthroughType": "NoOne",
-                "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
-            },
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 2160509,
-                "targetType": "Member",
-                "uuid": "42c3e1d6-4004-4a51-a90b-13d3404f1e55",
-            },
-            {
-                "targetType": "Member",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 3234013,
-                "uuid": "6e83337b-9561-4167-a208-27d6bdf5e613",
-            },
-            {
-                "targetType": "Team",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "AllMembers",
-                "uuid": "71b445cf-573b-4e0c-86bc-8dfbad93c480",
-                "targetIdentifier": 188022,
-            },
-        ]
+        action_data = EMAIL_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(
@@ -984,7 +633,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_plugin_action_migration(self):
         action_data = [
@@ -1022,41 +671,31 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
 
     def test_webhook_action_migration(self):
+        action_data = WEBHOOK_ACTION_DATA_BLOBS
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
+
+    def test_webhook_action_migration_to_sentry_app(self):
+        app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+        )
+
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "bufo-bot-integration-1f946b",
-                "uuid": "02babf2f-d767-483c-bb5d-0eaae85c532a",
-            },
-            {
-                "service": "opsgenie",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "02b91e1d-a91c-4357-8190-a08c9e8c15c4",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "slack",
-                "uuid": "45a8b34b-325d-4efa-b5a1-0c6effc4eba1",
-            },
-            {
-                "service": "webhooks",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "722decb0-bad9-4f5e-ad06-865439169289",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "slack",
-                "uuid": "c19cdf39-8110-43fc-ad15-12b372332ac0",
-            },
-            {
-                "service": "chat-erwiuyhrwejkh",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "add56da2-be45-4182-800e-6b1b7fc4d012",
+                "service": app.slug,
             },
         ]
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
-        self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
+        assert len(actions) == 1
+        # This will still be Webhook even though it's a Sentry App
+        assert actions[0].type == Action.Type.WEBHOOK
+        assert actions[0].config.get("target_identifier") == app.slug
+        assert actions[0].config.get("target_type") is None
+        assert actions[0].data == {}
 
     def test_webhook_action_migration_malformed(self):
         action_data = [
@@ -1067,7 +706,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
@@ -1120,9 +759,11 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         for registry_id, expected_type in test_cases:
             translator_class = issue_alert_action_translator_registry.get(registry_id)
-            assert translator_class.action_type == expected_type, (
+            # Create an instance with empty action data
+            translator = translator_class({"id": registry_id})
+            assert translator.action_type == expected_type, (
                 f"Action translator {registry_id} has incorrect action type. "
-                f"Expected {expected_type}, got {translator_class.action_type}"
+                f"Expected {expected_type}, got {translator.action_type}"
             )
 
     def test_action_type_in_migration(self):
@@ -1243,8 +884,68 @@ class TestNotificationActionMigrationUtils(TestCase):
                 f"Expected {expected_type}, got {actions[0].type}"
             )
 
+    def test_jira_action_migration(self):
+        action_data = JIRA_ACTION_DATA_BLOBS
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_jira_action_migration_malformed(self):
+        action_data: list[dict[str, Any]] = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+            },
+            # Empty additional fields
+            {
+                "integration": "12345",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                "project": "10001",
+                "issuetype": "10001",
+                "reporter": "user123",
+                "uuid": "11111111-1111-1111-1111-111111111111",
+                "customfield_10253": "",
+                "customfield_10285": [],
+                "customfield_10290": "",
+                "customfield_10301": "",
+                "customfield_10315": "",
+            },
+        ]
+
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+
+    def test_jira_server_action_migration(self):
+        action_data = JIRA_SERVER_ACTION_DATA_BLOBS
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_jira_server_action_migration_malformed(self):
+        action_data: list[dict[str, Any]] = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+            },
+            # Empty additional fields
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                "project": "10001",
+                "issuetype": "1",
+                "reporter": "user123",
+                "uuid": "11111111-1111-1111-1111-111111111111",
+                "priority": "",
+                "components": [],
+                "fixVersions": [],
+            },
+        ]
+
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+
     def test_sentry_app_action_migration(self):
-        app = self.create_sentry_app(
+        self.create_sentry_app(
             organization=self.organization,
             name="Test Application",
             is_alertable=True,
@@ -1374,6 +1075,17 @@ class TestNotificationActionMigrationUtils(TestCase):
                     ],
                 },
             },
+            # Simple webhook sentry app with label
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system", "label": "System ID"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
         ]
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
@@ -1383,21 +1095,69 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.target_identifier == str(app.id)
+            assert action.config.get("target_identifier") == install.uuid
 
-    def test_sentry_app_migration_with_form_config(self):
+    def test_dry_run_flag(self):
+        """Test that the dry_run flag prevents database writes."""
         action_data = [
             {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test-channel",
+                "channel_id": "C123456",
+                "uuid": "test-uuid",
+            }
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+        assert len(actions) == 1
+        assert Action.objects.count() == 0
+
+        # With dry_run=False (default)
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.config.get("target_display") == "#test-channel"
+        assert action.config.get("target_identifier") == "C123456"
+
+    def test_skip_failures_flag(self):
+        """Test that the skip_failures flag skips invalid actions."""
+        action_data: list[dict[str, str | Any]] = [
+            # Invalid action type, should skip
+            {
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "server": "123456",
+            },
+            # Invalid action type, should skip
+            {
+                "id": "sentry.rules.actions.nodsfsd.NotifyEventSentryAppAction",
                 "sentryAppInstallationUuid": "fake-uuid",
                 "settings": [
                     {"name": "destination", "value": "slack"},
                     {"name": "systemid", "value": "test-system"},
                 ],
-                "hasSchemaFormConfig": True,
-                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
+            # Valid action, should not skip
+            {
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test",
+                "channel_id": "C123",
+                "uuid": "test-uuid",
             },
         ]
 
-        with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=False)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.config.get("target_display") == "#test"
+        assert action.config.get("target_identifier") == "C123"
+        assert action.integration_id == 1

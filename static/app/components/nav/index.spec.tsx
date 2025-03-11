@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -8,9 +6,16 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
+import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
 import {NavContextProvider} from 'sentry/components/nav/context';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
@@ -22,7 +27,6 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
   'ourlogs-enabled',
@@ -32,6 +36,15 @@ const ALL_AVAILABLE_FEATURES = [
 ];
 
 describe('Nav', function () {
+  beforeEach(() => {
+    localStorage.clear();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/broadcasts/`,
+      body: [],
+    });
+  });
+
   function renderNav({
     initialPathname = '/organizations/org-slug/issues/',
   }: {
@@ -41,6 +54,7 @@ describe('Nav', function () {
       <NavContextProvider>
         <Nav />
         <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+          <SecondaryNav.Header>Issues</SecondaryNav.Header>
           <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
             Foo
           </SecondaryNav.Item>
@@ -67,9 +81,9 @@ describe('Nav', function () {
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).getAllByRole('link');
-      expect(links).toHaveLength(6);
+      expect(links).toHaveLength(5);
 
-      ['Issues', 'Explore', 'Boards', 'Insights', 'Stats', 'Settings'].forEach(
+      ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
         (title, index) => {
           expect(links[index]).toHaveAccessibleName(title);
         }
@@ -107,6 +121,86 @@ describe('Nav', function () {
       const link = screen.getByRole('link', {name: 'Foo'});
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
+    });
+
+    describe('collapse behavior', function () {
+      it('can collapse and expand secondary sidebar', async function () {
+        renderNav();
+
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      it('remembers collapsed state', async function () {
+        localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        renderNav();
+
+        expect(
+          await screen.findByTestId('collapsed-secondary-sidebar')
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
+      });
+
+      it('expands on hover', async function () {
+        localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        renderNav();
+
+        expect(
+          await screen.findByTestId('collapsed-secondary-sidebar')
+        ).toBeInTheDocument();
+
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'false'
+        );
+
+        // Moving pointer over the primary navigation should expand the sidebar
+        await userEvent.hover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'true'
+        );
+
+        // Moving pointer away should hide the sidebar
+        await userEvent.unhover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'false'
+          );
+        });
+      });
+    });
+  });
+
+  describe('analytics', function () {
+    it('tracks primary sidebar item', async function () {
+      renderNav();
+      const issues = screen.getByRole('link', {name: 'Issues'});
+      await userEvent.click(issues);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'growth.clicked_sidebar',
+        expect.objectContaining({
+          item: 'issues',
+        })
+      );
     });
   });
 
@@ -149,37 +243,13 @@ describe('Nav', function () {
       ).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Explore'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Boards'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Dashboards'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Insights'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Stats'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Settings'})).toBeInTheDocument();
 
       // Tapping one of the primary navigation items should close the menu
       await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
       expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     });
-  });
-});
-
-describe('analytics', function () {
-  function renderNav() {
-    render(<Nav />, {
-      router: RouterFixture({
-        location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-      }),
-      organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-    });
-  }
-
-  it('tracks primary sidebar item', async function () {
-    renderNav();
-    const issues = screen.getByRole('link', {name: 'Issues'});
-    await userEvent.click(issues);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'growth.clicked_sidebar',
-      expect.objectContaining({
-        item: 'issues',
-      })
-    );
   });
 });

@@ -117,13 +117,8 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...nextJsProject,
-          firstError: false,
-          firstTransaction: false,
-          hasReplays: false,
-          hasSessions: false,
-          olderThanOneHour: false,
-          firstIssue: undefined,
+          project: nextJsProject,
+          isProjectActive: false,
         };
       });
 
@@ -204,13 +199,8 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...reactProject,
-          firstError: false,
-          firstTransaction: false,
-          hasReplays: false,
-          hasSessions: false,
-          olderThanOneHour: false,
-          firstIssue: undefined,
+          project: reactProject,
+          isProjectActive: false,
         };
       });
 
@@ -301,13 +291,8 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...reactProject,
-          firstError: false,
-          firstTransaction: false,
-          hasReplays: false,
-          hasSessions: true,
-          olderThanOneHour: false,
-          firstIssue: undefined,
+          project: reactProject,
+          isProjectActive: true,
         };
       });
 

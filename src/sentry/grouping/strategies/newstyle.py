@@ -732,12 +732,16 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    top_level_exceptions = []
     if exception_tree[0].exception:
         top_level_exceptions = sorted(
             get_top_level_exceptions(exception_tree[0].exception),
             key=lambda exception: str(exception.type),
             reverse=True,
         )
+    else:
+        # If there's no root exception, return the original list
+        return exceptions
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [
@@ -781,15 +785,13 @@ def chained_exception_variant_processor(
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("crashed")], event, context, meta
-    )
+    crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
+    thread_variants = _filtered_threads(crashed_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("current")], event, context, meta
-    )
+    current_threads = [thread for thread in interface.values if thread.get("current")]
+    thread_variants = _filtered_threads(current_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -801,9 +803,10 @@ def threads(
         "app": ThreadsGroupingComponent(
             contributes=False,
             hint=(
-                "ignored because does not contain exactly one crashing, "
-                "one current or just one thread, instead contains %s threads"
-                % len(interface.values)
+                "ignored because it contains neither a single thread nor multiple threads with "
+                "exactly one crashing or current thread; instead contains %s crashing, %s current, "
+                "and %s total threads"
+                % (len(crashed_threads), len(current_threads), len(interface.values))
             ),
         )
     }

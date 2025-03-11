@@ -34,6 +34,7 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -65,6 +66,8 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPSpanNode,
+  isEAPTraceNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -103,6 +106,7 @@ interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
   manager: VirtualizedViewManager;
+  metaQueryResults: TraceMetaQueryResults;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
@@ -125,6 +129,7 @@ export function Trace({
   onRowClick,
   manager,
   previouslyFocusedNodeRef,
+  metaQueryResults,
   onTraceSearch,
   rerender,
   scheduler,
@@ -402,9 +407,10 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        {trace_id ? (
-          <TraceLevelOpsBreakdown traceSlug={trace_id} isTraceLoading={isLoading} />
-        ) : null}
+        <TraceLevelOpsBreakdown
+          isTraceLoading={isLoading}
+          metaQueryResults={metaQueryResults}
+        />
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -660,7 +666,7 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
@@ -676,7 +682,7 @@ function RenderTraceRow(props: {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
-  if (isTraceNode(node)) {
+  if (isTraceNode(node) || isEAPTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
   }
 

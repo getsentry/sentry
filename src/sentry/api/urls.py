@@ -35,6 +35,7 @@ from sentry.api.endpoints.organization_user_rollback import OrganizationRollback
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
+from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -49,17 +50,6 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
-from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
-from sentry.api.endpoints.relocations.artifacts.details import RelocationArtifactDetailsEndpoint
-from sentry.api.endpoints.relocations.artifacts.index import RelocationArtifactIndexEndpoint
-from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
-from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
-from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
-from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
-from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
-from sentry.api.endpoints.relocations.recover import RelocationRecoverEndpoint
-from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
-from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
@@ -99,6 +89,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
+    OrganizationOnDemandRuleStatsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
@@ -183,7 +174,9 @@ from sentry.issues.endpoints import (
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
+    OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
@@ -258,6 +251,17 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
+from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
+from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
+from sentry.relocation.api.endpoints.cancel import RelocationCancelEndpoint
+from sentry.relocation.api.endpoints.details import RelocationDetailsEndpoint
+from sentry.relocation.api.endpoints.index import RelocationIndexEndpoint
+from sentry.relocation.api.endpoints.pause import RelocationPauseEndpoint
+from sentry.relocation.api.endpoints.public_key import RelocationPublicKeyEndpoint
+from sentry.relocation.api.endpoints.recover import RelocationRecoverEndpoint
+from sentry.relocation.api.endpoints.retry import RelocationRetryEndpoint
+from sentry.relocation.api.endpoints.unpause import RelocationUnpauseEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -284,6 +288,7 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.sentry_apps.api.endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from sentry.sentry_apps.api.endpoints.installation_details import (
     SentryAppInstallationDetailsEndpoint,
 )
@@ -318,6 +323,9 @@ from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
 from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_webhook_requests import (
+    SentryAppWebhookRequestsEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.sentry_apps import SentryAppsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
@@ -337,6 +345,7 @@ from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
 )
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.uptime.endpoints.uptime_ips import UptimeIpsEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
@@ -412,7 +421,6 @@ from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
-from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
@@ -507,15 +515,11 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
-from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
-from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
     OrganizationOnDemandMetricsEstimationStatsEndpoint,
 )
@@ -563,6 +567,7 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )
+from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
 from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
@@ -596,7 +601,6 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
-from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -637,6 +641,7 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from .endpoints.project_teams import ProjectTeamsEndpoint
+from .endpoints.project_trace_item_details import ProjectTraceItemDetailsEndpoint
 from .endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
 from .endpoints.project_transaction_threshold_override import (
@@ -1170,6 +1175,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/ondemand-rules-stats/$",
+        OrganizationOnDemandRuleStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-ondemand-rules-stats",
+    ),
     # Data Export
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/data-export/$",
@@ -1441,6 +1451,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/(?P<key>[^/]+)/values/$",
         OrganizationSpansFieldValuesEndpoint.as_view(),
         name="sentry-api-0-organization-spans-fields-values",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/stats/$",
+        OrganizationSpansFieldsStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-estimation-stats/$",
@@ -1715,6 +1730,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
         OrganizationGroupSearchViewsEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-views",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/$",
+        OrganizationGroupSearchViewDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/visit/$",
+        OrganizationGroupSearchViewVisitEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-visit",
     ),
     # Pinned and saved search
     re_path(
@@ -2069,16 +2094,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ),
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/code-locations/$",
-        OrganizationMetricsCodeLocationsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-code-locations",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/meta/$",
-        OrganizationMetricsDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/data/$",
         OrganizationReleaseHealthDataEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-data",
@@ -2087,16 +2102,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/query/$",
         OrganizationMetricsQueryEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-query",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
-        OrganizationMetricsTagsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-tags",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
-        OrganizationMetricsTagDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-tag-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",
@@ -2240,6 +2245,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/environments/(?P<environment>[^/]+)/$",
         ProjectEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-environment-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/trace-items/(?P<item_id>(?:[A-Fa-f0-9]+))/$",
+        ProjectTraceItemDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-trace-item-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
@@ -2395,9 +2405,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-member-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
-        ProjectMetricsVisibilityEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-visibility",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/overview/$",
+        ProjectOverviewEndpoint.as_view(),
+        name="sentry-api-0-project-overview",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
@@ -2911,6 +2921,11 @@ SENTRY_APP_URLS = [
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
     ),
+    re_path(
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/webhook-requests/$",
+        SentryAppWebhookRequestsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-webhook-requests",
+    ),
     # The following a region endpoints as interactions and request logs
     # are per-region.
     re_path(
@@ -3260,6 +3275,12 @@ urlpatterns = [
         r"^publickeys/relocations/$",
         RelocationPublicKeyEndpoint.as_view(),
         name="sentry-api-0-relocations-public-key",
+    ),
+    # Uptime checker public IP address list
+    re_path(
+        r"^uptime-ips/$",
+        UptimeIpsEndpoint.as_view(),
+        name="sentry-api-0-uptime-ips",
     ),
     # Secret Scanning
     re_path(

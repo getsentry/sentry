@@ -6,7 +6,6 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Optional, Protocol, TypedDict
 
-from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import (
@@ -16,7 +15,6 @@ from sentry.issues.grouptype import (
     get_group_type_by_type_id,
 )
 from sentry.issues.grouptype import registry as GT_REGISTRY
-from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.snuba.dataset import Dataset
@@ -57,8 +55,8 @@ GroupSearchStrategy = Callable[
         Sequence[Any],
         Sequence[Any],
         int,
-        Sequence[int],
-        Optional[Sequence[Environment]],
+        list[int],
+        Optional[Sequence[str]],
         Optional[Sequence[int]],
         Mapping[str, Sequence[int]],
         Sequence[Any],
@@ -132,9 +130,9 @@ def _query_params_for_error(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
-    organization: Organization,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
+    organization_id: int,
+    project_ids: list[int],
+    environments: Sequence[str] | None,
     group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
@@ -146,19 +144,14 @@ def _query_params_for_error(
         "event.type",
         "!=",
         "transaction",
-        organization.id,
+        organization_id,
         project_ids,
         environments,
         conditions,
     )
 
-    if features.has("organizations:feature-flag-autocomplete", organization):
-        dataset = Dataset.Events
-    else:
-        dataset = Dataset.Discover
-
     params = query_partial(
-        dataset=dataset,
+        dataset=Dataset.Events,
         selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
@@ -173,16 +166,16 @@ def _query_params_for_generic(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
-    organization: Organization,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
+    organization_id: int,
+    project_ids: list[int],
+    environments: Sequence[str] | None,
     group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
     actor: Any | None = None,
     categories: Sequence[GroupCategory] | None = None,
 ) -> SnubaQueryParams | None:
-    organization = Organization.objects.filter(id=organization.id).first()
+    organization = Organization.objects.filter(id=organization_id).first()
     if organization:
         if categories is None:
             logging.error("Category is required in _query_params_for_generic")
@@ -261,8 +254,8 @@ def _updated_conditions(
     operator: str,
     value: str,
     organization_id: int,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
+    project_ids: list[int],
+    environments: Sequence[str] | None,
     conditions: Sequence[Any],
 ) -> Sequence[Any]:
     search_filter = SearchFilter(

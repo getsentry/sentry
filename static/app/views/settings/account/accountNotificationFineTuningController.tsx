@@ -6,7 +6,7 @@ import withOrganizations from 'sentry/utils/withOrganizations';
 import AccountNotificationFineTuning from './accountNotificationFineTuning';
 
 interface AccountNotificationFineTuningControllerProps
-  extends RouteComponentProps<{fineTuneType: string}, {}> {
+  extends RouteComponentProps<{fineTuneType: string}> {
   organizations: Organization[];
   organizationsLoading?: boolean;
 }

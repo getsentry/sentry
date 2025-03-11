@@ -88,7 +88,7 @@ function SpanSummaryButton(props: Props) {
   return null;
 }
 
-const resourceSummaryAvailable = (op: string = '') =>
+const resourceSummaryAvailable = (op = '') =>
   ['resource.script', 'resource.css'].includes(op);
 
 export default SpanSummaryButton;

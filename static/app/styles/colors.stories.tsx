@@ -283,10 +283,10 @@ const PalettePanelItem = styled(PanelItem)<{
   gap: ${space(0.5)};
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadiusTop};
+    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
   &:last-child {
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
   &:first-child:last-child {
     border-radius: ${p => p.theme.borderRadius};

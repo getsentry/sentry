@@ -38,7 +38,7 @@ function TransactionToProfileButton({
   }
 
   const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectSlug,
     profileId,
     query,

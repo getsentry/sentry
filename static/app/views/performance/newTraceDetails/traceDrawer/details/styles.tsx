@@ -135,26 +135,26 @@ const TitleText = styled('div')`
   font-weight: bold;
 `;
 
-function TitleWithTestId(props: PropsWithChildren<{}>) {
+function TitleWithTestId(props: PropsWithChildren) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
 function SubtitleWithCopyButton({
-  text,
-  hideCopyButton = false,
+  subTitle,
+  clipboardText,
 }: {
-  text: string;
-  hideCopyButton?: boolean;
+  clipboardText: string;
+  subTitle: string;
 }) {
   return (
     <SubTitleWrapper>
-      <StyledSubTitleText>{text}</StyledSubTitleText>
-      {!hideCopyButton ? (
+      <StyledSubTitleText>{subTitle}</StyledSubTitleText>
+      {clipboardText ? (
         <CopyToClipboardButton
           borderless
           size="zero"
           iconSize="xs"
-          text={text}
+          text={clipboardText}
           tooltipProps={{disabled: true}}
         />
       ) : null}
@@ -795,17 +795,21 @@ function KeyValueAction({
     },
   ];
 
-  const valueType = getFieldDefinition(rowKey)?.valueType;
-  const isMeasurement =
-    valueType &&
-    [
-      FieldValueType.DURATION,
-      FieldValueType.NUMBER,
-      FieldValueType.INTEGER,
-      FieldValueType.PERCENTAGE,
-    ].includes(valueType);
+  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
+  const isNumeric =
+    typeof rowValue === 'number' ||
+    (valueType &&
+      [
+        FieldValueType.DURATION,
+        FieldValueType.NUMBER,
+        FieldValueType.INTEGER,
+        FieldValueType.PERCENTAGE,
+        FieldValueType.DATE,
+        FieldValueType.RATE,
+        FieldValueType.PERCENT_CHANGE,
+      ].includes(valueType));
 
-  if (isMeasurement) {
+  if (isNumeric) {
     dropdownOptions.push(
       {
         key: 'includeGreaterThan',
@@ -852,7 +856,8 @@ function KeyValueAction({
           organization,
           rowKey,
           rowValue.toString(),
-          key as TraceDrawerActionKind
+          key as TraceDrawerActionKind,
+          'drawer'
         );
       }}
       items={dropdownOptions}
@@ -967,33 +972,33 @@ function NodeActions(props: {
     const profileId = isTransactionNode(props.node)
       ? props.node.value.profile_id
       : isSpanNode(props.node)
-        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        ? (props.node.event?.contexts?.profile?.profile_id ?? '')
         : '';
     if (!profileId) {
       return null;
     }
     return makeTransactionProfilingLink(profileId, {
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.node.metadata.project_slug ?? '',
     });
-  }, [props.node, props.organization]);
+  }, [organization, props.node]);
 
   const continuousProfileTarget = useMemo(() => {
     const profilerId = isTransactionNode(props.node)
       ? props.node.value.profiler_id
       : isSpanNode(props.node)
-        ? props.node.value.sentry_tags?.profiler_id ?? null
+        ? (props.node.value.sentry_tags?.profiler_id ?? null)
         : null;
     if (!profilerId) {
       return null;
     }
     return makeTraceContinuousProfilingLink(props.node, profilerId, {
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.node.metadata.project_slug ?? '',
       traceId: params.traceSlug ?? '',
       threadId: getThreadIdFromNode(props.node, transaction),
     });
-  }, [params.traceSlug, props.node, props.organization, transaction]);
+  }, [organization, params.traceSlug, props.node, transaction]);
 
   if (!hasNewTraceUi) {
     return (

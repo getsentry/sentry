@@ -18,7 +18,6 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 class TestLatestReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_RELEASE
-    rule_cls = LatestReleaseFilter
     payload = {
         "id": LatestReleaseFilter.id,
     }

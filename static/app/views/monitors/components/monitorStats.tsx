@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -11,13 +12,13 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export function MonitorStats({monitor, monitorEnvs}: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
@@ -159,7 +161,7 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
               useShortDate
               series={[duration]}
               height={height}
-              colors={[theme.charts.colors![0]]}
+              colors={[CHART_PALETTE[CHART_PALETTE.length - 1]![0]]}
               yAxis={getYAxisOptions('duration')}
               grid={{
                 top: 6,

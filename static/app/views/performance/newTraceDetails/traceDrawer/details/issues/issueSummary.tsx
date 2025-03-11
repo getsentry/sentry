@@ -37,7 +37,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
           <IconStar isSolid color="yellow400" />
         </IconWrapper>
       )}
-      <ErrorBoundary customComponent={<EventTitleError />} mini>
+      <ErrorBoundary customComponent={() => <EventTitleError />} mini>
         <StyledEventOrGroupTitle
           data={props.data}
           // hasSeen is undefined for GroupTombstone
@@ -99,7 +99,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
           level={'level' in data ? data.level : undefined}
           message={getMessage(data)}
           type={data.type}
-          levelIndicatorSize="9px"
+          levelIndicatorSize={9}
         />
       ) : null}
     </div>

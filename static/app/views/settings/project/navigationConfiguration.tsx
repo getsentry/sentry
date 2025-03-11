@@ -1,9 +1,7 @@
-import Badge from 'sentry/components/badge/badge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -71,7 +69,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
           show: () => !!organization?.features?.includes('dev-toolbar-ui'),
-          badge: () => <Badge type="beta">Beta</Badge>,
+          badge: () => 'beta',
         },
       ],
     },
@@ -116,12 +114,7 @@ export default function getConfiguration({
             !!organization?.features?.includes('performance-view') &&
             !isSelfHostedErrorsOnly,
         },
-        {
-          path: `${pathPrefix}/metrics/`,
-          title: t('Metrics'),
-          show: () =>
-            !!(organization && hasCustomMetrics(organization)) && !isSelfHostedErrorsOnly,
-        },
+
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
@@ -132,7 +125,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
-          badge: () => <Badge type="beta">Beta</Badge>,
+          badge: () => 'beta',
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],

@@ -1,7 +1,8 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import type {BarSeriesOption, LineSeriesOption} from 'echarts';
+import styled from '@emotion/styled';
+import type {SeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -10,10 +11,12 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {isChartHovered} from 'sentry/components/charts/utils';
-import type {Series} from 'sentry/types/echarts';
+import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {
@@ -22,91 +25,153 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {AreaChartWidgetSeries} from '../areaChartWidget/areaChartWidgetSeries';
-import {BarChartWidgetSeries} from '../barChartWidget/barChartWidgetSeries';
-import type {
-  Aliases,
-  Release,
-  TimeseriesData,
-  TimeseriesSelection,
-} from '../common/types';
-import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
+import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
+import type {Aliases, LegendSelection, Release} from '../common/types';
 
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatYAxisValue} from './formatYAxisValue';
-import {markDelayedData} from './markDelayedData';
+import {formatSeriesName} from './formatters/formatSeriesName';
+import {formatTooltipValue} from './formatters/formatTooltipValue';
+import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
+import {formatYAxisValue} from './formatters/formatYAxisValue';
+import type {Plottable} from './plottables/plottable';
 import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
-import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
-type VisualizationType = 'area' | 'line' | 'bar';
-
-type SeriesConstructor = (
-  timeserie: TimeseriesData,
-  complete?: boolean
-) => LineSeriesOption | BarSeriesOption;
+const RELEASE_BUBBLE_SIZE = 14;
 
 export interface TimeSeriesWidgetVisualizationProps {
-  timeseries: TimeseriesData[];
-  visualizationType: VisualizationType;
+  /**
+   * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
+   */
+  plottables: Plottable[];
+  /**
+   * A mapping of time series fields to their user-friendly labels, if needed
+   */
   aliases?: Aliases;
-  dataCompletenessDelay?: number;
-  onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  /**
+   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
+   */
+  legendSelection?: LegendSelection;
+  /**
+   * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
+   */
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
+  /**
+   * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
+   */
+  onZoom?: EChartDataZoomHandler;
+  /**
+   * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
+   */
   releases?: Release[];
-  timeseriesSelection?: TimeseriesSelection;
+  /**
+   * Show releases as either lines per release or a bubble for a group of releases.
+   */
+  showReleaseAs?: 'bubble' | 'line';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
+  if (props.plottables.every(plottable => plottable.isEmpty)) {
+    throw new Error(NO_PLOTTABLE_VALUES);
+  }
+
+  // TODO: It would be polite to also scan for gaps (i.e., the items don't all
+  // have the same difference in `timestamp`s) even though this is rare, since
+  // the backend zerofills the data
+
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
 
-  const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
-
   const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const hasReleaseBubbles =
+    organization.features.includes('release-bubbles-ui') &&
+    props.showReleaseAs === 'bubble';
 
-  let releaseSeries: Series | undefined = undefined;
-  if (props.releases) {
-    const onClick = (release: Release) => {
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${
-            organization.slug
-          }/releases/${encodeURIComponent(release.version)}/`,
-        })
-      );
-    };
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
-  }
+  const {
+    createReleaseBubbleHighlighter,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    bubbleSize: RELEASE_BUBBLE_SIZE,
+    chartRef,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
+  });
 
-  const formatSeriesName: (string: string) => string = name => {
-    return props.aliases?.[name] ?? name;
-  };
+  const releaseSeries = props.releases
+    ? hasReleaseBubbles
+      ? releaseBubbleSeries
+      : ReleaseSeries(
+          theme,
+          props.releases,
+          function onReleaseClick(release: Release) {
+            navigate(
+              makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(release.version)}/`,
+              })
+            );
+          },
+          utc ?? false
+        )
+    : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        createReleaseBubbleHighlighter(echartsInstance);
+      }
+    },
+    [
+      hasReleaseBubblesSeries,
+      createReleaseBubbleHighlighter,
+      registerWithWidgetSyncContext,
+    ]
+  );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
 
-  // TODO: The `meta.fields` property should be typed as
-  // Record<string, AggregationOutputType | null>, which is the reality
+  // Determine our chart Y axis type and units
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
-    props.timeseries.map(timeserie => {
-      return timeserie?.meta?.fields?.[timeserie.field];
+    props.plottables.map(plottable => {
+      return plottable.dataType;
     })
-  ).filter(Boolean) as AggregationOutputType[];
+  ).filter(Boolean);
 
   if (types.length === 1) {
     // All timeseries have the same type. Use that as the Y axis type.
@@ -118,11 +183,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
 
-  const units = uniq(
-    props.timeseries.map(timeserie => {
-      return timeserie?.meta?.units?.[timeserie.field];
-    })
-  ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
+  // N.B. Do not filter `boolean` because `null` is a valid unit
+  const units = uniq(props.plottables.map(plottable => plottable.dataUnit));
 
   if (units.length === 1) {
     // All timeseries have the same unit. Use that unit. This is especially
@@ -135,41 +197,33 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
   }
 
-  const scaledSeries = props.timeseries.map(timeserie => {
-    return scaleTimeSeriesData(timeserie, yAxisUnit);
+  // Set up a fallback palette for any plottable without a color
+  const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
+
+  const palette =
+    paletteSize > 0
+      ? getChartColorPalette(paletteSize - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      : [];
+
+  // Assign fallback colors if needed
+  let seriesColorIndex = 0;
+  const series: SeriesOption[] = props.plottables.flatMap(plottable => {
+    let color: string | undefined;
+
+    if (plottable.needsColor) {
+      // For any timeseries in need of a color, pull from the chart palette
+      color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
+      seriesColorIndex += 1;
+    }
+
+    // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
+    return plottable.toSeries({
+      unit: yAxisUnit,
+      color,
+    });
   });
 
-  let completeSeries: TimeseriesData[] = scaledSeries;
-  const incompleteSeries: TimeseriesData[] = [];
-
-  if (dataCompletenessDelay > 0 && ['line', 'area'].includes(props.visualizationType)) {
-    // In order to show incomplete data for line and area series, we have to do
-    // a shenanigan in which we split the series into two, style the
-    // "incomplete" series differently, and show both series on the chart
-    completeSeries = [];
-
-    scaledSeries.forEach(timeserie => {
-      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
-        timeserie,
-        dataCompletenessDelay
-      );
-
-      if (completeSerie && completeSerie.data.length > 0) {
-        completeSeries.push(completeSerie);
-      }
-
-      if (incompleteSerie && incompleteSerie.data.length > 0) {
-        incompleteSeries.push(incompleteSerie);
-      }
-    });
-  } else if (dataCompletenessDelay > 0 && props.visualizationType === 'bar') {
-    // Bar charts are not continuous (there are gaps between the bars) so no
-    // shenanigan is needed. Simply mark the "incomplete" bars
-    completeSeries = props.timeseries.map(timeserie => {
-      return markDelayedData(timeserie, dataCompletenessDelay);
-    });
-  }
-
+  // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
@@ -215,74 +269,61 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeserie = scaledSeries.find(t => t.field === field);
-
-        return formatTooltipValue(
-          value,
-          timeserie?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeserie?.meta?.units?.[field] ?? undefined
-        );
+        return formatTooltipValue(value, yAxisFieldType, yAxisUnit ?? undefined);
       },
-      nameFormatter: formatSeriesName,
+      nameFormatter: seriesName => {
+        return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
+      },
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = scaledSeries.length;
+  let visibleSeriesCount = props.plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
 
-  const SeriesConstructor = SeriesConstructors[props.visualizationType];
-
   return (
     <BaseChart
-      ref={e => {
-        chartRef.current = e;
-
-        if (e?.getEchartsInstance) {
-          registerWithWidgetSyncContext(e.getEchartsInstance());
-        }
-      }}
+      ref={handleChartRef}
+      {...releaseBubbleEventHandlers}
       autoHeightResize
-      series={[
-        ...completeSeries.map(timeserie => {
-          return SeriesConstructor(timeserie, true);
-        }),
-        ...incompleteSeries.map(timeserie => {
-          return SeriesConstructor(timeserie, false);
-        }),
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
-      ].filter(defined)}
+      series={[...series, releaseSeries].filter(defined)}
       grid={{
-        left: 0,
+        // NOTE: Adding a few pixels of left padding prevents ECharts from
+        // incorrectly truncating long labels. See
+        // https://github.com/apache/echarts/issues/15562
+        left: 2,
         top: showLegend ? 25 : 10,
-        right: 4,
+        right: 8,
         bottom: 0,
         containLabel: true,
+        ...releaseBubbleGrid,
       }}
       legend={
         showLegend
           ? {
               top: 0,
               left: 0,
-              formatter(name: string) {
-                return props.aliases?.[name] ?? formatSeriesName(name);
+              formatter(seriesName: string) {
+                return truncationFormatter(
+                  props.aliases?.[seriesName] ?? formatSeriesName(seriesName),
+                  true,
+                  // Escaping the legend string will cause some special
+                  // characters to render as their HTML equivalents.
+                  // So disable it here.
+                  false
+                );
               },
-              selected: props.timeseriesSelection,
+              selected: props.legendSelection,
             }
           : undefined
       }
       onLegendSelectChanged={event => {
-        props?.onTimeseriesSelectionChange?.(event.selected);
+        props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
         trigger: 'axis',
@@ -296,8 +337,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
+          formatter: (value: number) => {
+            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+
+            // Adding whitespace around the label is equivalent to padding.
+            // ECharts doesn't respect padding when calculating overlaps, but it
+            // does respect whitespace. This prevents overlapping X axis labels
+            return ` ${string} `;
+          },
         },
-        splitNumber: 0,
+        splitNumber: 5,
+        ...releaseBubbleXAxis,
       }}
       yAxis={{
         animation: false,
@@ -319,6 +369,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         },
       }}
       {...chartZoomProps}
+      {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
@@ -329,8 +380,28 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 }
 
-const SeriesConstructors: Record<VisualizationType, SeriesConstructor> = {
-  area: AreaChartWidgetSeries,
-  line: LineChartWidgetSeries,
-  bar: BarChartWidgetSeries,
-};
+function LoadingPanel() {
+  return (
+    <LoadingPlaceholder>
+      <LoadingMask visible />
+      <LoadingIndicator mini />
+    </LoadingPlaceholder>
+  );
+}
+
+const LoadingPlaceholder = styled('div')`
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: ${Y_GUTTER} ${X_GUTTER};
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
+`;
+
+TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

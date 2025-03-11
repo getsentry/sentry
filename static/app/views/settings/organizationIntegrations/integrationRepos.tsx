@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -81,11 +81,13 @@ function IntegrationRepos(props: Props) {
   return (
     <Fragment>
       {integrationReposErrorStatus === 400 && (
-        <Alert type="error" showIcon>
-          {t(
-            'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t(
+              'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
+            )}
+          </Alert>
+        </Alert.Container>
       )}
 
       <Panel>

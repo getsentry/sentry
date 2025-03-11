@@ -602,7 +602,7 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(link).toHaveAttribute(
           'href',
           expect.stringMatching(
-            RegExp(
+            new RegExp(
               '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
             )
           )
@@ -846,6 +846,35 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(screen.getByText('count()'));
         await waitForMetaToHaveBeenCalled();
         expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+      });
+
+      it('appends the orderby to the query if it is not already selected as an aggregate', async function () {
+        const eventsStatsMock = mockEventsStats();
+        mockEvents();
+
+        const widget = WidgetFixture({
+          widgetType: WidgetType.TRANSACTIONS,
+          queries: [
+            {
+              orderby: '-epm()',
+              aggregates: ['count()'],
+              columns: ['country'],
+              conditions: '',
+              name: '',
+            },
+          ],
+        });
+
+        await renderModal({initialData, widget});
+        expect(await screen.findByText('epm()')).toBeInTheDocument();
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: ['country', 'count()', 'epm()'],
+            }),
+          })
+        );
       });
     });
 

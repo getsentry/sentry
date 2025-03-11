@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -90,7 +91,7 @@ function CronsOverview() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    const currentQuery = {...location.query, cursor: undefined};
     navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
@@ -110,7 +111,7 @@ function CronsOverview() {
       <BackendHeader
         headerTitle={
           <Fragment>
-            {MODULE_TITLE}
+            <GuideAnchor target="crons_backend_insights">{MODULE_TITLE}</GuideAnchor>
             <PageHeadingQuestionTooltip
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}

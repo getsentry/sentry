@@ -9,9 +9,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -189,7 +189,7 @@ class TransactionThresholdModal extends Component<Props, State> {
           stacked
           required
         >
-          <SelectControl
+          <Select
             required
             options={METRIC_CHOICES.slice()}
             name="responseMetric"

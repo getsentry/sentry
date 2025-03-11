@@ -13,11 +13,11 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
-import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -269,9 +269,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         Banner.dismiss('discover');
         this.setState({queryName: ''});
-        browserHistory.push(
-          normalizeUrl(view.getResultsViewUrlTarget(organization.slug))
-        );
+        browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
       }
     );
   };
@@ -288,7 +286,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
         setSavedQuery(savedQuery);
         this.setState({queryName: ''});
-        browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
+        browserHistory.push(view.getResultsViewShortUrlTarget(organization));
         updateCallback();
       }
     );
@@ -653,7 +651,7 @@ const SaveAsButton = styled(Button)`
   width: 100%;
 `;
 
-const SaveAsInput = styled(InputControl)`
+const SaveAsInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 

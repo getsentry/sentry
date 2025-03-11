@@ -134,7 +134,7 @@ describe('AutofixInsightCards', () => {
             type: 'restart_from_point_with_feedback',
             message: 'Here is my insight.',
             step_index: 0,
-            retain_insight_card_index: 0,
+            retain_insight_card_index: 1,
           }),
         }),
       })
@@ -158,7 +158,7 @@ describe('AutofixInsightCards', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
+      expect(addSuccessMessage).toHaveBeenCalledWith('Rethinking this...');
     });
   });
 

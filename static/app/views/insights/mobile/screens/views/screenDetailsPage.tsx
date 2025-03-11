@@ -1,7 +1,10 @@
 import type React from 'react';
 import {useState} from 'react';
 
-import FeatureBadge, {type BadgeType} from 'sentry/components/badge/featureBadge';
+import {
+  FeatureBadge,
+  type FeatureBadgeProps,
+} from 'sentry/components/core/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -32,7 +35,7 @@ type Tab = {
   key: string;
   label: string;
   feature?: string;
-  featureBadge?: BadgeType;
+  featureBadge?: FeatureBadgeProps['type'];
 };
 
 export function ScreenDetailsPage() {
@@ -97,9 +100,7 @@ export function ScreenDetailsPage() {
         return (
           <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
             {tab.label}
-            {tab.featureBadge && (
-              <FeatureBadge type={tab.featureBadge} variant={'badge'} />
-            )}
+            {tab.featureBadge && <FeatureBadge type={tab.featureBadge} />}
           </TabList.Item>
         );
       })}

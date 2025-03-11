@@ -84,7 +84,6 @@ BASE_PROJECT = {
     ],
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
-    "hasCustomMetrics": False,
     "hasFeedbacks": False,
     "hasMonitors": False,
     "hasNewFeedbacks": False,
@@ -372,7 +371,7 @@ DETAILED_PROJECT = {
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
-    "relayCustomMetricCardinalityLimit": 5,
+    "tempestFetchDumps": False,
     "isDynamicallySampled": True,
     "highlightTags": [],
     "highlightContext": {},
@@ -449,6 +448,19 @@ class ProjectExamples:
         OpenApiExample(
             "Get detailed view about a Project",
             value=DETAILED_PROJECT,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    OVERVIEW_PROJECT = [
+        OpenApiExample(
+            "Get an overview of a Project",
+            summary=(
+                "Project overviews are high-level summaries of a project. They are intended to provide a "
+                "quick and lightweight way to get information about a project."
+            ),
+            value=BASE_PROJECT,
             status_codes=["200"],
             response_only=True,
         ),

@@ -8,20 +8,21 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
+import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Switch from 'sentry/components/switchButton';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -37,10 +38,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';
@@ -92,6 +91,7 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -302,7 +302,9 @@ function ManageDashboards() {
   function renderNoAccess() {
     return (
       <Layout.Page>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }
@@ -428,8 +430,8 @@ function ManageDashboards() {
           ) : (
             <Layout.Page>
               <NoProjectMessage organization={organization}>
-                <Layout.Header>
-                  <Layout.HeaderContent>
+                <Layout.Header unified={prefersStackedNav}>
+                  <Layout.HeaderContent unified={prefersStackedNav}>
                     <Layout.Title>
                       {t('Dashboards')}
                       <PageHeadingQuestionTooltip
@@ -445,13 +447,12 @@ function ManageDashboards() {
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
-                          isActive={showTemplates}
+                          checked={showTemplates}
                           size="lg"
-                          toggle={toggleTemplates}
+                          onChange={toggleTemplates}
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <DashboardImportButton />
                       <Button
                         data-test-id="dashboard-create"
                         onClick={event => {
@@ -485,8 +486,6 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main fullWidth>
-                    <MetricsRemovedAlertsWidgetsAlert organization={organization} />
-
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">

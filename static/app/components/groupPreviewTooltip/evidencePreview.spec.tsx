@@ -31,7 +31,7 @@ describe('EvidencePreview', () => {
   it('shows error when request fails', async () => {
     const api = new MockApiClient();
     jest.spyOn(useApi, 'default').mockReturnValue(api);
-    jest.spyOn(api, 'requestPromise').mockRejectedValue(new Error());
+    jest.spyOn(api, 'requestPromise').mockRejectedValue(new Error('test'));
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 

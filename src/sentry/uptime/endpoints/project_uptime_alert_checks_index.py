@@ -1,10 +1,13 @@
-from collections.abc import Mapping
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
+    CheckStatus,
+    CheckStatusReasonType,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
     TraceItemTableRequest,
@@ -14,15 +17,18 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, Tr
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.api.utils import handle_query_errors
+from sentry.api.serializers.base import serialize
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
+from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
 from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.types import EapCheckEntry, IncidentStatus
 from sentry.utils import snuba_rpc
 
 
@@ -40,12 +46,13 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         project: Project,
         uptime_subscription: ProjectUptimeSubscription,
     ) -> Response:
+        start, end = get_date_range_from_params(request.GET)
 
         def data_fn(offset: int, limit: int) -> Any:
             rpc_response = self._make_eap_request(
-                project, uptime_subscription, offset=offset, limit=limit
+                project, uptime_subscription, offset=offset, limit=limit, start=start, end=end
             )
-            return self._format_response(rpc_response, uptime_subscription)
+            return self._serialize_response(rpc_response, uptime_subscription)
 
         with handle_query_errors():
             return self.paginate(
@@ -61,11 +68,20 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         uptime_subscription: ProjectUptimeSubscription,
         offset: int,
         limit: int,
+        start: datetime,
+        end: datetime,
     ) -> TraceItemTableResponse:
+        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
+        epoch_cutoff = (
+            datetime.fromtimestamp(maybe_cutoff, tz=timezone.utc) if maybe_cutoff else None
+        )
+        if epoch_cutoff and epoch_cutoff > start:
+            start = epoch_cutoff
+
         start_timestamp = Timestamp()
-        start_timestamp.FromDatetime(datetime.now() - timedelta(days=90))
+        start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
-        end_timestamp.FromDatetime(datetime.now())
+        end_timestamp.FromDatetime(end)
         rpc_request = TraceItemTableRequest(
             meta=RequestMeta(
                 referrer="uptime_alert_checks_index",
@@ -105,12 +121,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 Column(
                     label="scheduled_check_time",
                     key=AttributeKey(
-                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_FLOAT
+                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_DOUBLE
                     ),
                 ),
                 Column(
                     label="timestamp",
-                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_FLOAT),
+                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
                 ),
                 Column(
                     label="duration_ms",
@@ -134,7 +150,14 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     label="trace_id",
                     key=AttributeKey(name="trace_id", type=AttributeKey.Type.TYPE_STRING),
                 ),
-                # TODO: Add http_status_code once nullable problem figured out
+                Column(
+                    label="http_status_code",
+                    key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_INT),
+                ),
+                Column(
+                    label="incident_status",
+                    key=AttributeKey(name="incident_status", type=AttributeKey.Type.TYPE_INT),
+                ),
             ],
             order_by=[
                 TraceItemTableRequest.OrderBy(
@@ -152,58 +175,63 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         return rpc_response
 
-    def _format_response(
-        self, rpc_response: TraceItemTableResponse, uptime_subscription: ProjectUptimeSubscription
-    ) -> list[dict[str, int | str | float]]:
+    def _serialize_response(
+        self,
+        rpc_response: TraceItemTableResponse,
+        uptime_subscription: ProjectUptimeSubscription,
+    ) -> list[EapCheckEntrySerializerResponse]:
         """
-        Transform the response from the EAP into a list of items per each uptime check.
+        Serialize the response from the EAP into a list of items per each uptime check.
         """
         column_values = rpc_response.column_values
         if not column_values:
             return []
 
         column_names = [cv.attribute_name for cv in column_values]
-        return [
-            self._format_row(row_idx, column_values, column_names, uptime_subscription)
+        entries: list[EapCheckEntry] = [
+            self._transform_row(row_idx, column_values, column_names, uptime_subscription)
             for row_idx in range(len(column_values[0].results))
         ]
 
-    def _format_row(
+        return serialize(entries)
+
+    def _transform_row(
         self,
         row_idx: int,
         column_values: Any,
         column_names: list[str],
         uptime_subscription: ProjectUptimeSubscription,
-    ) -> dict[str, int | str | float]:
-        row_dict: dict[str, int | str | float] = {}
-        for col_idx, col_name in enumerate(column_names):
-            result = column_values[col_idx].results[row_idx]
-            row_dict.update(self._extract_field_value(result, col_name, uptime_subscription))
-        return convert_dict_key_case(row_dict, snake_to_camel_case)
+    ) -> EapCheckEntry:
+        row_dict: dict[str, AttributeValue] = {
+            col_name: column_values[col_idx].results[row_idx]
+            for col_idx, col_name in enumerate(column_names)
+        }
 
-    def _extract_field_value(
-        self, result, col_name: str, uptime_subscription: ProjectUptimeSubscription
-    ) -> Mapping[str, int | str | float]:
-        if result.HasField("val_str"):
-            return self._handle_string_field(result.val_str, col_name, uptime_subscription)
-        elif result.HasField("val_int"):
-            return {col_name: int(result.val_int)}
-        elif result.HasField("val_float"):
-            return self._handle_float_field(result.val_float, col_name)
-        return {}
+        return EapCheckEntry(
+            uptime_check_id=row_dict["uptime_check_id"].val_str,
+            uptime_subscription_id=uptime_subscription.id,
+            timestamp=datetime.fromtimestamp(row_dict["timestamp"].val_double),
+            scheduled_check_time=datetime.fromtimestamp(
+                row_dict["scheduled_check_time"].val_double
+            ),
+            check_status=cast(CheckStatus, row_dict["check_status"].val_str),
+            check_status_reason=(
+                None
+                if row_dict["check_status_reason"].val_str == ""
+                else cast(CheckStatusReasonType, row_dict["check_status_reason"].val_str)
+            ),
+            http_status_code=(
+                None
+                if row_dict["http_status_code"].is_null
+                else row_dict["http_status_code"].val_int
+            ),
+            duration_ms=row_dict["duration_ms"].val_int,
+            trace_id=row_dict["trace_id"].val_str,
+            incident_status=IncidentStatus(row_dict["incident_status"].val_int),
+            environment=row_dict["environment"].val_str,
+            region=row_dict["region"].val_str,
+        )
 
-    def _handle_string_field(
-        self, value: str, col_name: str, uptime_subscription: ProjectUptimeSubscription
-    ) -> Mapping[str, int | str | float]:
-        if col_name == "uptime_subscription_id":
-            # map this back to the project uptime subscription id
-            return {
-                "project_uptime_subscription_id": uptime_subscription.id,
-                col_name: uptime_subscription.id,
-            }
-        return {col_name: value}
-
-    def _handle_float_field(self, value: float, col_name: str) -> Mapping[str, int | str | float]:
-        if col_name in ("scheduled_check_time", "timestamp"):
-            return {col_name: datetime.fromtimestamp(value).strftime("%Y-%m-%dT%H:%M:%SZ")}
-        return {col_name: value}
+    def _get_date_cutoff_epoch_seconds(self) -> float | None:
+        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
+        return None if value == 0 else value

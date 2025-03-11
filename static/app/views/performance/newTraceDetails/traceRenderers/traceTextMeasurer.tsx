@@ -5,8 +5,8 @@ export class TraceTextMeasurer {
   drainRaf: number | null = null;
   cache: Map<string, number> = new Map();
 
-  number: number = 0;
-  dot: number = 0;
+  number = 0;
+  dot = 0;
   duration: Record<string, number> = {};
 
   constructor() {

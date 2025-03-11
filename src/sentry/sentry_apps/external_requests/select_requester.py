@@ -42,6 +42,7 @@ class SelectRequester:
 
     def run(self) -> SelectRequesterResult:
         response: list[dict[str, str]] = []
+        url = None
         try:
             url = self._build_url()
             body = safe_urlread(
