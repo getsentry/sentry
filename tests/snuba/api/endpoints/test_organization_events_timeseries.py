@@ -97,18 +97,31 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
             "dataset": "discover",
-            "start": self.start.timestamp(),
-            "end": self.end.timestamp(),
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "count()"
-        assert [row["value"] for row in timeseries["values"]] == [1, 2, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 2,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
         assert timeseries["meta"] == {
             "unit": None,
             "type": "integer",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
 
     def test_simple_multiple_yaxis(self):
@@ -125,28 +138,54 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
             "dataset": "discover",
-            "start": self.start.timestamp(),
-            "end": self.end.timestamp(),
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeseries"]) == 2
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "count()"
-        assert [row["value"] for row in timeseries["values"]] == [1, 2, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 2,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
         assert timeseries["meta"] == {
             "unit": None,
             "type": "integer",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "count_unique(user)"
-        assert [row["value"] for row in timeseries["values"]] == [1, 1, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
         assert timeseries["meta"] == {
             "unit": None,
             "type": "integer",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
 
     def test_simple_top_events(self):
@@ -166,8 +205,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
             "dataset": "discover",
-            "start": self.start.timestamp(),
-            "end": self.end.timestamp(),
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeseries"]) == 4
         timeseries = response.data["timeseries"][0]
@@ -179,9 +218,22 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "isOther": False,
             "unit": None,
             "type": "integer",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
-        assert [row["value"] for row in timeseries["values"]] == [1, 1, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 3
@@ -192,9 +244,22 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "isOther": False,
             "unit": "millisecond",
             "type": "duration",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
-        assert [row["value"] for row in timeseries["values"]] == [120000.0, 120000.0, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 120000.0,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 120000.0,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 3
@@ -205,9 +270,22 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "isOther": False,
             "unit": None,
             "type": "integer",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
-        assert [row["value"] for row in timeseries["values"]] == [0, 1, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 0,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 1,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]
 
         timeseries = response.data["timeseries"][3]
         assert len(timeseries["values"]) == 3
@@ -218,6 +296,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "isOther": False,
             "unit": "millisecond",
             "type": "duration",
-            "interval": 3600,
+            "interval": 3_600_000,
         }
-        assert [row["value"] for row in timeseries["values"]] == [0, 120000.0, 0]
+        assert timeseries["values"] == [
+            {
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 0,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
+                "value": 120000.0,
+            },
+            {
+                "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
+                "value": 0,
+            },
+        ]

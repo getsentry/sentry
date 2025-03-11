@@ -313,8 +313,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         response = StatsResponse(
             meta=StatsMeta(
                 dataset=DATASET_LABELS[dataset],
-                start=snuba_params.start_date.timestamp(),
-                end=snuba_params.end_date.timestamp(),
+                start=snuba_params.start_date.timestamp() * 1000,
+                end=snuba_params.end_date.timestamp() * 1000,
             ),
             timeseries=self.serialize_result(result, axes, rollup),
         )
@@ -331,14 +331,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     [
                         TimeSeries(
                             values=[
-                                Row(timestamp=row["time"], value=row.get(axis, 0))
+                                Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
                                 for row in result.data["data"]
                             ],
                             axis=axis,
                             meta=SeriesMeta(
                                 unit=unit,
                                 type=field_type,
-                                interval=rollup,
+                                interval=rollup * 1000,
                             ),
                         )
                     ]
@@ -353,7 +353,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                         [
                             TimeSeries(
                                 values=[
-                                    Row(timestamp=row["time"], value=row.get(axis, 0))
+                                    Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
                                     for row in value.data["data"]
                                 ],
                                 axis=axis,
@@ -363,7 +363,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                                     isOther=value.data.get("is_other", False),
                                     unit=unit,
                                     type=field_type,
-                                    interval=rollup,
+                                    interval=rollup * 1000,
                                 ),
                             )
                         ]
