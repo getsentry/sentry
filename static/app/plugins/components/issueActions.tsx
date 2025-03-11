@@ -56,8 +56,8 @@ type State = {
 } & PluginComponentBase['state'];
 
 class IssueActions extends PluginComponentBase<Props, State> {
-  constructor(props: Props, context: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
     this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));

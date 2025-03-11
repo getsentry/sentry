@@ -19,13 +19,13 @@ export default class SelectField extends FormField<Props> {
     multiple: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
-    const newError = this.getError(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps: any) {
+    const newError = this.getError(nextProps, this.context);
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
+    if (this.props.value !== nextProps.value || defined(this.context.form)) {
+      const newValue = this.getValue(nextProps, this.context);
       // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it

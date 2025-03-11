@@ -19,8 +19,8 @@ import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 export default class SelectCreatableField extends SelectField {
   options: Array<SelectValue<any>> | undefined;
 
-  constructor(props: any, context: any) {
-    super(props, context);
+  constructor(props: any) {
+    super(props);
 
     // We only want to parse options once because react-select relies
     // on `options` mutation when you create a new option
@@ -29,13 +29,13 @@ export default class SelectCreatableField extends SelectField {
     this.options = this.getOptions(props);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
-    const newError = this.getError(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps: any) {
+    const newError = this.getError(nextProps, this.context);
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
+    if (this.props.value !== nextProps.value || defined(this.context.form)) {
+      const newValue = this.getValue(nextProps, this.context);
       // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it

@@ -45,21 +45,21 @@ export default abstract class FormField<
     required: false,
   };
 
-  constructor(props: Props, context?: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
     this.state = {
       error: null,
-      value: this.getValue(props, context),
+      value: this.getValue(props, this.context),
     } as State;
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: FormContextData) {
-    const newError = this.getError(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+    const newError = this.getError(nextProps, this.context);
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
+    if (this.props.value !== nextProps.value || defined(this.context.form)) {
+      const newValue = this.getValue(nextProps, this.context);
       if (newValue !== this.state.value) {
         this.setValue(newValue);
       }

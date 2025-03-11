@@ -1,4 +1,3 @@
-import type {Context} from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 import FormState from 'sentry/components/forms/state';
 
@@ -21,8 +20,8 @@ export default class PasswordField extends InputField<Props, State> {
     prefix: '',
   };
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     this.state = {...this.state, editing: false};
   }
