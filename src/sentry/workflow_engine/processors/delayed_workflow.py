@@ -390,7 +390,6 @@ def fire_actions_for_groups(
     trigger_type_to_dcg_model: dict[DataConditionHandler.Type, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
-    organization: Organization | None = None
     for group, group_event in group_to_groupevent.items():
         job = WorkflowJob({"event": group_event})
         detector = get_detector_by_event(job)
