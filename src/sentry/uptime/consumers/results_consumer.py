@@ -7,6 +7,7 @@ from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from django.utils import timezone as django_timezone
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -469,7 +470,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
-            project_subscription.update(uptime_status=UptimeStatus.FAILED)
+            project_subscription.update(
+                uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
+            )
         elif (
             project_subscription.uptime_status == UptimeStatus.FAILED
             and result["status"] == CHECKSTATUS_SUCCESS
@@ -496,7 +499,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
-            project_subscription.update(uptime_status=UptimeStatus.OK)
+            project_subscription.update(
+                uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
+            )
 
     def has_reached_status_threshold(
         self,

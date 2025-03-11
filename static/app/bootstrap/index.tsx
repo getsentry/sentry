@@ -118,7 +118,7 @@ function preloadOrganizationData(config: Config) {
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   } catch (e) {
-    // eslint-disable-next-line
+    // eslint-disable-next-line no-console
     console.error(e);
   }
 }

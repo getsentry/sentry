@@ -10,7 +10,7 @@ import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleF
 
 type Props = {
   children: React.ReactNode;
-  button?: JSX.Element;
+  button?: React.JSX.Element;
   className?: string;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
