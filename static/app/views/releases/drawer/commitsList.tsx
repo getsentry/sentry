@@ -52,7 +52,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
 
   return (
     <Fragment>
-      {releaseRepos.length > 0 && (
+      {releaseRepos.length > 1 && (
         <Actions>
           <RepositorySwitcher
             repositories={releaseRepos}
