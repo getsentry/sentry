@@ -90,9 +90,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if not results:
             return None
 
-        events_by_span_id = {}
-        children_by_parent_span_id = {}
-        root_events = []
+        events_by_span_id: dict[str, dict] = {}
+        children_by_parent_span_id: dict[str, list[dict]] = {}
+        root_events: list[dict] = []
 
         # First pass: collect all events and their relationships
         for result in results:
@@ -518,7 +518,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         # get trace tree for this event
         try:
-            trace_tree = self._get_trace_tree_for_event(event, group.project)
+            trace_tree = self._get_trace_tree_for_event(event, group.project) if event else None
         except Exception as e:
             logger.exception(
                 "Failed to get trace tree for event",
