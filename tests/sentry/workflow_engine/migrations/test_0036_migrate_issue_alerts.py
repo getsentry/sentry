@@ -26,8 +26,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestMigrateIssueAlerts(TestMigrations):
-    migrate_from = "0033_workflow_name_256_char"
-    migrate_to = "0034_migrate_issue_alerts"
+    migrate_from = "0035_action_model_drop_legacy_fields"
+    migrate_to = "0036_migrate_issue_alerts"
     app = "workflow_engine"
 
     def setup_initial_state(self):
@@ -64,7 +64,6 @@ class TestMigrateIssueAlerts(TestMigrations):
             name="test2",
             condition_data=conditions,
             frequency=5,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
         data = self.issue_alert_missing_matches.data
         del data["action_match"]
@@ -75,7 +74,6 @@ class TestMigrateIssueAlerts(TestMigrations):
             name="test3",
             condition_data=conditions,
             frequency=5,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
         data = self.issue_alert_none_matches.data
         del data["action_match"]
@@ -87,14 +85,12 @@ class TestMigrateIssueAlerts(TestMigrations):
             condition_data=conditions,
             status=ObjectStatus.DISABLED,
             frequency=5,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
 
         self.issue_alert_snoozed = self.create_project_rule(
             name="test5",
             condition_data=conditions,
             frequency=5,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
         RuleSnooze.objects.create(rule=self.issue_alert_snoozed)
 
@@ -102,7 +98,6 @@ class TestMigrateIssueAlerts(TestMigrations):
             name="test5-2",
             condition_data=conditions,
             frequency=5,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
         RuleSnooze.objects.create(rule=self.issue_alert_snoozed_for_user, user_id=self.user.id)
 
@@ -118,14 +113,12 @@ class TestMigrateIssueAlerts(TestMigrations):
         self.issue_alert_invalid_condition = self.create_project_rule(
             name="test6",
             condition_data=invalid_conditions,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
 
         self.issue_alert_no_valid_conditions = self.create_project_rule(
             name="test7",
             condition_data=[invalid_conditions[0]],
             frequency=5,
-            action_data=self.action_data,  # TODO: comment out to test sentry apps
         )
 
         self.issue_alert_already_migrated = self.create_project_rule(
@@ -233,6 +226,13 @@ class TestMigrateIssueAlerts(TestMigrations):
 
         return workflow
 
+    def assert_default_actions(self, workflow: Workflow):
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
+        assert dcg_actions.count() == 2
+        assert dcg_actions[0].action.type == Action.Type.PLUGIN
+        assert dcg_actions[1].action.type == Action.Type.WEBHOOK
+
     def test(self):
         self._test_run()
         self._test_run__missing_matches()
@@ -261,48 +261,28 @@ class TestMigrateIssueAlerts(TestMigrations):
             self.issue_alert_missing_matches, logic_type=DataConditionGroup.Type.ALL
         )
 
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
-        # assert dcg_actions.count() == 0
-        assert dcg_actions.count() == 1
-        action = dcg_actions[0].action
-        assert action.type == Action.Type.SLACK
+        self.assert_default_actions(workflow)
 
     def _test_run__none_matches(self):
         workflow = self.assert_issue_alert_migrated(
             self.issue_alert_none_matches, logic_type=DataConditionGroup.Type.ALL
         )
 
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
-        # assert dcg_actions.count() == 0
-        assert dcg_actions.count() == 1
-        action = dcg_actions[0].action
-        assert action.type == Action.Type.SLACK
+        self.assert_default_actions(workflow)
 
     def _test_run__disabled_rule(self):
         workflow = self.assert_issue_alert_migrated(
             self.issue_alert_disabled, is_enabled=False, logic_type=DataConditionGroup.Type.ALL
         )
 
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
-        # assert dcg_actions.count() == 0
-        assert dcg_actions.count() == 1
-        action = dcg_actions[0].action
-        assert action.type == Action.Type.SLACK
+        self.assert_default_actions(workflow)
 
     def _test_run__snoozed_rule(self):
         workflow = self.assert_issue_alert_migrated(
             self.issue_alert_snoozed, is_enabled=False, logic_type=DataConditionGroup.Type.ALL
         )
 
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
-        # assert dcg_actions.count() == 0
-        assert dcg_actions.count() == 1
-        action = dcg_actions[0].action
-        assert action.type == Action.Type.SLACK
+        self.assert_default_actions(workflow)
 
     def _test_run__snoozed_rule_for_user(self):
         workflow = self.assert_issue_alert_migrated(
@@ -311,12 +291,7 @@ class TestMigrateIssueAlerts(TestMigrations):
             logic_type=DataConditionGroup.Type.ALL,
         )
 
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
-        # assert dcg_actions.count() == 0
-        assert dcg_actions.count() == 1
-        action = dcg_actions[0].action
-        assert action.type == Action.Type.SLACK
+        self.assert_default_actions(workflow)
 
     def _test_run__skip_invalid_conditions(self):
         issue_alert_workflow = AlertRuleWorkflow.objects.get(
@@ -331,14 +306,6 @@ class TestMigrateIssueAlerts(TestMigrations):
         assert conditions.filter(
             type=Condition.REGRESSION_EVENT, comparison=True, condition_result=True
         ).exists()
-
-        # assert Action.objects.all().count() == 0
-
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-        dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
-        assert dcg_actions.count() == 1
-        action = dcg_actions[0].action
-        assert action.type == Action.Type.SLACK
 
     def _test_run__skip_migration_if_no_valid_conditions(self):
         assert (
