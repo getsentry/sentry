@@ -18,6 +18,10 @@ from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
+"""
+This columns represnts a count of the number of spans.
+It works by counting the number of spans that have the attribute "sentry.exclusive_time_ms" (which is set on every span)
+"""
 TOTAL_SPAN_COUNT = Column(
     aggregation=AttributeAggregation(
         aggregate=Function.FUNCTION_COUNT,
