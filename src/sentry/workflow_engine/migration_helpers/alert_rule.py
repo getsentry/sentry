@@ -125,11 +125,7 @@ def build_action_data_blob(
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
         return build_on_call_data_blob(alert_rule_trigger_action, action_type)
     else:
-        return {
-            "type": alert_rule_trigger_action.type,
-            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-        }
+        return {}
 
 
 def get_target_identifier(
@@ -225,9 +221,11 @@ def migrate_metric_action(
         type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
-        target_display=alert_rule_trigger_action.target_display,
-        target_identifier=target_identifier,
-        target_type=alert_rule_trigger_action.target_type,
+        config={
+            "target_display": alert_rule_trigger_action.target_display,
+            "target_identifier": target_identifier,
+            "target_type": alert_rule_trigger_action.target_type,
+        },
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=action_filter.condition_group.id,
@@ -699,10 +697,14 @@ def dual_update_migrated_alert_rule_trigger_action(
     target_identifier = get_target_identifier(trigger_action, action_type)
     updated_action_fields["type"] = action_type
     updated_action_fields["data"] = data
-    updated_action_fields["target_identifier"] = target_identifier
+    updated_action_fields["config"] = {
+        "target_display": updated_fields.get("target_display", None),
+        "target_type": updated_fields.get("target_type", None),
+        "target_identifier": target_identifier,
+    }
 
     for field in LEGACY_ACTION_FIELDS:
-        if field in updated_fields:
+        if field in updated_fields and field not in updated_action_fields["config"].keys():
             updated_action_fields[field] = updated_fields[field]
 
     action.update(**updated_action_fields)

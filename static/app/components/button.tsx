@@ -469,8 +469,8 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   const borderStyles = !translucentBorder
     ? {}
     : {
-        height: formStyles.height - 2,
-        minHeight: formStyles.minHeight - 2,
+        height: `calc(${formStyles.height} - 2px)`,
+        minHeight: `calc(${formStyles.minHeight} - 2px)`,
         paddingTop: buttonPadding.paddingTop - 1,
         paddingBottom: buttonPadding.paddingBottom - 1,
         margin: 1,

@@ -2,7 +2,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    ResolvedColumn,
+    ResolvedAttribute,
     VirtualColumnDefinition,
     datetime_processor,
     project_context_constructor,
@@ -32,204 +32,204 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
     for column in COMMON_COLUMNS
     + [
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="id",
             internal_name="sentry.span_id",
             search_type="string",
             validator=is_span_id,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
             validator=is_span_id,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.action",
             internal_name="sentry.action",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.description",
             internal_name="sentry.name",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="description",
             internal_name="sentry.name",
             search_type="string",
             secondary_alias=True,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="sentry.normalized_description",
             internal_name="sentry.description",
             search_type="string",
         ),
         # Message maps to description, this is to allow wildcard searching
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="message",
             internal_name="sentry.name",
             search_type="string",
             secondary_alias=True,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.domain",
             internal_name="sentry.domain",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.group",
             internal_name="sentry.group",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.op",
             internal_name="sentry.op",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.category",
             internal_name="sentry.category",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.self_time",
             internal_name="sentry.exclusive_time_ms",
             search_type="millisecond",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.duration",
             internal_name="sentry.duration_ms",
             search_type="millisecond",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.status",
             internal_name="sentry.status",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.status_code",
             internal_name="sentry.status_code",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
             validator=validate_event_id,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="transaction",
             internal_name="sentry.segment_name",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="is_transaction",
             internal_name="sentry.is_segment",
             search_type="boolean",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="transaction.span_id",
             internal_name="sentry.segment_id",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="profile.id",
             internal_name="sentry.profile_id",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="profiler.id",
             internal_name="profiler_id",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="thread.id",
             internal_name="thread.id",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="thread.name",
             internal_name="thread.name",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="replay.id",
             internal_name="sentry.replay_id",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="span.ai.pipeline.group",
             internal_name="sentry.ai_pipeline_group",
             search_type="string",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
             search_type="number",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="ai.total_cost",
             internal_name="ai.total_cost",
             search_type="number",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
             internal_name="http.decoded_response_content_length",
             search_type="byte",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="http.response_content_length",
             internal_name="http.response_content_length",
             search_type="byte",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="http.response_transfer_size",
             internal_name="http.response_transfer_size",
             search_type="byte",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="sampling_rate",
             internal_name="sentry.sampling_factor",
             search_type="percentage",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="timestamp",
             internal_name="sentry.timestamp",
             search_type="string",
             processor=datetime_processor,
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="cache.hit",
             internal_name="cache.hit",
             search_type="boolean",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias=PRECISE_START_TS,
             internal_name="sentry.start_timestamp",
             search_type="number",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias=PRECISE_FINISH_TS,
             internal_name="sentry.end_timestamp",
             search_type="number",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="mobile.frames_delay",
             internal_name="frames.delay",
             search_type="second",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="mobile.frames_slow",
             internal_name="frames.slow",
             search_type="number",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="mobile.frames_frozen",
             internal_name="frames.frozen",
             search_type="number",
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="mobile.frames_total",
             internal_name="frames.total",
             search_type="number",
@@ -237,7 +237,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         # These fields are extracted from span measurements but were accessed
         # 2 ways, with + without the measurements. prefix. So expose both for compatibility.
         simple_measurements_field("cache.item_size", search_type="byte", secondary_alias=True),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="cache.item_size",
             internal_name="cache.item_size",
             search_type="byte",
@@ -245,7 +245,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_measurements_field(
             "messaging.message.body.size", search_type="byte", secondary_alias=True
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="messaging.message.body.size",
             internal_name="messaging.message.body.size",
             search_type="byte",
@@ -253,13 +253,13 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_measurements_field(
             "messaging.message.receive.latency", search_type="millisecond", secondary_alias=True
         ),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="messaging.message.receive.latency",
             internal_name="messaging.message.receive.latency",
             search_type="millisecond",
         ),
         simple_measurements_field("messaging.message.retry.count", secondary_alias=True),
-        ResolvedColumn(
+        ResolvedAttribute(
             public_alias="messaging.message.retry.count",
             internal_name="messaging.message.retry.count",
             search_type="number",

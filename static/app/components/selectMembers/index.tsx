@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import type {Client} from 'sentry/api';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -198,7 +198,7 @@ class SelectMembers extends Component<Props, State> {
         onChange={this.handleChange}
         value={this.state.options?.find(({value}) => value === this.props.value)}
         styles={{
-          ...(styles ?? {}),
+          ...styles,
           // @ts-expect-error TS(7006): Parameter 'provided' implicitly has an 'any' type.
           option: (provided, state: any) => ({
             ...provided,
@@ -219,7 +219,7 @@ const DisabledLabel = styled('div')`
   overflow: hidden; /* Needed so that "Add to team" button can fit */
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   .Select-value {
     display: flex;
     align-items: center;

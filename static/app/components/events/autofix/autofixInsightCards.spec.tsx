@@ -158,7 +158,7 @@ describe('AutofixInsightCards', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
+      expect(addSuccessMessage).toHaveBeenCalledWith('Rethinking this...');
     });
   });
 

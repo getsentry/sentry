@@ -110,7 +110,6 @@ class RelatedIssues extends Component<Props> {
 
         <TableWrapper>
           <GroupList
-            orgSlug={organization.slug}
             queryParams={queryParams}
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
