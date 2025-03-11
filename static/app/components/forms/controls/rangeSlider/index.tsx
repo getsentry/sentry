@@ -1,11 +1,13 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
+import {Slider} from 'sentry/components/core/slider';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-import Slider from './slider';
 import SliderAndInputWrapper from './sliderAndInputWrapper';
 import SliderLabel from './sliderLabel';
 
@@ -188,8 +190,7 @@ function RangeSlider({
       {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
       <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
         <SliderAndInputWrapper showCustomInput={showCustomInput}>
-          <Slider
-            type="range"
+          <StyledSlider
             name={name}
             id={id}
             min={min}
@@ -201,12 +202,12 @@ function RangeSlider({
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}
-            hasLabel={!showCustomInput}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
           />
           {showCustomInput && (
-            <Input
+            <StyledInput
+              hasLabel={!showCustomInput}
               placeholder={placeholder}
               value={sliderValue}
               onChange={handleCustomInputChange}
@@ -218,6 +219,14 @@ function RangeSlider({
     </div>
   );
 }
+
+const StyledSlider = styled(Slider)`
+  margin: ${space(1)} 0;
+`;
+
+const StyledInput = styled(Input)<{hasLabel: boolean}>`
+  margin-top: ${p => space(p.hasLabel ? 2 : 1)};
+`;
 
 const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(
   props: SliderProps,
