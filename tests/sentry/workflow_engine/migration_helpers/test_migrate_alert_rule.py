@@ -166,7 +166,7 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
 
 
 def build_sentry_app_compare_blob(
-    sentry_app_config: list[dict[str, str]]
+    sentry_app_config: list[dict[str, str]],
 ) -> list[dict[str, str | None]]:
     """
     Add the label to the config
@@ -199,8 +199,7 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
                     alert_rule_trigger_action.sentry_app_config
                 ),
             }
-
-    if action_type == Action.Type.OPSGENIE:
+    elif action_type == Action.Type.OPSGENIE:
         if not alert_rule_trigger_action.sentry_app_config:
             assert action.data == {
                 "priority": OPSGENIE_DEFAULT_PRIORITY,
@@ -209,8 +208,7 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
             assert action.data == {
                 "priority": alert_rule_trigger_action.sentry_app_config["priority"],
             }
-
-    if action_type == Action.Type.PAGERDUTY:
+    elif action_type == Action.Type.PAGERDUTY:
         if not alert_rule_trigger_action.sentry_app_config:
             assert action.data == {
                 "priority": PAGERDUTY_DEFAULT_SEVERITY,
@@ -219,6 +217,8 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
             assert action.data == {
                 "priority": alert_rule_trigger_action.sentry_app_config["priority"],
             }
+    else:
+        assert action.data == {}
 
 
 class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
@@ -835,7 +835,14 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             alert_rule=self.metric_alert, label="warning", alert_threshold=100
         )
         self.alert_rule_trigger_action_email = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.warning_trigger
+            alert_rule_trigger=self.warning_trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_identifier=self.user.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            # This shouldn't be migrated
+            sentry_app_config={
+                "priority": "p2",
+            },
         )
         self.alert_rule_trigger_action_integration = self.create_alert_rule_trigger_action(
             target_identifier=self.og_team["id"],
