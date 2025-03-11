@@ -210,14 +210,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
     }
 
-    if (relevantUnits.length > 1) {
-      // Plottables of this type has mismatched units. Return a fallback. It
-      // would also be acceptable to return the unit of the _first_ plottable,
-      // probably
-      return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
-    }
-
-    // This return exists only to appease TypeScript
+    // Plottables of this type has mismatched units. Return a fallback. It
+    // would also be acceptable to return the unit of the _first_ plottable,
+    // probably
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
