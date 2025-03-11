@@ -288,7 +288,7 @@ class SpanTree extends Component<PropType> {
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): JSX.Element | null {
+  }): React.JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
