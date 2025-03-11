@@ -137,6 +137,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
                 start=filter_params["start"],
                 end=filter_params["end"],
                 sort=filter_params.get("sort"),
+                environment=filter_params.get("environment"),
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
@@ -157,6 +158,7 @@ def query_selector_collection(
     sort: str | None,
     limit: str | None,
     offset: str | None,
+    environment: list[str],
     search_filters: list[Condition],
     organization: Organization,
 ) -> dict:
@@ -173,6 +175,7 @@ def query_selector_collection(
         start=start,
         end=end,
         search_filters=search_filters,
+        environment=environment,
         pagination=paginators,
         sort=sort,
         tenant_ids=tenant_ids,
@@ -185,6 +188,7 @@ def query_selector_dataset(
     start: datetime,
     end: datetime,
     search_filters: list[SearchFilter | ParenExpression | str],
+    environment: list[str],
     pagination: Paginators | None,
     sort: str | None,
     tenant_ids: dict[str, Any] | None = None,
@@ -229,6 +233,27 @@ def query_selector_dataset(
     num_rows = result["data"][0]["count(replay_id)"]
     sample_rate = (num_rows // 1_000_000) + 1
 
+    where_conditions = [
+        Condition(Column("project_id"), Op.IN, project_ids),
+        Condition(Column("timestamp"), Op.LT, end),
+        Condition(Column("timestamp"), Op.GTE, start),
+        Condition(Column("click_tag"), Op.NEQ, ""),
+        Condition(
+            Function(
+                "modulo",
+                parameters=[
+                    Function("cityHash64", parameters=[Column("replay_id")]),
+                    sample_rate,
+                ],
+            ),
+            Op.EQ,
+            0,
+        ),
+    ]
+
+    if environment:
+        where_conditions.append(Condition(Column("environment"), Op.IN, environment))
+
     snuba_request = SnubaRequest(
         dataset="replays",
         app_id="replay-backend-web",
@@ -258,23 +283,7 @@ def query_selector_dataset(
                 Function("sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"),
                 Function("sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"),
             ],
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
-                Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("click_tag"), Op.NEQ, ""),
-                Condition(
-                    Function(
-                        "modulo",
-                        parameters=[
-                            Function("cityHash64", parameters=[Column("replay_id")]),
-                            sample_rate,
-                        ],
-                    ),
-                    Op.EQ,
-                    0,
-                ),
-            ],
+            where=where_conditions,
             having=conditions,
             orderby=sorting,
             groupby=[
