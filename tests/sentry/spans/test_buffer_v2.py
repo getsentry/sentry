@@ -89,7 +89,7 @@ def test_basic(buffer: RedisSpansBufferV2, spans):
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == (0, {})
+    assert buffer.flush_segments(now=5) == (1, {})
     _, rv = buffer.flush_segments(now=11)
     assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"D", b"B", b"A", b"C"}}
     buffer.done_flush_segments(rv)
@@ -193,13 +193,13 @@ def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == (0, {})
+    assert buffer.flush_segments(now=5) == (2, {})
     _, rv = buffer.flush_segments(now=11)
     assert rv == {_segment_id(2, "a" * 32, "b" * 16): {b"D"}}
     buffer.done_flush_segments(rv)
 
     # TODO: flush faster, since we already saw parent in other project
-    assert buffer.flush_segments(now=30) == (0, {})
+    assert buffer.flush_segments(now=30) == (1, {})
     _, rv = buffer.flush_segments(now=60)
     assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"A", b"B", b"C"}}
     buffer.done_flush_segments(rv)
