@@ -172,18 +172,17 @@ class ResolvedAggregate(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedConditionalAggregate(ResolvedFunction):
-    """
-    An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
-    Examples of this are `sum()` and `avg()`.
-    """
 
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
     extrapolation: bool = True
-    is_aggregate: bool = field(default=True, init=False)
+    # The condition to filter on
     filter: TraceItemFilter
+    # The attribute to conditionally aggregate on
     key: AttributeKey
+
+    is_aggregate: bool = field(default=True, init=False)
 
     @property
     def proto_definition(self) -> AttributeConditionalAggregation:
@@ -260,8 +259,11 @@ class ConditionalAggregateDefinition(FunctionDefinition):
     The `filter` is returned by the `filter_resolver` function which takes in the args from the user and returns a `TraceItemFilter`.
     """
 
+    # The type of aggregation (ex. sum, avg)
     internal_function: Function.ValueType
+    # The attribute to conditionally aggregate on
     key: AttributeKey
+    # A function that takes in the resolved argument and returns the condition to filter on
     filter_resolver: Callable[..., TraceItemFilter]
 
     def resolve(
