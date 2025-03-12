@@ -56,21 +56,35 @@ export default function SentryAppDetailedView() {
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
-  const {data: sentryApp, isPending: isSentryAppPending} = useApiQuery<SentryApp>(
-    [`/sentry-apps/${integrationSlug}/`],
-    {staleTime: Infinity, retry: false}
-  );
-
-  const {data: featureData = [], isPending: isFeatureDataPending} = useApiQuery<
-    IntegrationFeature[]
-  >([`/sentry-apps/${integrationSlug}/features/`], {staleTime: Infinity, retry: false});
-
-  const {data: appInstalls = [], isPending: isAppInstallsPending} = useApiQuery<
-    SentryAppInstallation[]
-  >(makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}), {
+  const {
+    data: sentryApp,
+    isPending: isSentryAppPending,
+    isError: isSentryAppError,
+  } = useApiQuery<SentryApp>([`/sentry-apps/${integrationSlug}/`], {
     staleTime: Infinity,
     retry: false,
   });
+
+  const {
+    data: featureData = [],
+    isPending: isFeatureDataPending,
+    isError: isFeatureDataError,
+  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${integrationSlug}/features/`], {
+    staleTime: Infinity,
+    retry: false,
+  });
+
+  const {
+    data: appInstalls = [],
+    isPending: isAppInstallsPending,
+    isError: isAppInstallsError,
+  } = useApiQuery<SentryAppInstallation[]>(
+    makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 
   const integrationType = 'sentry_app';
   const integrationName = sentryApp?.name ?? '';
@@ -99,6 +113,7 @@ export default function SentryAppDetailedView() {
   );
   const installationStatus = useMemo(() => getSentryAppInstallStatus(install), [install]);
   const isPending = isSentryAppPending || isFeatureDataPending || isAppInstallsPending;
+  const isError = isSentryAppError || isFeatureDataError || isAppInstallsError;
 
   useEffect(() => {
     if (sentryApp?.status === 'internal') {
@@ -347,7 +362,7 @@ export default function SentryAppDetailedView() {
     return <LoadingIndicator />;
   }
 
-  if (!sentryApp) {
+  if (isError || !sentryApp) {
     return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
