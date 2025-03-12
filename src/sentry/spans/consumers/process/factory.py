@@ -31,6 +31,7 @@ from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span, segment_to_span_id
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -254,7 +255,12 @@ def process_batch(
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
             payload=payload.value,
-            is_segment_span=val.get("parent_span_id") is None,
+            # TODO: validate, this logic may not be complete.
+            is_segment_span=(
+                val.get("parent_span_id") is None
+                or get_path(val, "sentry_tags", "op") == "http.server"
+                or val.get("is_remote")
+            ),
         )
         spans.append(span)
 
