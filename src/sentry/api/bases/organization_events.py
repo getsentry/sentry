@@ -297,7 +297,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         units: dict[str, str | None] = {}
         meta: dict[str, str] = result_meta.copy()
         for key, value in result_meta.items():
-            unit, field_type = self.get_unit_and_type(key, value)
+            units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
 
     def get_unit_and_type(self, field, field_type):
