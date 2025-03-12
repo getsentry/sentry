@@ -74,7 +74,6 @@ export function LogRowContent({
   const hoverProps = usePrefetchLogTableRowOnHover({
     logId: String(dataRow[OurLogKnownFieldKey.ID]),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    referrer: 'api.explore.log-row',
     sharedHoverTimeoutRef,
   });
 
@@ -166,7 +165,6 @@ function LogRowDetails({
     log_id: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     project_id: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     enabled: !missingLogId,
-    referrer: 'api.explore.log-row',
   });
 
   const theme = useTheme();
