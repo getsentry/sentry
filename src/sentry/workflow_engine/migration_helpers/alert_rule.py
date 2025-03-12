@@ -155,7 +155,7 @@ def build_action_config(
         "target_type": target_type,
     }
     if target_type == ActionTarget.SENTRY_APP.value:
-        base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+        base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
     return base_config
 
 
