@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
@@ -13,13 +12,12 @@ import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingA
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {IconMegaphone, IconPause, IconPlay} from 'sentry/icons';
+import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -74,9 +72,6 @@ function IssueViewsIssueListHeader({
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
 
-  const openForm = useFeedbackForm();
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
-
   return (
     <Layout.Header
       noActionWrap
@@ -97,40 +92,18 @@ function IssueViewsIssueListHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          {openForm && hasNewLayout && (
+        {!newViewActive && (
+          <DisableInDemoMode>
             <Button
               size="sm"
-              aria-label="issue-stream-feedback"
-              icon={<IconMegaphone />}
-              onClick={() =>
-                openForm({
-                  messagePlaceholder: t(
-                    'How can we make the issue stream better for you?'
-                  ),
-                  tags: {
-                    ['feedback.source']: 'new_issue_stream_layout',
-                    ['feedback.owner']: 'issues',
-                  },
-                })
-              }
-            >
-              {t('Give Feedback')}
-            </Button>
-          )}
-          {!newViewActive && (
-            <DisableInDemoMode>
-              <Button
-                size="sm"
-                data-test-id="real-time"
-                title={realtimeTitle}
-                aria-label={realtimeTitle}
-                icon={realtimeActive ? <IconPause /> : <IconPlay />}
-                onClick={() => onRealtimeChange(!realtimeActive)}
-              />
-            </DisableInDemoMode>
-          )}
-        </ButtonBar>
+              data-test-id="real-time"
+              title={realtimeTitle}
+              aria-label={realtimeTitle}
+              icon={realtimeActive ? <IconPause /> : <IconPlay />}
+              onClick={() => onRealtimeChange(!realtimeActive)}
+            />
+          </DisableInDemoMode>
+        )}
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
