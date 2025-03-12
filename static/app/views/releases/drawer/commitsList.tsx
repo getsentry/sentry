@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
 import RepositorySwitcher from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
@@ -29,6 +30,7 @@ interface CommitsProps {
 
 export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
 
@@ -42,8 +44,9 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
     release,
     projectSlug,
     activeRepository: activeReleaseRepo,
-    // ...query,
+    cursor: location.query.commitsCursor,
   });
+
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
   const activeRepoName: string | undefined = activeReleaseRepo
@@ -73,7 +76,15 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
               ))}
             </PanelBody>
           </Panel>
-          <Pagination pageLinks={getResponseHeader?.('Link')} />
+          <Pagination
+            pageLinks={getResponseHeader?.('Link')}
+            onCursor={(cursor, path, searchQuery) => {
+              navigate({
+                pathname: path,
+                query: {...searchQuery, commitsCursor: cursor},
+              });
+            }}
+          />
         </Fragment>
       ) : (
         <EmptyState>

@@ -57,9 +57,7 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {data, isLoading, isError /* isPending, getResponseHeader */} = useApiQuery<
-    Release[]
-  >(
+  const {data, isLoading, isError, getResponseHeader} = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
@@ -69,16 +67,18 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
               ['project', 'environment'].includes(key)
             )
           ),
+          cursor: location.query.releaseCursor,
           ...normalizeDateTimeParams({
             start,
             end,
           }),
-          per_page: 10,
+          per_page: 15,
         },
       },
     ],
     {staleTime: 0}
   );
+  const pageLinks = getResponseHeader?.('Link');
 
   const releaseData = data?.map(d => ({
     project: d.projects[0]!,
@@ -190,11 +190,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         }}
       />
       <PaginationNoMargin
-        // pageLinks={pageLinks}
+        pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, cursor},
+            query: {...searchQuery, releaseCursor: cursor},
           });
         }}
       />

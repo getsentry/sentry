@@ -88,6 +88,7 @@ function createReleaseBubbleMouseListeners({
           />
         ),
         {
+          shouldCloseOnLocationChange: () => false,
           ariaLabel: t('Releases drawer'),
           transitionProps: {stiffness: 1000},
         }
