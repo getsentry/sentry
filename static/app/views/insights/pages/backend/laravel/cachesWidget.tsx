@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,6 +32,7 @@ export function CachesWidget({query}: {query?: string}) {
   const cachesRequest = useApiQuery<{
     data: Array<{
       'cache_miss_rate()': number;
+      'count()': number;
       'project.id': string;
       transaction: string;
     }>;
@@ -41,7 +43,7 @@ export function CachesWidget({query}: {query?: string}) {
         query: {
           ...pageFilterChartParams,
           dataset: 'spansMetrics',
-          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          field: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
           query: `span.op:[cache.get_item,cache.get] ${query}`,
           sort: '-cache_miss_rate()',
           per_page: 4,
@@ -117,26 +119,34 @@ export function CachesWidget({query}: {query?: string}) {
   );
 
   const footer = hasData && (
-    <WidgetFooterTable>
-      {cachesRequest.data?.data.map((item, index) => (
-        <Fragment key={item.transaction}>
-          <div>
-            <SeriesColorIndicator
-              style={{
-                backgroundColor: colorPalette[index],
-              }}
-            />
-          </div>
-          <div>
-            <Link
-              to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
-            >
-              {item.transaction}
-            </Link>
-          </div>
-          <span>{(item['cache_miss_rate()'] * 100).toFixed(2)}%</span>
-        </Fragment>
-      ))}
+    <WidgetFooterTable columns={4}>
+      {cachesRequest.data?.data.map((item, index) => {
+        const count = item['count()'];
+        const cacheMissRate = item['cache_miss_rate()'];
+        const missedCount = Math.floor(count * cacheMissRate);
+        return (
+          <Fragment key={item.transaction}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <div>
+              <Link
+                to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+              >
+                {item.transaction}
+              </Link>
+            </div>
+            <span>
+              {formatAbbreviatedNumber(missedCount)} / {formatAbbreviatedNumber(count)}
+            </span>
+            <span>{(cacheMissRate * 100).toFixed(2)}%</span>
+          </Fragment>
+        );
+      })}
     </WidgetFooterTable>
   );
 
