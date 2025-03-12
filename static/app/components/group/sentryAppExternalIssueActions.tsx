@@ -132,13 +132,13 @@ function SentryAppExternalIssueActions({
           title={tct('Unable to connect to [provider].', {
             provider: sentryAppComponent.sentryApp.name,
           })}
-          disabled={!disabled}
+          disabled={!disabled && !!externalIssue}
           skipWrapper
         >
           <StyledIntegrationLink
             onClick={e =>
               disabled
-                ? e.preventDefault()
+                ? !externalIssue && e.preventDefault()
                 : doOpenSentryAppIssueModal({
                     organization,
                     group,
@@ -147,8 +147,8 @@ function SentryAppExternalIssueActions({
                     sentryAppInstallation,
                   })
             }
-            href={disabled ? undefined : url}
-            disabled={disabled}
+            href={disabled && !externalIssue ? undefined : url}
+            disabled={disabled && !externalIssue}
           >
             {displayName}
           </StyledIntegrationLink>

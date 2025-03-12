@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -135,7 +136,7 @@ export const IssueSyncListElementContainer = styled('div')`
   }
 `;
 
-export const IntegrationLink = styled('a')<{disabled?: boolean}>`
+export const IntegrationLink = styled(ExternalLink)<{disabled?: boolean}>`
   text-decoration: none;
   margin-left: ${space(1)};
   color: ${p => p.theme.textColor};
