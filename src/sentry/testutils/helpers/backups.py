@@ -44,6 +44,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -709,6 +710,18 @@ class ExhaustiveFixtures(Fixtures):
             client_secret="test_client_secret",
             message="test_message",
             latest_fetched_item_id="test_latest_fetched_item_id",
+        )
+
+        explore_saved_query = ExploreSavedQuery.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            name="saved query",
+            query={"query": "test_query"},
+        )
+
+        ExploreSavedQueryProject.objects.create(
+            project=project,
+            explore_saved_query=explore_saved_query,
         )
 
         return org

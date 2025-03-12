@@ -76,13 +76,13 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
-    def test_bad_task_out_of_order(self, fake_message_builder: Mock):
+    def test_bad_task_out_of_order_future_step(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.save()
 
-        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.VALIDATING_START, 3)
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -93,6 +93,19 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert rel is None
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
+
+    def test_bad_task_out_of_order_past_step(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
+        self.relocation.save()
+
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert rel is None
+        assert attempts_left == 3
+        assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.IN_PROGRESS.value
 
     def test_bad_task_attempts_exhausted(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)

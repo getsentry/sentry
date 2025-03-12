@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -18,7 +18,7 @@ type Props = React.PropsWithChildren<{
   source: string;
   analyticsData?: Record<string, any>;
   'aria-label'?: string;
-  children?: React.ReactChild;
+  children?: React.ReactNode;
 }> &
   React.ComponentProps<typeof LinkButton>;
 

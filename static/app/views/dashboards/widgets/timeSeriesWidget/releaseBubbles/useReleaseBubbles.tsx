@@ -88,6 +88,7 @@ function createReleaseBubbleMouseListeners({
           />
         ),
         {
+          shouldCloseOnLocationChange: () => false,
           ariaLabel: t('Releases drawer'),
           transitionProps: {stiffness: 1000},
         }
@@ -149,7 +150,7 @@ function createReleaseBubbleMouseListeners({
 interface ReleaseBubbleSeriesProps {
   bubbleSize: number;
   buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   dateFormatOptions: {
     timezone: string;
   };
@@ -293,7 +294,7 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;

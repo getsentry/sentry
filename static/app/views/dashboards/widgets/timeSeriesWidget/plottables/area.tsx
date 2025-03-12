@@ -29,6 +29,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
       name: timeSeries.field,
       color,
       animation: false,
+      yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
     if (completeTimeSeries) {

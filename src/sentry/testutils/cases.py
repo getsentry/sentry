@@ -1236,6 +1236,14 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps([span]),
+                ).status_code
+                == 200
+            )
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
@@ -1247,6 +1255,14 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
     def store_ourlogs(self, ourlogs):
         assert (
@@ -2314,6 +2330,14 @@ class ProfilesSnubaTestCase(
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps([span]),
+                ).status_code
+                == 200
+            )
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
@@ -2325,6 +2349,14 @@ class ProfilesSnubaTestCase(
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
 
 @pytest.mark.snuba

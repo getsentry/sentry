@@ -4,7 +4,7 @@ import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -145,7 +145,9 @@ export function ProjectsTable({
           <AutoSizer>
             {({width, height}) => (
               <List
-                ref={list => (listRef.current = list)}
+                ref={list => {
+                  listRef.current = list;
+                }}
                 width={width}
                 height={height}
                 rowCount={sortedItems.length}
