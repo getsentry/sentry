@@ -88,4 +88,17 @@ describe('SchemaHintsList', () => {
 
     expect(mockSetExploreQuery).toHaveBeenCalledWith('stringTag1:""');
   });
+
+  it('should render loading indicator when isLoading is true', () => {
+    render(
+      <SchemaHintsList
+        stringTags={{}}
+        numberTags={{}}
+        supportedAggregates={[]}
+        isLoading
+      />
+    );
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  });
 });
