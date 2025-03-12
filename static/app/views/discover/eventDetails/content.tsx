@@ -361,7 +361,7 @@ function EventDetailsContent(props: Props) {
       orgSlug={organization.slug}
       projectSlug={projectSlug}
     >
-      {renderContent() as React.ReactChild}
+      {renderContent()}
     </SentryDocumentTitle>
   );
 }
