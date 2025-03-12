@@ -34,7 +34,7 @@ export const getChonkStylesConfig = ({
   return {
     control: (_, state: any) => ({
       display: 'flex',
-      color: theme.formText,
+      color: theme.textColor,
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
@@ -108,7 +108,7 @@ export const getChonkStylesConfig = ({
     }),
     input: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.textColor,
       margin: 0,
     }),
     singleValue: provided => ({
