@@ -103,6 +103,9 @@ describe('ContinuousTimeSeries', () => {
 });
 
 class Dots extends ContinuousTimeSeries implements Plottable {
+  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return new Dots(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
+  }
   toSeries(_plottingOptions: any) {
     return [LineSeries({})];
   }

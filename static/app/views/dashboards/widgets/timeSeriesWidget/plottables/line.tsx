@@ -11,6 +11,9 @@ import {
 import type {Plottable} from './plottable';
 
 export class Line extends ContinuousTimeSeries implements Plottable {
+  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return new Line(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
+  }
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {timeSeries, config = {}} = this;
 
