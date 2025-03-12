@@ -80,6 +80,10 @@ export function createReleaseBuckets(
     // the last interval.
     if (bucketEndTs) {
       currentBucket.releases.push(release);
+    } else if (releaseTs > maxTime) {
+      // If we couldn't find a bucket, add release to latest bucket
+      const lastBucket = buckets.at(-1);
+      lastBucket?.releases.push(release);
     }
   }
 

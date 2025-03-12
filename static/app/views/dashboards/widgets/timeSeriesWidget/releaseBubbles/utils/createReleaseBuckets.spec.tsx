@@ -84,6 +84,14 @@ describe('createReleaseBuckets', () => {
         version: 'ui@0.1.6',
         date: new Date(maxTime + 1).toISOString(),
       },
+      {
+        version: 'ui@0.1.7',
+        date: new Date(maxTime + 10000).toISOString(),
+      },
+      {
+        version: 'ui@0.0.0',
+        date: new Date(minTime - 5000).toISOString(),
+      },
     ];
 
     const buckets = createReleaseBuckets(minTime, maxTime, releases);
@@ -119,6 +127,7 @@ describe('createReleaseBuckets', () => {
           {version: 'ui@0.1.53', date: new Date(1508208094235).toISOString()},
           {version: 'ui@0.1.54', date: new Date(1508208094235).toISOString()},
           {version: 'ui@0.1.6', date: new Date(1508208094236).toISOString()},
+          {version: 'ui@0.1.7', date: new Date(1508208104235).toISOString()},
         ],
       },
     ]);
