@@ -12,7 +12,10 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  useExploreLogsTable,
+  type UseExploreLogsTableResult,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -23,6 +26,11 @@ export function LogsIssuesSection({
 }: {
   initialCollapse: boolean;
 } & Omit<LogsPageParamsProviderProps, 'children'>) {
+  const tableData = useExploreLogsTable({});
+  if (tableData?.data?.length === 0) {
+    // Like breadcrumbs, we don't show the logs section if there are no logs.
+    return null;
+  }
   return (
     <Feature features={['ourlogs-enabled']}>
       <InterimSection
@@ -36,21 +44,16 @@ export function LogsIssuesSection({
           isIssuesDetailView={isIssuesDetailView}
           limitToTraceId={traceId}
         >
-          <LogsSectionContent />
+          <LogsSectionContent tableData={tableData} />
         </LogsPageParamsProvider>
       </InterimSection>
     </Feature>
   );
 }
 
-function LogsSectionContent() {
+function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
   const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
-  const tableData = useExploreLogsTable({});
-  if (tableData?.data?.length === 0) {
-    // Like breadcrumbs, we don't show the logs section if there are no logs.
-    return null;
-  }
   return (
     <Fragment>
       <SearchQueryBuilder
