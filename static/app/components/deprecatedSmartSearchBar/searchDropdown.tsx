@@ -407,7 +407,11 @@ function DropdownItem({
               ? undefined
               : (item.callback ?? onClick.bind(null, item.value, item))
         }
-        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+        ref={element => {
+          if (item.active && element) {
+            element.scrollIntoView?.({block: 'nearest'});
+          }
+        }}
         isChild={isChild}
         isDisabled={isDisabled}
       >

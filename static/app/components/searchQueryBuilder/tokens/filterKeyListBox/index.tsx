@@ -243,6 +243,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       <SectionedListBoxPane>
         <ListBox
           {...listBoxProps}
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={selectedSection === RECENT_SEARCH_CATEGORY_VALUE}
@@ -340,7 +341,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
+        <SectionedOverlay
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+          ref={popoverRef}
+          fullWidth
+          showDetailsPane={showDetailsPane}
+        >
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -362,7 +368,11 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
   const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
+      <SectionedOverlay
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+        ref={popoverRef}
+        width={filterKeyMenuWidth}
+      >
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
