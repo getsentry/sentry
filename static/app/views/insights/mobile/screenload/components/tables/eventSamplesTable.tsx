@@ -200,10 +200,10 @@ export function EventSamplesTable({
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
-            .filter((col: TableColumn<React.ReactText>) =>
+            .filter((col: TableColumn<string | number>) =>
               Object.keys(columnNameMap).includes(col.name)
             )
-            .map((col: TableColumn<React.ReactText>) => {
+            .map((col: TableColumn<string | number>) => {
               return {...col, name: columnNameMap[col.key]!};
             })}
           columnSortBy={columnSortBy}
