@@ -115,13 +115,6 @@ export type QueryBuilderActions =
   | MultiSelectFilterValueAction
   | DeleteLastMultiSelectFilterValueAction;
 
-function removeQueryToken(query: string, token: TokenResult<Token>): string {
-  return removeExcessWhitespaceFromParts(
-    query.substring(0, token.location.start.offset),
-    query.substring(token.location.end.offset)
-  );
-}
-
 function removeQueryTokensFromQuery(
   query: string,
   tokens: Array<TokenResult<Token>>
@@ -318,21 +311,38 @@ function updateFreeText(
 
 function replaceTokensWithText(
   state: QueryBuilderState,
-  action: ReplaceTokensWithTextAction,
-  getFieldDefinition: FieldDefinitionGetter
+  {
+    getFieldDefinition,
+    text,
+    tokens,
+    focusOverride: incomingFocusOverride,
+  }: {
+    getFieldDefinition: FieldDefinitionGetter;
+    text: string;
+    tokens: Array<TokenResult<Token>>;
+    focusOverride?: FocusOverride;
+  }
 ): QueryBuilderState {
-  const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
-  const cursorPosition =
-    (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
+  const newQuery = replaceTokensWithPadding(state.query, tokens, text);
+
+  if (incomingFocusOverride) {
+    return {
+      ...state,
+      query: newQuery,
+      focusOverride: incomingFocusOverride,
+    };
+  }
+
+  const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
     (token: any) =>
       token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
-  const focusOverride =
-    action.focusOverride ??
-    (focusedToken ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)} : null);
+  const focusOverride = focusedToken
+    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+    : null;
 
   return {
     ...state,
@@ -499,16 +509,22 @@ export function useQueryBuilderState({
             focusOverride: null,
           };
         case 'DELETE_TOKEN':
-          return {
-            ...state,
-            query: removeQueryToken(state.query, action.token),
-          };
+          return replaceTokensWithText(state, {
+            tokens: [action.token],
+            text: '',
+            getFieldDefinition,
+          });
         case 'DELETE_TOKENS':
           return deleteQueryTokens(state, action);
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
         case 'REPLACE_TOKENS_WITH_TEXT':
-          return replaceTokensWithText(state, action, getFieldDefinition);
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+          });
         case 'UPDATE_FILTER_KEY':
           return {
             ...state,
