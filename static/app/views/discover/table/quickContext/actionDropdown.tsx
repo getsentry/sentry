@@ -37,7 +37,7 @@ type Props = {
   location: Location;
   organization: Organization;
   queryKey: string;
-  value: React.ReactText | string[];
+  value: string | number | string[];
 };
 
 function ActionDropDown(props: Props) {

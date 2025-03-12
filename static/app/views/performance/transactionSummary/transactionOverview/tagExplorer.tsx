@@ -288,7 +288,7 @@ export class TagExplorer extends Component<Props> {
 
   handleCellAction = (
     column: TableColumn<ColumnKeys>,
-    tagValue: React.ReactText,
+    tagValue: string | number,
     actionRow: any
   ) => {
     return (action: Actions) => {
