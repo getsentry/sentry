@@ -52,7 +52,7 @@ function Tokens(props: TokensProp) {
 }
 
 function getLastInput() {
-  const input = screen.getAllByRole('combobox', {name: 'Add a term'}).at(-1);
+  const input = screen.getAllByLabelText('Add a term').at(-1);
 
   expect(input).toBeInTheDocument();
 

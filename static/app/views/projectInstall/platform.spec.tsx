@@ -55,6 +55,11 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
     method: 'PUT',
     body: {},
   });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sdks/`,
+    body: {},
+  });
 }
 
 describe('ProjectInstallPlatform', function () {
