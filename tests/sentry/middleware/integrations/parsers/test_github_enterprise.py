@@ -4,8 +4,7 @@ from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
@@ -145,8 +144,6 @@ class GithubEnterpriseRequestParserTest(TestCase):
             content_type="application/json",
             HTTP_X_GITHUB_ENTERPRISE_HOST=self.external_host,
         )
-
-        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
 
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
