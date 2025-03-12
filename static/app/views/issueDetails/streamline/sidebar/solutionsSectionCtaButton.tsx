@@ -2,8 +2,8 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {
   AutofixStatus,
   type AutofixStep,
@@ -54,14 +54,14 @@ export function SolutionsSectionCtaButton({
   const isDrawerOpenRef = useRef(false);
 
   // Keep track of previous steps to detect state transitions and notify the user
-  const prevStepsRef = useRef<AutofixStep[]>();
+  const prevStepsRef = useRef<AutofixStep[] | null>(null);
   useEffect(() => {
     if (isDrawerOpenRef.current) {
       return;
     }
 
     if (!autofixData?.steps || !prevStepsRef.current) {
-      prevStepsRef.current = autofixData?.steps;
+      prevStepsRef.current = autofixData?.steps ?? null;
       return;
     }
 

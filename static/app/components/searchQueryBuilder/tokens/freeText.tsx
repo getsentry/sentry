@@ -48,7 +48,7 @@ type SearchQueryBuilderInputProps = {
 
 type SearchQueryBuilderInputInternalProps = {
   item: Node<ParseResultToken>;
-  rowRef: React.RefObject<HTMLDivElement>;
+  rowRef: React.RefObject<HTMLDivElement | null>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
 };

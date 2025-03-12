@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';

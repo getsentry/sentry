@@ -13,7 +13,6 @@ import moment from 'moment-timezone';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
-import {ReleasesDrawer} from 'sentry/components/releases/releasesDrawer';
 import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -38,6 +37,7 @@ import {
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
+import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
@@ -149,7 +149,7 @@ function createReleaseBubbleMouseListeners({
 interface ReleaseBubbleSeriesProps {
   bubbleSize: number;
   buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   dateFormatOptions: {
     timezone: string;
   };
@@ -293,7 +293,7 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;

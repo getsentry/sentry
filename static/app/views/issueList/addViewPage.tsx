@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';

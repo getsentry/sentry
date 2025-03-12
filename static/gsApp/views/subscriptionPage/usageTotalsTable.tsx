@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import type {Tooltip} from 'sentry/components/tooltip';

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {LinkButton} from 'sentry/components/core/button';
 import DiscoverButton from 'sentry/components/discoverButton';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
 import {

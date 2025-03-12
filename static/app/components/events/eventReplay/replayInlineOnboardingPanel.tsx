@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
