@@ -612,6 +612,11 @@ describe('SearchQueryBuilder', function () {
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
 
+      // Focus should be at the beginning of the query
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'})[0]
+      ).toHaveFocus();
+
       // Custom tag token should still be present
       expect(screen.getByRole('row', {name: 'custom_tag_name:123'})).toBeInTheDocument();
     });

@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -361,14 +361,14 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           orgEnabledFlag && (
             <div>
               {subscription.canSelfServe && hasBillingPerms && (
-                <Button
+                <LinkButton
                   aria-label={t('Manage Subscription')}
                   size="sm"
                   style={{marginRight: space(1)}}
                   to={`/settings/${organization.slug}/billing/checkout/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
-                </Button>
+                </LinkButton>
               )}
               <Button
                 aria-label={t('New Allocation')}

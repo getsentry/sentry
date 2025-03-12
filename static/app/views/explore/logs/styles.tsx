@@ -61,6 +61,9 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   ${LogTableRow} & {
     padding: 0;
   }
+  &:last-child {
+    padding: 0;
+  }
 `;
 
 export const DetailsWrapper = styled('div')`

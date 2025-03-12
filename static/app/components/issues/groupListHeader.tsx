@@ -27,18 +27,23 @@ function GroupListHeader({
 
   return (
     <PanelHeader disablePadding>
-      <IssueWrapper>{t('Issue')}</IssueWrapper>
       {hasNewLayout ? (
         <Fragment>
+          <NarrowIssueWrapper hideDivider>{t('Issue')}</NarrowIssueWrapper>
           {withColumns.includes('firstSeen') && (
-            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
               {t('First Seen')}
             </FirstSeenWrapper>
           )}
           {withColumns.includes('lastSeen') && (
-            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
               {t('Age')}
             </LastSeenWrapper>
+          )}
+          {withColumns.includes('lastTriggered') && (
+            <NarrowLastTriggeredLabel align="right">
+              {t('Last Triggered')}
+            </NarrowLastTriggeredLabel>
           )}
           {withChart && (
             <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -46,31 +51,32 @@ function GroupListHeader({
             </NarrowGraphLabel>
           )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              {t('events')}
+            <NarrowEventsOrUsersLabel
+              breakpoint={COLUMN_BREAKPOINTS.EVENTS}
+              align="right"
+            >
+              {t('Events')}
             </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              {t('users')}
+            <NarrowEventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+              {t('Users')}
             </NarrowEventsOrUsersLabel>
           )}
           {withColumns.includes('priority') && (
-            <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+            <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="right">
               {t('Priority')}
             </NarrowPriorityLabel>
           )}
           {withColumns.includes('assignee') && (
-            <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+            <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
               {t('Assignee')}
             </NarrowAssigneeLabel>
-          )}
-          {withColumns.includes('lastTriggered') && (
-            <NarrowLastTriggeredLabel>{t('Last Triggered')}</NarrowLastTriggeredLabel>
           )}
         </Fragment>
       ) : (
         <Fragment>
+          <IssueWrapper>{t('Issue')}</IssueWrapper>
           {withChart && withColumns.includes('graph') && (
             <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
           )}
@@ -98,7 +104,7 @@ function GroupListHeader({
 export default GroupListHeader;
 
 const GroupListHeaderLabel = styled(IssueStreamHeaderLabel)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  text-transform: capitalize;
 `;
 
 const Heading = styled('div')`
@@ -115,6 +121,11 @@ const IssueWrapper = styled(Heading)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
+`;
+
+const NarrowIssueWrapper = styled(GroupListHeaderLabel)`
+  flex: 1;
+  padding-left: ${space(2)};
 `;
 
 const FirstSeenWrapper = styled(GroupListHeaderLabel)`
@@ -171,31 +182,21 @@ const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
 `;
 
 const NarrowGraphLabel = styled(GroupListHeaderLabel)`
-  display: flex;
-  justify-content: space-between;
   width: 175px;
 `;
 
 const NarrowEventsOrUsersLabel = styled(GroupListHeaderLabel)`
-  display: flex;
-  justify-content: space-between;
   width: 60px;
 `;
 
 const NarrowPriorityLabel = styled(GroupListHeaderLabel)`
-  display: flex;
-  justify-content: space-between;
   width: 70px;
 `;
 
 const NarrowAssigneeLabel = styled(GroupListHeaderLabel)`
-  justify-content: flex-end;
-  text-align: right;
-  width: 60px;
+  width: 66px;
 `;
 
 const NarrowLastTriggeredLabel = styled(GroupListHeaderLabel)`
-  width: 80px;
-  text-align: right;
-  justify-content: flex-end;
+  width: 100px;
 `;
