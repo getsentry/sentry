@@ -88,4 +88,26 @@ describe('SchemaHintsList', () => {
 
     expect(mockSetExploreQuery).toHaveBeenCalledWith('stringTag1:""');
   });
+
+  it('should open drawer when see full list is clicked', async () => {
+    render(
+      <SchemaHintsList
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+    expect(screen.getByText('Filter Attributes')).toBeInTheDocument();
+    Object.values(mockStringTags).forEach(tag => {
+      expect(screen.getByText(tag.key)).toBeInTheDocument();
+    });
+    Object.values(mockNumberTags).forEach(tag => {
+      expect(screen.getByText(tag.key)).toBeInTheDocument();
+    });
+  });
 });
