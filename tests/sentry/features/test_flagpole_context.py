@@ -46,8 +46,8 @@ class TestSentryOrganizationContextTransformer(TestCase):
 
         with pytest.raises(InvalidContextDataException):
             organization_context_transformer(
-                SentryContextData(organization=self.create_project())
-            )  # type: ignore[arg-type]
+                SentryContextData(organization=self.create_project())  # type: ignore[arg-type]
+            )
 
     def test_with_valid_organization(self):
         org = self.create_organization(slug="foobar", name="Foo Bar")
