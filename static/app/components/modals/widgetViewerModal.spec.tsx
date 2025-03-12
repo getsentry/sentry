@@ -1410,7 +1410,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
 
-    it('does not make an events-stats request with the table sort as an aggregate', async function () {
+    it('does not make an events-stats request with an arbitrary table sort as a y-axis', async function () {
       const eventsStatsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {},
