@@ -2866,7 +2866,7 @@ SENTRY_BUILTIN_SOURCES = {
             "filetypes": ["pdb", "breakpad", "sourcebundle"],
             # These file paths were empirically determined by examining
             # logs of successful downloads from the Electron symbol server.
-            "file_paths": [
+            "path_patterns": [
                 "*electron*",
                 "*ffmpeg*",
                 "*libEGL*",
