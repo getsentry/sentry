@@ -469,7 +469,7 @@ function shortRuntimeVersion(version: string) {
   if (version.startsWith('ruby') && version.length > 25) {
     // Extract everything from "ruby" until the first opening parenthesis
     // This will include both the version number and any patch level
-    const match = version.match(/ruby\s+(.*?)(?:\s+\(|$)/);
+    const match = version.match(/^ruby\s+(.*?)(?:\s+\(|$)/);
     return match ? match[1]?.trim() : version;
   }
   // TODO: handle other long runtime versions
