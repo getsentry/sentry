@@ -49,8 +49,7 @@ export const getChonkStylesConfig = ({
         cursor: 'pointer',
       }),
       ...(state.isDisabled && {
-        borderColor: theme.border,
-        background: theme.backgroundSecondary,
+        background: theme.background,
         color: theme.disabled,
         cursor: 'not-allowed',
       }),
@@ -87,6 +86,12 @@ export const getChonkStylesConfig = ({
         background: 'transparent',
       },
     }),
+    container: (provided, state) => ({
+      ...provided,
+      ...(state.isDisabled && {
+        pointerEvents: 'unset',
+      }),
+    }),
     valueContainer: (provided, state) => ({
       ...provided,
       alignItems: 'center',
@@ -108,7 +113,7 @@ export const getChonkStylesConfig = ({
     }),
     singleValue: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.textColor,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -117,9 +122,9 @@ export const getChonkStylesConfig = ({
         0.5
       )})`,
     }),
-    placeholder: provided => ({
+    placeholder: (provided, state) => ({
       ...provided,
-      color: theme.formPlaceholder,
+      color: state.isDisabled ? theme.disabled : theme.subText,
     }),
     multiValue: provided => ({
       ...provided,
