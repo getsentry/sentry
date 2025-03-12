@@ -113,10 +113,10 @@ function EventEntries({
       />
       {hasContext && <EventContexts group={group} event={event} />}
       <EventExtraData event={event} />
-      <EventPackageData event={event} />
       <EventDevice event={event} />
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} project={project} group={group} />}
+      <EventPackageData event={event} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {!isShare && event.groupID && (
         <EventGroupingInfoSection
