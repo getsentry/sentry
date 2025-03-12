@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {DateTime} from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -30,10 +31,13 @@ import {
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface LogFieldRendererProps {
   extra: RendererExtra;
   item: LogRowItem | LogAttributeItem;
+  basicRendered?: React.ReactNode;
   meta?: EventsMetaType;
   tableResultLogRow?: OurLogsResponseItem;
 }
@@ -100,7 +104,16 @@ export function TimestampRenderer(props: LogFieldRendererProps) {
 }
 
 export function TraceIDRenderer(props: LogFieldRendererProps) {
-  return <div>{props.item.value}</div>;
+  const traceId = props.item.value as string;
+  const target = getTraceDetailsUrl({
+    traceSlug: traceId,
+    timestamp: props.tableResultLogRow?.[OurLogKnownFieldKey.TIMESTAMP],
+    organization: props.extra.organization,
+    dateSelection: props.extra.location,
+    location: props.extra.location,
+    source: TraceViewSources.TRACES,
+  });
+  return <Link to={target}>{props.basicRendered}</Link>;
 }
 
 export function LogBodyRenderer(props: LogFieldRendererProps) {
@@ -120,6 +133,9 @@ function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
   const type = props.meta?.fields?.[props.item.fieldKey as OurLogFieldKey];
+  const adjustedFieldKey =
+    fullFieldToExistingField[props.item.fieldKey as OurLogFieldKey] ??
+    props.item.fieldKey;
 
   const adjustedValue =
     props.item.fieldKey === OurLogKnownFieldKey.TRACE_ID
@@ -130,20 +146,22 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
     return <Fragment>{adjustedValue}</Fragment>;
   }
 
-  const renderer =
-    getLogFieldRenderer(props.item.fieldKey) ??
-    getFieldRenderer(props.item.fieldKey, props.meta ?? {}, false);
+  const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
+  const basicRendered = basicRenderer(
+    {...props, [adjustedFieldKey]: adjustedValue},
+    props.extra
+  );
 
-  const align = logsFieldAlignment(props.item.fieldKey, type);
+  const customRenderer = getLogFieldRenderer(props.item.fieldKey);
 
-  if (!renderer) {
-    return <Fragment>{adjustedValue}</Fragment>;
+  const align = logsFieldAlignment(adjustedFieldKey, type);
+
+  if (!customRenderer) {
+    return <Fragment>{basicRendered}</Fragment>;
   }
 
   return (
-    <CenteredRow align={align}>
-      {renderer({...props, [props.item.fieldKey]: adjustedValue}, props.extra)}
-    </CenteredRow>
+    <CenteredRow align={align}>{customRenderer({...props, basicRendered})}</CenteredRow>
   );
 }
 
@@ -156,8 +174,13 @@ export const LogAttributesRendererMap: Record<
   },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
   [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
+  [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 
 export function getLogFieldRenderer(field: OurLogFieldKey) {
   return LogAttributesRendererMap[field];
 }
+
+const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
+  [OurLogKnownFieldKey.TRACE_ID]: 'trace',
+};

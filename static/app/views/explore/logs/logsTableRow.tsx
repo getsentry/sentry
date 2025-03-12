@@ -34,6 +34,7 @@ import {
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogTableBodyCell,
+  LogTableBodyCellContent,
   LogTableRow,
   StyledChevronButton,
 } from './styles';
@@ -108,11 +109,13 @@ export function LogRowContent({dataRow, highlightTerms, meta}: LogsRowProps) {
 
           return (
             <LogTableBodyCell key={field}>
-              <LogFieldRenderer
-                item={getLogRowItem(field, dataRow, meta)}
-                meta={meta}
-                extra={rendererExtra}
-              />
+              <LogTableBodyCellContent onClick={e => e.stopPropagation()}>
+                <LogFieldRenderer
+                  item={getLogRowItem(field, dataRow, meta)}
+                  meta={meta}
+                  extra={rendererExtra}
+                />
+              </LogTableBodyCellContent>
             </LogTableBodyCell>
           );
         })}
