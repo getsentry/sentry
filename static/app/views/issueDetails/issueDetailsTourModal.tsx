@@ -9,11 +9,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface IssueDetailsTourModalProps extends ModalRenderProps {
+  handleDismissTour: () => void;
   handleStartTour: () => void;
 }
 
 export function IssueDetailsTourModal({
-  closeModal,
+  handleDismissTour,
   handleStartTour,
 }: IssueDetailsTourModalProps) {
   return (
@@ -25,7 +26,7 @@ export function IssueDetailsTourModal({
           {t('We redesigned this page to streamline triage workflows.')}
         </Description>
         <Footer>
-          <Button size="sm" onClick={closeModal}>
+          <Button size="sm" onClick={handleDismissTour}>
             {t('I got it')}
           </Button>
           <Button priority="primary" size="sm" onClick={handleStartTour}>

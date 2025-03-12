@@ -7,15 +7,20 @@ import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
+import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useIssueDetailsTour} from 'sentry/views/issueDetails/issueDetailsTour';
+import {
+  ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  useIssueDetailsTour,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import {
   IssueDetailsTourModal,
   IssueDetailsTourModalCss,
@@ -25,14 +30,24 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 export function NewIssueExperienceButton() {
   const user = useUser();
   const organization = useOrganization();
+  const isSuperUser = isActiveSuperuser();
+
   const {
     dispatch: tourDispatch,
+    currentStepId,
     isAvailable: isTourAvailable,
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
   } = useIssueDetailsTour();
+  const {mutate: mutateAssistant} = useMutateAssistant();
 
-  const isPromoVisible = isTourAvailable && isTourRegistered && !isTourCompleted;
+  // The promotional modal should only appear if:
+  //  - The tour is available to this user
+  //  - All the steps have been registered
+  //  - The tour has not been completed
+  //  - The tour is not currently active
+  const isPromoVisible =
+    isTourAvailable && isTourRegistered && !isTourCompleted && currentStepId === null;
 
   // XXX: We use a ref to track the previous state of tour completion
   // since we only show the banner when the tour goes from incomplete to complete
@@ -54,15 +69,15 @@ export function NewIssueExperienceButton() {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
-  const {mutate} = useMutateUserOptions();
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
 
   const handleToggle = useCallback(() => {
-    mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+    mutateUserOptions({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
     });
-  }, [mutate, organization, hasStreamlinedUI]);
+  }, [mutateUserOptions, organization, hasStreamlinedUI]);
 
   useEffect(() => {
     if (isPromoVisible) {
@@ -70,6 +85,11 @@ export function NewIssueExperienceButton() {
         props => (
           <IssueDetailsTourModal
             {...props}
+            handleDismissTour={() => {
+              mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
+              tourDispatch({type: 'SET_COMPLETION', isCompleted: true});
+              props.closeModal();
+            }}
             handleStartTour={() => {
               props.closeModal();
               tourDispatch({type: 'START_TOUR'});
@@ -79,7 +99,7 @@ export function NewIssueExperienceButton() {
         {modalCss: IssueDetailsTourModalCss}
       );
     }
-  }, [isPromoVisible, tourDispatch]);
+  }, [isPromoVisible, tourDispatch, mutateAssistant]);
 
   // We hide the toggle if the org...
   if (
@@ -161,6 +181,16 @@ export function NewIssueExperienceButton() {
       key: 'start-tour',
       label: t('Take a tour'),
       onAction: () => tourDispatch({type: 'START_TOUR'}),
+    });
+  }
+
+  if (isSuperUser && isTourCompleted) {
+    items.push({
+      key: 'reset-tour-modal',
+      label: t('Reset tour modal'),
+      onAction: () => {
+        mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'restart'});
+      },
     });
   }
 
