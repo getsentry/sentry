@@ -31,6 +31,7 @@ export default storyBook('Select', (story, APIReference) => {
           <Select
             size="sm"
             placeholder="small"
+            defaultValue={{value: 'item1', label: 'Item 1'}}
             options={[
               {value: 'item1', label: 'Item 1'},
               {value: 'item2', label: 'Item 2'},

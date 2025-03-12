@@ -1,4 +1,4 @@
-import type {CSSObject, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import omit from 'lodash/omit';
 
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -24,17 +24,18 @@ export const getChonkStylesConfig = ({
 
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
-  const indicatorStyles = (provided: CSSObject): CSSObject => ({
+  const indicatorStyles: StylesConfig['clearIndicator'] &
+    StylesConfig['loadingIndicator'] = (provided, state: any) => ({
     ...provided,
     padding: '4px',
     alignItems: 'center',
-    color: theme.subText,
+    color: state.isDisabled ? theme.disabled : theme.textColor,
   });
 
   return {
     control: (_, state: any) => ({
       display: 'flex',
-      color: theme.textColor,
+      color: state.isDisabled ? theme.disabled : theme.textColor,
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
@@ -111,9 +112,9 @@ export const getChonkStylesConfig = ({
       color: theme.textColor,
       margin: 0,
     }),
-    singleValue: provided => ({
+    singleValue: (provided, state) => ({
       ...provided,
-      color: theme.textColor,
+      color: state.isDisabled ? theme.disabled : theme.textColor,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -126,9 +127,9 @@ export const getChonkStylesConfig = ({
       ...provided,
       color: state.isDisabled ? theme.disabled : theme.subText,
     }),
-    multiValue: provided => ({
+    multiValue: (provided, state) => ({
       ...provided,
-      color: theme.textColor,
+      color: state.isDisabled ? theme.disabled : theme.textColor,
       backgroundColor: theme.background,
       borderRadius: '2px',
       border: `1px solid ${theme.border}`,
