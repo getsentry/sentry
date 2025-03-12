@@ -1,7 +1,11 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
+import {Button} from 'sentry/components/button';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -200,3 +204,21 @@ export const getChonkStylesConfig = ({
     }),
   } satisfies StylesConfig;
 };
+
+export function ChonkClearIndicator(
+  props: React.ComponentProps<typeof selectComponents.ClearIndicator>
+) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
+  return (
+    <selectComponents.ClearIndicator {...props}>
+      <Button
+        borderless
+        icon={<IconClose legacySize="10px" />}
+        size="zero"
+        aria-label={t('Clear choices')}
+      />
+    </selectComponents.ClearIndicator>
+  );
+}

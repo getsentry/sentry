@@ -7,9 +7,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {
+  ChonkClearIndicator,
   getChonkStylesConfig,
   type StylesConfig,
 } from 'sentry/components/core/select/index.chonk';
@@ -59,12 +59,7 @@ function ClearIndicator(
   // testing
   return (
     <selectComponents.ClearIndicator {...props}>
-      <Button
-        borderless
-        icon={<IconClose legacySize="10px" />}
-        size="zero"
-        aria-label={t('Clear choices')}
-      />
+      <IconClose aria-label={t('Clear choices')} legacySize="10px" />
     </selectComponents.ClearIndicator>
   );
 }
@@ -464,7 +459,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   const replacedComponents = {
     SingleValue,
-    ClearIndicator,
+    ClearIndicator: theme.isChonk ? ChonkClearIndicator : ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
