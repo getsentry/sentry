@@ -1409,5 +1409,40 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
+
+    it('does not make an events-stats request with the table sort as an aggregate', async function () {
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {},
+      });
+      const mockWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            fields: [],
+            aggregates: ['p90(span.duration)'],
+            columns: ['span.description'],
+            conditions: '',
+            orderby: '-count(span.duration)',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            orderby: '-count(span.duration)',
+
+            // The orderby should not appear as a yAxis
+            yAxis: ['p90(span.duration)'],
+
+            // The orderby should appear in the field array
+            field: ['span.description', 'p90(span.duration)', 'count(span.duration)'],
+          }),
+        })
+      );
+    });
   });
 });
