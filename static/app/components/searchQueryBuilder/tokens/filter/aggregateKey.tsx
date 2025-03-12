@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type AggregateKeyProps = {
-  filterRef: React.RefObject<HTMLDivElement>;
+  filterRef: React.RefObject<HTMLDivElement | null>;
   item: Node<ParseResultToken>;
   onActiveChange: (active: boolean) => void;
   state: ListState<ParseResultToken>;

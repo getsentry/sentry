@@ -32,7 +32,7 @@ type Props = ScrollbarManagerChildrenProps & {
   organization: Organization;
   renderedChildren: React.ReactNode[];
   traceInfo: TraceInfo;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
   isBarScrolledTo?: boolean;

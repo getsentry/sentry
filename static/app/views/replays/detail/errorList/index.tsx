@@ -88,7 +88,11 @@ function ErrorList() {
         }) =>
           rowIndex === 0 ? (
             <ErrorHeaderCell
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e && registerChild) {
+                  registerChild(e);
+                }
+              }}
               handleSort={handleSort}
               index={columnIndex}
               sortConfig={sortConfig}
@@ -103,7 +107,11 @@ function ErrorList() {
               onMouseEnter={onMouseEnter}
               onMouseLeave={onMouseLeave}
               onClickTimestamp={onClickTimestamp}
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e && registerChild) {
+                  registerChild(e);
+                }
+              }}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               startTimestampMs={startTimestampMs}

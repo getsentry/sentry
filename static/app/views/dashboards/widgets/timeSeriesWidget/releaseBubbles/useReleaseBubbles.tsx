@@ -149,7 +149,7 @@ function createReleaseBubbleMouseListeners({
 interface ReleaseBubbleSeriesProps {
   bubbleSize: number;
   buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   dateFormatOptions: {
     timezone: string;
   };
@@ -293,7 +293,7 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;

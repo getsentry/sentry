@@ -89,7 +89,7 @@ export function ArithmeticTokenFunction({
 interface InternalInputProps {
   attribute: TokenAttribute;
   item: Node<Token>;
-  rowRef: RefObject<HTMLDivElement>;
+  rowRef: RefObject<HTMLDivElement | null>;
   state: ListState<Token>;
   token: TokenFunction;
 }

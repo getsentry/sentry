@@ -165,7 +165,9 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * rendered in the page contents, modals, and asides, we can't rely on window breakpoint to
  * accurately describe the available space.
  */
-export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
+export function useIssueDetailsColumnCount(
+  elementRef: RefObject<HTMLElement | null>
+): number {
   const calculateColumnCount = useCallback(() => {
     const width = elementRef.current?.clientWidth || 0;
     const breakpoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(

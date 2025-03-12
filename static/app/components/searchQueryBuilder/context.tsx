@@ -25,7 +25,7 @@ export interface SearchQueryBuilderContextData {
   query: string;
   searchSource: string;
   size: 'small' | 'normal';
-  wrapperRef: React.RefObject<HTMLDivElement>;
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.

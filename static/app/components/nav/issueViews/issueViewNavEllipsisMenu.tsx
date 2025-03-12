@@ -22,7 +22,7 @@ export interface IssueViewNavEllipsisMenuProps {
   onUpdateView: (view: IssueView) => void;
   setIsEditing: (isEditing: boolean) => void;
   view: IssueView;
-  sectionRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function IssueViewNavEllipsisMenu({

@@ -229,7 +229,7 @@ function findChildElementsInTree(
 }
 
 const StyledOverlay = styled(Overlay)<{
-  accordionRef: React.RefObject<HTMLDivElement>;
+  accordionRef: React.RefObject<HTMLDivElement | null>;
   horizontal: boolean;
 }>`
   position: absolute;

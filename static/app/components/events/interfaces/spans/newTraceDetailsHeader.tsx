@@ -19,7 +19,7 @@ type PropType = {
   organization: Organization;
   traceInfo: TraceInfo;
   traceType: TraceShape;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
 };
 
 function ServiceBreakdown({
@@ -86,7 +86,11 @@ function TraceViewHeader(props: PropType) {
   const hasServiceBreakdown = httpOp && props.traceType === TraceShape.ONE_ROOT;
 
   return (
-    <HeaderContainer ref={props.traceViewHeaderRef} hasProfileMeasurementsChart={false}>
+    <HeaderContainer
+      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+      ref={props.traceViewHeaderRef}
+      hasProfileMeasurementsChart={false}
+    >
       <DividerHandlerManager.Consumer>
         {dividerHandlerChildrenProps => {
           const {dividerPosition} = dividerHandlerChildrenProps;

@@ -618,6 +618,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     return (
       <DividerLine
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -882,6 +883,7 @@ export class NewTraceDetailsSpanBar extends Component<
             }}
           >
             <DividerLine
+              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,

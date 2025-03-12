@@ -55,7 +55,7 @@ const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
 export function useTableStyles(
   fields: string[],
-  tableRef: React.RefObject<HTMLDivElement>,
+  tableRef: React.RefObject<HTMLDivElement | null>,
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;

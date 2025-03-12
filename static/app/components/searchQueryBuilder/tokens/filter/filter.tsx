@@ -39,7 +39,7 @@ interface SearchQueryTokenProps {
 }
 
 interface FilterValueProps extends SearchQueryTokenProps {
-  filterRef: React.RefObject<HTMLDivElement>;
+  filterRef: React.RefObject<HTMLDivElement | null>;
   onActiveChange: (active: boolean) => void;
 }
 

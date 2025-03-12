@@ -195,7 +195,12 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           nextStep?.insights?.length === 0;
 
         return (
-          <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+          <div
+            ref={el => {
+              stepsRef.current[index] = el;
+            }}
+            key={step.id}
+          >
             <Step
               step={step}
               hasStepBelow={

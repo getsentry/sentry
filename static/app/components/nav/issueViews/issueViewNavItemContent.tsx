@@ -72,7 +72,7 @@ export interface IssueViewNavItemContentProps {
    * This is used as the portal container for the ellipsis menu, and as
    * the dragging constraint for each nav item.
    */
-  sectionRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function IssueViewNavItemContent({

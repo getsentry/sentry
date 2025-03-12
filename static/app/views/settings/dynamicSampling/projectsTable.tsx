@@ -145,7 +145,9 @@ export function ProjectsTable({
           <AutoSizer>
             {({width, height}) => (
               <List
-                ref={list => (listRef.current = list)}
+                ref={list => {
+                  listRef.current = list;
+                }}
                 width={width}
                 height={height}
                 rowCount={sortedItems.length}
