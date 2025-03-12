@@ -1,4 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PluginFixture} from 'sentry-fixture/plugin';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {
   render,
   renderGlobalModal,
@@ -6,106 +10,60 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
+import type {PluginWithProjectList} from 'sentry/types/integrations';
 import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
-function renderMockRequests(orgSlug: Organization['slug']) {
-  const configs = MockApiClient.addMockResponse({
-    url: `/organizations/${orgSlug}/plugins/configs/?plugins=pagerduty`,
-    method: 'GET',
-    statusCode: 200,
-    body: [
+describe('PluginDetailedView', function () {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+  const plugin: PluginWithProjectList = {
+    ...PluginFixture(),
+    projectList: [
       {
-        status: 'unknown',
-        description: 'Send alerts to PagerDuty.',
-        isTestable: true,
-        isHidden: true,
-        hasConfiguration: true,
-        features: [],
-        shortName: 'PagerDuty',
-        id: 'pagerduty',
-        assets: [],
-        featureDescriptions: [],
-        name: 'PagerDuty',
-        author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
-        contexts: [],
-        doc: '',
-        resourceLinks: [
-          {url: 'https://github.com/getsentry/sentry/issues', title: 'Report Issue'},
-          {
-            url: 'https://github.com/getsentry/sentry/tree/master/src/sentry_plugins',
-            title: 'View Source',
-          },
-        ],
-        slug: 'pagerduty',
-        projectList: [
-          {
-            projectId: 2,
-            configured: true,
-            enabled: true,
-            projectSlug: 'javascript',
-
-            projectPlatform: 'javascript',
-            projectName: 'JavaScript',
-          },
-        ],
-        version: '10.1.0.dev0',
-        canDisable: true,
-        type: 'notification',
-        metadata: {},
+        projectId: project.id,
+        configured: true,
+        enabled: true,
+        projectSlug: project.slug,
+        projectPlatform: project.platform ?? 'javascript',
+        projectName: project.name,
       },
     ],
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/plugins/configs/`,
+      method: 'GET',
+      statusCode: 200,
+      match: [MockApiClient.matchQuery({plugins: plugin.slug})],
+      body: [plugin],
+    });
   });
 
-  return {configs};
-}
-
-describe('PluginDetailedView', function () {
   it('shows the Integration name and install status', async function () {
-    const {router, organization} = initializeOrg();
+    const router = RouterFixture({
+      params: {orgId: organization.slug, integrationSlug: plugin.slug},
+    });
+    render(<PluginDetailedView />, {organization, router});
 
-    renderMockRequests(organization.slug);
-
-    render(
-      <PluginDetailedView
-        params={{integrationSlug: 'pagerduty'}}
-        route={{}}
-        routes={[]}
-        routeParams={{}}
-        router={router}
-        location={router.location}
-      />
-    );
-
-    expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
-
+    expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
-
     await userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
 
     renderGlobalModal();
-
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  it('view configurations', function () {
-    const {router, organization} = initializeOrg({
-      router: {location: {query: {tab: 'configurations'}}},
+  it('view configurations', async function () {
+    const router = RouterFixture({
+      params: {orgId: organization.slug, integrationSlug: plugin.slug},
+      location: {query: {tab: 'configurations'}},
     });
 
-    renderMockRequests(organization.slug);
+    render(<PluginDetailedView />, {router, organization});
 
-    render(
-      <PluginDetailedView
-        params={{integrationSlug: 'pagerduty'}}
-        route={{}}
-        routes={[]}
-        routeParams={{}}
-        router={router}
-        location={router.location}
-      />
-    );
-
+    expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByTestId('installed-plugin')).toBeInTheDocument();
   });
 });
