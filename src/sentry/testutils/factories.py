@@ -543,6 +543,7 @@ class Factories:
         name="",
         action_match="all",
         filter_match="all",
+        frequency=30,
         **kwargs,
     ):
         actions = None
@@ -573,6 +574,7 @@ class Factories:
             "conditions": condition_data,
             "action_match": action_match,
             "filter_match": filter_match,
+            "frequency": frequency,
         }
         if actions:
             data["actions"] = actions
