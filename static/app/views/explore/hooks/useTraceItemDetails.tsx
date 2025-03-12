@@ -1,7 +1,6 @@
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
-import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type ApiQueryKey,
@@ -17,7 +16,6 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
-const DEFAULT_REFERRER = 'use-trace-item-details';
 const DEFAULT_HOVER_TIMEOUT = 300;
 
 /**
@@ -36,6 +34,11 @@ export interface UseTraceItemDetailsProps {
    */
   projectId: string;
   /**
+   * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
+   * as ALLOWED_EVENTS_REFERRERS on the backend.
+   */
+  referrer: string;
+  /**
    * The trace item ID representing an EAP trace item.
    */
   traceItemId: string;
@@ -43,11 +46,6 @@ export interface UseTraceItemDetailsProps {
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
-  /**
-   * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
-   * as ALLOWED_EVENTS_REFERRERS on the backend.
-   */
-  referrer?: string;
 }
 
 export type TraceItemAttributes = Record<string, TraceItemResponseAttribute>;
@@ -64,8 +62,9 @@ type TraceItemDetailsUrlParams = {
   traceItemId: string;
 };
 
-type TraceItemDetailsQueryParams = Pick<DiscoverQueryRequestParams, 'referrer'> & {
+type TraceItemDetailsQueryParams = {
   dataset: EAPDataset;
+  referrer: string;
 };
 
 export type TraceItemResponseAttribute =
@@ -125,7 +124,7 @@ function traceItemDetailsQueryKey({
 }): ApiQueryKey {
   const query: Record<string, string | string[]> = {
     dataset: queryParams.dataset,
-    referrer: queryParams.referrer ?? DEFAULT_REFERRER,
+    referrer: queryParams.referrer,
   };
 
   return [

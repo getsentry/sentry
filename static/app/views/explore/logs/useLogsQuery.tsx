@@ -61,12 +61,14 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
 export function useExploreLogsTableRow(_props: {
   log_id: string | number;
   project_id: string;
+  referrer: string;
   enabled?: boolean;
 }) {
   return useTraceItemDetails({
     traceItemId: String(_props.log_id),
     projectId: _props.project_id,
     dataset: DiscoverDatasets.OURLOGS,
+    referrer: _props.referrer,
   });
 }
 
@@ -75,9 +77,11 @@ export function usePrefetchLogTableRowOnHover({
   projectId,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
+  referrer,
 }: {
   logId: string | number;
   projectId: string;
+  referrer: string;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   hoverPrefetchDisabled?: boolean;
 }) {
@@ -87,5 +91,6 @@ export function usePrefetchLogTableRowOnHover({
     dataset: DiscoverDatasets.OURLOGS,
     hoverPrefetchDisabled,
     sharedHoverTimeoutRef,
+    referrer,
   });
 }
