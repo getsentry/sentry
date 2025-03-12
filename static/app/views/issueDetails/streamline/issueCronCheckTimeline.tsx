@@ -8,7 +8,6 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
-import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {Flex} from 'sentry/components/container/flex';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -22,6 +21,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
 import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import {CheckInStatus, type MonitorBucket} from 'sentry/views/monitors/types';
@@ -107,7 +107,7 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 
   const cronAlertId = useCronIssueAlertId({groupId: group.id});
   const {data: stats, isPending} = useMonitorStats({

@@ -7,7 +7,6 @@ import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
-import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -26,6 +25,7 @@ import {
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
 import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 
 export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | undefined {
@@ -66,7 +66,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     ruleIds: uptimeAlertId ? [uptimeAlertId] : [],

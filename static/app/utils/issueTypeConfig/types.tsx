@@ -38,6 +38,10 @@ export type IssueTypeConfig = {
     resolution: string;
   };
   /**
+   * Default time period to use for the issue type
+   */
+  defaultTimePeriod: {sinceFirstSeen: boolean};
+  /**
    * Should show detector section in the sidebar
    * Optionally set a custom title for it
    */
