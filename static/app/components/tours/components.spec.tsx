@@ -138,7 +138,7 @@ describe('Tour Components', () => {
   describe('TourElement', () => {
     it('renders children regardless of tour state', async () => {
       mockUseTourReducer.mockReturnValue(emptyTourContext);
-      const {container: inactiveContainer} = render(
+      const {unmount: unmountInactive} = render(
         <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
@@ -156,14 +156,15 @@ describe('Tour Components', () => {
         </TourContextProvider>
       );
 
-      expect(within(inactiveContainer).getByText('Child Element')).toBeInTheDocument();
+      expect(screen.getByText('Child Element')).toBeInTheDocument();
+      unmountInactive();
 
       mockUseTourReducer.mockReturnValue({
         ...emptyTourContext,
         isRegistered: true,
         currentStepId: TestTour.NAME,
       });
-      const {container: activeContainer} = render(
+      render(
         <TourContextProvider<TestTour>
           isAvailable
           isCompleted={false}
@@ -180,8 +181,8 @@ describe('Tour Components', () => {
           </TourElement>
         </TourContextProvider>
       );
-      expect(await within(activeContainer).findByText('Test Title')).toBeInTheDocument();
-      expect(within(activeContainer).getByText('Child Element')).toBeInTheDocument();
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      expect(screen.getByText('Child Element')).toBeInTheDocument();
     });
 
     it('renders overlay when step is active', async () => {
