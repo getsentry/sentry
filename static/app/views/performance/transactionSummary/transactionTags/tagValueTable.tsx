@@ -119,8 +119,6 @@ export function TagValueTable({
 
     conditions.addFilterValues(tagKey ?? '', [tagValue]);
 
-    // const query = conditions.formatString();
-
     navigate(
       {
         ...location,
