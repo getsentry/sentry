@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  type HTMLAttributes,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -274,7 +267,6 @@ export function TourGuide({
   offset,
 }: TourGuideProps) {
   const theme = useTheme();
-  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const organization = useOrganization();
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
@@ -292,12 +284,6 @@ export function TourGuide({
       trackAnalytics('tour-guide.open', {organization, id});
     }
   }, [isOpen, id, organization]);
-
-  useEffect(() => {
-    if (scrollElement) {
-      scrollElement.scrollIntoView?.({block: 'center', behavior: 'smooth'});
-    }
-  }, [scrollElement]);
 
   const Wrapper = wrapperComponent ?? TourTriggerWrapper;
 
@@ -317,7 +303,7 @@ export function TourGuide({
                 animated
                 arrowProps={{...arrowProps, background: 'lightModeBlack'}}
               >
-                <TourBody ref={setScrollElement}>
+                <TourBody ref={scrollToGuide}>
                   {isTopRowVisible && (
                     <TopRow>
                       <div>{countText}</div>
@@ -346,6 +332,12 @@ export function TourGuide({
         : null}
     </Fragment>
   );
+}
+
+function scrollToGuide(element: HTMLDivElement | null) {
+  if (element) {
+    element.scrollIntoView({block: 'center', behavior: 'smooth'});
+  }
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
