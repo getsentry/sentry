@@ -80,7 +80,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "date_added",
-                    models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now),
+                    models.DateTimeField(auto_now_add=True),
                 ),
                 ("date_updated", models.DateTimeField(auto_now=True)),
             ],
