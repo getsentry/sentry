@@ -78,6 +78,7 @@ def project_context_transformer(data: SentryContextData) -> EvaluationContextDic
         context_data["project_slug"] = proj.slug
         context_data["project_name"] = proj.name
         context_data["project_id"] = proj.id
+        context_data["project_platform"] = proj.platform
 
     return context_data
 

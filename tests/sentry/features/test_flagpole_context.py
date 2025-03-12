@@ -21,7 +21,7 @@ from sentry.users.models.useremail import UserEmail
 class TestSentryFlagpoleContext(TestCase):
     def test_sentry_flagpole_context_builder(self):
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, platform="php")
         sentry_flagpole_builder = get_sentry_flagpole_context_builder()
 
         sentry_context = sentry_flagpole_builder.build(
@@ -32,6 +32,7 @@ class TestSentryFlagpoleContext(TestCase):
         assert sentry_context.get("organization_slug") == org.slug
         assert sentry_context.get("project_slug") == project.slug
         assert sentry_context.get("project_id") == project.id
+        assert sentry_context.get("project_platform") == project.platform
 
 
 class TestSentryOrganizationContextTransformer(TestCase):
@@ -44,7 +45,9 @@ class TestSentryOrganizationContextTransformer(TestCase):
             organization_context_transformer(SentryContextData(organization=1234))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(SentryContextData(organization=self.create_project()))  # type: ignore[arg-type]
+            organization_context_transformer(
+                SentryContextData(organization=self.create_project())  # type: ignore[arg-type]
+            )
 
     def test_with_valid_organization(self):
         org = self.create_organization(slug="foobar", name="Foo Bar")
@@ -127,13 +130,14 @@ class TestProjectContextTransformer(TestCase):
             project_context_transformer(SentryContextData(project=self.create_organization()))
 
     def test_with_valid_project(self):
-        project = self.create_project(slug="foobar", name="Foo Bar")
+        project = self.create_project(slug="foobar", name="Foo Bar", platform="php")
 
         context_data = project_context_transformer(SentryContextData(project=project))
         assert context_data == {
             "project_slug": "foobar",
             "project_name": "Foo Bar",
             "project_id": project.id,
+            "project_platform": "php",
         }
 
 
