@@ -18,6 +18,19 @@ from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
+"""
+This column represents a count of the all of spans.
+It works by counting the number of spans that have the attribute "sentry.exclusive_time_ms" (which is set on every span)
+"""
+TOTAL_SPAN_COUNT = Column(
+    aggregation=AttributeAggregation(
+        aggregate=Function.FUNCTION_COUNT,
+        key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+        label="total",
+        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+    )
+)
+
 
 def http_response_rate(code: Literal[1, 2, 3, 4, 5]) -> Column.BinaryFormula:
     response_codes = RESPONSE_CODE_MAP[code]
@@ -88,14 +101,7 @@ def trace_status_rate(status: str) -> Column.BinaryFormula:
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                label="total",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
-            )
-        ),
+        right=TOTAL_SPAN_COUNT,
     )
 
 
@@ -139,6 +145,50 @@ def cache_miss_rate(arg: None) -> Column.BinaryFormula:
     )
 
 
+def ttfd_contribution_rate(args: None) -> Column.BinaryFormula:
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(name="sentry.ttfd", type=AttributeKey.TYPE_STRING),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(name="sentry.ttfd", type=AttributeKey.TYPE_STRING),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(val_str="ttfd"),
+                    )
+                ),
+                label="ttfd_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=TOTAL_SPAN_COUNT,
+    )
+
+
+def ttid_contribution_rate(args: None) -> Column.BinaryFormula:
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(name="sentry.ttid", type=AttributeKey.TYPE_STRING),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(name="sentry.ttid", type=AttributeKey.TYPE_STRING),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(val_str="ttid"),
+                    )
+                ),
+                label="ttid_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=TOTAL_SPAN_COUNT,
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -168,5 +218,17 @@ SPAN_FORMULA_DEFINITIONS = {
             )
         ],
         formula_resolver=trace_status_rate,
+    ),
+    "ttfd_contribution_rate": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[],
+        formula_resolver=ttfd_contribution_rate,
+        is_aggregate=True,
+    ),
+    "ttid_contribution_rate": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[],
+        formula_resolver=ttid_contribution_rate,
+        is_aggregate=True,
     ),
 }

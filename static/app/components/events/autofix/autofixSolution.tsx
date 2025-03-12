@@ -225,7 +225,7 @@ function SolutionEventList({
     const firstHighlightedIndex = events.findIndex(
       event => event.is_most_important_event
     );
-    return [firstHighlightedIndex !== -1 ? firstHighlightedIndex : 0];
+    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
   });
 
   const toggleItem = useCallback((index: number) => {

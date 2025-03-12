@@ -194,11 +194,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // undefined saved yAxis defaults to count() and string values are converted to array
     const isEqualYAxis = isEqual(
       yAxis,
-      !savedQuery.yAxis
-        ? ['count()']
-        : typeof savedQuery.yAxis === 'string'
+      savedQuery.yAxis
+        ? typeof savedQuery.yAxis === 'string'
           ? [savedQuery.yAxis]
           : savedQuery.yAxis
+        : ['count()']
     );
     return {
       isNewQuery: false,

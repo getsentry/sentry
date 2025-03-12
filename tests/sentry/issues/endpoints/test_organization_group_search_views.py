@@ -1,12 +1,15 @@
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -135,6 +138,29 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data == serialize(objs["user_one_views"])
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_last_visited_exists_for_seen_views(self) -> None:
+        objs = self.create_base_data()
+
+        with freeze_time("2025-03-07T00:00:00Z"):
+            GroupSearchViewLastVisited.objects.create(
+                user_id=self.user.id,
+                organization=self.organization,
+                group_search_view=objs["user_one_views"][0],
+                last_visited=timezone.now(),
+            )
+
+            self.login_as(user=self.user)
+            response = self.get_success_response(self.organization.slug)
+
+            assert len(response.data) == 3
+
+            assert response.data[0]["lastVisited"] == timezone.now()
+            # Second and third views should not have lastVisited
+            assert not response.data[1]["lastVisited"]
+            assert not response.data[2]["lastVisited"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})

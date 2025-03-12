@@ -391,13 +391,13 @@ export class VirtualizedViewManager {
     index: number,
     indicator: TraceTree['indicators'][0]
   ) {
-    if (!ref) {
+    if (ref) {
+      this.indicators[index] = {ref, indicator};
+    } else {
       const element = this.indicators[index]?.ref;
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-    } else {
-      this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
@@ -577,7 +577,7 @@ export class VirtualizedViewManager {
     const distance_width = this.view.trace_view.width - final_width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    const p = max_distance === 0 ? 1 : Math.log10(max_distance);
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
     const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
