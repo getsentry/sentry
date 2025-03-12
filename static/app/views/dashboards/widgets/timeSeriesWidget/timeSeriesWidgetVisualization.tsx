@@ -133,7 +133,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
   });
 
   const releaseSeries = props.releases
