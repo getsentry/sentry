@@ -69,7 +69,7 @@ class OrganizationMemberInvite(Model):
         choices=InviteStatus.as_choices(),
         default=InviteStatus.APPROVED.value,
     )
-    email = models.EmailField(default="", max_length=75)
+    email = models.EmailField(max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     organization_member_team_data = models.JSONField(default=dict)
     token = models.CharField(max_length=64, unique=True, default=generate_token)

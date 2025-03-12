@@ -46,7 +46,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("invite_status", models.PositiveSmallIntegerField(default=0)),
-                ("email", models.EmailField(default="", max_length=75)),
+                ("email", models.EmailField(max_length=75)),
                 ("role", models.CharField(default="member", max_length=32)),
                 ("organization_member_team_data", models.JSONField(default=dict)),
                 (
