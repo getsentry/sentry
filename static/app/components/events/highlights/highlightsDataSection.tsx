@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -42,7 +42,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 interface HighlightsDataSectionProps {
   event: Event;
   project: Project;
-  viewAllRef?: React.RefObject<HTMLElement>;
+  viewAllRef?: React.RefObject<HTMLElement | null>;
 }
 
 function useOpenEditHighlightsModal({

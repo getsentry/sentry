@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';

@@ -16,8 +16,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import {Button} from 'sentry/components/button';
 import {Badge} from 'sentry/components/core/badge';
+import {Button} from 'sentry/components/core/button';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
