@@ -128,6 +128,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-process-workflows")
     def test_workflow_engine__workflows(self):
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
