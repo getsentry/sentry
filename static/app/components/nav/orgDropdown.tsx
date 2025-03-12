@@ -53,9 +53,10 @@ export function OrgDropdown() {
 
   // It's possible we do not have an org in context (e.g. RouteNotFound)
   // Otherwise, we should have the full org
-  const hasOrgRead = organization?.access?.includes('org:read');
-  const hasMemberRead = organization?.access?.includes('member:read');
-  const hasTeamRead = organization?.access?.includes('team:read');
+  const hasOrgRead = organization.access?.includes('org:read');
+  const hasMemberRead = organization.access?.includes('member:read');
+  const hasTeamRead = organization.access?.includes('team:read');
+  const hasBillingAccess = organization.access?.includes('org:billing');
 
   const {organizations} = useLegacyStore(OrganizationsStore);
 
@@ -108,6 +109,12 @@ export function OrgDropdown() {
               label: t('Teams'),
               to: `/settings/${organization.slug}/teams/`,
               hidden: !hasTeamRead,
+            },
+            {
+              key: 'billing',
+              label: t('Usage & Billing'),
+              to: `/settings/${organization.slug}/billing/`,
+              hidden: !hasBillingAccess,
             },
             {
               key: 'switch-organization',
