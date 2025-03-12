@@ -11,7 +11,7 @@ from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
-from sentry.db.models.base import Model
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.roles import organization_roles
 
@@ -51,7 +51,7 @@ def generate_token():
 
 
 @region_silo_model
-class OrganizationMemberInvite(Model):
+class OrganizationMemberInvite(DefaultFieldsModel):
     """
     Identifies relationships between organizations and their invited users.
     """
