@@ -84,6 +84,32 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow}
 
+    def test_same_environment_only(self):
+        # only processes workflows with the same env or no env specified
+        self.error_workflow.update(environment=None)
+
+        dcg = self.create_data_condition_group()
+        non_matching_env_workflow = self.create_workflow(
+            when_condition_group=dcg, environment=self.create_environment()
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=non_matching_env_workflow,
+        )
+
+        dcg = self.create_data_condition_group()
+        matching_env_workflow = self.create_workflow(
+            when_condition_group=dcg,
+            environment=self.group_event.get_environment(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=matching_env_workflow,
+        )
+
+        triggered_workflows = process_workflows(self.job)
+        assert triggered_workflows == {self.error_workflow, matching_env_workflow}
+
     def test_issue_occurrence_event(self):
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
@@ -153,7 +179,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
-    @with_feature("organizations:workflow-engine-issue-alert-metrics")
+    @with_feature("organizations:workflow-engine-process-workflows")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow

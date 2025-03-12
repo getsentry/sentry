@@ -751,11 +751,11 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                ...(!openWidgetTemplates
-                  ? convertWidgetToBuilderStateParams(
+                ...(openWidgetTemplates
+                  ? {}
+                  : convertWidgetToBuilderStateParams(
                       getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
-                    )
-                  : {}),
+                    )),
               },
             })
           );
@@ -830,13 +830,13 @@ class DashboardDetail extends Component<Props, State> {
       : [...currentDashboard.widgets, mergedWidget];
 
     try {
-      if (!this.isEditingDashboard) {
+      if (this.isEditingDashboard) {
+        // If we're in edit mode, update the edit state
+        this.onUpdateWidget(newWidgets);
+      } else {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
-      } else {
-        // If we're in edit mode, update the edit state
-        this.onUpdateWidget(newWidgets);
       }
 
       this.handleCloseWidgetBuilder();

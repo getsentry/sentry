@@ -841,7 +841,7 @@ export function constructAddQueryToDashboardLink({
   });
 
   const defaultTitle =
-    query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+    query?.name ?? (eventView.name === 'All Events' ? undefined : eventView.name);
 
   const limit =
     displayType === DisplayType.TOP_N || eventView.display === DisplayModes.DAILYTOP5

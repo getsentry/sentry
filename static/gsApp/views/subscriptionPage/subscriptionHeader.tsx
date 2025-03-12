@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -119,13 +119,13 @@ function SubscriptionHeader(props: Props) {
         action={
           <ActionContainer>
             {subscription.canSelfServe && hasBillingPerms && (
-              <Button
+              <LinkButton
                 size="md"
                 to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
                 aria-label="Manage subscription"
               >
                 {t('Manage Subscription')}
-              </Button>
+              </LinkButton>
             )}
             {hasAccessToSubscriptionOverview(subscription, organization) ? (
               <Button

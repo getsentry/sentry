@@ -255,23 +255,24 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       // (or when they will be considered as resolved)
       //
       // Resolution is considered "off" if it is -1
-      ...(position !== null
-        ? [
+      ...(position === null
+        ? []
+        : [
             {
               type: 'rect',
               draggable: false,
               silent: true,
 
               position:
-                isResolution !== isInverted
-                  ? [yAxisSize + graphAreaMargin, position + 1]
-                  : [yAxisSize + graphAreaMargin, legendPadding],
+                isResolution === isInverted
+                  ? [yAxisSize + graphAreaMargin, legendPadding]
+                  : [yAxisSize + graphAreaMargin, position + 1],
               shape: {
                 width: graphAreaWidth - graphAreaMargin,
                 height:
-                  isResolution !== isInverted
-                    ? yAxisPosition - position
-                    : position - legendPadding,
+                  isResolution === isInverted
+                    ? position - legendPadding
+                    : yAxisPosition - position,
               },
 
               style: {
@@ -285,8 +286,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
               // This needs to be below the draggable line
               z: 100,
             },
-          ]
-        : []),
+          ]),
     ];
   };
 

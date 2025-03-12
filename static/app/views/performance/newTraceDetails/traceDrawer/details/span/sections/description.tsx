@@ -2,9 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {LinkButton} from 'sentry/components/core/button';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -55,9 +55,9 @@ export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>)
   );
 
   const formattedDescription =
-    resolvedModule !== ModuleName.DB
-      ? (span.description ?? '')
-      : formatter.toString(span.description ?? '');
+    resolvedModule === ModuleName.DB
+      ? formatter.toString(span.description ?? '')
+      : (span.description ?? '');
 
   return (
     !!formattedDescription &&
@@ -123,7 +123,7 @@ export function SpanDescription({
   const averageSpanDuration: number | undefined =
     span['span.averageResults']?.['avg(span.duration)'];
 
-  const actions = !showAction ? null : (
+  const actions = showAction ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
@@ -178,7 +178,7 @@ export function SpanDescription({
           : t('View Similar Spans')}
       </Link>
     </BodyContentWrapper>
-  );
+  ) : null;
 
   const value =
     resolvedModule === ModuleName.DB ? (
@@ -276,17 +276,17 @@ function ResourceImageDescription({
     <StyledDescriptionWrapper>
       {isSettingsLoading ? (
         <LoadingIndicator size={30} />
-      ) : !isImagesEnabled ? (
-        <DisabledImages
-          onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug}
-        />
-      ) : (
+      ) : isImagesEnabled ? (
         <ResourceImage
           fileName={formattedDescription}
           showImage={!showLinks}
           size={size}
           src={getImageSrc(span)}
+        />
+      ) : (
+        <DisabledImages
+          onClickShowLinks={() => setShowLinks(true)}
+          projectSlug={span.project_slug}
         />
       )}
     </StyledDescriptionWrapper>

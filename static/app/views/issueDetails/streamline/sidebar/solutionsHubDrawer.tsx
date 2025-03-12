@@ -5,10 +5,10 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
@@ -242,14 +242,14 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {aiConfig.hasAutofix && (
               <Fragment>
-                {!autofixData ? (
-                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-                ) : (
+                {autofixData ? (
                   <AutofixSteps
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : (
+                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
               </Fragment>
             )}
@@ -264,7 +264,7 @@ export const useOpenSolutionsDrawer = (
   group: Group,
   project: Project,
   event: Event | undefined,
-  buttonRef?: React.RefObject<HTMLButtonElement>
+  buttonRef?: React.RefObject<HTMLButtonElement | null>
 ) => {
   const {openDrawer} = useDrawer();
 

@@ -2,10 +2,12 @@ import {Fragment} from 'react';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -31,15 +33,11 @@ type InsightsNavigationProps = {
   children: React.ReactNode;
 };
 
-export default function InsightsNavigation({children}: InsightsNavigationProps) {
+function InsightsSecondaryNav({children}: InsightsNavigationProps) {
   const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return children;
-  }
-
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
+
+  const {projects} = useProjects();
 
   return (
     <Fragment>
@@ -48,11 +46,6 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
           {NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
         </SecondaryNav.Header>
         <SecondaryNav.Body>
-          <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/projects/`}>
-              {t('All Projects')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}>
               {FRONTEND_SIDEBAR_LABEL}
@@ -69,9 +62,39 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
               {AI_SIDEBAR_LABEL}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
+          <SecondaryNav.Section title={t('Starred Projects')}>
+            {projects
+              .filter(project => project.isBookmarked)
+              .map(project => (
+                <SecondaryNav.Item
+                  key={project.id}
+                  to={`${baseUrl}/projects/${project.slug}/`}
+                  leadingItems={
+                    <ProjectIcon
+                      projectPlatforms={project.platform ? [project.platform] : []}
+                    />
+                  }
+                >
+                  {project.slug}
+                </SecondaryNav.Item>
+              ))}
+            <SecondaryNav.Item to={`${baseUrl}/projects/`} end>
+              {t('All Projects')}
+            </SecondaryNav.Item>
+          </SecondaryNav.Section>
         </SecondaryNav.Body>
       </SecondaryNav>
       {children}
     </Fragment>
   );
+}
+
+export default function InsightsNavigation({children}: InsightsNavigationProps) {
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (!prefersStackedNav) {
+    return children;
+  }
+
+  return <InsightsSecondaryNav>{children}</InsightsSecondaryNav>;
 }

@@ -3,6 +3,7 @@ from enum import StrEnum
 
 import sentry_sdk
 from django.db import router, transaction
+from django.db.models import Q
 
 from sentry import buffer, features
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -126,9 +127,16 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         logger.exception("Detector not found for event", extra={"event_id": job["event"].event_id})
         return set()
 
+    # TODO: remove fetching org, only used for FF check
+    organization = detector.project.organization
+
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
-        Workflow.objects.filter(detectorworkflow__detector_id=detector.id, enabled=True).distinct()
+        Workflow.objects.filter(
+            (Q(environment_id=None) | Q(environment_id=job["event"].get_environment())),
+            detectorworkflow__detector_id=detector.id,
+            enabled=True,
+        ).distinct()
     )
 
     if workflows:
@@ -154,8 +162,8 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
-            detector.project.organization,
+            "organizations:workflow-engine-process-workflows",
+            organization,
         ):
             metrics.incr(
                 "workflow_engine.process_workflows.triggered_actions",
@@ -164,8 +172,12 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
             )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        for action in actions:
-            action.trigger(job, detector)
+        if features.has(
+            "organizations:workflow-engine-trigger-actions",
+            organization,
+        ):
+            for action in actions:
+                action.trigger(job, detector)
 
     return triggered_workflows
 

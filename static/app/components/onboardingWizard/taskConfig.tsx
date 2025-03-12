@@ -28,9 +28,9 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
-  return projects !== undefined
-    ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
-    : false;
+  return projects === undefined
+    ? false
+    : projects.some(({platform}) => platform && sourceMaps.includes(platform));
 }
 
 type Options = {

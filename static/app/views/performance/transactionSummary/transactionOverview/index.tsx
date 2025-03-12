@@ -51,7 +51,7 @@ import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent, {OTelSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
-// as React.ReactText
+// as string | number
 type TotalValues = Record<string, number>;
 
 type Props = {

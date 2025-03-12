@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -78,13 +78,13 @@ function NoProjectMessage({
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions gap={1}>
-          {!orgHasProjects ? (
-            createProjectAction
-          ) : (
+          {orgHasProjects ? (
             <Fragment>
               {joinTeamAction}
               {createProjectAction}
             </Fragment>
+          ) : (
+            createProjectAction
           )}
         </Actions>
       </Content>
