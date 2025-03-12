@@ -600,6 +600,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/gsApp/components/crons/               @getsentry/crons
 /static/gsApp/components/replay*              @getsentry/replay-frontend
 
+## gsAdmin
+# /static/gsAdmin/*                          unowned
+/static/gsAdmin/components/forkCustomer.tsx  @getsentry/hybrid-cloud
+/static/gsAdmin/components/relocation*       @getsentry/hybrid-cloud
+/static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
+
 ## ML & AI
 *autofix*.py                                                @getsentry/machine-learning-ai
 /src/sentry/api/endpoints/event_ai_suggested_fix.py         @getsentry/machine-learning-ai
