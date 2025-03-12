@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import type {PropMatrix} from 'sentry/components/stories/matrix';
 import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';

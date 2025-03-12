@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 
 describe('Button', function () {
   it('renders', function () {
