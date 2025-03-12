@@ -10,6 +10,7 @@ import omit from 'lodash/omit';
 import {Chevron} from 'sentry/components/chevron';
 import {
   ChonkClearIndicator,
+  ChonkDropdownIndicator,
   getChonkStylesConfig,
   type StylesConfig,
 } from 'sentry/components/core/select/index.chonk';
@@ -69,7 +70,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron color="subText" direction="down" size="medium" />
+      <Chevron light color="subText" direction="down" size="medium" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -460,7 +461,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const replacedComponents = {
     SingleValue,
     ClearIndicator: theme.isChonk ? ChonkClearIndicator : ClearIndicator,
-    DropdownIndicator,
+    DropdownIndicator: theme.isChonk ? ChonkDropdownIndicator : DropdownIndicator,
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
