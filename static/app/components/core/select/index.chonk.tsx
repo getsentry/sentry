@@ -97,8 +97,7 @@ export const getChonkStylesConfig = ({
       paddingTop: 0,
       paddingBottom: 0,
       paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
-      // XXX: using paddingTop for paddingRight to keep the same proportions 8/6/4
-      paddingRight: theme.formPadding[size ?? 'md'].paddingTop,
+      paddingRight: theme.formSpacing[size ?? 'md'],
       // offset horizontal margin/padding from multiValue (space(0.25)) &
       // multiValueLabel (space(0.75))
       ...(state.isMulti && {
@@ -161,8 +160,7 @@ export const getChonkStylesConfig = ({
       display: 'grid',
       gridAutoFlow: 'column',
       gridGap: '2px',
-      // xxx we want 8/6/4 here too
-      marginRight: theme.formPadding[size ?? 'md'].paddingTop,
+      marginRight: theme.formSpacing[size ?? 'md'],
     }),
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,

@@ -384,7 +384,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.isChonk ? theme.gray500 : theme.gray300,
       fontWeight: 600,
-      marginRight: space(1),
+      marginRight: theme.formSpacing[size ?? 'md'],
     },
   });
 
