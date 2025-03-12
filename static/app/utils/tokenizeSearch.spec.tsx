@@ -500,7 +500,7 @@ describe('utils/tokenizeSearch', function () {
         string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
       },
       {
-        name: 'should not enclose the entire query in quotes if there are no spaces',
+        name: 'should not enclose the entire query in quotes if there are no spaces in brackets shorthand',
         object: new MutableSearch(['transaction:[alpha,beta]']),
         string: 'transaction:[alpha,beta]',
       },
@@ -510,12 +510,12 @@ describe('utils/tokenizeSearch', function () {
         string: 'transaction:["alpha","beta"]',
       },
       {
-        name: 'should not enclose the entire query in quotes if there are quotes around args',
+        name: 'should not enclose the entire query in quotes if some args are quoted in brackets',
         object: new MutableSearch(['transaction:["alpha",beta]']),
         string: 'transaction:["alpha",beta]',
       },
       {
-        name: 'should not enclose the entire query in quotes if there are spaces',
+        name: 'should not enclose the entire query in quotes if there are spaces in quoted args',
         object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
         string: 'transaction:["this has a space",thisdoesnot]',
       },
