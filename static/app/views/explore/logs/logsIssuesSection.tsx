@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageParamsProvider,
   type LogsPageParamsProviderProps,
@@ -26,28 +26,31 @@ export function LogsIssuesSection({
 }: {
   initialCollapse: boolean;
 } & Omit<LogsPageParamsProviderProps, 'children'>) {
-  const tableData = useExploreLogsTable({});
+  const organization = useOrganization();
+  const feature = organization.features.includes('ourlogs-enabled');
+  const tableData = useExploreLogsTable({enabled: feature});
+  if (!feature) {
+    return null;
+  }
   if (tableData?.data?.length === 0) {
     // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }
   return (
-    <Feature features={['ourlogs-enabled']}>
-      <InterimSection
-        key="logs"
-        type={SectionKey.LOGS}
-        title={t('Logs')}
-        data-test-id="logs-data-section"
-        initialCollapse={initialCollapse}
+    <InterimSection
+      key="logs"
+      type={SectionKey.LOGS}
+      title={t('Logs')}
+      data-test-id="logs-data-section"
+      initialCollapse={initialCollapse}
+    >
+      <LogsPageParamsProvider
+        isIssuesDetailView={isIssuesDetailView}
+        limitToTraceId={traceId}
       >
-        <LogsPageParamsProvider
-          isIssuesDetailView={isIssuesDetailView}
-          limitToTraceId={traceId}
-        >
-          <LogsSectionContent tableData={tableData} />
-        </LogsPageParamsProvider>
-      </InterimSection>
-    </Feature>
+        <LogsSectionContent tableData={tableData} />
+      </LogsPageParamsProvider>
+    </InterimSection>
   );
 }
 
