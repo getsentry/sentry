@@ -4,10 +4,10 @@ import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
 import type {OpenConfirmOptions} from 'sentry/components/confirm';
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';

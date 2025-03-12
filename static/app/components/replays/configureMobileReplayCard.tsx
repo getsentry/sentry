@@ -1,7 +1,7 @@
 import {ClassNames} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ButtonContainer, Resource} from 'sentry/components/replays/configureReplayCard';
 import {IconQuestion} from 'sentry/icons';

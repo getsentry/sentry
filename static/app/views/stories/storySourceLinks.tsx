@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
