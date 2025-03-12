@@ -50,7 +50,7 @@ function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQu
 
 export default function SentryAppDetailedView() {
   const tabs: Tab[] = ['overview'];
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
