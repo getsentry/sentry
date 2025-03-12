@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {
   ControlProps,
   GeneralSelectValue,

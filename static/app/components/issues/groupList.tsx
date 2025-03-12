@@ -305,7 +305,7 @@ class GroupList extends Component<Props, State> {
 
     return (
       <Fragment>
-        <Panel>
+        <PanelContainer>
           <GroupListHeader
             withChart={!!withChart}
             narrowGroups={narrowGroups}
@@ -347,7 +347,7 @@ class GroupList extends Component<Props, State> {
                   );
                 })}
           </PanelBody>
-        </Panel>
+        </PanelContainer>
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
@@ -366,4 +366,8 @@ const GroupPlaceholder = styled('div')`
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};
   }
+`;
+
+const PanelContainer = styled(Panel)`
+  container-type: inline-size;
 `;

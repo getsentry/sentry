@@ -74,7 +74,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <SmallWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(sampleDurationTimeSeries2),
+                new Line(sampleThroughputTimeSeries),
                 new Bars(sampleDurationTimeSeries),
               ]}
             />
@@ -199,6 +199,56 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 />
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Y Axes', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> will automatically set up
+          correct Y axes for the plottables. The logic goes like this:
+        </p>
+        <ul>
+          <li>
+            look through all the plottables in order, and determine which types they have
+          </li>
+          <li>
+            place a left-side Y axis, using the most common data type among the plottables
+          </li>
+          <li>
+            if there are two total data types, place a second Y axis on the right side
+          </li>
+          <li>
+            if there are more than 2 total data types, set the second Y axis to "number"
+          </li>
+        </ul>
+
+        <p>
+          The charts below should have one throughput axis, and one duration axis. In both
+          cases, the duration should be on the left.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleThroughputTimeSeries),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries2), {delay: 90}),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });

@@ -14,6 +14,7 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {
   useLogsFields,
+  useLogsIsTableEditingFrozen,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsSearch,
@@ -307,9 +308,9 @@ function LogFieldsTreeRow({
     );
   }
 
-  const attributeActions = !config?.disableActions ? (
+  const attributeActions = config?.disableActions ? null : (
     <LogFieldsTreeRowDropdown content={content} />
-  ) : null;
+  );
 
   return (
     <TreeRow hasErrors={hasErrors} {...props}>
@@ -348,6 +349,7 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
   const search = useLogsSearch();
   const fields = useLogsFields();
   const setLogFields = useSetLogsFields();
+  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
   const [isVisible, setIsVisible] = useState(false);
   const originalAttribute = content.originalAttribute;
 
@@ -391,6 +393,7 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
     {
       key: 'add-column',
       label: t('Add this as table column'),
+      hidden: isTableEditingFrozen,
       disabled: fields.includes(originalAttribute.original_attribute_key),
       onAction: () => {
         addColumn();
@@ -463,9 +466,7 @@ function LogFieldsTreeValue({
     });
   }
 
-  return !isUrl(String(content.value)) ? (
-    defaultValue
-  ) : (
+  return isUrl(String(content.value)) ? (
     <AttributeLinkText>
       <ExternalLink
         onClick={e => {
@@ -476,6 +477,8 @@ function LogFieldsTreeValue({
         {String(content.value)}
       </ExternalLink>
     </AttributeLinkText>
+  ) : (
+    defaultValue
   );
 }
 

@@ -13,7 +13,7 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import APIException, ParseError
+from rest_framework.exceptions import APIException, ParseError, Throttled
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -33,7 +33,11 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE, TIMEOUT_RPC_ERROR_MESSAGE
+from sentry.search.events.constants import (
+    RATE_LIMIT_ERROR_MESSAGE,
+    TIMEOUT_ERROR_MESSAGE,
+    TIMEOUT_RPC_ERROR_MESSAGE,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
@@ -377,10 +381,13 @@ def handle_query_errors() -> Generator[None]:
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(error, RateLimitExceeded):
+            sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+            sentry_sdk.capture_exception(error)
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
-                RateLimitExceeded,
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,

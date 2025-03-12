@@ -2,8 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {LinkButton} from 'sentry/components/button';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -78,7 +78,7 @@ function ArtifactsTableRow({
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
             {
               downloadRole,
-              orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+              orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
               settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
             }
           )}

@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {StyledButton} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {StyledButton} from 'sentry/components/core/button';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
@@ -26,9 +26,8 @@ function ButtonBar({
   const shouldCheckActive = typeof active !== 'undefined';
   return (
     <ButtonGrid merged={merged} gap={gap} className={className}>
-      {!shouldCheckActive
-        ? children
-        : Children.map(children, child => {
+      {shouldCheckActive
+        ? Children.map(children, child => {
             if (!isValidElement(child)) {
               return child;
             }
@@ -48,7 +47,8 @@ function ButtonBar({
               className: classNames(className, {active: isActive}),
               priority,
             });
-          })}
+          })
+        : children}
     </ButtonGrid>
   );
 }

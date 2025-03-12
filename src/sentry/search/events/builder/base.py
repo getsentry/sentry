@@ -29,6 +29,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -985,12 +986,25 @@ class BaseQueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
+        should_use_user_time_range = features.has(
+            "organizations:performance-discover-get-custom-measurements-reduced-range",
+            self.organization_id,
+            actor=None,
+        )
+
+        start = (
+            self.params.start
+            if should_use_user_time_range
+            else datetime.today() - timedelta(days=90)
+        )
+        end = self.params.end if should_use_user_time_range else datetime.today()
+
         try:
             result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
+                start=start,
+                end=end,
             )
         # Don't fully fail if we can't get the CM, but still capture the exception
         except Exception as error:
@@ -1154,7 +1168,8 @@ class BaseQueryBuilder:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
-                builder=self,
+                get_field_type=self.get_field_type,
+                get_function_result_type=self.get_function_result_type,
                 config_overrides=self.builder_config.parser_config_overrides,
             )
         except ParseError as e:

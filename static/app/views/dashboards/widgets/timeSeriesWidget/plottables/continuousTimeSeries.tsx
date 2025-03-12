@@ -25,6 +25,10 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
   unit: DataUnit;
+  /**
+   * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
+   */
+  yAxisPosition: 'left' | 'right';
 };
 
 /**
