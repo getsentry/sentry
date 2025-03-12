@@ -230,12 +230,14 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
   position: relative;
+  min-width: 10px;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Location = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  min-width: 0;
+  min-width: 10px;
   ${p => p.theme.overflowEllipsis};
 `;
 
