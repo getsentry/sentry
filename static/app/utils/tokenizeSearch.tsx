@@ -156,7 +156,19 @@ export class MutableSearch {
         case TokenType.FILTER:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s\(\)\\"]/g.test(token.value)) {
+          } else if (
+            // Don't quote if it's already a properly formatted bracket expression
+            /^\[.*\]$/.test(token.value) ||
+            // Don't quote if it's already properly quoted
+            /^".*"$/.test(token.value)
+          ) {
+            formattedTokens.push(`${token.key}:${token.value}`);
+          } else if (
+            // Quote if contains spaces, parens, quotes, commas, or brackets
+            /[\s\(\)\\"',\[\]]/g.test(token.value) ||
+            // Also quote if contains colons but not at the start (to handle timestamps)
+            (token.value.includes(':') && !token.value.startsWith('id:'))
+          ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
