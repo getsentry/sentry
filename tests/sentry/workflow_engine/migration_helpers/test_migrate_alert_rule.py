@@ -61,6 +61,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -180,6 +181,10 @@ def assert_sentry_app_action_migrated(
 ):
     # Verify target_identifier is the string representation of sentry_app_id
     assert action.config.get("target_identifier") == str(alert_rule_trigger_action.sentry_app_id)
+    assert (
+        action.config.get("sentry_app_identifier")
+        == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+    )
 
     # Verify data blob has correct structure for Sentry apps
     if not alert_rule_trigger_action.sentry_app_config:
