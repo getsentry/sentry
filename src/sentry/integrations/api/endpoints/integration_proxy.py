@@ -191,12 +191,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 headers=clean_headers,
             )
         except ApiError as e:
-            if hasattr(e, 'text') and 'suspended' in e.text.lower():
+            if hasattr(e, "text") and "suspended" in e.text.lower():
                 return HttpResponse(
-                    content=json.dumps({
-                        "error": "GitHub App installation is suspended",
-                        "detail": "The GitHub App installation for this organization has been suspended. Please reinstall the GitHub integration."
-                    }),
+                    content=json.dumps(
+                        {
+                            "error": "GitHub App installation is suspended",
+                            "detail": "The GitHub App installation for this organization has been suspended. Please reinstall the GitHub integration.",
+                        }
+                    ),
                     status=403,
                     content_type="application/json",
                 )
