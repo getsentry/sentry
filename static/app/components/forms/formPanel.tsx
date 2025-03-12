@@ -62,12 +62,21 @@ function FormPanel({
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
   return (
-    <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
+    <Panel
+      id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}
+      onClick={collapsible ? handleCollapseToggle : undefined}
+      style={collapsible ? {cursor: 'pointer'} : undefined}
+    >
       {title && (
         <PanelHeader>
           {title}
           {collapsible && (
-            <Collapse onClick={handleCollapseToggle}>
+            <Collapse
+              onClick={e => {
+                e.stopPropagation();
+                handleCollapseToggle();
+              }}
+            >
               <IconChevron
                 data-test-id="form-panel-collapse-chevron"
                 direction={collapsed ? 'down' : 'up'}
