@@ -48,7 +48,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
       search,
       projectIds,
     },
-    'api.logs-tab.view'
+    'api.explore.logs-table'
   );
 
   if (!meta) {
