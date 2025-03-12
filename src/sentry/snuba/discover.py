@@ -601,7 +601,7 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
-                    "groupby": item["groupby"],
+                    "groupby": item.get("groupby", []),
                     "meta": result["meta"],
                     "order": item["order"],
                 },
