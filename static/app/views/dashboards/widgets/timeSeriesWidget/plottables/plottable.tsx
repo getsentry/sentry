@@ -6,11 +6,16 @@ import type {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 /**
  * A `Plottable` is any object that can be converted to an ECharts `Series` and therefore plotted on an ECharts chart. This could be a data series, releases, samples, and other kinds of markers. `TimeSeriesWidgetVisualization` uses `Plottable` objects under the hood, to convert data coming into the component via props into ECharts series.
  */
 export interface Plottable {
+  /**
+   * Allows the user to clone the plottable w/ an option to mutate the TimeSeries
+   */
+  clone(cb?: (timeSeries: TimeSeries) => TimeSeries): this;
   /**
    * If the plottable is based on data, the type. Otherwise, null
    */
@@ -35,6 +40,7 @@ export interface Plottable {
    * Start timestamp of the plottable, if applicable
    */
   start: string | null;
+
   /**
    *
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.
