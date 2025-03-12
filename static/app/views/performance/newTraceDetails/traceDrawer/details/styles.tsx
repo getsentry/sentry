@@ -2,8 +2,8 @@ import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {
   DropdownMenu,
   type DropdownMenuProps,

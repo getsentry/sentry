@@ -5,7 +5,7 @@ import type {Location, LocationDescriptor, LocationDescriptorObject} from 'histo
 import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';

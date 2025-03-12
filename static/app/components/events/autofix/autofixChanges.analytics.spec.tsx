@@ -3,7 +3,7 @@ import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {
   type AutofixChangesStep,
