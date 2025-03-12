@@ -42,7 +42,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 interface HighlightsDataSectionProps {
   event: Event;
   project: Project;
-  viewAllRef?: React.RefObject<HTMLElement>;
+  viewAllRef?: React.RefObject<HTMLElement | null>;
 }
 
 function useOpenEditHighlightsModal({

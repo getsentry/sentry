@@ -131,7 +131,7 @@ class EventsTable extends Component<Props, State> {
   replayLinkGenerator = generateReplayLink(this.props.routes);
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, location, organization, excludedTags, applyEnvironmentFilter} =
         this.props;
 
@@ -448,16 +448,16 @@ class EventsTable extends Component<Props, State> {
     const containsSpanOpsBreakdown = !!eventView
       .getColumns()
       .find(
-        (col: TableColumn<React.ReactText>) =>
+        (col: TableColumn<string | number>) =>
           col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );
 
     const columnOrder = eventView
       .getColumns()
-      .filter((col: TableColumn<React.ReactText>) =>
+      .filter((col: TableColumn<string | number>) =>
         shouldRenderColumn(containsSpanOpsBreakdown, col.name)
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }
