@@ -7,6 +7,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {
   useLogsBaseSearch,
   useLogsFields,
+  useLogsProjectIds,
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -27,7 +28,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const baseSearch = useLogsBaseSearch();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
-
+  const projectIds = useLogsProjectIds();
   const extendedFields = new Set([...AlwaysPresentLogFields, ...fields]);
 
   const search = baseSearch ? _search.copy() : _search;
@@ -40,6 +41,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
       sorts: sortBys,
       fields: Array.from(extendedFields),
       search,
+      projectIds,
     },
     'api.logs-tab.view'
   );
