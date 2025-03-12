@@ -1,10 +1,8 @@
 import {Fragment, useMemo} from 'react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -22,6 +20,7 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/backend/laravel/styles';
+import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 
@@ -156,25 +155,19 @@ export function CachesWidget({query}: {query?: string}) {
       Visualization={visualization}
       Actions={
         hasData && (
-          <Widget.WidgetToolbar>
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: t('Cache Miss Rates'),
-                  children: (
-                    <Fragment>
-                      <ModalChartContainer>{visualization}</ModalChartContainer>
-                      <ModalTableWrapper>{footer}</ModalTableWrapper>
-                    </Fragment>
-                  ),
-                });
-              }}
-            />
-          </Widget.WidgetToolbar>
+          <Toolbar
+            onOpenFullScreen={() => {
+              openInsightChartModal({
+                title: t('Cache Miss Rates'),
+                children: (
+                  <Fragment>
+                    <ModalChartContainer>{visualization}</ModalChartContainer>
+                    <ModalTableWrapper>{footer}</ModalTableWrapper>
+                  </Fragment>
+                ),
+              });
+            }}
+          />
         )
       }
       noFooterPadding
