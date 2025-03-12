@@ -22,6 +22,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.action.notification.metric_alert import (
     BaseMetricAlertHandler,
+    OpsgenieMetricAlertHandler,
     PagerDutyMetricAlertHandler,
 )
 from sentry.workflow_engine.models import Action
@@ -413,3 +414,97 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
         )
+
+        assert organization == self.detector.project.organization
+        assert isinstance(notification_uuid, str)
+
+
+class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.detector = self.create_detector(project=self.project)
+        self.workflow = self.create_workflow(environment=self.environment)
+        self.action = self.create_action(
+            type=Action.Type.OPSGENIE,
+            integration_id=1234567890,
+            config={"target_identifier": "team123"},
+            data={"priority": "P1"},
+        )
+        self.snuba_query = self.create_snuba_query()
+
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=self.create_issue_occurrence(
+                initial_issue_priority=PriorityLevel.HIGH.value,
+                level="error",
+                evidence_data={
+                    "snuba_query_id": self.snuba_query.id,
+                    "metric_value": 123.45,
+                },
+            ),
+        )
+        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.handler = OpsgenieMetricAlertHandler()
+
+    @mock.patch("sentry.integrations.opsgenie.utils.send_incident_alert_notification")
+    def test_send_alert(self, mock_send_incident_alert_notification):
+        notification_context = NotificationContext.from_action_model(self.action)
+        assert self.group_event.occurrence is not None
+        alert_context = AlertContext.from_workflow_engine_models(
+            self.detector, self.group_event.occurrence
+        )
+        notification_uuid = str(uuid.uuid4())
+
+        self.handler.send_alert(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            job=self.job,
+            organization=self.detector.project.organization,
+            notification_uuid=notification_uuid,
+        )
+
+        mock_send_incident_alert_notification.assert_called_once_with(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            open_period_identifier=self.job["event"].group.id,
+            organization=self.detector.project.organization,
+            snuba_query=self.handler.get_snuba_query(self.job),
+            new_status=self.handler.get_new_status(self.job),
+            metric_value=self.handler.get_metric_value(self.job),
+            notification_uuid=notification_uuid,
+        )
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.metric_alert.OpsgenieMetricAlertHandler.send_alert"
+    )
+    def test_invoke_legacy_registry(self, mock_send_alert):
+        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+
+        assert mock_send_alert.call_count == 1
+        args, _ = mock_send_alert.call_args
+        notification_context, alert_context, job, organization, notification_uuid = args
+
+        assert isinstance(notification_context, NotificationContext)
+        assert isinstance(alert_context, AlertContext)
+
+        self.assert_notification_context(
+            notification_context,
+            integration_id=1234567890,
+            target_identifier="team123",
+            target_display=None,
+            sentry_app_config={"priority": "P1"},
+            sentry_app_id=None,
+        )
+
+        self.assert_alert_context(
+            alert_context,
+            name=self.detector.name,
+            action_identifier_id=self.detector.id,
+            threshold_type=None,
+            detection_type=None,
+            comparison_delta=None,
+        )
+
+        assert job == self.job
+        assert organization == self.detector.project.organization
+        assert isinstance(notification_uuid, str)
