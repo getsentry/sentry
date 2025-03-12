@@ -71,7 +71,7 @@ export const getChonkStylesConfig = ({
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
       top: theme.form[size].height,
-      marginTop: '12px',
+      marginTop: '8px',
     }),
 
     menuPortal: provided => ({
@@ -162,7 +162,6 @@ export const getChonkStylesConfig = ({
     indicatorsContainer: () => ({
       display: 'grid',
       gridAutoFlow: 'column',
-      gridGap: '2px',
       marginRight: theme.formSpacing[size],
     }),
     clearIndicator: indicatorStyles,

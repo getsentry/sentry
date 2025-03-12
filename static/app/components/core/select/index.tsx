@@ -7,6 +7,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {
   getChonkStylesConfig,
@@ -58,7 +59,12 @@ function ClearIndicator(
   // testing
   return (
     <selectComponents.ClearIndicator {...props}>
-      <IconClose aria-label={t('Clear choices')} legacySize="10px" />
+      <Button
+        borderless
+        icon={<IconClose legacySize="10px" />}
+        size="zero"
+        aria-label={t('Clear choices')}
+      />
     </selectComponents.ClearIndicator>
   );
 }
@@ -68,7 +74,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron light color="subText" direction="down" size="medium" />
+      <Chevron color="subText" direction="down" size="medium" />
     </selectComponents.DropdownIndicator>
   );
 }
