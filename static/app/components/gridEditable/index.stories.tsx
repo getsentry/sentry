@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';

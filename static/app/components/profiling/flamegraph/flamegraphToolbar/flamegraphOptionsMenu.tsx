@@ -1,8 +1,8 @@
 import {Fragment, useCallback} from 'react';
 
-import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

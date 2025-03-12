@@ -3,7 +3,7 @@ import type {CSSProperties} from 'react';
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {t} from 'sentry/locale';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
