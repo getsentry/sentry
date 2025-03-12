@@ -28,6 +28,7 @@ export const frontend: PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'unity',
 ];
@@ -239,6 +240,7 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
   'javascript-solid',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'dotnet',
   'dotnet-aspnet',
@@ -299,6 +301,7 @@ export const profiling: PlatformKey[] = [
   'javascript-remix',
   'javascript-solidstart',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript',
   'javascript-react',
   // react-native
@@ -353,6 +356,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'android',
   'apple-ios',
   'cordova',
@@ -460,6 +464,7 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
 ];
 
@@ -586,6 +591,7 @@ export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'python-aiohttp',
   'python-bottle',

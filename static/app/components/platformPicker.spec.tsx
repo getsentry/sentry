@@ -86,6 +86,7 @@ describe('PlatformPicker', function () {
       'SolidStart',
       'Svelte',
       'SvelteKit',
+      'TanStack Start React',
       'Unity',
       'Vue',
     ];
