@@ -164,8 +164,8 @@ export class MutableSearch {
           ) {
             formattedTokens.push(`${token.key}:${token.value}`);
           } else if (
-            // Quote if contains spaces, parens, quotes, commas, or brackets
-            /[\s\(\)\\"',\[\]]/g.test(token.value)
+            // Quote if contains spaces, parens, or quotes
+            /[\s\(\)\\"]/g.test(token.value)
           ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
