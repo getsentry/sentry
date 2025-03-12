@@ -87,6 +87,46 @@ export default storyBook('Select', (story, APIReference) => {
     );
   });
 
+  story('With inFieldLabel', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXNode name="Select" /> component comes in different sizes:
+        </p>
+        <Grid columns={3}>
+          <Select
+            inFieldLabel="Hello world"
+            size="md"
+            placeholder="medium"
+            options={[
+              {value: 'item1', label: 'Item 1'},
+              {value: 'item2', label: 'Item 2'},
+            ]}
+          />
+          <Select
+            size="sm"
+            placeholder="small"
+            inFieldLabel="Hello world"
+            defaultValue={{value: 'item1', label: 'Item 1'}}
+            options={[
+              {value: 'item1', label: 'Item 1'},
+              {value: 'item2', label: 'Item 2'},
+            ]}
+          />
+          <Select
+            size="xs"
+            placeholder="x-small"
+            inFieldLabel="Hello world"
+            options={[
+              {value: 'item1', label: 'Item 1'},
+              {value: 'item2', label: 'Item 2'},
+            ]}
+          />
+        </Grid>
+      </Fragment>
+    );
+  });
+
   story('Clearable', () => (
     <Fragment>
       <Matrix
