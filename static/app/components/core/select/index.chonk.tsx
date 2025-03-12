@@ -10,7 +10,7 @@ export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 
 export const getChonkStylesConfig = ({
   theme,
-  size,
+  size = 'md',
   maxMenuWidth,
   isInsideModal,
 }: {
@@ -54,7 +54,7 @@ export const getChonkStylesConfig = ({
         color: theme.disabled,
         cursor: 'not-allowed',
       }),
-      ...omit(theme.form[size ?? 'md'], 'height'),
+      ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
         maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
         overflow: 'hidden',
@@ -70,6 +70,8 @@ export const getChonkStylesConfig = ({
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
+      top: theme.form[size].height,
+      marginTop: '12px',
     }),
 
     menuPortal: provided => ({
@@ -99,8 +101,8 @@ export const getChonkStylesConfig = ({
       // flex alignItems makes sure we don't need paddings
       paddingTop: 0,
       paddingBottom: 0,
-      paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
-      paddingRight: theme.formSpacing[size ?? 'md'],
+      paddingLeft: theme.formPadding[size].paddingLeft,
+      paddingRight: theme.formSpacing[size],
       // offset horizontal margin/padding from multiValue (space(0.25)) &
       // multiValueLabel (space(0.75))
       ...(state.isMulti && {
@@ -122,9 +124,7 @@ export const getChonkStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
-        0.5
-      )})`,
+      width: `calc(100% - ${theme.formPadding[size].paddingLeft}px - ${space(0.5)})`,
     }),
     placeholder: (provided, state) => ({
       ...provided,
@@ -163,7 +163,7 @@ export const getChonkStylesConfig = ({
       display: 'grid',
       gridAutoFlow: 'column',
       gridGap: '2px',
-      marginRight: theme.formSpacing[size ?? 'md'],
+      marginRight: theme.formSpacing[size],
     }),
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,
