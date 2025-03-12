@@ -34,6 +34,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
       BarSeries({
         name: timeSeries.field,
         stack: config.stack,
+        yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
         color,
         animation: false,
         itemStyle: {

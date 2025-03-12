@@ -1154,7 +1154,8 @@ class BaseQueryBuilder:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
-                builder=self,
+                get_field_type=self.get_field_type,
+                get_function_result_type=self.get_function_result_type,
                 config_overrides=self.builder_config.parser_config_overrides,
             )
         except ParseError as e:

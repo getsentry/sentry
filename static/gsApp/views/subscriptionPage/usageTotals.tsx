@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {Button} from 'sentry/components/core/button';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -444,7 +444,7 @@ function UsageTotals({
   const isDisplayingSpend = displayMode === 'cost' || hasReservedBudget; // always display as spend for reserved budgets
 
   // Calculate the width of the reserved bar relative to on demand
-  let reservedMaxWidth = showOnDemand ? (reserved !== 0 ? 50 : 0) : 100;
+  let reservedMaxWidth = showOnDemand ? (reserved === 0 ? 0 : 50) : 100;
   if (showOnDemand && reserved && onDemandUnitPrice) {
     const onDemandTotalUnitsAvailable = onDemandCategoryMax / onDemandUnitPrice;
     reservedMaxWidth =

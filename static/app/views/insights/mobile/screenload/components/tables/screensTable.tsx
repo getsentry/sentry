@@ -216,11 +216,11 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
         data={data?.data as TableDataRow[]}
         columnOrder={eventViewColumns
           .filter(
-            (col: TableColumn<React.ReactText>) =>
+            (col: TableColumn<string | number>) =>
               col.name !== SpanMetricsField.PROJECT_ID &&
               !col.name.startsWith('avg_compare')
           )
-          .map((col: TableColumn<React.ReactText>) => {
+          .map((col: TableColumn<string | number>) => {
             return {...col, name: columnNameMap[col.key] ?? col.name};
           })}
         columnSortBy={[

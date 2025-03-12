@@ -5,8 +5,8 @@ import isEqual from 'lodash/isEqual';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
@@ -480,7 +480,7 @@ function IssueViewsIssueListHeaderTabsContent({
               ...router.location.query,
               query: view.unsavedChanges?.query ?? view.query,
               sort: view.unsavedChanges?.querySort ?? view.querySort,
-              viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+              viewId: view.id === TEMPORARY_TAB_KEY ? undefined : view.id,
               project: view.unsavedChanges?.projects ?? view.projects,
               environment: view.unsavedChanges?.environments ?? view.environments,
               ...normalizeDateTimeParams(

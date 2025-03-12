@@ -65,7 +65,7 @@ type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
-  wrapperRef: React.RefObject<HTMLDivElement>;
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
 function isStringFilterValues(
@@ -268,7 +268,7 @@ function useSelectionIndex({
   canSelectMultipleValues,
 }: {
   canSelectMultipleValues: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   inputValue: string;
 }) {
   const [selectionIndex, setSelectionIndex] = useState<number | null>(
@@ -282,10 +282,10 @@ function useSelectionIndex({
   }, [canSelectMultipleValues, inputValue]);
 
   const updateSelectionIndex = useCallback(() => {
-    if (inputRef.current?.selectionStart !== inputRef.current?.selectionEnd) {
-      setSelectionIndex(null);
-    } else {
+    if (inputRef.current?.selectionStart === inputRef.current?.selectionEnd) {
       setSelectionIndex(inputRef.current?.selectionStart ?? null);
+    } else {
+      setSelectionIndex(null);
     }
   }, [inputRef]);
 

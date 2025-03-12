@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -253,7 +253,7 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
       <Divider />
       {installed ? renderPostInstallInstructions() : renderIntegrationInstructions()}
       {getDynamicText({
-        value: !hasError ? null : loadingError,
+        value: hasError ? loadingError : null,
         fixed: testOnlyAlert,
       })}
     </Fragment>
