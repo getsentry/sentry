@@ -353,7 +353,7 @@ const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.75)};
-  background: ${p => p.theme.inverted.surface400};
+  background: ${p => p.theme.inverted.backgroundElevated};
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.inverted.textColor};
   border-radius: ${p => p.theme.borderRadius};
