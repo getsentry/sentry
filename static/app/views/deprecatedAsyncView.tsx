@@ -20,7 +20,7 @@ export default abstract class DeprecatedAsyncView<
   render() {
     return (
       <SentryDocumentTitle title={this.getTitle()}>
-        {this.renderComponent() as React.ReactChild}
+        {this.renderComponent()}
       </SentryDocumentTitle>
     );
   }
