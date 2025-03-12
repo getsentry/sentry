@@ -4,6 +4,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   useLogsBaseSearch,
+  useLogsCursor,
   useLogsFields,
   useLogsProjectIds,
   useLogsSearch,
@@ -28,6 +29,7 @@ export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
 export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const _search = useLogsSearch();
   const baseSearch = useLogsBaseSearch();
+  const cursor = useLogsCursor();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const projectIds = useLogsProjectIds();
@@ -40,6 +42,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const {data, meta, isError, isPending, pageLinks} = useOurlogs(
     {
       ...options,
+      cursor,
       sorts: sortBys,
       fields: Array.from(extendedFields),
       search,

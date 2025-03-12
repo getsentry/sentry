@@ -9,6 +9,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -25,7 +26,11 @@ import type {
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {getLogAttributeItem, removeSentryPrefix} from 'sentry/views/explore/logs/utils';
+import {
+  adjustLogTraceID,
+  getLogAttributeItem,
+  removeSentryPrefix,
+} from 'sentry/views/explore/logs/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -452,21 +457,28 @@ function LogFieldsTreeValue({
   // Check if we have a custom renderer for this attribute
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
+  const basicRenderer = getFieldRenderer(attributeKey, {}, false);
+  const adjustedValue =
+    attributeKey === OurLogKnownFieldKey.TRACE_ID
+      ? adjustLogTraceID(content.value as string)
+      : content.value;
 
-  const defaultValue = <span>{String(content.value)}</span>;
+  const basicRendered = basicRenderer({[attributeKey]: adjustedValue}, renderExtra);
+  const defaultValue = <span>{String(adjustedValue)}</span>;
 
   if (config?.disableRichValue) {
-    return defaultValue;
+    return String(adjustedValue);
   }
 
   if (renderer) {
     return renderer({
-      item: getLogAttributeItem(attributeKey, content.value),
+      item: getLogAttributeItem(attributeKey, adjustedValue),
       extra: renderExtra,
+      basicRendered,
     });
   }
 
-  return isUrl(String(content.value)) ? (
+  return isUrl(String(adjustedValue)) ? (
     <AttributeLinkText>
       <ExternalLink
         onClick={e => {
@@ -474,7 +486,7 @@ function LogFieldsTreeValue({
           openNavigateToExternalLinkModal({linkText: String(content.value)});
         }}
       >
-        {String(content.value)}
+        {basicRendered}
       </ExternalLink>
     </AttributeLinkText>
   ) : (
