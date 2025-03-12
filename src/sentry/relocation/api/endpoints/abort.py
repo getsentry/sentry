@@ -15,7 +15,7 @@ ERR_NOT_ABORTABLE_STATUS = (
     "Relocations can only be cancelled if they are not yet complete; this relocation is `SUCCESS`."
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
