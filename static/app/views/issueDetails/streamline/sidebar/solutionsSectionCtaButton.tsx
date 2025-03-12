@@ -62,8 +62,8 @@ export function SolutionsSectionCtaButton({
     }
 
     if (!autofixData?.steps || !prevStepsRef.current) {
-      prevStepsRef.current = autofixData?.steps || null;
-      prevRunIdRef.current = autofixData?.run_id || null;
+      prevStepsRef.current = autofixData?.steps ?? null;
+      prevRunIdRef.current = autofixData?.run_id ?? null;
       return;
     }
 
@@ -103,8 +103,8 @@ export function SolutionsSectionCtaButton({
       }
     }
 
-    prevStepsRef.current = autofixData?.steps || null;
-    prevRunIdRef.current = autofixData?.run_id;
+    prevStepsRef.current = autofixData?.steps ?? null;
+    prevRunIdRef.current = autofixData?.run_id ?? null;
   }, [autofixData?.steps, autofixData?.run_id]);
 
   // Update drawer state when opening
