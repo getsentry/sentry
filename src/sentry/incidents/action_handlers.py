@@ -360,9 +360,18 @@ class OpsgenieActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
+
         success = send_incident_alert_notification(
-            action=action,
-            incident=incident,
+            notification_context=notification_context,
+            alert_context=alert_context,
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
             new_status=new_status,
             metric_value=metric_value,
             notification_uuid=notification_uuid,
