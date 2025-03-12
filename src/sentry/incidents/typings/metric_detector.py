@@ -77,7 +77,7 @@ class NotificationContext:
                 target_display=action.config.get("target_display"),
                 sentry_app_config=action.data.get("settings"),
                 sentry_app_id=action.data.get("target_identifier"),
-                # Does not need data
+                # For Sentry Apps, we use `sentry_app_config` and don't pass `data`
             )
         elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
             return cls(
