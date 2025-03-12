@@ -62,7 +62,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 projects, environments, type_filter, start, end
             )
         else:
-            return Response("", status=404)
+            return Response("Valid options for group_by are 'time' and 'release'", status=404)
 
         return Response(
             {
@@ -72,8 +72,8 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 # I have no idea what purpose this data serves on the front-end.
                 "isMetricsData": False,
                 "meta": {
-                    "fields": {"time": "date", "issues_count": "count"},
-                    "units": {"time": None, "issues_count": "int"},
+                    "fields": {"time": "date", "issues_count": "integer"},
+                    "units": {"time": None, "issues_count": None},
                     "isMetricsData": False,
                     "isMetricsExtractedData": False,
                     "tips": {},
