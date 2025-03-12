@@ -155,9 +155,9 @@ export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
 `;
-export const TableHeadCellContent = styled('div')`
+export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  cursor: pointer;
+  cursor: ${p => (p.isFrozen ? 'default' : 'pointer')};
 `;

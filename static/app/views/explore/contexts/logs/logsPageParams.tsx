@@ -12,6 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {getLogFieldsFromLocation} from 'sentry/views/explore/contexts/logs/fields';
 import {
   getLogSortBysFromLocation,
+  logsTimestampDescendingSortBy,
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 
@@ -22,8 +23,13 @@ export const LOGS_FIELDS_KEY = 'logsFields';
 interface LogsPageParams {
   readonly cursor: string;
   readonly fields: string[];
+  readonly isTableSortFrozen: boolean | undefined;
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
+  /**
+   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc..
+   */
+  readonly baseSearch?: MutableSearch;
 }
 
 type LogPageParamsUpdate = Partial<LogsPageParams>;
@@ -33,16 +39,36 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
     name: 'LogsPageParamsContext',
   });
 
-export function LogsPageParamsProvider({children}: {children: React.ReactNode}) {
+export interface LogsPageParamsProviderProps {
+  children: React.ReactNode;
+  isIssuesDetailView?: boolean;
+  limitToTraceId?: string;
+}
+
+export function LogsPageParamsProvider({
+  children,
+  limitToTraceId,
+  isIssuesDetailView,
+}: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
+  const baseSearch = limitToTraceId
+    ? new MutableSearch('').addFilterValues('trace_id', [limitToTraceId])
+    : undefined;
   const fields = getLogFieldsFromLocation(location);
-  const sortBys = getLogSortBysFromLocation(location, fields);
+  const sortBys = isIssuesDetailView
+    ? [logsTimestampDescendingSortBy]
+    : getLogSortBysFromLocation(location, fields);
+
+  const isTableSortFrozen = isIssuesDetailView;
+
   const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider value={{fields, search, sortBys, cursor}}>
+    <LogsPageParamsContext.Provider
+      value={{fields, search, sortBys, cursor, isTableSortFrozen, baseSearch}}
+    >
       {children}
     </LogsPageParamsContext.Provider>
   );
@@ -65,7 +91,9 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+  if (!pageParams.isTableSortFrozen) {
+    updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+  }
   return target;
 }
 
@@ -108,6 +136,11 @@ export function useLogsSearch(): MutableSearch {
   return search;
 }
 
+export function useLogsBaseSearch(): MutableSearch | undefined {
+  const {baseSearch} = useLogsPageParams();
+  return baseSearch;
+}
+
 export function useSetLogsQuery() {
   const setPageParams = useSetLogsPageParams();
   return useCallback(
@@ -126,6 +159,11 @@ export function useSetLogsSearch() {
     },
     [setPageParams]
   );
+}
+
+export function useLogsIsTableSortFrozen() {
+  const {isTableSortFrozen} = useLogsPageParams();
+  return isTableSortFrozen;
 }
 
 export function useLogsSortBys() {

@@ -20,6 +20,7 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
 
@@ -38,7 +39,7 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
-
+  const tableData = useExploreLogsTable({});
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
@@ -85,7 +86,7 @@ export function LogsTabContent({
       </Layout.Main>
 
       <LogsTableContainer fullWidth>
-        <LogsTable />
+        <LogsTable tableData={tableData} />
       </LogsTableContainer>
     </Layout.Body>
   );
