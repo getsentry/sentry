@@ -458,7 +458,6 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
-                      {performance}
                       {feedback}
                       {monitors}
                       {alerts}
