@@ -1187,7 +1187,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             dashboard=self.dashboard,
             order=1,
             title="Test Query",
-            id="1",
+            id=1,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             limit=5,
@@ -1235,7 +1235,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             dashboard=self.dashboard,
             order=1,
             title="Test Query",
-            id="1",
+            id=1,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
