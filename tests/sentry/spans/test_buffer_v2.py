@@ -13,7 +13,7 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
     return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
 
-def _payload(span_id: str) -> bytes:
+def _payload(span_id: bytes) -> bytes:
     return rapidjson.dumps({"span_id": span_id}).encode("ascii")
 
 
