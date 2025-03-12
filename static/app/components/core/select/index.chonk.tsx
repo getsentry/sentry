@@ -30,6 +30,9 @@ export const getChonkStylesConfig = ({
     padding: '4px',
     alignItems: 'center',
     color: state.isDisabled ? theme.disabled : theme.textColor,
+    ':hover': {
+      color: 'currentcolor',
+    },
   });
 
   return {
