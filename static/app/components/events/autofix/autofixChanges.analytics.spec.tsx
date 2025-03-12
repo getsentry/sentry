@@ -10,7 +10,7 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/components/button', () => ({
+jest.mock('sentry/components/cre/button', () => ({
   Button: jest.fn(props => {
     // Forward the click handler while allowing us to inspect props
     return <button onClick={props.onClick}>{props.children}</button>;
