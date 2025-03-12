@@ -28,9 +28,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
-  DEFAULT_BUBBLE_SIZE,
-  RELEASE_BUBBLE_X_PADDING,
-  RELEASE_BUBBLE_Y_PADDING,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
@@ -343,8 +340,8 @@ export function useReleaseBubbles({
   releases,
   minTime,
   maxTime,
-  bubbleSize = DEFAULT_BUBBLE_SIZE,
-  bubblePadding = {x: RELEASE_BUBBLE_X_PADDING, y: RELEASE_BUBBLE_Y_PADDING},
+  bubbleSize = 4,
+  bubblePadding = {x: 2, y: 1},
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
