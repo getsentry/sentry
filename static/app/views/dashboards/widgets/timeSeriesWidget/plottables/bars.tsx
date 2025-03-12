@@ -21,16 +21,7 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
 
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
   constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    const newTimeSeries = {
-      ...this.timeSeries,
-      data: this.timeSeries.data.filter(dataItem => {
-        const ts = new Date(dataItem.timestamp);
-        return (
-          (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
-        );
-      }),
-    };
-    return new Bars(newTimeSeries, this.config);
+    return new Bars(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
   }
   toSeries(
     plottingOptions: ContinuousTimeSeriesPlottingOptions

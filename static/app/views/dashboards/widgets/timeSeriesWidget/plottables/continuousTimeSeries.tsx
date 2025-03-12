@@ -1,5 +1,4 @@
 import type {SeriesOption} from 'echarts';
-import cloneDeep from 'lodash/cloneDeep';
 
 import type {
   AggregationOutputType,
@@ -80,13 +79,20 @@ export abstract class ContinuousTimeSeries<
     return this.#timestamps.at(-1) ?? null;
   }
 
-  clone(cb?: (timeSeries: TimeSeries) => TimeSeries) {
-    const newTimeSeries =
-      typeof cb === 'function' ? cb(this.timeSeries) : cloneDeep(this.timeSeries);
-    return new (this.constructor as new (
-      timeSeries: TimeSeries,
-      config?: TConfig
-    ) => this)(newTimeSeries, this.config);
+  /**
+   * Shallow clones `timeSeries` and constrains `timeSeries` data to be between
+   * boundary datetime (if provided).
+   */
+  constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return {
+      ...this.timeSeries,
+      data: this.timeSeries.data.filter(dataItem => {
+        const ts = new Date(dataItem.timestamp);
+        return (
+          (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
+        );
+      }),
+    };
   }
 
   scaleToUnit(destinationUnit: DurationUnit | SizeUnit | RateUnit | null): TimeSeries {
