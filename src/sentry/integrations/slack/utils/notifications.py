@@ -17,7 +17,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
@@ -34,6 +34,7 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 

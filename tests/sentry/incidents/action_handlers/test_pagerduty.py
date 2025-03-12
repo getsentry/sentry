@@ -16,8 +16,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time

@@ -15,7 +15,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.messaging.spec import MessagingActionHandler
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.msteams.card_builder.block import (
     Block,
     ColumnBlock,
@@ -25,6 +24,7 @@ from sentry.integrations.msteams.card_builder.block import (
 )
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric

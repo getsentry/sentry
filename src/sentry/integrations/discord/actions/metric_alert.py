@@ -16,7 +16,8 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
+from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger

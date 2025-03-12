@@ -12,11 +12,11 @@ from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import (
-    AlertContext,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
