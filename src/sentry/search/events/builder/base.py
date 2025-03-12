@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from re import Match
 from typing import Any, Union, cast
 
@@ -29,6 +29,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -985,12 +986,25 @@ class BaseQueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
+        should_use_user_time_range = features.has(
+            "organizations:performance-discover-get-custom-measurements-reduced-range",
+            self.organization_id,
+            actor=None,
+        )
+
+        start = (
+            self.params.start
+            if should_use_user_time_range
+            else datetime.today() - timedelta(days=90)
+        )
+        end = self.params.end if should_use_user_time_range else datetime.today()
+
         try:
             result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
-                start=self.params.start,
-                end=self.params.end,
+                start=start,
+                end=end,
             )
         # Don't fully fail if we can't get the CM, but still capture the exception
         except Exception as error:
