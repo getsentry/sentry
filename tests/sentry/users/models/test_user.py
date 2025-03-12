@@ -432,7 +432,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             ).exists()
 
     @expect_models(ORG_MEMBER_MERGE_TESTED, OrganizationMemberInvite)
-    def test_member_invite(self):
+    def test_member_invite(self, expected_models: list[type[Model]]):
         """
         Member invite only depends on email and thus should not be transferred to the to user.
         """
