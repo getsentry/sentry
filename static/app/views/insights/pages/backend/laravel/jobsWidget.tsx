@@ -9,7 +9,6 @@ import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organizatio
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -22,6 +21,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/backend/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 
 const seriesAliases = {
   ok: t('Processed'),
@@ -102,9 +102,29 @@ export function JobsWidget({query}: {query?: string}) {
     return [okJobs, failedJobs].filter(series => !!series);
   }, [data, statsToSeries, theme.error, theme.gray200]);
 
-  const hasData = timeSeries.length > 0;
+  const plottables = useMemo(() => {
+    return timeSeries.map(
+      ts => new Bars(convertSeriesToTimeseries(ts), {color: ts.color, stack: 'stack'})
+    );
+  }, [timeSeries]);
 
-  const footer = hasData && (
+  const isEmpty = plottables.every(plottable => plottable.isEmpty);
+
+  const visualization = (
+    <WidgetVisualizationStates
+      isLoading={isLoading}
+      error={error}
+      isEmpty={isEmpty}
+      VisualizationType={TimeSeriesWidgetVisualization}
+      visualizationProps={{
+        plottables: timeSeries.map(
+          ts => new Bars(convertSeriesToTimeseries(ts), {color: ts.color, stack: 'stack'})
+        ),
+      }}
+    />
+  );
+
+  const footer = !isEmpty && (
     <WidgetFooterTable>
       {timeSeries.map(series => {
         const total = series.data.reduce((sum, point) => sum + point.value, 0);
@@ -125,27 +145,12 @@ export function JobsWidget({query}: {query?: string}) {
     </WidgetFooterTable>
   );
 
-  const visualization = isLoading ? (
-    <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-  ) : error ? (
-    <Widget.WidgetError error={error} />
-  ) : !hasData ? (
-    <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-  ) : (
-    <TimeSeriesWidgetVisualization
-      aliases={seriesAliases}
-      plottables={timeSeries.map(
-        ts => new Bars(convertSeriesToTimeseries(ts), {color: ts.color, stack: 'stack'})
-      )}
-    />
-  );
-
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Jobs')} />}
       Visualization={visualization}
       Actions={
-        hasData && (
+        !isEmpty && (
           <Widget.WidgetToolbar>
             <Button
               size="xs"
