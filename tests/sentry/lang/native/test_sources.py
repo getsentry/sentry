@@ -1,8 +1,16 @@
+import jsonschema
 import pytest
+from django.conf import settings
 
-from sentry.lang.native.sources import filter_ignored_sources
+from sentry.lang.native.sources import SOURCE_SCHEMA, filter_ignored_sources
 from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+def test_validate_builtin_sources():
+    for source in settings.SENTRY_BUILTIN_SOURCES.values():
+        jsonschema.validate(source, SOURCE_SCHEMA)
 
 
 class TestIgnoredSourcesFiltering:
