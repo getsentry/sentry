@@ -36,7 +36,7 @@ export const COL_WIDTH_MINIMUM = 90;
 // - K is a key of T/
 //   - columnKey should have the same set of values as K
 
-type ObjectKey = React.ReactText;
+type ObjectKey = string | number;
 
 export type GridColumn<K = ObjectKey> = {
   key: K;
