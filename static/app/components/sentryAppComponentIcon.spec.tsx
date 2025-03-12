@@ -3,16 +3,16 @@ import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {sentryAppComponentIsDisabled} from 'sentry/components/sentryAppComponentIcon';
 
 describe('SentryAppComponentIcon', function () {
-  it('sentryAppComponentIsDisabled returns false if the error is a non empty string', () => {
+  it('sentryAppComponentIsDisabled returns true if the error is a non empty string', () => {
     const component = SentryAppComponentFixture();
     component.error = 'RIP couldnt connect to sentry :C';
-    expect(sentryAppComponentIsDisabled(component)).toBe(false);
+    expect(sentryAppComponentIsDisabled(component)).toBe(true);
   });
 
-  it('sentryAppComponentIsDisabled returns true if the error is an empty string', () => {
+  it('sentryAppComponentIsDisabled returns false if the error is an empty string', () => {
     const component = SentryAppComponentFixture();
     component.error = '';
-    expect(sentryAppComponentIsDisabled(component)).toBe(true);
+    expect(sentryAppComponentIsDisabled(component)).toBe(false);
   });
 
   // TODO: Delete after new errors are deployed
