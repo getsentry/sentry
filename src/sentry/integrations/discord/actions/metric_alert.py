@@ -6,6 +6,7 @@ from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
@@ -17,7 +18,6 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
-from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger

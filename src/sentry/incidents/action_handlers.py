@@ -27,9 +27,9 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     TriggerStatus,
 )
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
-from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team

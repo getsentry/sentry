@@ -6,6 +6,7 @@ from typing import Any, cast
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.metric_alerts import (
     get_metric_count_from_incident,
     incident_attachment_info,
@@ -13,7 +14,6 @@ from sentry.integrations.metric_alerts import (
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
-from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.snuba.models import SnubaQuery

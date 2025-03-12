@@ -19,8 +19,8 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
-from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.models.organization import Organization
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.models import SnubaQuery

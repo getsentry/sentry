@@ -7,12 +7,12 @@ from django.db import router, transaction
 from django.http import Http404
 
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
-from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.models.organization import Organization
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError

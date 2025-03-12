@@ -7,8 +7,8 @@ from django.utils import timezone
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.typings.metric_alert_registry import AlertContext
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
