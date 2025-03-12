@@ -41,8 +41,8 @@ TIMEZONE_CHOICES = get_timezone_choices()
 
 def validate_prefers_specialized_project_overview(value: dict[str, bool] | None) -> None:
     if value is not None:
-        for value in value.values():
-            if not isinstance(value, bool):
+        for entry in value.values():
+            if not isinstance(entry, bool):
                 raise ValidationError("The enabled value should be a boolean.")
 
 
