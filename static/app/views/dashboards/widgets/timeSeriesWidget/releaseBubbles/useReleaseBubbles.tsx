@@ -369,7 +369,8 @@ export function useReleaseBubbles({
     };
   }
 
-  const totalBubblePaddingY = bubblePadding.y * 2;
+  // Read comments in `renderReleaseBubble()` regarding the +1
+  const totalBubblePaddingY = 1 + bubblePadding.y * 2;
 
   return {
     createReleaseBubbleHighlighter,
@@ -406,9 +407,7 @@ export function useReleaseBubbles({
       // configure `axisLine` and `offset` to move axis line below 0 so that
       // bubbles sit between bottom of the main chart and the axis line
       axisLine: {onZero: false},
-      // The +1 is needed because we add 1 pixel when drawing the bubbles in
-      // renderReleaseBubble (read comments there)
-      offset: bubbleSize + totalBubblePaddingY + 1,
+      offset: bubbleSize + totalBubblePaddingY,
     },
 
     /**
@@ -417,7 +416,7 @@ export function useReleaseBubbles({
     releaseBubbleGrid: {
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
       // drawn below grid (but above x axis label)
-      bottom: bubbleSize + totalBubblePaddingY + 1,
+      bottom: bubbleSize + totalBubblePaddingY,
     },
   };
 }
