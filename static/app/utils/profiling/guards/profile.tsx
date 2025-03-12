@@ -55,7 +55,7 @@ export function isSentryContinuousProfileChunk(
 export function isSentryAndroidContinuousProfileChunk(
   profile: any
 ): profile is Profiling.SentryAndroidContinuousProfileChunk {
-  return 'androidClock' in profile;
+  return 'platform' in profile && profile.platform === 'android';
 }
 
 export function isContinuousProfileReference(
