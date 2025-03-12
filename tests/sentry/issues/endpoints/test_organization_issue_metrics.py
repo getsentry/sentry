@@ -19,11 +19,11 @@ class OrganizationIssueBreakdownTest(APITestCase):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
 
-        now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
-        next = now + timedelta(hours=1)
-        prev = now - timedelta(hours=1)
-        self.create_group(project=project1, status=0, first_seen=now, type=1)
-        self.create_group(project=project1, status=1, first_seen=now, resolved_at=now, type=2)
+        today = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+        next = today + timedelta(hours=1)
+        prev = today - timedelta(hours=1)
+        self.create_group(project=project1, status=0, first_seen=today, type=1)
+        self.create_group(project=project1, status=1, first_seen=today, resolved_at=today, type=2)
         self.create_group(project=project2, status=1, first_seen=next, resolved_at=next, type=3)
         self.create_group(project=project2, status=2, first_seen=next, type=4)
         self.create_group(project=project2, status=2, first_seen=next, type=6)
@@ -32,7 +32,7 @@ class OrganizationIssueBreakdownTest(APITestCase):
         response_json = response.json()
         assert response_json["data"] == [
             [str(int(prev.timestamp())), [{"count": 0}, {"count": 0}]],
-            [str(int(now.timestamp())), [{"count": 2}, {"count": 1}]],
+            [str(int(today.timestamp())), [{"count": 2}, {"count": 1}]],
             [str(int(next.timestamp())), [{"count": 2}, {"count": 1}]],
         ]
 
@@ -66,11 +66,11 @@ class OrganizationIssueBreakdownTest(APITestCase):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
 
-        now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
-        next = now + timedelta(hours=1)
-        prev = now - timedelta(hours=1)
-        self.create_group(project=project1, status=0, first_seen=now, type=1)
-        self.create_group(project=project2, status=0, first_seen=now, type=1)
+        today = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+        next = today + timedelta(hours=1)
+        prev = today - timedelta(hours=1)
+        self.create_group(project=project1, status=0, first_seen=today, type=1)
+        self.create_group(project=project2, status=0, first_seen=today, type=1)
 
         response = self.client.get(
             self.url + f"?statsPeriod=1h&category=error&project={project1.id}"
@@ -78,7 +78,7 @@ class OrganizationIssueBreakdownTest(APITestCase):
         response_json = response.json()
         assert response_json["data"] == [
             [str(int(prev.timestamp())), [{"count": 0}, {"count": 0}]],
-            [str(int(now.timestamp())), [{"count": 1}, {"count": 0}]],
+            [str(int(today.timestamp())), [{"count": 1}, {"count": 0}]],
             [str(int(next.timestamp())), [{"count": 0}, {"count": 0}]],
         ]
 
@@ -86,19 +86,19 @@ class OrganizationIssueBreakdownTest(APITestCase):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
 
-        now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
-        next = now + timedelta(hours=1)
-        prev = now - timedelta(hours=1)
+        today = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+        next = today + timedelta(hours=1)
+        prev = today - timedelta(hours=1)
         # New cohort
-        self.create_group(project=project1, status=0, first_seen=now, type=1)
-        self.create_group(project=project1, status=1, first_seen=now, type=2)
+        self.create_group(project=project1, status=0, first_seen=today, type=1)
+        self.create_group(project=project1, status=1, first_seen=today, type=2)
         self.create_group(project=project2, status=1, first_seen=next, type=3)
         self.create_group(project=project2, status=2, first_seen=next, type=4)
         self.create_group(project=project2, status=2, first_seen=next, type=6)
         # Resolved cohort
-        self.create_group(project=project1, status=0, resolved_at=now, type=2)
-        self.create_group(project=project1, status=1, resolved_at=now, type=3)
-        self.create_group(project=project2, status=1, resolved_at=now, type=6)
+        self.create_group(project=project1, status=0, resolved_at=today, type=2)
+        self.create_group(project=project1, status=1, resolved_at=today, type=3)
+        self.create_group(project=project2, status=1, resolved_at=today, type=6)
         self.create_group(project=project2, status=1, resolved_at=next, type=4)
         self.create_group(project=project2, status=2, resolved_at=next, type=5)
 
@@ -106,7 +106,7 @@ class OrganizationIssueBreakdownTest(APITestCase):
         response_json = response.json()
         assert response_json["data"] == [
             [str(int(prev.timestamp())), [{"count": 0}, {"count": 0}]],
-            [str(int(now.timestamp())), [{"count": 1}, {"count": 1}]],
+            [str(int(today.timestamp())), [{"count": 1}, {"count": 1}]],
             [str(int(next.timestamp())), [{"count": 1}, {"count": 0}]],
         ]
 
