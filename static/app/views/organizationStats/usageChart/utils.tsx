@@ -12,6 +12,7 @@ import {formatUsageWithUnits} from '../utils';
  */
 export const FORMAT_DATETIME_DAILY = 'MMM D';
 export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
+export const FORMAT_DATETIME_HOURLY_24H = 'MMM D HH:mm';
 
 /**
  * Used to generate X-axis data points and labels for UsageChart
@@ -24,23 +25,31 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
 export function getDateFromMoment(
   m: moment.Moment,
   interval: IntervalPeriod = '1d',
-  useUtc = false
+  useUtc = false,
+  use24HourFormat = true
 ) {
+  // Convert interval to days
   const days = parsePeriodToHours(interval) / 24;
+
+  // For intervals >= 1 day, use daily format
   if (days >= 1) {
-    return useUtc
-      ? moment.utc(m).format(FORMAT_DATETIME_DAILY)
-      : m.format(FORMAT_DATETIME_DAILY);
+    const format = FORMAT_DATETIME_DAILY;
+    return useUtc ? moment.utc(m).format(format) : m.format(format);
   }
 
+  // For sub-daily intervals, use hourly format
   const parsedInterval = parseStatsPeriod(interval);
   const datetime = useUtc ? moment(m).utc() : moment(m).local();
 
+  const intervalFormat = use24HourFormat
+    ? FORMAT_DATETIME_HOURLY_24H
+    : FORMAT_DATETIME_HOURLY;
+
   return parsedInterval
-    ? `${datetime.format(FORMAT_DATETIME_HOURLY)} - ${datetime
-        .add(parsedInterval.period as any, parsedInterval.periodLength as any)
-        .format('LT (Z)')}`
-    : datetime.format(FORMAT_DATETIME_HOURLY);
+    ? `${datetime.format(intervalFormat)} - ${datetime
+        .add(parsedInterval.period, parsedInterval.periodLength)
+        .format(use24HourFormat ? 'HH:mm (Z)' : 'LT (Z)')}`
+    : datetime.format(intervalFormat);
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
@@ -73,7 +82,7 @@ export function getXAxisDates(
 
   while (!start.isAfter(end)) {
     range.push(getDateFromMoment(start, interval, dateUtc));
-    start.add(period as any, periodLength as any); // FIXME(ts): Something odd with momentjs types
+    start.add(period, periodLength);
   }
 
   return range;

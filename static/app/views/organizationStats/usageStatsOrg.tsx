@@ -34,6 +34,7 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import {
   FORMAT_DATETIME_DAILY,
   FORMAT_DATETIME_HOURLY,
+  FORMAT_DATETIME_HOURLY_24H,
   getTooltipFormatter,
 } from './usageChart/utils';
 import {mapSeriesToChart} from './mapSeriesToChart';
@@ -63,6 +64,7 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
   projectIds: number[];
   chartTransform?: string;
   clientDiscard?: boolean;
+  clock24Hours?: boolean;
 }
 
 type UsageStatsOrganizationState = {
@@ -214,7 +216,7 @@ class UsageStatsOrganization<
     chartDateUtc: boolean;
   } {
     const {orgStats} = this.state;
-    const {dataDatetime} = this.props;
+    const {dataDatetime, clock24Hours = true} = this.props;
 
     const interval = getSeriesApiInterval(dataDatetime);
 
@@ -244,8 +246,15 @@ class UsageStatsOrganization<
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
     // may shift ahead/behind when converting to the user's local time.
-    const FORMAT_DATETIME =
-      intervalHours >= 24 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
+    let FORMAT_DATETIME;
+    if (intervalHours >= 24) {
+      // Daily format doesn't have time, so no change needed
+      FORMAT_DATETIME = FORMAT_DATETIME_DAILY;
+    } else if (clock24Hours) {
+      FORMAT_DATETIME = FORMAT_DATETIME_HOURLY_24H;
+    } else {
+      FORMAT_DATETIME = FORMAT_DATETIME_HOURLY;
+    }
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);
