@@ -76,10 +76,13 @@ describe('createReleaseBuckets', () => {
         version: 'ui@0.1.54',
         date: new Date(1508208094235).toISOString(),
       },
-      // Should not be included
+      // Note this is included even though it is > maxTime
+      // because `maxTime` is actually the start time of the
+      // last time series item. We don't necessarily have the
+      // ending timestamp of that bucket
       {
         version: 'ui@0.1.6',
-        date: new Date(1508208094236).toISOString(),
+        date: new Date(maxTime + 1).toISOString(),
       },
     ];
 
@@ -115,6 +118,7 @@ describe('createReleaseBuckets', () => {
           {version: 'ui@0.1.52', date: new Date(1508208094230).toISOString()},
           {version: 'ui@0.1.53', date: new Date(1508208094235).toISOString()},
           {version: 'ui@0.1.54', date: new Date(1508208094235).toISOString()},
+          {version: 'ui@0.1.6', date: new Date(1508208094236).toISOString()},
         ],
       },
     ]);
