@@ -12,8 +12,8 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import Form from 'sentry/components/forms/form';
 import List from 'sentry/components/list';

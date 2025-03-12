@@ -5,7 +5,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';

@@ -1,9 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -351,7 +351,7 @@ function EventDetailsContent(props: Props) {
       title={t('Performance — Event Details')}
       orgSlug={organization.slug}
     >
-      {renderBody() as React.ReactChild}
+      {renderBody()}
     </SentryDocumentTitle>
   );
 }

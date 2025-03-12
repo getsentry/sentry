@@ -5,8 +5,8 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
