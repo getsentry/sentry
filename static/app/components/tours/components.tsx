@@ -1,4 +1,5 @@
 import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -299,37 +300,40 @@ export function TourGuide({
       >
         {children}
       </Wrapper>
-      {isOpen ? (
-        <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-          <TourOverlay
-            animated
-            arrowProps={{...arrowProps, background: 'lightModeBlack'}}
-          >
-            <TourBody id={id}>
-              {isTopRowVisible && (
-                <TopRow>
-                  <div>{countText}</div>
-                  {isDismissVisible && (
-                    <TourCloseButton
-                      onClick={e => {
-                        trackAnalytics('tour-guide.close', {organization, id});
-                        handleDismiss(e);
-                      }}
-                      icon={<IconClose style={{color: theme.inverted.textColor}} />}
-                      aria-label={t('Close')}
-                      borderless
-                      size="sm"
-                    />
+      {isOpen
+        ? createPortal(
+            <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
+              <TourOverlay
+                animated
+                arrowProps={{...arrowProps, background: 'lightModeBlack'}}
+              >
+                <TourBody id={id}>
+                  {isTopRowVisible && (
+                    <TopRow>
+                      <div>{countText}</div>
+                      {isDismissVisible && (
+                        <TourCloseButton
+                          onClick={e => {
+                            trackAnalytics('tour-guide.close', {organization, id});
+                            handleDismiss(e);
+                          }}
+                          icon={<IconClose style={{color: theme.inverted.textColor}} />}
+                          aria-label={t('Close')}
+                          borderless
+                          size="sm"
+                        />
+                      )}
+                    </TopRow>
                   )}
-                </TopRow>
-              )}
-              {title && <TitleRow>{title}</TitleRow>}
-              {description && <DescriptionRow>{description}</DescriptionRow>}
-              {actions && <Flex justify="flex-end">{actions}</Flex>}
-            </TourBody>
-          </TourOverlay>
-        </PositionWrapper>
-      ) : null}
+                  {title && <TitleRow>{title}</TitleRow>}
+                  {description && <DescriptionRow>{description}</DescriptionRow>}
+                  {actions && <Flex justify="flex-end">{actions}</Flex>}
+                </TourBody>
+              </TourOverlay>
+            </PositionWrapper>,
+            document.body
+          )
+        : null}
     </Fragment>
   );
 }
