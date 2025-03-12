@@ -344,8 +344,8 @@ export const makeLightChonkFlamegraphTheme = (
       // Charts
       CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(theme.colors.yellow400, 0.5),
-        hexToColorChannels(theme.colors.red400, 0.5),
+        hexToColorChannels(theme.colors.yellow400, 1),
+        hexToColorChannels(theme.colors.red400, 1),
       ],
       UI_FRAME_COLOR_SLOW: hexToColorChannels(theme.colors.yellow300, 1),
       UI_FRAME_COLOR_FROZEN: hexToColorChannels(theme.colors.red400, 1),
