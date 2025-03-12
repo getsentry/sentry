@@ -410,9 +410,12 @@ def fire_actions_for_groups(
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
 
+        # temporary fetching of organization, so not passing in as parameter
+        organization = group.project.organization
+
         if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
-            group.project.organization,
+            "organizations:workflow-engine-process-workflows",
+            organization,
         ):
             metrics.incr(
                 "workflow_engine.delayed_workflow.triggered_actions",
@@ -420,8 +423,12 @@ def fire_actions_for_groups(
                 tags={"event_type": group_event.group.type},
             )
 
-        for action in filtered_actions:
-            action.trigger(job, detector)
+        if features.has(
+            "organizations:workflow-engine-trigger-actions",
+            organization,
+        ):
+            for action in filtered_actions:
+                action.trigger(job, detector)
 
 
 def cleanup_redis_buffer(

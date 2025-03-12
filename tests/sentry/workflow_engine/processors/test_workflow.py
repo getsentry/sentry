@@ -179,7 +179,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
-    @with_feature("organizations:workflow-engine-issue-alert-metrics")
+    @with_feature("organizations:workflow-engine-process-workflows")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow
