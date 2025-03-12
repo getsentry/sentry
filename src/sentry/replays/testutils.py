@@ -238,6 +238,7 @@ def mock_replay_click(
                     {
                         "type": "replay_actions",
                         "replay_id": replay_id,
+                        "environment": kwargs.pop("environment", "production"),
                         "clicks": [
                             {
                                 "node_id": kwargs["node_id"],

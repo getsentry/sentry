@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import uuid
+from datetime import datetime, timedelta
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
@@ -14,15 +15,22 @@ from redis import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.constants import ObjectStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
-from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import (
+    ProjectUptimeSubscriptionMode,
+    UptimeStatus,
+    UptimeSubscription,
+    UptimeSubscriptionRegion,
+)
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
+    broken_monitor_checker,
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
     send_uptime_config_deletion,
@@ -352,26 +360,6 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "region_schedule_mode": "round_robin",
         }
 
-    def test_header_translation(self):
-        headers = {"hi": "bye"}
-        sub = self.create_uptime_subscription(headers=headers, region_slugs=["default"])
-        sub.refresh_from_db()
-
-        subscription_id = uuid4().hex
-        assert uptime_subscription_to_check_config(
-            sub, subscription_id, UptimeSubscriptionRegion.RegionMode.ACTIVE
-        ) == {
-            "subscription_id": subscription_id,
-            "url": sub.url,
-            "interval_seconds": sub.interval_seconds,
-            "timeout_ms": sub.timeout_ms,
-            "request_method": "GET",
-            "request_headers": [["hi", "bye"]],
-            "trace_sampling": False,
-            "active_regions": ["default"],
-            "region_schedule_mode": "round_robin",
-        }
-
     def test_no_regions(self):
         sub = self.create_uptime_subscription()
         subscription_id = uuid4().hex
@@ -477,3 +465,61 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         self.assert_redis_config(
             "default", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
         )
+
+
+class BrokenMonitorCheckerTest(UptimeTestCase):
+    def test(self):
+        self.run_test(
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeStatus.FAILED,
+            timezone.now() - timedelta(days=8),
+            ObjectStatus.DISABLED,
+            UptimeStatus.OK,
+        )
+
+    def test_manual(self):
+        self.run_test(
+            ProjectUptimeSubscriptionMode.MANUAL,
+            UptimeStatus.FAILED,
+            timezone.now() - timedelta(days=8),
+            ObjectStatus.ACTIVE,
+            UptimeStatus.FAILED,
+        )
+
+    def test_auto_young(self):
+        self.run_test(
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeStatus.FAILED,
+            timezone.now() - timedelta(days=4),
+            ObjectStatus.ACTIVE,
+            UptimeStatus.FAILED,
+        )
+
+    def test_auto_not_failed(self):
+        self.run_test(
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeStatus.OK,
+            timezone.now() - timedelta(days=8),
+            ObjectStatus.ACTIVE,
+            UptimeStatus.OK,
+        )
+
+    def run_test(
+        self,
+        mode: ProjectUptimeSubscriptionMode,
+        uptime_status: UptimeStatus,
+        update_date: datetime,
+        expected_status: int,
+        expected_uptime_status: UptimeStatus,
+    ):
+        proj_sub = self.create_project_uptime_subscription(
+            mode=mode,
+            uptime_status=uptime_status,
+            uptime_status_update_date=update_date,
+        )
+        with self.tasks():
+            broken_monitor_checker()
+
+        proj_sub.refresh_from_db()
+        assert proj_sub.status == expected_status
+        assert proj_sub.uptime_status == expected_uptime_status

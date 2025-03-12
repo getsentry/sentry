@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -193,20 +193,6 @@ export const platformProductAvailability = {
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
-/**
- * Defines which products are selected per default for each platform
- * If not defined in here, all products are selected
- *
- * UPDATE Mar 2025, we're running an experiment that has only error monitoring enabled by default
- */
-const platformDefaultProducts = Object.keys(platformProductAvailability).reduce(
-  (acc, key) => {
-    acc[key as PlatformKey] = [];
-    return acc;
-  },
-  {} as Record<PlatformKey, ProductSolution[]>
-);
-
 type ProductProps = {
   /**
    * If the product is checked. This information is grabbed from the URL.
@@ -331,20 +317,6 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  const defaultProducts = useMemo(() => {
-    const productsArray = products ?? [];
-    const definedDefaults = platform ? platformDefaultProducts[platform] : undefined;
-    let selectedDefaults: ProductSolution[] = productsArray;
-
-    if (definedDefaults) {
-      selectedDefaults = definedDefaults.filter(product =>
-        // Make sure the default product is available for the platform
-        productsArray.includes(product)
-      );
-    }
-    return selectedDefaults.filter(product => !(product in disabledProducts));
-  }, [products, platform, disabledProducts]);
-
   const safeDependencies = useRef({onLoad, urlProducts});
 
   useEffect(() => {
@@ -365,7 +337,7 @@ export function ProductSelection({
           : [...urlProducts, product]
       );
 
-      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+      if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
         if (
           product === ProductSolution.PROFILING &&
@@ -387,11 +359,11 @@ export function ProductSelection({
 
       if (organization.features.includes('project-create-replay-feedback')) {
         HookStore.get('callback:on-create-project-product-selection').map(cb =>
-          cb({defaultProducts, organization, selectedProducts})
+          cb({defaultProducts: products ?? [], organization, selectedProducts})
         );
       }
     },
-    [defaultProducts, organization, setParams, urlProducts, onChange]
+    [products, organization, setParams, urlProducts, onChange]
   );
 
   if (!products) {

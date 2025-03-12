@@ -5,8 +5,8 @@ import * as qs from 'query-string';
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -85,7 +85,7 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    const currentQuery = {...location.query, cursor: undefined};
     navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
@@ -137,7 +137,7 @@ export default function Monitors() {
                 analyticsEventKey="crons.bulk_edit_modal_button_clicked"
                 analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
                 disabled={!canCreateAlert}
-                title={!canCreateAlert ? permissionTooltipText : undefined}
+                title={canCreateAlert ? undefined : permissionTooltipText}
               >
                 {t('Manage Monitors')}
               </Button>
@@ -146,7 +146,7 @@ export default function Monitors() {
                   size="sm"
                   icon={<IconAdd isCircled />}
                   disabled={!canCreateAlert}
-                  title={!canCreateAlert ? permissionTooltipText : undefined}
+                  title={canCreateAlert ? undefined : permissionTooltipText}
                 >
                   {t('Add Monitor')}
                 </NewMonitorButton>

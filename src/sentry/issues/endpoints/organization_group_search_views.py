@@ -125,6 +125,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     serializer=GroupSearchViewStarredSerializer(
                         has_global_views=has_global_views,
                         default_project=default_project,
+                        organization=organization,
                     ),
                 ),
             )
@@ -137,7 +138,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 x,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views, default_project=default_project
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
                 ),
             ),
         )

@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';

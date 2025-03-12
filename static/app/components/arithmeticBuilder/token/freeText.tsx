@@ -81,7 +81,7 @@ export function ArithmeticTokenFreeText({
 }
 
 interface InternalInputProps extends ArithmeticTokenFreeTextProps {
-  rowRef: RefObject<HTMLDivElement>;
+  rowRef: RefObject<HTMLDivElement | null>;
 }
 
 function InternalInput({

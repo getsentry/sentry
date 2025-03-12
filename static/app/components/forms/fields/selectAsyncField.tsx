@@ -53,14 +53,14 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
           <SelectAsync
             {...fieldProps}
             onChange={(option: any, e: any) => {
-              const resultValue = !option
-                ? option
-                : props.multiple && Array.isArray(option)
+              const resultValue = option
+                ? props.multiple && Array.isArray(option)
                   ? // List of optionObjs
                     option.map(({value: val}) => val)
-                  : !Array.isArray(option)
-                    ? option.value
-                    : option;
+                  : Array.isArray(option)
+                    ? option
+                    : option.value
+                : option;
 
               setLatestSelection(option);
               onChange?.(resultValue, e);
