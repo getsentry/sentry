@@ -127,9 +127,9 @@ class OnDemandSummary extends Component<Props, State> {
         help={t('On-Demand is not supported for your account.')}
       >
         <div>
-          <Button to={`/settings/${organization.slug}/support/`}>
+          <LinkButton to={`/settings/${organization.slug}/support/`}>
             {t('Contact Support')}
-          </Button>
+          </LinkButton>
         </div>
       </FieldGroup>
     );
