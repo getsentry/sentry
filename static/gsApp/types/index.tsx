@@ -76,6 +76,7 @@ export enum CheckoutType {
 export type DataCategories = (typeof DATA_CATEGORY_INFO)[DataCategoryExact]['plural'];
 
 export type Plan = {
+  adminSelectable: boolean;
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
   /**
