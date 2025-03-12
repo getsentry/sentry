@@ -723,6 +723,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: projectSlug ? [projectSlug] : []});
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
@@ -810,7 +811,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   return (
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isAvailable={location.hash === '#tour'}
+      isAvailable={hasStreamlinedUI && location.hash === '#tour'}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}

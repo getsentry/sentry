@@ -19,7 +19,7 @@ export function IssueDetailsTourModal({
 }: IssueDetailsTourModalProps) {
   return (
     <TourContainer>
-      <Image src={issueDetailsPreviewImage} alt={t('Issue details preview')} />
+      <ImageContainer />
       <TextContainer>
         <Header>{t('Welcome to the new issue details')}</Header>
         <Description>
@@ -38,10 +38,13 @@ export function IssueDetailsTourModal({
   );
 }
 
-const Image = styled('img')`
+const ImageContainer = styled('div')`
   width: 100%;
-  height: 100%;
+  height: 300px;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  background-image: url(${issueDetailsPreviewImage});
+  background-size: cover;
+  background-position: center;
 `;
 
 // XXX: The negative margin is to undo the global modal styling
