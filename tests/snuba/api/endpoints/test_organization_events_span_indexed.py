@@ -2867,6 +2867,47 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert meta["dataset"] == self.dataset
 
+    def test_avg_if(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=1000,
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    duration=3000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(span.duration, span.op, queue.process)",
+                    "avg_if(span.duration, span.op, queue.publish)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg_if(span.duration, span.op, queue.process)"] == 1500.0
+        assert data[0]["avg_if(span.duration, span.op, queue.publish)"] == 3000.0
+        assert meta["dataset"] == self.dataset
+
     def test_ttif_ttfd_contribution_rate(self):
         spans = []
         for _ in range(8):

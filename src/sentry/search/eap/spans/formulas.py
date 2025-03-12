@@ -105,7 +105,7 @@ def trace_status_rate(status: str) -> Column.BinaryFormula:
     )
 
 
-def cache_miss_rate(arg: None) -> Column.BinaryFormula:
+def cache_miss_rate() -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -145,7 +145,7 @@ def cache_miss_rate(arg: None) -> Column.BinaryFormula:
     )
 
 
-def ttfd_contribution_rate(args: None) -> Column.BinaryFormula:
+def ttfd_contribution_rate() -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -167,7 +167,7 @@ def ttfd_contribution_rate(args: None) -> Column.BinaryFormula:
     )
 
 
-def ttid_contribution_rate(args: None) -> Column.BinaryFormula:
+def ttid_contribution_rate() -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
