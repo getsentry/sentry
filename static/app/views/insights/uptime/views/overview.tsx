@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';

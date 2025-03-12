@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import type {AutofixRepository} from 'sentry/components/events/autofix/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';

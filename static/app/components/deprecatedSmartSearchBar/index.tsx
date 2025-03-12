@@ -8,8 +8,8 @@ import isEqual from 'lodash/isEqual';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
   BooleanOperator,

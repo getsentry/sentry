@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';

@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';

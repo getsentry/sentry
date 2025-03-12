@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';

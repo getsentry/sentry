@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

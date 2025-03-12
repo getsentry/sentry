@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -2,8 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {LinkButton} from 'sentry/components/button';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';

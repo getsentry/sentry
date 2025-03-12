@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import TeamKeyTransaction from 'sentry/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {Tooltip} from 'sentry/components/tooltip';

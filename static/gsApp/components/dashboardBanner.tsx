@@ -3,7 +3,7 @@ import DashLeft from 'getsentry-images/dashboards-banner-left.svg';
 import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
 import Banner from 'sentry/components/banner';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

@@ -20,8 +20,8 @@ import {useTabListState} from '@react-stately/tabs';
 import type {Node} from '@react-types/shared';
 import {motion, Reorder} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {IconAdd, IconEllipsis} from 'sentry/icons';

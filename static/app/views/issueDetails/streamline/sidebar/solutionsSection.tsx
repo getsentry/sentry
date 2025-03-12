@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';

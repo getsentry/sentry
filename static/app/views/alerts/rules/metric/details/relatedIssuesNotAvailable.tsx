@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import type {LinkProps} from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 

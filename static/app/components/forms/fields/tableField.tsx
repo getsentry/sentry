@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import FormField from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';

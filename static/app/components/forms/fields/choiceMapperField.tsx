@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';

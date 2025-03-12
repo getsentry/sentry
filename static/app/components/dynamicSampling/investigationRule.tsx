@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {BaseButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {BaseButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';

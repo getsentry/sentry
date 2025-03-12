@@ -2,7 +2,7 @@ import {createContext, forwardRef, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import type {AnimationProps} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';

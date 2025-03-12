@@ -1,14 +1,13 @@
 import {Fragment, useState} from 'react';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import type {PropMatrix} from 'sentry/components/stories/matrix';
 import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/button';
+import types from '!!type-loader!sentry/components/core/button';
 
 export default storyBook('Button', (story, APIReference) => {
   APIReference(types.Button);

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

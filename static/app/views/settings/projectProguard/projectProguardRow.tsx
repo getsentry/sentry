@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';

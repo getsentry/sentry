@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ListLink from 'sentry/components/links/listLink';

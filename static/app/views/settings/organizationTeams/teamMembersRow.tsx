@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';

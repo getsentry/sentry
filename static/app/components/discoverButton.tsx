@@ -1,5 +1,5 @@
-import type {LinkButtonProps} from 'sentry/components/button';
-import {LinkButton} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import {t} from 'sentry/locale';
 

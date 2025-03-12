@@ -6,12 +6,12 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/compactSelect/types';
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
-import {Button} from 'sentry/components/button';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -12,6 +11,7 @@ import type {
   SelectSection,
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox, type CheckboxProps} from 'sentry/components/core/checkbox';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';

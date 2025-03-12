@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import {Button} from 'sentry/components/core/button';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';

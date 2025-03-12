@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 

@@ -5,7 +5,7 @@ import missionControl from 'getsentry-images/missionControl.jpg';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';

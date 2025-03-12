@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';

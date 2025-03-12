@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Input from 'sentry/components/deprecatedforms/input';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

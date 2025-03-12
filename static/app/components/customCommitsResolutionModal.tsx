@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';

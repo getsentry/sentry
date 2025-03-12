@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Button} from 'sentry/components/core/button';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';

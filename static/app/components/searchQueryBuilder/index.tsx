@@ -1,7 +1,7 @@
 import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {
   SearchQueryBuilderContext,

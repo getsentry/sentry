@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {Button} from 'sentry/components/core/button';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

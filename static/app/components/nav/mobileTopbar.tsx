@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';

@@ -1,6 +1,6 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';

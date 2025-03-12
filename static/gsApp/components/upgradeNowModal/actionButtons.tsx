@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';

@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';

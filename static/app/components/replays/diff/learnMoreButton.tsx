@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';

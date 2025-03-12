@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 
 import ConfirmableAction from './confirmableAction';
 

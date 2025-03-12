@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import {Button} from 'sentry/components/core/button';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';

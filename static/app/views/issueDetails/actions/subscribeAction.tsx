@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 

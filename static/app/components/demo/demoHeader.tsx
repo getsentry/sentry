@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
