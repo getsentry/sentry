@@ -5,14 +5,16 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -34,6 +36,7 @@ import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/iss
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface EventDetailsHeaderProps {
@@ -50,6 +53,17 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
+
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
+  const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
+  const period = hasSetStatsPeriod
+    ? getPeriod({
+        start: location.query.start as string,
+        end: location.query.end as string,
+        period: location.query.statsPeriod as string,
+      })
+    : defaultStatsPeriod;
 
   useEffect(() => {
     if (event) {
@@ -92,9 +106,49 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             <FilterContainer>
               <EnvironmentSelector group={group} event={event} project={project} />
               <DateFilter
+                menuTitle={t('Filter Time Range')}
+                start={period?.start}
+                end={period?.end}
+                utc={location.query.utc === 'true'}
+                relative={period?.statsPeriod}
+                relativeOptions={props => {
+                  return {
+                    ...props.arbitraryOptions,
+                    // Always display arbitrary issue open period
+                    ...(defaultStatsPeriod?.statsPeriod
+                      ? {
+                          [defaultStatsPeriod.statsPeriod]: t(
+                            '%s (since first seen)',
+                            getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                          ),
+                        }
+                      : {}),
+                    ...props.defaultOptions,
+                  };
+                }}
+                onChange={selection => {
+                  const {relative, ...rest} = selection;
+                  navigate({
+                    ...location,
+                    query: {
+                      ...location.query,
+                      ...rest,
+                      // If selecting the issue open period, remove the stats period query param
+                      statsPeriod:
+                        relative === defaultStatsPeriod?.statsPeriod
+                          ? undefined
+                          : relative,
+                    },
+                  });
+                }}
+                triggerLabel={
+                  period === defaultStatsPeriod ? t('Since First Seen') : undefined
+                }
                 triggerProps={{
                   borderless: true,
-                  style: {borderRadius: 0},
+                  style: {
+                    borderRadius: 0,
+                  },
                 }}
               />
               <Flex>
@@ -215,7 +269,7 @@ const SearchFilter = styled(EventSearch)`
   box-shadow: none;
 `;
 
-const DateFilter = styled(DatePageFilter)`
+const DateFilter = styled(TimeRangeSelector)`
   display: block;
   &:before {
     right: 0;
