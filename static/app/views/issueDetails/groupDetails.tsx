@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -734,8 +734,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   );
 
   const {data: assistantData} = useAssistant();
-  const isTourComplete =
-    assistantData?.some(item => item.guide === 'issue_details') ?? false;
+  const isIssueDetailsTourCompleted = useMemo(() => {
+    const issueDetailsTourData = assistantData?.find(
+      item => item.guide === ISSUE_DETAILS_TOUR_GUIDE_KEY
+    );
+    return issueDetailsTourData?.seen ?? false;
+  }, [assistantData]);
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
@@ -807,7 +811,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isAvailable={location.hash === '#tour'}
-      isCompleted={isTourComplete}
+      isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}
     >
