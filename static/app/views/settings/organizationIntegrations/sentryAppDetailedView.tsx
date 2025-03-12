@@ -73,8 +73,9 @@ export default function SentryAppDetailedView() {
   });
 
   const integrationType = 'sentry_app';
-  const description = useMemo(() => sentryApp?.overview || '', [sentryApp?.overview]);
-  const author = useMemo(() => sentryApp?.author, [sentryApp?.author]);
+  const integrationName = sentryApp?.name ?? '';
+  const description = sentryApp?.overview || '';
+  const author = sentryApp?.author || '';
   const resourceLinks = useMemo(() => {
     if (sentryApp?.status !== 'published') {
       return [];
@@ -97,8 +98,6 @@ export default function SentryAppDetailedView() {
     [sentryApp?.scopes]
   );
   const installationStatus = useMemo(() => getSentryAppInstallStatus(install), [install]);
-  const integrationName = useMemo(() => sentryApp?.name ?? '', [sentryApp?.name]);
-
   const isPending = isSentryAppPending || isFeatureDataPending || isAppInstallsPending;
 
   useEffect(() => {
