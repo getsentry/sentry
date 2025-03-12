@@ -137,6 +137,6 @@ class OrganizationMemberInvite(Model):
             self.expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
             self.token = generate_token()
             self.save()
-            return (self.pk, ImportKind.Overwrite)
+            return (self.pk, ImportKind.Existing)
 
         return super().write_relocation_import(scope, flags)
