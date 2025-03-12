@@ -96,7 +96,11 @@ export const LogDetailsTitle = styled('div')`
   user-select: none;
 `;
 
-export const LogFirstCellContent = styled('div')`
+export const LogTableBodyCellContent = styled('div')`
+  cursor: default;
+`;
+
+export const LogFirstCellContent = styled(LogTableBodyCellContent)`
   display: flex;
   align-items: center;
 `;
