@@ -58,7 +58,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
             </SecondaryNav.Item>
           </SecondaryNav.Section>
           {groupSearchViews && (
-            <SecondaryNav.Section title={t('Views')}>
+            <SecondaryNav.Section title={t('Starred Views')}>
               <IssueViewNavItems
                 loadedViews={groupSearchViews.map(
                   (
