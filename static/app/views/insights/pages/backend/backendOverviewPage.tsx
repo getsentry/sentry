@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -35,12 +35,10 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
-import {
-  hasLaravelInsightsFeature,
-  useIsLaravelInsightsEnabled,
-} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {LaravelInsightsProvider} from 'sentry/views/insights/pages/backend/laravel/laravelInsightsContext';
 import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
+import {useIsLaravelPageActive} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -95,34 +93,8 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
-  const [isLaravelInsightsEnabled, setIsLaravelInsightsEnabled] =
-    useIsLaravelInsightsEnabled();
-
-  const selectedProjects: Project[] = useMemo(
-    () => getSelectedProjectList(selection.projects, projects),
-    [projects, selection.projects]
-  );
-
-  let renderLaravelInsights = false;
-  const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
-  if (
-    selectedProject?.platform === 'php-laravel' &&
-    hasLaravelInsightsFeature(organization) &&
-    isLaravelInsightsEnabled
-  ) {
-    renderLaravelInsights = true;
-  }
-
-  return (
-    <LaravelInsightsProvider
-      value={{isLaravelInsightsEnabled, setIsLaravelInsightsEnabled}}
-    >
-      {renderLaravelInsights ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />}
-    </LaravelInsightsProvider>
-  );
+  const isLaravelPageActive = useIsLaravelPageActive();
+  return isLaravelPageActive ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
 }
 
 function GenericBackendOverviewPage() {
@@ -341,9 +313,15 @@ function GenericBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
+  const [isLaravelInsightsEnabled, setIsLaravelInsightsEnabled] =
+    useIsLaravelInsightsEnabled();
   return (
     <DomainOverviewPageProviders>
-      <BackendOverviewPage />
+      <LaravelInsightsProvider
+        value={{isLaravelInsightsEnabled, setIsLaravelInsightsEnabled}}
+      >
+        <BackendOverviewPage />
+      </LaravelInsightsProvider>
     </DomainOverviewPageProviders>
   );
 }
