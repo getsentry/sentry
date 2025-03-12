@@ -18,7 +18,7 @@ function TeamInsightsContainer({children, organization}: Props) {
           ? cloneElement<any>(children, {
               organization,
             })
-          : (children as React.ReactChild)}
+          : children}
       </NoProjectMessage>
     </Feature>
   );
