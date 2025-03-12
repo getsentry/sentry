@@ -440,7 +440,7 @@ export class NewTraceDetailsSpanBar extends Component<
       );
     }
 
-    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
+    const chevronElement = isRoot ? null : <div>{chevron}</div>;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>

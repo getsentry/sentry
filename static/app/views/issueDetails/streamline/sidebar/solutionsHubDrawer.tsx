@@ -242,14 +242,14 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {aiConfig.hasAutofix && (
               <Fragment>
-                {!autofixData ? (
-                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-                ) : (
+                {autofixData ? (
                   <AutofixSteps
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : (
+                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
               </Fragment>
             )}

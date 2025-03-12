@@ -25,16 +25,16 @@ function DisabledAlert({organization, features}: Props) {
         <StyledPanelAlert type="muted" showIcon>
           <Container>
             <span>
-              {plan !== null
-                ? tct(
+              {plan === null
+                ? t('Custom Rate Limits are not available on your plan.')
+                : tct(
                     'Custom Rate Limits are available to [planRequirement] and above.',
                     {
                       planRequirement: (
                         <strong>{t('%s plans', displayPlanName(plan))}</strong>
                       ),
                     }
-                  )
-                : t('Custom Rate Limits are not available on your plan.')}
+                  )}
             </span>
             <Button
               size="sm"

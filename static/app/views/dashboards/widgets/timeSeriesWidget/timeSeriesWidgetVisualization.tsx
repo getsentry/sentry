@@ -46,8 +46,6 @@ import {
   Y_AXIS_INTEGER_TOLERANCE,
 } from './settings';
 
-const RELEASE_BUBBLE_SIZE = 14;
-
 export interface TimeSeriesWidgetVisualizationProps {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
@@ -115,7 +113,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    bubbleSize: RELEASE_BUBBLE_SIZE,
     chartRef,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,

@@ -98,9 +98,9 @@ export function MergedToolbar({
           disabled={!enableFingerprintCompare}
           onClick={handleShowDiff}
           title={
-            !enableFingerprintCompare
-              ? t('To compare, exactly 2 items must be selected')
-              : undefined
+            enableFingerprintCompare
+              ? undefined
+              : t('To compare, exactly 2 items must be selected')
           }
         >
           {t('Compare')}

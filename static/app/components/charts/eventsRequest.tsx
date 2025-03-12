@@ -476,14 +476,14 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       : {};
     const timeframe =
       response.start && response.end
-        ? !previous
+        ? previous
           ? {
-              start: response.start * 1000,
+              // Find the midpoint of start & end since previous includes 2x data
+              start: (response.start + response.end) * 500,
               end: response.end * 1000,
             }
           : {
-              // Find the midpoint of start & end since previous includes 2x data
-              start: (response.start + response.end) * 500,
+              start: response.start * 1000,
               end: response.end * 1000,
             }
         : undefined;

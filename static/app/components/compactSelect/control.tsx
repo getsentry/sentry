@@ -624,7 +624,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   z-index: 2;
 
   font-size: ${p =>
-    p.size !== 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeExtraSmall};
+    p.size === 'xs' ? p.theme.fontSizeExtraSmall : p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
 `;
 
@@ -669,7 +669,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundSecondary};
   font-size: ${p =>
-    p.visualSize !== 'xs' ? p.theme.fontSizeMedium : p.theme.fontSizeSmall};
+    p.visualSize === 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 
   /* Subtract 1px to account for border width */
   padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
