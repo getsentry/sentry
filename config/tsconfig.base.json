@@ -106,9 +106,8 @@
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
       "sentry-fonts/*": ["static/fonts/*"],
       "getsentry/*": ["static/gsApp/*"],
-      "getsentry-images/*": ["static/images/*"]
-      // TODO(joshuarli): will be restoring this after it's deleted from getsentry
-      // "admin/*": ["static/gsAdmin/*"]
+      "getsentry-images/*": ["static/images/*"],
+      "admin/*": ["static/gsAdmin/*"]
     },
 
     "plugins": [
