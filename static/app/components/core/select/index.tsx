@@ -35,6 +35,8 @@ import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
 
+export type {StylesConfig};
+
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
