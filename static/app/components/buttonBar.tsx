@@ -26,9 +26,8 @@ function ButtonBar({
   const shouldCheckActive = typeof active !== 'undefined';
   return (
     <ButtonGrid merged={merged} gap={gap} className={className}>
-      {!shouldCheckActive
-        ? children
-        : Children.map(children, child => {
+      {shouldCheckActive
+        ? Children.map(children, child => {
             if (!isValidElement(child)) {
               return child;
             }
@@ -48,7 +47,8 @@ function ButtonBar({
               className: classNames(className, {active: isActive}),
               priority,
             });
-          })}
+          })
+        : children}
     </ButtonGrid>
   );
 }

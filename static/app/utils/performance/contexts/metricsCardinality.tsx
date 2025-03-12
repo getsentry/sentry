@@ -307,17 +307,17 @@ function adjustEventViewTime(eventView: EventView) {
   const _eventView = eventView.clone();
 
   if (!_eventView.start && !_eventView.end) {
-    if (!_eventView.statsPeriod) {
-      _eventView.statsPeriod = '1h';
-      _eventView.start = undefined;
-      _eventView.end = undefined;
-    } else {
+    if (_eventView.statsPeriod) {
       const periodHours = parsePeriodToHours(_eventView.statsPeriod);
       if (periodHours > 1) {
         _eventView.statsPeriod = '1h';
         _eventView.start = undefined;
         _eventView.end = undefined;
       }
+    } else {
+      _eventView.statsPeriod = '1h';
+      _eventView.start = undefined;
+      _eventView.end = undefined;
     }
   }
   return _eventView;

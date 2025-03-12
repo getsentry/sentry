@@ -40,11 +40,11 @@ function EventAttachmentActions({
           icon={<IconShow />}
           onClick={onPreviewClick}
           title={
-            !hasAttachmentRole
-              ? t('Insufficient permissions to preview attachments')
-              : !hasPreview
-                ? t('This attachment cannot be previewed')
-                : undefined
+            hasAttachmentRole
+              ? hasPreview
+                ? undefined
+                : t('This attachment cannot be previewed')
+              : t('Insufficient permissions to preview attachments')
           }
         >
           {t('Preview')}

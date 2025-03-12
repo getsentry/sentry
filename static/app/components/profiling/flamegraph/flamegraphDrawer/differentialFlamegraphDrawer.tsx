@@ -63,9 +63,9 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
           : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all'
-        ? filterFlamegraphTree(props.rootNodes, skipFunction)
-        : props.rootNodes;
+      treeType === 'all'
+        ? props.rootNodes
+        : filterFlamegraphTree(props.rootNodes, skipFunction);
 
     if (tab === 'top down') {
       return maybeFilteredRoots;

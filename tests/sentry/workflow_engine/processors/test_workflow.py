@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
@@ -7,6 +7,7 @@ from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -83,6 +84,32 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow}
 
+    def test_same_environment_only(self):
+        # only processes workflows with the same env or no env specified
+        self.error_workflow.update(environment=None)
+
+        dcg = self.create_data_condition_group()
+        non_matching_env_workflow = self.create_workflow(
+            when_condition_group=dcg, environment=self.create_environment()
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=non_matching_env_workflow,
+        )
+
+        dcg = self.create_data_condition_group()
+        matching_env_workflow = self.create_workflow(
+            when_condition_group=dcg,
+            environment=self.group_event.get_environment(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=matching_env_workflow,
+        )
+
+        triggered_workflows = process_workflows(self.job)
+        assert triggered_workflows == {self.error_workflow, matching_env_workflow}
+
     def test_issue_occurrence_event(self):
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
@@ -108,60 +135,61 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow, workflow}
 
-    def test_no_detector(self):
+    @patch("sentry.workflow_engine.processors.workflow.metrics")
+    @patch("sentry.workflow_engine.processors.workflow.logger")
+    def test_no_detector(self, mock_logger, mock_metrics):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
-        with mock.patch("sentry.workflow_engine.processors.workflow.logger") as mock_logger:
-            with mock.patch("sentry.workflow_engine.processors.workflow.metrics") as mock_metrics:
-                triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.job)
 
-                assert not triggered_workflows
+        assert not triggered_workflows
 
-                mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
-                mock_logger.exception.assert_called_once_with(
-                    "Detector not found for event",
-                    extra={"event_id": self.event.event_id},
-                )
+        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_logger.exception.assert_called_once_with(
+            "Detector not found for event",
+            extra={"event_id": self.event.event_id},
+        )
 
-    @mock.patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_no_metrics_triggered(self, mock_logger):
+    @patch("sentry.utils.metrics.incr")
+    @patch("sentry.workflow_engine.processors.workflow.logger")
+    def test_no_metrics_triggered(self, mock_logger, mock_incr):
         self.job["event"].project_id = 0
 
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_workflows(self.job)
-            mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
-            mock_logger.exception.assert_called_once()
+        process_workflows(self.job)
+        mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_logger.exception.assert_called_once()
 
-    def test_metrics_with_workflows(self):
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_workflows(self.job)
+    @patch("sentry.utils.metrics.incr")
+    def test_metrics_with_workflows(self, mock_incr):
+        process_workflows(self.job)
 
-            mock_incr.assert_any_call(
-                "workflow_engine.process_workflows",
-                1,
-                tags={"detector_type": self.error_detector.type},
-            )
+        mock_incr.assert_any_call(
+            "workflow_engine.process_workflows",
+            1,
+            tags={"detector_type": self.error_detector.type},
+        )
 
-    def test_metrics_triggered_workflows(self):
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_workflows(self.job)
+    @patch("sentry.utils.metrics.incr")
+    def test_metrics_triggered_workflows(self, mock_incr):
+        process_workflows(self.job)
 
-            mock_incr.assert_any_call(
-                "workflow_engine.process_workflows.triggered_workflows",
-                1,
-                tags={"detector_type": self.error_detector.type},
-            )
+        mock_incr.assert_any_call(
+            "workflow_engine.process_workflows.triggered_workflows",
+            1,
+            tags={"detector_type": self.error_detector.type},
+        )
 
-    def test_metrics_triggered_actions(self):
+    @with_feature("organizations:workflow-engine-issue-alert-metrics")
+    @patch("sentry.utils.metrics.incr")
+    def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow
 
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_workflows(self.job)
-            mock_incr.assert_any_call(
-                "workflow_engine.process_workflows.triggered_actions",
-                0,
-                tags={"detector_type": self.error_detector.type},
-            )
+        process_workflows(self.job)
+        mock_incr.assert_any_call(
+            "workflow_engine.process_workflows.triggered_actions",
+            amount=0,
+            tags={"detector_type": self.error_detector.type},
+        )
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
@@ -392,8 +420,8 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         self.condition = self.create_data_condition(condition_group=self.data_condition_group)
         _, self.event, self.group_event = self.create_group_event()
 
-    @mock.patch("sentry.buffer.backend.push_to_hash")
-    @mock.patch("sentry.buffer.backend.push_to_sorted_set")
+    @patch("sentry.buffer.backend.push_to_hash")
+    @patch("sentry.buffer.backend.push_to_sorted_set")
     def test_enqueue_workflow__adds_to_workflow_engine_buffer(
         self, mock_push_to_hash, mock_push_to_sorted_set
     ):
@@ -409,8 +437,8 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             value=self.group_event.project_id,
         )
 
-    @mock.patch("sentry.buffer.backend.push_to_hash")
-    @mock.patch("sentry.buffer.backend.push_to_sorted_set")
+    @patch("sentry.buffer.backend.push_to_hash")
+    @patch("sentry.buffer.backend.push_to_sorted_set")
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash, mock_push_to_sorted_set
     ):

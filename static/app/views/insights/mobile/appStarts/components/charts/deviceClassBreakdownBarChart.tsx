@@ -158,8 +158,9 @@ function DeviceClassBreakdownBarChart({
               data.map(series => ({
                 ...series,
                 data: series.data.map(datum =>
-                  datum.value !== 0
-                    ? {
+                  datum.value === 0
+                    ? datum
+                    : {
                         ...datum,
                         itemStyle: {
                           color:
@@ -168,7 +169,6 @@ function DeviceClassBreakdownBarChart({
                               : SECONDARY_RELEASE_COLOR,
                         },
                       }
-                    : datum
                 ),
                 name: formatVersion(series.seriesName),
               })) ?? []

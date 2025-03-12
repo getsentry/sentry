@@ -120,9 +120,9 @@ export function createFrameIndex(
         {
           key: index,
           resource:
-            frame.resourceId !== undefined
-              ? trace.resources[frame.resourceId]
-              : undefined,
+            frame.resourceId === undefined
+              ? undefined
+              : trace.resources[frame.resourceId],
           ...frame,
         },
         'javascript'

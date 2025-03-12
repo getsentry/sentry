@@ -151,7 +151,9 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       });
     }
 
-    if (!sentryApp.redirectUrl) {
+    if (sentryApp.redirectUrl) {
+      this.redirectUser(install);
+    } else {
       addSuccessMessage(t('%s successfully installed.', sentryApp.slug));
       this.setState({appInstalls: [install, ...this.state.appInstalls]});
 
@@ -165,8 +167,6 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           />
         ));
       }
-    } else {
-      this.redirectUser(install);
     }
   };
 

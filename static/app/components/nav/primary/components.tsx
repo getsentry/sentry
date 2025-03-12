@@ -79,7 +79,7 @@ export function SidebarMenu({
           return (
             <NavButton
               {...props}
-              aria-label={!showLabel ? label : undefined}
+              aria-label={showLabel ? undefined : label}
               onClick={event => {
                 recordAnalytics();
                 props.onClick?.(event);
@@ -126,7 +126,7 @@ export function SidebarLink({
         onClick={recordAnalytics}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
-        aria-label={!showLabel ? label : undefined}
+        aria-label={showLabel ? undefined : label}
         isMobile={layout === NavLayout.MOBILE}
       >
         <InteractionStateLayer hasSelectedBackground={isActive} />
