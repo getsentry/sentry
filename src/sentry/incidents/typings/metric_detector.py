@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
     AlertRuleThresholdType,
+    AlertRuleTriggerAction,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Action, Detector
 
 
 @dataclass
@@ -43,4 +45,51 @@ class AlertContext:
             threshold_type=threshold_type,
             detection_type=detector.config.get("detection_type"),
             comparison_delta=detector.config.get("comparison_delta"),
+        )
+
+
+@dataclass
+class NotificationContext:
+    """
+    NotificationContext is a dataclass that represents the context required send a notification.
+    """
+
+    integration_id: int | None = None
+    target_identifier: str | None = None
+    target_display: str | None = None
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
+    sentry_app_id: str | None = None
+
+    @classmethod
+    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
+        return cls(
+            integration_id=action.integration_id,
+            target_identifier=action.target_identifier,
+            target_display=action.target_display,
+            sentry_app_config=action.sentry_app_config,
+        )
+
+    @classmethod
+    def from_action_model(cls, action: Action) -> NotificationContext:
+        if action.type == Action.Type.SENTRY_APP:
+            return cls(
+                integration_id=action.integration_id,
+                target_display=action.config.get("target_display"),
+                sentry_app_config=action.data.get("settings"),
+                sentry_app_id=action.data.get("target_identifier"),
+                # Does not need data
+            )
+        elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
+            return cls(
+                integration_id=action.integration_id,
+                target_identifier=action.config.get("target_identifier"),
+                target_display=action.config.get("target_display"),
+                sentry_app_config=action.data,
+            )
+        # TODO(iamrajjoshi): Add support for email here
+
+        return cls(
+            integration_id=action.integration_id,
+            target_identifier=action.config.get("target_identifier"),
+            target_display=action.config.get("target_display"),
         )
