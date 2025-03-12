@@ -36,6 +36,18 @@ describe('getDateFromMoment', () => {
       'Jul 9 12:00 AM - 12:05 AM (+00:00)'
     );
   });
+
+  it('shows the date and time in 24 hour format if 24 hour format is enabled', () => {
+    expect(getDateFromMoment(start, '6h', false, true)).toBe(
+      'Jul 9 00:00 - 06:00 (+00:00)'
+    );
+    expect(getDateFromMoment(start, '1h', false, true)).toBe(
+      'Jul 9 00:00 - 01:00 (+00:00)'
+    );
+    expect(getDateFromMoment(start, '5m', false, true)).toBe(
+      'Jul 9 00:00 - 00:05 (+00:00)'
+    );
+  });
 });
 
 describe('getXAxisDates', () => {

@@ -28,6 +28,7 @@ import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 
@@ -216,7 +217,7 @@ class UsageStatsOrganization<
     chartDateUtc: boolean;
   } {
     const {orgStats} = this.state;
-    const {dataDatetime, clock24Hours = true} = this.props;
+    const {dataDatetime} = this.props;
 
     const interval = getSeriesApiInterval(dataDatetime);
 
@@ -250,7 +251,7 @@ class UsageStatsOrganization<
     if (intervalHours >= 24) {
       // Daily format doesn't have time, so no change needed
       FORMAT_DATETIME = FORMAT_DATETIME_DAILY;
-    } else if (clock24Hours) {
+    } else if (shouldUse24Hours()) {
       FORMAT_DATETIME = FORMAT_DATETIME_HOURLY_24H;
     } else {
       FORMAT_DATETIME = FORMAT_DATETIME_HOURLY;

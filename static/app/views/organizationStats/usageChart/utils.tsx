@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {formatUsageWithUnits} from '../utils';
@@ -26,7 +27,7 @@ export function getDateFromMoment(
   m: moment.Moment,
   interval: IntervalPeriod = '1d',
   useUtc = false,
-  use24HourFormat = true
+  use24Hours = shouldUse24Hours()
 ) {
   // Convert interval to days
   const days = parsePeriodToHours(interval) / 24;
@@ -41,20 +42,13 @@ export function getDateFromMoment(
   const parsedInterval = parseStatsPeriod(interval);
   const datetime = useUtc ? moment(m).utc() : moment(m).local();
 
-  const intervalFormat = use24HourFormat
-    ? FORMAT_DATETIME_HOURLY_24H
-    : FORMAT_DATETIME_HOURLY;
+  const intervalFormat = use24Hours ? FORMAT_DATETIME_HOURLY_24H : FORMAT_DATETIME_HOURLY;
 
   return parsedInterval
     ? `${datetime.format(intervalFormat)} - ${datetime
         .add(parsedInterval.period, parsedInterval.periodLength)
-        .format(use24HourFormat ? 'HH:mm (Z)' : 'LT (Z)')}`
+        .format(use24Hours ? 'HH:mm (Z)' : 'LT (Z)')}`
     : datetime.format(intervalFormat);
-}
-
-export function getDateFromUnixTimestamp(timestamp: number) {
-  const date = moment.unix(timestamp);
-  return getDateFromMoment(date);
 }
 
 export function getXAxisDates(
