@@ -412,6 +412,7 @@ module = [
     "sentry.tempest.endpoints.*",
     "sentry.tempest.migrations.*",
     "sentry.testutils.helpers.task_runner",
+    "sentry.testutils.pytest.json_report_reruns",
     "sentry.testutils.skips",
     "sentry.toolbar.utils.*",
     "sentry.types.*",
