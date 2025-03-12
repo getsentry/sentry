@@ -10,7 +10,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {getLogFieldsFromLocation} from 'sentry/views/explore/contexts/logs/fields';
+import {
+  defaultLogFields,
+  getLogFieldsFromLocation,
+} from 'sentry/views/explore/contexts/logs/fields';
 import {
   getLogSortBysFromLocation,
   logsTimestampDescendingSortBy,
@@ -25,7 +28,7 @@ export const LOGS_FIELDS_KEY = 'logsFields';
 interface LogsPageParams {
   readonly cursor: string;
   readonly fields: string[];
-  readonly isTableSortFrozen: boolean | undefined;
+  readonly isTableEditingFrozen: boolean | undefined;
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
   /**
@@ -48,14 +51,14 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 
 export interface LogsPageParamsProviderProps {
   children: React.ReactNode;
-  isIssuesDetailView?: boolean;
+  isOnEmbeddedView?: boolean;
   limitToTraceId?: string;
 }
 
 export function LogsPageParamsProvider({
   children,
   limitToTraceId,
-  isIssuesDetailView,
+  isOnEmbeddedView,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
@@ -65,13 +68,14 @@ export function LogsPageParamsProvider({
         limitToTraceId,
       ])
     : undefined;
-  const fields = getLogFieldsFromLocation(location);
-  const sortBys = isIssuesDetailView
+  const isTableEditingFrozen = isOnEmbeddedView;
+  const fields = isTableEditingFrozen
+    ? defaultLogFields()
+    : getLogFieldsFromLocation(location);
+  const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
-  const projectIds = isIssuesDetailView ? [-1] : decodeProjects(location);
-
-  const isTableSortFrozen = isIssuesDetailView;
+  const projectIds = isOnEmbeddedView ? [-1] : decodeProjects(location);
 
   const cursor = getLogCursorFromLocation(location);
 
@@ -82,7 +86,7 @@ export function LogsPageParamsProvider({
         search,
         sortBys,
         cursor,
-        isTableSortFrozen,
+        isTableEditingFrozen,
         baseSearch,
         projectIds,
       }}
@@ -109,7 +113,7 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  if (!pageParams.isTableSortFrozen) {
+  if (!pageParams.isTableEditingFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
   }
   return target;
@@ -179,9 +183,9 @@ export function useSetLogsSearch() {
   );
 }
 
-export function useLogsIsTableSortFrozen() {
-  const {isTableSortFrozen} = useLogsPageParams();
-  return isTableSortFrozen;
+export function useLogsIsTableEditingFrozen() {
+  const {isTableEditingFrozen} = useLogsPageParams();
+  return isTableEditingFrozen;
 }
 
 export function useLogsSortBys() {

@@ -7,7 +7,7 @@ import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/log
 /**
  * These are the default fields that are shown in the logs table. The query will always add other hidden fields required to render details view etc.
  */
-function defaultLogFields(): OurLogKnownFieldKey[] {
+export function defaultLogFields(): OurLogKnownFieldKey[] {
   return [
     OurLogKnownFieldKey.SEVERITY_TEXT,
     OurLogKnownFieldKey.BODY,

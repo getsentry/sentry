@@ -21,7 +21,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 export function LogsIssuesSection({
   initialCollapse,
-  isIssuesDetailView,
+  isOnEmbeddedView,
   limitToTraceId: traceId,
 }: {
   initialCollapse: boolean;
@@ -45,7 +45,7 @@ export function LogsIssuesSection({
       initialCollapse={initialCollapse}
     >
       <LogsPageParamsProvider
-        isIssuesDetailView={isIssuesDetailView}
+        isOnEmbeddedView={isOnEmbeddedView}
         limitToTraceId={traceId}
       >
         <LogsSectionContent tableData={tableData} />
