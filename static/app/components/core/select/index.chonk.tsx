@@ -28,7 +28,6 @@ export const getChonkStylesConfig = ({
     ...provided,
     padding: '4px',
     alignItems: 'center',
-    cursor: 'pointer',
     color: theme.subText,
   });
 
@@ -46,14 +45,14 @@ export const getChonkStylesConfig = ({
         borderColor: theme.focusBorder,
         boxShadow: `${theme.focusBorder} 0 0 0 1px`,
       }),
+      ...(!state.isSearchable && {
+        cursor: 'pointer',
+      }),
       ...(state.isDisabled && {
         borderColor: theme.border,
         background: theme.backgroundSecondary,
         color: theme.disabled,
         cursor: 'not-allowed',
-      }),
-      ...(!state.isSearchable && {
-        cursor: 'pointer',
       }),
       ...omit(theme.form[size ?? 'md'], 'height'),
       ...(state.isMulti && {
@@ -81,7 +80,6 @@ export const getChonkStylesConfig = ({
 
     option: provided => ({
       ...provided,
-      cursor: 'pointer',
       color: theme.textColor,
       background: 'transparent',
       padding: 0,
@@ -140,7 +138,6 @@ export const getChonkStylesConfig = ({
       lineHeight: '1.8',
     }),
     multiValueRemove: () => ({
-      cursor: 'pointer',
       alignItems: 'center',
       borderLeft: `1px solid ${theme.innerBorder}`,
       borderRadius: '0 2px 2px 0',

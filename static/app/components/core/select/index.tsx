@@ -217,14 +217,14 @@ const getStylesConfig = ({
         borderColor: theme.focusBorder,
         boxShadow: `${theme.focusBorder} 0 0 0 1px`,
       }),
+      ...(!state.isSearchable && {
+        cursor: 'pointer',
+      }),
       ...(state.isDisabled && {
         borderColor: theme.border,
         background: theme.backgroundSecondary,
         color: theme.disabled,
         cursor: 'not-allowed',
-      }),
-      ...(!state.isSearchable && {
-        cursor: 'pointer',
       }),
       ...omit(theme.form[size ?? 'md'], 'height'),
       ...(state.isMulti && {
