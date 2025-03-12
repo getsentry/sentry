@@ -157,7 +157,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-rollout",
+            "organizations:workflow-engine-process-workflows",
             organization,
         ):
             metrics.incr(
@@ -168,7 +168,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if features.has(
-            "organizations:workflow-engine-issue-alert-fire-actions",
+            "organizations:workflow-engine-trigger-actions",
             organization,
         ):
             for action in actions:

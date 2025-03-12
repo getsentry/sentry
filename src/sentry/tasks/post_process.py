@@ -939,7 +939,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
 
     # TODO: only fire one system. to test, fire from both systems and observe metrics
     if not features.has(
-        "organizations:workflow-engine-issue-alert-rollout", job["event"].project.organization
+        "organizations:workflow-engine-process-workflows", job["event"].project.organization
     ):
         return
 
@@ -988,13 +988,13 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        # TODO(cathy): add opposite of the FF organizations:workflow-engine-issue-alert-fire-actions
+        # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
         for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-rollout",
+            "organizations:workflow-engine-process-workflows",
             group_event.project.organization,
         ):
             metrics.incr(

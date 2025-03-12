@@ -469,7 +469,7 @@ def fire_rules(
                 rule, groupevent, notification_uuid, rule_fire_history
             ).values()
             if features.has(
-                "organizations:workflow-engine-issue-alert-rollout",
+                "organizations:workflow-engine-process-workflows",
                 project.organization,
             ):
                 metrics.incr(
@@ -478,7 +478,7 @@ def fire_rules(
                     tags={"event_type": groupevent.group.type},
                 )
 
-            # TODO(cathy): add opposite of the FF organizations:workflow-engine-issue-alert-fire-actions
+            # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
             for callback, futures in callback_and_futures:
                 safe_execute(callback, groupevent, futures)
 
