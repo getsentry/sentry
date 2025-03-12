@@ -459,25 +459,39 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
+<<<<<<< HEAD
         self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
         "sentry.workflow_engine.handlers.action.notification.metric_alert.send_opsgenie_incident_alert_notification"
     )
+=======
+        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.handler = OpsgenieMetricAlertHandler()
+
+    @mock.patch("sentry.integrations.opsgenie.utils.send_incident_alert_notification")
+>>>>>>> 34f4f4d3328 (:wrench: chore: add metric alert opsgenie handler to noa)
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
             self.detector, self.group_event.occurrence
         )
+<<<<<<< HEAD
         metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
+=======
+>>>>>>> 34f4f4d3328 (:wrench: chore: add metric alert opsgenie handler to noa)
         notification_uuid = str(uuid.uuid4())
 
         self.handler.send_alert(
             notification_context=notification_context,
             alert_context=alert_context,
+<<<<<<< HEAD
             metric_issue_context=metric_issue_context,
+=======
+            job=self.job,
+>>>>>>> 34f4f4d3328 (:wrench: chore: add metric alert opsgenie handler to noa)
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -485,8 +499,16 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         mock_send_incident_alert_notification.assert_called_once_with(
             notification_context=notification_context,
             alert_context=alert_context,
+<<<<<<< HEAD
             metric_issue_context=metric_issue_context,
             organization=self.detector.project.organization,
+=======
+            open_period_identifier=self.job["event"].group.id,
+            organization=self.detector.project.organization,
+            snuba_query=self.handler.get_snuba_query(self.job),
+            new_status=self.handler.get_new_status(self.job),
+            metric_value=self.handler.get_metric_value(self.job),
+>>>>>>> 34f4f4d3328 (:wrench: chore: add metric alert opsgenie handler to noa)
             notification_uuid=notification_uuid,
         )
 
@@ -497,6 +519,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
+<<<<<<< HEAD
         (
             notification_context,
             alert_context,
@@ -508,6 +531,14 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         assert isinstance(notification_context, NotificationContext)
         assert isinstance(alert_context, AlertContext)
         assert isinstance(metric_issue_context, MetricIssueContext)
+=======
+        args, _ = mock_send_alert.call_args
+        notification_context, alert_context, job, organization, notification_uuid = args
+
+        assert isinstance(notification_context, NotificationContext)
+        assert isinstance(alert_context, AlertContext)
+
+>>>>>>> 34f4f4d3328 (:wrench: chore: add metric alert opsgenie handler to noa)
         self.assert_notification_context(
             notification_context,
             integration_id=1234567890,
@@ -526,6 +557,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             comparison_delta=None,
         )
 
+<<<<<<< HEAD
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.group_event.group.id,
@@ -534,5 +566,8 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             metric_value=123.45,
         )
 
+=======
+        assert job == self.job
+>>>>>>> 34f4f4d3328 (:wrench: chore: add metric alert opsgenie handler to noa)
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
