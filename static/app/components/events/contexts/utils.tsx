@@ -463,11 +463,14 @@ export function getFormattedContextData({
 }
 
 function shortRuntimeVersion(version: string) {
-  // Ruby runtime version looks like `ruby 3.2.6 (2024-10-30 revision 63aeb018eb) [arm64-darwin23]`
+  // Ruby runtime version looks like:
+  // - `ruby 3.2.6 (2024-10-30 revision 63aeb018eb) [arm64-darwin23]`
+  // - `ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin24]`
   if (version.startsWith('ruby') && version.length > 25) {
-    const match = version.match(/ruby\s+(\d+\.\d+\.\d+)/);
-    // Return just the version number
-    return match ? match[1] : version;
+    // Extract everything from "ruby" until the first opening parenthesis
+    // This will include both the version number and any patch level
+    const match = version.match(/ruby\s+(.*?)(?:\s+\(|$)/);
+    return match ? match[1]?.trim() : version;
   }
   // TODO: handle other long runtime versions
 

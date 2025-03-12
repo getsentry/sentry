@@ -159,7 +159,7 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByRole('button', {name: 'Screenshot'})).toBeInTheDocument();
   });
 
-  it('shortens long runtime versions', async function () {
+  it('shortens long ruby runtime versions', async function () {
     const eventWithLongRuntime = EventFixture({
       contexts: {
         runtime: {
@@ -171,6 +171,21 @@ describe('HighlightsIconSummary', function () {
     });
     render(<HighlightsIconSummary event={eventWithLongRuntime} group={group} />);
     expect(await screen.findByText('3.2.6')).toBeInTheDocument();
+  });
+
+  it('shortens long ruby runtime versions with patch', async function () {
+    const eventWithLongRuntime = EventFixture({
+      contexts: {
+        runtime: {
+          name: 'ruby',
+          version:
+            'ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin24]',
+          type: 'runtime',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={eventWithLongRuntime} group={group} />);
+    expect(await screen.findByText('2.6.10p210')).toBeInTheDocument();
   });
 
   it('shortens long operating system versions', async function () {
