@@ -114,14 +114,20 @@ class CommitContextIntegration(ABC):
                 response = client.get_blame_for_files(files, extra)
             except IdentityNotValid as e:
                 lifecycle.record_failure(e)
-                sentry_sdk.capture_exception(e)
-                return []
-            # Swallow rate limited errors so we don't log them as exceptions
-            except ApiRateLimitedError as e:
-                sentry_sdk.capture_exception(e)
-                lifecycle.record_halt(e)
-                return []
-            return response
+            sentry_sdk.capture_exception(e)
+            lifecycle.record_halt(e)
+            return []
+        except IntegrationInstallationConfigurationError as e:
+            lifecycle.record_halt(CommitContextHaltReason.INSTALLATION_SUSPENDED)
+            logger.error(
+                f"{self.integration_name}.installation_suspended",
+                extra={
+                    "organization_id": extra.get("organization", ""),
+                    "error": str(e)
+                }
+            )
+            return []
+        return response
 
     def get_commit_context_all_frames(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]

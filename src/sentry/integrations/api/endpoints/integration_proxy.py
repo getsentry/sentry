@@ -175,20 +175,32 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         ).prepare()
         # Third-party authentication headers will be added in client.authorize_request which runs
         # in IntegrationProxyClient.finalize_request.
-        raw_response: Response = self.client.request(
-            request.method,
-            self.proxy_path,
-            allow_text=True,
-            prepared_request=prepared_request,
-            raw_response=True,
-        )
-        clean_headers = clean_outbound_headers(raw_response.headers)
-        return HttpResponse(
-            content=raw_response.content,
-            status=raw_response.status_code,
-            reason=raw_response.reason,
-            headers=clean_headers,
-        )
+        try:
+            raw_response: Response = self.client.request(
+                request.method,
+                self.proxy_path,
+                allow_text=True,
+                prepared_request=prepared_request,
+                raw_response=True,
+            )
+            clean_headers = clean_outbound_headers(raw_response.headers)
+            return HttpResponse(
+                content=raw_response.content,
+                status=raw_response.status_code,
+                reason=raw_response.reason,
+                headers=clean_headers,
+            )
+        except ApiError as e:
+            if hasattr(e, 'text') and 'suspended' in e.text.lower():
+                return HttpResponse(
+                    content=json.dumps({
+                        "error": "GitHub App installation is suspended",
+                        "detail": "The GitHub App installation for this organization has been suspended. Please reinstall the GitHub integration."
+                    }),
+                    status=403,
+                    content_type="application/json",
+                )
+            raise
 
     def http_method_not_allowed(self, request):
         """
