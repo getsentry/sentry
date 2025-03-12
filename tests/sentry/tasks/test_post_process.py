@@ -3034,3 +3034,23 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
     def test_processing_cache_cleared_with_commits(self):
         pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze_with_buffers(self):
+        pass
+
+    @pytest.mark.skip(reason="auto resolve is disabled for feedback issues")
+    def test_group_inbox_regression(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_forecast_in_activity(self):
+        pass
+
+    @pytest.mark.skip(reason="regression is disabled for feedback issues")
+    def test_group_last_seen_buffer(self):
+        pass
