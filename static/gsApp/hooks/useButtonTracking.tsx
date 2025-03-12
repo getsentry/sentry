@@ -1,6 +1,6 @@
 import {useCallback, useContext} from 'react';
 
-import type {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

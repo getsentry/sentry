@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {Badge} from 'sentry/components/core/badge';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';

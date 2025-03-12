@@ -68,7 +68,7 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
               .map(project => (
                 <SecondaryNav.Item
                   key={project.id}
-                  to={`${baseUrl}/${project.slug}/`}
+                  to={`${baseUrl}/projects/${project.slug}/`}
                   leadingItems={
                     <ProjectIcon
                       projectPlatforms={project.platform ? [project.platform] : []}
@@ -78,7 +78,7 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
                   {project.slug}
                 </SecondaryNav.Item>
               ))}
-            <SecondaryNav.Item to={`${baseUrl}/projects/`}>
+            <SecondaryNav.Item to={`${baseUrl}/projects/`} end>
               {t('All Projects')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>

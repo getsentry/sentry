@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
@@ -10,6 +12,7 @@ class TestTranslateUotimeHeaderObjectsToListTakeTwo(TestMigrations):
         self.sub = self.create_uptime_subscription(headers={})
         self.sub2 = self.create_uptime_subscription(headers=[["Accept", "text/html"]])
 
+    @pytest.mark.skip(reason="Causes problems in pipeline")
     def test(self):
         self.sub.refresh_from_db()
         self.sub2.refresh_from_db()

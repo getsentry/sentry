@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';

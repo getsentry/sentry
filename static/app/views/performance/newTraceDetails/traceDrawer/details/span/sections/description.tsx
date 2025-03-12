@@ -2,9 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {LinkButton} from 'sentry/components/core/button';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

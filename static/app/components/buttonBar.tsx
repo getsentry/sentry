@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {StyledButton} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {StyledButton} from 'sentry/components/core/button';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 

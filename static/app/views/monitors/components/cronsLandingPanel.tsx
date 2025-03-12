@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

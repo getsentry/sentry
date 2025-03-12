@@ -3,8 +3,8 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
