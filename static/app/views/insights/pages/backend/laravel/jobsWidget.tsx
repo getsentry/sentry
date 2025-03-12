@@ -2,8 +2,6 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -12,6 +10,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {
@@ -20,6 +20,7 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/backend/laravel/styles';
+import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 
@@ -47,6 +48,8 @@ export function JobsWidget({query}: {query?: string}) {
   });
   const theme = useTheme();
 
+  const fullQuery = `span.op:queue.process ${query}`.trim();
+
   const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
       `/organizations/${organization.slug}/events-stats/`,
@@ -57,7 +60,7 @@ export function JobsWidget({query}: {query?: string}) {
           field: ['trace.status', 'count(span.duration)'],
           yAxis: ['count(span.duration)'],
           transformAliasToInputFormat: 1,
-          query: `span.op:queue.process ${query}`.trim(),
+          query: fullQuery,
           useRpc: 1,
           topEvents: 10,
         },
@@ -151,25 +154,33 @@ export function JobsWidget({query}: {query?: string}) {
       Visualization={visualization}
       Actions={
         !isEmpty && (
-          <Widget.WidgetToolbar>
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: t('Jobs'),
-                  children: (
-                    <Fragment>
-                      <ModalChartContainer>{visualization}</ModalChartContainer>
-                      <ModalTableWrapper>{footer}</ModalTableWrapper>
-                    </Fragment>
-                  ),
-                });
-              }}
-            />
-          </Widget.WidgetToolbar>
+          <Toolbar
+            exploreParams={{
+              mode: Mode.AGGREGATE,
+              visualize: [
+                {
+                  chartType: ChartType.BAR,
+                  yAxes: ['count(span.duration)'],
+                },
+              ],
+              groupBy: ['trace.status'],
+              field: ['count(span.duration)'],
+              query: fullQuery,
+              sort: '-count(span.duration)',
+              interval: pageFilterChartParams.interval,
+            }}
+            onOpenFullScreen={() => {
+              openInsightChartModal({
+                title: t('Jobs'),
+                children: (
+                  <Fragment>
+                    <ModalChartContainer>{visualization}</ModalChartContainer>
+                    <ModalTableWrapper>{footer}</ModalTableWrapper>
+                  </Fragment>
+                ),
+              });
+            }}
+          />
         )
       }
       noFooterPadding
