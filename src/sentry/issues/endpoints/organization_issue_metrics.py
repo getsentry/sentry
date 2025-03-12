@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.db.models import Count, F, Q
-from django.db.models.functions import TruncDay
+from django.db.models.functions import TruncHour
 from django.db.models.query import QuerySet
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -43,10 +43,10 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         group_by = request.GET.get("group_by", "time")
 
         # Start/end truncation and interval generation.
-        interval = timedelta(days=1)  # interval = request.GET.get("interval", "1d")
+        interval = timedelta(hours=1)  # interval = request.GET.get("interval", "1d")
         start, end = get_date_range_from_params(request.GET)
-        end = end.replace(hour=0, minute=0, second=0, microsecond=0) + interval
-        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+        end = end.replace(minute=0, second=0, microsecond=0) + interval
+        start = start.replace(minute=0, second=0, microsecond=0)
 
         if group_by == "time":
             # Series queries.
@@ -120,7 +120,7 @@ def query_new_issues(
             first_seen__lte=end,
             project__in=projects,
         )
-        .annotate(bucket=TruncDay("first_seen"))
+        .annotate(bucket=TruncHour("first_seen"))
         .order_by("bucket")
         .values("bucket")
         .annotate(count=Count("id"))
@@ -148,7 +148,7 @@ def query_resolved_issues(
             project__in=projects,
             status=GroupStatus.RESOLVED,
         )
-        .annotate(bucket=TruncDay("resolved_at"))
+        .annotate(bucket=TruncHour("resolved_at"))
         .order_by("bucket")
         .values("bucket")
         .annotate(count=Count("id"))
