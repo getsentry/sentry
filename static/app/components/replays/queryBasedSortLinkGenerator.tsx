@@ -10,11 +10,11 @@ export default function queryBasedSortLinkGenerator<Key extends ReactText>(
   currentSort: Sort
 ): () => LocationDescriptorObject {
   const direction =
-    currentSort.field !== column.key
-      ? 'desc'
-      : currentSort.kind === 'desc'
+    currentSort.field === column.key
+      ? currentSort.kind === 'desc'
         ? 'asc'
-        : 'desc';
+        : 'desc'
+      : 'desc';
 
   return () => ({
     ...location,

@@ -117,7 +117,7 @@ export default function UptimeOverview() {
               })}
               icon={<IconAdd isCircled />}
               disabled={!canCreateAlert}
-              title={!canCreateAlert ? permissionTooltipText : undefined}
+              title={canCreateAlert ? undefined : permissionTooltipText}
             >
               {t('Add Uptime Monitor')}
             </LinkButton>

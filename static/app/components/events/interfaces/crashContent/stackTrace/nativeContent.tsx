@@ -285,7 +285,7 @@ export function NativeContent({
         hideIcon={hideIcon}
       >
         <Frames data-test-id="stack-trace">
-          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+          {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
         </Frames>
       </ContentPanel>
     </Wrapper>

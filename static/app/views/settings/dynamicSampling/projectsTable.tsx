@@ -371,9 +371,9 @@ const TableRow = memo(function TableRow({
         </FirstCellLine>
         {error ? (
           <ErrorMessage>{error}</ErrorMessage>
-        ) : sampleRate !== initialSampleRate ? (
+        ) : sampleRate === initialSampleRate ? null : (
           <SmallPrint>{t('previous: %s%%', initialSampleRate)}</SmallPrint>
-        ) : null}
+        )}
       </Cell>
     </TableRowWrapper>
   );

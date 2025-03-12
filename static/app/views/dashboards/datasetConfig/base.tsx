@@ -36,6 +36,7 @@ export type WidgetBuilderSearchBarProps = {
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
+  portalTarget?: HTMLElement | null;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {

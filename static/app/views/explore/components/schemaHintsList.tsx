@@ -59,7 +59,7 @@ function SchemaHintsList({
     return [...sectionSortedTags, ...otherTags];
   }, [numberTags, stringTags, functionTags]);
 
-  const [visibleHints, setVisibleHints] = useState(filterTagsSorted);
+  const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
 
   useEffect(() => {
     // debounce calculation to prevent 'flickering' when resizing
@@ -71,36 +71,48 @@ function SchemaHintsList({
       const container = schemaHintsContainerRef.current;
       const containerRect = container.getBoundingClientRect();
 
-      // First render all items
-      setVisibleHints([...filterTagsSorted, seeFullListTag]);
+      // Create a temporary div to measure items without rendering them
+      const measureDiv = document.createElement('div');
+      measureDiv.style.visibility = 'hidden';
+      document.body.appendChild(measureDiv);
 
-      // this guarantees that the items are rendered before we try to measure them and do calculations
-      requestAnimationFrame(() => {
-        // Get all rendered items
-        const items = Array.from(container.children) as HTMLElement[];
+      // Clone the container styles
+      const styles = window.getComputedStyle(container);
+      measureDiv.style.display = styles.display;
+      measureDiv.style.gap = styles.gap;
+      measureDiv.style.width = styles.width;
 
-        const seeFullListTagRect = Array.from(container.children)[
-          Array.from(container.children).length - 1
-        ]?.getBoundingClientRect();
+      // Render items in hidden div to measure
+      [...filterTagsSorted, seeFullListTag].forEach(hint => {
+        const el = container.children[0]?.cloneNode(true) as HTMLElement;
+        el.innerHTML = getHintText(hint);
+        measureDiv.appendChild(el);
+      });
 
-        // Find the last item that fits within the container
-        let lastVisibleIndex = items.findIndex(item => {
+      // Get all rendered items
+      const items = Array.from(measureDiv.children) as HTMLElement[];
+
+      const seeFullListTagRect = Array.from(measureDiv.children)[
+        Array.from(measureDiv.children).length - 1
+      ]?.getBoundingClientRect();
+
+      // Find the last item that fits within the container
+      let lastVisibleIndex =
+        items.findIndex(item => {
           const itemRect = item.getBoundingClientRect();
           return itemRect.right > containerRect.right - (seeFullListTagRect?.width ?? 0);
-        });
+        }) - 1;
 
-        // If all items fit, show them all
-        if (lastVisibleIndex === -1) {
-          lastVisibleIndex = items.length;
-        }
+      // If all items fit, show them all
+      if (lastVisibleIndex < 0) {
+        lastVisibleIndex = items.length;
+      }
 
-        setVisibleHints(
-          lastVisibleIndex < items.length
-            ? [...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]
-            : filterTagsSorted
-        );
-      });
-    }, 50);
+      setVisibleHints([...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]);
+
+      // Remove the temporary div
+      document.body.removeChild(measureDiv);
+    }, 30);
 
     // initial calculation
     calculateVisibleHints();

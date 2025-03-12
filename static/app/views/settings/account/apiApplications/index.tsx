@@ -92,12 +92,12 @@ function ApiApplications({router}: Props) {
         <PanelHeader>{t('Application Name')}</PanelHeader>
 
         <PanelBody>
-          {!isEmpty ? (
+          {isEmpty ? (
+            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
+          ) : (
             appList.map(app => (
               <Row key={app.id} app={app} onRemove={handleRemoveApplication} />
             ))
-          ) : (
-            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>

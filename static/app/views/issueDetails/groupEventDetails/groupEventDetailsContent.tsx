@@ -7,7 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, LinkButton} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {CombinedBreadcrumbsAndLogsSection} from 'sentry/components/events/breadcrumbs/combinedBreadcrumbsAndLogsSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -406,7 +406,7 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
       {hasStreamlinedUI && event.contexts.trace?.trace_id && (
         <EventTraceView group={group} event={event} organization={organization} />
       )}

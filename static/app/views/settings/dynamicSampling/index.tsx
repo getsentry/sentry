@@ -59,13 +59,7 @@ export default function DynamicSamplingSettings() {
         </Alert.Container>
       )}
 
-      {!hasReadAccess ? (
-        <Alert.Container>
-          <Alert type="warning">
-            {t('You need at least member permissions to view these settings.')}
-          </Alert>
-        </Alert.Container>
-      ) : (
+      {hasReadAccess ? (
         <Fragment>
           <Paragraph>
             {t(
@@ -78,6 +72,12 @@ export default function DynamicSamplingSettings() {
             <ProjectSampling />
           )}
         </Fragment>
+      ) : (
+        <Alert.Container>
+          <Alert type="warning">
+            {t('You need at least member permissions to view these settings.')}
+          </Alert>
+        </Alert.Container>
       )}
     </Fragment>
   );

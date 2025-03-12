@@ -277,9 +277,7 @@ export function modifyTrendView(
     );
   }
 
-  if (!canUseMetricsTrends) {
-    trendView.query = getLimitTransactionItems(trendView.query);
-  } else {
+  if (canUseMetricsTrends) {
     const query = new MutableSearch(trendView.query);
     if (query.freeText.length > 0) {
       const parsedFreeText = query.freeText.join(' ');
@@ -292,6 +290,8 @@ export function modifyTrendView(
       token => token.key && TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS.includes(token.key)
     );
     trendView.query = query.formatString();
+  } else {
+    trendView.query = getLimitTransactionItems(trendView.query);
   }
 
   trendView.interval = getQueryInterval(location, trendView);

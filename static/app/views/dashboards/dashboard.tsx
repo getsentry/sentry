@@ -285,13 +285,13 @@ class Dashboard extends Component<Props, State> {
 
     // Only modify and re-compact if the default height has changed
     if (
-      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(prevWidget.displayType) ===
       getDefaultWidgetHeight(nextWidget.displayType)
     ) {
+      nextList[updateIndex] = nextWidgetData;
+    } else {
       nextList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
       nextList = generateWidgetsAfterCompaction(nextList);
-    } else {
-      nextList[updateIndex] = nextWidgetData;
     }
 
     onUpdate(nextList);
