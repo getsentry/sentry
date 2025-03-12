@@ -48,8 +48,6 @@ class QueryParts(TypedDict):
 # translate transaction queries from the frontend on the fly
 # and also allow us to migrate all our Discover/Dashboard/Alert
 # datamodels to store EAP compatible EQS queries.
-
-
 def translate_mep_to_eap(query_parts: QueryParts):
     flattened_query = []
 
