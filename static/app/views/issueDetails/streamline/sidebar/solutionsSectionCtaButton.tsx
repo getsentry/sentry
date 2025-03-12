@@ -55,6 +55,7 @@ export function SolutionsSectionCtaButton({
 
   // Keep track of previous steps to detect state transitions and notify the user
   const prevStepsRef = useRef<AutofixStep[]>();
+  const prevRunIdRef = useRef<string | undefined>();
   useEffect(() => {
     if (isDrawerOpenRef.current) {
       return;
@@ -67,6 +68,16 @@ export function SolutionsSectionCtaButton({
 
     const prevSteps = prevStepsRef.current;
     const currentSteps = autofixData.steps;
+
+    // Don't show notifications if the run_id has changed
+    if (
+      prevStepsRef.current !== currentSteps &&
+      autofixData?.run_id !== prevRunIdRef.current
+    ) {
+      prevStepsRef.current = currentSteps;
+      prevRunIdRef.current = autofixData?.run_id;
+      return;
+    }
 
     // Find the most recent step
     const processingStep = currentSteps.findLast(
@@ -92,7 +103,8 @@ export function SolutionsSectionCtaButton({
     }
 
     prevStepsRef.current = autofixData?.steps;
-  }, [autofixData?.steps]);
+    prevRunIdRef.current = autofixData?.run_id;
+  }, [autofixData?.steps, autofixData?.run_id]);
 
   // Update drawer state when opening
   const handleOpenDrawer = () => {
