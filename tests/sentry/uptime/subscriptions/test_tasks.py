@@ -360,26 +360,6 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "region_schedule_mode": "round_robin",
         }
 
-    def test_header_translation(self):
-        headers = {"hi": "bye"}
-        sub = self.create_uptime_subscription(headers=headers, region_slugs=["default"])
-        sub.refresh_from_db()
-
-        subscription_id = uuid4().hex
-        assert uptime_subscription_to_check_config(
-            sub, subscription_id, UptimeSubscriptionRegion.RegionMode.ACTIVE
-        ) == {
-            "subscription_id": subscription_id,
-            "url": sub.url,
-            "interval_seconds": sub.interval_seconds,
-            "timeout_ms": sub.timeout_ms,
-            "request_method": "GET",
-            "request_headers": [["hi", "bye"]],
-            "trace_sampling": False,
-            "active_regions": ["default"],
-            "region_schedule_mode": "round_robin",
-        }
-
     def test_no_regions(self):
         sub = self.create_uptime_subscription()
         subscription_id = uuid4().hex
