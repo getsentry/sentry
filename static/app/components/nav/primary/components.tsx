@@ -9,6 +9,7 @@ import {linkStyles} from 'sentry/components/links/styles';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -121,18 +122,20 @@ export function SidebarLink({
 
   return (
     <SidebarItem>
-      <NavLink
-        {...linkProps}
-        onClick={recordAnalytics}
-        aria-selected={isActive}
-        aria-current={isActive ? 'page' : undefined}
-        aria-label={showLabel ? undefined : label}
-        isMobile={layout === NavLayout.MOBILE}
-      >
-        <InteractionStateLayer hasSelectedBackground={isActive} />
-        {children}
-        {showLabel ? label : null}
-      </NavLink>
+      <Tooltip title={label} disabled={showLabel} position="right" skipWrapper>
+        <NavLink
+          {...linkProps}
+          onClick={recordAnalytics}
+          aria-selected={isActive}
+          aria-current={isActive ? 'page' : undefined}
+          aria-label={showLabel ? undefined : label}
+          isMobile={layout === NavLayout.MOBILE}
+        >
+          <InteractionStateLayer hasSelectedBackground={isActive} />
+          {children}
+          {showLabel ? label : null}
+        </NavLink>
+      </Tooltip>
     </SidebarItem>
   );
 }
