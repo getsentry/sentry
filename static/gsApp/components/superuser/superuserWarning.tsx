@@ -115,7 +115,7 @@ const SuperuserBadge = styled(Badge)<{stackedNav: boolean}>`
   ${p =>
     p.stackedNav &&
     css`
-      top: -12px;
+      top: -8px;
       left: 2px;
       right: 2px;
       font-size: 10px;
