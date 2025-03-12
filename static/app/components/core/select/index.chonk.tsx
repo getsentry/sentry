@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -17,7 +17,7 @@ export const getChonkStylesConfig = ({
   isInsideModal: boolean | undefined;
   maxMenuWidth: string | number | undefined;
   size: FormSize | undefined;
-  theme: Theme;
+  theme: DO_NOT_USE_ChonkTheme;
 }) => {
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -42,10 +42,7 @@ export const getChonkStylesConfig = ({
       borderRadius: theme.borderRadius,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
-      ...(state.isFocused && {
-        borderColor: theme.focusBorder,
-        boxShadow: `${theme.focusBorder} 0 0 0 1px`,
-      }),
+      ...(state.isFocused && theme.focusRing),
       ...(!state.isSearchable && {
         cursor: 'pointer',
       }),
