@@ -81,7 +81,7 @@ class Table extends Component<Props, State> {
   };
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, location, organization} = this.props;
 
       trackAnalytics('performance_views.overview.cellaction', {
@@ -272,7 +272,7 @@ class Table extends Component<Props, State> {
     const {eventView} = this.props;
     const teamKeyTransactionColumn = eventView
       .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
+      .find((col: TableColumn<string | number>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
@@ -357,9 +357,9 @@ class Table extends Component<Props, State> {
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'team_key_transaction')
+      .filter((col: TableColumn<string | number>) => col.name !== 'team_key_transaction')
       .slice(0, -1)
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }

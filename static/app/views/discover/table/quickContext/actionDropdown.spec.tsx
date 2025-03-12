@@ -39,7 +39,7 @@ const renderActionDropdown = (
   location: Location,
   eventView: EventView,
   queryKey: string,
-  value: React.ReactText | string[],
+  value: string | number | string[],
   contextValueType: ContextValueType
 ) => {
   const organization = OrganizationFixture();

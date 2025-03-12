@@ -10,7 +10,7 @@ import type {WebVital} from 'sentry/utils/fields';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number;
   id: string;
 };
 

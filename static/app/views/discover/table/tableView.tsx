@@ -564,7 +564,7 @@ function TableView(props: TableViewProps) {
     dataRow: TableDataRow,
     column: TableColumn<keyof TableDataRow>
   ) {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, organization, location, tableData, isHomepage, queryDataset} =
         props;
 
