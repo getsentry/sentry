@@ -23,7 +23,7 @@ ERR_NOT_UNPAUSABLE_STATUS = Template(
     `$status`."""
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint

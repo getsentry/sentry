@@ -26,7 +26,7 @@ ERR_COULD_NOT_CANCEL_RELOCATION_AT_STEP = Template(
     started."""
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint

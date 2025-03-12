@@ -26,7 +26,7 @@ ERR_COULD_NOT_PAUSE_RELOCATION = (
     "Could not pause relocation, perhaps because it is no longer in-progress."
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint

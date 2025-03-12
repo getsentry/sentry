@@ -37,7 +37,7 @@ from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
-logger = logging.getLogger("sentry.relocation.tasks")
+logger = logging.getLogger("sentry.relocation")
 
 
 # Relocation tasks are always performed in sequential order. We can leverage this to check for any
@@ -494,7 +494,22 @@ def start_relocation_task(
         return (None, 0)
 
     logger_data["task"] = task.name
+    logger_data["latest_task"] = relocation.latest_task
+
     if relocation.latest_task not in {prev_task_name, task.name}:
+        latest_task = OrderedTask[relocation.latest_task]
+        if task.value < latest_task.value:
+            # A previous task has retried, we can skip this task as it is redundant.
+            # We don't want to fail the relocation as it could be progressing still.
+            logger.info(
+                "Task %s tried to follow %s, but %s has already been completed",
+                task.name,
+                prev_task_name,
+                task.name,
+                extra=logger_data,
+            )
+            return (None, allowed_task_attempts)
+        # A future task has been attempted, this is an error.
         logger.error(
             "Task %s tried to follow %s which is the wrong order",
             task.name,
