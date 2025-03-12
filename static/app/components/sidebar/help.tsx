@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
@@ -30,6 +31,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
     organization,
   });
   const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const openForm = useFeedbackForm();
 
   return (
     <DeprecatedDropdownMenu onOpen={onOpenHelpMenu}>
@@ -72,6 +74,19 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                 {t('Join our Discord')}
               </SidebarMenuItem>
               <Hook name="sidebar:help-menu" organization={organization} />
+              {openForm ? (
+                <SidebarMenuItem
+                  onClick={() => {
+                    openForm({
+                      tags: {
+                        ['feedback.source']: 'navigation_sidebar_legacy',
+                      },
+                    });
+                  }}
+                >
+                  {t('Give Feedback')}
+                </SidebarMenuItem>
+              ) : null}
               {organization?.features?.includes('navigation-sidebar-v2') && (
                 <SidebarMenuItem
                   onClick={() => {
@@ -84,7 +99,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try new navigation ✨')}
+                  {t('Try New Navigation ✨')}
                 </SidebarMenuItem>
               )}
             </HelpMenu>
