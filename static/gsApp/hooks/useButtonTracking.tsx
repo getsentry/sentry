@@ -29,10 +29,10 @@ export default function useButtonTracking({
       // note null means something different than undefined for eventName so
       // checking for that explicitly
       const eventKey =
-        analyticsEventKey !== undefined
-          ? analyticsEventKey
-          : `button_click.${reloadPath}`;
-      const eventName = analyticsEventName !== undefined ? analyticsEventName : null;
+        analyticsEventKey === undefined
+          ? `button_click.${reloadPath}`
+          : analyticsEventKey;
+      const eventName = analyticsEventName === undefined ? null : analyticsEventName;
 
       rawTrackAnalyticsEvent({
         eventKey,

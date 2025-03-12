@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -21,6 +23,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -70,6 +73,38 @@ function FeedbackButton() {
   ) : null;
 }
 
+export function SwitchToNonEAPTraceButton({
+  location,
+  organization,
+}: {
+  location: Location;
+  organization: Organization;
+}) {
+  const navigate = useNavigate();
+  const switchToNonEAPTrace = useCallback(() => {
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        trace_format: 'non-eap',
+      },
+    });
+  }, [location, navigate]);
+
+  return (
+    <Feature organization={organization} features="visibility-explore-admin">
+      <Button
+        disabled={location.query.trace_format === 'non-eap'}
+        size="xs"
+        aria-label="non-eap-trace-btn"
+        onClick={switchToNonEAPTrace}
+      >
+        {t('Switch to Non-EAP Trace')}
+      </Button>
+    </Feature>
+  );
+}
+
 function PlaceHolder({organization}: {organization: Organization}) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
@@ -87,7 +122,10 @@ function PlaceHolder({organization}: {organization: Organization}) {
               view
             )}
           />
-          <FeedbackButton />
+          <ButtonBar gap={1}>
+            <SwitchToNonEAPTraceButton location={location} organization={organization} />
+            <FeedbackButton />
+          </ButtonBar>
         </HeaderRow>
         <HeaderRow>
           <PlaceHolderTitleWrapper>
@@ -269,7 +307,13 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view
             )}
           />
-          <FeedbackButton />
+          <ButtonBar gap={1}>
+            <SwitchToNonEAPTraceButton
+              location={location}
+              organization={props.organization}
+            />
+            <FeedbackButton />
+          </ButtonBar>
         </HeaderRow>
         <HeaderRow>
           <Title

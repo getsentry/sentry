@@ -27,13 +27,13 @@ function Actions({repositoryName, onEdit, onDelete, hasFeature, hasAccess}: Prop
           aria-label={t('Actions')}
           disabled={actionsDisabled}
           title={
-            !hasFeature
-              ? undefined
-              : !hasAccess
-                ? t(
+            hasFeature
+              ? hasAccess
+                ? undefined
+                : t(
                     'You do not have permission to edit and delete custom repositories configurations.'
                   )
-                : undefined
+              : undefined
           }
           icon={<IconEllipsis />}
           {...triggerProps}

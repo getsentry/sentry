@@ -197,9 +197,9 @@ function HighlightedRestOfWords({
   isFirstWordHidden,
   hasSplit,
 }: HighlightedRestOfWordsProps) {
-  const remainingSubstr = !searchSubstring.includes(firstWord)
-    ? searchSubstring
-    : searchSubstring.slice(firstWord.length + 1);
+  const remainingSubstr = searchSubstring.includes(firstWord)
+    ? searchSubstring.slice(firstWord.length + 1)
+    : searchSubstring;
   const descIdx = combinedRestWords.indexOf(remainingSubstr);
 
   if (descIdx > -1) {
@@ -234,7 +234,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
 
   const fullWord = item.title;
 
-  const words = item.kind !== FieldKind.FUNCTION ? fullWord.split('.') : [fullWord];
+  const words = item.kind === FieldKind.FUNCTION ? [fullWord] : fullWord.split('.');
   const [firstWord, ...restWords] = words;
   const isFirstWordHidden = isChild;
 
@@ -401,13 +401,17 @@ function DropdownItem({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          !isDisabled
-            ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
+          isDisabled
+            ? undefined
+            : item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
               ? undefined
               : (item.callback ?? onClick.bind(null, item.value, item))
-            : undefined
         }
-        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+        ref={element => {
+          if (item.active && element) {
+            element.scrollIntoView?.({block: 'nearest'});
+          }
+        }}
         isChild={isChild}
         isDisabled={isDisabled}
       >

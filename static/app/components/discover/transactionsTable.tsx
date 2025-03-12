@@ -29,7 +29,7 @@ import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  columnOrder: Array<TableColumn<React.ReactText>>;
+  columnOrder: Array<TableColumn<string | number>>;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -45,8 +45,8 @@ type Props = {
     ) => LocationDescriptor
   >;
   handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
+    c: TableColumn<string | number>
+  ) => (a: Actions, v: string | number) => void;
   referrer?: string;
   titles?: string[];
 };
@@ -127,7 +127,7 @@ function TransactionsTable(props: Props) {
   const renderRow = (
     row: TableDataRow,
     rowIndex: number,
-    colOrder: Array<TableColumn<React.ReactText>>,
+    colOrder: Array<TableColumn<string | number>>,
     tableMeta: MetaType
   ): React.ReactNode[] => {
     const fields = eventView.getFields();

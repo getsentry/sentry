@@ -39,7 +39,7 @@ export default function PluginConfig({
   const api = useApi();
   const organization = useOrganization();
   // If passed via props, use that value instead of from `data`
-  const isEnabled = typeof enabled !== 'undefined' ? enabled : plugin.enabled;
+  const isEnabled = typeof enabled === 'undefined' ? plugin.enabled : enabled;
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const [testResults, setTestResults] = useState('');
   const [isPluginLoading, setIsPluginLoading] = useState(!plugins.isLoaded(plugin));
