@@ -317,6 +317,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ],
             ANY,
             {"profile_data": "test"},
+            None,
             "Yes",
             TIMEOUT_SECONDS,
             None,
@@ -378,6 +379,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             [],
             ANY,
             {"profile_data": "test"},
+            None,
             "Yes",
             TIMEOUT_SECONDS,
             None,
@@ -456,6 +458,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ],
             ANY,
             {"profile_data": "test"},
+            None,
             "Yes",
             TIMEOUT_SECONDS,
             None,
@@ -536,6 +539,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ],
             ANY,
             {"profile_data": "test"},
+            None,
             "Yes",
             TIMEOUT_SECONDS,
             None,
@@ -1192,3 +1196,297 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
+
+    def test_get_trace_tree_for_event(self):
+        """
+        Expected trace structure:
+
+        trace (1234567890abcdef1234567890abcdef)
+        ├── another-root-id (09:59:00Z) "browser - Earlier Transaction"
+        └── root-tx-id (10:00:00Z) "http.server - Root Transaction"
+            ├── child1-tx-id (10:00:10Z) "db - Database Query"
+            │   └── grandchild1-error-id (10:00:15Z) "Database Error"
+            └── child2-error-id (10:00:20Z) "Division by zero"
+
+        Note: Events are ordered chronologically at each level.
+        """
+        # Create a test event with a trace ID
+        event_data = load_data("python")
+        trace_id = "1234567890abcdef1234567890abcdef"
+        test_span_id = "abcdef0123456789"  # Add a span_id for the test event
+        event_data.update(
+            {
+                "contexts": {
+                    "trace": {"trace_id": trace_id, "span_id": test_span_id}  # Add the span_id
+                }
+            }
+        )
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        # Create mock data for the results from eventstore.backend.get_events
+        mock_results = []
+
+        # Root event (a transaction)
+        root_tx_span_id = "aaaaaaaaaaaaaaaa"
+        root_tx_event = {
+            "event_id": "root-tx-id",
+            "datetime": "2023-01-01T10:00:00Z",
+            "spans": [{"span_id": "child1-span-id"}, {"span_id": "child2-span-id"}],
+            "contexts": {
+                "trace": {"trace_id": trace_id, "span_id": root_tx_span_id, "op": "http.server"}
+            },
+            "title": "Root Transaction",
+            "platform": "python",
+            "project": self.project.id,
+        }
+
+        # Child 1 - transaction that happens before child 2
+        child1_span_id = "child1-span-id"
+        child1_tx_event = {
+            "event_id": "child1-tx-id",
+            "datetime": "2023-01-01T10:00:10Z",
+            "spans": [{"span_id": "grandchild1-span-id"}],
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": child1_span_id,
+                    "parent_span_id": root_tx_span_id,
+                    "op": "db",
+                }
+            },
+            "title": "Database Query",
+            "platform": "python",
+            "project": self.project.id,
+        }
+
+        # Child 2 - error that happens after child 1
+        child2_span_id = "child2-span-id"
+        child2_error_event = {
+            "event_id": "child2-error-id",
+            "datetime": "2023-01-01T10:00:20Z",
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": child2_span_id,
+                    "parent_span_id": root_tx_span_id,
+                }
+            },
+            "title": "Division by zero",
+            "platform": "python",
+            "project": self.project.id,
+        }
+
+        # Grandchild 1 - error event (child of child1)
+        grandchild1_span_id = "grandchild1-span-id"
+        grandchild1_error_event = {
+            "event_id": "grandchild1-error-id",
+            "datetime": "2023-01-01T10:00:15Z",
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": grandchild1_span_id,
+                    "parent_span_id": child1_span_id,
+                }
+            },
+            "title": "Database Error",
+            "platform": "python",
+            "project": self.project.id,
+        }
+
+        # Add another root event that happens earlier
+        another_root_span_id = "bbbbbbbbbbbbbbbb"
+        another_root_tx_event = {
+            "event_id": "another-root-id",
+            "datetime": "2023-01-01T09:59:00Z",
+            "spans": [],
+            "contexts": {
+                "trace": {"trace_id": trace_id, "span_id": another_root_span_id, "op": "browser"}
+            },
+            "title": "Earlier Transaction",
+            "platform": "javascript",
+            "project": self.project.id,
+        }
+
+        # Create mocks for the result objects
+        for event_data in [
+            root_tx_event,
+            child1_tx_event,
+            child2_error_event,
+            grandchild1_error_event,
+            another_root_tx_event,
+        ]:
+            mock_result = Mock()
+            mock_result.data = event_data
+            mock_results.append(mock_result)
+
+        # Test the trace tree function with mock data - shuffle to ensure ordering doesn't matter
+        import random
+
+        random.shuffle(mock_results)
+
+        with patch("sentry.eventstore.backend.get_events", return_value=mock_results):
+            endpoint = GroupAutofixEndpoint()
+            trace_tree = endpoint._get_trace_tree_for_event(event, self.project)
+
+        # Validate the trace tree structure
+        assert trace_tree is not None
+        assert trace_tree["trace_id"] == trace_id
+
+        # We should have two root events in chronological order
+        assert len(trace_tree["events"]) == 2
+
+        # First root should be the earlier transaction
+        first_root = trace_tree["events"][0]
+        assert first_root["event_id"] == "another-root-id"
+        assert first_root["title"] == "browser - Earlier Transaction"
+        assert first_root["datetime"] == "2023-01-01T09:59:00Z"
+        assert first_root["is_transaction"] is True
+        assert first_root["is_error"] is False
+        assert len(first_root["children"]) == 0
+
+        # Second root should be the main root transaction
+        second_root = trace_tree["events"][1]
+        assert second_root["event_id"] == "root-tx-id"
+        assert second_root["title"] == "http.server - Root Transaction"
+        assert second_root["datetime"] == "2023-01-01T10:00:00Z"
+        assert second_root["is_transaction"] is True
+        assert second_root["is_error"] is False
+
+        # Second root should have two children in chronological order
+        assert len(second_root["children"]) == 2
+
+        # First child of main root is child1
+        child1 = second_root["children"][0]
+        assert child1["event_id"] == "child1-tx-id"
+        assert child1["title"] == "db - Database Query"
+        assert child1["datetime"] == "2023-01-01T10:00:10Z"
+        assert child1["is_transaction"] is True
+        assert child1["is_error"] is False
+
+        # Child1 should have grandchild1
+        assert len(child1["children"]) == 1
+        grandchild1 = child1["children"][0]
+        assert grandchild1["event_id"] == "grandchild1-error-id"
+        assert grandchild1["title"] == "Database Error"
+        assert grandchild1["datetime"] == "2023-01-01T10:00:15Z"
+        assert grandchild1["is_transaction"] is False
+        assert grandchild1["is_error"] is True
+        assert len(grandchild1["children"]) == 0
+
+        # Second child of main root is child2
+        child2 = second_root["children"][1]
+        assert child2["event_id"] == "child2-error-id"
+        assert child2["title"] == "Division by zero"
+        assert child2["datetime"] == "2023-01-01T10:00:20Z"
+        assert child2["is_transaction"] is False
+        assert child2["is_error"] is True
+        assert len(child2["children"]) == 0
+
+    @patch("sentry.eventstore.backend.get_events")
+    def test_get_trace_tree_empty_results(self, mock_get_events):
+        """
+        Expected trace structure:
+
+        None (empty trace tree)
+
+        This test checks the behavior when no events are found for a trace.
+        """
+        # Test when no trace events are found
+        mock_get_events.return_value = []
+
+        event_data = load_data("python")
+        trace_id = "1234567890abcdef1234567890abcdef"
+        test_span_id = "abcdef0123456789"  # Add a span_id for the test event
+        event_data.update(
+            {
+                "contexts": {
+                    "trace": {"trace_id": trace_id, "span_id": test_span_id}  # Add the span_id
+                }
+            }
+        )
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        endpoint = GroupAutofixEndpoint()
+        trace_tree = endpoint._get_trace_tree_for_event(event, self.project)
+
+        assert trace_tree is None
+        mock_get_events.assert_called_once()
+
+    @patch("sentry.eventstore.backend.get_events")
+    def test_get_trace_tree_out_of_order_processing(self, mock_get_events):
+        """
+        Expected trace structure:
+
+        trace (1234567890abcdef1234567890abcdef)
+        └── parent-id (10:00:00Z) "Parent Last"
+            └── child-id (10:00:10Z) "Child First"
+
+        This test verifies that the correct tree structure is built even when
+        events are processed out of order (child before parent).
+        """
+        # Test that we can correctly build the tree even when child events come before parents
+        trace_id = "1234567890abcdef1234567890abcdef"
+        test_span_id = "abcdef0123456789"  # Add a span_id for the test event
+        event_data = load_data("python")
+        event_data.update(
+            {
+                "contexts": {
+                    "trace": {"trace_id": trace_id, "span_id": test_span_id}  # Add the span_id
+                }
+            }
+        )
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        # Child event that references a parent we haven't seen yet
+        child_span_id = "cccccccccccccccc"
+        parent_span_id = "pppppppppppppppp"
+
+        child_event = Mock()
+        child_event.data = {
+            "event_id": "child-id",
+            "datetime": "2023-01-01T10:00:10Z",
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": child_span_id,
+                    "parent_span_id": parent_span_id,
+                }
+            },
+            "title": "Child First",
+            "platform": "python",
+            "project": self.project.id,
+        }
+
+        # Parent event that comes after in the results
+        parent_event = Mock()
+        parent_event.data = {
+            "event_id": "parent-id",
+            "datetime": "2023-01-01T10:00:00Z",
+            "spans": [],
+            "contexts": {
+                "trace": {"trace_id": trace_id, "span_id": parent_span_id, "op": "http.server"}
+            },
+            "title": "Parent Last",
+            "platform": "python",
+            "project": self.project.id,
+        }
+
+        # Provide events with child before parent
+        mock_get_events.return_value = [child_event, parent_event]
+
+        endpoint = GroupAutofixEndpoint()
+        trace_tree = endpoint._get_trace_tree_for_event(event, self.project)
+
+        assert trace_tree is not None
+        assert len(trace_tree["events"]) == 1
+
+        # Parent should be the root
+        root = trace_tree["events"][0]
+        assert root["event_id"] == "parent-id"
+        assert root["span_id"] == parent_span_id
+
+        # Child should be under parent
+        assert len(root["children"]) == 1
+        child = root["children"][0]
+        assert child["event_id"] == "child-id"
+        assert child["span_id"] == child_span_id
