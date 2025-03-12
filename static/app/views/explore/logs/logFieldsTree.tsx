@@ -307,9 +307,9 @@ function LogFieldsTreeRow({
     );
   }
 
-  const attributeActions = !config?.disableActions ? (
+  const attributeActions = config?.disableActions ? null : (
     <LogFieldsTreeRowDropdown content={content} />
-  ) : null;
+  );
 
   return (
     <TreeRow hasErrors={hasErrors} {...props}>
@@ -463,9 +463,7 @@ function LogFieldsTreeValue({
     });
   }
 
-  return !isUrl(String(content.value)) ? (
-    defaultValue
-  ) : (
+  return isUrl(String(content.value)) ? (
     <AttributeLinkText>
       <ExternalLink
         onClick={e => {
@@ -476,6 +474,8 @@ function LogFieldsTreeValue({
         {String(content.value)}
       </ExternalLink>
     </AttributeLinkText>
+  ) : (
+    defaultValue
   );
 }
 

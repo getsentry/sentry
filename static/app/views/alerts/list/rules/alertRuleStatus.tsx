@@ -92,7 +92,9 @@ export default function AlertRuleStatus({rule}: Props) {
       {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
         <IconArrow color={iconColor} direction={iconDirection} />
       )}
-      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ? (
+      {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
+        <TriggerText>{statusLabel}</TriggerText>
+      ) : (
         <TriggerText>
           {`${thresholdTypeText} ${
             rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
@@ -106,8 +108,6 @@ export default function AlertRuleStatus({rule}: Props) {
               : AlertRuleComparisonType.COUNT
           )}
         </TriggerText>
-      ) : (
-        <TriggerText>{statusLabel}</TriggerText>
       )}
     </FlexCenter>
   );

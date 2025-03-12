@@ -152,7 +152,7 @@ class ProjectCharts extends Component<Props, State> {
         label: t('Crash Free Sessions'),
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.STABILITY) || !hasSessions,
-        tooltip: !hasSessions ? noHealthTooltip : undefined,
+        tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
         value: DisplayModes.STABILITY_USERS,
@@ -160,7 +160,7 @@ class ProjectCharts extends Component<Props, State> {
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.STABILITY_USERS) ||
           !hasSessions,
-        tooltip: !hasSessions ? noHealthTooltip : undefined,
+        tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
         value: DisplayModes.APDEX,
@@ -208,7 +208,7 @@ class ProjectCharts extends Component<Props, State> {
         label: t('Number of Sessions'),
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.SESSIONS) || !hasSessions,
-        tooltip: !hasSessions ? noHealthTooltip : undefined,
+        tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
         value: DisplayModes.TRANSACTIONS,
@@ -228,7 +228,7 @@ class ProjectCharts extends Component<Props, State> {
           label: t('ANR Rate'),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.ANR_RATE) || !hasSessions,
-          tooltip: !hasSessions ? noHealthTooltip : undefined,
+          tooltip: hasSessions ? undefined : noHealthTooltip,
         },
       ];
 
@@ -239,7 +239,7 @@ class ProjectCharts extends Component<Props, State> {
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.FOREGROUND_ANR_RATE) ||
             !hasSessions,
-          tooltip: !hasSessions ? noHealthTooltip : undefined,
+          tooltip: hasSessions ? undefined : noHealthTooltip,
         });
       }
 
@@ -337,9 +337,7 @@ class ProjectCharts extends Component<Props, State> {
     return (
       <Panel>
         <ChartContainer>
-          {!defined(hasSessions) ? (
-            <LoadingPanel />
-          ) : (
+          {defined(hasSessions) ? (
             <Fragment>
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
@@ -498,6 +496,8 @@ class ProjectCharts extends Component<Props, State> {
                 />
               )}
             </Fragment>
+          ) : (
+            <LoadingPanel />
           )}
         </ChartContainer>
         <ChartControls>

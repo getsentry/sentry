@@ -161,14 +161,14 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       label: t('Oldest'),
       details: t('First seen event in this issue'),
     },
-    ...(!selectedValue
-      ? [
+    ...(selectedValue
+      ? []
+      : [
           {
             value: EventNavDropdownOption.CUSTOM,
             label: t('Custom Selection'),
           },
-        ]
-      : []),
+        ]),
     {
       options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
     },
@@ -179,16 +179,18 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       size="sm"
       disabled={isDisabled}
       options={eventNavDropdownOptions}
-      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+      value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
       triggerLabel={
-        !selectedValue ? (
+        selectedValue ? (
+          selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
+        ) : (
           <TimeSince
             date={event.dateCreated ?? event.dateReceived}
             disabledAbsoluteTooltip
           />
-        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-          t('Recommended')
-        ) : undefined
+        )
       }
       menuWidth={232}
       onChange={selectedOption => {

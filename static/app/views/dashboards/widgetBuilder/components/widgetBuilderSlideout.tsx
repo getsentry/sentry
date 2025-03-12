@@ -164,7 +164,28 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {!openWidgetTemplates ? (
+        {openWidgetTemplates ? (
+          <Fragment>
+            <div ref={templatesPreviewRef}>
+              {isSmallScreen && (
+                <Section>
+                  <WidgetPreviewContainer
+                    dashboard={dashboard}
+                    dashboardFilters={dashboardFilters}
+                    isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
+                    openWidgetTemplates={openWidgetTemplates}
+                  />
+                </Section>
+              )}
+            </div>
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+              setIsPreviewDraggable={setIsPreviewDraggable}
+            />
+          </Fragment>
+        ) : (
           <Fragment>
             <Section>
               <WidgetBuilderFilterBar />
@@ -223,27 +244,6 @@ function WidgetBuilderSlideout({
               <WidgetBuilderNameAndDescription error={error} setError={setError} />
             </Section>
             <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
-          </Fragment>
-        ) : (
-          <Fragment>
-            <div ref={templatesPreviewRef}>
-              {isSmallScreen && (
-                <Section>
-                  <WidgetPreviewContainer
-                    dashboard={dashboard}
-                    dashboardFilters={dashboardFilters}
-                    isWidgetInvalid={isWidgetInvalid}
-                    onDataFetched={onDataFetched}
-                    openWidgetTemplates={openWidgetTemplates}
-                  />
-                </Section>
-              )}
-            </div>
-            <WidgetTemplatesList
-              onSave={onSave}
-              setOpenWidgetTemplates={setOpenWidgetTemplates}
-              setIsPreviewDraggable={setIsPreviewDraggable}
-            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

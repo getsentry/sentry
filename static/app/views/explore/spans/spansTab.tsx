@@ -79,8 +79,8 @@ export function SpansTabContentImpl({
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
@@ -226,6 +226,7 @@ export function SpansTabContentImpl({
             }
             numberTags={numberTags}
             stringTags={stringTags}
+            isLoading={numberTagsLoading || stringTagsLoading}
           />
         </HintsSection>
       </Feature>
@@ -282,9 +283,7 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
-type OnboardingContentProps = SpanTabProps & {
-  onboardingProject: Project;
-};
+type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
 
 function OnboardingContent(props: OnboardingContentProps) {
   const organization = useOrganization();

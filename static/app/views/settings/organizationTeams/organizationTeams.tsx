@@ -55,9 +55,7 @@ function OrganizationTeams({
       priority="primary"
       size="sm"
       disabled={!canCreateTeams}
-      title={
-        !canCreateTeams ? t('You do not have permission to create teams') : undefined
-      }
+      title={canCreateTeams ? undefined : t('You do not have permission to create teams')}
       onClick={() =>
         openCreateTeamModal({
           organization,
