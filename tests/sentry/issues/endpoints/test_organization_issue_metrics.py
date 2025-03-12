@@ -61,6 +61,27 @@ class OrganizationIssueBreakdownTest(APITestCase):
         response = self.client.get(self.url + "?statsPeriod=7d&category=error&group_by=test")
         assert response.status_code == 404
 
+    def test_issues_by_time_project_filter(self):
+        """Assert the project filter works."""
+        project1 = self.create_project(teams=[self.team], slug="foo")
+        project2 = self.create_project(teams=[self.team], slug="bar")
+
+        today = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        tmrw = today + timedelta(days=1)
+        yday = today - timedelta(days=1)
+        self.create_group(project=project1, status=0, first_seen=today, type=1)
+        self.create_group(project=project2, status=0, first_seen=today, type=1)
+
+        response = self.client.get(
+            self.url + f"?statsPeriod=1d&category=error&project={project1.id}"
+        )
+        response_json = response.json()
+        assert response_json["data"] == [
+            [str(int(yday.timestamp())), [{"count": 0}, {"count": 0}]],
+            [str(int(today.timestamp())), [{"count": 1}, {"count": 0}]],
+            [str(int(tmrw.timestamp())), [{"count": 0}, {"count": 0}]],
+        ]
+
     def test_new_feedback(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
