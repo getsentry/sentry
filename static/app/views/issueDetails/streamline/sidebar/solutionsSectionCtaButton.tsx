@@ -54,15 +54,16 @@ export function SolutionsSectionCtaButton({
   const isDrawerOpenRef = useRef(false);
 
   // Keep track of previous steps to detect state transitions and notify the user
-  const prevStepsRef = useRef<AutofixStep[]>();
-  const prevRunIdRef = useRef<string | undefined>();
+  const prevStepsRef = useRef<AutofixStep[] | null>(null);
+  const prevRunIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (isDrawerOpenRef.current) {
       return;
     }
 
     if (!autofixData?.steps || !prevStepsRef.current) {
-      prevStepsRef.current = autofixData?.steps;
+      prevStepsRef.current = autofixData?.steps || null;
+      prevRunIdRef.current = autofixData?.run_id || null;
       return;
     }
 
@@ -102,7 +103,7 @@ export function SolutionsSectionCtaButton({
       }
     }
 
-    prevStepsRef.current = autofixData?.steps;
+    prevStepsRef.current = autofixData?.steps || null;
     prevRunIdRef.current = autofixData?.run_id;
   }, [autofixData?.steps, autofixData?.run_id]);
 
