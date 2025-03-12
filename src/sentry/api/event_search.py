@@ -741,7 +741,7 @@ class SearchVisitor(NodeVisitor):
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
         if len(children) == 0:
-            return node.text
+            return []
 
         return ParenExpression(children)
 
