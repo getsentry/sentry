@@ -19,7 +19,7 @@ import type {GroupSearchView} from 'sentry/views/issueList/types';
 interface IssueViewNavItemsProps {
   baseUrl: string;
   loadedViews: IssueView[];
-  sectionRef: React.RefObject<HTMLDivElement>;
+  sectionRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function IssueViewNavItems({

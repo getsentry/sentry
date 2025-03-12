@@ -63,11 +63,11 @@ function AcceptProjectTransfer() {
       const orgSlug = formData.organization;
       const projectSlug = transferDetails?.project.slug;
       const sentryUrl = ConfigStore.get('links').sentryUrl;
-      if (!projectSlug) {
-        window.location.href = `${sentryUrl}/organizations/${orgSlug}/projects/`;
-      } else {
+      if (projectSlug) {
         window.location.href = `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`;
         // done this way since we need to change subdomains
+      } else {
+        window.location.href = `${sentryUrl}/organizations/${orgSlug}/projects/`;
       }
     },
     onError: () => {

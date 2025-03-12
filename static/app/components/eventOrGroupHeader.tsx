@@ -6,7 +6,7 @@ import {useHover} from '@react-aria/interactions';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,7 +15,6 @@ import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -49,8 +48,6 @@ function usePreloadGroupOnHover({
   const queryClient = useQueryClient();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {selection} = usePageFilters();
-  const api = useApi({persistInFlight: true});
-  const queryFn = fetchDataQuery(api);
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -61,7 +58,7 @@ function usePreloadGroupOnHover({
             organizationSlug: organization.slug,
             environments: selection.environments,
           }),
-          queryFn,
+          queryFn: fetchDataQuery,
           staleTime: 30_000,
         });
       }, 300);
@@ -235,12 +232,12 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const TitleWithLink = styled(GlobalSelectionLink)`
+const TitleWithLink = styled(Link)`
   display: inline-flex;
   align-items: center;
 `;
 
-const NewTitleWithLink = styled(GlobalSelectionLink)`
+const NewTitleWithLink = styled(Link)`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 

@@ -5,15 +5,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import Link from 'sentry/components/links/link';
+import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
-
-import Link from './links/link';
-import InteractionStateLayer from './interactionStateLayer';
-import {Tooltip, type TooltipProps} from './tooltip';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -100,7 +99,7 @@ interface CommonButtonProps {
  */
 type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 'title'>;
 
-interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
+export interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
   /**
    * The button is an external link. Similar to the `Link` `external` property.
    *
@@ -139,9 +138,11 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   children?: never;
 }
 
-type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
+export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
-interface BaseLinkButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
+export interface BaseLinkButtonProps
+  extends CommonButtonProps,
+    ElementProps<ButtonElement> {
   /**
    * @internal Used in the Button forwardRef
    */
@@ -194,7 +195,7 @@ interface HrefLinkButtonPropsWithAriaLabel extends HrefLinkButtonProps {
   children?: never;
 }
 
-type LinkButtonProps =
+export type LinkButtonProps =
   | ToLinkButtonPropsWithChildren
   | ToLinkButtonPropsWithAriaLabel
   | HrefLinkButtonPropsWithChildren
@@ -298,8 +299,8 @@ function BaseButton({
       aria-disabled={disabled}
       busy={busy}
       disabled={disabled}
-      to={!disabled ? to : undefined}
-      href={!disabled ? href : undefined}
+      to={disabled ? undefined : to}
+      href={disabled ? undefined : href}
       replace={replace}
       size={size}
       priority={priority}
@@ -337,7 +338,7 @@ function BaseButton({
   return button;
 }
 
-const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
+export const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
   <BaseButton forwardRef={ref} {...props} />
 ));
 
@@ -466,20 +467,20 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 
   // If using translucent borders, rewrite size styles to
   // prevent layout shifts
-  const borderStyles = !translucentBorder
-    ? {}
-    : {
+  const borderStyles = translucentBorder
+    ? {
         height: `calc(${formStyles.height} - 2px)`,
         minHeight: `calc(${formStyles.minHeight} - 2px)`,
         paddingTop: buttonPadding.paddingTop - 1,
         paddingBottom: buttonPadding.paddingBottom - 1,
         margin: 1,
-      };
+      }
+    : {};
 
   return {...formStyles, ...buttonPadding, ...borderStyles};
 };
 
-const StyledButton = styled(
+export const StyledButton = styled(
   reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     (
       {
@@ -569,7 +570,7 @@ const StyledButton = styled(
 const buttonLabelPropKeys = ['size', 'borderless'];
 type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
 
-const ButtonLabel = styled('span', {
+export const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
     typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
@@ -622,14 +623,4 @@ const Icon = styled('span')<IconProps>`
   flex-shrink: 0;
 `;
 
-const LinkButton = Button as React.ComponentType<LinkButtonProps>;
-
-export {
-  Button,
-  LinkButton,
-  StyledButton,
-  ButtonLabel,
-  type ButtonProps,
-  type BaseButtonProps,
-  type LinkButtonProps,
-};
+export const LinkButton = Button as React.ComponentType<LinkButtonProps>;

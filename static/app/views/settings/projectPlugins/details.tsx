@@ -6,7 +6,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PluginConfig from 'sentry/components/pluginConfig';

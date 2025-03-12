@@ -9,7 +9,7 @@ import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueVie
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
-import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
+import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -72,7 +72,7 @@ export interface IssueViewNavItemContentProps {
    * This is used as the portal container for the ellipsis menu, and as
    * the dragging constraint for each nav item.
    */
-  sectionRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function IssueViewNavItemContent({
@@ -157,7 +157,7 @@ export function IssueViewNavItemContent({
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
         isActive={isActive}
-        leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
+        leadingItems={<ProjectIcon projectPlatforms={projectPlatforms} />}
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {
@@ -299,12 +299,12 @@ const hasUnsavedChanges = (
         : undefined,
     querySort:
       querySort && issueSortOption !== originalSort ? issueSortOption : undefined,
-    projects: !isEqual(queryProjects?.sort(), originalProjects.sort())
-      ? queryProjects
-      : undefined,
-    environments: !isEqual(queryEnvs?.sort(), originalEnvironments.sort())
-      ? queryEnvs
-      : undefined,
+    projects: isEqual(queryProjects?.sort(), originalProjects.sort())
+      ? undefined
+      : queryProjects,
+    environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
+      ? undefined
+      : queryEnvs,
     timeFilters:
       queryTimeFilters &&
       !isEqual(

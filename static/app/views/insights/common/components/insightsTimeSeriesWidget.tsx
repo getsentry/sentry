@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
