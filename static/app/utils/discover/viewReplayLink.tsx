@@ -1,7 +1,6 @@
-import type {ComponentProps, ReactNode, ReactText} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
@@ -11,9 +10,9 @@ function ViewReplayLink({
   replayId,
   to,
 }: {
-  children: ReactNode;
-  replayId: ReactText | string;
-  to: ComponentProps<typeof Link>['to'];
+  children: React.ReactNode;
+  replayId: number | string;
+  to: LinkProps['to'];
 }) {
   const {replayExists} = useReplayExists();
 
