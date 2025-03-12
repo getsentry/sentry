@@ -32,7 +32,7 @@ from sentry.explore.models import ExploreSavedQuery
 from sentry.search.utils import tokenize_query
 
 
-@extend_schema(tags=["Explore"])
+@extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
