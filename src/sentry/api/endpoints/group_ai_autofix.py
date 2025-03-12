@@ -478,8 +478,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 )
             event_id = event.event_id
 
-        created_at = datetime.now().isoformat()
-
         if not (
             features.has("organizations:gen-ai-features", group.organization, actor=request.user)
             and group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
@@ -505,25 +503,15 @@ class GroupAutofixEndpoint(GroupEndpoint):
         # find best profile for this event
         try:
             profile = self._get_profile_for_event(event, group.project) if event else None
-        except Exception as e:
-            logger.exception(
-                "Failed to get profile for event",
-                extra={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                    "exception": e,
-                },
-            )
+        except Exception:
+            logger.exception("Failed to get profile for event")
             profile = None
 
         # get trace tree for this event
         try:
             trace_tree = self._get_trace_tree_for_event(event, group.project) if event else None
-        except Exception as e:
-            logger.exception(
-                "Failed to get trace tree for event",
-                extra={"group_id": group.id, "created_at": created_at, "exception": e},
-            )
+        except Exception:
+            logger.exception("Failed to get trace tree for event")
             trace_tree = None
 
         try:
@@ -538,15 +526,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 TIMEOUT_SECONDS,
                 data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
             )
-        except Exception as e:
-            logger.exception(
-                "Failed to send autofix to seer",
-                extra={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                    "exception": e,
-                },
-            )
+        except Exception:
+            logger.exception("Failed to send autofix to seer")
 
             return self._respond_with_error(
                 "Autofix failed to start.",
