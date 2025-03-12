@@ -1356,7 +1356,7 @@ class GSBanner extends Component<Props, State> {
                   'There was an issue with your payment. [updateUrl:Update your payment information] to ensure uninterrupted access to Sentry.',
                   {
                     updateUrl: (
-                      <Button
+                      <LinkButton
                         to={billingUrl}
                         size="xs"
                         priority="default"
@@ -1370,7 +1370,7 @@ class GSBanner extends Component<Props, State> {
                   'There was an issue with your payment. Please have the [updateUrl: Org Owner or Billing Member] update your payment information to ensure continued access to Sentry.',
                   {
                     updateUrl: (
-                      <Button
+                      <LinkButton
                         to={membersPageUrl}
                         size="xs"
                         priority="default"
@@ -1415,14 +1415,14 @@ class GSBanner extends Component<Props, State> {
               type="muted"
               trailingItems={
                 <ButtonBar gap={1}>
-                  <Button
+                  <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
                     priority="primary"
                   >
                     {t('Upgrade')}
-                  </Button>
+                  </LinkButton>
                   <Button
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"

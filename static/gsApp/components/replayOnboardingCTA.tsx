@@ -172,13 +172,13 @@ function ReplayOnboardingCTAUpsell({
           )}
         </p>
         <ButtonList gap={1}>
-          <Button
+          <LinkButton
             to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`}
             onClick={onClickManageSubscription}
             priority="primary"
           >
             {t('Manage Subscription')}
-          </Button>
+          </LinkButton>
           <LinkButton href="https://docs.sentry.io/product/session-replay/" external>
             {t('Read Docs')}
           </LinkButton>
@@ -200,13 +200,13 @@ function ReplayOnboardingCTAUpsell({
         </p>
         <ButtonList gap={1}>
           {hasBillingAccess ? (
-            <Button
+            <LinkButton
               to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
               onClick={onClickManageSubscription}
               priority="primary"
             >
               {t('Manage Subscription')}
-            </Button>
+            </LinkButton>
           ) : (
             <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
               {t('Request to Update Plan')}
