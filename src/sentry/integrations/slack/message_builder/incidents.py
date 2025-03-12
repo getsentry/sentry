@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
+from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import (
     INCIDENT_COLOR_MAPPING,

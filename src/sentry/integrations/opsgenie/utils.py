@@ -6,8 +6,8 @@ from typing import Any, cast
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.metric_alerts import (
-    AlertContext,
     get_metric_count_from_incident,
     incident_attachment_info,
 )

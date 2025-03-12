@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Literal
 
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
+from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,
     ColumnWidth,

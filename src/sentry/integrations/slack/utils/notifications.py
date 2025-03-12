@@ -13,11 +13,12 @@ from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (

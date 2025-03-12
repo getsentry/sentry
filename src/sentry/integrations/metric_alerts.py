@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 from urllib import parse
@@ -12,11 +11,7 @@ from django.utils.translation import gettext as _
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleDetectionType,
-    AlertRuleThresholdType,
-)
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
@@ -24,6 +19,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
@@ -63,25 +59,6 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
-
-
-@dataclass
-class AlertContext:
-    name: str
-    action_identifier_id: int
-    threshold_type: AlertRuleThresholdType | None
-    detection_type: AlertRuleDetectionType
-    comparison_delta: int | None
-
-    @classmethod
-    def from_alert_rule_incident(cls, alert_rule: AlertRule) -> AlertContext:
-        return cls(
-            name=alert_rule.name,
-            action_identifier_id=alert_rule.id,
-            threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
-            detection_type=AlertRuleDetectionType(alert_rule.detection_type),
-            comparison_delta=alert_rule.comparison_delta,
-        )
 
 
 def logo_url() -> str:

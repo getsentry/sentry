@@ -5,7 +5,8 @@ import logging
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization

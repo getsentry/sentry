@@ -13,7 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.integrations.metric_alerts import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.seer.anomaly_detection.types import StoreDataResponse
