@@ -54,7 +54,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
     prefersIssueDetailsStreamlinedUI: boolean;
-    prefersSpecializedProjectOverview: boolean;
     prefersStackedNavigation: boolean;
     quickStartDisplay: QuickStartDisplay;
     stacktraceOrder: number;
