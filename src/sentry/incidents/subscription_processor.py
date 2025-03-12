@@ -451,7 +451,10 @@ class SubscriptionProcessor:
             ):
                 logger.info(
                     "Received this response from Seer",
-                    extra={"potential_anomalies": potential_anomalies},
+                    extra={
+                        "potential_anomalies": potential_anomalies,
+                        "alert_rule_id": self.alert_rule.id,
+                    },
                 )
             if potential_anomalies is None:
                 logger.info(
