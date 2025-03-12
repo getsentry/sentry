@@ -54,8 +54,6 @@ def translate_mep_to_eap(query_parts: QueryParts):
     flattened_query = []
 
     def _flatten(seq):
-        # there is a list from search_term and one from free_text, so flatten them.
-        # Flatten each group in the list, since nodes can return multiple items
         for item in seq:
             if isinstance(item, list):
                 _flatten(item)
