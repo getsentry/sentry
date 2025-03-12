@@ -26,8 +26,10 @@ interface UseDiscoverOptions<Fields> {
   noPagination?: boolean;
   pageFilters?: PageFilters;
   projectIds?: number[];
+  /**
+   * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
+   */
   search?: MutableSearch | string;
-  // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
 }
 
