@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconSiren = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconSiren({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z" />
@@ -17,7 +15,7 @@ const IconSiren = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <rect x="7.25" y="9.88" width="1.5" height="2.21" />
     </SvgIcon>
   );
-});
+}
 
 IconSiren.displayName = 'IconSiren';
 

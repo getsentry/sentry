@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -7,7 +7,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-const IconPin = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, ref) => {
+function IconPin({ref, isSolid = false, ...props}: Props) {
   return (
     <SvgIcon {...props} ref={ref}>
       {isSolid ? (
@@ -23,7 +23,7 @@ const IconPin = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, r
       )}
     </SvgIcon>
   );
-});
+}
 
 IconPin.displayName = 'IconPin';
 

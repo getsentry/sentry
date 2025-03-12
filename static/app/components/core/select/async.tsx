@@ -1,4 +1,4 @@
-import {Component, forwardRef} from 'react';
+import {Component} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -125,6 +125,6 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   }
 }
 
-export const SelectAsync = forwardRef((p: any, ref: any) => {
+export function SelectAsync({ref, ...p}) {
   return <SelectAsyncControl {...p} forwardedRef={ref} />;
-});
+}

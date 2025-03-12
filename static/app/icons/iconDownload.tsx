@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconDownload = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconDownload({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M15.24,16H.76A.76.76,0,0,1,0,15.27V9.74A.76.76,0,0,1,.76,9a.76.76,0,0,1,.75.75v4.78h13V9.74a.75.75,0,0,1,1.5,0v5.53A.76.76,0,0,1,15.24,16Z" />
@@ -11,7 +9,7 @@ const IconDownload = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M8,12.08a.76.76,0,0,1-.75-.75V1a.75.75,0,0,1,1.5,0V11.33A.76.76,0,0,1,8,12.08Z" />
     </SvgIcon>
   );
-});
+}
 
 IconDownload.displayName = 'IconDownload';
 

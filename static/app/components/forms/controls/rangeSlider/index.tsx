@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -40,8 +40,6 @@ type SliderProps = {
    */
   formatLabel?: (value: number | '') => React.ReactNode;
 
-  forwardRef?: React.Ref<HTMLDivElement>;
-
   /**
    * HTML id of the range input
    */
@@ -73,6 +71,7 @@ type SliderProps = {
    * Placeholder for custom input
    */
   placeholder?: string;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Show input control for custom values
    */
@@ -96,7 +95,7 @@ function RangeSlider({
   className,
   onBlur,
   onChange,
-  forwardRef,
+  ref,
   disabledReason,
   showLabel = true,
   ...props
@@ -184,7 +183,7 @@ function RangeSlider({
   const labelText = formatLabel?.(actualValue) ?? displayValue;
 
   return (
-    <div className={className} ref={forwardRef}>
+    <div className={className} ref={ref}>
       {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
       <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
         <SliderAndInputWrapper showCustomInput={showCustomInput}>
@@ -219,13 +218,6 @@ function RangeSlider({
   );
 }
 
-const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(
-  props: SliderProps,
-  ref: React.Ref<any>
-) {
-  return <RangeSlider {...props} forwardRef={ref} />;
-});
-
-export default RangeSliderContainer;
+export default RangeSlider;
 
 export type {SliderProps};

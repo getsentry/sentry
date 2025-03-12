@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconDivide = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconDivide({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref} data-test-id="icon-divide">
       <path d="M14,8.75H2c-.41,0-.75-.34-.75-.75s.34-.75.75-.75h12c.41,0,.75.34.75.75s-.34.75-.75.75Z" />
@@ -11,7 +9,7 @@ const IconDivide = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <circle cx="7.95" cy="13.56" r="1.31" />
     </SvgIcon>
   );
-});
+}
 
 IconDivide.displayName = 'IconDivide';
 

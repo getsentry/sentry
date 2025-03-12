@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconRewind10 = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconRewind10({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M2.18,2.64c-.05-.07-.07-.14-.06-.22,.01-.08,.05-.15,.12-.2L4.62,.34c.06-.04,.12-.09,.18-.13,.06-.04,.13-.06,.2-.06h.86c.08,0,.15,.03,.21,.09,.06,.06,.09,.13,.09,.21V7.56c0,.08-.03,.15-.09,.21s-.13,.09-.21,.09h-.89c-.08,0-.15-.03-.21-.09s-.09-.13-.09-.21V2.12l-1.56,1.22c-.07,.05-.14,.07-.21,.06-.08-.01-.15-.05-.2-.12l-.52-.65Z" />
@@ -12,7 +10,7 @@ const IconRewind10 = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M13.2,13.12H.78c-.41,0-.75-.34-.75-.75s.34-.75,.75-.75H13.2c.69,0,1.25-.56,1.25-1.25v-2.61c0-.41,.34-.75,.75-.75s.75,.34,.75,.75v2.61c0,1.52-1.23,2.75-2.75,2.75Z" />
     </SvgIcon>
   );
-});
+}
 
 IconRewind10.displayName = 'IconRewind10';
 

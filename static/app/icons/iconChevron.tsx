@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
@@ -36,28 +36,26 @@ function getChevronPath({isCircled, isDouble}: Pick<Props, 'isCircled' | 'isDoub
   return CHEVRON_PATH;
 }
 
-const IconChevron = forwardRef<SVGSVGElement, Props>(
-  ({isDouble, isCircled, direction = 'up', ...props}, ref) => {
-    const theme = useTheme();
+function IconChevron({ref, isDouble, isCircled, direction = 'up', ...props}: Props) {
+  const theme = useTheme();
 
-    return (
-      <SvgIcon
-        {...props}
-        ref={ref}
-        css={
-          direction
-            ? css`
-                transition: transform 120ms ease-in-out;
-                transform: rotate(${theme.iconDirections[direction]}deg);
-              `
-            : undefined
-        }
-      >
-        {getChevronPath({isDouble, isCircled})}
-      </SvgIcon>
-    );
-  }
-);
+  return (
+    <SvgIcon
+      {...props}
+      ref={ref}
+      css={
+        direction
+          ? css`
+              transition: transform 120ms ease-in-out;
+              transform: rotate(${theme.iconDirections[direction]}deg);
+            `
+          : undefined
+      }
+    >
+      {getChevronPath({isDouble, isCircled})}
+    </SvgIcon>
+  );
+}
 
 IconChevron.displayName = 'IconChevron';
 

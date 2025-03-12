@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -337,9 +337,14 @@ function BaseButton({
   return button;
 }
 
-const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
-  <BaseButton forwardRef={ref} {...props} />
-));
+function Button({
+  ref,
+  ...props
+}: ButtonProps & {
+  ref?: React.Ref<ButtonElement>;
+}) {
+  return <BaseButton forwardRef={ref} {...props} />;
+}
 
 Button.displayName = 'Button';
 
@@ -480,59 +485,58 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 };
 
 const StyledButton = styled(
-  reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-    (
-      {
-        forwardRef,
-        size: _size,
-        title: _title,
-        external,
-        to,
-        replace,
-        href,
-        disabled,
-        ...props
-      }: ButtonProps,
-      forwardRefAlt
-    ) => {
-      // XXX: There may be two forwarded refs here, one potentially passed from a
-      // wrapped Tooltip, another from callers of Button.
+  ({
+    ref: forwardRefAlt,
+    forwardRef,
+    size: _size,
+    title: _title,
+    external,
+    to,
+    replace,
+    href,
+    disabled,
+    ...props
+  }: ButtonProps & {
+    ref?: React.Ref<HTMLAnchorElement>;
+  }) => {
+    // XXX: There may be two forwarded refs here, one potentially passed from a
+    // wrapped Tooltip, another from callers of Button.
 
-      const ref = mergeRefs([forwardRef, forwardRefAlt]);
+    const ref = mergeRefs<HTMLAnchorElement>([
+      forwardRef as React.RefObject<HTMLAnchorElement>,
+      forwardRefAlt,
+    ]);
 
-      // Get component to use based on existence of `to` or `href` properties
-      // Can be react-router `Link`, `a`, or `button`
-      if (to) {
-        return (
-          <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />
-        );
-      }
-
-      if (href && external) {
-        return (
-          <a
-            {...props}
-            ref={ref}
-            href={href}
-            aria-disabled={disabled}
-            target="_blank"
-            rel="noreferrer noopener"
-          />
-        );
-      }
-
-      if (href) {
-        return <a {...props} ref={ref} href={href} />;
-      }
-
-      // The default `type` of a native button element is `submit` when inside
-      // of a form. This is typically not what we want, and if we do want it we
-      // should explicitly set type submit.
-      props.type ??= 'button';
-
-      return <button {...props} ref={ref} disabled={disabled} />;
+    // Get component to use based on existence of `to` or `href` properties
+    // Can be react-router `Link`, `a`, or `button`
+    if (to) {
+      return <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />;
     }
-  ),
+
+    if (href && external) {
+      return (
+        <a
+          {...props}
+          ref={ref}
+          href={href}
+          aria-disabled={disabled}
+          target="_blank"
+          rel="noreferrer noopener"
+        />
+      );
+    }
+
+    if (href) {
+      return <a {...props} ref={ref} href={href} />;
+    }
+
+    // The default `type` of a native button element is `submit` when inside
+    // of a form. This is typically not what we want, and if we do want it we
+    // should explicitly set type submit.
+    props.type ??= 'button';
+
+    return <button {...props} ref={ref as any} disabled={disabled} />;
+  },
   {
     shouldForwardProp: prop =>
       prop === 'forwardRef' ||

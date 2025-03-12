@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -7,7 +7,7 @@ interface Props extends SVGIconProps {
   isCircled?: boolean;
 }
 
-const IconAdd = forwardRef<SVGSVGElement, Props>(({isCircled = false, ...props}, ref) => {
+function IconAdd({ref, isCircled = false, ...props}: Props) {
   return (
     <SvgIcon {...props} ref={ref} data-test-id="icon-add">
       {isCircled ? (
@@ -23,7 +23,7 @@ const IconAdd = forwardRef<SVGSVGElement, Props>(({isCircled = false, ...props},
       )}
     </SvgIcon>
   );
-});
+}
 
 IconAdd.displayName = 'IconAdd';
 

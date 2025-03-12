@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconSupport = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconSupport({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z" />
@@ -12,7 +10,7 @@ const IconSupport = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z" />
     </SvgIcon>
   );
-});
+}
 
 IconSupport.displayName = 'IconSupport';
 

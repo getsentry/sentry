@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -7,7 +7,7 @@ interface Props extends SVGIconProps {
   locked?: boolean;
 }
 
-const IconLock = forwardRef<SVGSVGElement, Props>(({locked = false, ...props}, ref) => {
+function IconLock({ref, locked = false, ...props}: Props) {
   return (
     <SvgIcon {...props} ref={ref}>
       {locked ? (
@@ -25,7 +25,7 @@ const IconLock = forwardRef<SVGSVGElement, Props>(({locked = false, ...props}, r
       )}
     </SvgIcon>
   );
-});
+}
 
 IconLock.displayName = 'IconLock';
 

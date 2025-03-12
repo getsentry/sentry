@@ -1,6 +1,5 @@
 import './components/visualMap';
 
-import {forwardRef} from 'react';
 import type {HeatmapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
@@ -21,7 +20,12 @@ interface HeatmapProps extends Omit<BaseChartProps, 'series'> {
   seriesOptions?: HeatmapSeriesOption;
 }
 
-export default forwardRef<ReactEchartsRef, HeatmapProps>((props, ref) => {
+export default function HeatMapChart({
+  ref,
+  ...props
+}: HeatmapProps & {
+  ref?: React.Ref<ReactEchartsRef>;
+}) {
   const {series, seriesOptions, visualMaps, ...otherProps} = props;
   return (
     <BaseChart
@@ -40,4 +44,4 @@ export default forwardRef<ReactEchartsRef, HeatmapProps>((props, ref) => {
       )}
     />
   );
-});
+}

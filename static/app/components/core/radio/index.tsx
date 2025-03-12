@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,19 +12,20 @@ export interface RadioProps
 }
 
 export const Radio = styled(
-  forwardRef<HTMLInputElement, RadioProps>(
-    (
-      {
-        // Do not forward `size` since it's used for custom styling, not as the
-        // native `size` attribute (for that, use `nativeSize` instead)
-        size: _size,
-        // Use `nativeSize` as the native `size` attribute
-        nativeSize,
-        ...props
-      },
-      ref
-    ) => <input type="radio" {...props} ref={ref} size={nativeSize} />
-  ),
+  ({
+    ref,
+
+    // Do not forward `size` since it's used for custom styling, not as the
+    // native `size` attribute (for that, use `nativeSize` instead)
+    size: _size,
+
+    // Use `nativeSize` as the native `size` attribute
+    nativeSize,
+
+    ...props
+  }: RadioProps & {
+    ref?: React.Ref<HTMLInputElement>;
+  }) => <input type="radio" {...props} ref={ref} size={nativeSize} />,
   {
     shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
   }

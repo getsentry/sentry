@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconExpand = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconExpand({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M15.26,5.74c-.41,0-.75-.34-.75-.75V1.5h-3.49c-.41,0-.75-.34-.75-.75s.34-.75,.75-.75h4.24c.41,0,.75,.34,.75,.75V4.99c0,.41-.34,.75-.75,.75Z" />
@@ -12,7 +10,7 @@ const IconExpand = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M4.97,16H.76C.34,16,0,15.66,0,15.25v-4.22c0-.41,.34-.75,.75-.75s.75,.34,.75,.75v3.47h3.47c.41,0,.75,.34,.75,.75s-.34,.75-.75,.75Z" />
     </SvgIcon>
   );
-});
+}
 
 IconExpand.displayName = 'IconExpand';
 

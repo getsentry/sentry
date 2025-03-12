@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconCursorArrow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconCursorArrow({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path
@@ -15,7 +13,7 @@ const IconCursorArrow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       />
     </SvgIcon>
   );
-});
+}
 
 IconCursorArrow.displayName = 'IconCursorArrow';
 

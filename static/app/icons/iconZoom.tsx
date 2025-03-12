@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -7,7 +7,7 @@ interface Props extends SVGIconProps {
   isZoomIn?: boolean;
 }
 
-const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props}, ref) => {
+function IconZoom({ref, isZoomIn = false, ...props}: Props) {
   return (
     <SvgIcon {...props} ref={ref}>
       {isZoomIn ? (
@@ -26,7 +26,7 @@ const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props},
       )}
     </SvgIcon>
   );
-});
+}
 
 IconZoom.displayName = 'IconZoom';
 

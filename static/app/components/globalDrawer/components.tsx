@@ -1,4 +1,4 @@
-import {createContext, forwardRef, Fragment, useContext} from 'react';
+import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import type {AnimationProps} from 'framer-motion';
 
@@ -31,10 +31,15 @@ interface DrawerPanelProps {
   transitionProps?: AnimationProps['transition'];
 }
 
-export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {ariaLabel, children, transitionProps, onClose}: DrawerPanelProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+export function DrawerPanel({
+  ref,
+  ariaLabel,
+  children,
+  transitionProps,
+  onClose,
+}: DrawerPanelProps & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
   return (
     <DrawerContainer>
       <DrawerSlidePanel
@@ -55,7 +60,7 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
       </DrawerSlidePanel>
     </DrawerContainer>
   );
-});
+}
 
 interface DrawerHeaderProps {
   children?: React.ReactNode;
@@ -70,15 +75,15 @@ interface DrawerHeaderProps {
   hideCloseButton?: boolean;
 }
 
-export const DrawerHeader = forwardRef(function DrawerHeaderInner(
-  {
-    className,
-    children = null,
-    hideBar = false,
-    hideCloseButton = false,
-  }: DrawerHeaderProps,
-  ref: React.ForwardedRef<HTMLHeadingElement>
-) {
+export function DrawerHeader({
+  ref,
+  className,
+  children = null,
+  hideBar = false,
+  hideCloseButton = false,
+}: DrawerHeaderProps & {
+  ref?: React.Ref<HTMLHeadingElement>;
+}) {
   const {onClose} = useDrawerContentContext();
 
   return (
@@ -101,7 +106,7 @@ export const DrawerHeader = forwardRef(function DrawerHeaderInner(
       {children}
     </Header>
   );
-});
+}
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};

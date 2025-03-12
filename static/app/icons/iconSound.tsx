@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconSound = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconSound({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M9.58,15.94a.71.71,0,0,1-.44-.15L3.58,11.73H.75A.75.75,0,0,1,0,11V5A.76.76,0,0,1,.75,4.2H3.58L9.14.14A.73.73,0,0,1,9.92.08a.75.75,0,0,1,.41.67V15.19a.73.73,0,0,1-.41.66A.69.69,0,0,1,9.58,15.94ZM1.5,10.23H3.83a.73.73,0,0,1,.44.15l4.56,3.33V2.22L4.27,5.56a.79.79,0,0,1-.44.14H1.5Z" />
@@ -11,7 +9,7 @@ const IconSound = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M11.76,10.35a.64.64,0,0,1-.33-.08.75.75,0,0,1-.34-1,.78.78,0,0,1,.14-.2,1.56,1.56,0,0,0,0-2.21A.75.75,0,0,1,12.29,5.8a3.07,3.07,0,0,1,0,4.32A.78.78,0,0,1,11.76,10.35Z" />
     </SvgIcon>
   );
-});
+}
 
 IconSound.displayName = 'IconSound';
 

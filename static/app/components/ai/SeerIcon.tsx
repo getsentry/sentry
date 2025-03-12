@@ -1,10 +1,9 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 
-const SeerIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerIcon({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref} viewBox="0 0 30 30">
       <StyledPath d="M14.0407,3.1458L3.5742,17.0376c-.2989.3967-.2327.9584.1501,1.2748l10.4917,8.6705c.3436.284.8405.2838,1.1839-.0005l10.4717-8.6691c.3827-.3169.4483-.8788.1488-1.2753L15.5235,3.1448c-.3719-.4922-1.1115-.4917-1.4828.001Z" />
@@ -12,7 +11,7 @@ const SeerIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <StyledLine x1="14.7558" y1="15.9343" x2="14.7558" y2="17.2053" />
     </SvgIcon>
   );
-});
+}
 
 SeerIcon.displayName = 'SeerIcon';
 
