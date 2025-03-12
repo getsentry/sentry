@@ -18,6 +18,8 @@ const SALES_MESSAGE = tct(
 /**
  * Partner-specific message templates.
  * Each partner has their own marketplace or dashboard where users can manage their subscriptions.
+ *
+ * NOTE: this is for legacy partners only; use partnership_support_note instead for any new channel partnerships
  */
 const PARTNER_MESSAGES = {
   // GitHub Marketplace message
