@@ -7,7 +7,9 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.base import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -123,3 +125,18 @@ class OrganizationMemberInvite(Model):
     @property
     def requested_to_be_invited(self):
         return self.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        # If there is a token collision, generate new tokens.
+        query = models.Q(token=self.token)
+        existing = self.__class__.objects.filter(query).first()
+        if existing:
+            self.pk = existing.pk
+            self.expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
+            self.token = generate_token()
+            self.save()
+            return (self.pk, ImportKind.Overwrite)
+
+        return super().write_relocation_import(scope, flags)
