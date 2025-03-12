@@ -70,6 +70,23 @@ export function makeSentryContinuousProfile(
   ) as Profiling.SentryContinousProfileChunk;
 }
 
+export function makeSentryAndroidContinuousProfileChunk(
+  profile?: DeepPartial<Profiling.SentryAndroidContinuousProfileChunk>
+): Profiling.SentryAndroidContinuousProfileChunk {
+  return merge(
+    {
+      transactionName: 'foo',
+      metrics: [],
+      profiles: [],
+      metadata: {},
+      profileID: '1',
+      projectID: 1,
+      shared: {},
+    },
+    profile
+  ) as Profiling.SentryAndroidContinuousProfileChunk;
+}
+
 export const makeSentrySampledProfile = (
   profile?: DeepPartial<Profiling.SentrySampledProfile>
 ) => {
