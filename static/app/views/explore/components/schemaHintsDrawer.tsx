@@ -26,7 +26,7 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
   }, [exploreQuery]);
 
   const sortedHints = useMemo(() => {
-    return hints.sort((a, b) => {
+    return hints.toSorted((a, b) => {
       // may need to fix this if we don't want to ignore the prefix
       const aWithoutPrefix = prettifyTagKey(a.key).replace(/^_/, '');
       const bWithoutPrefix = prettifyTagKey(b.key).replace(/^_/, '');
@@ -80,7 +80,7 @@ const CheckboxLabelContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const CheckboxLabel = styled('p')`
+const CheckboxLabel = styled('span')`
   font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
   ${p => p.theme.overflowEllipsis};
@@ -88,10 +88,6 @@ const CheckboxLabel = styled('p')`
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
   flex-direction: column;
-
-  :last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
@@ -101,6 +97,10 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
+  }
+
+  &:last-child {
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 
   & > label {
