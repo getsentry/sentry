@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 type CallbackArgs = {height: number; left: number; top: number; width: number};
 
 type Opts<T extends Element> = {
-  elem: RefObject<T>;
+  elem: RefObject<T | null>;
   onPositionChange: (args: undefined | CallbackArgs) => void;
 } & DOMAttributes<T>;
 
