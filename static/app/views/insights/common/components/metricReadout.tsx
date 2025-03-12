@@ -1,4 +1,3 @@
-import type {ReactText} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
@@ -33,7 +32,7 @@ type Unit =
 interface Props {
   title: string;
   unit: Unit;
-  value: ReactText | undefined;
+  value: string | number | undefined;
   isLoading?: boolean;
   preferredPolarity?: Polarity;
   tooltip?: React.ReactNode;
