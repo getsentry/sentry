@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Button} from 'sentry/components/button';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
