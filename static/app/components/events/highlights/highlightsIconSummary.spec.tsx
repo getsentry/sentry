@@ -177,4 +177,48 @@ describe('HighlightsIconSummary', function () {
     });
     expect(await screen.findByRole('button', {name: 'Screenshot'})).toBeInTheDocument();
   });
+
+  it('shortens long ruby runtime versions', async function () {
+    const eventWithLongRuntime = EventFixture({
+      contexts: {
+        runtime: {
+          name: 'ruby',
+          version: 'ruby 3.2.6 (2024-10-30 revision 63aeb018eb) [arm64-darwin23]',
+          type: 'runtime',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={eventWithLongRuntime} group={group} />);
+    expect(await screen.findByText('3.2.6')).toBeInTheDocument();
+  });
+
+  it('shortens long ruby runtime versions with patch', async function () {
+    const eventWithLongRuntime = EventFixture({
+      contexts: {
+        runtime: {
+          name: 'ruby',
+          version:
+            'ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin24]',
+          type: 'runtime',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={eventWithLongRuntime} group={group} />);
+    expect(await screen.findByText('2.6.10p210')).toBeInTheDocument();
+  });
+
+  it('shortens long operating system versions', async function () {
+    const eventWithLongOperatingSystem = EventFixture({
+      contexts: {
+        os: {
+          name: 'Darwin',
+          version:
+            'Darwin Kernel Version 24.3.0: Thu Jan 2 20:24:24 PST 2025; root:xnu-11215.81.4~3/RELEASE_ARM64_T6030',
+          type: 'os',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={eventWithLongOperatingSystem} group={group} />);
+    expect(await screen.findByText('24.3.0 (RELEASE_ARM64_T6030)')).toBeInTheDocument();
+  });
 });
