@@ -51,9 +51,10 @@ then the consumer produces them, then they are deleted from Redis
 
 from __future__ import annotations
 
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from typing import NamedTuple
 
+import rapidjson
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
@@ -243,31 +244,42 @@ class RedisSpansBufferV2:
 
         return sum(queue_sizes), return_segments
 
-    def done_flush_segments(self, segment_ids: Collection[SegmentId]):
+    def done_flush_segments(self, segment_ids: dict[SegmentId, set[bytes]]):
+        payload_nums = []
         metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))
         with metrics.timer("sentry.spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
-                for segment_id in segment_ids:
+                for segment_id, payloads in segment_ids.items():
                     hrs_key = b"span-buf:hrs:" + segment_id
                     p.get(hrs_key)
                     p.delete(hrs_key)
                     p.delete(segment_id)
 
                     # parse trace_id out of SegmentId, then remove from queue
-                    trace_id = segment_id.split(b":")[3][:-1]
+                    segment_id_parts = segment_id.split(b":")
+                    project_id = segment_id_parts[2][1:]
+                    trace_id = segment_id_parts[3][:-1]
+                    redirect_map_key = f"span-buf:sr:{project_id}:{trace_id}"
                     shard = int(trace_id, 16) % self.num_shards
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
+
+                    payload_nums.append(len(payloads))
+                    for payload in payloads:
+                        span_id = rapidjson.loads(payload)["span_id"]
+                        p.hdel(redirect_map_key, span_id)
 
                 results = iter(p.execute())
 
             has_root_span_count = 0
-            for result in results:
+            for result, payload_num in zip(results, payload_nums):
                 if result:
                     has_root_span_count += 1
 
                 next(results)  # DEL hrs_key
                 next(results)  # DEL segment_id
                 next(results)  # ZREM ...
+                for _ in range(payload_num):  # HDEL ...
+                    next(results)
 
             metrics.timing(
                 "sentry.spans.buffer.done_flush_segments.has_root_span", has_root_span_count

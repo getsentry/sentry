@@ -25,10 +25,8 @@ local set_timeout = tonumber(ARGV[5])
 local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
 local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
 
-local parent_set_redirect_key = string.format("span-buf:sr:{%s}:%s", project_and_trace, parent_span_id)
-local set_redirect_key = string.format("span-buf:sr:{%s}:%s", project_and_trace, span_id)
-
-local set_key = redis.call("get", parent_set_redirect_key) or parent_key
+local main_redirect_key = string.format("span-buf:sr:%s", project_and_trace)
+local set_key = redis.call("hget", main_redirect_key, parent_span_id) or parent_key
 
 if not is_root_span then
     redis.call("sunionstore", set_key, set_key, span_key)
@@ -36,9 +34,9 @@ if not is_root_span then
 end
 redis.call("sadd", set_key, payload)
 redis.call("expire", set_key, set_timeout)
-redis.call("setex", set_redirect_key, set_timeout, set_key)
 
-redis.call("expire", parent_set_redirect_key, set_timeout)
+redis.call("hset", main_redirect_key, span_id, set_key)
+redis.call("expire", main_redirect_key, set_timeout)
 
 local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
 local has_root_span = redis.call("get", has_root_span_key) == "1"

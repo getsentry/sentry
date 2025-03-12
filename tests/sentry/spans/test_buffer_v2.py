@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 
 import pytest
+import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
 from sentry.spans.buffer_v2 import RedisSpansBufferV2, SegmentId, Span
@@ -10,6 +11,10 @@ from sentry.spans.buffer_v2 import RedisSpansBufferV2, SegmentId, Span
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
     return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+
+
+def _payload(span_id: str) -> bytes:
+    return rapidjson.dumps({"span_id": span_id}).encode("ascii")
 
 
 @pytest.fixture(params=["cluster", "single"])
@@ -53,28 +58,28 @@ def assert_clean(client: StrictRedis[bytes]):
         itertools.permutations(
             [
                 Span(
-                    payload=b"A",
+                    payload=_payload(b"a" * 32),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"B",
+                    payload=_payload(b"b" * 32),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"C",
+                    payload=_payload(b"c" * 32),
                     trace_id="a" * 32,
                     span_id="e" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"D",
+                    payload=_payload(b"d" * 32),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
@@ -91,7 +96,14 @@ def test_basic(buffer: RedisSpansBufferV2, spans):
 
     assert buffer.flush_segments(now=5) == (1, {})
     _, rv = buffer.flush_segments(now=11)
-    assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"D", b"B", b"A", b"C"}}
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): {
+            _payload(b"d" * 32),
+            _payload(b"b" * 32),
+            _payload(b"a" * 32),
+            _payload(b"c" * 32),
+        }
+    }
     buffer.done_flush_segments(rv)
     assert buffer.flush_segments(now=30) == (0, {})
 
@@ -104,28 +116,28 @@ def test_basic(buffer: RedisSpansBufferV2, spans):
         itertools.permutations(
             [
                 Span(
-                    payload=b"D",
+                    payload=_payload("d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"B",
+                    payload=_payload("b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id="a" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"A",
+                    payload=_payload("a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
                     parent_span_id=None,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"C",
+                    payload=_payload("c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="a" * 16,
@@ -141,7 +153,14 @@ def test_deep(buffer: RedisSpansBufferV2, spans):
     assert_ttls(buffer.client)
 
     _, rv = buffer.flush_segments(now=10)
-    assert rv == {_segment_id(1, "a" * 32, "a" * 16): {b"D", b"B", b"A", b"C"}}
+    assert rv == {
+        _segment_id(1, "a" * 32, "a" * 16): {
+            _payload("d" * 16),
+            _payload("b" * 16),
+            _payload("a" * 16),
+            _payload("c" * 16),
+        }
+    }
 
     buffer.done_flush_segments(rv)
 
@@ -157,28 +176,28 @@ def test_deep(buffer: RedisSpansBufferV2, spans):
         itertools.permutations(
             [
                 Span(
-                    payload=b"A",
+                    payload=_payload(b"a" * 32),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"B",
+                    payload=_payload(b"b" * 32),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"C",
+                    payload=_payload(b"c" * 32),
                     trace_id="a" * 32,
                     span_id="e" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=b"D",
+                    payload=_payload(b"d" * 32),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
@@ -195,13 +214,19 @@ def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
 
     assert buffer.flush_segments(now=5) == (2, {})
     _, rv = buffer.flush_segments(now=11)
-    assert rv == {_segment_id(2, "a" * 32, "b" * 16): {b"D"}}
+    assert rv == {_segment_id(2, "a" * 32, "b" * 16): {_payload(b"d" * 32)}}
     buffer.done_flush_segments(rv)
 
     # TODO: flush faster, since we already saw parent in other project
     assert buffer.flush_segments(now=30) == (1, {})
     _, rv = buffer.flush_segments(now=60)
-    assert rv == {_segment_id(1, "a" * 32, "b" * 16): {b"A", b"B", b"C"}}
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): {
+            _payload(b"a" * 32),
+            _payload(b"b" * 32),
+            _payload(b"c" * 32),
+        }
+    }
     buffer.done_flush_segments(rv)
 
     assert buffer.flush_segments(now=90) == (0, {})
