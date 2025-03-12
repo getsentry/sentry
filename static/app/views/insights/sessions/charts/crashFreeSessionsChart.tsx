@@ -12,6 +12,7 @@ export default function CrashFreeSessionsChart() {
   return (
     <InsightsLineChartWidget
       title={t('Crash Free Sessions')}
+      description={t('Percent of healthy sessions out of total sessions.')}
       aliases={aliases}
       series={series}
       isLoading={isPending}

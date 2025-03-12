@@ -38,6 +38,7 @@ export interface InsightsTimeSeriesWidgetProps {
   title: string;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Aliases;
+  description?: string;
   stacked?: boolean;
 }
 
@@ -120,6 +121,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         }
         Actions={
           <Widget.WidgetToolbar>
+            {props.description && (
+              <Widget.WidgetDescription description={props.description} />
+            )}
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}

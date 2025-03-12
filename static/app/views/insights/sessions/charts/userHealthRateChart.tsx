@@ -23,6 +23,7 @@ export default function UserHealthRateChart({view}: {view: string}) {
   return (
     <InsightsAreaChartWidget
       title={t('User Health')}
+      description={t('The percent of users with each health status.')}
       aliases={aliases}
       series={series}
       isLoading={isPending}

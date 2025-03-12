@@ -21,6 +21,7 @@ export default function SessionHealthRateChart({view}: {view: string}) {
   return (
     <InsightsAreaChartWidget
       title={t('Session Health')}
+      description={t('The percent of sessions with each health status.')}
       aliases={aliases}
       series={series}
       isLoading={isPending}

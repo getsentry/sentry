@@ -23,6 +23,7 @@ export default function UserHealthCountChart({view}: {view: string}) {
   return (
     <InsightsLineChartWidget
       title={t('Users')}
+      description={t('Breakdown of total users, grouped by health status.')}
       aliases={aliases}
       series={series}
       isLoading={isPending}
