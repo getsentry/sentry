@@ -32,7 +32,7 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, LegendSelection, Release, TimeSeriesItem} from '../common/types';
+import type {Aliases, LegendSelection, Release} from '../common/types';
 
 import {formatSeriesName} from './formatters/formatSeriesName';
 import {formatTooltipValue} from './formatters/formatTooltipValue';
@@ -119,13 +119,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <TimeSeriesWidgetVisualization
           {...props}
           plottables={props.plottables.map(plottable =>
-            plottable.clone(timeSeries => ({
-              ...timeSeries,
-              data: timeSeries.data.filter((dataItem: TimeSeriesItem) => {
-                const ts = new Date(dataItem.timestamp);
-                return ts >= trimStart && ts <= trimEnd;
-              }),
-            }))
+            plottable.constrain(trimStart, trimEnd)
           )}
           showReleaseAs="line"
         />
