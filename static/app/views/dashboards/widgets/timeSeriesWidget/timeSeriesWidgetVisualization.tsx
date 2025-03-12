@@ -118,17 +118,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       return (
         <TimeSeriesWidgetVisualization
           {...props}
-          plottables={props.plottables.map(plottable => {
-            return plottable.clone(timeSeries => {
-              return {
-                ...timeSeries,
-                data: timeSeries.data.filter((dataItem: TimeSeriesItem) => {
-                  const ts = new Date(dataItem.timestamp);
-                  return ts >= trimStart && ts <= trimEnd;
-                }),
-              };
-            });
-          })}
+          plottables={props.plottables.map(plottable =>
+            plottable.clone(timeSeries => ({
+              ...timeSeries,
+              data: timeSeries.data.filter((dataItem: TimeSeriesItem) => {
+                const ts = new Date(dataItem.timestamp);
+                return ts >= trimStart && ts <= trimEnd;
+              }),
+            }))
+          )}
           showReleaseAs="line"
         />
       );
