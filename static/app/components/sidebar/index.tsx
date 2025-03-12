@@ -27,7 +27,6 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconLightning,
   IconMegaphone,
   IconProject,
   IconReleases,
@@ -54,8 +53,6 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
@@ -78,10 +75,6 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import {
-  getPerformanceBaseUrl,
-  platformToDomainView,
-} from 'sentry/views/performance/utils';
 
 import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -108,8 +101,6 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const {selection} = usePageFilters();
-  const {projects: projectList} = useProjects();
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
@@ -119,12 +110,7 @@ function Sidebar() {
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-  };
+  const sidebarItemProps = {orientation, collapsed, hasPanel, organization};
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -249,25 +235,6 @@ function Sidebar() {
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'
   );
-  const view = hasPerfLandingRemovalFlag
-    ? platformToDomainView(projectList, selection.projects)
-    : undefined;
-  const performance = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:performance-sidebar-item"
-      features="performance-view"
-      organization={organization}
-    >
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconLightning />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-        active={hasPerfLandingRemovalFlag ? false : undefined}
-        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
-        id="performance"
-      />
-    </Feature>
-  );
 
   const releases = hasOrganization && (
     <SidebarItem
@@ -309,10 +276,7 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      })}
+      to={makeAlertsPathname({path: '/rules/', organization})}
       id="alerts"
     />
   );
@@ -494,7 +458,6 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
-                      {performance}
                       {feedback}
                       {monitors}
                       {alerts}
