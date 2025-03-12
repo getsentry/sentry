@@ -433,6 +433,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
+    "sentry.explore",
 )
 
 # Silence internal hints from Django's system checks
@@ -3053,6 +3054,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "uptime",
     "workflow_engine",
     "tempest",
+    "explore",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
