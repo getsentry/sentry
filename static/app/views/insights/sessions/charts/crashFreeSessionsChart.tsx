@@ -11,7 +11,7 @@ export default function CrashFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('Crash Free Session Rate')}
+      title={t('Crash Free Sessions')}
       aliases={aliases}
       series={series}
       isLoading={isPending}

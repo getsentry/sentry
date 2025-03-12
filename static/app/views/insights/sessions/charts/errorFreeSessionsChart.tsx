@@ -11,7 +11,7 @@ export default function ErrorFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('Error Free Session Rate')}
+      title={t('Error Free Sessions')}
       aliases={aliases}
       series={series}
       isLoading={isPending}
