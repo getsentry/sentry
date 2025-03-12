@@ -39,6 +39,13 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 TIMEZONE_CHOICES = get_timezone_choices()
 
 
+def validate_prefers_specialized_project_overview(value: dict[str, bool] | None) -> None:
+    if value is not None:
+        for value in value.values():
+            if not isinstance(value, bool):
+                raise ValidationError("The enabled value should be a boolean.")
+
+
 def validate_quick_start_display(value: dict[str, int] | None) -> None:
     if value is not None:
         for display_value in value.values():
@@ -79,6 +86,12 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
+    prefersSpecializedProjectOverview = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        validators=[validate_prefers_specialized_project_overview],
+        help_text="Tracks whether the user prefers the new specialized project overview experience (dict of project ids to booleans)",
+    )
     prefersStackedNavigation = serializers.BooleanField(required=False)
 
     quickStartDisplay = serializers.JSONField(
@@ -250,6 +263,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
+            "prefersSpecializedProjectOverview": "prefers_specialized_project_overview",
             "prefersStackedNavigation": "prefers_stacked_navigation",
             "quickStartDisplay": "quick_start_display",
         }
@@ -258,7 +272,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for key in key_map:
             if key in options_result:
-                if key == "quickStartDisplay":
+                if key in ("quickStartDisplay", "prefersSpecializedProjectOverview"):
                     current_value = UserOption.objects.get_value(
                         user=user, key=key_map.get(key, key)
                     )
