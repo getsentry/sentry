@@ -68,11 +68,11 @@ def translate_mep_to_eap(query_parts: QueryParts):
 
     new_query = apply_is_segment_condition("".join(flattened_query))
 
-    new_query = QueryParts(
+    eap_query = QueryParts(
         query=new_query,
         selected_columns=query_parts["selected_columns"],
         equations=query_parts["equations"],
         orderby=query_parts["orderby"],
     )
 
-    return new_query
+    return eap_query
