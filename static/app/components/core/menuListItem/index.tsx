@@ -205,13 +205,11 @@ function BaseMenuListItem({
   );
 }
 
-const MenuListItem = memo(
+export const MenuListItem = memo(
   reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (
     <BaseMenuListItem {...props} forwardRef={ref} />
   ))
 );
-
-export default MenuListItem;
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
