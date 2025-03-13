@@ -42,13 +42,15 @@ class QueryParts(TypedDict):
     orderby: list[str] | None
 
 
-# This is a utility used to translate transactions/metrics/mep
-# queries to eap queries. It takes in event query syntax (EQS)
-# as input and outputs EQS as well. This will allow us to
-# translate transaction queries from the frontend on the fly
-# and also allow us to migrate all our Discover/Dashboard/Alert
-# datamodels to store EAP compatible EQS queries.
 def translate_mep_to_eap(query_parts: QueryParts):
+    """
+    This is a utility used to translate transactions/metrics/mep
+    queries to eap queries. It takes in event query syntax (EQS)
+    as input and outputs EQS as well. This will allow us to
+    translate transaction queries from the frontend on the fly
+    and also allow us to migrate all our Discover/Dashboard/Alert
+    datamodels to store EAP compatible EQS queries.
+    """
     flattened_query = []
 
     def _flatten(seq):
