@@ -248,6 +248,8 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
+export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
+
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
     documentation: AGGREGATION_FIELDS[key].desc,

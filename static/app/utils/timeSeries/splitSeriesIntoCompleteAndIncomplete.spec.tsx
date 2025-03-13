@@ -1,5 +1,7 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import {DurationUnit} from '../discover/fields';
+
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 describe('splitSeriesIntoCompleteAndIncomplete', () => {
@@ -29,12 +31,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -83,12 +81,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -145,12 +139,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -214,12 +204,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 

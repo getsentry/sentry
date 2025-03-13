@@ -47,13 +47,25 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   const location = useLocation();
   const organization = useOrganization();
 
-  // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, meta as MetaType, false)
-    : (renderableValue: any) => renderableValue.toString();
+  const unit = meta?.unit;
+  const type = meta?.type;
 
-  const unit = meta?.units?.[field];
-  const type = meta?.fields?.[field];
+  // Create old-school renderer meta, so we can pass it to field renderers
+  const rendererMeta: MetaType = {
+    fields: {
+      [field]: type ?? undefined,
+    },
+  };
+
+  if (unit) {
+    rendererMeta.units = {
+      [field]: unit,
+    };
+  }
+
+  const fieldRenderer = meta
+    ? getFieldRenderer(field, rendererMeta, false)
+    : (renderableValue: any) => renderableValue.toString();
 
   const baggage = {
     location,

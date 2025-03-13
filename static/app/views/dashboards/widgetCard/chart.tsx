@@ -39,7 +39,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
   getAggregateArg,
@@ -225,7 +225,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           key={i}
           field={field}
           value={value}
-          meta={meta}
+          meta={{
+            type: meta.fields?.[field] ?? null,
+            unit: (meta.units?.[field] as DataUnit) ?? null,
+          }}
           thresholds={widget.thresholds ?? undefined}
           preferredPolarity="-"
         />

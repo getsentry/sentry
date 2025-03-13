@@ -182,10 +182,8 @@ export function ProjectAnrScoreCard({
           field="anr_rate()"
           preferredPolarity="-"
           meta={{
-            fields: {
-              'anr_rate()': 'percentage',
-            },
-            units: {},
+            type: 'percentage',
+            unit: null,
           }}
         />
       }

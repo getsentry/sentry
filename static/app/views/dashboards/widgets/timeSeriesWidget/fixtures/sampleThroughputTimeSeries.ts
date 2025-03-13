@@ -1,12 +1,10 @@
+import {RateUnit} from 'sentry/utils/discover/fields';
+
 export const sampleThroughputTimeSeries = {
   field: 'eps()',
   meta: {
-    fields: {
-      'eps()': 'rate',
-    },
-    units: {
-      'eps()': '1/second',
-    },
+    type: 'rate',
+    unit: RateUnit.PER_SECOND,
   },
   data: [
     {

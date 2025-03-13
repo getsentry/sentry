@@ -1,5 +1,6 @@
 import {
   type AggregationOutputType,
+  type DataUnit,
   DurationUnit,
   RateUnit,
   SizeUnit,
@@ -16,4 +17,4 @@ export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
   string: null,
   size: SizeUnit.BYTE,
   rate: RateUnit.PER_SECOND,
-} satisfies Record<AggregationOutputType, DurationUnit | SizeUnit | RateUnit | null>;
+} satisfies Record<AggregationOutputType, DataUnit>;

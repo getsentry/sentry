@@ -13,12 +13,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          user: 'string',
-        },
-        units: {
-          user: null,
-        },
+        type: 'string',
+        unit: null,
       },
     };
 
@@ -40,12 +36,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'transaction.duration': 'duration',
-        },
-        units: {
-          'transaction.duration': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -62,12 +54,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'transaction.duration': 'duration',
-        },
-        units: {
-          'transaction.duration': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -80,12 +68,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'transaction.duration': 'duration',
-        },
-        units: {
-          'transaction.duration': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     });
   });
@@ -100,12 +84,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'file.size': 'size',
-        },
-        units: {
-          'file.size': 'mebibyte',
-        },
+        type: 'size',
+        unit: SizeUnit.MEBIBYTE,
       },
     };
 
@@ -118,12 +98,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'file.size': 'size',
-        },
-        units: {
-          'file.size': 'byte',
-        },
+        type: 'size',
+        unit: SizeUnit.BYTE,
       },
     });
   });

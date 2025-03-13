@@ -1,12 +1,7 @@
 import * as Sentry from '@sentry/react';
 import partialRight from 'lodash/partialRight';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
@@ -24,11 +19,11 @@ import {
 
 export function scaleTimeSeriesData(
   timeSeries: Readonly<TimeSeries>,
-  destinationUnit: DurationUnit | SizeUnit | RateUnit | null
+  destinationUnit: DataUnit
 ): TimeSeries {
   // TODO: Instead of a fallback, allow this to be `null`, which might happen
   const sourceType =
-    (timeSeries.meta?.fields[timeSeries.field] as AggregationOutputType) ??
+    (timeSeries.meta?.type as AggregationOutputType) ??
     (FALLBACK_TYPE as AggregationOutputType);
 
   // Don't bother trying to convert numbers, dates, etc.
@@ -36,7 +31,7 @@ export function scaleTimeSeriesData(
     return timeSeries;
   }
 
-  const sourceUnit = timeSeries.meta?.units?.[timeSeries.field] ?? null;
+  const sourceUnit = timeSeries.meta?.unit;
 
   if (!destinationUnit || sourceUnit === destinationUnit) {
     return timeSeries;
@@ -87,12 +82,8 @@ export function scaleTimeSeriesData(
     }),
     meta: {
       ...timeSeries.meta,
-      fields: {
-        [timeSeries.field]: sourceType,
-      },
-      units: {
-        [timeSeries.field]: destinationUnit,
-      },
+      type: sourceType,
+      unit: destinationUnit,
     },
   };
 }
