@@ -33,13 +33,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import type {
+  AlertType,
+  IntegrationTab,
+} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
+import InstalledIntegration from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-
-import type {AlertType, IntegrationTab} from './detailedView/integrationLayout';
-import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['github', 'slack'];

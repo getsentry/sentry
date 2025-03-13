@@ -30,13 +30,12 @@ import {
   INSTALLED,
   NOT_INSTALLED,
 } from 'sentry/views/settings/organizationIntegrations/constants';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
+import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
-
-import type {IntegrationTab} from './detailedView/integrationLayout';
-import InstalledPlugin from './installedPlugin';
-import PluginDeprecationAlert from './pluginDeprecationAlert';
+import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
 function makePluginQueryKey({
   orgSlug,

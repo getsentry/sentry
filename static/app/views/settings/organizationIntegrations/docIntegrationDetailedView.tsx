@@ -14,9 +14,8 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-
-import type {IntegrationTab} from './detailedView/integrationLayout';
 
 export default function DocIntegrationDetailsView() {
   const tabs: IntegrationTab[] = ['overview'];

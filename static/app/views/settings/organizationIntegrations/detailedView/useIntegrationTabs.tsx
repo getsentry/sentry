@@ -1,8 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
-
-import type {IntegrationTab} from './integrationLayout';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 /**
  * This hook implemented a function from the deprecated AbstractIntegrationDetailedView.
