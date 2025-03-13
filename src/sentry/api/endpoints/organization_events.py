@@ -176,6 +176,8 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
     Referrer.API_EXPLORE_COMPARE_TABLE.value,
+    Referrer.API_EXPLORE_LOGS_TABLE.value,
+    Referrer.API_EXPLORE_LOGS_TABLE_ROW.value,
 }
 
 
