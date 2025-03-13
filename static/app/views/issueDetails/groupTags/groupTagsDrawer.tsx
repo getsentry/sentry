@@ -185,7 +185,11 @@ export function GroupTagsDrawer({
               organization,
             });
           }}
-          aria-label={t('Search All Tags & Feature Flags')}
+          aria-label={
+            includeFeatureFlagsTab
+              ? t('Search All Tags & Feature Flags')
+              : t('Search All Tags')
+          }
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
@@ -207,31 +211,6 @@ export function GroupTagsDrawer({
         </SegmentedControl>
       )}
     </ButtonBar>
-  );
-
-  const content = tagKey ? (
-    <TagDetailsDrawerContent group={group} />
-  ) : tab === FEATURE_FLAGS_TAB ? (
-    <GroupFeatureFlagsDrawerContent
-      group={group}
-      environments={environments}
-      search={search}
-    />
-  ) : isPending || isHighlightsPending ? (
-    <LoadingIndicator />
-  ) : isError ? (
-    <LoadingError
-      message={t('There was an error loading issue tags.')}
-      onRetry={refetch}
-    />
-  ) : (
-    displayTags.map((tag, tagIdx) => (
-      <div key={tagIdx}>
-        <TagDetailsLink tag={tag} groupId={group.id}>
-          <TagDistribution tag={tag} />
-        </TagDetailsLink>
-      </div>
-    ))
   );
 
   return (
@@ -260,14 +239,13 @@ export function GroupTagsDrawer({
                   },
                   ...(tagKey ? [{label: tagKey}] : []),
                 ]
-              : []),
-            ...(tab === FEATURE_FLAGS_TAB
-              ? [
-                  {
-                    label: t('All Feature Flags'),
-                  },
-                ]
-              : []),
+              : tab === FEATURE_FLAGS_TAB
+                ? [
+                    {
+                      label: t('All Feature Flags'),
+                    },
+                  ]
+                : []),
           ]}
         />
       </EventDrawerHeader>
@@ -282,9 +260,34 @@ export function GroupTagsDrawer({
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
-        <Wrapper>
-          <Container>{content}</Container>
-        </Wrapper>
+        {tagKey ? (
+          <TagDetailsDrawerContent group={group} />
+        ) : tab === FEATURE_FLAGS_TAB ? (
+          <GroupFeatureFlagsDrawerContent
+            group={group}
+            environments={environments}
+            search={search}
+          />
+        ) : isPending || isHighlightsPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError
+            message={t('There was an error loading issue tags.')}
+            onRetry={refetch}
+          />
+        ) : (
+          <Wrapper>
+            <Container>
+              {displayTags.map((tag, tagIdx) => (
+                <div key={tagIdx}>
+                  <TagDetailsLink tag={tag} groupId={group.id}>
+                    <TagDistribution tag={tag} />
+                  </TagDetailsLink>
+                </div>
+              ))}
+            </Container>
+          </Wrapper>
+        )}
       </EventDrawerBody>
     </EventDrawerContainer>
   );
