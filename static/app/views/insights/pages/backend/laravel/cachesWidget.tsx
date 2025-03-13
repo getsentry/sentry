@@ -95,6 +95,11 @@ export function CachesWidget({query}: {query?: string}) {
       const seriesData = timeSeriesRequest.data[key]!;
       return {
         ...seriesData,
+        data: seriesData.data.map(item => ({
+          ...item,
+          // Fill missing values with 0 -> will not be needed once we switch to EAP
+          value: item.value ?? 0,
+        })),
         // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
         meta: {
           fields: {
