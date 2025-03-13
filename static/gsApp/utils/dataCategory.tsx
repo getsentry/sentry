@@ -72,6 +72,7 @@ type CategoryNameProps = {
   capitalize?: boolean;
   hadCustomDynamicSampling?: boolean;
   plan?: Plan;
+  title?: boolean;
 };
 
 /**
@@ -82,6 +83,7 @@ export function getPlanCategoryName({
   category,
   hadCustomDynamicSampling = false,
   capitalize = true,
+  title = false,
 }: CategoryNameProps) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
@@ -91,7 +93,11 @@ export function getPlanCategoryName({
       : displayNames
         ? displayNames.plural
         : category;
-  return capitalize ? upperFirst(categoryName) : categoryName;
+  return title
+    ? titleCase(categoryName)
+    : capitalize
+      ? upperFirst(categoryName)
+      : categoryName;
 }
 
 /**
