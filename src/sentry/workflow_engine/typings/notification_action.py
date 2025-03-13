@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -16,6 +15,16 @@ from sentry.workflow_engine.models.action import Action
 
 # Keep existing excluded keys constant
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
+
+
+class SentryAppIdentifier(StrEnum):
+    """
+    SentryAppIdentifier is an enum that represents the identifier for a Sentry app.
+    """
+
+    SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
+    SENTRY_APP_SLUG = "sentry_app_slug"
+    SENTRY_APP_ID = "sentry_app_id"
 
 
 @dataclass
@@ -183,6 +192,18 @@ class BaseActionTranslator(ABC):
             if ActionFieldMappingKeys.TARGET_DISPLAY_KEY in mapping:
                 return self.action.get(mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value])
         return None
+
+    @property
+    def action_config(self) -> dict[str, str | int | None]:
+        base_config = {
+            "target_identifier": self.target_identifier,
+            "target_display": self.target_display,
+            "target_type": self.target_type.value if self.target_type is not None else None,
+        }
+        if self.action_type == Action.Type.SENTRY_APP:
+            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+
+        return base_config
 
     @property
     def blob_type(self) -> type[DataBlob] | None:
@@ -711,33 +732,3 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
-
-
-@dataclass
-class NotificationContext:
-    """
-    NotificationContext is a dataclass that represents the context required send a notification.
-    """
-
-    integration_id: int | None = None
-    target_identifier: str | None = None
-    target_display: str | None = None
-    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
-
-    @classmethod
-    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
-        return cls(
-            integration_id=action.integration_id,
-            target_identifier=action.target_identifier,
-            target_display=action.target_display,
-            sentry_app_config=action.sentry_app_config,
-        )
-
-    @classmethod
-    def from_action_model(cls, action: Action) -> NotificationContext:
-        return cls(
-            integration_id=action.integration_id,
-            target_identifier=action.config.get("target_identifier"),
-            target_display=action.config.get("target_display"),
-            sentry_app_config=action.data,
-        )

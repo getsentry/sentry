@@ -3,8 +3,8 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {LinkButton} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -182,10 +182,8 @@ export function ProjectAnrScoreCard({
           field="anr_rate()"
           preferredPolarity="-"
           meta={{
-            fields: {
-              'anr_rate()': 'percentage',
-            },
-            units: {},
+            type: 'percentage',
+            unit: null,
           }}
         />
       }

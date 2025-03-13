@@ -54,7 +54,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
 
   return (
     <TourElement<IssueDetailsTour>
@@ -64,7 +64,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       description={t(
         'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
       )}
-      position={isScreenSmall ? 'top' : 'left-start'}
+      position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
         <GuideAnchor target="issue_sidebar_releases" position="left">

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';

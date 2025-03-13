@@ -1,9 +1,10 @@
 import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -1025,7 +1026,7 @@ function NodeActions(props: {
       </Tooltip>
       {isTransactionNode(props.node) ? (
         <Tooltip title={t('JSON')}>
-          <ActionButton
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
             size="xs"
@@ -1036,7 +1037,7 @@ function NodeActions(props: {
       ) : null}
       {continuousProfileTarget ? (
         <Tooltip title={t('Profile')}>
-          <ActionButton
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
             to={continuousProfileTarget}
             size="xs"
@@ -1046,7 +1047,7 @@ function NodeActions(props: {
         </Tooltip>
       ) : transactionProfileTarget ? (
         <Tooltip title={t('Profile')}>
-          <ActionButton
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
             to={transactionProfileTarget}
             size="xs"
@@ -1060,7 +1061,7 @@ function NodeActions(props: {
   );
 }
 
-const ActionButton = styled(Button)`
+const actionButtonStyles = css`
   border: none;
   background-color: transparent;
   box-shadow: none;
@@ -1075,6 +1076,14 @@ const ActionButton = styled(Button)`
     box-shadow: none;
     opacity: 1;
   }
+`;
+
+const ActionButton = styled(Button)`
+  ${actionButtonStyles};
+`;
+
+const ActionLinkButton = styled(LinkButton)`
+  ${actionButtonStyles};
 `;
 
 const ActionWrapper = styled('div')`

@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -196,10 +196,8 @@ function ProjectStabilityScoreCard(props: Props) {
           previousPeriodValue={previousScore ? previousScore / 100 : undefined}
           field={`${props.field}()`}
           meta={{
-            fields: {
-              [`${props.field}()`]: 'percentage',
-            },
-            units: {},
+            type: 'percentage',
+            unit: null,
           }}
           preferredPolarity="+"
         />

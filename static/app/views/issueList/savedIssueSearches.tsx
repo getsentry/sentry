@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button, ButtonLabel} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';

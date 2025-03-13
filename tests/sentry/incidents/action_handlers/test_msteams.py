@@ -14,8 +14,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.msteams.card_builder.block import (
     Block,
     ColumnBlock,

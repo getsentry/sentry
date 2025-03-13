@@ -1,10 +1,11 @@
 import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   type TourContextType,
@@ -278,13 +279,9 @@ export function TourGuide({
     offset,
   });
 
-  // Scroll the overlay into view when it opens
   useEffect(() => {
     if (isOpen) {
       trackAnalytics('tour-guide.open', {organization, id});
-      document
-        ?.getElementById(id ?? '')
-        ?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
     }
   }, [isOpen, id, organization]);
 
@@ -299,39 +296,46 @@ export function TourGuide({
       >
         {children}
       </Wrapper>
-      {isOpen ? (
-        <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-          <TourOverlay
-            animated
-            arrowProps={{...arrowProps, background: 'lightModeBlack'}}
-          >
-            <TourBody id={id}>
-              {isTopRowVisible && (
-                <TopRow>
-                  <div>{countText}</div>
-                  {isDismissVisible && (
-                    <TourCloseButton
-                      onClick={e => {
-                        trackAnalytics('tour-guide.close', {organization, id});
-                        handleDismiss(e);
-                      }}
-                      icon={<IconClose style={{color: theme.inverted.textColor}} />}
-                      aria-label={t('Close')}
-                      borderless
-                      size="sm"
-                    />
+      {isOpen
+        ? createPortal(
+            <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
+              <TourOverlay
+                animated
+                arrowProps={{...arrowProps, background: 'lightModeBlack'}}
+              >
+                <TourBody ref={scrollToElement}>
+                  {isTopRowVisible && (
+                    <TopRow>
+                      <div>{countText}</div>
+                      {isDismissVisible && (
+                        <TourCloseButton
+                          onClick={e => {
+                            trackAnalytics('tour-guide.close', {organization, id});
+                            handleDismiss(e);
+                          }}
+                          icon={<IconClose style={{color: theme.inverted.textColor}} />}
+                          aria-label={t('Close')}
+                          borderless
+                          size="sm"
+                        />
+                      )}
+                    </TopRow>
                   )}
-                </TopRow>
-              )}
-              {title && <TitleRow>{title}</TitleRow>}
-              {description && <DescriptionRow>{description}</DescriptionRow>}
-              {actions && <Flex justify="flex-end">{actions}</Flex>}
-            </TourBody>
-          </TourOverlay>
-        </PositionWrapper>
-      ) : null}
+                  {title && <TitleRow>{title}</TitleRow>}
+                  {description && <DescriptionRow>{description}</DescriptionRow>}
+                  {actions && <Flex justify="flex-end">{actions}</Flex>}
+                </TourBody>
+              </TourOverlay>
+            </PositionWrapper>,
+            document.body
+          )
+        : null}
     </Fragment>
   );
+}
+
+function scrollToElement(element: HTMLDivElement | null) {
+  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
@@ -339,7 +343,7 @@ const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.75)};
-  background: ${p => p.theme.inverted.surface400};
+  background: ${p => p.theme.inverted.backgroundElevated};
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.inverted.textColor};
   border-radius: ${p => p.theme.borderRadius};

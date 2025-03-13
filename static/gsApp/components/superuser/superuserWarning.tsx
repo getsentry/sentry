@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import {Badge} from 'sentry/components/core/badge';
+import {Button} from 'sentry/components/core/button';
 import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {Tooltip} from 'sentry/components/tooltip';
 import AlertStore from 'sentry/stores/alertStore';
@@ -115,7 +115,7 @@ const SuperuserBadge = styled(Badge)<{stackedNav: boolean}>`
   ${p =>
     p.stackedNav &&
     css`
-      top: -12px;
+      top: -8px;
       left: 2px;
       right: 2px;
       font-size: 10px;

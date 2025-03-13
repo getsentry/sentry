@@ -1,11 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import type {TimeSeries} from '../../common/types';
@@ -29,7 +24,11 @@ export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
-  unit: DurationUnit | SizeUnit | RateUnit | null;
+  unit: DataUnit;
+  /**
+   * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
+   */
+  yAxisPosition: 'left' | 'right';
 };
 
 /**
@@ -58,17 +57,12 @@ export abstract class ContinuousTimeSeries<
   }
 
   get dataType(): AggregationOutputType {
-    // TODO: Simplify this. `TimeSeries` types should already have this type
-    return this.timeSeries.meta.fields[this.timeSeries.field]! as AggregationOutputType;
+    // TODO: Remove the `as` cast. `TimeSeries` meta should use `AggregationOutputType` instead of `string`
+    return this.timeSeries.meta.type as AggregationOutputType;
   }
 
-  get dataUnit(): DurationUnit | SizeUnit | RateUnit | null {
-    // TODO: Simplify this. `TimeSeries` units should already have this type
-    return this.timeSeries.meta.units[this.timeSeries.field] as
-      | DurationUnit
-      | SizeUnit
-      | RateUnit
-      | null;
+  get dataUnit(): DataUnit {
+    return this.timeSeries.meta.unit;
   }
 
   get start(): string | null {
@@ -79,7 +73,23 @@ export abstract class ContinuousTimeSeries<
     return this.#timestamps.at(-1) ?? null;
   }
 
-  scaleToUnit(destinationUnit: DurationUnit | SizeUnit | RateUnit | null): TimeSeries {
+  /**
+   * Shallow clones `timeSeries` and constrains `timeSeries` data to be between
+   * boundary datetime (if provided).
+   */
+  constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return {
+      ...this.timeSeries,
+      data: this.timeSeries.data.filter(dataItem => {
+        const ts = new Date(dataItem.timestamp);
+        return (
+          (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
+        );
+      }),
+    };
+  }
+
+  scaleToUnit(destinationUnit: DataUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 

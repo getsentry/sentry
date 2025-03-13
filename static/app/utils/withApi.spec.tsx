@@ -22,9 +22,8 @@ describe('withApi', function () {
     const MyComponentWithApi = withApi(MyComponent);
     render(<MyComponentWithApi />);
 
-    expect(MyComponent).toHaveBeenCalledWith(
-      expect.objectContaining({api: apiInstance}),
-      expect.anything()
+    expect(MyComponent.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({api: apiInstance})
     );
   });
 
