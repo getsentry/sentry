@@ -258,7 +258,12 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -503,7 +508,12 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -562,7 +572,7 @@ function ProfileIdsSubMenu(props: {
     [popper]
   );
 
-  const currentTarget = useRef<Node | null>();
+  const currentTarget = useRef<Node | null>(null);
   useEffect(() => {
     const listener = (e: MouseEvent) => {
       currentTarget.current = e.target as Node;

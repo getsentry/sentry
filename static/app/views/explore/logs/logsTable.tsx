@@ -21,29 +21,25 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useLogsCursor,
   useLogsFields,
+  useLogsIsTableEditingFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-export function LogsTable() {
-  const search = useLogsSearch();
-  const cursor = useLogsCursor();
-  const setCursor = useSetLogsCursor();
+export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const fields = useLogsFields();
-  const {data, isError, isPending, pageLinks, meta} = useExploreLogsTable({
-    limit: 100,
-    search,
-    cursor,
-  });
+  const search = useLogsSearch();
+  const setCursor = useSetLogsCursor();
+  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -76,7 +72,12 @@ export function LogsTable() {
                   key={index}
                   isFirst={index === 0}
                 >
-                  <TableHeadCellContent onClick={() => setSortBys([{field}])}>
+                  <TableHeadCellContent
+                    onClick={
+                      isTableEditingFrozen ? undefined : () => setSortBys([{field}])
+                    }
+                    isFrozen={isTableEditingFrozen}
+                  >
                     <Tooltip showOnlyOnOverflow title={headerLabel}>
                       {headerLabel}
                     </Tooltip>

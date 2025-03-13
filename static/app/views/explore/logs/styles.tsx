@@ -1,8 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
+import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
 import Panel from 'sentry/components/panels/panel';
@@ -61,6 +61,9 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   ${LogTableRow} & {
     padding: 0;
   }
+  &:last-child {
+    padding: 0;
+  }
 `;
 
 export const DetailsWrapper = styled('div')`
@@ -96,7 +99,11 @@ export const LogDetailsTitle = styled('div')`
   user-select: none;
 `;
 
-export const LogFirstCellContent = styled('div')`
+export const LogTableBodyCellContent = styled('div')`
+  cursor: default;
+`;
+
+export const LogFirstCellContent = styled(LogTableBodyCellContent)`
   display: flex;
   align-items: center;
 `;

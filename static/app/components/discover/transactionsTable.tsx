@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +29,7 @@ import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  columnOrder: Array<TableColumn<React.ReactText>>;
+  columnOrder: Array<TableColumn<string | number>>;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -45,8 +45,8 @@ type Props = {
     ) => LocationDescriptor
   >;
   handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
+    c: TableColumn<string | number>
+  ) => (a: Actions, v: string | number) => void;
   referrer?: string;
   titles?: string[];
 };
@@ -127,7 +127,7 @@ function TransactionsTable(props: Props) {
   const renderRow = (
     row: TableDataRow,
     rowIndex: number,
-    colOrder: Array<TableColumn<React.ReactText>>,
+    colOrder: Array<TableColumn<string | number>>,
     tableMeta: MetaType
   ): React.ReactNode[] => {
     const fields = eventView.getFields();
