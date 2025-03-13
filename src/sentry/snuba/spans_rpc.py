@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -23,6 +24,7 @@ from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
+from sentry.search.eap.utils import transform_column_to_expression
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
@@ -101,6 +103,11 @@ def get_timeseries_query(
         TimeSeriesRequest(
             meta=meta,
             filter=query,
+            expressions=[
+                transform_column_to_expression(agg.proto_definition)
+                for agg in aggregations
+                if isinstance(agg.proto_definition, Column.BinaryFormula)
+            ],
             aggregations=[
                 agg.proto_definition
                 for agg in aggregations

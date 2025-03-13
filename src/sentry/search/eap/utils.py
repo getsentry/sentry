@@ -4,6 +4,8 @@ from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Expression
 
 from sentry.exceptions import InvalidSearchQuery
 
@@ -28,3 +30,11 @@ def add_start_end_conditions(
     in_msg.meta.end_timestamp.CopyFrom(end_time_proto)
 
     return in_msg
+
+
+def transform_column_to_expression(column: Column.BinaryFormula) -> Expression.BinaryFormula:
+    return Expression.BinaryFormula(
+        left=column.left,
+        right=column.right,
+        operator=column.operator,
+    )
