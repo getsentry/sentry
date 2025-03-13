@@ -195,7 +195,11 @@ function EventNavigationLink({
         hash: `#${config.key}`,
       }}
       onClick={event => {
-        event.preventDefault();
+        // If command click do nothing, assume user wants to open in new tab
+        if (event.metaKey || event.ctrlKey) {
+          return;
+        }
+
         setIsCollapsed(false);
         document
           .getElementById(config.key)
