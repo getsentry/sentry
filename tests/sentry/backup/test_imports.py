@@ -44,6 +44,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
@@ -1401,6 +1402,27 @@ class CollisionTests(ImportTestCase):
                     ).count()
                     == 2
                 )
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+    @expect_models(COLLISION_TESTED, OrganizationMemberInvite)
+    def test_colliding_member_invite_token(self, expected_models: list[type[Model]]):
+        org = self.create_organization(name="some-org")
+        invite = OrganizationMemberInvite.objects.create(
+            organization=org, email="user@example.com", token=generate_token()
+        )
+        assert OrganizationMemberInvite.objects.count() == 1
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+            assert OrganizationMemberInvite.objects.count() == 1
+            assert OrganizationMemberInvite.objects.filter(
+                organization__slug=org.slug, email="user@example.com", token=invite.token
+            ).exists()
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))

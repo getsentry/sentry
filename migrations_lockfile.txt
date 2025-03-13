@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0841_backfill_desynced_starred_views
+sentry: 0842_create_organization_member_invite_table
 
 social_auth: 0002_default_auto_field
 
