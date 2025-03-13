@@ -46,6 +46,7 @@ def test_get_by_id() -> None:
         organization=org, name="test-project", platform="python", first_event=None
     )
     rpc_proj = project_service.get_by_id(organization_id=org.id, id=proj.id)
+    assert rpc_proj is not None
 
     assert_project_equals(proj, rpc_proj)
 
@@ -53,6 +54,7 @@ def test_get_by_id() -> None:
     proj.save()
 
     rpc_proj = project_service.get_by_id(organization_id=org.id, id=proj.id)
+    assert rpc_proj is not None
 
     assert_project_equals(proj, rpc_proj)
 
