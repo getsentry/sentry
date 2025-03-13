@@ -41,7 +41,10 @@ TIMEZONE_CHOICES = get_timezone_choices()
 
 def validate_prefers_specialized_project_overview(value: dict[str, bool] | None) -> None:
     invalid_entries = [key for key, value_ in (value or {}).items() if not isinstance(value_, bool)]
-    raise ValidationError(f"The enabled values {', '.join(invalid_entries)} should be booleans.")
+    if len(invalid_entries) > 0:
+        raise ValidationError(
+            f"The enabled values {', '.join(invalid_entries)} should be booleans."
+        )
 
 
 def validate_quick_start_display(value: dict[str, int] | None) -> None:
