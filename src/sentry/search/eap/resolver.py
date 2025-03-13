@@ -766,7 +766,7 @@ class SearchResolver:
                 and parsed_argument.search_type not in argument.argument_types
             ):
                 raise InvalidSearchQuery(
-                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a field that are one of these types: {argument.argument_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument.argument_types}"
                 )
             parsed_args.append(parsed_argument)
 

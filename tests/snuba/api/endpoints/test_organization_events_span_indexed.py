@@ -2908,6 +2908,33 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["avg_if(span.duration, span.op, queue.publish)"] == 3000.0
         assert meta["dataset"] == self.dataset
 
+    def test_avg_if_invalid_param(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=1000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(span.duration, span.duration, queue.process)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Span.Duration Is Invalid For Parameter 2 In Avg_If. Its A Millisecond Type Field, But It Must Be One Of These Types: {'String'}"
+            == response.data["detail"].title()
+        )
+
     def test_ttif_ttfd_contribution_rate(self):
         spans = []
         for _ in range(8):
