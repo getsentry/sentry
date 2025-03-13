@@ -13,7 +13,7 @@ exampletasks = taskregistry.create_namespace(name="examples")
 
 @exampletasks.register(name="examples.say_hello")
 def say_hello(name: str) -> None:
-    logger.info("Hello %s", name)
+    logger.debug("Hello %s", name)
 
 
 @exampletasks.register(
@@ -29,18 +29,18 @@ def retry_deadletter() -> None:
 )
 def will_retry(failure: str) -> None:
     if failure == "retry":
-        logger.info("going to retry with explicit retry error")
+        logger.debug("going to retry with explicit retry error")
         raise RetryError
     if failure == "raise":
-        logger.info("raising runtimeerror")
+        logger.debug("raising runtimeerror")
         raise RuntimeError("oh no")
-    logger.info("got %s", failure)
+    logger.debug("got %s", failure)
 
 
 @exampletasks.register(name="examples.simple_task")
 def simple_task() -> None:
     sleep(0.8)
-    logger.info("simple_task complete")
+    logger.debug("simple_task complete")
 
 
 @exampletasks.register(
@@ -48,12 +48,12 @@ def simple_task() -> None:
 )
 def simple_task_with_processing_deadline() -> None:
     sleep(0.8)
-    logger.info("simple_task complete")
+    logger.debug("simple_task complete")
 
 
 @exampletasks.register(name="examples.simple_task_wait_delivery", wait_for_delivery=True)
 def simple_task_wait_delivery() -> None:
-    logger.info("simple_task_wait_delivery complete")
+    logger.debug("simple_task_wait_delivery complete")
 
 
 @exampletasks.register(name="examples.retry_task", retry=Retry(times=2))
@@ -74,4 +74,4 @@ def at_most_once_task() -> None:
 @exampletasks.register(name="examples.timed")
 def timed_task(sleep_seconds: float | str) -> None:
     sleep(float(sleep_seconds))
-    logger.info("timed_task complete")
+    logger.debug("timed_task complete")

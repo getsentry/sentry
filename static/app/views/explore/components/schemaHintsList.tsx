@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/core/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
+import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -12,7 +13,9 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {
+  PageParamsProvider,
   useExploreQuery,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -40,6 +43,8 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
+
+  const {openDrawer, isDrawerOpen} = useDrawer();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -128,18 +133,29 @@ function SchemaHintsList({
   const onHintClick = useCallback(
     (hint: Tag) => {
       if (hint.key === seeFullListTag.key) {
+        if (!isDrawerOpen) {
+          openDrawer(
+            () => (
+              <PageParamsProvider>
+                <SchemaHintsDrawer hints={filterTagsSorted} />
+              </PageParamsProvider>
+            ),
+            {
+              ariaLabel: t('Schema Hints Drawer'),
+            }
+          );
+        }
         return;
       }
 
       const newSearchQuery = new MutableSearch(exploreQuery);
-
       newSearchQuery.addFilterValue(
         hint.key,
         hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
       );
       setExploreQuery(newSearchQuery.formatString());
     },
-    [exploreQuery, setExploreQuery]
+    [exploreQuery, setExploreQuery, isDrawerOpen, openDrawer, filterTagsSorted]
   );
 
   const getHintText = (hint: Tag) => {

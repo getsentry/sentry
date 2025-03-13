@@ -11,7 +11,6 @@ import type {
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
-import uniq from 'lodash/uniq';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -22,6 +21,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -112,9 +112,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartRef,
+    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+      return (
+        <TimeSeriesWidgetVisualization
+          {...props}
+          plottables={props.plottables.map(plottable =>
+            plottable.constrain(trimStart, trimEnd)
+          )}
+          showReleaseAs="line"
+        />
+      );
+    },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
   });
 
   const releaseSeries = props.releases
@@ -169,7 +182,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
 
   // Sort the field types by how many plottables use each one
-  const axisTypes = (Object.keys(fieldTypeCounts) as AggregationOutputType[])
+  const axisTypes = (
+    Object.keys(fieldTypeCounts).filter(key => {
+      // JavaScript objects cannot have `undefined` or `null` as keys. lodash
+      // `groupBy` casts those cases to strings. This is _very_ rare, since it
+      // indicates a backend failure to provide the correct data type, but it
+      // happens sometimes. Filter those out. It would be cleaner to use a type
+      // predicate here, but consistently enforcing plottable values is a lot of
+      // work
+      return !['undefined', 'null'].includes(key);
+    }) as AggregationOutputType[]
+  )
     .toSorted(
       // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
       (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!

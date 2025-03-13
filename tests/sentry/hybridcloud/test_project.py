@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH
@@ -5,6 +7,8 @@ from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+
+from .test_organization import assert_project_equals
 
 
 @django_db_all(transaction=True)
@@ -33,6 +37,26 @@ def test_get_or_create_project() -> None:
         add_org_default_team=True,
     )
     assert Project.objects.all().count() == 1
+
+
+@django_db_all(transaction=True)
+def test_get_by_id() -> None:
+    org = Factories.create_organization()
+    proj = Factories.create_project(
+        organization=org, name="test-project", platform="python", first_event=None
+    )
+    rpc_proj = project_service.get_by_id(organization_id=org.id, id=proj.id)
+    assert rpc_proj is not None
+
+    assert_project_equals(proj, rpc_proj)
+
+    proj.first_event = datetime.now(tz=timezone.utc)
+    proj.save()
+
+    rpc_proj = project_service.get_by_id(organization_id=org.id, id=proj.id)
+    assert rpc_proj is not None
+
+    assert_project_equals(proj, rpc_proj)
 
 
 @django_db_all(transaction=True)

@@ -17,13 +17,7 @@ function getDaysSinceDateRoundedUp(date: string): number {
     return 0;
   }
 
-  // Get the precise time difference to check if the event occurred near the beginning of the day
-  const preciseDateWithTime = moment(new Date(date));
-  const hourOfDay = preciseDateWithTime.hour();
-
-  // If the event occurred in the early hours of the day (e.g., before noon),
-  // add an extra day to ensure it's not cut off when selecting time periods
-  return hourOfDay < 12 ? daysDiff + 1 : daysDiff;
+  return daysDiff + 1;
 }
 
 const DEFAULT_STATS_PERIOD = '14d';

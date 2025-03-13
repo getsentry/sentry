@@ -120,9 +120,8 @@ export function JobsWidget({query}: {query?: string}) {
       isEmpty={isEmpty}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        plottables: timeSeries.map(
-          ts => new Bars(convertSeriesToTimeseries(ts), {color: ts.color, stack: 'stack'})
-        ),
+        aliases: seriesAliases,
+        plottables,
       }}
     />
   );
