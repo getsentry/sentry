@@ -1,4 +1,3 @@
-import type {AlertProps} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import type {
@@ -13,18 +12,15 @@ import type {
   IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';
 import {getCategories, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import IntegrationLayout, {
+  type AlertType,
+  type IntegrationTab,
+} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 
-export type Tab = 'overview' | 'configurations' | 'features';
-
-export interface AlertType extends AlertProps {
-  text: string;
-}
-
 type State = {
-  tab: Tab;
+  tab: IntegrationTab;
 } & DeprecatedAsyncComponent['state'];
 
 type Props = {
@@ -36,7 +32,7 @@ abstract class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
-  tabs: Tab[] = ['overview', 'configurations'];
+  tabs: IntegrationTab[] = ['overview', 'configurations'];
 
   componentDidMount() {
     super.componentDidMount();
@@ -106,7 +102,7 @@ abstract class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  onTabChange = (value: Tab) => {
+  onTabChange = (value: IntegrationTab) => {
     this.trackIntegrationAnalytics('integrations.integration_tab_clicked', {
       integration_tab: value,
     });
@@ -114,7 +110,7 @@ abstract class AbstractIntegrationDetailedView<
   };
 
   // Returns the string that is shown as the title of a tab
-  getTabDisplay(tab: Tab): string {
+  getTabDisplay(tab: IntegrationTab): string {
     // default is return the tab
     return tab;
   }

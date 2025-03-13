@@ -38,10 +38,10 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
+import type {IntegrationTab} from './detailedView/integrationLayout';
 import {SplitInstallationIdModal} from './SplitInstallationIdModal';
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
@@ -49,7 +49,7 @@ function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQu
 }
 
 export default function SentryAppDetailedView() {
-  const tabs: Tab[] = ['overview'];
+  const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
