@@ -311,10 +311,11 @@ class SpanFlusher(ProcessingStrategy[int]):
                 # TODO: Check if this is correctly placed
                 segment_span_id = segment_to_span_id(segment_id)
                 if not spans_set:
-                    # TODO: Fix a bug where we flush empty segments
-                    logger.warning(
-                        "skipping segment without spans", extra={"segment_id": segment_span_id}
-                    )
+                    # This is a bug, most likely the input topic is not
+                    # partitioned by trace_id so multiple consumers are writing
+                    # over each other. The consequence is duplicated segments,
+                    # worst-case.
+                    metrics.incr("sentry.spans.buffer.empty_segments")
                     continue
 
                 segment_spans = []
@@ -331,7 +332,6 @@ class SpanFlusher(ProcessingStrategy[int]):
                 producer_futures.append(self.producer.produce(self.topic, kafka_payload))
 
             futures.wait(producer_futures)
-            logger.info("%s segments flushed", len(flushed_segments))
 
             self.buffer.done_flush_segments(flushed_segments)
 
