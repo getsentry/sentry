@@ -1354,6 +1354,28 @@ QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, AggregateFilter, QueryOp, ParenExpression]
 
 
+@overload
+def parse_search_query(
+    query: str,
+    *,
+    config: SearchConfig[Literal[False]],
+    params=None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
+) -> Sequence[SearchFilter | AggregateFilter]: ...
+
+
+@overload
+def parse_search_query(
+    query: str,
+    *,
+    config: SearchConfig[Literal[True]] | None = None,
+    params=None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
+) -> Sequence[QueryToken]: ...
+
+
 def parse_search_query(
     query: str,
     *,
@@ -1361,9 +1383,7 @@ def parse_search_query(
     params=None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
-) -> list[
-    SearchFilter
-]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
+) -> Sequence[QueryToken]:
     if config is None:
         config = default_config
 
