@@ -4,8 +4,7 @@ from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Expression
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, Expression
 
 from sentry.exceptions import InvalidSearchQuery
 
