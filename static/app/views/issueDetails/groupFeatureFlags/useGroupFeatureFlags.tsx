@@ -9,7 +9,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-interface FetchIssueFlagsParameters {
+interface FetchGroupFlagsParams {
   environment: string[] | string | undefined;
   groupId: string;
   orgSlug: string;
@@ -21,13 +21,13 @@ const makeGroupFlagsQueryKey = ({
   orgSlug,
   environment,
   limit,
-}: FetchIssueFlagsParameters): ApiQueryKey => [
+}: FetchGroupFlagsParams): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/tags/`,
   {query: {environment, limit, useFlagsBackend: '1'}},
 ];
 
 export default function useGroupFeatureFlags(
-  parameters: Omit<FetchIssueFlagsParameters, 'orgSlug'>,
+  parameters: Omit<FetchGroupFlagsParams, 'orgSlug'>,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTag[]>> = {}
 ): UseApiQueryResult<GroupTag[], RequestError> {
   const organization = useOrganization();
