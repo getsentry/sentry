@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
@@ -11,7 +11,10 @@ import type {Tag} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 
 type SchemaHintsDrawerProps = {
   hints: Tag[];
@@ -19,6 +22,7 @@ type SchemaHintsDrawerProps = {
 
 function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
   const exploreQuery = useExploreQuery();
+  const setExploreQuery = useSetExploreQuery();
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(exploreQuery);
@@ -34,6 +38,22 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
     });
   }, [hints]);
 
+  const handleCheckboxChange = useCallback(
+    (hint: Tag) => {
+      const filterQuery = new MutableSearch(exploreQuery);
+      if (filterQuery.getFilterKeys().includes(hint.key)) {
+        filterQuery.removeFilter(hint.key);
+      } else {
+        filterQuery.addFilterValue(
+          hint.key,
+          hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+        );
+      }
+      setExploreQuery(filterQuery.formatString());
+    },
+    [exploreQuery, setExploreQuery]
+  );
+
   return (
     <Fragment>
       <DrawerHeader hideBar />
@@ -44,7 +64,11 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
           {sortedHints.map(hint => (
-            <StyledMultipleCheckboxItem key={hint.key} value={hint.key}>
+            <StyledMultipleCheckboxItem
+              key={hint.key}
+              value={hint.key}
+              onChange={() => handleCheckboxChange(hint)}
+            >
               <CheckboxLabelContainer>
                 <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
                 <Badge>
