@@ -35,8 +35,19 @@ export function TimeSeriesWidgetYAxis(
         // the Y axis will be from 0% to 120%, instead of from 0% to 100%. To
         // prevent this case, if the maximum value is _just slightly above 1_,
         // force it to be exactly 1. Only for percentages!
-        if (yAxisFieldType === 'percentage' && value.max - 1 < Y_AXIS_INTEGER_TOLERANCE) {
+        if (
+          yAxisFieldType === 'percentage' &&
+          value.max > 1 &&
+          value.max - 1 < Y_AXIS_INTEGER_TOLERANCE
+        ) {
           return 1;
+        }
+
+        // We show at most 2 decimal places for percentages (e.g. 0.01%).
+        // If the maximum value is _just slightly above 0_, force it to be
+        // exactly 0.01% to avoid showing only 0% on the Y axis.
+        if (yAxisFieldType === 'percentage' && value.max < 0.001) {
+          return 0.001;
         }
 
         return null;
