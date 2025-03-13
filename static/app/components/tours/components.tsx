@@ -303,7 +303,7 @@ export function TourGuide({
                 animated
                 arrowProps={{...arrowProps, background: 'lightModeBlack'}}
               >
-                <TourBody ref={scrollToGuide}>
+                <TourBody ref={scrollToElement}>
                   {isTopRowVisible && (
                     <TopRow>
                       <div>{countText}</div>
@@ -334,10 +334,8 @@ export function TourGuide({
   );
 }
 
-function scrollToGuide(element: HTMLDivElement | null) {
-  if (element) {
-    element.scrollIntoView({block: 'center', behavior: 'smooth'});
-  }
+function scrollToElement(element: HTMLDivElement | null) {
+  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
