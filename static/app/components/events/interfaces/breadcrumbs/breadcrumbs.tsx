@@ -1,4 +1,5 @@
-import React, {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
+import type React from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import type {ListProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
@@ -343,9 +344,9 @@ const PanelDragHandle = styled('div')`
 // It gives the list have a dynamic height; otherwise, in the case of filtered
 // options, a list will be displayed with an empty space
 
-const VirtualizedList = React.forwardRef<any, SharedListProps>((props, ref) => {
+function VirtualizedList({ref, ...props}: SharedListProps & {ref: React.RefObject<any>}) {
   return <StyledList ref={ref} {...props} />;
-});
+}
 const StyledList = styled(List as any)<SharedListProps>`
   height: auto !important;
   max-height: ${p => p.height}px;

@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconGraphScatter = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconGraphScatter({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <circle cx="1.31" cy="14.69" r="1.31" />
@@ -18,7 +16,7 @@ const IconGraphScatter = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) =>
       <circle cx="12.11" cy="8.12" r="1.31" />
     </SvgIcon>
   );
-});
+}
 
 IconGraphScatter.displayName = 'IconGraphScatter';
 

@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconDelete = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconDelete({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z" />
@@ -14,6 +12,6 @@ const IconDelete = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z" />
     </SvgIcon>
   );
-});
+}
 
 export {IconDelete};

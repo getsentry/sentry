@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconArchive = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconArchive({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="m15.28,5.32H.72c-.41,0-.75-.34-.75-.75V.74C-.03.32.3-.01.72-.01h14.56c.41,0,.75.34.75.75v3.83c0,.41-.34.75-.75.75ZM1.47,3.82h13.06V1.49H1.47v2.33Z" />
@@ -11,7 +9,7 @@ const IconArchive = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="m10.67,7.7h-5.08c-.41,0-.75-.34-.75-.75s.34-.75.75-.75h5.08c.41,0,.75.34.75.75s-.34.75-.75.75Z" />
     </SvgIcon>
   );
-});
+}
 
 IconArchive.displayName = 'IconArchive';
 

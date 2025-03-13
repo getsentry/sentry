@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconTelescope = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconTelescope({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M4.66,16a.76.76,0,0,1-.73-1l1.24-4.38a.75.75,0,1,1,1.45.41L5.38,15.46A.77.77,0,0,1,4.66,16Z" />
@@ -13,7 +11,7 @@ const IconTelescope = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M14.24,6.82,13.4,5.58a1.7,1.7,0,0,0-1-3.1,1.59,1.59,0,0,0-.74.18L11,1.31A3.14,3.14,0,0,1,12.45,1a3.2,3.2,0,0,1,1.79,5.84Z" />
     </SvgIcon>
   );
-});
+}
 
 IconTelescope.displayName = 'IconTelescope';
 

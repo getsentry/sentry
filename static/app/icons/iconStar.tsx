@@ -1,5 +1,3 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
@@ -7,7 +5,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-const IconStar = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, ref) => {
+function IconStar({ref, isSolid = false, ...props}: Props) {
   return (
     <SvgIcon {...props} ref={ref}>
       {isSolid ? (
@@ -17,7 +15,7 @@ const IconStar = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, 
       )}
     </SvgIcon>
   );
-});
+}
 
 IconStar.displayName = 'IconStar';
 

@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
@@ -6,7 +5,7 @@ import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 interface Props extends SVGIconProps {
   bars?: 0 | 1 | 2 | 3;
 }
-const IconCellSignal = forwardRef<SVGSVGElement, Props>(({bars = 3, ...props}, ref) => {
+function IconCellSignal({ref, bars = 3, ...props}: Props) {
   const theme = useTheme();
   const firstBarColor = bars > 0 ? theme.gray300 : theme.gray200;
   const secondBarColor = bars > 1 ? theme.gray300 : theme.gray200;
@@ -19,7 +18,7 @@ const IconCellSignal = forwardRef<SVGSVGElement, Props>(({bars = 3, ...props}, r
       <rect x="12.4" y="0" width="4" height="15" fill={thirdBarColor} rx="1" />
     </SvgIcon>
   );
-});
+}
 
 IconCellSignal.displayName = 'IconCellSignal';
 

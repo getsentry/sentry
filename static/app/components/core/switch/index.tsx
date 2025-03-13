@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {withChonk} from 'sentry/utils/theme/withChonk';
@@ -10,21 +9,25 @@ export interface SwitchProps
   size?: 'sm' | 'lg';
 }
 
-export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
-  ({size = 'sm', ...props}: SwitchProps, ref) => {
-    return (
-      <SwitchWrapper>
-        {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
-         * so we need to use a different name, or somehow tell emotion to not create a type intersection.
-         */}
-        <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
-        <FakeCheckbox size={size}>
-          <FakeCheckboxButton size={size} />
-        </FakeCheckbox>
-      </SwitchWrapper>
-    );
-  }
-);
+export function Switch({
+  ref,
+  size = 'sm',
+  ...props
+}: SwitchProps & {
+  ref?: React.Ref<HTMLInputElement>;
+}) {
+  return (
+    <SwitchWrapper>
+      {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
+       * so we need to use a different name, or somehow tell emotion to not create a type intersection.
+       */}
+      <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
+      <FakeCheckbox size={size}>
+        <FakeCheckboxButton size={size} />
+      </FakeCheckbox>
+    </SwitchWrapper>
+  );
+}
 
 const ToggleConfig = {
   sm: {

@@ -1,6 +1,5 @@
 import {
   type CSSProperties,
-  forwardRef,
   Fragment,
   useCallback,
   useEffect,
@@ -57,18 +56,18 @@ export interface FoldSectionProps {
   style?: CSSProperties;
 }
 
-export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
-  {
-    children,
-    title,
-    actions,
-    sectionKey,
-    className,
-    initialCollapse = false,
-    preventCollapse = false,
-  },
-  forwardedRef
-) {
+export function FoldSection({
+  ref: forwardedRef,
+  children,
+  title,
+  actions,
+  sectionKey,
+  className,
+  initialCollapse = false,
+  preventCollapse = false,
+}: FoldSectionProps & {
+  ref?: React.Ref<HTMLElement>;
+}) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
   const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
@@ -185,7 +184,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       <SectionDivider />
     </Fragment>
   );
-});
+}
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};

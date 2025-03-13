@@ -1,4 +1,4 @@
-import {forwardRef, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -144,6 +144,7 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    * Handler for changes. Narrower than the types in react-select.
    */
   onChange?: (value?: OptionType | null) => void;
+  ref?: React.Ref<typeof ReactSelect>;
   /**
    * Show line dividers between options
    */
@@ -158,18 +159,6 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
   value?: any;
 }
 
-/**
- * Additional props provided by forwardRef
- */
-interface WrappedControlProps<OptionType extends OptionTypeBase>
-  extends ControlProps<OptionType> {
-  /**
-   * Ref forwarded into ReactSelect component.
-   * The any is inherited from react-select.
-   */
-  forwardedRef: React.Ref<typeof ReactSelect>;
-}
-
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
 // at the call site. We use `any` here to avoid type errors with select
@@ -179,8 +168,8 @@ export type GeneralSelectValue = SelectValue<any>;
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 
-function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: WrappedControlProps<OptionType>
+export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  props: ControlProps<OptionType>
 ) {
   const theme = useTheme();
   const {size, maxMenuWidth, isInsideModal} = props;
@@ -504,7 +493,7 @@ export interface PickerProps<OptionType extends OptionTypeBase>
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
-  forwardedRef,
+  ref,
   ...props
 }: PickerProps<OptionType>) {
   // Pick the right component to use
@@ -520,12 +509,5 @@ function SelectPicker<OptionType extends OptionTypeBase>({
     Component = ReactSelect;
   }
 
-  return <Component ref={forwardedRef} {...props} />;
+  return <Component ref={ref as any} {...props} />;
 }
-
-// The generics need to be filled here as forwardRef can't expose generics.
-export const Select = forwardRef<typeof ReactSelect<GeneralSelectValue>, ControlProps>(
-  function RefForwardedSelectControl(props, ref) {
-    return <SelectControl forwardedRef={ref as any} {...props} />;
-  }
-);

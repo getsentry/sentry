@@ -1,9 +1,7 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconMute = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconMute({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M1.23,15.47a.75.75,0,0,1-.53-.22.74.74,0,0,1,0-1.06L14.24.64a.75.75,0,0,1,1.06,0,.74.74,0,0,1,0,1.06L1.76,15.25A.79.79,0,0,1,1.23,15.47Z" />
@@ -12,7 +10,7 @@ const IconMute = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M11.76,10.35a.64.64,0,0,1-.33-.08.75.75,0,0,1-.34-1,.78.78,0,0,1,.14-.2,1.56,1.56,0,0,0,0-2.21A.75.75,0,0,1,12.29,5.8a3.07,3.07,0,0,1,0,4.32A.78.78,0,0,1,11.76,10.35Z" />
     </SvgIcon>
   );
-});
+}
 
 IconMute.displayName = 'IconMute';
 
