@@ -86,6 +86,15 @@ export function getWidgetExploreUrl(
     utc: decodeBoolean(locationQueryParams.utc) ?? null,
   };
 
+  let groupBy = fields?.filter(field => !isAggregateFieldOrEquation(field));
+  if (groupBy && groupBy.length === 0) {
+    // Force the groupBy to be an array with a single empty string
+    // so that qs.stringify appends the key to the URL. If the key
+    // is not present, the Explore UI will assign a default groupBy
+    // which we do not want if the user has not specified a groupBy.
+    groupBy = [''];
+  }
+
   const queryParams = {
     // Page filters should propagate
     selection: {
@@ -100,7 +109,7 @@ export function getWidgetExploreUrl(
         yAxes: locationQueryParams.yAxes,
       },
     ],
-    groupBy: fields?.filter(field => !isAggregateFieldOrEquation(field)),
+    groupBy,
     field: decodeList(locationQueryParams.field),
     query: decodeScalar(locationQueryParams.query),
     sort:
