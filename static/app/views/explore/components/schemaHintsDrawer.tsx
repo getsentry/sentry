@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   useExploreQuery,
@@ -44,9 +44,14 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       if (filterQuery.getFilterKeys().includes(hint.key)) {
         filterQuery.removeFilter(hint.key);
       } else {
+        const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
         filterQuery.addFilterValue(
           hint.key,
-          hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
+            ? 'True'
+            : hint.kind === FieldKind.MEASUREMENT
+              ? '>0'
+              : ''
         );
       }
       setExploreQuery(filterQuery.formatString());
@@ -63,20 +68,27 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
           <IconSearch size="md" />
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
-          {sortedHints.map(hint => (
-            <StyledMultipleCheckboxItem
-              key={hint.key}
-              value={hint.key}
-              onChange={() => handleCheckboxChange(hint)}
-            >
-              <CheckboxLabelContainer>
-                <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
-                <Badge>
-                  {hint.kind === FieldKind.MEASUREMENT ? t('number') : t('string')}
-                </Badge>
-              </CheckboxLabelContainer>
-            </StyledMultipleCheckboxItem>
-          ))}
+          {sortedHints.map(hint => {
+            const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+            const hintType =
+              hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
+                ? t('boolean')
+                : hint.kind === FieldKind.MEASUREMENT
+                  ? t('number')
+                  : t('string');
+            return (
+              <StyledMultipleCheckboxItem
+                key={hint.key}
+                value={hint.key}
+                onChange={() => handleCheckboxChange(hint)}
+              >
+                <CheckboxLabelContainer>
+                  <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+                  <Badge>{hintType}</Badge>
+                </CheckboxLabelContainer>
+              </StyledMultipleCheckboxItem>
+            );
+          })}
         </StyledMultipleCheckbox>
       </DrawerBody>
     </Fragment>
