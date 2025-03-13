@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import BadgeDisplayName from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
@@ -71,9 +72,11 @@ function ProjectBadge({
   );
 
   if (!disableLink && organization?.slug) {
-    const defaultTo = `/organizations/${organization.slug}/projects/${project.slug}/${
-      project.id ? `?project=${project.id}` : ''
-    }`;
+    const defaultTo =
+      makeProjectsPathname({
+        path: `/${project.slug}/`,
+        orgSlug: organization.slug,
+      }) + (project.id ? `?project=${project.id}` : '');
 
     return (
       <StyledLink

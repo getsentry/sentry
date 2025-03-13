@@ -28,6 +28,7 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
@@ -391,7 +392,7 @@ function ProfileEventDetails({
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
-                <Link to={`/organizations/${organization.slug}/projects/`}>
+                <Link to={makeProjectsPathname({path: '/', orgSlug: organization.slug})}>
                   <span>
                     <OrganizationAvatar size={12} organization={organization} />{' '}
                     {organization.name}
@@ -428,7 +429,12 @@ function ProfileEventDetails({
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
                 <Link
-                  to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+                  to={
+                    makeProjectsPathname({
+                      path: `/${project.slug}/`,
+                      orgSlug: organization.slug,
+                    }) + `?project=${project.id}`
+                  }
                 >
                   <FlexRow>
                     <ProjectAvatar project={project} size={12} /> {project.slug}
