@@ -28,8 +28,11 @@ describe('ForcedTrialModal', function () {
   describe('member limit', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
-        url: `/organizations/${slug}/integrations/?includeConfig=0`,
+        url: `/organizations/${slug}/integrations/`,
         method: 'GET',
+        query: {
+          includeConfig: 0,
+        },
         body: [
           {
             provider: {
@@ -40,20 +43,20 @@ describe('ForcedTrialModal', function () {
         ],
       });
     });
-    it('shows request upgrade when user does not have billing permissions', function () {
+    it('shows request upgrade when user does not have billing permissions', async function () {
       populateOrgAndSub({access: []});
 
       render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
-      expect(screen.getByLabelText('Request Upgrade')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Request Upgrade')).toBeInTheDocument();
       expect(
         screen.getByText('You may lose access to Sentry in 14 days')
       ).toBeInTheDocument();
     });
-    it('shows upgrade now when user has billing permissions', function () {
+    it('shows upgrade now when user has billing permissions', async function () {
       populateOrgAndSub();
 
       render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
-      expect(screen.getByLabelText('Upgrade')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Upgrade')).toBeInTheDocument();
       expect(
         screen.getByText('Members may lose access to Sentry in 14 days')
       ).toBeInTheDocument();
@@ -62,8 +65,11 @@ describe('ForcedTrialModal', function () {
   describe('disallowed integration', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
-        url: `/organizations/${slug}/integrations/?includeConfig=0`,
+        url: `/organizations/${slug}/integrations/`,
         method: 'GET',
+        query: {
+          includeConfig: 0,
+        },
         body: [
           {
             provider: {
@@ -74,11 +80,11 @@ describe('ForcedTrialModal', function () {
         ],
       });
     });
-    it('shows upgrade button if has slack', function () {
+    it('shows upgrade button if has slack', async function () {
       populateOrgAndSub();
 
       render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
-      expect(screen.getByLabelText('Upgrade')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Upgrade')).toBeInTheDocument();
       expect(
         screen.getByText('Your Slack integration will stop working in 14 days')
       ).toBeInTheDocument();
