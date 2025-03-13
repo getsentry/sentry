@@ -78,6 +78,7 @@ const CheckboxLabelContainer = styled('div')`
   justify-content: space-between;
   width: 100%;
   gap: ${space(1)};
+  padding-right: ${space(0.5)};
 `;
 
 const CheckboxLabel = styled('span')`

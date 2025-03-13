@@ -351,7 +351,7 @@ function EventDetailsContent(props: Props) {
       title={t('Performance — Event Details')}
       orgSlug={organization.slug}
     >
-      {renderBody() as React.ReactChild}
+      {renderBody()}
     </SentryDocumentTitle>
   );
 }

@@ -5,12 +5,12 @@ import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useDenylistedProjects} from 'sentry/views/insights/database/queries/useDenylistedProjects';
 import {useOutdatedSDKProjects} from 'sentry/views/insights/database/queries/useOutdatedSDKProjects';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface Props {
   Wrapper?: React.ComponentType<any>;
@@ -98,9 +98,10 @@ function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) 
         return (
           <span key={project.id}>
             <a
-              href={normalizeUrl(
-                `/organizations/${organization.slug}/projects/${project.slug}/`
-              )}
+              href={makeProjectsPathname({
+                path: `/${project.slug}/`,
+                orgSlug: organization.slug,
+              })}
             >
               {project.name}
             </a>

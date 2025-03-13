@@ -22,7 +22,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {
   useLogsFields,
-  useLogsIsTableSortFrozen,
+  useLogsIsTableEditingFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsCursor,
@@ -38,10 +38,11 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
-  const isTableSortFrozen = useLogsIsTableSortFrozen();
+  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
+  const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
   });
@@ -73,8 +74,10 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
                   isFirst={index === 0}
                 >
                   <TableHeadCellContent
-                    onClick={isTableSortFrozen ? undefined : () => setSortBys([{field}])}
-                    isFrozen={isTableSortFrozen}
+                    onClick={
+                      isTableEditingFrozen ? undefined : () => setSortBys([{field}])
+                    }
+                    isFrozen={isTableEditingFrozen}
                   >
                     <Tooltip showOnlyOnOverflow title={headerLabel}>
                       {headerLabel}
@@ -140,7 +143,12 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
           )}
           {data?.map((row, index) => (
             <TableRow key={index}>
-              <LogRowContent dataRow={row} meta={meta} highlightTerms={highlightTerms} />
+              <LogRowContent
+                dataRow={row}
+                meta={meta}
+                highlightTerms={highlightTerms}
+                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+              />
             </TableRow>
           ))}
         </TableBody>

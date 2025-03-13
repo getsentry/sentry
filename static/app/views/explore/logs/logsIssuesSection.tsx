@@ -21,15 +21,20 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 export function LogsIssuesSection({
   initialCollapse,
-  isIssuesDetailView,
-  limitToTraceId: traceId,
+  isOnEmbeddedView,
+  limitToTraceId,
 }: {
   initialCollapse: boolean;
 } & Omit<LogsPageParamsProviderProps, 'children'>) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useExploreLogsTable({enabled: feature});
+  const tableData = useExploreLogsTable({enabled: feature, limit: 10});
   if (!feature) {
+    return null;
+  }
+  if (!limitToTraceId) {
+    // If there isn't a traceId (eg. profiling issue), we shouldn't show logs since they are trace specific.
+    // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
   if (tableData?.data?.length === 0) {
@@ -45,8 +50,8 @@ export function LogsIssuesSection({
       initialCollapse={initialCollapse}
     >
       <LogsPageParamsProvider
-        isIssuesDetailView={isIssuesDetailView}
-        limitToTraceId={traceId}
+        isOnEmbeddedView={isOnEmbeddedView}
+        limitToTraceId={limitToTraceId}
       >
         <LogsSectionContent tableData={tableData} />
       </LogsPageParamsProvider>
