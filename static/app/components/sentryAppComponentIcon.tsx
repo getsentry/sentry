@@ -18,7 +18,7 @@ function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
     ({color}) => color === false
   );
   const isDefault = selectedAvatar?.avatarType !== 'upload';
-  const isDisabled = sentryAppComponentIsDisabled(sentryAppComponent);
+  const isDisabled = Boolean(sentryAppComponent.error);
 
   return (
     <SentryAppAvatarWrapper
@@ -34,11 +34,6 @@ function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
     </SentryAppAvatarWrapper>
   );
 }
-
-// Patch for backwards compatibility as the change's truth table is inverse to the previous'
-export const sentryAppComponentIsDisabled = (component: SentryAppComponent) => {
-  return typeof component.error === 'boolean' ? component.error : !component.error;
-};
 
 export default SentryAppComponentIcon;
 

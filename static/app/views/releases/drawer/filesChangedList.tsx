@@ -11,6 +11,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import FileChange from 'sentry/views/releases/detail/commitsAndFiles/fileChange';
 import RepositorySwitcher from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
@@ -24,6 +25,7 @@ interface FilesChangedProps {
 
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
 
@@ -36,7 +38,7 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   } = useReleaseCommitFiles({
     release,
     activeRepository: activeReleaseRepo,
-    // ...query,
+    cursor: location.query.fileCursor,
   });
 
   const filesByRepository = getFilesByRepository(fileList);
@@ -83,7 +85,15 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
                 </Panel>
               );
             })}
-            <Pagination pageLinks={fileListPageLinks} />
+            <Pagination
+              pageLinks={fileListPageLinks}
+              onCursor={(cursor, path, searchQuery) => {
+                navigate({
+                  pathname: path,
+                  query: {...searchQuery, fileCursor: cursor},
+                });
+              }}
+            />
           </Fragment>
         ) : (
           <EmptyState>

@@ -9,6 +9,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -297,7 +298,9 @@ describe('Subscription > BillingDetails', function () {
 
     renderGlobalModal();
     const modal = await screen.findByRole('dialog');
-    expect(modal).toHaveTextContent('Unable to initialize payment setup');
+    await waitFor(() => {
+      expect(modal).toHaveTextContent('Unable to initialize payment setup');
+    });
   });
 
   it('shows an error when confirmSetup fails', async function () {
