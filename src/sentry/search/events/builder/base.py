@@ -986,9 +986,9 @@ class BaseQueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
-        should_use_user_time_range = features.has(
+        should_use_user_time_range = self.params.organization is not None and features.has(
             "organizations:performance-discover-get-custom-measurements-reduced-range",
-            self.organization_id,
+            self.params.organization,
             actor=None,
         )
 
