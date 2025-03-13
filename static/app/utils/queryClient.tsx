@@ -108,6 +108,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   queryKey: ApiQueryKey,
   options: UseApiQueryOptions<TResponseData, TError>
 ): UseApiQueryResult<TResponseData, TError> {
+  // eslint-disable-next-line @tanstack/query/no-rest-destructuring
   const {data, ...rest} = useQuery({
     queryKey,
     queryFn: fetchDataQuery<TResponseData>,

@@ -127,6 +127,11 @@ describe('processInitQueue', function () {
         body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
       });
 
+      MockApiClient.addMockResponse({
+        url: '/organizations/organization-1/teams/',
+        body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
+      });
+
       render(<div id="setup-wizard-container" />);
       processInitQueue();
 

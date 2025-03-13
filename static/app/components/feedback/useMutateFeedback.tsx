@@ -32,7 +32,7 @@ export default function useMutateFeedback({
   const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const mutation = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: ([ids, payload]) => {
       updateCached(ids, payload);
     },
@@ -60,9 +60,9 @@ export default function useMutateFeedback({
 
   const markAsRead = useCallback(
     (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) => {
-      mutation.mutate([feedbackIds, {hasSeen}], options);
+      mutate([feedbackIds, {hasSeen}], options);
     },
-    [mutation, feedbackIds]
+    [mutate, feedbackIds]
   );
 
   const resolve = useCallback(
@@ -70,9 +70,9 @@ export default function useMutateFeedback({
       status: GroupStatus,
       options?: MutateOptions<TData, TError, TVariables, TContext>
     ) => {
-      mutation.mutate([feedbackIds, {status}], options);
+      mutate([feedbackIds, {status}], options);
     },
-    [mutation, feedbackIds]
+    [mutate, feedbackIds]
   );
 
   return {
