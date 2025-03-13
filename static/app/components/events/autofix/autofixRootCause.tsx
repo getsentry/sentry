@@ -356,7 +356,7 @@ function AutofixRootCauseDisplay({
         <AnimatePresence>
           {agentCommentThread && iconFocusRef.current && (
             <AutofixHighlightPopup
-              selectedText="Root Cause"
+              selectedText=""
               referenceElement={iconFocusRef.current}
               groupId={groupId}
               runId={runId}

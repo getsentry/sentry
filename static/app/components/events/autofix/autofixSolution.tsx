@@ -602,7 +602,7 @@ function AutofixSolutionDisplay({
         <AnimatePresence>
           {agentCommentThread && iconFixRef.current && (
             <AutofixHighlightPopup
-              selectedText="Solution"
+              selectedText=""
               referenceElement={iconFixRef.current}
               groupId={groupId}
               runId={runId}
