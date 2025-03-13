@@ -11,6 +11,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
+import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -117,6 +118,14 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
         <IconGrabbable color="gray500" />
       </GrabberContainer>
 
+      <TraceLinksNavigationContainer>
+        <TraceLinkNavigationButton
+          direction={'previous'}
+          isLoading={rootEvent.isLoading}
+          traceContext={rootEvent.data?.contexts.trace}
+        />
+      </TraceLinksNavigationContainer>
+
       <TraceContextContainer ref={containerRef}>
         <VitalMetersContainer>
           <TraceContextVitals tree={tree} />
@@ -183,4 +192,11 @@ const TraceTagsContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
   margin-bottom: ${space(2)};
+`;
+
+const TraceLinksNavigationContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  margin: ${space(1)} 0;
 `;
