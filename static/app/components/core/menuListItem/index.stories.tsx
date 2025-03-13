@@ -34,8 +34,8 @@ export default storyBook('MenuListItem', (story, APIReference) => {
 
 const Container = styled('div')`
   margin-top: ${space(0.5)};
-  padding: ${space(1)};
   border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const leadingItems: React.ComponentProps<typeof MenuListItem>['leadingItems'] = state => {
