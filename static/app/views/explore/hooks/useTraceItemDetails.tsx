@@ -93,13 +93,6 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
     dataset: props.dataset,
   };
 
-  const queryOptions = {
-    enabled: enabled && pageFiltersReady,
-    retry: shouldRetryHandler,
-    retryDelay: getRetryDelay,
-    staleTime: Infinity,
-  };
-
   const result = useApiQuery<TraceItemDetailsResponse>(
     traceItemDetailsQueryKey({
       urlParams: {
@@ -109,7 +102,12 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       },
       queryParams,
     }),
-    queryOptions
+    {
+      enabled: enabled && pageFiltersReady,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
+    }
   );
 
   return result;
