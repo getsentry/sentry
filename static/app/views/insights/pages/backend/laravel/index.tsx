@@ -162,7 +162,7 @@ const WidgetGrid = styled('div')`
   padding-bottom: ${space(2)};
 
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 180px 300px 300px;
+  grid-template-rows: 180px 180px 300px 240px 300px 300px;
   grid-template-areas:
     'requests'
     'duration'
@@ -173,7 +173,7 @@ const WidgetGrid = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 180px 300px;
+    grid-template-rows: 180px 300px 240px 300px;
     grid-template-areas:
       'requests duration'
       'issues issues'
