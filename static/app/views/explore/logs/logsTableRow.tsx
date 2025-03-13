@@ -37,7 +37,6 @@ import {
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogTableBodyCell,
-  LogTableBodyCellContent,
   LogTableRow,
   StyledChevronButton,
 } from './styles';
@@ -60,7 +59,7 @@ export function LogRowContent({
   const organization = useOrganization();
   const fields = useLogsFields();
   const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+  const onClickExpand = useCallback(() => setExpanded(e => !e), []);
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -123,13 +122,11 @@ export function LogRowContent({
 
           return (
             <LogTableBodyCell key={field}>
-              <LogTableBodyCellContent onClick={e => e.stopPropagation()}>
-                <LogFieldRenderer
-                  item={getLogRowItem(field, dataRow, meta)}
-                  meta={meta}
-                  extra={rendererExtra}
-                />
-              </LogTableBodyCellContent>
+              <LogFieldRenderer
+                item={getLogRowItem(field, dataRow, meta)}
+                meta={meta}
+                extra={rendererExtra}
+              />
             </LogTableBodyCell>
           );
         })}
