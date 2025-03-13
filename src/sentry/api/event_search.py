@@ -1332,7 +1332,6 @@ def parse_search_query(
     *,
     config: SearchConfig | None = None,
     params=None,
-    config_overrides=None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> list[
@@ -1353,9 +1352,6 @@ def parse_search_query(
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-
-    if config_overrides:
-        config = SearchConfig.create_from(config, **config_overrides)
 
     return SearchVisitor(
         config,
