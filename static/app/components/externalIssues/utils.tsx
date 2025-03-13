@@ -8,7 +8,7 @@ import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
+import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 
 // This exists because /extensions/type/search API is not prefixed with
@@ -215,4 +215,36 @@ export function ensureCurrentOption({
   }
   // Has a selected option, and it is not in API results
   return [...result, currentOption];
+}
+
+/**
+ * Populate all async fields with their choices, then return the full list of fields.
+ * We pull from the fetchedFieldOptionsCache which contains the most recent choices
+ * for each async field.
+ */
+export function loadAsyncThenFetchAllFields({
+  configName,
+  integrationDetails,
+  fetchedFieldOptionsCache,
+}: {
+  configName: 'createIssueConfig' | 'linkIssueConfig';
+  fetchedFieldOptionsCache: Record<string, Choices>;
+  integrationDetails: IntegrationIssueConfig | null;
+}): IssueConfigField[] {
+  const configsFromAPI = integrationDetails?.[configName];
+  return (configsFromAPI || []).map(field => {
+    const fieldCopy = {...field};
+    // Overwrite choices from cache.
+    if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+      fieldCopy.choices = fetchedFieldOptionsCache[field.name];
+    }
+    return fieldCopy;
+  });
+}
+
+/**
+ * check if we have any form fields with name error and type blank
+ */
+export function hasErrorInFields({fields}: {fields: IssueConfigField[]}) {
+  return fields.some(field => field.name === 'error' && field.type === 'blank');
 }

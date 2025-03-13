@@ -1,7 +1,6 @@
-import {Fragment} from 'react';
-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {
   ensureCurrentOption,
   getConfigName,
@@ -10,10 +9,10 @@ import {
   getDynamicFields,
   getFieldProps,
   getOptions,
+  hasErrorInFields,
+  loadAsyncThenFetchAllFields,
 } from 'sentry/components/externalIssues/utils';
-import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import {tct} from 'sentry/locale';
@@ -195,9 +194,7 @@ export default class AbstractExternalIssueForm<
   };
 
   hasErrorInFields = (): boolean => {
-    // check if we have any form fields with name error and type blank
-    const fields = this.loadAsyncThenFetchAllFields();
-    return fields.some(field => field.name === 'error' && field.type === 'blank');
+    return hasErrorInFields({fields: this.loadAsyncThenFetchAllFields()});
   };
 
   getDefaultFormProps = (): FormProps => {
@@ -216,17 +213,10 @@ export default class AbstractExternalIssueForm<
    * for each async field.
    */
   loadAsyncThenFetchAllFields = (): IssueConfigField[] => {
-    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
-
-    const configsFromAPI = integrationDetails?.[this.getConfigName()];
-    return (configsFromAPI || []).map(field => {
-      const fieldCopy = {...field};
-      // Overwrite choices from cache.
-      if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
-        fieldCopy.choices = fetchedFieldOptionsCache[field.name];
-      }
-
-      return fieldCopy;
+    return loadAsyncThenFetchAllFields({
+      configName: this.getConfigName(),
+      integrationDetails: this.state.integrationDetails,
+      fetchedFieldOptionsCache: this.state.fetchedFieldOptionsCache,
     });
   };
 
@@ -238,6 +228,7 @@ export default class AbstractExternalIssueForm<
     formFields?: IssueConfigField[],
     errors: ExternalIssueFormErrors = {}
   ) => {
+    const {Header, Body} = this.props as ModalRenderProps;
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -247,47 +238,22 @@ export default class AbstractExternalIssueForm<
       {}
     );
 
-    const {Header, Body} = this.props as ModalRenderProps;
-
     return (
-      <Fragment>
-        <Header closeButton>
-          <h4>{this.getTitle()}</h4>
-        </Header>
-        {this.renderNavTabs()}
-        <Body>
-          {this.shouldRenderLoading ? (
-            this.renderLoading()
-          ) : (
-            <Fragment>
-              {this.renderBodyText()}
-              <Form initialData={initialData} {...this.getFormProps()}>
-                {(formFields || [])
-                  .filter((field: FormField) => field.hasOwnProperty('name'))
-                  .map(fields => ({
-                    ...fields,
-                    noOptionsMessage: () => 'No options. Type to search.',
-                  }))
-                  .map((field, i) => {
-                    return (
-                      <Fragment key={`${field.name}-${i}`}>
-                        <FieldFromConfig
-                          disabled={this.state.reloading}
-                          field={field}
-                          flexibleControlStateSize
-                          inline={false}
-                          stacked
-                          {...this.getFieldProps(field)}
-                        />
-                        {errors[field.name] && errors[field.name]}
-                      </Fragment>
-                    );
-                  })}
-              </Form>
-            </Fragment>
-          )}
-        </Body>
-      </Fragment>
+      <ExternalForm
+        Header={Header}
+        Body={Body}
+        formFields={formFields}
+        errors={errors}
+        isLoading={this.shouldRenderLoading}
+        formProps={{
+          ...this.getFormProps(),
+          initialData,
+        }}
+        title={this.getTitle()}
+        navTabs={this.renderNavTabs()}
+        bodyText={this.renderBodyText()}
+        getFieldProps={this.getFieldProps}
+      />
     );
   };
 }
