@@ -58,6 +58,8 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     staleTime: 0,
   });
 
+  const trimSchema = (value: string) => value.split('//')[1];
+
   const resetMutation = useMutation({
     mutationFn: () =>
       api.requestPromise(endpoint, {
@@ -100,6 +102,12 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     [pluginId, organization]
   );
 
+  // Enabled state is handled via PluginsStore and not via plugins detail
+  const getEnabled = () => {
+    const plugin = plugins?.plugins?.find(({slug}) => slug === pluginId);
+    return plugin ? plugin.enabled : pluginDetails?.enabled;
+  };
+
   const handleEnable = useCallback(() => {
     enablePlugin({pluginId, projectId, orgId: organization.slug});
     analyticsChangeEnableStatus(true);
@@ -118,14 +126,6 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
       organization,
     });
   }, [pluginId, organization]);
-
-  const trimSchema = (value: string) => value.split('//')[1];
-
-  // Enabled state is handled via PluginsStore and not via plugins detail
-  const getEnabled = () => {
-    const plugin = plugins?.plugins?.find(({slug}) => slug === pluginId);
-    return plugin ? plugin.enabled : pluginDetails?.enabled;
-  };
 
   const renderActions = () => {
     if (!pluginDetails) {
