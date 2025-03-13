@@ -32,6 +32,7 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     NotificationContext,
 )
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
@@ -312,6 +313,9 @@ class PagerDutyActionHandler(DefaultActionHandler):
         notification_uuid: str | None = None,
     ):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
+
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
 
         notification_context = NotificationContext.from_alert_rule_trigger_action(action)
         alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
