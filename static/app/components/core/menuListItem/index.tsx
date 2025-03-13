@@ -52,12 +52,6 @@ export type MenuListItemProps = {
    */
   leadingItems?: EdgeItems;
   /**
-   * Whether leading items should be centered with respect to the entire height
-   * of the item. If false (default), they will be centered with respect to the
-   * first line of the label element.
-   */
-  leadingItemsSpanFullHeight?: boolean;
-  /**
    * Accented text and background (on hover) colors.
    */
   priority?: Priority;
@@ -83,12 +77,6 @@ export type MenuListItemProps = {
    * Items to be added to the right of the label.
    */
   trailingItems?: EdgeItems;
-  /**
-   * Whether trailing items should be centered wrt/ the entire height of the
-   * item. If false (default), they will be centered wrt/ the first line of the
-   * label element.
-   */
-  trailingItemsSpanFullHeight?: boolean;
 };
 
 interface OtherProps {
@@ -115,9 +103,7 @@ function BaseMenuListItem({
   disabled = false,
   showDivider = false,
   leadingItems = false,
-  leadingItemsSpanFullHeight = false,
   trailingItems = false,
-  trailingItemsSpanFullHeight = false,
   isFocused = false,
   isSelected = false,
   isPressed,
@@ -158,11 +144,7 @@ function BaseMenuListItem({
             higherOpacity={priority !== 'default'}
           />
           {leadingItems && (
-            <LeadingItems
-              disabled={disabled}
-              spanFullHeight={leadingItemsSpanFullHeight}
-              size={size}
-            >
+            <LeadingItems disabled={disabled} size={size}>
               {typeof leadingItems === 'function'
                 ? leadingItems({disabled, isFocused, isSelected})
                 : leadingItems}
@@ -185,10 +167,7 @@ function BaseMenuListItem({
               )}
             </LabelWrap>
             {trailingItems && (
-              <TrailingItems
-                disabled={disabled}
-                spanFullHeight={trailingItemsSpanFullHeight}
-              >
+              <TrailingItems disabled={disabled}>
                 {typeof trailingItems === 'function'
                   ? trailingItems({disabled, isFocused, isSelected})
                   : trailingItems}
@@ -420,7 +399,6 @@ const ContentWrap = withChonk(
 export const LeadingItems = styled('div')<{
   disabled: boolean;
   size: Props['size'];
-  spanFullHeight: boolean;
 }>`
   display: flex;
   align-items: center;
@@ -431,7 +409,6 @@ export const LeadingItems = styled('div')<{
   flex-shrink: 0;
 
   ${p => p.disabled && `opacity: 0.5;`}
-  ${p => p.spanFullHeight && `height: 100%;`}
 `;
 
 const LabelWrap = styled('div')`
@@ -457,7 +434,7 @@ const Details = styled('div')<{disabled: boolean; priority: Priority}>`
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
 
-const TrailingItems = styled('div')<{disabled: boolean; spanFullHeight: boolean}>`
+const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
@@ -465,5 +442,4 @@ const TrailingItems = styled('div')<{disabled: boolean; spanFullHeight: boolean}
   margin-right: ${space(0.5)};
 
   ${p => p.disabled && `opacity: 0.5;`}
-  ${p => p.spanFullHeight && `height: 100%;`}
 `;
