@@ -27,8 +27,11 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.incidents.typings.metric_detector import AlertContext, NotificationContext
-from sentry.integrations.metric_alerts import get_metric_count_from_incident
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
@@ -312,18 +315,17 @@ class PagerDutyActionHandler(DefaultActionHandler):
 
         notification_context = NotificationContext.from_alert_rule_trigger_action(action)
         alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
-
-        if metric_value is None:
-            metric_value = get_metric_count_from_incident(incident)
+        metric_issue_context = MetricIssueContext.from_legacy_models(
+            incident=incident,
+            new_status=new_status,
+            metric_value=metric_value,
+        )
 
         success = send_incident_alert_notification(
             notification_context=notification_context,
             alert_context=alert_context,
-            open_period_identifier=incident.identifier,
+            metric_issue_context=metric_issue_context,
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
-            new_status=new_status,
-            metric_value=metric_value,
             notification_uuid=notification_uuid,
         )
         if success:
