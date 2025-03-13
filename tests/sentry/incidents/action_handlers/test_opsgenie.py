@@ -95,9 +95,14 @@ class OpsgenieActionHandlerTest(FireTest):
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
             metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident, IncidentStatus(incident.status), metric_value
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
             ),
             organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert data["message"] == alert_rule.name
@@ -155,7 +160,15 @@ class OpsgenieActionHandlerTest(FireTest):
                 incident, IncidentStatus(incident.status), metric_value
             ),
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
+            ),
             organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert data["message"] == alert_rule.name
@@ -204,7 +217,15 @@ class OpsgenieActionHandlerTest(FireTest):
                     incident, new_status, metric_value=1000
                 ),
                 alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                metric_issue_context=MetricIssueContext.from_legacy_models(
+                    incident=incident,
+                    new_status=new_status,
+                    metric_value=1000,
+                ),
                 organization=incident.organization,
+                snuba_query=incident.alert_rule.snuba_query,
+                new_status=new_status,
+                metric_value=1000,
             )
             expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 

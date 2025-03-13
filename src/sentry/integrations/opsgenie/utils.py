@@ -29,10 +29,14 @@ def build_incident_attachment(
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
 
+    # TODO(iamrajjoshi): Pass down `metric_issue_context`
     data = incident_attachment_info(
         alert_context=alert_context,
-        metric_issue_context=metric_issue_context,
+        open_period_identifier=metric_issue_context.open_period_identifier,
         organization=organization,
+        snuba_query=metric_issue_context.snuba_query,
+        new_status=metric_issue_context.new_status,
+        metric_value=metric_issue_context.metric_value,
         notification_uuid=notification_uuid,
         referrer="metric_alert_opsgenie",
     )

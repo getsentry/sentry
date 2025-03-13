@@ -124,6 +124,21 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "metric_value": metric_value,
         }
 
+    def unpack_kwargs(self, mock_send_alert):
+        _, kwargs = mock_send_alert.call_args
+        notification_context = kwargs["notification_context"]
+        alert_context = kwargs["alert_context"]
+        metric_issue_context = kwargs["metric_issue_context"]
+        organization = kwargs["organization"]
+        notification_uuid = kwargs["notification_uuid"]
+        return (
+            notification_context,
+            alert_context,
+            metric_issue_context,
+            organization,
+            notification_uuid,
+        )
+
 
 class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
@@ -344,7 +359,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.metric_alert.send_incident_alert_notification"
+        "sentry.workflow_engine.handlers.action.notification.metric_alert.send_pagerduty_incident_alert_notification"
     )
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
@@ -378,13 +393,13 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
-        _, kwargs = mock_send_alert.call_args
-
-        notification_context = kwargs["notification_context"]
-        alert_context = kwargs["alert_context"]
-        metric_issue_context = kwargs["metric_issue_context"]
-        organization = kwargs["organization"]
-        notification_uuid = kwargs["notification_uuid"]
+        (
+            notification_context,
+            alert_context,
+            metric_issue_context,
+            organization,
+            notification_uuid,
+        ) = self.unpack_kwargs(mock_send_alert)
 
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
@@ -446,19 +461,22 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
         self.handler = OpsgenieMetricAlertHandler()
 
-    @mock.patch("sentry.integrations.opsgenie.utils.send_incident_alert_notification")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.metric_alert.send_opsgenie_incident_alert_notification"
+    )
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
             self.detector, self.group_event.occurrence
         )
+        metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
         notification_uuid = str(uuid.uuid4())
 
         self.handler.send_alert(
             notification_context=notification_context,
             alert_context=alert_context,
-            job=self.job,
+            metric_issue_context=metric_issue_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -466,11 +484,8 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         mock_send_incident_alert_notification.assert_called_once_with(
             notification_context=notification_context,
             alert_context=alert_context,
-            open_period_identifier=self.job["event"].group.id,
+            metric_issue_context=metric_issue_context,
             organization=self.detector.project.organization,
-            snuba_query=self.handler.get_snuba_query(self.job),
-            new_status=self.handler.get_new_status(self.job),
-            metric_value=self.handler.get_metric_value(self.job),
             notification_uuid=notification_uuid,
         )
 
@@ -481,12 +496,17 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
-        args, _ = mock_send_alert.call_args
-        notification_context, alert_context, job, organization, notification_uuid = args
+        (
+            notification_context,
+            alert_context,
+            metric_issue_context,
+            organization,
+            notification_uuid,
+        ) = self.unpack_kwargs(mock_send_alert)
 
         assert isinstance(notification_context, NotificationContext)
         assert isinstance(alert_context, AlertContext)
-
+        assert isinstance(metric_issue_context, MetricIssueContext)
         self.assert_notification_context(
             notification_context,
             integration_id=1234567890,
@@ -505,6 +525,13 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             comparison_delta=None,
         )
 
-        assert job == self.job
+        self.assert_metric_issue_context(
+            metric_issue_context,
+            open_period_identifier=self.group_event.group.id,
+            snuba_query=self.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=123.45,
+        )
+
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
