@@ -91,13 +91,7 @@ export function TraceView() {
                   traceEventView={traceEventView}
                   organization={organization}
                 />
-                {hasTraceNewUi && (
-                  <TraceContextPanel
-                    tree={tree}
-                    traceSlug={traceSlug}
-                    rootEvent={rootEvent}
-                  />
-                )}
+                {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
               </TraceInnerLayout>
             </TraceExternalLayout>
           </NoProjectMessage>

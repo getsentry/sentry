@@ -26,11 +26,10 @@ const MAX_HEIGHT = 700;
 
 type Props = {
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
-  traceSlug: string;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, traceSlug, rootEvent}: Props) {
+export function TraceContextPanel({tree, rootEvent}: Props) {
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const containerRef = useRef<HTMLDivElement>(null);
   const traceDispatch = useTraceStateDispatch();
@@ -131,7 +130,7 @@ export function TraceContextPanel({tree, traceSlug, rootEvent}: Props) {
         </TraceTagsContainer>
         <Feature features={['ourlogs-enabled']}>
           <TraceTagsContainer>
-            <TraceViewLogsSection traceSlug={traceSlug} />
+            <TraceViewLogsSection />
           </TraceTagsContainer>
         </Feature>
       </TraceContextContainer>
