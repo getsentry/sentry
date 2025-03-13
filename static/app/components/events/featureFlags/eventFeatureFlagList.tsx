@@ -22,7 +22,6 @@ import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -318,7 +317,7 @@ export function EventFeatureFlagList({
         </StyledEmptyStateWarning>
       )}
       {extraFlags > 0 && (
-        <ViewAllButton
+        <Button
           size="sm"
           // Since we've disabled the button as an 'outside click' for the drawer we can change
           // the operation based on the drawer state.
@@ -327,7 +326,7 @@ export function EventFeatureFlagList({
           ref={viewAllButtonRef}
         >
           {label}
-        </ViewAllButton>
+        </Button>
       )}
     </InterimSection>
   );
@@ -353,8 +352,4 @@ const SuspectLabel = styled('div')`
 const ValueWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-`;
-
-const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
 `;
