@@ -125,10 +125,13 @@ export const CardContainer = styled('div')<{numCols: number}>`
 
   div {
     border: none;
-    border-radius: 0;
+    border-radius: ${space(0.5)};
   }
 
   > * {
+    &:first-child {
+      margin-left: -${space(1)};
+    }
     padding-left: 0px;
     :not(:first-child) {
       border-left: 1.5px solid ${p => p.theme.innerBorder};
