@@ -10,6 +10,8 @@ import {
 import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
 import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PluginConfig from 'sentry/components/pluginConfig';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -33,12 +35,26 @@ type Props = {
   project: Project;
 };
 
+/**
+ * There are currently two sources of truths for plugin details:
+ *
+ * 1) PluginsStore has a list of plugins, and this is where ENABLED state lives
+ * 2) We fetch "plugin details" via API and save it to local state as `pluginDetails`.
+ *    This is because "details" call contains form `config` and the "list" endpoint does not.
+ *    The more correct way would be to pass `config` to PluginConfig and use plugin from
+ *    PluginsStore
+ */
 function ProjectPluginDetails({organization, plugins, project}: Props) {
   const api = useApi({persistInFlight: true});
   const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
   const endpoint = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
 
-  const {data: pluginDetails} = useApiQuery<Plugin>([endpoint], {
+  const {
+    data: pluginDetails,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Plugin>([endpoint], {
     staleTime: 0,
   });
 
@@ -140,6 +156,14 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
       </div>
     );
   };
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
 
   if (!pluginDetails) {
     return null;
