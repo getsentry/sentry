@@ -21,11 +21,7 @@ export type InsightEventParameters = {
   'insight.general.select_domain_value': {source: string};
   'insight.general.select_region_value': {regions: string[]};
   'insight.general.table_paginate': {direction: string; source: string};
-  'insight.general.table_sort': {
-    direction: string;
-    field: string;
-    source: string;
-  };
+  'insight.general.table_sort': {direction: string; field: string; source: string};
   'insight.page_loads.ai': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.app_start': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
@@ -45,11 +41,13 @@ export type InsightEventParameters = {
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
+  'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
 };
 
 export type InsightEventKey = keyof InsightEventParameters;
 
 export const insightEventMap: Record<InsightEventKey, string | null> = {
+  'insights.page_loads.overview': 'Insights: Overview Page Load',
   'insight.page_loads.ai': 'Insights: AI Page Load',
   'insight.page_loads.app_start': 'Insights: App Start Page Load',
   'insight.page_loads.assets': 'Insights: Assets Page Load',

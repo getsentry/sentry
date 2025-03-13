@@ -52,6 +52,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -94,6 +95,7 @@ export const BACKEND_COLUMN_TITLES = [
 
 function BackendOverviewPage() {
   const isLaravelPageActive = useIsLaravelPageActive();
+  useOverviewPageTrackPageload();
   return isLaravelPageActive ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
 }
 

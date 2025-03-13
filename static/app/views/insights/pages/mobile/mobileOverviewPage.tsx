@@ -36,6 +36,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
@@ -79,6 +80,8 @@ const REACT_NATIVE_COLUMN_TITLES = [
 ];
 
 function MobileOverviewPage() {
+  useOverviewPageTrackPageload();
+
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
