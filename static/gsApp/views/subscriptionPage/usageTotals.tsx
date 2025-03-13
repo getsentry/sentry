@@ -197,7 +197,7 @@ export function calculateCategoryPrepaidUsage(
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
-    ? reservedSpend ?? totals.accepted * (reservedCpe ?? 0)
+    ? (reservedSpend ?? totals.accepted * (reservedCpe ?? 0))
     : totals.accepted;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
@@ -357,7 +357,7 @@ function UsageTotals({
   const hasReservedBudget = reservedUnits === RESERVED_BUDGET_QUOTA;
   const free = hasReservedBudget ? freeBudget : freeUnits;
   const reserved = hasReservedBudget ? reservedBudget : reservedUnits;
-  const prepaid = hasReservedBudget ? prepaidBudget ?? 0 : prepaidUnits;
+  const prepaid = hasReservedBudget ? (prepaidBudget ?? 0) : prepaidUnits;
 
   const displayGifts = (free || freeBudget) && !isUnlimitedReserved(reservedUnits);
   const reservedTestId = displayGifts ? `gifted-${category}` : `reserved-${category}`;
@@ -432,8 +432,8 @@ function UsageTotals({
     reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
   const totalCategorySpend =
     (hasReservedBudget
-      ? subscription.reservedBudgets?.find(budget => category in budget.categories)
-          ?.totalReservedSpend ?? 0
+      ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
+          ?.totalReservedSpend ?? 0)
       : prepaidPrice) + categoryOnDemandSpent;
 
   // Shared on demand spend is gone, another category has spent all of it
