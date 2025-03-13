@@ -34,8 +34,7 @@ from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
     dual_update_resolve_condition,
-    migrate_alert_rule,
-    migrate_resolve_threshold_data_conditions,
+    dual_write_alert_rule,
 )
 
 from .alert_rule_trigger import AlertRuleTriggerSerializer
@@ -270,6 +269,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
 
+            self._handle_triggers(alert_rule, triggers)
+
             # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
             should_dual_write = (
                 features.has(
@@ -278,12 +279,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 and alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
             )
             if should_dual_write:
-                migrate_alert_rule(alert_rule, user)
-
-            self._handle_triggers(alert_rule, triggers)
-            if should_dual_write:
-                migrate_resolve_threshold_data_conditions(alert_rule)
-
+                dual_write_alert_rule(alert_rule, user)
             return alert_rule
 
     def update(self, instance, validated_data):
