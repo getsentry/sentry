@@ -220,6 +220,7 @@ export function ChonkClearIndicator(
         icon={<IconClose legacySize="10px" />}
         size="zero"
         aria-label={t('Clear choices')}
+        onClick={props.clearValue}
       />
     </selectComponents.ClearIndicator>
   );
