@@ -1,16 +1,21 @@
 import {Fragment} from 'react';
-import debounce from 'lodash/debounce';
-import * as qs from 'query-string';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {
+  ensureCurrentOption,
+  getConfigName,
+  getDebouncedOptionLoad,
+  getDefaultOptions,
+  getDynamicFields,
+  getFieldProps,
+  getOptions,
+} from 'sentry/components/externalIssues/utils';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
@@ -39,11 +44,6 @@ type State = {
   integrationDetails: IntegrationIssueConfig | null;
 } & DeprecatedAsyncComponent['state'];
 
-// This exists because /extensions/type/search API is not prefixed with
-// /api/0/, but the default API client on the abstract issue form is...
-const API_CLIENT = new Client({baseUrl: '', headers: {}});
-
-const DEBOUNCE_MS = 200;
 /**
  * @abstract
  */
@@ -82,36 +82,17 @@ export default class AbstractExternalIssueForm<
   };
 
   getConfigName = (): 'createIssueConfig' | 'linkIssueConfig' => {
-    // Explicitly returning a non-interpolated string for clarity.
-    const {action} = this.state;
-    switch (action) {
-      case 'create':
-        return 'createIssueConfig';
-      case 'link':
-        return 'linkIssueConfig';
-      default:
-        throw new Error('illegal action');
-    }
+    return getConfigName(this.state.action);
   };
 
-  /**
-   * Convert IntegrationIssueConfig to an object that maps field names to the
-   * values of fields where `updatesFrom` is true. This function prefers to read
-   * configs from its parameters and otherwise falls back to reading from state.
-   * @param integrationDetailsParam
-   * @returns Object of field names to values.
-   */
   getDynamicFields = (
     integrationDetailsParam?: IntegrationIssueConfig
   ): {[key: string]: FieldValue | null} => {
-    const {integrationDetails: integrationDetailsFromState} = this.state;
-    const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
-    const config = integrationDetails?.[this.getConfigName()];
-    return Object.fromEntries(
-      (config || [])
-        .filter((field: IssueConfigField) => field.updatesForm)
-        .map((field: IssueConfigField) => [field.name, field.default || null])
-    );
+    return getDynamicFields({
+      action: this.state.action,
+      paramConfig: integrationDetailsParam,
+      stateConfig: this.state.integrationDetails,
+    });
   };
 
   onRequestSuccess = ({stateKey, data}: any) => {
@@ -159,125 +140,45 @@ export default class AbstractExternalIssueForm<
     });
   };
 
-  /**
-   * Ensures current result from Async select fields is never discarded. Without this method,
-   * searching in an async select field without selecting one of the returned choices will
-   * result in a value saved to the form, and no associated label; appearing empty.
-   * @param field The field being examined
-   * @param result The result from its asynchronous query
-   * @returns The result with a tooltip attached to the current option
-   */
   ensureCurrentOption = (
     field: IssueConfigField,
     result: Array<SelectValue<string | number>>
   ): Array<SelectValue<string | number>> => {
-    const currentOption = this.getDefaultOptions(field).find(
-      option => option.value === this.model.getValue(field.name)
-    );
-
-    if (!currentOption) {
-      return result;
-    }
-    if (typeof currentOption.label === 'string') {
-      currentOption.label = (
-        <Fragment>
-          <QuestionTooltip
-            title={tct('This is your current [label].', {
-              label: field.label as React.ReactNode,
-            })}
-            size="xs"
-          />{' '}
-          {currentOption.label}
-        </Fragment>
-      );
-    }
-    const currentOptionResultIndex = result.findIndex(
-      obj => obj.value === currentOption?.value
-    );
-    // Has a selected option, and it is in API results
-    if (currentOptionResultIndex >= 0) {
-      const newResult = result;
-      newResult[currentOptionResultIndex] = currentOption;
-      return newResult;
-    }
-    // Has a selected option, and it is not in API results
-
-    return [...result, currentOption];
+    return ensureCurrentOption({field, result, model: this.model});
   };
 
-  /**
-   * Get the list of options for a field via debounced API call. For example,
-   * the list of users that match the input string. The Promise rejects if there
-   * are any errors.
-   */
-  getOptions = (field: IssueConfigField, input: string) =>
-    new Promise((resolve, reject) => {
-      if (!input) {
-        return resolve(this.getDefaultOptions(field));
-      }
-      return this.debouncedOptionLoad(field, input, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          result = this.ensureCurrentOption(field, result);
-          this.updateFetchedFieldOptionsCache(field, result);
-          resolve(result);
-        }
-      });
+  getOptions = (field: IssueConfigField, input: string) => {
+    return getOptions({
+      field,
+      input,
+      model: this.model,
+      dynamicFieldValues: this.state.dynamicFieldValues || {},
+      successCallback: params => {
+        this.updateFetchedFieldOptionsCache(params.field, params.result);
+      },
     });
+  };
 
-  debouncedOptionLoad = debounce(
-    async (
-      field: IssueConfigField,
-      input: string,
-      cb: (err: Error | null, result?: any) => void
-    ) => {
-      const {dynamicFieldValues} = this.state;
-      const query = qs.stringify({
-        ...dynamicFieldValues,
-        field: field.name,
-        query: input,
-      });
-
-      const url = field.url || '';
-      const separator = url.includes('?') ? '&' : '?';
-      // We can't use the API client here since the URL is not scoped under the
-      // API endpoints (which the client prefixes)
-
-      try {
-        const response = await API_CLIENT.requestPromise(url + separator + query);
-        cb(null, response);
-      } catch (err) {
-        cb(err);
-      }
-    },
-    DEBOUNCE_MS,
-    {trailing: true}
-  );
+  debouncedOptionLoad = (
+    field: IssueConfigField,
+    input: string,
+    cb: (err: Error | null, result?: any) => void
+  ) => {
+    return getDebouncedOptionLoad({
+      dynamicFieldValues: this.state.dynamicFieldValues || {},
+    })(field, input, cb);
+  };
 
   getDefaultOptions = (field: IssueConfigField) => {
-    const choices =
-      (field.choices as Array<[number | string, number | string | React.ReactElement]>) ||
-      [];
-    return choices.map(([value, label]) => ({value, label}));
+    return getDefaultOptions({field});
   };
 
-  /**
-   * If this field is an async select (field.url is not null), add async props.
-   */
-  getFieldProps = (field: IssueConfigField) =>
-    field.url
-      ? {
-          async: true,
-          autoload: true,
-          cache: false,
-          loadOptions: (input: string) => this.getOptions(field, input),
-          defaultOptions: this.getDefaultOptions(field),
-          onBlurResetsInput: false,
-          onCloseResetsInput: false,
-          onSelectResetsInput: false,
-        }
-      : {};
+  getFieldProps = (field: IssueConfigField) => {
+    return getFieldProps({
+      field,
+      loadOptions: (input: string) => this.getOptions(field, input),
+    });
+  };
 
   // Abstract methods.
   handleReceiveIntegrationDetails = (_data: any) => {
