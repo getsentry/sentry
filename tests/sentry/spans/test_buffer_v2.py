@@ -23,13 +23,13 @@ def buffer(request):
         from sentry.testutils.helpers.redis import use_redis_cluster
 
         with use_redis_cluster("default"):
-            buf = RedisSpansBufferV2()
+            buf = RedisSpansBufferV2(assigned_shards=list(range(32)))
             # since we patch the default redis cluster only temporarily, we
             # need to clean it up ourselves.
             buf.client.flushall()
             yield buf
     else:
-        yield RedisSpansBufferV2()
+        yield RedisSpansBufferV2(assigned_shards=list(range(32)))
 
 
 def assert_ttls(client: StrictRedis[bytes]):

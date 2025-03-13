@@ -159,8 +159,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         max_flush_segments: int,
         max_inflight_segments: int,
-        num_shards: int,
-        flush_shard: list[int],
         input_block_size: int | None,
         output_block_size: int | None,
     ):
@@ -171,13 +169,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
         self.max_inflight_segments = max_inflight_segments
-        self.num_shards = num_shards
-        self.flush_shard = flush_shard
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.__pool = MultiprocessingPool(num_processes)
-
-        self.buffer = RedisSpansBufferV2(num_shards=self.num_shards)
 
         cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
@@ -194,9 +188,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         committer = CommitOffsets(commit)
 
+        buffer = RedisSpansBufferV2(assigned_shards=[p.index for p in partitions])
+
         flusher = SpanFlusher(
-            self.buffer,
-            self.flush_shard or [p.index for p in partitions],
+            buffer,
             self.producer,
             self.output_topic,
             self.max_flush_segments,
@@ -205,7 +200,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
         run_task = run_task_with_multiprocessing(
-            function=partial(process_batch, self.buffer),
+            function=partial(process_batch, buffer),
             next_step=flusher,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -273,7 +268,6 @@ class SpanFlusher(ProcessingStrategy[int]):
     def __init__(
         self,
         buffer: RedisSpansBufferV2,
-        flush_shard: list[int],
         producer: KafkaProducer,
         topic: ArroyoTopic,
         max_flush_segments: int,
@@ -281,7 +275,6 @@ class SpanFlusher(ProcessingStrategy[int]):
         next_step: ProcessingStrategy[int],
     ):
         self.buffer = buffer
-        self.flush_shard = flush_shard
         self.producer = producer
         self.topic = topic
         self.max_flush_segments = max_flush_segments
@@ -304,7 +297,7 @@ class SpanFlusher(ProcessingStrategy[int]):
             producer_futures = []
 
             queue_size, flushed_segments = self.buffer.flush_segments(
-                max_segments=self.max_flush_segments, now=now, flush_shard=self.flush_shard
+                max_segments=self.max_flush_segments, now=now
             )
             self.enable_backpressure = (
                 self.max_inflight_segments > 0 and queue_size >= self.max_inflight_segments

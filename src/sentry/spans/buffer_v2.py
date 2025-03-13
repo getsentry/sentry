@@ -47,6 +47,11 @@ This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
 then the consumer produces them, then they are deleted from Redis
 (`done_flush_segments`)
 
+On top of this, the global queue is sharded by partition, meaning that each
+consumer reads and writes to shards that correspond to its own assigned
+partitions. This means that extra care needs to be taken when recreating topics
+or using spillover topics, especially when their new partition count is lower
+than the original topic.
 """
 
 from __future__ import annotations
@@ -93,13 +98,13 @@ class Span(NamedTuple):
 class RedisSpansBufferV2:
     def __init__(
         self,
-        num_shards: int = 32,
+        assigned_shards: list[int],
         span_buffer_timeout_secs: int = 60,
         span_buffer_root_timeout_secs: int = 10,
         redis_ttl: int = 3600,
     ):
         self.client: RedisCluster[bytes] | StrictRedis[bytes] = get_redis_client()
-        self.num_shards = num_shards
+        self.assigned_shards = list(assigned_shards)
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
         self.redis_ttl = redis_ttl
@@ -109,7 +114,7 @@ class RedisSpansBufferV2:
         return (
             RedisSpansBufferV2,
             (
-                self.num_shards,
+                self.assigned_shards,
                 self.span_buffer_timeout_secs,
                 self.span_buffer_root_timeout_secs,
                 self.redis_ttl,
@@ -132,7 +137,7 @@ class RedisSpansBufferV2:
             with self.client.pipeline(transaction=False) as p:
                 for span in spans:
                     # (parent_span_id) -> [Span]
-                    shard = int(span.trace_id, 16) % self.num_shards
+                    shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
                     queue_key = f"span-buf:q:{shard}"
                     parent_span_id = span.parent_span_id or span.span_id
 
@@ -190,14 +195,13 @@ class RedisSpansBufferV2:
         metrics.timing("sentry.spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
 
     def flush_segments(
-        self, now: int, max_segments: int = 0, flush_shard: list[int] | None = None
+        self, now: int, max_segments: int = 0
     ) -> tuple[int, dict[SegmentId, set[bytes]]]:
-        flush_shard = flush_shard or list(range(self.num_shards))
         cutoff = now
 
         with metrics.timer("sentry.spans.buffer.flush_segments.step1"):
             with self.client.pipeline(transaction=False) as p:
-                for shard in flush_shard:
+                for shard in self.assigned_shards:
                     key = f"span-buf:q:{shard}"
                     p.zrangebyscore(
                         key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
@@ -224,7 +228,7 @@ class RedisSpansBufferV2:
 
                 segments = p.execute()
 
-        for shard_i, queue_size in zip(flush_shard, queue_sizes):
+        for shard_i, queue_size in zip(self.assigned_shards, queue_sizes):
             metrics.timing(
                 "sentry.spans.buffer.flush_segments.queue_size",
                 queue_size,
@@ -260,7 +264,7 @@ class RedisSpansBufferV2:
                     project_id = segment_id_parts[2][1:]
                     trace_id = segment_id_parts[3][:-1]
                     redirect_map_key = f"span-buf:sr:{project_id}:{trace_id}"
-                    shard = int(trace_id, 16) % self.num_shards
+                    shard = self.assigned_shards[int(trace_id, 16) % len(self.assigned_shards)]
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
                     payload_nums.append(len(payloads))
