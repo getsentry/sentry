@@ -5,14 +5,17 @@ from typing import Any, cast
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext, NotificationContext
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+)
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.snuba.models import SnubaQuery
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -21,32 +24,30 @@ OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 
 def build_incident_attachment(
     alert_context: AlertContext,
-    open_period_identifier: int,
+    metric_issue_context: MetricIssueContext,
     organization: Organization,
-    snuba_query: SnubaQuery,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
 
+    # TODO(iamrajjoshi): Pass down `metric_issue_context`
     data = incident_attachment_info(
         alert_context=alert_context,
-        open_period_identifier=open_period_identifier,
+        open_period_identifier=metric_issue_context.open_period_identifier,
         organization=organization,
-        snuba_query=snuba_query,
-        new_status=new_status,
-        metric_value=metric_value,
+        snuba_query=metric_issue_context.snuba_query,
+        new_status=metric_issue_context.new_status,
+        metric_value=metric_issue_context.metric_value,
         notification_uuid=notification_uuid,
         referrer="metric_alert_opsgenie",
     )
 
-    alert_key = f"incident_{organization.id}_{open_period_identifier}"
-    if new_status == IncidentStatus.CLOSED:
+    alert_key = f"incident_{organization.id}_{metric_issue_context.open_period_identifier}"
+    if metric_issue_context.new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
         return payload
 
     priority = "P1"
-    if new_status == IncidentStatus.WARNING:
+    if metric_issue_context.new_status == IncidentStatus.WARNING:
         priority = "P2"
     payload = {
         "message": alert_context.name,
@@ -92,11 +93,8 @@ def get_team(team_id: int | str | None, org_integration: RpcOrganizationIntegrat
 def send_incident_alert_notification(
     notification_context: NotificationContext,
     alert_context: AlertContext,
-    open_period_identifier: int,
+    metric_issue_context: MetricIssueContext,
     organization: Organization,
-    snuba_query: SnubaQuery,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from sentry.integrations.opsgenie.integration import OpsgenieIntegration
@@ -123,14 +121,13 @@ def send_incident_alert_notification(
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(
         alert_context=alert_context,
-        open_period_identifier=open_period_identifier,
+        metric_issue_context=metric_issue_context,
         organization=organization,
-        snuba_query=snuba_query,
-        new_status=new_status,
-        metric_value=metric_value,
         notification_uuid=notification_uuid,
     )
-    attachment = attach_custom_priority(attachment, notification_context, new_status)
+    attachment = attach_custom_priority(
+        attachment, notification_context, metric_issue_context.new_status
+    )
 
     try:
         resp = client.send_notification(attachment)
@@ -140,7 +137,7 @@ def send_incident_alert_notification(
                 "status_code": resp.status_code,
                 "organization_id": organization.id,
                 "data": attachment,
-                "status": new_status.value,
+                "status": metric_issue_context.new_status.value,
                 "team_name": team["team"],
                 "team_id": team["id"],
                 "integration_id": notification_context.integration_id,
