@@ -1,6 +1,7 @@
 import {forwardRef, type PropsWithoutRef} from 'react';
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 export type ChonkPropMapping<LegacyProps, ChonkProps> = (
   props: Omit<PropsWithoutRef<LegacyProps>, 'theme'>
@@ -26,9 +27,7 @@ export function withChonk<
   legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
   propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
-): React.ForwardRefExoticComponent<
-  React.PropsWithoutRef<LegacyProps> & React.RefAttributes<any>
-> {
+) {
   function ChonkSwitch(props: PropsWithoutRef<LegacyProps>, ref: React.Ref<any>) {
     const theme = useTheme();
 
@@ -54,7 +53,7 @@ export function withChonk<
   }
 
   const ForwardRefComponent = forwardRef(ChonkSwitch);
-  return ForwardRefComponent;
+  return styled(ForwardRefComponent)``;
 }
 
 function identity<T, U>(props: T): U {
