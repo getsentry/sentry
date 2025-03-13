@@ -36,7 +36,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
   });
 
   const {mutate: updateViews} = useUpdateGroupSearchViews({
-    onSettled: data => {
+    onSuccess: data => {
       if (data?.length) {
         navigate(
           normalizeUrl({
