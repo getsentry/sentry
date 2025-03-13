@@ -1,8 +1,8 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconClose} from 'sentry/icons';
