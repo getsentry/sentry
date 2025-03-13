@@ -108,7 +108,7 @@ class MetricIssueContext:
     metric_value: float | None
 
     @classmethod
-    def _get_incident_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
+    def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
         if group.status == GroupStatus.RESOLVED:
             return IncidentStatus.CLOSED
         elif occurrence.initial_issue_priority == PriorityLevel.MEDIUM.value:
@@ -126,10 +126,6 @@ class MetricIssueContext:
         except SnubaQuery.DoesNotExist as e:
             raise ValueError("Snuba query does not exist") from e
         return query
-
-    @classmethod
-    def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
-        return cls._get_incident_status(group, occurrence)
 
     @classmethod
     def _get_metric_value(cls, occurrence: IssueOccurrence) -> float:
