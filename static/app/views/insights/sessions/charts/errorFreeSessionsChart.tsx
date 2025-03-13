@@ -14,7 +14,7 @@ export default function ErrorFreeSessionsChart() {
     <InsightsLineChartWidget
       title={t('Error Free Sessions')}
       description={tct(
-        'The percent of sessions that finished without a single error occurring. See [link:session status].',
+        'The percent of sessions terminating without a single error occurring. See [link:session status].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />
