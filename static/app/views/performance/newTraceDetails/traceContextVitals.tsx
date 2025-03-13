@@ -44,7 +44,7 @@ export function TraceContextVitals({tree}: Props) {
   });
 }
 
-function formatVitalValue(vital: Vital, value: number) {
+function defaultVitalValueFormatter(vital: Vital, value: number) {
   if (vital?.type === 'duration') {
     return getDuration(value / 1000, 2, true);
   }
@@ -70,7 +70,7 @@ export function VitalPill({vital, score, meterValue}: VitalPillProps) {
     vital.slug in webVitalsConfig ? (
       webVitalsConfig[vital.slug as WebVitals].formatter(meterValue)
     ) : (
-      formatVitalValue(vital, meterValue)
+      defaultVitalValueFormatter(vital, meterValue)
     )
   ) : (
     <NoValue />
