@@ -3,7 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
+import {
+  SIDEBAR_MOBILE_HEIGHT,
+  TOPBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -47,19 +51,21 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {dispatch} = useIssueDetails();
+  const prefersStackedNav = usePrefersStackedNav();
+  const sidebarHeight = isScreenMedium
+    ? parseInt(prefersStackedNav ? TOPBAR_MOBILE_HEIGHT : SIDEBAR_MOBILE_HEIGHT, 10)
+    : 0;
 
   useLayoutEffect(() => {
     if (!nav) {
       return;
     }
     const navHeight = nav.offsetHeight ?? 0;
-    const sidebarHeight = isScreenMedium ? parseInt(SIDEBAR_MOBILE_HEIGHT, 10) : 0;
-
     dispatch({
       type: 'UPDATE_NAV_SCROLL_MARGIN',
       margin: navHeight + sidebarHeight,
     });
-  }, [nav, isScreenMedium, dispatch]);
+  }, [nav, isScreenMedium, dispatch, sidebarHeight]);
 
   return (
     <FloatingEventNavigation
@@ -67,16 +73,13 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
       group={group}
       ref={setNav}
       data-stuck={isStuck}
+      style={{top: sidebarHeight}}
     />
   );
 }
 
 const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
-  top: 0;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    top: ${SIDEBAR_MOBILE_HEIGHT};
-  }
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;

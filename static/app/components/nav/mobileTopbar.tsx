@@ -8,6 +8,7 @@ import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
+import {TOPBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -107,7 +108,7 @@ function NavigationOverlayPortal({
 }
 
 const Topbar = styled('header')`
-  height: 40px;
+  height: ${TOPBAR_MOBILE_HEIGHT};
   width: 100vw;
   padding-right: ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.translucentGray200};
