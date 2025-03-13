@@ -9,6 +9,18 @@ export function didProjectOrEnvironmentChange(location1: Location, location2: Lo
   );
 }
 
-export function isPlatformANRCompatible(platform?: PlatformKey) {
+export function isPlatformANRCompatible(platform?: PlatformKey, features?: string[]) {
+  if (isPlatformForegroundANRCompatible(platform)) {
+    return true;
+  }
+  if (platform === 'apple' || platform === 'apple-ios') {
+    if (features?.includes('projects:project-detail-apple-app-hang-rate')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function isPlatformForegroundANRCompatible(platform?: PlatformKey) {
   return platform === 'javascript-electron' || platform === 'android';
 }
