@@ -95,6 +95,17 @@ describe('EventDetailsHeader', () => {
     expect(screen.getByRole('button', {name: 'Close sidebar'})).toBeInTheDocument();
   });
 
+  it('renders 90d instead of "Since First Seen" when the issue is older than 90d', async function () {
+    const oldGroup = GroupFixture({
+      firstSeen: new Date(Date.now() - 91 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    render(<EventDetailsHeader {...defaultProps} group={oldGroup} />, {
+      organization,
+      router,
+    });
+    expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
+  });
+
   it('updates the query params with search tokens', async function () {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const locationQuery = {
