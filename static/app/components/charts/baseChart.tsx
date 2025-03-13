@@ -25,6 +25,7 @@ import type {
 } from 'echarts';
 import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -127,7 +128,7 @@ interface TooltipOption
   valueFormatter?: (
     value: number,
     label?: string,
-    seriesParams?: TooltipComponentFormatterCallback<any>
+    seriesParams?: CallbackDataParams
   ) => string;
 }
 
@@ -398,7 +399,7 @@ function BaseChartUnwrapped({
   const theme = useTheme();
 
   const resolveColors =
-    colors !== undefined ? (typeof colors === 'function' ? colors(theme) : colors) : null;
+    colors === undefined ? null : typeof colors === 'function' ? colors(theme) : colors;
 
   const color =
     resolveColors ||
@@ -421,16 +422,17 @@ function BaseChartUnwrapped({
             type: 'bar',
             barWidth: 40,
             barGap: 0,
-            itemStyle: {...(s.areaStyle ?? {})},
+            itemStyle: {...s.areaStyle},
           }))
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
               type: 'line',
-              itemStyle: {...(s.lineStyle ?? {})},
+              itemStyle: {...s.lineStyle},
               markLine:
-                (s?.data?.[0] as any)?.[1] !== undefined
-                  ? MarkLine({
+                (s?.data?.[0] as any)?.[1] === undefined
+                  ? undefined
+                  : MarkLine({
                       silent: true,
                       lineStyle: {
                         type: 'solid',
@@ -440,8 +442,7 @@ function BaseChartUnwrapped({
                       label: {
                         show: false,
                       },
-                    })
-                  : undefined,
+                    }),
             }))
           : series) ?? [];
 
@@ -466,9 +467,9 @@ function BaseChartUnwrapped({
         })
       ) ?? [];
 
-    return !previousPeriod
-      ? transformedSeries.concat(additionalSeries)
-      : transformedSeries.concat(transformedPreviousPeriod, additionalSeries);
+    return previousPeriod
+      ? transformedSeries.concat(transformedPreviousPeriod, additionalSeries)
+      : transformedSeries.concat(additionalSeries);
   }, [
     series,
     color,
@@ -497,8 +498,9 @@ function BaseChartUnwrapped({
 
     const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
     const tooltipOrNone =
-      tooltip !== null
-        ? computeChartTooltip(
+      tooltip === null
+        ? undefined
+        : computeChartTooltip(
             {
               showTimeInTooltip,
               isGroupedByDate,
@@ -511,8 +513,7 @@ function BaseChartUnwrapped({
                 : tooltip?.className,
             },
             theme
-          )
-        : undefined;
+          );
 
     const aria = computeEchartsAriaLabels(
       {series: resolvedSeries, useUTC: utc},
@@ -520,30 +521,16 @@ function BaseChartUnwrapped({
     );
     const defaultAxesProps = {theme};
 
-    const yAxisOrCustom = !yAxes
-      ? yAxis !== null
-        ? YAxis({theme, ...yAxis})
-        : undefined
-      : Array.isArray(yAxes)
+    const yAxisOrCustom = yAxes
+      ? Array.isArray(yAxes)
         ? yAxes.map(axis => YAxis({...axis, theme}))
-        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
+        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)]
+      : yAxis === null
+        ? undefined
+        : YAxis({theme, ...yAxis});
 
-    const xAxisOrCustom = !xAxes
-      ? xAxis !== null
-        ? XAxis({
-            ...xAxis,
-            theme,
-            useShortDate,
-            useMultilineDate,
-            start,
-            end,
-            period,
-            isGroupedByDate,
-            addSecondsToTimeFormat,
-            utc,
-          })
-        : undefined
-      : Array.isArray(xAxes)
+    const xAxisOrCustom = xAxes
+      ? Array.isArray(xAxes)
         ? xAxes.map(axis =>
             XAxis({
               ...axis,
@@ -558,7 +545,21 @@ function BaseChartUnwrapped({
               utc,
             })
           )
-        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
+        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)]
+      : xAxis === null
+        ? undefined
+        : XAxis({
+            ...xAxis,
+            theme,
+            useShortDate,
+            useMultilineDate,
+            start,
+            end,
+            period,
+            isGroupedByDate,
+            addSecondsToTimeFormat,
+            utc,
+          });
 
     return {
       ...options,
@@ -696,6 +697,17 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+  }
+  .tooltip-release.tooltip-series > div,
+  .tooltip-release.tooltip-footer {
+    justify-content: center;
+  }
+  .tooltip-release.tooltip-series {
+    color: ${p.theme.textColor};
+  }
+  .tooltip-release-timerange {
+    font-size: ${p.theme.fontSizeExtraSmall};
+    color: ${p.theme.textColor};
   }
   .tooltip-series {
     border-bottom: none;

@@ -3,12 +3,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -92,6 +93,15 @@ export function OverviewRow({
         query,
       };
 
+  const canDisable = hasEveryAccess(['alerts:write'], {
+    organization,
+    project: monitor.project,
+  });
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
       <DetailsLink to={to}>
@@ -126,6 +136,8 @@ export function OverviewRow({
             monitor={monitor}
             size="xs"
             onToggleStatus={status => onToggleStatus(monitor, status)}
+            disabled={!canDisable}
+            title={canDisable ? undefined : permissionTooltipText}
           />
         )}
       </DetailsActions>

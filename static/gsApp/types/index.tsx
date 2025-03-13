@@ -66,6 +66,8 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
+  ENTERPRISE_TEAM = 'Enterprise (Team)',
+  ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
 export enum CheckoutType {
@@ -654,6 +656,7 @@ export type BillingMetricHistory = {
 
 export type BillingHistory = {
   categories: {[key: string]: BillingMetricHistory};
+  hadCustomDynamicSampling: boolean;
   hasReservedBudgets: boolean;
   id: string;
   isCurrent: boolean;

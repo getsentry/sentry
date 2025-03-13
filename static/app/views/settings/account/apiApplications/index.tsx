@@ -3,7 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -92,12 +92,12 @@ function ApiApplications({router}: Props) {
         <PanelHeader>{t('Application Name')}</PanelHeader>
 
         <PanelBody>
-          {!isEmpty ? (
+          {isEmpty ? (
+            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
+          ) : (
             appList.map(app => (
               <Row key={app.id} app={app} onRemove={handleRemoveApplication} />
             ))
-          ) : (
-            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>

@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
@@ -10,7 +11,6 @@ import {
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   FlagControlOptions,
   OrderBy,
@@ -20,7 +20,7 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconEllipsis, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconEllipsis, IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -111,8 +111,6 @@ export function EventFeatureFlagList({
     [organization, queryParams]
   );
 
-  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
-
   const {
     suspectFlags,
     isError: isSuspectError,
@@ -146,12 +144,6 @@ export function EventFeatureFlagList({
   }, [event]);
 
   const hasFlags = eventFlags.length > 0;
-
-  const showCTA =
-    !project.hasFlags &&
-    !hasFlagContext &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta');
 
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
@@ -227,28 +219,47 @@ export function EventFeatureFlagList({
     return null;
   }
 
-  if (showCTA) {
-    return <FeatureFlagInlineCTA projectId={event.projectID} />;
-  }
-
-  // if contexts.flags is not set and project has not set up flags, hide the section
+  // contexts.flags is not set and project has not ingested flags
   if (!hasFlagContext && !project.hasFlags) {
-    return null;
+    const showCTA =
+      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+      organization.features.includes('feature-flag-cta');
+    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
   }
 
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
       <Fragment>
-        <Button
-          aria-label={t('Set Up Integration')}
-          size="xs"
-          onClick={mouseEvent => {
-            activateSidebarSkipConfigure(mouseEvent, project.id);
+        <DropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            showChevron: false,
+            icon: <IconSettings />,
+            'aria-label': t('Feature Flag Settings'),
           }}
-        >
-          {t('Set Up Integration')}
-        </Button>
+          size="xs"
+          items={[
+            {
+              key: 'settings',
+              label: t('Set Up Change Tracking'),
+              details: (
+                <ChangeTrackingDetails>
+                  {t(
+                    'Listen for additions, removals, and modifications to your feature flags.'
+                  )}
+                </ChangeTrackingDetails>
+              ),
+              to: `/settings/${organization.slug}/feature-flags/change-tracking/`,
+            },
+            {
+              key: 'docs',
+              label: t('Read the Docs'),
+              externalHref:
+                'https://docs.sentry.io/product/issues/issue-details/feature-flags/',
+            },
+          ]}
+        />
         {hasFlags && (
           <Fragment>
             <Button
@@ -328,6 +339,19 @@ export function EventFeatureFlagList({
   );
 }
 
+const ChangeTrackingDetails = styled('div')`
+  max-width: 200px;
+  white-space: normal;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
 const SuspectLabel = styled('div')`
   color: ${p => p.theme.subText};
 `;
@@ -337,12 +361,15 @@ const ValueWrapper = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
-  border-radius: ${p => p.theme.borderRadius};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+const VerticalEllipsis = styled(IconEllipsis)`
+  height: 22px;
+  color: ${p => p.theme.subText};
+  margin: ${space(0.5)};
+  transform: rotate(90deg);
+`;
+
+const ViewAllButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
 `;
 
 const ViewAllContainer = styled('div')`
@@ -358,15 +385,4 @@ const ViewAllContainer = styled('div')`
     height: ${space(1)};
     background: ${p => p.theme.border};
   }
-`;
-
-const VerticalEllipsis = styled(IconEllipsis)`
-  height: 22px;
-  color: ${p => p.theme.subText};
-  margin: ${space(0.5)};
-  transform: rotate(90deg);
-`;
-
-const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
 `;

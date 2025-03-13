@@ -2,8 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -300,7 +300,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                   metricHistory =>
                     metricHistory.category !== DataCategory.SPANS_INDEXED ||
                     (metricHistory.category === DataCategory.SPANS_INDEXED &&
-                      subscription.hadCustomDynamicSampling)
+                      history.hadCustomDynamicSampling)
                 )
                 .map(metricHistory => (
                   <tr key={metricHistory.category}>
@@ -308,7 +308,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       {getCategoryDisplay({
                         plan: history.planDetails,
                         metricHistory,
-                        hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                        hadCustomDynamicSampling: history.hadCustomDynamicSampling,
                       })}
                     </td>
                     <td>

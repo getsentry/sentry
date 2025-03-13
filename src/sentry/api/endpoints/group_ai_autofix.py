@@ -32,6 +32,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -67,73 +68,232 @@ class GroupAutofixEndpoint(GroupEndpoint):
         serialized_event = serialize(event, user, EventSerializer())
         return serialized_event, event
 
-    def _get_profile_for_event(
+    def _get_trace_tree_for_event(
         self, event: Event | GroupEvent, project: Project
     ) -> dict[str, Any] | None:
-        profile_matches_event = False
-        transaction_name = event.transaction
-        if not transaction_name:
-            return None
-
+        """
+        Returns a tree of errors and transactions in the trace for a given event. Does not include non-transaction/non-error spans to reduce noise.
+        """
         event_filter = eventstore.Filter(
-            project_ids=[project.id],
             conditions=[
-                ["transaction", "=", transaction_name],
                 ["trace_id", "=", event.trace_id],
-                ["profile_id", "IS NOT NULL", None],
             ],
         )
-        results = eventstore.backend.get_events(
+        transactions = eventstore.backend.get_events(
             filter=event_filter,
             dataset=Dataset.Transactions,
             referrer=Referrer.API_GROUP_AI_AUTOFIX,
             tenant_ids={"organization_id": project.organization_id},
-            limit=10,
         )
+        errors = eventstore.backend.get_events(
+            filter=event_filter,
+            dataset=Dataset.Events,
+            referrer=Referrer.API_GROUP_AI_AUTOFIX,
+            tenant_ids={"organization_id": project.organization_id},
+        )
+        results = transactions + errors
 
-        # iterate through each transaction's spans and find the one that contains the span corresponding to our error event
-        span_id = event.data.get("contexts", {}).get("trace", {}).get("span_id")
-        profile_id = None
-        if results and span_id:
-            for result in results:
-                spans = result.data.get("spans", [])
-                for span in spans:
-                    if span.get("span_id") == span_id:
-                        profile_matches_event = True
-                        profile_id = (
-                            result.data.get("contexts", {}).get("profile", {}).get("profile_id")
-                        )
-                        break
-                if profile_id:
-                    break
-        if not profile_id and results:  # fallback to a similar transaction in the trace
-            profile_matches_event = False
-            profile_id = results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
-        if (
-            not profile_id
-        ):  # fallback to any profile in that kind of transaction, not just the same trace
-            event_filter = eventstore.Filter(
-                project_ids=[project.id],
-                conditions=[
-                    ["transaction", "=", transaction_name],
-                    ["profile_id", "IS NOT NULL", None],
-                ],
-            )
-            results = eventstore.backend.get_events(
-                filter=event_filter,
-                dataset=Dataset.Transactions,
-                referrer=Referrer.API_GROUP_AI_AUTOFIX,
-                tenant_ids={"organization_id": project.organization_id},
-                limit=1,
-            )
-            if results:
-                profile_id = (
-                    results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
+        if not results:
+            return None
+
+        events_by_span_id: dict[str, dict] = {}
+        children_by_parent_span_id: dict[str, list[dict]] = {}
+        root_events: list[dict] = []
+
+        # First pass: collect all events and their relationships
+        for event in results:
+            event_data = event.data
+            is_transaction = event_data.get("spans") is not None
+            is_error = not is_transaction
+
+            event_node = {
+                "event_id": event.event_id,
+                "datetime": event.datetime,
+                "span_id": event_data.get("contexts", {}).get("trace", {}).get("span_id"),
+                "parent_span_id": event_data.get("contexts", {})
+                .get("trace", {})
+                .get("parent_span_id"),
+                "is_transaction": is_transaction,
+                "is_error": is_error,
+                "children": [],
+            }
+
+            if is_transaction:
+                op = event_data.get("contexts", {}).get("trace", {}).get("op")
+                transaction_title = event.title
+                duration_obj = event_data.get("breakdowns", {}).get("total.time", {})
+                duration_str = (
+                    f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
                 )
+                profile_id = event_data.get("contexts", {}).get("profile", {}).get("profile_id")
+                event_node.update(
+                    {
+                        "title": f"{op} - {transaction_title}" if op else transaction_title,
+                        "platform": event.platform,
+                        "is_current_project": event.project_id == project.id,
+                        "duration": duration_str,
+                        "profile_id": profile_id,
+                        "children_span_ids": [
+                            span.get("span_id") for span in event_data.get("spans", [])
+                        ],
+                    }
+                )
+            else:
+                event_node.update(
+                    {
+                        "title": event.title,
+                        "platform": event.platform,
+                        "is_current_project": event.project_id == project.id,
+                    }
+                )
+
+            span_id = event_node["span_id"]
+            parent_span_id = event_node["parent_span_id"]
+
+            if span_id:
+                events_by_span_id[span_id] = event_node
+
+            # Add to children list of parent
+            if parent_span_id:
+                if parent_span_id not in children_by_parent_span_id:
+                    children_by_parent_span_id[parent_span_id] = []
+                children_by_parent_span_id[parent_span_id].append(event_node)
+            else:
+                # This is a root node (no parent)
+                root_events.append(event_node)
+
+            # Handle case where this event's span is a parent for events we've already seen
+            if span_id and span_id in children_by_parent_span_id:
+                event_node["children"].extend(children_by_parent_span_id[span_id])
+                children_by_parent_span_id[span_id] = event_node["children"]
+
+        # Second pass: add children from spans to parent events
+        for span_id, event_node in events_by_span_id.items():
+            if event_node["is_transaction"] and "children_span_ids" in event_node:
+                for child_span_id in event_node["children_span_ids"]:
+                    # If this span ID belongs to another event, establish parent-child relationship
+                    if (
+                        child_span_id in events_by_span_id
+                        and events_by_span_id[child_span_id] not in event_node["children"]
+                    ):
+                        event_node["children"].append(events_by_span_id[child_span_id])
+
+        # Third pass: connect any remaining children to their parents
+        for parent_span_id, children in children_by_parent_span_id.items():
+            if parent_span_id in events_by_span_id:
+                parent_node = events_by_span_id[parent_span_id]
+                for child in children:
+                    if child not in parent_node["children"]:
+                        parent_node["children"].append(child)
+
+        # Fourth pass: find orphaned events (events with parent_span_id but no actual parent) and add them to root_events
+        all_event_nodes = list(events_by_span_id.values())
+        for event_node in all_event_nodes:
+            parent_span_id = event_node.get("parent_span_id")
+            if (
+                parent_span_id
+                and parent_span_id not in events_by_span_id
+                and event_node not in root_events
+            ):
+                root_events.append(event_node)
+
+        # Function to recursively sort children by datetime
+        def sort_tree(node):
+            if node["children"]:
+                # Sort children by datetime
+                node["children"].sort(key=lambda x: x["datetime"])
+                # Recursively sort each child's children
+                for child in node["children"]:
+                    sort_tree(child)
+            return node
+
+        # Sort root events by datetime
+        root_events.sort(key=lambda x: x["datetime"])
+        # Sort children at each level
+        sorted_tree = [sort_tree(root) for root in root_events]
+
+        # Clean up temporary fields before returning
+        def cleanup_node(node):
+            if "children_span_ids" in node:
+                del node["children_span_ids"]
+            for child in node["children"]:
+                cleanup_node(child)
+            return node
+
+        cleaned_tree = [cleanup_node(root) for root in sorted_tree]
+
+        return {"trace_id": event.trace_id, "events": cleaned_tree}
+
+    def _get_profile_from_trace_tree(
+        self, trace_tree: dict[str, Any] | None, event: Event | GroupEvent | None, project: Project
+    ) -> dict[str, Any] | None:
+        """
+        Finds the profile for the transaction that is a parent of our error event.
+        """
+        if not trace_tree or not event:
+            return None
+
+        events = trace_tree.get("events", [])
+        event_id = event.event_id
+
+        # First, find our error event in the tree and track parent transactions
+        # 1. Find the error event node and also build a map of parent-child relationships
+        # 2. Walk up from the error event to find a transaction with a profile
+
+        child_to_parent = {}
+
+        def build_parent_map(node, parent=None):
+            node_id = node.get("event_id")
+
+            if parent:
+                child_to_parent[node_id] = parent
+
+            for child in node.get("children", []):
+                build_parent_map(child, node)
+
+        # Build the parent-child map for the entire tree
+        for root_node in events:
+            build_parent_map(root_node)
+
+        # Find our error node in the flattened tree
+        error_node = None
+        all_nodes = []
+
+        def collect_all_nodes(node):
+            all_nodes.append(node)
+            for child in node.get("children", []):
+                collect_all_nodes(child)
+
+        for root_node in events:
+            collect_all_nodes(root_node)
+
+        for node in all_nodes:
+            if node.get("event_id") == event_id:
+                error_node = node
+                break
+
+        if not error_node:
+            return None
+
+        # Now walk up the tree to find a transaction with a profile
+        profile_id = None
+        current_node = error_node
+        while current_node:
+            if current_node.get("profile_id"):
+                profile_id = current_node.get("profile_id")
+                break
+
+            # Move up to parent - child_to_parent maps child event IDs to parent node objects
+            parent_node = child_to_parent.get(current_node.get("event_id"))
+            if not parent_node:
+                # Reached the root without finding a suitable transaction
+                return None
+            current_node = parent_node
 
         if not profile_id:
             return None
 
+        # Fetch the profile data
         response = get_from_profiling_service(
             "GET",
             f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
@@ -147,7 +307,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 None
                 if not execution_tree
                 else {
-                    "profile_matches_issue": profile_matches_event,
+                    "profile_matches_issue": True,  # we don't have a fallback for now
                     "execution_tree": execution_tree,
                 }
             )
@@ -278,6 +438,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         repos: list[dict],
         serialized_event: dict[str, Any],
         profile: dict[str, Any] | None,
+        trace_tree: dict[str, Any] | None,
         instruction: str,
         timeout_secs: int,
         pr_to_comment_on_url: str | None = None,
@@ -295,6 +456,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     "events": [serialized_event],
                 },
                 "profile": profile,
+                "trace_tree": trace_tree,
                 "instruction": instruction,
                 "timeout_secs": timeout_secs,
                 "last_updated": datetime.now().isoformat(),
@@ -345,8 +507,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 )
             event_id = event.event_id
 
-        created_at = datetime.now().isoformat()
-
         if not (
             features.has("organizations:gen-ai-features", group.organization, actor=request.user)
             and group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
@@ -369,18 +529,22 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
 
-        # find best profile for this event
+        # get trace tree of transactions and errors for this event
         try:
-            profile = self._get_profile_for_event(event, group.project) if event else None
-        except Exception as e:
-            logger.exception(
-                "Failed to get profile for event",
-                extra={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                    "exception": e,
-                },
+            trace_tree = self._get_trace_tree_for_event(event, group.project) if event else None
+        except Exception:
+            logger.exception("Failed to get trace tree for event")
+            trace_tree = None
+
+        # find the profile containing our error event
+        try:
+            profile = (
+                self._get_profile_from_trace_tree(trace_tree, event, group.project)
+                if event
+                else None
             )
+        except Exception:
+            logger.exception("Failed to get profile from trace tree")
             profile = None
 
         try:
@@ -390,19 +554,13 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 repos,
                 serialized_event,
                 profile,
+                trace_tree,
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
                 data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
             )
-        except Exception as e:
-            logger.exception(
-                "Failed to send autofix to seer",
-                extra={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                    "exception": e,
-                },
-            )
+        except Exception:
+            logger.exception("Failed to send autofix to seer")
 
             return self._respond_with_error(
                 "Autofix failed to start.",
@@ -419,7 +577,17 @@ class GroupAutofixEndpoint(GroupEndpoint):
         )
 
     def get(self, request: Request, group: Group) -> Response:
-        autofix_state = get_autofix_state(group_id=group.id)
+        access_check_cache_key = f"autofix_access_check:{group.id}"
+        access_check_cache_value = cache.get(access_check_cache_key)
+
+        check_repo_access = False
+        if not access_check_cache_value:
+            check_repo_access = True
+
+        autofix_state = get_autofix_state(group_id=group.id, check_repo_access=check_repo_access)
+
+        if check_repo_access:
+            cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
 
         response_state: dict[str, Any] | None = None
 

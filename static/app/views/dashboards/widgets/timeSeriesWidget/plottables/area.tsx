@@ -11,6 +11,9 @@ import {
 import type {Plottable} from './plottable';
 
 export class Area extends ContinuousTimeSeries implements Plottable {
+  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return new Area(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
+  }
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {timeSeries, config = {}} = this;
 
@@ -26,6 +29,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
       name: timeSeries.field,
       color,
       animation: false,
+      yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
     if (completeTimeSeries) {
@@ -34,7 +38,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           ...commonOptions,
           stack: 'complete',
           areaStyle: {
-            color: completeTimeSeries.color,
+            color,
             opacity: 1.0,
           },
           data: completeTimeSeries.data.map(timeSeriesItemToEChartsDataPoint),

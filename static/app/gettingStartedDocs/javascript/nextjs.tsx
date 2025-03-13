@@ -157,7 +157,7 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {t(
-              'If you see an issue in your Sentry dashboard, you have successfully set up Sentry with Next.js.'
+              'If you see an issue in your Sentry Issues, you have successfully set up Sentry with Next.js.'
             )}
           </p>
         </Fragment>

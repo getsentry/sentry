@@ -241,7 +241,9 @@ class AlertRuleTriggerActionActivateBaseTest:
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        result = trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)  # type: ignore[func-returns-value]
+        result = trigger.fire(
+            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
+        )  # type: ignore[func-returns-value]
 
         # TODO(RyanSkonnord): Remove assertion (see test_handler)
         assert result is None
@@ -253,7 +255,9 @@ class AlertRuleTriggerActionActivateBaseTest:
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        result = getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+        result = getattr(trigger, self.method)(
+            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
+        )
 
         # TODO(RyanSkonnord): Don't assert on return value.
         # All concrete ActionHandlers return None from their fire and resolve
@@ -284,7 +288,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(Mock(), Mock(), Mock())
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
         self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
 
     def test_handled(self):
@@ -293,10 +297,8 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
 
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        incident = Mock()
-        project = Mock()
-        trigger.build_handler(trigger, incident, project)
-        mock_handler.assert_called_once_with(trigger, incident, project)
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
+        mock_handler.assert_called_once_with()
         assert not self.metrics.incr.called
 
 

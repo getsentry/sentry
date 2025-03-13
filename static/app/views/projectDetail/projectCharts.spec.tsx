@@ -7,10 +7,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import type {PlatformKey} from 'sentry/types/project';
 import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
 
-function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
+function renderProjectCharts(
+  platform?: PlatformKey,
+  chartDisplay?: string,
+  features?: [string]
+) {
   const {organization, router, project} = initializeOrg({
     organization: OrganizationFixture(),
-    projects: [{platform}],
+    projects: [{platform, features}],
     router: {
       params: {orgId: 'org-slug', projectId: 'project-slug'},
       location: {
@@ -76,6 +80,43 @@ describe('ProjectDetail > ProjectCharts', () => {
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
   });
 
+  it('renders App Hang options for apple projects when the feature flag is enabled', async () => {
+    renderProjectCharts('apple', undefined, [
+      'projects:project-detail-apple-app-hang-rate',
+    ]);
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+
+    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
+  });
+
+  it('renders App Hang options for apple-ios projects when the feature flag is enabled', async () => {
+    renderProjectCharts('apple-ios', undefined, [
+      'projects:project-detail-apple-app-hang-rate',
+    ]);
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+
+    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
+  });
+
+  it('does not render App Hang options for apple-ios projects when the feature flag is disabled', async () => {
+    renderProjectCharts('apple-ios', undefined);
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+
+    expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
+  });
+
   it('does not render ANR options for non-compatible platforms', async () => {
     renderProjectCharts('python');
 
@@ -109,10 +150,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       groups: [
         {
           by: {},
-          totals: {
-            'anr_rate()': 492,
-            'count_unique(user)': 3,
-          },
+          totals: {'anr_rate()': 492, 'count_unique(user)': 3},
           series: {
             'anr_rate()': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 490],
             'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
@@ -132,9 +170,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       expect(mockSessions).toHaveBeenCalledWith(
         '/organizations/org-slug/sessions/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: ['anr_rate()', 'count_unique(user)'],
-          }),
+          query: expect.objectContaining({field: ['anr_rate()', 'count_unique(user)']}),
         })
       )
     );

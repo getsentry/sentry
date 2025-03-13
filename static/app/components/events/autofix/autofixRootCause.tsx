@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {
   type AutofixRepository,
   type AutofixRootCauseData,
@@ -189,7 +189,9 @@ function RootCauseDescription({
       </AnimatePresence>
       <div ref={containerRef}>
         {cause.description && (
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}} />
+          <Description
+            dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}}
+          />
         )}
         {cause.root_cause_reproduction && (
           <AutofixTimeline events={cause.root_cause_reproduction} />
@@ -289,9 +291,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <div ref={iconFocusRef}>
-                <IconFocus size="sm" />
-              </div>
+              <IconWrapper ref={iconFocusRef}>
+                <IconFocus size="sm" color="pink400" />
+              </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
             <CopyRootCauseButton
@@ -310,9 +312,9 @@ function AutofixRootCauseDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <div ref={iconFocusRef}>
-              <IconFocus size="sm" />
-            </div>
+            <IconWrapper ref={iconFocusRef}>
+              <IconFocus size="sm" color="pink400" />
+            </IconWrapper>
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
@@ -354,7 +356,7 @@ function AutofixRootCauseDisplay({
         <AnimatePresence>
           {agentCommentThread && iconFocusRef.current && (
             <AutofixHighlightPopup
-              selectedText="Root Cause"
+              selectedText=""
               referenceElement={iconFocusRef.current}
               groupId={groupId}
               runId={runId}
@@ -424,6 +426,12 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   );
 }
 
+const Description = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
 const NoCausesPadding = styled('div')`
   padding: 0 ${space(2)};
 `;
@@ -449,6 +457,12 @@ const HeaderWrapper = styled('div')`
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const HeaderText = styled('div')`

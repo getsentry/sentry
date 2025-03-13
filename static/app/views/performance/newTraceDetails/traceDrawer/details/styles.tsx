@@ -1,9 +1,10 @@
 import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -289,7 +290,7 @@ const MIN_PCT_DURATION_DIFFERENCE = 10;
 
 type DurationComparison = {
   deltaPct: number;
-  deltaText: JSX.Element;
+  deltaText: React.JSX.Element;
   status: 'faster' | 'slower' | 'equal';
 } | null;
 
@@ -385,10 +386,10 @@ function TableRow({
   toolTipText,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
   toolTipText?: string;
 }) {
   if (!keep && !children) {
@@ -972,7 +973,7 @@ function NodeActions(props: {
     const profileId = isTransactionNode(props.node)
       ? props.node.value.profile_id
       : isSpanNode(props.node)
-        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        ? (props.node.event?.contexts?.profile?.profile_id ?? '')
         : '';
     if (!profileId) {
       return null;
@@ -987,7 +988,7 @@ function NodeActions(props: {
     const profilerId = isTransactionNode(props.node)
       ? props.node.value.profiler_id
       : isSpanNode(props.node)
-        ? props.node.value.sentry_tags?.profiler_id ?? null
+        ? (props.node.value.sentry_tags?.profiler_id ?? null)
         : null;
     if (!profilerId) {
       return null;
@@ -1025,7 +1026,7 @@ function NodeActions(props: {
       </Tooltip>
       {isTransactionNode(props.node) ? (
         <Tooltip title={t('JSON')}>
-          <ActionButton
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
             size="xs"
@@ -1036,7 +1037,7 @@ function NodeActions(props: {
       ) : null}
       {continuousProfileTarget ? (
         <Tooltip title={t('Profile')}>
-          <ActionButton
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
             to={continuousProfileTarget}
             size="xs"
@@ -1046,7 +1047,7 @@ function NodeActions(props: {
         </Tooltip>
       ) : transactionProfileTarget ? (
         <Tooltip title={t('Profile')}>
-          <ActionButton
+          <ActionLinkButton
             onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
             to={transactionProfileTarget}
             size="xs"
@@ -1060,7 +1061,7 @@ function NodeActions(props: {
   );
 }
 
-const ActionButton = styled(Button)`
+const actionButtonStyles = css`
   border: none;
   background-color: transparent;
   box-shadow: none;
@@ -1075,6 +1076,14 @@ const ActionButton = styled(Button)`
     box-shadow: none;
     opacity: 1;
   }
+`;
+
+const ActionButton = styled(Button)`
+  ${actionButtonStyles};
+`;
+
+const ActionLinkButton = styled(LinkButton)`
+  ${actionButtonStyles};
 `;
 
 const ActionWrapper = styled('div')`

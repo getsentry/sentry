@@ -15,7 +15,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.notifications.models.notificationaction import ActionService
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -35,7 +35,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
+from sentry.workflow_engine.typings.notification_action import (
+    OnCallDataBlob,
+    SentryAppDataBlob,
+    SentryAppIdentifier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -125,11 +129,7 @@ def build_action_data_blob(
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
         return build_on_call_data_blob(alert_rule_trigger_action, action_type)
     else:
-        return {
-            "type": alert_rule_trigger_action.type,
-            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-        }
+        return {}
 
 
 def get_target_identifier(
@@ -144,6 +144,19 @@ def get_target_identifier(
         return str(alert_rule_trigger_action.sentry_app_id)
     # Ensure we have a valid target_identifier
     return alert_rule_trigger_action.target_identifier
+
+
+def build_action_config(
+    target_display: str | None, target_identifier: str | None, target_type: int
+) -> dict[str, str | int | None]:
+    base_config = {
+        "target_display": target_display,
+        "target_identifier": target_identifier,
+        "target_type": target_type,
+    }
+    if target_type == ActionTarget.SENTRY_APP.value:
+        base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
+    return base_config
 
 
 def get_detector_trigger(
@@ -220,14 +233,17 @@ def migrate_metric_action(
     action_type_enum = Action.Type(action_type)
     data = build_action_data_blob(alert_rule_trigger_action, action_type_enum)
     target_identifier = get_target_identifier(alert_rule_trigger_action, action_type_enum)
+    action_config = build_action_config(
+        alert_rule_trigger_action.target_display,
+        target_identifier,
+        alert_rule_trigger_action.target_type,
+    )
 
     action = Action.objects.create(
         type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
-        target_display=alert_rule_trigger_action.target_display,
-        target_identifier=target_identifier,
-        target_type=alert_rule_trigger_action.target_type,
+        config=action_config,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=action_filter.condition_group.id,
@@ -699,10 +715,14 @@ def dual_update_migrated_alert_rule_trigger_action(
     target_identifier = get_target_identifier(trigger_action, action_type)
     updated_action_fields["type"] = action_type
     updated_action_fields["data"] = data
-    updated_action_fields["target_identifier"] = target_identifier
+    updated_action_fields["config"] = {
+        "target_display": updated_fields.get("target_display", None),
+        "target_type": updated_fields.get("target_type", None),
+        "target_identifier": target_identifier,
+    }
 
     for field in LEGACY_ACTION_FIELDS:
-        if field in updated_fields:
+        if field in updated_fields and field not in updated_action_fields["config"].keys():
             updated_action_fields[field] = updated_fields[field]
 
     action.update(**updated_action_fields)

@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
@@ -188,7 +188,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
-          {t('Seer')}
+          {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
             tooltipProps={{
@@ -242,14 +242,14 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {aiConfig.hasAutofix && (
               <Fragment>
-                {!autofixData ? (
-                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-                ) : (
+                {autofixData ? (
                   <AutofixSteps
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : (
+                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
               </Fragment>
             )}
@@ -264,7 +264,7 @@ export const useOpenSolutionsDrawer = (
   group: Group,
   project: Project,
   event: Event | undefined,
-  buttonRef?: React.RefObject<HTMLButtonElement>
+  buttonRef?: React.RefObject<HTMLButtonElement | null>
 ) => {
   const {openDrawer} = useDrawer();
 
@@ -398,7 +398,8 @@ const StyledCard = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(3)};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`

@@ -21,7 +21,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.auto_source_code_config.constants import SUPPORTED_LANGUAGES
+from sentry.issues.auto_source_code_config.utils import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -242,7 +242,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
-        for platform in SUPPORTED_LANGUAGES:
+        for platform in get_supported_platforms():
             event = self._create_event(self._generate_node_data("foo"))
             self._call_post_process_group(event)
 
@@ -3033,4 +3033,24 @@ class PostProcessGroupFeedbackTest(
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
     def test_processing_cache_cleared_with_commits(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze_with_buffers(self):
+        pass
+
+    @pytest.mark.skip(reason="auto resolve is disabled for feedback issues")
+    def test_group_inbox_regression(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_forecast_in_activity(self):
+        pass
+
+    @pytest.mark.skip(reason="regression is disabled for feedback issues")
+    def test_group_last_seen_buffer(self):
         pass

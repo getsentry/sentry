@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
@@ -26,6 +26,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import {ANNUAL} from 'getsentry/constants';
+import subscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {PromotionData, Subscription} from 'getsentry/types';
 import {checkForPromptBasedPromotion} from 'getsentry/utils/promotionUtils';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
@@ -137,6 +138,7 @@ function CancelSubscriptionForm() {
   const followup = CANCEL_STEPS.find(cancel => cancel.reason[0] === state.val)?.followup;
 
   const handleSubmitSuccess = (resp: any) => {
+    subscriptionStore.loadData(organization.slug);
     const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
 
     addSuccessMessage(msg);

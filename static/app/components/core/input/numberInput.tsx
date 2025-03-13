@@ -6,7 +6,7 @@ import type {AriaNumberFieldProps} from '@react-aria/numberfield';
 import {useNumberField} from '@react-aria/numberfield';
 import {useNumberFieldState} from '@react-stately/numberfield';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -24,74 +24,85 @@ export interface NumberInputProps
   max?: number;
   min?: number;
 }
-function BaseNumberInput(
-  {
-    disabled,
-    readOnly,
-    monospace,
-    min,
-    max,
-    size,
-    placeholder,
-    nativeSize,
-    className,
-    ...props
-  }: NumberInputProps,
-  forwardedRef: React.Ref<HTMLInputElement>
-) {
-  const ref = useRef<HTMLInputElement>(null);
 
-  const ariaProps = {
-    isDisabled: disabled,
-    isReadOnly: readOnly,
-    minValue: min,
-    maxValue: max,
-    placeholder,
-    ...props,
-  };
-  const {locale} = useLocale();
-  const state = useNumberFieldState({locale, ...ariaProps});
-  const {groupProps, inputProps, incrementButtonProps, decrementButtonProps} =
-    useNumberField(ariaProps, state, ref);
+export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
+  (
+    {
+      disabled,
+      readOnly,
+      monospace,
+      min,
+      max,
+      size,
+      placeholder,
+      nativeSize,
+      className,
+      ...props
+    }: NumberInputProps,
+    ref
+  ) => {
+    const localRef = useRef<HTMLInputElement>(null);
 
-  const incrementButtonRef = useRef<HTMLButtonElement>(null);
-  const {buttonProps: incrementProps} = useButton(
-    incrementButtonProps,
-    incrementButtonRef
-  );
+    const ariaProps = {
+      isDisabled: disabled,
+      isReadOnly: readOnly,
+      minValue: min,
+      maxValue: max,
+      placeholder,
+      ...props,
+    };
+    const {locale} = useLocale();
+    const state = useNumberFieldState({locale, ...ariaProps});
+    const {groupProps, inputProps, incrementButtonProps, decrementButtonProps} =
+      useNumberField(ariaProps, state, localRef);
 
-  const decrementButtonRef = useRef<HTMLButtonElement>(null);
-  const {buttonProps: decrementProps} = useButton(
-    decrementButtonProps,
-    decrementButtonRef
-  );
+    const incrementButtonRef = useRef<HTMLButtonElement>(null);
+    const {buttonProps: incrementProps} = useButton(
+      incrementButtonProps,
+      incrementButtonRef
+    );
 
-  return (
-    <InputGroup {...groupProps}>
-      <InputGroup.Input
-        {...inputProps}
-        ref={mergeRefs([ref, forwardedRef])}
-        placeholder={placeholder}
-        size={size}
-        nativeSize={nativeSize}
-        monospace={monospace}
-        className={className}
-      />
-      <InputGroup.TrailingItems>
-        <StepWrap size={size}>
-          <StepButton ref={incrementButtonRef} size="zero" borderless {...incrementProps}>
-            <StyledIconChevron direction="up" />
-          </StepButton>
-          <StepButton ref={decrementButtonRef} size="zero" borderless {...decrementProps}>
-            <StyledIconChevron direction="down" />
-          </StepButton>
-        </StepWrap>
-      </InputGroup.TrailingItems>
-    </InputGroup>
-  );
-}
+    const decrementButtonRef = useRef<HTMLButtonElement>(null);
+    const {buttonProps: decrementProps} = useButton(
+      decrementButtonProps,
+      decrementButtonRef
+    );
 
-export const NumberInput = forwardRef(BaseNumberInput);
+    return (
+      <InputGroup {...groupProps}>
+        <InputGroup.Input
+          {...inputProps}
+          ref={mergeRefs([localRef, ref])}
+          placeholder={placeholder}
+          size={size}
+          nativeSize={nativeSize}
+          monospace={monospace}
+          className={className}
+        />
+        <InputGroup.TrailingItems>
+          <StepWrap size={size}>
+            <StepButton
+              ref={incrementButtonRef}
+              size="zero"
+              borderless
+              {...incrementProps}
+            >
+              <StyledIconChevron direction="up" />
+            </StepButton>
+            <StepButton
+              ref={decrementButtonRef}
+              size="zero"
+              borderless
+              {...decrementProps}
+            >
+              <StyledIconChevron direction="down" />
+            </StepButton>
+          </StepWrap>
+        </InputGroup.TrailingItems>
+      </InputGroup>
+    );
+  }
+);
 
 const StepWrap = styled('div')<{size?: FormSize}>`
   display: flex;

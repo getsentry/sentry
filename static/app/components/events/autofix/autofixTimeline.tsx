@@ -40,8 +40,8 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
 function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? activeColor ?? 'pink400' : 'gray400',
-    iconBorder: isActive ? activeColor ?? 'pink400' : 'gray400',
+    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
   };
 }
 
@@ -55,7 +55,7 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
     const firstHighlightedIndex = events.findIndex(
       event => event.is_most_important_event
     );
-    return [firstHighlightedIndex !== -1 ? firstHighlightedIndex : 0];
+    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
   });
 
   if (!events?.length) {

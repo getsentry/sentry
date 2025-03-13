@@ -5,13 +5,13 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {LinkButton} from 'sentry/components/button';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -108,7 +108,7 @@ class UsageStatsOrganization<
   }
 
   /** List of components to render on single-project view */
-  get projectDetails(): JSX.Element[] {
+  get projectDetails(): React.JSX.Element[] {
     return [];
   }
 

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -156,7 +156,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     const {Body, steps, doneText, doneUrl, closeModal} = this.props;
     const {current} = this.state;
 
-    const step = steps[current] !== undefined ? steps[current] : steps[steps.length - 1]!;
+    const step = steps[current] === undefined ? steps[steps.length - 1]! : steps[current];
     const hasNext = steps[current + 1] !== undefined;
 
     return (

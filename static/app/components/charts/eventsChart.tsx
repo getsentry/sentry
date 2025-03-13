@@ -243,11 +243,11 @@ class Chart extends Component<ChartProps, State> {
       (releases as any)?.markLine?.data &&
       (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
 
-    const selected = !Array.isArray(releaseSeries)
-      ? seriesSelection
-      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+    const selected = Array.isArray(releaseSeries)
+      ? Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
         ? {[releasesLegend]: false}
-        : seriesSelection;
+        : seriesSelection
+      : seriesSelection;
 
     const legend = showLegend
       ? {
@@ -255,7 +255,7 @@ class Chart extends Component<ChartProps, State> {
           top: 12,
           data,
           selected,
-          ...(legendOptions ?? {}),
+          ...legendOptions,
         }
       : undefined;
 
@@ -274,8 +274,8 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? colors?.slice(0, series.length) ??
-        getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice()
+      ? (colors?.slice(0, series.length) ??
+        getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice())
       : undefined;
     if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);
@@ -330,7 +330,7 @@ class Chart extends Component<ChartProps, State> {
           },
         },
       },
-      ...(chartOptionsProp ?? {}),
+      ...chartOptionsProp,
       animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 

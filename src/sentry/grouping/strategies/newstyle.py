@@ -732,12 +732,16 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    top_level_exceptions = []
     if exception_tree[0].exception:
         top_level_exceptions = sorted(
             get_top_level_exceptions(exception_tree[0].exception),
             key=lambda exception: str(exception.type),
             reverse=True,
         )
+    else:
+        # If there's no root exception, return the original list
+        return exceptions
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [

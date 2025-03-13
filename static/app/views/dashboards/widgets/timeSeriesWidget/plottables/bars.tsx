@@ -20,6 +20,9 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
 }
 
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
+  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return new Bars(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
+  }
   toSeries(
     plottingOptions: ContinuousTimeSeriesPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
@@ -33,8 +36,9 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     return [
       BarSeries({
         name: timeSeries.field,
+        stack: config.stack,
+        yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
         color,
-        stack: config.stack ?? GLOBAL_STACK_NAME,
         animation: false,
         itemStyle: {
           color: params => {
@@ -49,5 +53,3 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     ];
   }
 }
-
-const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

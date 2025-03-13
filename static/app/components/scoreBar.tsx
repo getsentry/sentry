@@ -40,10 +40,10 @@ function BaseScoreBar({
 
   return (
     <div className={className} {...props}>
-      {[...Array(scoreInBounds)].map((_j, i) => (
+      {[...new Array(scoreInBounds)].map((_j, i) => (
         <Bar {...barProps} key={i} color={palette[paletteIndex]} />
       ))}
-      {[...Array(maxScore - scoreInBounds)].map((_j, i) => (
+      {[...new Array(maxScore - scoreInBounds)].map((_j, i) => (
         <Bar key={`empty-${i}`} {...barProps} empty />
       ))}
     </div>
@@ -76,8 +76,8 @@ const Bar = styled('div')<BarProps>`
   ${p => p.empty && `background-color: #e2dee6;`}
   ${p => p.color && `background-color: ${p.color};`}
 
-  width: ${p => (!p.vertical ? p.thickness : p.size)}px;
-  height: ${p => (!p.vertical ? p.size : p.thickness)}px;
+  width: ${p => (p.vertical ? p.size : p.thickness)}px;
+  height: ${p => (p.vertical ? p.thickness : p.size)}px;
 `;
 
 export default ScoreBar;

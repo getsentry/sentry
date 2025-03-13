@@ -444,6 +444,18 @@ class SubscriptionProcessor:
                     last_update=self.last_update.timestamp(),
                     aggregation_value=aggregation_value,
                 )
+            # XXX (mifu67): log problematic rule, to be deleted later
+            if features.has(
+                "feature.organizations:failure-rate-metric-alert-logging",
+                self.subscription.project.organization,
+            ):
+                logger.info(
+                    "Received this response from Seer",
+                    extra={
+                        "potential_anomalies": potential_anomalies,
+                        "alert_rule_id": self.alert_rule.id,
+                    },
+                )
             if potential_anomalies is None:
                 logger.info(
                     "No potential anomalies found",

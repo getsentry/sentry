@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Link from 'sentry/components/links/link';
 import Timeline from 'sentry/components/timeline';
@@ -62,7 +62,7 @@ function TimelineItem({
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
     ? iconMapping.componentFunction(item.data, item.user)
-    : iconMapping?.Component ?? null;
+    : (iconMapping?.Component ?? null);
 
   return (
     <ActivityTimelineItem

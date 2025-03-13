@@ -3,11 +3,12 @@ import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
+import {TOPBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -52,14 +53,14 @@ function MobileTopbar() {
       >
         <IconSentry />
       </HomeLink>
-      <MenuButton
+      <Button
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
         size="sm"
         borderless
       />
-      {view !== 'closed' ? (
+      {view === 'closed' ? null : (
         <NavigationOverlayPortal
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
         >
@@ -68,7 +69,7 @@ function MobileTopbar() {
             <SecondaryMobile handleClickBack={() => setView('primary')} />
           ) : null}
         </NavigationOverlayPortal>
-      ) : null}
+      )}
     </Topbar>
   );
 }
@@ -84,12 +85,12 @@ function updateNavStyleAttributes(view: ActiveView) {
     );
   }
 
-  if (view !== 'closed') {
-    mainContent.setAttribute('inert', '');
-    document.body.style.setProperty('overflow', 'hidden');
-  } else {
+  if (view === 'closed') {
     mainContent.removeAttribute('inert');
     document.body.style.removeProperty('overflow');
+  } else {
+    mainContent.setAttribute('inert', '');
+    document.body.style.setProperty('overflow', 'hidden');
   }
 }
 
@@ -107,7 +108,7 @@ function NavigationOverlayPortal({
 }
 
 const Topbar = styled('header')`
-  height: 40px;
+  height: ${TOPBAR_MOBILE_HEIGHT};
   width: 100vw;
   padding-right: ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.translucentGray200};
@@ -132,7 +133,7 @@ const HomeLink = styled(Link, {
   position: relative;
 
   svg {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
     width: ${space(3)};
     height: ${space(3)};
   }
@@ -152,14 +153,6 @@ const HomeLink = styled(Link, {
         background: ${p.theme.sidebar.superuser};
       }
     `}
-`;
-
-const MenuButton = styled(Button)`
-  color: ${p => p.theme.white};
-
-  &:hover {
-    color: ${p => p.theme.white};
-  }
 `;
 
 const NavigationOverlay = styled('nav')`

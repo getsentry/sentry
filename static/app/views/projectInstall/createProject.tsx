@@ -8,8 +8,8 @@ import {PlatformIcon} from 'platformicons';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -75,7 +75,7 @@ function CreateProject() {
   );
   const [team, setTeam] = useState(
     autoFill
-      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      ? (gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug)
       : accessTeams?.[0]?.slug
   );
 

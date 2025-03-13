@@ -19,6 +19,7 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
+import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -56,6 +57,7 @@ export function DomainViewHeader({
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
 
   const crumbs: Crumb[] = [
     {
@@ -67,7 +69,7 @@ export function DomainViewHeader({
   ];
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = extractSelectionParameters(location?.query);
 
@@ -103,7 +105,18 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
+            <FeedbackWidgetButton
+              optionOverrides={
+                isLaravelInsightsEnabled
+                  ? {
+                      tags: {
+                        ['feedback.source']: 'laravel-insights',
+                        ['feedback.owner']: 'telemetry-experience',
+                      },
+                    }
+                  : undefined
+              }
+            />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>

@@ -1,5 +1,3 @@
-import type {ReactText} from 'react';
-
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -96,7 +94,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query: mutableSearch.formatString(),
-      orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
+      orderby:
+        (mapWebVitalToOrderBy(orderBy) ?? withProfiles) ? '-profile.id' : undefined,
       version: 2,
     },
     pageFilters.selection
@@ -121,7 +120,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
+  const toNumber = (item: string | number) =>
+    item ? parseFloat(item.toString()) : undefined;
   const tableData: TransactionSampleRowWithScore[] =
     !isPending && data?.data.length
       ? (data.data.map(

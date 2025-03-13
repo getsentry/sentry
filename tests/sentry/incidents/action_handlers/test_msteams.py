@@ -14,8 +14,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.msteams.card_builder.block import (
     Block,
     ColumnBlock,
@@ -41,6 +41,7 @@ class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.spec = MsTeamsMessagingSpec()
+        self.handler = MessagingActionHandler(self.spec)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
@@ -86,10 +87,15 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
         data = json.loads(responses.calls[0].request.body)
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
@@ -231,10 +237,15 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
 
@@ -253,10 +264,15 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
@@ -280,9 +296,14 @@ class MsTeamsActionHandlerTest(FireTest):
             },
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)

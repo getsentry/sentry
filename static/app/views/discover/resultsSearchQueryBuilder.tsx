@@ -1,7 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import omit from 'lodash/omit';
 
-import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {
+  fetchFeatureFlagValues,
+  fetchSpanFieldValues,
+  fetchTagValues,
+  useFetchOrganizationTags,
+} from 'sentry/actionCreators/tags';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_SET,
@@ -47,6 +52,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
+import {Dataset as AlertsDatasets} from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 const getFunctionTags = (fields: readonly Field[] | undefined) => {
@@ -125,6 +131,7 @@ type Props = {
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
+  portalTarget?: HTMLElement | null;
   projectIds?: number[] | readonly number[];
   query?: string;
   recentSearches?: SavedSearchType;
@@ -144,13 +151,25 @@ function ResultsSearchQueryBuilder(props: Props) {
     dataset,
     includeTransactions = true,
     placeholder,
+    portalTarget,
   } = props;
 
   const api = useApi();
   const organization = useOrganization();
+  const projectIdStrings = useMemo(
+    () => (projectIds as Array<Readonly<number>>)?.map(String),
+    [projectIds]
+  );
   const {selection} = usePageFilters();
-  const tags = useTags();
+  const dateTimeParams = useMemo(
+    () => normalizeDateTimeParams(selection.datetime),
+    [selection.datetime]
+  );
+  const includeFeatureFlags =
+    (!dataset || dataset === DiscoverDatasets.ERRORS) &&
+    organization.features.includes('feature-flag-autocomplete');
 
+  const tags = useTags();
   const filteredTags = useMemo(() => {
     return omitTags && omitTags.length > 0
       ? omit(tags, omitTags, EXCLUDED_FILTER_KEYS)
@@ -163,64 +182,27 @@ function ResultsSearchQueryBuilder(props: Props) {
   const measurements = useMemo(() => getMeasurements(), []);
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
 
-  // Returns array of tag values that substring match `query`; invokes `callback`
-  // with data when ready
-  const getEventFieldValues = useCallback(
-    async (tag: any, query: any): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
-
-      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
-        // We can't really auto suggest values for aggregate fields
-        // or measurements, so we simply don't
-        return Promise.resolve([]);
-      }
-
-      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
-      // and low search filter values because discover maps device.class to these values.
-      if (isDeviceClass(tag.key)) {
-        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
-      }
-      const fetchPromise =
-        dataset === DiscoverDatasets.SPANS_INDEXED
-          ? fetchSpanFieldValues({
-              api,
-              endpointParams: normalizeDateTimeParams(selection.datetime),
-              orgSlug: organization.slug,
-              fieldKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-            })
-          : fetchTagValues({
-              api,
-              endpointParams: normalizeDateTimeParams(selection.datetime),
-              orgSlug: organization.slug,
-              tagKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              // allows searching for tags on transactions as well
-              includeTransactions,
-              // allows searching for tags on sessions as well
-              includeSessions: includeSessionTagsValues,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
-            });
-
-      try {
-        const results = await fetchPromise;
-        return results.filter(({name}) => defined(name)).map(({name}) => name);
-      } catch (error) {
-        throw new Error('Unable to fetch event field values');
-      }
+  const featureFlagQuery = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: projectIdStrings,
+      dataset: AlertsDatasets.ERRORS,
+      useCache: true,
+      useFlagsBackend: true,
+      enabled: includeFeatureFlags,
+      ...dateTimeParams,
     },
-    [
-      api,
-      organization,
-      selection.datetime,
-      projectIds,
-      includeTransactions,
-      includeSessionTagsValues,
-      dataset,
-    ]
+    {}
+  );
+  const featureFlagTags: TagCollection = useMemo(
+    () =>
+      featureFlagQuery.data?.reduce<TagCollection>((acc, tag) => {
+        // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
+        const key = `flags["${tag.key}"]`;
+        acc[key] = {...tag, kind: FieldKind.FEATURE_FLAG, key};
+        return acc;
+      }, {}) || {},
+    [featureFlagQuery.data]
   );
 
   const getTagList: TagCollection = useMemo(() => {
@@ -249,7 +231,7 @@ function ResultsSearchQueryBuilder(props: Props) {
               )
             : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(combinedTags, filteredTags, STATIC_SEMVER_TAGS);
+    Object.assign(combinedTags, filteredTags, STATIC_SEMVER_TAGS, featureFlagTags);
 
     combinedTags.has = getHasTag(combinedTags);
 
@@ -261,7 +243,84 @@ function ResultsSearchQueryBuilder(props: Props) {
     functionTags,
     filteredTags,
     organization.features,
+    featureFlagTags,
   ]);
+
+  // Returns array of tag values that substring match `query`; invokes `callback`
+  // with data when ready
+  const getEventFieldValues = useCallback(
+    async (tag: any, query: any): Promise<string[]> => {
+      if (getTagList[tag.key]?.kind === FieldKind.FEATURE_FLAG) {
+        if (dataset && dataset !== DiscoverDatasets.ERRORS) {
+          return Promise.resolve([]);
+        }
+
+        const results = await fetchFeatureFlagValues({
+          api,
+          tagKey: tag.key,
+          search: query,
+          projectIds: projectIdStrings,
+          endpointParams: dateTimeParams,
+          sort: '-count' as const,
+          organization,
+        });
+        return results.map(({value}) => value);
+      }
+
+      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+
+      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+      // and low search filter values because discover maps device.class to these values.
+      if (isDeviceClass(tag.key)) {
+        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+      }
+      const fetchPromise =
+        dataset === DiscoverDatasets.SPANS_INDEXED
+          ? fetchSpanFieldValues({
+              api,
+              endpointParams: dateTimeParams,
+              orgSlug: organization.slug,
+              fieldKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+            })
+          : fetchTagValues({
+              api,
+              endpointParams: dateTimeParams,
+              orgSlug: organization.slug,
+              tagKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              // allows searching for tags on transactions as well
+              includeTransactions,
+              // allows searching for tags on sessions as well
+              includeSessions: includeSessionTagsValues,
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
+            });
+
+      try {
+        const results = await fetchPromise;
+        return results.filter(({name}) => defined(name)).map(({name}) => name);
+      } catch (error) {
+        throw new Error('Unable to fetch event field values');
+      }
+    },
+    [
+      api,
+      organization,
+      dateTimeParams,
+      includeTransactions,
+      includeSessionTagsValues,
+      dataset,
+      getTagList,
+      projectIdStrings,
+    ]
+  );
 
   const filterKeySections = useMemo(() => {
     const customTagsSection: FilterKeySection = {
@@ -270,19 +329,30 @@ function ResultsSearchQueryBuilder(props: Props) {
       children: Object.keys(filteredTags),
     };
 
+    const featureFlagsSection: FilterKeySection = {
+      value: FieldKind.FEATURE_FLAG,
+      label: t('Feature Flags'),
+      children: Object.keys(featureFlagTags),
+    };
+
+    const tagsAndFlagsSections = [
+      customTagsSection,
+      ...(includeFeatureFlags && featureFlagTags ? [featureFlagsSection] : []),
+    ];
+
     if (
       dataset === DiscoverDatasets.TRANSACTIONS ||
       dataset === DiscoverDatasets.METRICS_ENHANCED
     ) {
-      return [...ALL_INSIGHTS_FILTER_KEY_SECTIONS, customTagsSection];
+      return [...ALL_INSIGHTS_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
     }
 
     if (dataset === DiscoverDatasets.ERRORS) {
-      return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
+      return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
     }
 
-    return [...COMBINED_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
-  }, [filteredTags, dataset]);
+    return [...COMBINED_DATASET_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
+  }, [filteredTags, dataset, includeFeatureFlags, featureFlagTags]);
 
   return (
     <SearchQueryBuilder
@@ -295,6 +365,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
       recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
+      portalTarget={portalTarget}
       showUnsubmittedIndicator
     />
   );

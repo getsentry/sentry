@@ -14,7 +14,7 @@ datadog>=0.49
 django-crispy-forms>=1.14.0
 django-csp>=3.8
 django-pg-zero-downtime-migrations>=0.16
-Django>=5.1.1
+Django>=5.1.7
 djangorestframework>=3.15.1
 drf-spectacular>=0.26.3
 sentry-forked-email-reply-parser>=0.5.12.post1
@@ -78,7 +78,7 @@ simplejson>=3.17.6
 sqlparse>=0.4.4
 statsd>=3.3
 structlog>=22
-symbolic==12.12.0
+symbolic==12.14.1
 tiktoken>=0.8.0
 tldextract>=5.1.2
 toronado>=0.1.0

@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -185,7 +185,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         [SPIKE_PROTECTION_OPTION_DISABLED]: !isFeatureEnabled,
       },
     };
-    const newProjects = projects.map(p => (p.id !== project.id ? p : updatedProject));
+    const newProjects = projects.map(p => (p.id === project.id ? updatedProject : p));
     setProjects(newProjects);
   }
 
@@ -213,12 +213,12 @@ function SpikeProtectionProjects({subscription}: Props) {
           priority={isEnabling ? 'primary' : 'default'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
           title={
-            !hasOrgWrite
-              ? tct(
+            hasOrgWrite
+              ? undefined
+              : tct(
                   `You do not have permission to [action] spike protection for all projects.`,
                   {action: action.toLowerCase()}
                 )
-              : undefined
           }
         >
           {tct('[action] All', {action})}

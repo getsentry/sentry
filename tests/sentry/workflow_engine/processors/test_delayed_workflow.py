@@ -12,7 +12,7 @@ from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -666,7 +666,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            target_identifier="channel456",
+            config={"target_identifier": "channel456"},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
@@ -676,9 +676,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action2 = self.create_action(
             type=Action.Type.SLACK,
             integration_id="1234567890",
-            target_identifier="channel789",
-            target_display="#general",
             data={"tags": "environment,user", "notes": "Important alert"},
+            config={
+                "target_identifier": "channel789",
+                "target_display": "#general",
+            },
         )
         self.create_data_condition_group_action(
             condition_group=self.workflow2_dcgs[1], action=action2
@@ -736,6 +738,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert group_to_groupevent == self.group_to_groupevent
 
     @patch("sentry.workflow_engine.models.action.Action.trigger")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
             self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent

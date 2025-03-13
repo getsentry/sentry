@@ -1,6 +1,6 @@
 import {createContext, type RefObject, useContext} from 'react';
 
-type DrawerContainerRef = RefObject<HTMLDivElement> | null;
+type DrawerContainerRef = RefObject<HTMLDivElement | null> | null;
 
 export const DrawerContainerRefContext = createContext<DrawerContainerRef>(null);
 
