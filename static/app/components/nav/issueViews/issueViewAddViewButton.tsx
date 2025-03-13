@@ -6,6 +6,7 @@ import {motion} from 'framer-motion';
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useNavContext} from 'sentry/components/nav/context';
+import useDefaultProject from 'sentry/components/nav/issueViews/useDefaultProject';
 import {NavLayout} from 'sentry/components/nav/types';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,6 +28,8 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
 
   const {layout} = useNavContext();
   const [isLoading, setIsLoading] = useState(false);
+
+  const defaultProject = useDefaultProject();
 
   const {data: groupSearchViews} = useFetchGroupSearchViews({
     orgSlug: organization.slug,
@@ -55,8 +58,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
             name: 'New View',
             query: 'is:unresolved',
             querySort: IssueSortOptions.DATE,
-            // TODO: fix this default projects
-            projects: [],
+            projects: defaultProject,
             isAllProjects: false,
             environments: DEFAULT_ENVIRONMENTS,
             timeFilters: DEFAULT_TIME_FILTERS,
