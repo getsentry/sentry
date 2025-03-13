@@ -214,6 +214,18 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         assert condition_results == [True]
         assert remaining_conditions == [self.slow_condition]
 
+    def test_basic_only_slow_conditions(self):
+        self.data_condition.delete()
+        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
+            self.data_condition_group.id,
+            10,
+            True,
+        )
+
+        assert logic_result is False
+        assert condition_results == []
+        assert remaining_conditions == [self.slow_condition]
+
     def test_execute_slow_conditions(self):
         (logic_result, condition_results), remaining_conditions = process_data_condition_group(
             self.data_condition_group,
