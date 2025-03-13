@@ -32,7 +32,7 @@ describe('celery onboarding docs', function () {
 
     // Does not render config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does not render config option
@@ -58,7 +58,7 @@ describe('celery onboarding docs', function () {
 
     // Does render transaction profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).toBeInTheDocument();
   });
 
@@ -77,7 +77,7 @@ describe('celery onboarding docs', function () {
 
     // Does not render transaction profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
