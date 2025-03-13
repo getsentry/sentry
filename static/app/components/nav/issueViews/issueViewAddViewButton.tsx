@@ -106,15 +106,6 @@ const AddViewButton = styled(Button)<{layout: NavLayout}>`
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
 
-  &[aria-selected='true'] {
-    color: ${p => p.theme.purple400};
-    font-weight: ${p => p.theme.fontWeightBold};
-
-    &:hover {
-      color: ${p => p.theme.purple400};
-    }
-  }
-
   &:hover {
     color: inherit;
   }
