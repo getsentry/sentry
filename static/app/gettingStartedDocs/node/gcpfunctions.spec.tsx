@@ -41,9 +41,6 @@ describe('gcpfunctions onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
-    ).toBeInTheDocument();
   });
 
   it('enables performance setting the tracesSampleRate to 1', () => {

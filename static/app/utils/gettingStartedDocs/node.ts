@@ -219,8 +219,8 @@ Sentry.init({
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
+    // Trace lifecycle automatically enables profiling during active traces
+    profileLifecycle: 'trace',`
       : ''
   }});${
     params.isProfilingSelected &&
