@@ -355,9 +355,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
 
-    if getattr(settings, "SENTRY_DEBUGGER", None) is None:
-        settings.SENTRY_DEBUGGER = settings.DEBUG
-
     monkeypatch_drf_listfield_serializer_errors()
 
     import django
