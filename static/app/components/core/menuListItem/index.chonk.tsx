@@ -1,5 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -17,15 +17,16 @@ function getTextColor({
 }: {
   disabled: boolean;
   priority: Priority;
-  theme: Theme;
+  theme: DO_NOT_USE_ChonkTheme;
 }) {
   if (disabled) {
     return theme.subText;
   }
   switch (priority) {
+    case 'primary':
+      return theme.colors.content.accent;
     case 'danger':
       return theme.errorText;
-    case 'primary':
     case 'default':
     default:
       return theme.textColor;

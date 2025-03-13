@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {ClassNames} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {MenuListItem} from 'sentry/components/core/menuListItem';
@@ -23,6 +23,7 @@ export function SelectOption(props: Props) {
     innerProps,
     innerRef,
   } = props;
+  const theme = useTheme();
   const {showDividers, size} = selectProps;
   const {value, selectionMode, priority, ...itemProps} = data;
 
@@ -30,7 +31,10 @@ export function SelectOption(props: Props) {
 
   // Unless the priority prop is explicitly defined, use 'primary' for
   // selected items in single-selection menus and 'default' for the rest.
-  const itemPriority = priority ?? (isSelected && !isMultiple ? 'primary' : 'default');
+  // (chonk doesn't need this)
+  const itemPriority =
+    priority ??
+    (theme.isChonk ? 'default' : isSelected && !isMultiple ? 'primary' : 'default');
 
   return (
     <ClassNames>
