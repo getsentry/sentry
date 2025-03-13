@@ -1,4 +1,4 @@
-import {type CSSProperties, forwardRef, Fragment} from 'react';
+import {type CSSProperties, forwardRef, Fragment, useCallback, useEffect} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -42,6 +42,51 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
+/**
+ * Ordered array of sections that matches the order in EventDetailsContent.
+ * See: static/app/views/issueDetails/groupEventDetails/groupEventDetailsContent.tsx
+ */
+export const ORDERED_SECTIONS: SectionKey[] = [
+  SectionKey.HIGHLIGHTS,
+  SectionKey.USER_FEEDBACK,
+  SectionKey.LLM_MONITORING,
+  SectionKey.UPTIME,
+  SectionKey.CRON_TIMELINE,
+  SectionKey.CORRELATED_ISSUES,
+  SectionKey.EVIDENCE,
+  SectionKey.MESSAGE,
+  SectionKey.EXCEPTION,
+  SectionKey.STACKTRACE,
+  SectionKey.THREADS,
+  SectionKey.SUSPECT_ROOT_CAUSE,
+  SectionKey.SPAN_EVIDENCE,
+  SectionKey.REGRESSION_SUMMARY,
+  SectionKey.REGRESSION_BREAKPOINT_CHART,
+  SectionKey.REGRESSION_FLAMEGRAPH,
+  SectionKey.HYDRATION_DIFF,
+  SectionKey.REPLAY,
+  SectionKey.HPKP,
+  SectionKey.CSP,
+  SectionKey.EXPECTCT,
+  SectionKey.EXPECTSTAPLE,
+  SectionKey.TEMPLATE,
+  SectionKey.BREADCRUMBS,
+  SectionKey.TRACE,
+  SectionKey.REQUEST,
+  SectionKey.TAGS,
+  SectionKey.CONTEXTS,
+  SectionKey.FEATURE_FLAGS,
+  SectionKey.EXTRA,
+  SectionKey.PACKAGES,
+  SectionKey.DEVICE,
+  SectionKey.VIEW_HIERARCHY,
+  SectionKey.ATTACHMENTS,
+  SectionKey.SDK,
+  SectionKey.PROCESSING_ERROR,
+  SectionKey.GROUPING_INFO,
+  SectionKey.RRWEB,
+];
+
 const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
@@ -58,15 +103,94 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 export const MIN_NAV_HEIGHT = 44;
 
+/**
+ * A hook that manages which section is currently "active" in the navigation based on scroll position.
+ *
+ * The hook works by:
+ * 1. Comparing each section's distance from a fixed activation offset (default 100px from viewport top)
+ * 2. Setting the section closest to this offset as active
+ * 3. Special handling for when user scrolls near bottom of page to force last section active
+ *
+ * This provides more stable navigation highlighting compared to intersection observers since it:
+ * - Uses a single point of comparison (distance from activation offset) rather than complex intersection ratios
+ * - Prevents rapid section changes when scrolling quickly
+ * - Ensures the last section becomes active when reaching bottom of page
+ *
+ * @param sectionKeys - Array of section identifiers that can be activated
+ * @param activationOffset - Distance from top of viewport to check section positions against (default 100px)
+ */
+function useActiveSectionUpdater(sectionKeys: SectionKey[], activationOffset = 100) {
+  const {dispatch} = useIssueDetails();
+
+  const handleScroll = useCallback(() => {
+    // Special case: When near bottom of page, force the last section to be active
+    // This ensures users can see they've reached the end of content
+    const bottomThreshold = 50;
+    const isNearBottom =
+      window.innerHeight + window.scrollY >=
+      document.documentElement.scrollHeight - bottomThreshold;
+
+    if (isNearBottom && sectionKeys.length > 0) {
+      const lastSectionKey = sectionKeys[sectionKeys.length - 1];
+      if (lastSectionKey) {
+        dispatch({
+          type: 'UPDATE_SECTION_VISIBILITY',
+          sectionId: lastSectionKey,
+        });
+        return;
+      }
+    }
+
+    // Normal case: Find section closest to activation offset
+    // Track minimum distance found so far and corresponding section
+    let activeKey = null;
+    let minDiff = Infinity;
+
+    // Compare each section's distance from activation offset
+    sectionKeys.forEach(key => {
+      const element = document.getElementById(key);
+      if (element) {
+        const {top} = element.getBoundingClientRect();
+        // Calculate absolute distance from activation offset
+        const diff = Math.abs(top - activationOffset);
+        // Update active section if this one is closer
+        if (diff < minDiff) {
+          minDiff = diff;
+          activeKey = key;
+        }
+      }
+    });
+
+    // If we found a closest section, dispatch update to mark it active
+    if (activeKey) {
+      dispatch({
+        type: 'UPDATE_SECTION_VISIBILITY',
+        sectionId: activeKey,
+      });
+    }
+  }, [sectionKeys, activationOffset, dispatch]);
+
+  useEffect(() => {
+    // Check initial section on mount
+    handleScroll();
+
+    // Add passive scroll listener for performance
+    window.addEventListener('scroll', handleScroll, {passive: true});
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+}
+
 export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
   function EventNavigation({event, group, ...props}, ref) {
     const organization = useOrganization();
     const theme = useTheme();
 
     const {sectionData} = useIssueDetails();
-    const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
-      config => sectionLabels[config.key]
+    // Filter sections based on the ordered array and ensure they have labels
+    const eventSectionConfigs = ORDERED_SECTIONS.map(key => sectionData[key]).filter(
+      (config): config is SectionConfig => Boolean(config && sectionLabels[config.key])
     );
+
     const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
       getFoldSectionKey(SectionKey.PROCESSING_ERROR),
       true
@@ -97,6 +221,10 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           streamline: true,
         }),
     });
+
+    // Get section keys from configs, they are guaranteed to be SectionKey
+    const eventSectionKeys = eventSectionConfigs.map(config => config.key);
+    useActiveSectionUpdater(eventSectionKeys);
 
     return (
       <div {...props} ref={ref}>
@@ -184,26 +312,49 @@ function EventNavigationLink({
   config: SectionConfig;
   propCss: SerializedStyles;
 }) {
+  const theme = useTheme();
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(config.key),
     config?.initialCollapse ?? false
   );
+  const {activeSection} = useIssueDetails();
+
+  const activeCss = css`
+    color: ${theme.activeText} !important;
+    font-weight: ${theme.fontWeightBold};
+  `;
+
+  const isActive = activeSection === config.key;
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setIsCollapsed(false);
+
+      const targetElement = document.getElementById(config.key);
+      if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        const targetTop = rect.top + window.scrollY;
+        window.scrollTo({
+          top: targetTop - 100, // 100px activation offset
+          behavior: 'smooth',
+        });
+      }
+    },
+    [config.key, setIsCollapsed]
+  );
+
   return (
     <LinkButton
       to={{
         ...location,
         hash: `#${config.key}`,
       }}
-      onClick={event => {
-        event.preventDefault();
-        setIsCollapsed(false);
-        document
-          .getElementById(config.key)
-          ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-      }}
+      onClick={handleClick}
       borderless
       size="xs"
-      css={propCss}
+      css={[propCss, isActive && activeCss]}
+      data-active={isActive ? 'true' : 'false'}
       analyticsEventName="Issue Details: Jump To Clicked"
       analyticsEventKey="issue_details.jump_to_clicked"
       analyticsParams={{section: config.key}}
