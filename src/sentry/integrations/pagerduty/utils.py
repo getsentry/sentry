@@ -7,7 +7,11 @@ from django.db import router, transaction
 from django.http import Http404
 
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext, NotificationContext
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+)
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
@@ -158,11 +162,8 @@ def attach_custom_severity(
 def send_incident_alert_notification(
     notification_context: NotificationContext,
     alert_context: AlertContext,
-    open_period_identifier: int,
+    metric_issue_context: MetricIssueContext,
     organization: Organization,
-    snuba_query: SnubaQuery,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from sentry.integrations.pagerduty.integration import PagerDutyIntegration
@@ -223,16 +224,16 @@ def send_incident_alert_notification(
 
     attachment = build_incident_attachment(
         alert_context=alert_context,
-        open_period_identifier=open_period_identifier,
+        open_period_identifier=metric_issue_context.open_period_identifier,
         organization=organization,
-        snuba_query=snuba_query,
+        snuba_query=metric_issue_context.snuba_query,
         integration_key=client.integration_key,
-        new_status=new_status,
-        metric_value=metric_value,
+        new_status=metric_issue_context.new_status,
+        metric_value=metric_issue_context.metric_value,
         notification_uuid=notification_uuid,
     )
     attachment = attach_custom_severity(
-        attachment, notification_context.sentry_app_config, new_status
+        attachment, notification_context.sentry_app_config, metric_issue_context.new_status
     )
 
     try:
