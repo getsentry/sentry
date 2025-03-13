@@ -6,7 +6,7 @@ import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/core/input';
+import types from '!!type-loader!sentry/components/core/menuListItem';
 
 export default storyBook('MenuListItem', (story, APIReference) => {
   APIReference(types.MenuListItem);
