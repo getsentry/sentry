@@ -82,6 +82,7 @@ export function useExploreLogsTableRow(_props: {
   const _project = projects.find(p => p.id === _props.project_id);
 
   const {data, isError, isPending} = useQuery<OurLogsTableRowDetails>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['logs-table-row', _props.log_id, _props.project_id],
     queryFn: async () => {
       if (!_project) {
