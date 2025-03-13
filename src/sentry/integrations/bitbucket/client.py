@@ -7,7 +7,6 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -182,4 +181,13 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
-        raise IntegrationFeatureNotImplementedError
+        response = self.get_cached(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=ref,
+                path=path,
+            ),
+            allow_redirects=True,
+            raw_response=True,
+        )
+        return response.text
