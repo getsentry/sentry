@@ -20,7 +20,7 @@ def count_processor(count_value: int | None) -> int:
 
 
 def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    op_value: str = args[0]
+    op_value = cast(str, args[0])
 
     filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
@@ -36,9 +36,9 @@ def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFi
 
 
 def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    aggregate_key = cast(args[0], AttributeKey)
-    key: AttributeKey = cast(args[0], AttributeKey)
-    value: str = cast(args[0], str)
+    aggregate_key = cast(AttributeKey, args[0])
+    key = cast(AttributeKey, args[1])
+    value = cast(str, args[2])
 
     filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
