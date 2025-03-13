@@ -1,3 +1,4 @@
+
 from collections.abc import Mapping
 from typing import Any
 
@@ -65,9 +66,7 @@ class WorkflowEngineActionSerializer(Serializer):
         """
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
-        aarta = ActionAlertRuleTriggerAction.objects.filter(
-            action=obj.id
-        ).first()  # TODO don't do this, figure out which one to .get()
+        aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
         priority = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
         target = MetricAlertRegistryHandler.target(obj)
