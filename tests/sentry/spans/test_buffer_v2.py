@@ -176,6 +176,74 @@ def test_deep(buffer: RedisSpansBufferV2, spans):
         itertools.permutations(
             [
                 Span(
+                    payload=_payload(b"e" * 16),
+                    trace_id="a" * 32,
+                    span_id="e" * 16,
+                    parent_span_id="d" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=_payload(b"d" * 16),
+                    trace_id="a" * 32,
+                    span_id="d" * 16,
+                    parent_span_id="b" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=_payload(b"b" * 16),
+                    trace_id="a" * 32,
+                    span_id="b" * 16,
+                    parent_span_id="c" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=_payload(b"c" * 16),
+                    trace_id="a" * 32,
+                    span_id="c" * 16,
+                    parent_span_id="a" * 16,
+                    project_id=1,
+                ),
+                Span(
+                    payload=_payload(b"a" * 16),
+                    trace_id="a" * 32,
+                    span_id="a" * 16,
+                    parent_span_id=None,
+                    project_id=1,
+                ),
+            ]
+        )
+    ),
+)
+def test_deep2(buffer: RedisSpansBufferV2, spans):
+    buffer.process_spans(spans, now=0)
+
+    assert_ttls(buffer.client)
+
+    _, rv = buffer.flush_segments(now=10)
+    assert rv == {
+        _segment_id(1, "a" * 32, "a" * 16): {
+            _payload(b"a" * 16),
+            _payload(b"b" * 16),
+            _payload(b"c" * 16),
+            _payload(b"d" * 16),
+            _payload(b"e" * 16),
+        }
+    }
+
+    buffer.done_flush_segments(rv)
+
+    _, rv = buffer.flush_segments(now=60)
+    assert rv == {}
+
+    assert_clean(buffer.client)
+
+
+@pytest.mark.parametrize(
+    "spans",
+    list(
+        itertools.permutations(
+            [
+                Span(
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
