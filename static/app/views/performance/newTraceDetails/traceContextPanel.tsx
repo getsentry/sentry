@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,6 +13,7 @@ import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
@@ -24,10 +26,11 @@ const MAX_HEIGHT = 700;
 
 type Props = {
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  traceSlug: string;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, rootEvent}: Props) {
+export function TraceContextPanel({tree, traceSlug, rootEvent}: Props) {
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const containerRef = useRef<HTMLDivElement>(null);
   const traceDispatch = useTraceStateDispatch();
@@ -126,6 +129,11 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
             {renderTags()}
           </FoldSection>
         </TraceTagsContainer>
+        <Feature features={['ourlogs-enabled']}>
+          <TraceTagsContainer>
+            <TraceViewLogsSection traceSlug={traceSlug} />
+          </TraceTagsContainer>
+        </Feature>
       </TraceContextContainer>
     </Container>
   );
