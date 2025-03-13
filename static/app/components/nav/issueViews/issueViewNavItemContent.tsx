@@ -1,10 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {Reorder} from 'framer-motion';
+import {motion, Reorder, useDragControls} from 'framer-motion';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {useNavContext} from 'sentry/components/nav/context';
+import {GrabHandleIcon} from 'sentry/components/nav/issueViews/grabHandleIcon';
 import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
@@ -91,6 +92,8 @@ export function IssueViewNavItemContent({
   const location = useLocation();
   const navigate = useNavigate();
 
+  const controls = useDragControls();
+
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
 
@@ -133,9 +136,6 @@ export function IssueViewNavItemContent({
       dragElastic={0.03}
       dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
       value={view}
-      whileDrag={{
-        cursor: 'grabbing',
-      }}
       onDragStart={() => {
         setIsDragging(true);
         startInteraction();
@@ -145,7 +145,8 @@ export function IssueViewNavItemContent({
         onReorderComplete();
         endInteraction();
       }}
-      layoutId={`${view.id}`}
+      dragListener={false}
+      dragControls={controls}
       style={{
         ...(isDragging
           ? {}
@@ -157,7 +158,21 @@ export function IssueViewNavItemContent({
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
         isActive={isActive}
-        leadingItems={<ProjectIcon projectPlatforms={projectPlatforms} />}
+        leadingItems={
+          <LeadingItemsWrapper>
+            <GrabHandleWrapper
+              data-drag-icon
+              onPointerDown={e => {
+                controls.start(e);
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              <GrabHandleIcon color="gray300" />
+            </GrabHandleWrapper>
+            <ProjectIcon projectPlatforms={projectPlatforms} />
+          </LeadingItemsWrapper>
+        }
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {
@@ -349,9 +364,18 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
     }
   }
 
+  :not(:hover) {
+    [data-drag-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+
   /* Hide the query count if the ellipsis menu is not expanded */
   :hover {
     [data-issue-view-query-count] {
+      ${p => p.theme.visuallyHidden}
+    }
+    [data-project-icon] {
       ${p => p.theme.visuallyHidden}
     }
   }
@@ -382,4 +406,26 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   height: 12px;
   top: -3px;
   right: -3px;
+`;
+
+const LeadingItemsWrapper = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const GrabHandleWrapper = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: ${space(0.75)};
+  width: 18px;
+  height: 18px;
+  cursor: grab;
+  z-index: 3;
+
+  &:active {
+    cursor: grabbing;
+  }
 `;

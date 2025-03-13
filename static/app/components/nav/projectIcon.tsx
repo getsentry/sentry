@@ -36,7 +36,7 @@ function ProjectIcon({projectPlatforms}: ProjectIconProps) {
       );
   }
 
-  return <IconWrap>{renderedIcons}</IconWrap>;
+  return <IconWrap data-project-icon>{renderedIcons}</IconWrap>;
 }
 
 const IconWrap = styled('div')`
@@ -61,7 +61,6 @@ const BorderOverlay = styled('div')`
   border: 1px solid ${p => p.theme.translucentGray100};
   border-radius: 3px;
   pointer-events: none;
-  z-index: 1;
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
@@ -77,14 +76,12 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
     `
     top: 0;
     left: 0;
-    z-index: 1;
   `}
   ${p =>
     p.index === 1 &&
     `
     bottom: 0;
     right: 0;
-    z-index: 2;
   `}
 `;
 
