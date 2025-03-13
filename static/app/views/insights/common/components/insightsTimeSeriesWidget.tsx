@@ -38,7 +38,7 @@ export interface InsightsTimeSeriesWidgetProps {
   title: string;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Aliases;
-  description?: string;
+  description?: React.ReactNode;
   stacked?: boolean;
 }
 

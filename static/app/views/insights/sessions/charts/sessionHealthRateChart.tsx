@@ -1,4 +1,5 @@
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
@@ -21,7 +22,14 @@ export default function SessionHealthRateChart({view}: {view: string}) {
   return (
     <InsightsAreaChartWidget
       title={t('Session Health')}
-      description={t('The percent of sessions with each health status.')}
+      description={tct(
+        'The percent of sessions with each health status. See [link:session status].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />
+          ),
+        }
+      )}
       aliases={aliases}
       series={series}
       isLoading={isPending}

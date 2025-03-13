@@ -1,4 +1,5 @@
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import useCrashFreeSessions from 'sentry/views/insights/sessions/queries/useCrashFreeSessions';
 
@@ -12,7 +13,14 @@ export default function CrashFreeSessionsChart() {
   return (
     <InsightsLineChartWidget
       title={t('Crash Free Sessions')}
-      description={t('Percent of healthy sessions out of total sessions.')}
+      description={tct(
+        'The percent of sessions terminating without a crash. See [link:session status].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />
+          ),
+        }
+      )}
       aliases={aliases}
       series={series}
       isLoading={isPending}
