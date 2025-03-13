@@ -176,12 +176,12 @@ function GenericBackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
     [
       PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.MOST_RELATED_ISSUES,
       PerformanceWidgetSetting.DURATION_HISTOGRAM,
       PerformanceWidgetSetting.P50_DURATION_AREA,
       PerformanceWidgetSetting.P75_DURATION_AREA,
