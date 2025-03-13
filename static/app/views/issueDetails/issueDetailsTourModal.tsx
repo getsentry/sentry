@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import issueDetailsPreviewImage from 'sentry-images/spot/issue-details-preview.svg';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {darkTheme} from 'sentry/utils/theme';
 
 interface IssueDetailsTourModalProps extends ModalRenderProps {
   handleDismissTour: () => void;
@@ -25,12 +25,12 @@ export function IssueDetailsTourModal({
         <Header>{t('Welcome to the new Issue Details')}</Header>
         <Description>{t('Make the most out of the redesigned experience.')}</Description>
         <Footer>
-          <InvertedButton size="sm" onClick={handleDismissTour} borderless>
+          <TextTourAction size="sm" onClick={handleDismissTour} borderless>
             {t('Got it')}
-          </InvertedButton>
-          <InvertedButtonPrimary size="sm" onClick={handleStartTour} borderless autoFocus>
+          </TextTourAction>
+          <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
             {t('Take a tour')}
-          </InvertedButtonPrimary>
+          </TourAction>
         </Footer>
       </TextContainer>
     </TourContainer>
@@ -76,25 +76,6 @@ const Footer = styled('div')`
   justify-content: flex-end;
   margin-top: ${space(2)};
   gap: ${space(1)};
-`;
-
-const InvertedButton = styled(Button)`
-  color: ${darkTheme.textColor};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${darkTheme.textColor};
-  }
-`;
-
-const InvertedButtonPrimary = styled(Button)`
-  background: ${lightTheme.backgroundElevated};
-  color: ${lightTheme.textColor};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${lightTheme.textColor};
-  }
 `;
 
 export const IssueDetailsTourModalCss = css`
