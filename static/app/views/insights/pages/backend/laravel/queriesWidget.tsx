@@ -130,6 +130,13 @@ export function QueriesWidget({query}: {query?: string}) {
 
   const colorPalette = getChartColorPalette(timeSeries.length - 2);
 
+  const aliases = Object.fromEntries(
+    queriesRequest.data?.data.map(item => [
+      getSeriesName(item),
+      item['sentry.normalized_description'],
+    ]) ?? []
+  );
+
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
@@ -137,15 +144,12 @@ export function QueriesWidget({query}: {query?: string}) {
       error={error}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        aliases: Object.fromEntries(
-          queriesRequest.data?.data.map(item => [
-            getSeriesName(item),
-            item['sentry.normalized_description'],
-          ]) ?? []
-        ),
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
+            new Line(convertSeriesToTimeseries(ts), {
+              color: colorPalette[index],
+              alias: aliases[ts.seriesName],
+            })
         ),
       }}
     />
