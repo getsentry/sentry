@@ -226,7 +226,7 @@ Sentry.init({
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
       ? `
-// Manually call startProfiler and stopProfiler
+// Manually call startProfileSession and stopProfileSession
 // to profile the code in between
 Sentry.profiler.startProfileSession();
 ${
@@ -241,8 +241,8 @@ Sentry.startSpan({
 `
     : '// this code will be profiled'
 }
-// Calls to stopProfiling are optional - if you don't stop the profiler, it will keep profiling
-// your application until the process exits or stopProfiling is called.
+// Calls to stopProfileSession are optional - if you don't stop the profile session, it will keep profiling
+// your application until the process exits or stopProfileSession is called.
 Sentry.profiler.stopProfileSession();`
       : ''
   }`;
