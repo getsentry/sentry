@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, cast
 
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -33,7 +33,7 @@ TOTAL_SPAN_COUNT = Column(
 
 
 def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
-    code: Literal[1, 2, 3, 4, 5] = args[0]
+    code = cast(Literal[1, 2, 3, 4, 5], args[0])
 
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
@@ -78,7 +78,7 @@ def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
 
 
 def trace_status_rate(args: ResolvedArguments) -> Column.BinaryFormula:
-    status: str = args[0]
+    status = cast(str, args[0])
 
     return Column.BinaryFormula(
         left=Column(
