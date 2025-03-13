@@ -229,7 +229,7 @@ export function ChonkDropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron color="subText" direction="down" size="medium" />
+      <Chevron direction="down" size="medium" />
     </selectComponents.DropdownIndicator>
   );
 }
