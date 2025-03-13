@@ -19,7 +19,7 @@ import RequestIntegrationButton from './integrationRequest/RequestIntegrationBut
 
 export type Tab = 'overview' | 'configurations' | 'features';
 
-interface AlertType extends AlertProps {
+export interface AlertType extends AlertProps {
   text: string;
 }
 
