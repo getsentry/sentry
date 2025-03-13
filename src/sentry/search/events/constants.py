@@ -4,6 +4,9 @@ from typing import Literal, TypedDict
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
+RATE_LIMIT_ERROR_MESSAGE = """
+Rate limit exceeded. Please try your query with a smaller date range or fewer projects.
+"""
 TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.

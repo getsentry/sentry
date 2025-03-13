@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -77,7 +77,7 @@ function IssueSyncListElement({
   const link = (
     <IntegrationLink
       href={externalIssueLink || undefined}
-      onClick={!isLinked ? onOpen : undefined}
+      onClick={isLinked ? undefined : onOpen}
       disabled={disabled}
     >
       {text}

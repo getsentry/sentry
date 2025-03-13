@@ -34,9 +34,9 @@ function SortLink({
     return <StyledNonLink align={align}>{title}</StyledNonLink>;
   }
 
-  const arrow = !direction ? null : (
+  const arrow = direction ? (
     <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
-  );
+  ) : null;
 
   const handleOnClick: React.MouseEventHandler<HTMLAnchorElement> = e => {
     if (replace) {

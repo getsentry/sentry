@@ -125,23 +125,23 @@ function AvatarList({
             />
           ))}
 
-      {!renderUsersFirst
-        ? visibleTeamAvatars.map(team => (
-            <StyledTeamAvatar
-              key={`${team.id}-${team.name}`}
-              team={team}
-              size={avatarSize}
-              tooltipOptions={tooltipOptions}
-              hasTooltip
-            />
-          ))
-        : visibleUserAvatars.map(user => (
+      {renderUsersFirst
+        ? visibleUserAvatars.map(user => (
             <StyledUserAvatar
               key={user.id}
               user={user}
               size={avatarSize}
               tooltipOptions={tooltipOptions}
               renderTooltip={renderTooltip}
+              hasTooltip
+            />
+          ))
+        : visibleTeamAvatars.map(team => (
+            <StyledTeamAvatar
+              key={`${team.id}-${team.name}`}
+              team={team}
+              size={avatarSize}
+              tooltipOptions={tooltipOptions}
               hasTooltip
             />
           ))}

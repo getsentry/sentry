@@ -65,7 +65,7 @@ function useSelectionIndex({
   inputRef,
   inputValue,
 }: {
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   inputValue: string;
 }) {
   const [selectionIndex, setSelectionIndex] = useState<number | null>(

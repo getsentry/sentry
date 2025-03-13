@@ -97,12 +97,12 @@ function OrganizationDeveloperSettings() {
       <Panel>
         <PanelHeader>{t('Internal Integrations')}</PanelHeader>
         <PanelBody>
-          {!isEmpty ? (
-            integrations.map(renderApplicationRow)
-          ) : (
+          {isEmpty ? (
             <EmptyMessage>
               {t('No internal integrations have been created yet.')}
             </EmptyMessage>
+          ) : (
+            integrations.map(renderApplicationRow)
           )}
         </PanelBody>
       </Panel>
@@ -117,12 +117,12 @@ function OrganizationDeveloperSettings() {
       <Panel>
         <PanelHeader>{t('Public Integrations')}</PanelHeader>
         <PanelBody>
-          {!isEmpty ? (
-            integrations.map(renderApplicationRow)
-          ) : (
+          {isEmpty ? (
             <EmptyMessage>
               {t('No public integrations have been created yet.')}
             </EmptyMessage>
+          ) : (
+            integrations.map(renderApplicationRow)
           )}
         </PanelBody>
       </Panel>

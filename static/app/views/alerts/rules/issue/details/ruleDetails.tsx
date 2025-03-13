@@ -6,10 +6,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -162,7 +162,8 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     setApiQueryData<IssueAlertRule>(
       queryClient,
       getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-      alertRule => ({...alertRule, snooze, snoozeCreatedBy, snoozeForEveryone})
+      alertRule =>
+        alertRule ? {...alertRule, snooze, snoozeCreatedBy, snoozeForEveryone} : undefined
     );
   }
 
@@ -183,7 +184,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       setApiQueryData<IssueAlertRule>(
         queryClient,
         getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        alertRule => ({...alertRule, disableDate: undefined})
+        alertRule => (alertRule ? {...alertRule, disableDate: undefined} : undefined)
       );
 
       addSuccessMessage(t('Successfully updated'));
@@ -203,7 +204,8 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       setApiQueryData<IssueAlertRule>(
         queryClient,
         getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        alertRule => ({...alertRule, disableDate: undefined, status: 'active'})
+        alertRule =>
+          alertRule ? {...alertRule, disableDate: undefined, status: 'active'} : undefined
       );
 
       addSuccessMessage(t('Successfully re-enabled'));

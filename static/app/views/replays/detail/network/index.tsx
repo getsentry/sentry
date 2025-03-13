@@ -131,7 +131,11 @@ function NetworkList() {
         {({measure: _, registerChild}) =>
           rowIndex === 0 ? (
             <NetworkHeaderCell
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               handleSort={handleSort}
               index={columnIndex}
               sortConfig={sortConfig}
@@ -147,7 +151,11 @@ function NetworkList() {
               onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
               onClickTimestamp={onClickTimestamp}
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               startTimestampMs={startTimestampMs}
@@ -167,7 +175,7 @@ function NetworkList() {
       <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
-            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+            gridTemplateRows: splitSize === undefined ? '1fr' : `1fr auto ${splitSize}px`,
           }}
         >
           {networkFrames ? (

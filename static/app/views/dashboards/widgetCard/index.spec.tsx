@@ -517,9 +517,8 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
     await waitFor(() =>
-      expect(SimpleTableChart).toHaveBeenCalledWith(
-        expect.objectContaining({stickyHeaders: true}),
-        expect.anything()
+      expect((SimpleTableChart as jest.Mock).mock.calls[0][0]).toEqual(
+        expect.objectContaining({stickyHeaders: true})
       )
     );
   });

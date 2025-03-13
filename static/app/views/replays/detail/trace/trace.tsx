@@ -204,7 +204,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
-        {!indexComplete ? <Loading /> : null}
+        {indexComplete ? null : <Loading />}
       </StyledPlaceholder>
     );
   }

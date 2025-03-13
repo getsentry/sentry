@@ -28,8 +28,8 @@ export function useQueryBuilderGrid({
   props: UseQueryBuilderGridProps;
   state: ListState<ParseResultToken>;
   undo: () => void;
-  ref?: React.Ref<HTMLDivElement>;
-  selectionKeyHandlerref?: React.Ref<HTMLInputElement>;
+  ref?: React.Ref<HTMLDivElement | null>;
+  selectionKeyHandlerRef?: React.Ref<HTMLInputElement | null>;
 }): {
   gridProps: DOMAttributes<HTMLDivElement>;
 } {

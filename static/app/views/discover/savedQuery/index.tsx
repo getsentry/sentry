@@ -11,8 +11,8 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -194,11 +194,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // undefined saved yAxis defaults to count() and string values are converted to array
     const isEqualYAxis = isEqual(
       yAxis,
-      !savedQuery.yAxis
-        ? ['count()']
-        : typeof savedQuery.yAxis === 'string'
+      savedQuery.yAxis
+        ? typeof savedQuery.yAxis === 'string'
           ? [savedQuery.yAxis]
           : savedQuery.yAxis
+        : ['count()']
     );
     return {
       isNewQuery: false,

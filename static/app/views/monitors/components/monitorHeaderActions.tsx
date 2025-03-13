@@ -1,8 +1,8 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Link from 'sentry/components/links/link';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
@@ -71,7 +71,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
 
   const disableProps = {
     disabled: !canEdit,
-    title: !canEdit ? permissionTooltipText : undefined,
+    title: canEdit ? undefined : permissionTooltipText,
   };
 
   return (
@@ -100,7 +100,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
           size="sm"
           icon={<IconDelete size="xs" />}
           aria-label={t('Delete')}
-          title={!canEdit ? permissionTooltipText : undefined}
+          title={canEdit ? undefined : permissionTooltipText}
         />
       </Confirm>
       <LinkButton

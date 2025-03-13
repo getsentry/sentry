@@ -466,7 +466,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   z-index: 2;
 
   font-size: ${p =>
-    p.size !== 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeExtraSmall};
+    p.size === 'xs' ? p.theme.fontSizeExtraSmall : p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
 `;
 

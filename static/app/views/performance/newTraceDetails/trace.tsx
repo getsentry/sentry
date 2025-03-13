@@ -148,8 +148,10 @@ export function Trace({
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
 
-  const treePromiseStatusRef =
-    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
+  const treePromiseStatusRef = useRef<Map<
+    TraceTreeNode<TraceTree.NodeValue>,
+    'loading' | 'error' | 'success'
+  > | null>(null);
 
   if (!treePromiseStatusRef.current) {
     treePromiseStatusRef.current = new Map();

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import functools
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
@@ -631,39 +632,41 @@ class SearchVisitor(NodeVisitor):
 
     def __init__(
         self,
-        config=None,
+        config: SearchConfig | None = None,
         params: ParamsType | None = None,
-        builder=None,
-        get_field_type=None,
-        get_function_result_type=None,
-    ):
+        get_field_type: Callable[[str], str | None] | None = None,
+        get_function_result_type: Callable[[str], str | None] | None = None,
+    ) -> None:
         super().__init__()
 
         if config is None:
             config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
-        self.get_field_type = get_field_type
-        if builder is None:
+
+        if TYPE_CHECKING:
+            from sentry.search.events.builder.discover import UnresolvedQuery
+
+        @functools.cache
+        def _get_fallback_builder() -> UnresolvedQuery:
             # Avoid circular import
             from sentry.search.events.builder.discover import UnresolvedQuery
 
             # TODO: read dataset from config
-            self.builder = UnresolvedQuery(
+            return UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=self.params,
                 config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
-        else:
-            self.builder = builder
-        if get_field_type is None:
-            self.get_field_type = self.builder.get_field_type
-        else:
+
+        if get_field_type is not None:
             self.get_field_type = get_field_type
-        if get_function_result_type is None:
-            self.get_function_result_type = self.builder.get_function_result_type
         else:
+            self.get_field_type = _get_fallback_builder().get_field_type
+        if get_function_result_type is not None:
             self.get_function_result_type = get_function_result_type
+        else:
+            self.get_function_result_type = _get_fallback_builder().get_function_result_type
 
     @cached_property
     def key_mappings_lookup(self):
@@ -741,7 +744,7 @@ class SearchVisitor(NodeVisitor):
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
         if len(children) == 0:
-            return node.text
+            return []
 
         return ParenExpression(children)
 
@@ -1041,8 +1044,8 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
         # Invalid formats fall back to text match
-        search_value = operator + search_value.text if operator != "=" else search_value
-        return AggregateFilter(search_key, "=", SearchValue(search_value))
+        search_value_s = operator + search_value.text if operator != "=" else search_value.text
+        return AggregateFilter(search_key, "=", SearchValue(search_value_s))
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
@@ -1074,11 +1077,11 @@ class SearchVisitor(NodeVisitor):
                 f'Invalid value for "is" search, valid values are {valid_keys}'
             )
 
-        search_key, search_value = translators[search_value.raw_value]
+        search_key_s, search_value_v = translators[search_value.raw_value]
 
         operator = "!=" if is_negated(negation) else "="
-        search_key = SearchKey(search_key)
-        search_value = SearchValue(search_value)
+        search_key = SearchKey(search_key_s)
+        search_value = SearchValue(search_value_v)
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -1333,12 +1336,12 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 def parse_search_query(
     query,
-    config=None,
+    *,
+    config: SearchConfig | None = None,
     params=None,
-    builder=None,
     config_overrides=None,
-    get_field_type=None,
-    get_function_result_type=None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
@@ -1364,7 +1367,6 @@ def parse_search_query(
     return SearchVisitor(
         config,
         params=params,
-        builder=builder,
         get_field_type=get_field_type,
         get_function_result_type=get_function_result_type,
     ).visit(tree)

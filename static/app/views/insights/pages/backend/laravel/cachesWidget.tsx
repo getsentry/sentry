@@ -1,19 +1,28 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {
+  ModalChartContainer,
+  ModalTableWrapper,
+  SeriesColorIndicator,
+  WidgetFooterTable,
+} from 'sentry/views/insights/pages/backend/laravel/styles';
+import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 
 export function CachesWidget({query}: {query?: string}) {
   const organization = useOrganization();
@@ -22,6 +31,7 @@ export function CachesWidget({query}: {query?: string}) {
   const cachesRequest = useApiQuery<{
     data: Array<{
       'cache_miss_rate()': number;
+      'count()': number;
       'project.id': string;
       transaction: string;
     }>;
@@ -32,7 +42,7 @@ export function CachesWidget({query}: {query?: string}) {
         query: {
           ...pageFilterChartParams,
           dataset: 'spansMetrics',
-          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          field: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
           query: `span.op:[cache.get_item,cache.get] ${query}`,
           sort: '-cache_miss_rate()',
           per_page: 4,
@@ -90,68 +100,78 @@ export function CachesWidget({query}: {query?: string}) {
   const hasData =
     cachesRequest.data && cachesRequest.data.data.length > 0 && timeSeries.length > 0;
 
+  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+
+  const visualization = (
+    <WidgetVisualizationStates
+      isLoading={isLoading}
+      error={error}
+      isEmpty={!hasData}
+      VisualizationType={TimeSeriesWidgetVisualization}
+      visualizationProps={{
+        plottables: timeSeries.map(
+          (ts, index) =>
+            new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
+        ),
+      }}
+    />
+  );
+
+  const footer = hasData && (
+    <WidgetFooterTable columns={4}>
+      {cachesRequest.data?.data.map((item, index) => {
+        const count = item['count()'];
+        const cacheMissRate = item['cache_miss_rate()'];
+        const missedCount = Math.floor(count * cacheMissRate);
+        return (
+          <Fragment key={item.transaction}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <div>
+              <Link
+                to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+              >
+                {item.transaction}
+              </Link>
+            </div>
+            <span>
+              {formatAbbreviatedNumber(missedCount)} / {formatAbbreviatedNumber(count)}
+            </span>
+            <span>{(cacheMissRate * 100).toFixed(2)}%</span>
+          </Fragment>
+        );
+      })}
+    </WidgetFooterTable>
+  );
+
   return (
     <Widget
-      Title={<Widget.WidgetTitle title="Cache Miss Rates" />}
-      Visualization={
-        isLoading ? (
-          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-        ) : error ? (
-          <Widget.WidgetError error={error} />
-        ) : !hasData ? (
-          <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-        ) : (
-          <TimeSeriesWidgetVisualization
-            plottables={timeSeries.map(convertSeriesToTimeseries).map(ts => new Line(ts))}
+      Title={<Widget.WidgetTitle title={t('Cache Miss Rates')} />}
+      Visualization={visualization}
+      Actions={
+        hasData && (
+          <Toolbar
+            onOpenFullScreen={() => {
+              openInsightChartModal({
+                title: t('Cache Miss Rates'),
+                children: (
+                  <Fragment>
+                    <ModalChartContainer>{visualization}</ModalChartContainer>
+                    <ModalTableWrapper>{footer}</ModalTableWrapper>
+                  </Fragment>
+                ),
+              });
+            }}
           />
         )
       }
-      Footer={
-        hasData && (
-          <WidgetFooterTable>
-            {cachesRequest.data?.data.map(item => (
-              <Fragment key={item.transaction}>
-                <OverflowCell>
-                  <Link
-                    to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
-                  >
-                    {item.transaction}
-                  </Link>
-                </OverflowCell>
-                <span>{(item['cache_miss_rate()'] * 100).toFixed(2)}%</span>
-              </Fragment>
-            ))}
-          </WidgetFooterTable>
-        )
-      }
+      noFooterPadding
+      Footer={footer}
     />
   );
 }
-
-const OverflowCell = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  min-width: 0px;
-`;
-
-const WidgetFooterTable = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  margin: -${space(1)} -${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  & > * {
-    padding: ${space(1)} ${space(1)};
-  }
-
-  & > *:nth-child(2n + 1) {
-    padding-left: ${space(2)};
-  }
-
-  & > *:nth-child(2n) {
-    padding-right: ${space(2)};
-  }
-
-  & > *:not(:nth-last-child(-n + 2)) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-`;

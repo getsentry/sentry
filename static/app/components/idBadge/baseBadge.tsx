@@ -60,7 +60,7 @@ export const BaseBadge = memo(
             organization={organization}
             project={project}
             actor={actor}
-            avatarProps={avatarProps}
+            avatarProps={{...avatarProps, size: avatarSize}}
           />
         )}
 

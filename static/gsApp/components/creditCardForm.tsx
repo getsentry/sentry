@@ -3,9 +3,9 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import rubikFontPath from 'sentry/../fonts/rubik-regular.woff';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
