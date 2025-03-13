@@ -25,7 +25,7 @@ local set_timeout = tonumber(ARGV[5])
 local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
 local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
 
-local main_redirect_key = string.format("span-buf:sr:%s", project_and_trace)
+local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 local set_key = redis.call("hget", main_redirect_key, parent_span_id) or parent_key
 
 if not is_root_span then
