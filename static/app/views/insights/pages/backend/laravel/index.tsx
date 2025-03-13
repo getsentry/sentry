@@ -17,6 +17,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -57,6 +58,8 @@ export function LaravelOverviewPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
@@ -100,7 +103,11 @@ export function LaravelOverviewPage() {
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter
+                    maxPickableDays={maxPickableDays}
+                    defaultPeriod={defaultPeriod}
+                    relativeOptions={relativeOptions}
+                  />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -162,7 +169,7 @@ const WidgetGrid = styled('div')`
   padding-bottom: ${space(2)};
 
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 180px 300px 300px;
+  grid-template-rows: 180px 180px 300px 240px 300px 300px;
   grid-template-areas:
     'requests'
     'duration'
@@ -173,7 +180,7 @@ const WidgetGrid = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 180px 300px;
+    grid-template-rows: 180px 300px 240px 300px;
     grid-template-areas:
       'requests duration'
       'issues issues'
