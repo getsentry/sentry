@@ -18,8 +18,10 @@ export const getChonkStylesConfig = ({
   size = 'md',
   maxMenuWidth,
   isInsideModal,
+  isSearchable,
 }: {
   isInsideModal: boolean | undefined;
+  isSearchable: boolean | undefined;
   maxMenuWidth: string | number | undefined;
   size: FormSize | undefined;
   theme: DO_NOT_USE_ChonkTheme;
@@ -34,6 +36,7 @@ export const getChonkStylesConfig = ({
     ...provided,
     padding: '4px',
     alignItems: 'center',
+    cursor: 'pointer',
     color: state.isDisabled ? theme.disabled : theme.textColor,
     ':hover': {
       color: 'currentcolor',
@@ -41,7 +44,7 @@ export const getChonkStylesConfig = ({
   });
 
   return {
-    control: (_, state: any) => ({
+    control: (_, state) => ({
       display: 'flex',
       color: state.isDisabled ? theme.disabled : theme.textColor,
       background: theme.background,
@@ -51,9 +54,6 @@ export const getChonkStylesConfig = ({
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing),
-      ...(!state.isSearchable && {
-        cursor: 'pointer',
-      }),
       ...(state.isDisabled && {
         background: theme.background,
         color: theme.disabled,
@@ -102,6 +102,7 @@ export const getChonkStylesConfig = ({
     }),
     valueContainer: (provided, state) => ({
       ...provided,
+      cursor: isSearchable ? 'default' : 'pointer',
       alignItems: 'center',
       // flex alignItems makes sure we don't need paddings
       paddingTop: 0,

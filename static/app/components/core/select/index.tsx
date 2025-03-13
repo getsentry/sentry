@@ -375,13 +375,19 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth, isInsideModal} = props;
+  const {size, maxMenuWidth, isInsideModal, isSearchable} = props;
 
   const defaultStyles = useMemo(() => {
     return theme.isChonk
-      ? getChonkStylesConfig({theme: theme as any, size, maxMenuWidth, isInsideModal})
+      ? getChonkStylesConfig({
+          theme: theme as any,
+          size,
+          maxMenuWidth,
+          isInsideModal,
+          isSearchable,
+        })
       : getStylesConfig({theme, size, maxMenuWidth, isInsideModal});
-  }, [theme, size, maxMenuWidth, isInsideModal]);
+  }, [theme, size, maxMenuWidth, isInsideModal, isSearchable]);
 
   const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {
