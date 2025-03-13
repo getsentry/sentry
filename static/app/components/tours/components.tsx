@@ -279,13 +279,9 @@ export function TourGuide({
     offset,
   });
 
-  // Scroll the overlay into view when it opens
   useEffect(() => {
     if (isOpen) {
       trackAnalytics('tour-guide.open', {organization, id});
-      document
-        ?.getElementById(id ?? '')
-        ?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
     }
   }, [isOpen, id, organization]);
 
@@ -307,7 +303,7 @@ export function TourGuide({
                 animated
                 arrowProps={{...arrowProps, background: 'lightModeBlack'}}
               >
-                <TourBody id={id}>
+                <TourBody ref={scrollToElement}>
                   {isTopRowVisible && (
                     <TopRow>
                       <div>{countText}</div>
@@ -338,12 +334,16 @@ export function TourGuide({
   );
 }
 
+function scrollToElement(element: HTMLDivElement | null) {
+  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
+}
+
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
 const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.75)};
-  background: ${p => p.theme.inverted.surface400};
+  background: ${p => p.theme.inverted.backgroundElevated};
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.inverted.textColor};
   border-radius: ${p => p.theme.borderRadius};
