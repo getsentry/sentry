@@ -16,6 +16,7 @@ export function UserFixture(params: Partial<User> = {}): User {
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
       prefersIssueDetailsStreamlinedUI: false,
+      prefersSpecializedProjectOverview: {},
       prefersStackedNavigation: false,
       quickStartDisplay: {},
     },
