@@ -100,7 +100,13 @@ function EventOrGroupExtraDetails({
     ) : null,
     hasNewLayout && subtitle ? <Location>{subtitle}</Location> : null,
     numComments > 0 ? (
-      <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+      <CommentsLink
+        to={{
+          pathname: `${issuesPath}${id}/activity/`,
+          // Filter activity to only show comments
+          query: {filter: 'comments'},
+        }}
+      >
         <IconChat
           size="xs"
           color={subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined}
