@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
@@ -101,3 +103,21 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {new_api_token.token}",
         )
         assert response.status_code == 403
+
+    @patch(
+        "sentry.sentry_apps.external_issues.external_issue_creator.PlatformExternalIssue.objects.update_or_create"
+    )
+    def test_external_issue_creation_fails_with_db_error(self, mock_update_or_create):
+        self._set_up_sentry_app("Testin", ["event:write"])
+        mock_update_or_create.side_effect = Exception("bruh")
+        data = self._post_data()
+
+        response = self.client.post(
+            self.url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 500
+        assert response.data == {
+            "detail": f"An issue occured during the integration platform process. Sentry error ID: {None}"
+        }
+        mock_update_or_create.assert_called_once()
