@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export interface WidgetDescriptionProps {
-  description?: React.ReactElement | string;
+  description?: React.ReactNode;
   revealTooltip?: 'hover' | 'always';
   title?: string;
 }

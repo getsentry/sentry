@@ -37,7 +37,7 @@ export function SessionsOverview() {
     module: ModuleName.SESSIONS,
   };
 
-  const {view} = useDomainViewFilters();
+  const {view = ''} = useDomainViewFilters();
 
   const [filters, setFilters] = useState<string[]>(['']);
 
@@ -57,16 +57,16 @@ export function SessionsOverview() {
         </ModuleLayout.Third>
       ) : undefined}
       <ModuleLayout.Third>
-        <SessionHealthCountChart />
+        <SessionHealthCountChart view={view} />
       </ModuleLayout.Third>
       <ModuleLayout.Third>
-        <SessionHealthRateChart />
+        <SessionHealthRateChart view={view} />
       </ModuleLayout.Third>
       <ModuleLayout.Half>
-        <UserHealthCountChart />
+        <UserHealthCountChart view={view} />
       </ModuleLayout.Half>
       <ModuleLayout.Half>
-        <UserHealthRateChart />
+        <UserHealthRateChart view={view} />
       </ModuleLayout.Half>
     </Fragment>
   );
