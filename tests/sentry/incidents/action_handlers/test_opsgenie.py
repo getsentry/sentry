@@ -13,7 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.seer.anomaly_detection.types import StoreDataResponse
@@ -94,11 +94,13 @@ class OpsgenieActionHandlerTest(FireTest):
         metric_value = 1000
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
+            ),
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
+            notification_uuid="",
         )
 
         assert data["message"] == alert_rule.name
@@ -153,11 +155,13 @@ class OpsgenieActionHandlerTest(FireTest):
         metric_value = 1000
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
+            ),
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
+            notification_uuid="",
         )
 
         assert data["message"] == alert_rule.name
@@ -203,11 +207,13 @@ class OpsgenieActionHandlerTest(FireTest):
             )
             expected_payload = build_incident_attachment(
                 alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-                open_period_identifier=incident.identifier,
+                metric_issue_context=MetricIssueContext.from_legacy_models(
+                    incident=incident,
+                    new_status=new_status,
+                    metric_value=1000,
+                ),
                 organization=incident.organization,
-                snuba_query=incident.alert_rule.snuba_query,
-                new_status=new_status,
-                metric_value=1000,
+                notification_uuid="",
             )
             expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 
