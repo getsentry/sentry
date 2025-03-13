@@ -817,7 +817,7 @@ describe('Dashboards > Detail', function () {
       expect(window.confirm).not.toHaveBeenCalled();
     });
 
-    it('opens the widget viewer modal using the widget id specified in the url', async () => {
+    it('opens the widget viewer modal using the widget index specified in the url', async () => {
       const router = RouterFixture({
         location: {...initialData.router.location, pathname: '/widget/123/'},
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -848,9 +848,9 @@ describe('Dashboards > Detail', function () {
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '0'}}
           router={initialData.router}
-          location={{...initialData.router.location, pathname: '/widget/123/'}}
+          location={{...initialData.router.location, pathname: '/widget/0/'}}
         >
           {null}
         </ViewEditDashboard>,
