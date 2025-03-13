@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, TypedDict
 
 from pydantic.fields import Field
@@ -64,6 +65,7 @@ class RpcProject(RpcModel):
     name: str = ""
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
+    first_event: datetime | None = None
     platform: str | None = None
     external_id: str | None = None
 
