@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';

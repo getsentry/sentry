@@ -264,9 +264,8 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="z"), operator="=", value=SearchValue(raw_value="1")),
         ]
 
-    def test_paren_expression_but_not_actually(self):
-        # XXX: this seems like a bug?
-        assert parse_search_query('("")') == ['("")']
+    def test_paren_expression_of_empty_string(self):
+        assert parse_search_query('("")') == parse_search_query('""') == []
 
     def test_paren_expression_with_bool_disabled(self):
         config = SearchConfig.create_from(default_config, allow_boolean=False)

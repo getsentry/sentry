@@ -30,6 +30,10 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
   unit: DurationUnit | SizeUnit | RateUnit | null;
+  /**
+   * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
+   */
+  yAxisPosition: 'left' | 'right';
 };
 
 /**
@@ -77,6 +81,22 @@ export abstract class ContinuousTimeSeries<
 
   get end(): string | null {
     return this.#timestamps.at(-1) ?? null;
+  }
+
+  /**
+   * Shallow clones `timeSeries` and constrains `timeSeries` data to be between
+   * boundary datetime (if provided).
+   */
+  constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return {
+      ...this.timeSeries,
+      data: this.timeSeries.data.filter(dataItem => {
+        const ts = new Date(dataItem.timestamp);
+        return (
+          (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
+        );
+      }),
+    };
   }
 
   scaleToUnit(destinationUnit: DurationUnit | SizeUnit | RateUnit | null): TimeSeries {

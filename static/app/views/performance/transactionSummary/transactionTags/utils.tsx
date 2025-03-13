@@ -69,7 +69,7 @@ export function getTagSortForTagsPage(location: Location) {
 }
 
 // TODO(k-fish): Improve meta of backend response to return these directly
-export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) {
+export function parseHistogramBucketInfo(row: {[key: string]: string | number}) {
   const field = Object.keys(row).find(f => f.includes('histogram'));
   if (!field) {
     return undefined;

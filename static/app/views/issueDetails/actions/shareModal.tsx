@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
