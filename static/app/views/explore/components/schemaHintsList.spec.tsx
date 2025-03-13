@@ -1,8 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -16,10 +18,9 @@ const mockNumberTags: TagCollection = {
 
 jest.mock('sentry/utils/useNavigate', () => ({useNavigate: jest.fn()}));
 
-const mockSetExploreQuery = jest.fn();
-jest.mock('sentry/views/explore/contexts/pageParamsContext', () => ({
-  useExploreQuery: () => '',
-  useSetExploreQuery: () => mockSetExploreQuery,
+const mockNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => mockNavigate,
 }));
 
 // Mock getBoundingClientRect for container
@@ -54,8 +55,17 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 });
 
 describe('SchemaHintsList', () => {
+  const {organization, router} = initializeOrg({
+    router: {
+      location: {
+        query: {
+          query: '',
+        },
+      },
+    },
+  });
   beforeEach(() => {
-    mockSetExploreQuery.mockClear();
+    mockNavigate.mockClear();
   });
 
   it('should render', () => {
@@ -76,27 +86,33 @@ describe('SchemaHintsList', () => {
 
   it('should add hint to query when clicked', async () => {
     render(
-      <SchemaHintsList
-        stringTags={mockStringTags}
-        numberTags={mockNumberTags}
-        supportedAggregates={[]}
-      />
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>
     );
 
     const stringTag1Hint = screen.getByText('stringTag1 is ...');
     await userEvent.click(stringTag1Hint);
 
-    expect(mockSetExploreQuery).toHaveBeenCalledWith('stringTag1:""');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {query: 'stringTag1:""'}})
+    );
   });
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <SchemaHintsList
-        stringTags={{}}
-        numberTags={{}}
-        supportedAggregates={[]}
-        isLoading
-      />
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={{}}
+          numberTags={{}}
+          supportedAggregates={[]}
+          isLoading
+        />
+      </PageParamsProvider>
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -104,11 +120,14 @@ describe('SchemaHintsList', () => {
 
   it('should open drawer when see full list is clicked', async () => {
     render(
-      <SchemaHintsList
-        stringTags={mockStringTags}
-        numberTags={mockNumberTags}
-        supportedAggregates={[]}
-      />
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>,
+      {organization, router}
     );
 
     const seeFullList = screen.getByText('See full list');
