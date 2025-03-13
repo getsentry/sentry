@@ -28,6 +28,8 @@ import {
   isCollapsedNode,
   isEAPSpanNode,
   isEAPTraceNode,
+  isEAPTransaction,
+  isEAPTransactionNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
@@ -322,7 +324,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
         slug: value.project_slug,
       });
 
-      const node = new TraceTreeNode(parent, value, {
+      let parentNode;
+      if (isEAPTransaction(value)) {
+        parentNode = TraceTree.ParentEAPTransaction(parent) ?? parent;
+      } else {
+        parentNode = parent;
+      }
+
+      const node = new TraceTreeNode(parentNode, value, {
         spans: options.meta?.transaction_child_count_map[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
@@ -343,7 +352,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
 
-      parent.children.push(node);
+      parentNode.children.push(node);
 
       if (node.value && 'children' in node.value) {
         // EAP spans are not sorted by default
@@ -1027,6 +1036,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return node.tail.children;
     }
 
+    if (isEAPTransaction(node.value)) {
+      if (!node.expanded) {
+        return node.children.filter(child => isEAPTransaction(child.value));
+      }
+
+      return node.children;
+    }
+
     return node.children;
   }
 
@@ -1036,7 +1053,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const queue: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
     const visibleChildren: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
-    if (root.expanded || isParentAutogroupedNode(root)) {
+    if (root.expanded || isParentAutogroupedNode(root) || isEAPTransaction(root.value)) {
       const children = TraceTree.DirectVisibleChildren(root);
 
       for (let i = children.length - 1; i >= 0; i--) {
@@ -1050,7 +1067,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
       visibleChildren.push(node);
 
       // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || isParentAutogroupedNode(node)) {
+      if (
+        node.expanded ||
+        isParentAutogroupedNode(node) ||
+        isEAPTransaction(node.value)
+      ) {
         const children = TraceTree.DirectVisibleChildren(node);
 
         for (let i = children.length - 1; i >= 0; i--) {
@@ -1284,6 +1305,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
+      if (isEAPSpanNode(n)) {
+        if (n.value.event_id === eventId) {
+          return true;
+        }
+      }
       if (isTraceErrorNode(n)) {
         return n.value.event_id === eventId;
       }
@@ -1323,6 +1349,21 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     while (next) {
       if (isTransactionNode(next)) {
+        return next;
+      }
+      next = next.parent;
+    }
+
+    return null;
+  }
+
+  static ParentEAPTransaction(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTreeNode<TraceTree.EAPSpan> | null {
+    let next: TraceTreeNode<TraceTree.NodeValue> | null = node.parent;
+
+    while (next) {
+      if (isEAPSpanNode(next) && next.value.is_transaction) {
         return next;
       }
       next = next.parent;
@@ -1382,13 +1423,64 @@ export class TraceTree extends TraceTreeEventDispatcher {
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
       node.expanded = expanded;
+
+      if (isEAPTransactionNode(node)) {
+        const eapTransactions = TraceTree.FindAll(node, n =>
+          isEAPTransactionNode(n)
+        ).slice(1);
+
+        for (const t of eapTransactions) {
+          if (isEAPTransactionNode(t) && t.parent) {
+            const parentTxn = TraceTree.ParentEAPTransaction(t.parent);
+            if (parentTxn === t.parent) {
+              continue;
+            }
+            if (parentTxn) {
+              t.parent.children = t.parent.children.filter(c => !isEAPTransactionNode(c));
+              parentTxn.children.push(t);
+              t.parent = parentTxn;
+            }
+          }
+        }
+      }
+
       // When transaction nodes are collapsed, they still render child transactions
-      if (isTransactionNode(node)) {
+      if (isTransactionNode(node) || isEAPTransactionNode(node)) {
         this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
       }
     } else {
-      node.expanded = expanded;
+      if (isEAPTransactionNode(node)) {
+        const index = this.list.indexOf(node);
+        this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+      }
+
       // Flip expanded so that we can collect visible children
+      node.expanded = expanded;
+
+      if (isEAPTransactionNode(node)) {
+        const eapTransactions = TraceTree.FindAll(node, n =>
+          isEAPTransactionNode(n)
+        ).slice(1);
+
+        for (const t of eapTransactions) {
+          if (isEAPTransactionNode(t)) {
+            const parentSpan = TraceTree.FindByID(this.root, t.value.parent_span_id);
+
+            if (parentSpan === t.parent) {
+              continue;
+            }
+
+            if (parentSpan) {
+              parentSpan.children.push(t);
+              t.parent = parentSpan;
+            }
+          }
+        }
+
+        node.children = node.children.filter(c => !isEAPTransactionNode(c));
+        node.children.sort(traceChronologicalSort);
+      }
+
       const index = this.list.indexOf(node);
       this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
     }
@@ -1672,30 +1764,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return false;
     }
 
-    if (isParentAutogroupedNode(n.parent)) {
-      if (n.parent.expanded) {
-        // The autogrouped
-        return true;
-      }
-      return n.parent.tail.children[n.parent.tail.children.length - 1] === n;
-    }
-
-    return n.parent.children[n.parent.children.length - 1] === n;
+    const visibleChildren = TraceTree.DirectVisibleChildren(n.parent);
+    return visibleChildren[visibleChildren.length - 1] === n;
   }
 
   static HasVisibleChildren(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
-    if (isParentAutogroupedNode(node)) {
-      if (node.expanded) {
-        return node.head.children.length > 0;
-      }
-      return node.tail.children.length > 0;
-    }
-
-    if (node.expanded) {
-      return node.children.length > 0;
-    }
-
-    return false;
+    return TraceTree.VisibleChildren(node).length > 0;
   }
 
   /**
