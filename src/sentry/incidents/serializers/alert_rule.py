@@ -2,6 +2,7 @@ import logging
 import operator
 from datetime import timedelta
 
+import sentry_sdk
 from django import forms
 from django.conf import settings
 from django.db import router, transaction
@@ -279,7 +280,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 and alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
             )
             if should_dual_write:
-                dual_write_alert_rule(alert_rule, user)
+                try:
+                    dual_write_alert_rule(alert_rule, user)
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    raise BadRequest(message="Error when creating alert rule")
             return alert_rule
 
     def update(self, instance, validated_data):

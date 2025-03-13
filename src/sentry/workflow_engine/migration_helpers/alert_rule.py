@@ -2,6 +2,7 @@ import dataclasses
 import logging
 from typing import Any
 
+from django.db import router, transaction
 from django.forms import ValidationError
 
 from sentry.incidents.grouptype import MetricAlertFire
@@ -542,18 +543,19 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
     Comprehensively dual write the ACI objects corresponding to an alert rule, its triggers, and
     its actions. All these objects will have been created before calling this method.
     """
-    # step 1: migrate the alert rule
-    migrate_alert_rule(alert_rule)
-    triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-    # step 2: migrate each trigger
-    for trigger in triggers:
-        migrate_metric_data_conditions(trigger)
-        trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-        # step 3: for each trigger, migrate the actions
-        for trigger_action in trigger_actions:
-            migrate_metric_action(trigger_action)
-    # step 4: migrate alert rule resolution
-    migrate_resolve_threshold_data_conditions(alert_rule)
+    with transaction.atomic(router.db_for_write(Detector)):
+        # step 1: migrate the alert rule
+        migrate_alert_rule(alert_rule)
+        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        # step 2: migrate each trigger
+        for trigger in triggers:
+            migrate_metric_data_conditions(trigger)
+            trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+            # step 3: for each trigger, migrate the actions
+            for trigger_action in trigger_actions:
+                migrate_metric_action(trigger_action)
+        # step 4: migrate alert rule resolution
+        migrate_resolve_threshold_data_conditions(alert_rule)
 
 
 def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
