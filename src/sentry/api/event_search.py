@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import re
 from collections import namedtuple
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
@@ -295,8 +295,11 @@ def translate_escape_sequences(string: str) -> str:
     return res
 
 
-def flatten(children):
-    def _flatten(seq):
+type _RecursiveList[T] = list[T] | list[_RecursiveList[T]]
+
+
+def flatten[T](children: T | _RecursiveList[T]) -> list[T]:
+    def _flatten(seq: _RecursiveList[T]) -> Generator[T]:
         # there is a list from search_term and one from free_text, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
         for item in seq:
@@ -305,13 +308,10 @@ def flatten(children):
             else:
                 yield item
 
-    if not (children and isinstance(children, list) and isinstance(children[0], list)):
-        return children
+    if not isinstance(children, list):
+        return [children]
 
-    children = [child for group in children for child in _flatten(group)]
-    children = [_f for _f in _flatten(children) if _f]
-
-    return children
+    return [_f for _f in _flatten(children) if _f]
 
 
 def remove_optional_nodes(children):
@@ -741,8 +741,7 @@ class SearchVisitor(NodeVisitor):
                 SearchValue(wrap_free_text(node.text, self.config.wildcard_free_text)),
             )
 
-        children = remove_space(remove_optional_nodes(flatten(children)))
-        children = flatten(children[1])
+        children = remove_space(remove_optional_nodes(flatten(children)))[1:-1]
         if len(children) == 0:
             return []
 
