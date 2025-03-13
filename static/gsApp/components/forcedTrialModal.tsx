@@ -6,6 +6,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
@@ -27,7 +29,11 @@ interface ForcedTrialModalProps extends Pick<ModalRenderProps, 'closeModal'> {
 function ForcedTrialModal(props: ForcedTrialModalProps) {
   const {organization, subscription, closeModal} = props;
   const hasBillingScope = organization.access.includes('org:billing');
-  const {data: configurations, isPending} = useApiQuery<Integration[]>(
+  const {
+    data: configurations,
+    isPending,
+    isError,
+  } = useApiQuery<Integration[]>(
     [
       `/organizations/${organization.slug}/integrations/`,
       {
@@ -42,7 +48,11 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
   );
 
   if (isPending) {
-    return null;
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   const daysLeft = getTrialDaysLeft(subscription);
