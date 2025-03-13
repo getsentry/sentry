@@ -5,7 +5,7 @@ interface TextSelection {
   selectedText: string;
 }
 
-export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
+export function useTextSelection(containerRef: React.RefObject<HTMLElement | null>) {
   const [selection, setSelection] = useState<TextSelection | null>(null);
 
   const isClickInPopup = (target: HTMLElement) =>

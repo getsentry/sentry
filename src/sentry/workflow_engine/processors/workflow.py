@@ -127,6 +127,9 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         logger.exception("Detector not found for event", extra={"event_id": job["event"].event_id})
         return set()
 
+    # TODO: remove fetching org, only used for FF check
+    organization = detector.project.organization
+
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
         Workflow.objects.filter(
@@ -159,8 +162,8 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
         if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
-            detector.project.organization,
+            "organizations:workflow-engine-process-workflows",
+            organization,
         ):
             metrics.incr(
                 "workflow_engine.process_workflows.triggered_actions",
@@ -169,8 +172,12 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
             )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        for action in actions:
-            action.trigger(job, detector)
+        if features.has(
+            "organizations:workflow-engine-trigger-actions",
+            organization,
+        ):
+            for action in actions:
+                action.trigger(job, detector)
 
     return triggered_workflows
 
