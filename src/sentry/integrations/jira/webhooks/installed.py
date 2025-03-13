@@ -8,7 +8,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    authenticate_asymmetric_jwt,
+    verify_claims,
+)
 from sentry.utils import jwt
 
 from ...base import IntegrationDomain
@@ -35,7 +39,6 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             provider_key=self.provider,
         ).capture() as lifecycle:
             token = self.get_token(request)
-
             state = request.data
             if not state:
                 lifecycle.record_failure(ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING)
@@ -43,7 +46,13 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
 
             key_id = jwt.peek_header(token).get("kid")
             if key_id:
-                decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+                try:
+                    decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+                except AtlassianConnectValidationError as e:
+                    sentry_sdk.capture_exception(e)
+                    lifecycle.record_halt(e)
+                    return self.respond(status=status.HTTP_400_BAD_REQUEST)
+
                 verify_claims(decoded_claims, request.path, request.GET, method="POST")
 
             data = JiraIntegrationProvider().build_integration(state)

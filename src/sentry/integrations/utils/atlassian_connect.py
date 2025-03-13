@@ -125,11 +125,18 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     headers = jwt.peek_header(token)
     key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
     public_key = key_response.content.decode("utf-8").strip()
-    decoded_claims = jwt.decode(
-        token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
-    )
-    if not decoded_claims:
-        raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
+
+    try:
+        decoded_claims = jwt.decode(
+            token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
+        )
+        if not decoded_claims:
+            raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
+    except ValueError as e:
+        raise AtlassianConnectValidationError(
+            "Unable to decode given token with Atlassian Connect"
+        ) from e
+
     return decoded_claims
 
 
