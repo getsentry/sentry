@@ -314,18 +314,13 @@ def flatten[T](children: T | _RecursiveList[T]) -> list[T]:
     return [_f for _f in _flatten(children) if _f]
 
 
-def remove_optional_nodes(children):
-    def is_not_optional(child):
-        return not (isinstance(child, Node) and not child.text)
-
-    return list(filter(is_not_optional, children))
-
-
-def remove_space(children):
-    def is_not_space(text):
-        return not (isinstance(text, str) and text == " " * len(text))
-
-    return list(filter(is_not_space, children))
+def remove_optional_nodes[T](children: list[T]) -> list[T]:
+    return [
+        item
+        for item in children
+        if not (isinstance(item, Node) and not item.text)
+        if not (isinstance(item, str) and item.isspace())
+    ]
 
 
 def process_list(first, remaining):
@@ -705,10 +700,10 @@ class SearchVisitor(NodeVisitor):
         return key in self.config.boolean_keys
 
     def visit_search(self, node, children):
-        return flatten(remove_space(children[1]))
+        return remove_optional_nodes(flatten(children[1]))
 
     def visit_term(self, node, children):
-        return flatten(remove_space(children[0]))
+        return remove_optional_nodes(flatten(children[0]))
 
     def visit_boolean_operator(self, node, children):
         if not self.config.allow_boolean:
@@ -741,7 +736,7 @@ class SearchVisitor(NodeVisitor):
                 SearchValue(wrap_free_text(node.text, self.config.wildcard_free_text)),
             )
 
-        children = remove_space(remove_optional_nodes(flatten(children)))[1:-1]
+        children = remove_optional_nodes(flatten(children))[1:-1]
         if len(children) == 0:
             return []
 
@@ -1148,7 +1143,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
-        children = remove_space(children)
 
         if len(children) == 3:
             (function_name, open_paren, close_paren) = children
