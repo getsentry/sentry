@@ -22,6 +22,7 @@ import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/rele
 export function createReleaseBuckets(
   minTime: number | undefined,
   maxTime: number | undefined,
+  finalTime: number,
   releases: ReleaseMetaBasic[],
   desiredBuckets = 10
 ): Bucket[] {
@@ -46,8 +47,15 @@ export function createReleaseBuckets(
     const bucketStartTs = minTime + i * interval;
     // Ending timestamp will clump in the remaining bits if it's not
     // evenly distributed
-    const bucketEndTs = i === desiredBuckets - 1 ? maxTime : bucketStartTs + interval;
-    buckets.push({start: bucketStartTs, end: bucketEndTs, releases: []});
+    const isLastBucket = i === desiredBuckets - 1;
+    const bucketEndTs = isLastBucket ? maxTime : bucketStartTs + interval;
+    const item: Bucket = {start: bucketStartTs, end: bucketEndTs, releases: []};
+
+    if (isLastBucket) {
+      item.final = finalTime;
+    }
+
+    buckets.push(item);
   }
 
   // Loop through releases and update its bucket's counters

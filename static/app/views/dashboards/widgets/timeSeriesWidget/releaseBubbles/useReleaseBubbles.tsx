@@ -82,7 +82,7 @@ function createReleaseBubbleMouseListeners({
         () => (
           <ReleasesDrawer
             startTs={data.start}
-            endTs={data.end}
+            endTs={data.final ?? data.end}
             releases={data.releases}
             buckets={buckets}
             chartRenderer={chartRenderer}
@@ -156,7 +156,6 @@ interface ReleaseBubbleSeriesProps {
     timezone: string;
   };
   releases: ReleaseMetaBasic[];
-  releasesMaxTime: number;
   theme: Theme;
 }
 
@@ -168,7 +167,6 @@ function ReleaseBubbleSeries({
   chartRef,
   theme,
   bubbleSize,
-  releasesMaxTime,
   dateFormatOptions,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
@@ -272,17 +270,13 @@ function ReleaseBubbleSeries({
 
         const bucket = params.data as Bucket;
         const numberReleases = bucket.releases.length;
-        // For the last bubble, we use `releasesMaxTime` as the timestamp
-        // because it more accurately reflects the releases time bucket
-        const endingTime =
-          params.dataIndex === data.length - 1 ? releasesMaxTime : bucket.end;
         return `
 <div class="tooltip-series tooltip-release">
 <div>
 ${tn('%s Release', '%s Releases', numberReleases)}
 </div>
 <div class="tooltip-release-timerange">
-${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(endingTime)}
+${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.final ?? bucket.end)}
 </div>
 </div>
 
@@ -338,7 +332,7 @@ export function useReleaseBubbles({
       releases?.length &&
       minTime &&
       maxTime &&
-      createReleaseBuckets(minTime, maxTime, releases)) ||
+      createReleaseBuckets(minTime, maxTime, releasesMaxTime, releases)) ||
     [];
 
   if (!releases || !buckets.length) {
@@ -373,7 +367,6 @@ export function useReleaseBubbles({
       chartRef,
       theme,
       releases,
-      releasesMaxTime,
       dateFormatOptions: {
         timezone: options.timezone,
       },
