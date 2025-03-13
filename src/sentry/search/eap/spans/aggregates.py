@@ -1,3 +1,5 @@
+from typing import cast
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
@@ -6,6 +8,7 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     ArgumentDefinition,
     ConditionalAggregateDefinition,
+    ResolvedArguments,
 )
 
 
@@ -16,7 +19,9 @@ def count_processor(count_value: int | None) -> int:
         return count_value
 
 
-def resolve_count_op(op_value: str) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    op_value: str = args[0]
+
     filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=AttributeKey(
@@ -30,9 +35,11 @@ def resolve_count_op(op_value: str) -> tuple[AttributeKey, TraceItemFilter]:
     return (AttributeKey(name="sentry.op", type=AttributeKey.TYPE_STRING), filter)
 
 
-def resolve_key_eq_value_filter(
-    aggregate_key: AttributeKey, key: AttributeKey, value: str
-) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    aggregate_key = cast(args[0], AttributeKey)
+    key: AttributeKey = cast(args[0], AttributeKey)
+    value: str = cast(args[0], str)
+
     filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key,

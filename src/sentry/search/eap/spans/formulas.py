@@ -14,7 +14,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition
+from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition, ResolvedArguments
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
@@ -32,7 +32,9 @@ TOTAL_SPAN_COUNT = Column(
 )
 
 
-def http_response_rate(code: Literal[1, 2, 3, 4, 5]) -> Column.BinaryFormula:
+def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+    code: Literal[1, 2, 3, 4, 5] = args[0]
+
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
         left=Column(
@@ -75,7 +77,9 @@ def http_response_rate(code: Literal[1, 2, 3, 4, 5]) -> Column.BinaryFormula:
     )
 
 
-def trace_status_rate(status: str) -> Column.BinaryFormula:
+def trace_status_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+    status: str = args[0]
+
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -105,7 +109,7 @@ def trace_status_rate(status: str) -> Column.BinaryFormula:
     )
 
 
-def cache_miss_rate() -> Column.BinaryFormula:
+def cache_miss_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -145,7 +149,7 @@ def cache_miss_rate() -> Column.BinaryFormula:
     )
 
 
-def ttfd_contribution_rate() -> Column.BinaryFormula:
+def ttfd_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -167,7 +171,7 @@ def ttfd_contribution_rate() -> Column.BinaryFormula:
     )
 
 
-def ttid_contribution_rate() -> Column.BinaryFormula:
+def ttid_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(

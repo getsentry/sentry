@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeAlias
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -21,6 +21,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
+
+ResolvedArgument: TypeAlias = AttributeKey | str | int
+ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -227,7 +230,7 @@ class FunctionDefinition:
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_arguments: list[AttributeKey | Any],
+        resolved_arguments: ResolvedArguments,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -240,7 +243,7 @@ class AggregateDefinition(FunctionDefinition):
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_arguments: list[AttributeKey | Any],
+        resolved_arguments: ResolvedArguments,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -275,15 +278,15 @@ class ConditionalAggregateDefinition(FunctionDefinition):
     # The type of aggregation (ex. sum, avg)
     internal_function: Function.ValueType
     # A function that takes in the resolved argument and returns the condition to filter on and the key to aggregate on
-    aggregate_resolver: Callable[..., tuple[AttributeKey, TraceItemFilter]]
+    aggregate_resolver: Callable[[ResolvedArguments], tuple[AttributeKey, TraceItemFilter]]
 
     def resolve(
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_arguments: list[AttributeKey | Any],
+        resolved_arguments: ResolvedArguments,
     ) -> ResolvedConditionalAggregate:
-        (key, filter) = self.aggregate_resolver(*resolved_arguments)
+        key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
@@ -315,7 +318,7 @@ class FormulaDefinition(FunctionDefinition):
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(*resolved_arguments),
+            formula=self.formula_resolver(resolved_arguments),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
