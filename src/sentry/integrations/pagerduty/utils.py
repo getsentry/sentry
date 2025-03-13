@@ -7,7 +7,8 @@ from django.db import router, transaction
 from django.http import Http404
 
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
+from sentry.incidents.typings.metric_detector import AlertContext, NotificationContext
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
@@ -18,7 +19,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
-from sentry.workflow_engine.typings.notification_action import NotificationContext
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 

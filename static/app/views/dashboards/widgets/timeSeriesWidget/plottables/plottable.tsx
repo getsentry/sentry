@@ -7,6 +7,11 @@ import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields
  */
 export interface Plottable {
   /**
+   * Returns a cloned Plottable, constraining any time-series data within the
+   * date boundaries provided
+   */
+  constrain(boundaryStart: Date | null, boundaryEnd: Date | null): Plottable;
+  /**
    * If the plottable is based on data, the type. Otherwise, null
    */
   dataType: AggregationOutputType | null;
@@ -30,6 +35,7 @@ export interface Plottable {
    * Start timestamp of the plottable, if applicable
    */
   start: string | null;
+
   /**
    *
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.
