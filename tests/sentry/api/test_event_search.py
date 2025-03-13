@@ -15,7 +15,9 @@ from sentry.api.event_search import (
     SearchFilter,
     SearchKey,
     SearchValue,
+    _RecursiveList,
     default_config,
+    flatten,
     parse_search_query,
     translate_wildcard_as_clickhouse_pattern,
 )
@@ -222,6 +224,26 @@ shared_tests_skipped = [
 ]
 
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        pytest.param([], [], id="noop"),
+        pytest.param([1, 2, 3], [1, 2, 3], id="flat"),
+        pytest.param([[1], [2]], [1, 2], id="nested"),
+        # technically this isn't supported by the annotations but it works
+        pytest.param([[1], 2], [1, 2], id="staggered"),
+        pytest.param([1, [2]], [1, 2], id="staggered reversed"),
+    ),
+)
+def test_flatten(value: _RecursiveList[int], expected: list[int]) -> None:
+    assert flatten(value) == expected
+
+
+def test_flatten_with_primitive() -> None:
+    # flatten sometimes gets called with just bare `Node` so this tests that
+    assert flatten(1) == [1]
 
 
 class ParseSearchQueryBackendTest(SimpleTestCase):
