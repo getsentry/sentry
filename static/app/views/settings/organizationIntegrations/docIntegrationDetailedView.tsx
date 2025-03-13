@@ -14,11 +14,11 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 export default function DocIntegrationDetailsView() {
-  const tabs: Tab[] = ['overview'];
+  const tabs: IntegrationTab[] = ['overview'];
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 

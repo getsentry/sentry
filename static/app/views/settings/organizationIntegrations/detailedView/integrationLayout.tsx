@@ -27,11 +27,11 @@ import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
 import IntegrationStatus from 'sentry/views/settings/organizationIntegrations/integrationStatus';
 
-interface AlertType extends AlertProps {
+export type IntegrationTab = 'overview' | 'configurations' | 'features';
+export interface AlertType extends AlertProps {
   text: string;
 }
 
@@ -83,13 +83,16 @@ function Tabs({
   onTabChange,
   getTabDisplay,
 }: {
-  activeTab: Tab;
-  tabs: Tab[];
-  getTabDisplay?: (tab: Tab) => string;
-  onTabChange?: (tab: Tab) => void;
+  activeTab: IntegrationTab;
+  tabs: IntegrationTab[];
+  getTabDisplay?: (tab: IntegrationTab) => string;
+  onTabChange?: (tab: IntegrationTab) => void;
 }) {
   // If getTabDisplay is not provided, use the tab as the display text
-  const renderTab = useMemo(() => getTabDisplay ?? ((tab: Tab) => tab), [getTabDisplay]);
+  const renderTab = useMemo(
+    () => getTabDisplay ?? ((tab: IntegrationTab) => tab),
+    [getTabDisplay]
+  );
   return (
     <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
       {tabs.map(tab => (
