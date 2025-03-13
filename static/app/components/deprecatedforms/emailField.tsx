@@ -1,12 +1,8 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
-
-// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+import {createInputField} from 'sentry/components/deprecatedforms/inputField';
 
 /**
  * @deprecated Do not use this
  */
-export default class EmailField extends InputField {
-  getType() {
-    return 'email';
-  }
-}
+const EmailField = createInputField('email');
+
+export default EmailField;

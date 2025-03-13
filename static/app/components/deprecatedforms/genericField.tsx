@@ -1,6 +1,5 @@
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import EmailField from 'sentry/components/deprecatedforms/emailField';
-import type FormField from 'sentry/components/deprecatedforms/formField';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
 import PasswordField from 'sentry/components/deprecatedforms/passwordField';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
@@ -54,7 +53,7 @@ type Props = {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
   formState: (typeof FormState)[keyof typeof FormState];
-  onChange: FormField['props']['onChange'];
+  onChange: (value: string | number | boolean) => void;
   formErrors?: Record<PropertyKey, string>;
 };
 
@@ -95,7 +94,13 @@ function GenericField({
     case 'text':
     case 'url':
       if (fieldProps.choices) {
-        return <SelectCreatableField key={config.name} {...fieldProps} />;
+        return (
+          <SelectCreatableField
+            key={config.name}
+            {...fieldProps}
+            choices={fieldProps.choices as any}
+          />
+        );
       }
       return <TextField key={config.name} {...fieldProps} />;
     case 'number':
@@ -114,7 +119,13 @@ function GenericField({
           ...config,
           ...selectProps,
         };
-        return <SelectAsyncField key={config.name} {...selectFieldProps} />;
+        return (
+          <SelectAsyncField
+            key={config.name}
+            {...selectFieldProps}
+            choices={fieldProps.choices as any}
+          />
+        );
       }
       return <SelectField key={config.name} {...selectProps} />;
     }

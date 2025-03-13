@@ -1,131 +1,196 @@
+import {useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
+import FormContext from 'sentry/components/deprecatedforms/formContext';
+import {
+  type FormFieldProps,
+  useFormField,
+} from 'sentry/components/deprecatedforms/formField';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
-import FormField from './formField';
 
 type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
-type FormProps = FormField['props'];
+type Props = FormFieldProps & SelectProps;
 
-type Props = FormProps & SelectProps;
-
-export default class SelectField extends FormField<Props> {
-  static defaultProps = {
-    ...FormField.defaultProps,
-    clearable: true,
-    multiple: false,
-  };
-
-  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
-    const newError = this.getError(nextProps, nextContext);
-    if (newError !== this.state.error) {
-      this.setState({error: newError});
-    }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
-      // This is the only thing that is different from parent, we compare newValue against coerced value in state
-      // To remain compatible with react-select, we need to store the option object that
-      // includes `value` and `label`, but when we submit the format, we need to coerce it
-      // to just return `value`. Also when field changes, it propagates the coerced value up
-      const coercedValue = this.coerceValue(this.state.value);
-
-      // newValue can be empty string because of `getValue`, while coerceValue needs to return null (to differentiate
-      // empty string from cleared item). We could use `!=` to compare, but lets be a bit more explicit with strict equality
-      //
-      // This can happen when this is apart of a field, and it re-renders onChange for a different field,
-      // there will be a mismatch between this component's state.value and `this.getValue` result above
-      if (newValue !== coercedValue && !!newValue !== !!coercedValue) {
-        this.setValue(newValue);
+// Utility functions for select fields
+export const selectUtils = {
+  // Create a coerceValue function based on whether multiple selection is enabled
+  createCoerceValue: (isMultiple: boolean) => {
+    return (value: any) => {
+      if (!value) {
+        return '';
       }
-    }
-  }
 
-  // Overriding this so that we can support `multi` fields through property
-  getValue(props: any, context: any) {
-    const form = (context || this.context)?.form;
-    props = props || this.props;
+      if (isMultiple) {
+        return value.map((v: any) => v.value);
+      }
 
-    // Don't use `isMultiple` here because we're taking props from args as well
-    const defaultValue = this.isMultiple(props) ? [] : '';
+      if (value?.hasOwnProperty?.('value')) {
+        return value.value;
+      }
 
-    if (defined(props.value)) {
-      return props.value;
-    }
-    if (form?.data.hasOwnProperty(props.name)) {
-      return defined(form.data[props.name]) ? form.data[props.name] : defaultValue;
-    }
-    return defined(props.defaultValue) ? props.defaultValue : defaultValue;
-  }
+      return value;
+    };
+  },
 
-  // We need this to get react-select's `Creatable` to work properly
-  // Otherwise, when you hit "enter" to create a new item, the "selected value" does
-  // not update with new value (and also new value is not displayed in dropdown)
-  //
-  // This is also needed to get `multi` select working since we need the {label, value} object
-  // for react-select (but forms expect just the value to be propagated)
-  coerceValue(value: any) {
+  // Format a value for display in a select component
+  formatValue: (value: any, isMultiple: boolean) => {
     if (!value) {
-      return '';
+      return isMultiple ? [] : null;
     }
 
-    if (this.isMultiple()) {
-      return value.map((v: any) => v.value);
-    }
-    if (value.hasOwnProperty('value')) {
-      return value.value;
+    // If it's already in the format that react-select expects, return it
+    if (value?.hasOwnProperty?.('value')) {
+      return value;
     }
 
-    return value;
-  }
+    if (isMultiple) {
+      if (!Array.isArray(value)) {
+        return [];
+      }
 
-  isMultiple(props?: any) {
-    props = props || this.props;
-    // this is to maintain compatibility with the 'multi' prop
-    return props.multi || props.multiple;
-  }
+      return value.map(val => {
+        if (val?.hasOwnProperty?.('value')) {
+          return val;
+        }
+        return {value: val, label: val};
+      });
+    }
 
-  getClassName() {
-    return '';
-  }
+    return {value, label: value};
+  },
 
-  onChange = (opt: any) => {
-    // Changing this will most likely break react-select (e.g. you won't be able to select
-    // a menu option that is from an async request, or a multi select).
-    this.setValue(opt);
-  };
+  // Get default value based on whether it's a multiple select
+  getDefaultValue: (
+    isMultiple: boolean,
+    fieldProps: {name: string; defaultValue?: any; value?: any}
+  ) => {
+    const defaultEmptyValue = isMultiple ? [] : '';
 
-  getField() {
-    const {
-      options,
-      clearable,
-      creatable,
-      choices,
-      placeholder,
-      disabled,
-      name,
-      isLoading,
-    } = this.props;
+    if (fieldProps.value !== undefined) {
+      return fieldProps.value;
+    }
 
-    return (
-      <StyledSelectControl
-        creatable={creatable}
-        inputId={this.getId()}
-        choices={choices}
-        options={options}
-        placeholder={placeholder}
-        disabled={disabled}
-        value={this.state.value}
-        onChange={this.onChange}
-        clearable={clearable}
-        multiple={this.isMultiple()}
-        name={name}
-        isLoading={isLoading}
-      />
-    );
-  }
+    return fieldProps.defaultValue === undefined
+      ? defaultEmptyValue
+      : fieldProps.defaultValue;
+  },
+
+  // Custom hook to handle the special value comparison logic from the class component
+  useSelectValueSync: (
+    propValue: any,
+    value: any,
+    setValue: (value: any) => void,
+    formContext: any
+  ) => {
+    // Keep track of the previous value for comparison
+    const prevPropValueRef = useRef<any>(null);
+    const prevValueRef = useRef<any>(null);
+
+    useEffect(() => {
+      // Skip the first render
+      if (prevPropValueRef.current === null) {
+        prevPropValueRef.current = propValue;
+        return;
+      }
+
+      if (prevValueRef.current === null) {
+        prevValueRef.current = value;
+        return;
+      }
+
+      // This mimics the UNSAFE_componentWillReceiveProps logic
+      if (prevValueRef.current !== value || defined(formContext?.form)) {
+        // Update refs for next comparison
+        prevValueRef.current = value;
+        prevPropValueRef.current = propValue;
+        setValue(value);
+      }
+    }, [propValue, value, setValue, formContext]);
+  },
+};
+
+/**
+ * @deprecated Do not use this
+ */
+function SelectField({
+  clearable = true,
+  multiple = false,
+  multi = false,
+  options,
+  creatable,
+  choices,
+  placeholder,
+  disabled,
+  isLoading,
+  ...props
+}: Props) {
+  // Determine if multiple selection is enabled
+  const isMultiple = useMemo(() => multi || multiple, [multi, multiple]);
+
+  // Get default value based on whether it's a multiple select
+  const getDefaultValue = useCallback(
+    (fieldProps: {name: string; defaultValue?: any; value?: any}) => {
+      return selectUtils.getDefaultValue(isMultiple, fieldProps);
+    },
+    [isMultiple]
+  );
+
+  // Coerce value for the form
+  const coerceValue = useCallback(
+    (value: any) => {
+      return selectUtils.createCoerceValue(isMultiple)(value);
+    },
+    [isMultiple]
+  );
+
+  // Get form field functionality
+  const field = useFormField({
+    ...props,
+    getClassName: () => '',
+    coerceValue,
+    defaultValue: getDefaultValue({
+      value: props.value,
+      defaultValue: props.defaultValue,
+      name: props.name,
+    }),
+  });
+
+  // Use the custom hook to handle special value comparison logic
+  const context = useContext(FormContext);
+  selectUtils.useSelectValueSync(props.value, field.value, field.setValue, context);
+
+  return field.renderField(
+    ({id, name, value, onChange, disabled: fieldDisabled, required}) => {
+      // Destructure props to avoid duplicates
+      const {name: _, ...restProps} = props;
+
+      // Format the value for the select component using the shared utility
+      const formattedValue = selectUtils.formatValue(value, isMultiple);
+
+      return (
+        <StyledSelectControl
+          creatable={creatable}
+          inputId={id}
+          choices={choices}
+          options={options}
+          placeholder={placeholder}
+          disabled={disabled || fieldDisabled}
+          required={required}
+          clearable={clearable}
+          multiple={isMultiple}
+          name={name}
+          isLoading={isLoading}
+          {...restProps}
+          onChange={onChange}
+          value={formattedValue}
+        />
+      );
+    }
+  );
 }
 
 // This is to match other fields that are wrapped by a `div.control-group`
@@ -138,3 +203,5 @@ const StyledSelectControl = styled(Select)`
     margin-bottom: 15px;
   }
 `;
+
+export default SelectField;

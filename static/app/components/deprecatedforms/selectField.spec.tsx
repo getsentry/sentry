@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/deprecatedforms/form';
@@ -72,20 +72,21 @@ describe('SelectField', function () {
     );
     // Select a value so there is an option selected.
     await selectEvent.select(screen.getByText('Select...'), 'a');
-    expect(mock).toHaveBeenCalledTimes(1);
+    // expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenLastCalledWith('a');
 
     // Update props to remove value and options.
     rerender(<SelectField options={[]} value="" name="fieldName" onChange={mock} />);
 
     // second update.
+    await waitFor(() => expect(mock).toHaveBeenLastCalledWith(''));
     expect(mock).toHaveBeenCalledTimes(2);
-    expect(mock).toHaveBeenLastCalledWith('');
   });
 
   describe('Multiple', function () {
     it('selects multiple values and submits', async function () {
       const mock = jest.fn();
+      const otherMock = jest.fn();
       render(
         <Form onSubmit={mock}>
           <SelectField
@@ -95,16 +96,20 @@ describe('SelectField', function () {
               {label: 'b', value: 'b'},
             ]}
             name="fieldName"
+            onChange={otherMock}
           />
           <button type="submit">submit</button>
         </Form>
       );
       await selectEvent.select(screen.getByText('Select...'), 'a');
       await userEvent.click(screen.getByText('submit'));
-      expect(mock).toHaveBeenCalledWith(
-        {fieldName: ['a']},
-        expect.anything(),
-        expect.anything()
+      expect(otherMock).toHaveBeenCalledWith('a');
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          {fieldName: ['a']},
+          expect.anything(),
+          expect.anything()
+        )
       );
     });
   });

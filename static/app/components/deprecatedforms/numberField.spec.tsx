@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/deprecatedforms/form';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
@@ -37,7 +37,7 @@ describe('NumberField', function () {
       expect(screen.getByRole('spinbutton')).toHaveValue(5);
 
       await userEvent.clear(screen.getByRole('spinbutton'));
-      expect(screen.getByRole('spinbutton')).toHaveValue(null);
+      await waitFor(() => expect(screen.getByRole('spinbutton')).toHaveValue(null));
     });
   });
 });

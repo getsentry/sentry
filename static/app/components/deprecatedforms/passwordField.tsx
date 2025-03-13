@@ -1,80 +1,77 @@
-import type {Context} from 'sentry/components/deprecatedforms/form';
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {useCallback, useEffect, useState} from 'react';
+
+import {
+  type InputFieldProps,
+  useInputField,
+} from 'sentry/components/deprecatedforms/inputField';
 import FormState from 'sentry/components/forms/state';
 
-type Props = InputField['props'] & {
-  prefix: string;
+type Props = InputFieldProps & {
   formState?: (typeof FormState)[keyof typeof FormState];
   hasSavedValue?: boolean;
+  prefix?: string;
 };
 
-type State = InputField['state'] & {
-  editing: boolean;
-};
+/**
+ * @deprecated Do not use this
+ */
+function PasswordField({prefix = '', hasSavedValue = false, formState, ...props}: Props) {
+  // Track whether we're in edit mode
+  const [editing, setEditing] = useState(false);
 
-// TODO(dcramer): im not entirely sure this is working correctly with
-// value propagation in all scenarios
-export default class PasswordField extends InputField<Props, State> {
-  static defaultProps = {
-    ...InputField.defaultProps,
-    hasSavedValue: false,
-    prefix: '',
-  };
+  // Get the input field functionality
+  const field = useInputField({
+    ...props,
+    type: 'password',
+  });
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
-
-    this.state = {...this.state, editing: false};
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    // close edit mode after successful save
-    // TODO(dcramer): this needs to work with this.context.form
-    if (
-      this.props.formState &&
-      prevProps.formState === FormState.SAVING &&
-      this.props.formState === FormState.READY
-    ) {
-      this.setState({editing: false});
+  // Close edit mode after successful save
+  useEffect(() => {
+    if (formState && formState === FormState.READY) {
+      setEditing(false);
     }
-  }
+  }, [formState]);
 
-  getType() {
-    return 'password';
-  }
+  // Handle canceling edit mode
+  const cancelEdit = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      setEditing(false);
+      field.setValue('');
+    },
+    [field]
+  );
 
-  cancelEdit = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  // Handle starting edit mode
+  const startEdit = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    this.setState({editing: false}, () => this.setValue(''));
-  };
+    setEditing(true);
+  }, []);
 
-  startEdit = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    this.setState({editing: true});
-  };
+  // If there's no saved value, render the standard password field
+  if (!hasSavedValue) {
+    return field.renderInputField();
+  }
 
-  getField() {
-    if (!this.props.hasSavedValue) {
-      return super.getField();
-    }
-
-    if (this.state.editing) {
-      return (
-        <div className="form-password editing">
-          <div>{super.getField()}</div>
-          <div>
-            <a onClick={this.cancelEdit}>Cancel</a>
-          </div>
-        </div>
-      );
-    }
+  // If we're in edit mode, render the password field with a cancel button
+  if (editing) {
     return (
-      <div className="form-password saved">
-        <span>
-          {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
-        </span>
-        {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
+      <div className="form-password editing">
+        <div>{field.renderInputField()}</div>
+        <div>
+          <a onClick={cancelEdit}>Cancel</a>
+        </div>
       </div>
     );
   }
+
+  // Otherwise, render the masked password with an edit button
+  return (
+    <div className="form-password saved">
+      <span>{prefix + new Array(21 - prefix.length).join('*')}</span>
+      {!props.disabled && <a onClick={startEdit}>Edit</a>}
+    </div>
+  );
 }
+
+export default PasswordField;
