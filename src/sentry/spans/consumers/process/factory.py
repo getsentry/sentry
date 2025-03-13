@@ -299,6 +299,7 @@ class SpanFlusher(ProcessingStrategy[int]):
             queue_size, flushed_segments = self.buffer.flush_segments(
                 max_segments=self.max_flush_segments, now=now
             )
+            metrics.timing("sentry.spans.buffer.inflight_segments", queue_size)
             self.enable_backpressure = (
                 self.max_inflight_segments > 0 and queue_size >= self.max_inflight_segments
             )
