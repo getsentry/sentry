@@ -109,10 +109,10 @@ describe('connect onboarding docs', function () {
 
     // Should have start and stop profiling calls
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfileSession/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfileSession/))
     ).toBeInTheDocument();
   });
 });

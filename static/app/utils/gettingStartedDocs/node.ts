@@ -228,7 +228,7 @@ Sentry.init({
       ? `
 // Manually call startProfiler and stopProfiler
 // to profile the code in between
-Sentry.profiler.startProfiler();
+Sentry.profiler.startProfileSession();
 ${
   params.isPerformanceSelected
     ? `
@@ -243,7 +243,7 @@ Sentry.startSpan({
 }
 // Calls to stopProfiling are optional - if you don't stop the profiler, it will keep profiling
 // your application until the process exits or stopProfiling is called.
-Sentry.profiler.stopProfiler();`
+Sentry.profiler.stopProfileSession();`
       : ''
   }`;
 
