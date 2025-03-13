@@ -24,6 +24,7 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {getFormat} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {
   BUBBLE_AREA_SERIES_ID,
@@ -155,6 +156,7 @@ interface ReleaseBubbleSeriesProps {
     timezone: string;
   };
   releases: ReleaseMetaBasic[];
+  releasesMaxTime: number;
   theme: Theme;
 }
 
@@ -166,6 +168,7 @@ function ReleaseBubbleSeries({
   chartRef,
   theme,
   bubbleSize,
+  releasesMaxTime,
   dateFormatOptions,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
@@ -269,13 +272,17 @@ function ReleaseBubbleSeries({
 
         const bucket = params.data as Bucket;
         const numberReleases = bucket.releases.length;
+        // For the last bubble, we use `releasesMaxTime` as the timestamp
+        // because it more accurately reflects the releases time bucket
+        const endingTime =
+          params.dataIndex === data.length - 1 ? releasesMaxTime : bucket.end;
         return `
 <div class="tooltip-series tooltip-release">
 <div>
 ${tn('%s Release', '%s Releases', numberReleases)}
 </div>
 <div class="tooltip-release-timerange">
-${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.end)}
+${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(endingTime)}
 </div>
 </div>
 
@@ -317,6 +324,14 @@ export function useReleaseBubbles({
   const {openDrawer} = useDrawer();
   const theme = useTheme();
   const {options} = useUser();
+  const {selection} = usePageFilters();
+  // `maxTime` refers to the max time on x-axis for charts.
+  // There may be the need to include releases that are > maxTime (e.g. in the
+  // case of relative date selection). This is used for the tooltip to show the
+  // proper timestamp for releases.
+  const releasesMaxTime = defined(selection.datetime.end)
+    ? new Date(selection.datetime.end).getTime()
+    : Date.now();
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const buckets =
     (hasReleaseBubbles &&
@@ -358,6 +373,7 @@ export function useReleaseBubbles({
       chartRef,
       theme,
       releases,
+      releasesMaxTime,
       dateFormatOptions: {
         timezone: options.timezone,
       },
