@@ -75,7 +75,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
         Returns a tree of errors and transactions in the trace for a given event. Does not include non-transaction/non-error spans to reduce noise.
         """
         event_filter = eventstore.Filter(
-            project_ids=[project.id],
             conditions=[
                 ["trace_id", "=", event.trace_id],
             ],
@@ -186,6 +185,17 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 for child in children:
                     if child not in parent_node["children"]:
                         parent_node["children"].append(child)
+
+        # Fourth pass: find orphaned events (events with parent_span_id but no actual parent) and add them to root_events
+        all_event_nodes = list(events_by_span_id.values())
+        for event_node in all_event_nodes:
+            parent_span_id = event_node.get("parent_span_id")
+            if (
+                parent_span_id
+                and parent_span_id not in events_by_span_id
+                and event_node not in root_events
+            ):
+                root_events.append(event_node)
 
         # Function to recursively sort children by datetime
         def sort_tree(node):
