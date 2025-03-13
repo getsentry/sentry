@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

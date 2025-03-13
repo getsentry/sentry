@@ -5,8 +5,8 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';

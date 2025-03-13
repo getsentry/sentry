@@ -2,8 +2,8 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {
   AutofixStatus,
   type AutofixStep,
@@ -54,19 +54,31 @@ export function SolutionsSectionCtaButton({
   const isDrawerOpenRef = useRef(false);
 
   // Keep track of previous steps to detect state transitions and notify the user
-  const prevStepsRef = useRef<AutofixStep[]>();
+  const prevStepsRef = useRef<AutofixStep[] | null>(null);
+  const prevRunIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (isDrawerOpenRef.current) {
       return;
     }
 
     if (!autofixData?.steps || !prevStepsRef.current) {
-      prevStepsRef.current = autofixData?.steps;
+      prevStepsRef.current = autofixData?.steps ?? null;
+      prevRunIdRef.current = autofixData?.run_id ?? null;
       return;
     }
 
     const prevSteps = prevStepsRef.current;
     const currentSteps = autofixData.steps;
+
+    // Don't show notifications if the run_id has changed
+    if (
+      prevStepsRef.current !== currentSteps &&
+      autofixData?.run_id !== prevRunIdRef.current
+    ) {
+      prevStepsRef.current = currentSteps;
+      prevRunIdRef.current = autofixData?.run_id;
+      return;
+    }
 
     // Find the most recent step
     const processingStep = currentSteps.findLast(
@@ -91,8 +103,9 @@ export function SolutionsSectionCtaButton({
       }
     }
 
-    prevStepsRef.current = autofixData?.steps;
-  }, [autofixData?.steps]);
+    prevStepsRef.current = autofixData?.steps ?? null;
+    prevRunIdRef.current = autofixData?.run_id ?? null;
+  }, [autofixData?.steps, autofixData?.run_id]);
 
   // Update drawer state when opening
   const handleOpenDrawer = () => {

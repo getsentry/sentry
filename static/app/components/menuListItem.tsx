@@ -234,7 +234,7 @@ function DetailsOverlay({
 }: {
   children: React.ReactNode;
   id: string;
-  itemRef: React.RefObject<HTMLLIElement>;
+  itemRef: React.RefObject<HTMLLIElement | null>;
   size: Props['size'];
 }) {
   const theme = useTheme();

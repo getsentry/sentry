@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
-import {Button, StyledButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Button, StyledButton} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';

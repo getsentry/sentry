@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';

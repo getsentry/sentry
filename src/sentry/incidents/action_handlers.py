@@ -27,7 +27,8 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.incidents.typings.metric_detector import AlertContext, NotificationContext
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
@@ -42,7 +43,6 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry.workflow_engine.typings.notification_action import NotificationContext
 
 
 class ActionHandler(metaclass=abc.ABCMeta):

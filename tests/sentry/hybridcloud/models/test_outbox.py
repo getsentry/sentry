@@ -7,7 +7,6 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 from django.db import connections
-from django.test import RequestFactory
 from pytest import raises
 
 from sentry.hybridcloud.models.outbox import (
@@ -52,12 +51,6 @@ def setup_clear_fixture_outbox_messages() -> None:
 
 @control_silo_test
 class ControlOutboxTest(TestCase):
-    webhook_request = RequestFactory().post(
-        "/extensions/github/webhook/?query=test",
-        data={"installation": {"id": "github:1"}},
-        content_type="application/json",
-        HTTP_X_GITHUB_EMOTICON=">:^]",
-    )
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
@@ -593,9 +586,9 @@ class OutboxAggregationTest(TestCase):
             for i in range(shard_count):
                 ControlOutbox(
                     region_name=region_name,
-                    shard_scope=OutboxScope.WEBHOOK_SCOPE,
+                    shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
                     shard_identifier=shard_id,
-                    category=OutboxCategory.WEBHOOK_PROXY,
+                    category=OutboxCategory.AUDIT_LOG_EVENT,
                     object_identifier=shard_id * 10000 + i,
                     payload={"foo": "bar"},
                 ).save()
@@ -607,19 +600,19 @@ class OutboxAggregationTest(TestCase):
             dict(
                 shard_identifier=2,
                 region_name="us",
-                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=7,
             ),
             dict(
                 shard_identifier=1,
                 region_name="eu",
-                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=4,
             ),
             dict(
                 shard_identifier=3,
                 region_name="us",
-                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=1,
             ),
         ]
@@ -630,7 +623,7 @@ class OutboxAggregationTest(TestCase):
             dict(
                 shard_identifier=2,
                 region_name="us",
-                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=7,
             )
         ]

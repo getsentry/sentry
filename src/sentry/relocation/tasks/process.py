@@ -83,7 +83,7 @@ from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 
-logger = logging.getLogger("sentry.relocation.tasks")
+logger = logging.getLogger("sentry.relocation")
 
 # Time limits for various steps in the process.
 RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.

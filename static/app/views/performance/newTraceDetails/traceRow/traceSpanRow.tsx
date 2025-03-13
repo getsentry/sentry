@@ -28,7 +28,7 @@ export function TraceSpanRow(
       ref={r =>
         props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
-          : null
+          : undefined
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}

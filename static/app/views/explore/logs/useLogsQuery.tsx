@@ -5,7 +5,10 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
+  useLogsBaseSearch,
+  useLogsCursor,
   useLogsFields,
+  useLogsProjectIds,
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -19,19 +22,29 @@ export interface OurLogsTableResult {
   result: ReturnType<typeof useOurlogs>;
 }
 
+export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
+
 export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
-  const search = useLogsSearch();
+  const _search = useLogsSearch();
+  const baseSearch = useLogsBaseSearch();
+  const cursor = useLogsCursor();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
-
+  const projectIds = useLogsProjectIds();
   const extendedFields = new Set([...AlwaysPresentLogFields, ...fields]);
 
+  const search = baseSearch ? _search.copy() : _search;
+  if (baseSearch) {
+    search.tokens.push(...baseSearch.tokens);
+  }
   const {data, meta, isError, isPending, pageLinks} = useOurlogs(
     {
       ...options,
+      cursor,
       sorts: sortBys,
       fields: Array.from(extendedFields),
       search,
+      projectIds,
     },
     'api.logs-tab.view'
   );

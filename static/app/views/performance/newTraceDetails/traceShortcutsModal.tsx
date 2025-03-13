@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
