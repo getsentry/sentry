@@ -86,7 +86,7 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
         evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
 
     evidence_data["source"] = source.value
-    evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
+    # Do not display this as it's not useful to users.
 
     if is_message_spam is True:
         evidence_data["is_spam"] = is_message_spam
