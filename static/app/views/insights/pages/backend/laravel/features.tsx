@@ -58,18 +58,11 @@ export function useIsLaravelInsightsEnabled() {
 
       mutateUserOptions({
         prefersSpecializedProjectOverview: {
-          ...user.options.prefersSpecializedProjectOverview,
           [selectedProject.id]: enabled,
         },
       });
     },
-    [
-      mutateUserOptions,
-      selectedProject,
-      isSingleProject,
-      user.options.prefersSpecializedProjectOverview,
-      organization,
-    ]
+    [mutateUserOptions, selectedProject, isSingleProject, organization]
   );
 
   return [isEnabled, setIsEnabled] as const;
