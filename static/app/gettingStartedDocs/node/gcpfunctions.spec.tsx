@@ -72,7 +72,7 @@ describe('gcpfunctions onboarding docs', function () {
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
     ).toBeInTheDocument();
   });
 
@@ -99,7 +99,7 @@ describe('gcpfunctions onboarding docs', function () {
 
     // Profiles sample rate should not be set for continuous profiling
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      screen.queryByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
     ).not.toBeInTheDocument();
 
     // Should have start and stop profiling calls
