@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -733,33 +732,3 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
-
-
-@dataclass
-class NotificationContext:
-    """
-    NotificationContext is a dataclass that represents the context required send a notification.
-    """
-
-    integration_id: int | None = None
-    target_identifier: str | None = None
-    target_display: str | None = None
-    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
-
-    @classmethod
-    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
-        return cls(
-            integration_id=action.integration_id,
-            target_identifier=action.target_identifier,
-            target_display=action.target_display,
-            sentry_app_config=action.sentry_app_config,
-        )
-
-    @classmethod
-    def from_action_model(cls, action: Action) -> NotificationContext:
-        return cls(
-            integration_id=action.integration_id,
-            target_identifier=action.config.get("target_identifier"),
-            target_display=action.config.get("target_display"),
-            sentry_app_config=action.data,
-        )
