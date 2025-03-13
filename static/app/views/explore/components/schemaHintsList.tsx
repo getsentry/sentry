@@ -15,6 +15,7 @@ import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {
+  PageParamsProvider,
   useExploreQuery,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -133,9 +134,16 @@ function SchemaHintsList({
     (hint: Tag) => {
       if (hint.key === seeFullListTag.key) {
         if (!isDrawerOpen) {
-          openDrawer(() => <SchemaHintsDrawer hints={filterTagsSorted} />, {
-            ariaLabel: t('Schema Hints Drawer'),
-          });
+          openDrawer(
+            () => (
+              <PageParamsProvider>
+                <SchemaHintsDrawer hints={filterTagsSorted} />
+              </PageParamsProvider>
+            ),
+            {
+              ariaLabel: t('Schema Hints Drawer'),
+            }
+          );
         }
         return;
       }
