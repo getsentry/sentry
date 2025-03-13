@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -63,6 +64,13 @@ export function LaravelOverviewPage() {
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+
+  useEffect(() => {
+    trackAnalytics('laravel-insights.page-view', {
+      organization,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -169,7 +177,7 @@ const WidgetGrid = styled('div')`
   padding-bottom: ${space(2)};
 
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 180px 300px 300px;
+  grid-template-rows: 180px 180px 300px 240px 300px 300px;
   grid-template-areas:
     'requests'
     'duration'
@@ -180,7 +188,7 @@ const WidgetGrid = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 180px 300px;
+    grid-template-rows: 180px 300px 240px 300px;
     grid-template-areas:
       'requests duration'
       'issues issues'

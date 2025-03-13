@@ -552,7 +552,7 @@ export function AutofixChanges({
             <AnimatePresence>
               {agentCommentThread && iconCodeRef.current && (
                 <AutofixHighlightPopup
-                  selectedText="Code Changes"
+                  selectedText=""
                   referenceElement={iconCodeRef.current}
                   groupId={groupId}
                   runId={runId}
