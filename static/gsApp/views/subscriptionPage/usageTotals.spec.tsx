@@ -174,7 +174,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
       '$100,000.00 Reserved'
     );
-    expect(screen.getByText('$40,000')).toBeInTheDocument();
+    expect(screen.getByText('$60,000')).toBeInTheDocument();
     expect(screen.getByText('40% of $100,000')).toBeInTheDocument();
 
     // Expand usage table

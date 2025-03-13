@@ -197,7 +197,7 @@ export function calculateCategoryPrepaidUsage(
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
-    ? (reservedSpend ?? totals.accepted * (reservedCpe ?? 0))
+    ? reservedSpend ?? totals.accepted * (reservedCpe ?? 0)
     : totals.accepted;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
@@ -357,7 +357,7 @@ function UsageTotals({
   const hasReservedBudget = reservedUnits === RESERVED_BUDGET_QUOTA;
   const free = hasReservedBudget ? freeBudget : freeUnits;
   const reserved = hasReservedBudget ? reservedBudget : reservedUnits;
-  const prepaid = hasReservedBudget ? (prepaidBudget ?? 0) : prepaidUnits;
+  const prepaid = hasReservedBudget ? prepaidBudget ?? 0 : prepaidUnits;
 
   const displayGifts = (free || freeBudget) && !isUnlimitedReserved(reservedUnits);
   const reservedTestId = displayGifts ? `gifted-${category}` : `reserved-${category}`;
@@ -431,7 +431,10 @@ function UsageTotals({
   const unusedPrepaidWidth =
     reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
   const totalCategorySpend =
-    (hasReservedBudget ? (reservedSpend ?? 0) : prepaidPrice) + categoryOnDemandSpent;
+    (hasReservedBudget
+      ? subscription.reservedBudgets?.find(budget => category in budget.categories)
+          ?.totalReservedSpend ?? 0
+      : prepaidPrice) + categoryOnDemandSpent;
 
   // Shared on demand spend is gone, another category has spent all of it
   // It is confusing to show on demand spend when the category did not spend any and the budget is gone
@@ -617,19 +620,17 @@ function UsageTotals({
                 )}
                 {isDisplayingSpend ? (
                   prepaidPrice === 0 ? (
-                    !hasReservedBudget && (
-                      <div>
-                        <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                        <LegendPriceSubText>
-                          <ReservedUsage
-                            prepaidUsage={prepaidUsage}
-                            reserved={reserved}
-                            category={category}
-                            productTrial={productTrial}
-                          />
-                        </LegendPriceSubText>
-                      </div>
-                    )
+                    <div>
+                      <LegendTitle>{t('Included in Subscription')}</LegendTitle>
+                      <LegendPriceSubText>
+                        <ReservedUsage
+                          prepaidUsage={prepaidUsage}
+                          reserved={reserved}
+                          category={category}
+                          productTrial={productTrial}
+                        />
+                      </LegendPriceSubText>
+                    </div>
                   ) : // Show reserved budget breakdown by category with the spans category first if DS was active
                   // Otherwise we show a combined table for both accepted and stored spans
                   subscription?.reservedBudgets &&
