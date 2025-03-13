@@ -1,5 +1,4 @@
 from sentry.api.serializers import serialize
-from sentry.incidents.endpoints.serializers.alert_rule_trigger import AlertRuleTriggerSerializer
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
@@ -8,8 +7,6 @@ from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-
-# from sentry.workflow_engine.migration_helpers.alert_rule import get_threshold_type
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -114,14 +111,20 @@ class TestDataConditionSerializer(TestCase):
             if self.resolve_detector_trigger_data_condition.type == Condition.LESS_OR_EQUAL
             else AlertRuleThresholdType.BELOW.value
         )
-        assert (
-            serialized_data_condition["resolveThreshold"] is None
-            if self.alert_rule.resolve_threshold is None
-            else self.warning_trigger.alert_threshold
-        )
+        assert serialized_data_condition["resolveThreshold"] == AlertRuleThresholdType.BELOW
         assert serialized_data_condition["dateCreated"] == self.warning_trigger.date_added
 
-        serialized_alert_rule_trigger = serialize(
-            self.warning_trigger, self.user, AlertRuleTriggerSerializer()
+        serialized_action = serialized_data_condition["actions"][0]
+        assert serialized_action["id"] == str(self.action.id)
+        assert serialized_action["alertRuleTriggerId"] == str(
+            self.warning_detector_trigger_data_condition.id
         )
-        assert serialized_data_condition == serialized_alert_rule_trigger
+        assert serialized_action["type"] == "email"
+        assert serialized_action["targetType"] == "user"
+        assert serialized_action["targetIdentifier"] == str(self.user.id)
+        assert serialized_action["inputChannelId"] is None
+        assert serialized_action["integrationId"] is None
+        assert serialized_action["sentryAppId"] is None
+        assert serialized_action["dateCreated"] == self.action.date_added
+        assert serialized_action["desc"] == f"Send a notification to {self.user.email}"
+        assert serialized_action["priority"] == self.action.data.get("priority")
