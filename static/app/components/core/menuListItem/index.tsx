@@ -6,6 +6,7 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
+  ChonkContentWrap,
   ChonkInnerWrap,
   type Priority,
 } from 'sentry/components/core/menuListItem/index.chonk';
@@ -384,23 +385,24 @@ const getVerticalPadding = (size: Props['size']) => {
   }
 };
 
-const ContentWrap = styled('div')<{
-  isFocused: boolean;
-  showDivider: boolean;
-  size: Props['size'];
-}>`
-  position: relative;
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  gap: ${space(1)};
-  justify-content: space-between;
-  padding: ${p => getVerticalPadding(p.size)} 0;
+const ContentWrap = withChonk(
+  styled('div')<{
+    isFocused: boolean;
+    showDivider: boolean;
+    size: Props['size'];
+  }>`
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    gap: ${space(1)};
+    justify-content: space-between;
+    padding: ${p => getVerticalPadding(p.size)} 0;
 
-  ${p =>
-    p.showDivider &&
-    !p.isFocused &&
-    `
+    ${p =>
+      p.showDivider &&
+      !p.isFocused &&
+      `
       li:not(:last-child) &::after {
         content: '';
         position: absolute;
@@ -411,7 +413,9 @@ const ContentWrap = styled('div')<{
         box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
       }
     `}
-`;
+  `,
+  ChonkContentWrap
+);
 
 export const LeadingItems = styled('div')<{
   disabled: boolean;

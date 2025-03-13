@@ -77,3 +77,49 @@ export const ChonkInnerWrap = chonkStyled('div', {
       }
     `}
   `;
+
+/**
+ * Returns the appropriate vertical padding based on the size prop. To be used
+ * as top/bottom padding/margin in ContentWrap and LeadingItems.
+ */
+const getVerticalPadding = (size: FormSize) => {
+  switch (size) {
+    case 'xs':
+      return space(0.5);
+    case 'sm':
+      return space(0.75);
+    case 'md':
+    default:
+      return space(1);
+  }
+};
+
+export const ChonkContentWrap = chonkStyled('div')<{
+  isFocused: boolean;
+  showDivider: boolean;
+  size: FormSize;
+}>`
+    position: relative;
+    width: 100%;
+    height: ${p => p.theme.form[p.size ?? 'md'].height};
+    min-width: 0;
+    display: flex;
+    gap: ${space(1)};
+    justify-content: space-between;
+    padding: ${p => getVerticalPadding(p.size)} 0;
+
+    ${p =>
+      p.showDivider &&
+      !p.isFocused &&
+      `
+      li:not(:last-child) &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 1px;
+        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
+      }
+    `}
+  `;
