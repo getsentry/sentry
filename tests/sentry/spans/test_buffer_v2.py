@@ -49,7 +49,7 @@ def assert_clean(client: StrictRedis[bytes]):
     Note: CANNOT be done in pytest fixture as that one runs _after_ redis gets
     wiped by the test harness.
     """
-    assert not [x for x in client.keys("*") if b":sr:" not in x and b":hrs:" not in x]
+    assert not [x for x in client.keys("*") if b":hrs:" not in x]
 
 
 @pytest.mark.parametrize(
@@ -58,28 +58,28 @@ def assert_clean(client: StrictRedis[bytes]):
         itertools.permutations(
             [
                 Span(
-                    payload=_payload(b"a" * 32),
+                    payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
-                    span_id="c" * 16,
+                    span_id="a" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=_payload(b"b" * 32),
+                    payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=_payload(b"c" * 32),
+                    payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
-                    span_id="e" * 16,
+                    span_id="c" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=_payload(b"d" * 32),
+                    payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
@@ -98,10 +98,10 @@ def test_basic(buffer: RedisSpansBufferV2, spans):
     _, rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): {
-            _payload(b"d" * 32),
-            _payload(b"b" * 32),
-            _payload(b"a" * 32),
-            _payload(b"c" * 32),
+            _payload(b"d" * 16),
+            _payload(b"b" * 16),
+            _payload(b"a" * 16),
+            _payload(b"c" * 16),
         }
     }
     buffer.done_flush_segments(rv)
@@ -176,28 +176,28 @@ def test_deep(buffer: RedisSpansBufferV2, spans):
         itertools.permutations(
             [
                 Span(
-                    payload=_payload(b"a" * 32),
+                    payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=_payload(b"b" * 32),
+                    payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=_payload(b"c" * 32),
+                    payload=_payload(b"e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
                 Span(
-                    payload=_payload(b"d" * 32),
+                    payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
@@ -214,7 +214,7 @@ def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
 
     assert buffer.flush_segments(now=5) == (2, {})
     _, rv = buffer.flush_segments(now=11)
-    assert rv == {_segment_id(2, "a" * 32, "b" * 16): {_payload(b"d" * 32)}}
+    assert rv == {_segment_id(2, "a" * 32, "b" * 16): {_payload(b"b" * 16)}}
     buffer.done_flush_segments(rv)
 
     # TODO: flush faster, since we already saw parent in other project
@@ -222,9 +222,9 @@ def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
     _, rv = buffer.flush_segments(now=60)
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): {
-            _payload(b"a" * 32),
-            _payload(b"b" * 32),
-            _payload(b"c" * 32),
+            _payload(b"c" * 16),
+            _payload(b"d" * 16),
+            _payload(b"e" * 16),
         }
     }
     buffer.done_flush_segments(rv)

@@ -263,7 +263,7 @@ class RedisSpansBufferV2:
                     segment_id_parts = segment_id.split(b":")
                     project_id = segment_id_parts[2][1:]
                     trace_id = segment_id_parts[3][:-1]
-                    redirect_map_key = f"span-buf:sr:{project_id}:{trace_id}"
+                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     shard = self.assigned_shards[int(trace_id, 16) % len(self.assigned_shards)]
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
