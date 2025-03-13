@@ -20,7 +20,9 @@ export const getChonkStylesConfig = ({
   maxMenuWidth,
   isInsideModal,
   isSearchable,
+  isDisabled,
 }: {
+  isDisabled: boolean | undefined;
   isInsideModal: boolean | undefined;
   isSearchable: boolean | undefined;
   maxMenuWidth: string | number | undefined;
@@ -37,7 +39,7 @@ export const getChonkStylesConfig = ({
     ...provided,
     padding: '4px',
     alignItems: 'center',
-    cursor: 'pointer',
+    cursor: state.isDisabled ? 'not-allowed' : 'pointer',
     color: state.isDisabled ? theme.disabled : theme.textColor,
     ':hover': {
       color: 'currentcolor',
@@ -103,7 +105,7 @@ export const getChonkStylesConfig = ({
     }),
     valueContainer: (provided, state) => ({
       ...provided,
-      cursor: isSearchable ? 'default' : 'pointer',
+      cursor: isDisabled ? 'not-allowed' : isSearchable ? 'default' : 'pointer',
       alignItems: 'center',
       // flex alignItems makes sure we don't need paddings
       paddingTop: 0,
