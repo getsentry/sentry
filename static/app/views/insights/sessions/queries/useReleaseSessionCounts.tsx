@@ -79,7 +79,7 @@ export default function useReleaseSessionCounts() {
       seriesName: `${release}_total_sessions`,
       meta: {
         fields: {
-          [`${release}_total_sessions`]: 'number' as const,
+          [`${release}_total_sessions`]: 'integer' as const,
           time: 'date' as const,
         },
         units: {},
