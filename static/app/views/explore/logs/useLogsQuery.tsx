@@ -6,6 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   useLogsBaseSearch,
+  useLogsCursor,
   useLogsFields,
   useLogsProjectIds,
   useLogsSearch,
@@ -26,6 +27,7 @@ export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
 export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const _search = useLogsSearch();
   const baseSearch = useLogsBaseSearch();
+  const cursor = useLogsCursor();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const projectIds = useLogsProjectIds();
@@ -38,6 +40,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const {data, meta, isError, isPending, pageLinks} = useOurlogs(
     {
       ...options,
+      cursor,
       sorts: sortBys,
       fields: Array.from(extendedFields),
       search,
@@ -79,6 +82,7 @@ export function useExploreLogsTableRow(_props: {
   const _project = projects.find(p => p.id === _props.project_id);
 
   const {data, isError, isPending} = useQuery<OurLogsTableRowDetails>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['logs-table-row', _props.log_id, _props.project_id],
     queryFn: async () => {
       if (!_project) {

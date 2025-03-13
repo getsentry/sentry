@@ -6,12 +6,13 @@ import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
+import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {
+  InnerWrap as MenuListItemInnerWrap,
+  MenuListItem,
+} from 'sentry/components/core/menuListItem';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import type {MenuListItemProps} from 'sentry/components/menuListItem';
-import MenuListItem, {
-  InnerWrap as MenuListItemInnerWrap,
-} from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {useNavigate} from 'sentry/utils/useNavigate';
