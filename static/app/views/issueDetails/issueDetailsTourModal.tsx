@@ -7,6 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 interface IssueDetailsTourModalProps extends ModalRenderProps {
   handleDismissTour: () => void;
@@ -38,7 +39,7 @@ export function IssueDetailsTourModal({
 
 const ImageContainer = styled('div')`
   width: 100%;
-  height: 260px;
+  height: 226px;
   background-image: url(${issueDetailsPreviewImage});
   background-size: cover;
   background-position: center;
@@ -51,7 +52,7 @@ const TourContainer = styled('div')`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.inverted.backgroundElevated};
+  background: ${darkTheme.backgroundElevated};
   overflow: hidden;
 `;
 
@@ -60,14 +61,14 @@ const TextContainer = styled('div')`
 `;
 
 const Header = styled('div')`
-  color: ${p => p.theme.inverted.headingColor};
+  color: ${darkTheme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.inverted.subText};
+  color: ${darkTheme.subText};
 `;
 
 const Footer = styled('div')`
@@ -78,21 +79,21 @@ const Footer = styled('div')`
 `;
 
 const InvertedButton = styled(Button)`
-  color: ${p => p.theme.inverted.textColor};
+  color: ${darkTheme.textColor};
   &:hover,
   &:active,
   &:focus {
-    color: ${p => p.theme.inverted.textColor};
+    color: ${darkTheme.textColor};
   }
 `;
 
 const InvertedButtonPrimary = styled(Button)`
-  background: ${p => p.theme.backgroundElevated};
-  color: ${p => p.theme.textColor};
+  background: ${lightTheme.backgroundElevated};
+  color: ${lightTheme.textColor};
   &:hover,
   &:active,
   &:focus {
-    color: ${p => p.theme.textColor};
+    color: ${lightTheme.textColor};
   }
 `;
 
