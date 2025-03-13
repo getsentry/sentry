@@ -481,7 +481,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     {"displayType": "displayType is required during creation."}
                 )
 
-        # Validate limit on chart widgets
+        # Validate limit on chart widgets with group-by columns:
+        # if there are too many groups the server cannot serve the
+        # request to get widget data and hence the chart fails to load.
         if (
             data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
             and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
