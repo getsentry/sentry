@@ -74,7 +74,6 @@ RUN set -x \
   && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
   && rm -rf /tmp/requirements-frozen.txt /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
   && apt-get purge -y --auto-remove $buildDeps \
-  && apt-get install -y htop gcc && pip install madbg \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   # Fully verify that the C extension is correctly installed, it unfortunately
