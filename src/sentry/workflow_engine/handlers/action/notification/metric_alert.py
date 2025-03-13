@@ -126,20 +126,15 @@ class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
         cls,
         notification_context: NotificationContext,
         alert_context: AlertContext,
-        job: WorkflowJob,
+        metric_issue_context: MetricIssueContext,
         organization: Organization,
         notification_uuid: str,
     ) -> None:
-        from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(
+        send_opsgenie_incident_alert_notification(
             notification_context=notification_context,
             alert_context=alert_context,
-            # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
-            open_period_identifier=job["event"].group.id,
+            metric_issue_context=metric_issue_context,
             organization=organization,
-            snuba_query=cls.get_snuba_query(job),
-            new_status=cls.get_new_status(job),
-            metric_value=cls.get_metric_value(job),
             notification_uuid=notification_uuid,
         )
