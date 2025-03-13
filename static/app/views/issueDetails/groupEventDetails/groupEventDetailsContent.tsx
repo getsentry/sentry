@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {CombinedBreadcrumbsAndLogsSection} from 'sentry/components/events/breadcrumbs/combinedBreadcrumbsAndLogsSection';
 import {EventContexts} from 'sentry/components/events/contexts';
