@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {MenuListItem} from 'sentry/components/core/menuListItem';
-import {ChonkCheckWrap} from 'sentry/components/core/menuListItem/index.chonk';
+import {ChonkCheckWrap} from 'sentry/components/core/select/index.chonk';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';

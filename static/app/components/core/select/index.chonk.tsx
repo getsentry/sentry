@@ -9,6 +9,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
@@ -235,3 +236,42 @@ export function ChonkDropdownIndicator(
     </selectComponents.DropdownIndicator>
   );
 }
+
+export const ChonkCheckWrap = chonkStyled('div')<{
+  isMultiple: boolean;
+  isSelected: boolean;
+}>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  ${p =>
+    p.isMultiple
+      ? `
+      width: 1em;
+      height: 1em;
+      padding: 1px;
+      border: solid 1px ${p.theme.border};
+      background: ${p.theme.backgroundElevated};
+      border-radius: 2px;
+      box-shadow: inset ${p.theme.dropShadowMedium};
+      ${
+        p.isSelected &&
+        `
+        background: ${p.theme.purple300};
+        border-color: ${p.theme.purple300};
+       `
+      }
+    `
+      : `
+      width: 1em;
+      height: 1.4em;
+      padding-bottom: 1px;
+      ${
+        p.isSelected &&
+        `
+        color: ${p.theme.colors.content.accent};
+       `
+      }
+    `}
+`;
