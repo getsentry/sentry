@@ -5,7 +5,6 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.snuba.dataset import Dataset
 from sentry.seer.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
@@ -15,6 +14,7 @@ from sentry.seer.autofix import (
     _respond_with_error,
     trigger_autofix,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
