@@ -142,7 +142,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Saved Query",
+        operation_id="Create a New Trace Explorer Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ExploreSavedQuerySerializer,
         responses={
@@ -155,7 +155,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a new saved query for the given organization.
+        Create a new trace explorersaved query for the given organization.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
