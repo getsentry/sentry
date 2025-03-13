@@ -219,9 +219,14 @@ Sentry.init({
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+    profileSessionSampleRate: 1.0,
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
-      : ''
+      : `
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init
+    profileSessionSampleRate: 1.0,
+    `
   }});${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'

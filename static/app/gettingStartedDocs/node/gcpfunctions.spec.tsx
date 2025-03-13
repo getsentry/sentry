@@ -54,6 +54,9 @@ describe('gcpfunctions onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1.0/))
+    ).toBeInTheDocument();
   });
 
   it('enables profiling by setting profiling samplerates', () => {

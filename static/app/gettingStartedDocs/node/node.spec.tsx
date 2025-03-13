@@ -39,6 +39,9 @@ describe('node onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1.0/))
+    ).toBeInTheDocument();
   });
 
   it('enables performance setting the tracesSampleRate to 1', () => {

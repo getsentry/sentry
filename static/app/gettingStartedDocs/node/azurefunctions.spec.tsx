@@ -68,6 +68,9 @@ describe('express onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1.0/))
+    ).toBeInTheDocument();
   });
 
   it('continuous profiling', () => {
