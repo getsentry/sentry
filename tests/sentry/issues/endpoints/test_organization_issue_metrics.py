@@ -3,11 +3,9 @@ from datetime import datetime, timedelta, timezone
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
 
 
-@freeze_time()
-class OrganizationIssueBreakdownTest(APITestCase):
+class OrganizationIssueMetricsTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-issue-metrics"
 
     def setUp(self):
@@ -15,25 +13,91 @@ class OrganizationIssueBreakdownTest(APITestCase):
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_issues_by_time(self):
+    def test_get(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
+        one = self.create_release(project1, version="1.0.0")
+        two = self.create_release(project2, version="1.2.0")
 
-        today = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
-        next = today + timedelta(hours=1)
-        prev = today - timedelta(hours=1)
-        self.create_group(project=project1, status=0, first_seen=today, type=1)
-        self.create_group(project=project1, status=1, first_seen=today, resolved_at=today, type=2)
-        self.create_group(project=project2, status=1, first_seen=next, resolved_at=next, type=3)
-        self.create_group(project=project2, status=2, first_seen=next, type=4)
-        self.create_group(project=project2, status=2, first_seen=next, type=6)
+        curr = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+        prev = curr - timedelta(hours=1)
 
-        response = self.client.get(self.url + "?statsPeriod=1h&category=error")
+        # Release issues.
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=one, type=1)
+        self.create_group(project=project1, status=1, first_seen=prev, first_release=one, type=2)
+        self.create_group(project=project2, status=1, first_seen=curr, first_release=two, type=3)
+        self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=4)
+        self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=6)
+
+        # Time based issues.
+        self.create_group(project=project1, status=0, first_seen=curr, type=1)
+        self.create_group(project=project1, status=1, first_seen=curr, resolved_at=curr, type=2)
+        self.create_group(project=project2, status=1, first_seen=prev, resolved_at=prev, type=3)
+        self.create_group(project=project2, status=2, first_seen=prev, type=4)
+        self.create_group(project=project2, status=2, first_seen=prev, type=6)
+
+        response = self.client.get(
+            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
+        )
         response_json = response.json()
-        assert response_json["data"] == [
-            [str(int(prev.timestamp())), [{"count": 0}, {"count": 0}]],
-            [str(int(today.timestamp())), [{"count": 2}, {"count": 1}]],
-            [str(int(next.timestamp())), [{"count": 2}, {"count": 1}]],
+        assert response_json["timeseries"] == [
+            {
+                "axis": "new_issues_count",
+                "meta": {
+                    "groupBy": [],
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "type": "integer",
+                    "unit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 3},
+                    {"timestamp": int(curr.timestamp()), "value": 5},
+                ],
+            },
+            {
+                "axis": "resolved_issues_count",
+                "meta": {
+                    "groupBy": [],
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "type": "integer",
+                    "unit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 1},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "meta": {
+                    "groupBy": ["1.0.0"],
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "type": "integer",
+                    "unit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 1},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "meta": {
+                    "groupBy": ["1.2.0"],
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 1,
+                    "type": "integer",
+                    "unit": None,
+                },
+                "values": [{"timestamp": int(curr.timestamp()), "value": 2}],
+            },
         ]
 
     def test_issues_by_release(self):

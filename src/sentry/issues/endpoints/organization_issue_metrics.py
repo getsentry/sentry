@@ -1,9 +1,11 @@
+import collections
 from collections.abc import Iterator
 from datetime import datetime, timedelta
+from itertools import chain
 from typing import Any, TypedDict
 
-from django.db.models import Count, F, Q
-from django.db.models.functions import TruncHour
+from django.db.models import Count, DateTimeField, F, Func, Q
+from django.db.models.functions import Extract
 from django.db.models.query import QuerySet
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -40,49 +42,154 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             if issue_category == "error"
             else Q(type=GroupCategory.FEEDBACK)
         )
-        group_by = request.GET.get("group_by", "time")
 
-        # Start/end truncation and interval generation.
-        interval = timedelta(hours=1)  # interval = request.GET.get("interval", "1d")
+        interval_s = int(request.GET.get("interval", 3_600_000)) // 1000  # TODO: Safe parse
+        interval = timedelta(seconds=interval_s)
         start, end = get_date_range_from_params(request.GET)
-        end = end.replace(minute=0, second=0, microsecond=0) + interval
-        start = start.replace(minute=0, second=0, microsecond=0)
 
-        if group_by == "time":
-            # Series queries.
-            new_series = query_new_issues(projects, environments, type_filter, start, end)
-            resolved_series = query_resolved_issues(projects, environments, type_filter, start, end)
-
-            # Filling and formatting.
-            series_response = empty_response(start, end, interval)
-            append_series(series_response, new_series)
-            append_series(series_response, resolved_series)
-        elif group_by == "release":
-            series_response = query_issues_by_release(
-                projects, environments, type_filter, start, end
+        def gen_ts(qs: QuerySet[Group], group_by: list[str], source: str, axis: str):
+            qs = make_timeseries_query(
+                qs,
+                projects,
+                environments,
+                type_filter,
+                group_by,
+                interval,
+                source,
+                start,
+                end,
             )
-        else:
-            return Response("Valid options for group_by are 'time' and 'release'", status=404)
+
+            grouped_series = collections.defaultdict(list)
+            for row in qs:
+                grouping = [row[g] for g in group_by]
+                key = "||||".join(grouping)
+                grouped_series[key].append({"timestamp": row["timestamp"], "value": row["value"]})
+
+            return [
+                make_timeseries_result(
+                    axis=axis,
+                    group=key.split("||||") if key else [],
+                    interval=interval.seconds * 1000,
+                    order=i,
+                    values=series,
+                )
+                for i, (key, series) in enumerate(grouped_series.items())
+            ]
 
         return Response(
             {
-                "data": [[bucket, series] for bucket, series in series_response.items()],
-                "start": int(start.timestamp()),
-                "end": int(end.timestamp()),
-                # I have no idea what purpose this data serves on the front-end.
-                "isMetricsData": False,
+                "timeseries": chain(
+                    gen_ts(query_new_issues(), [], "first_seen", "new_issues_count"),
+                    gen_ts(query_resolved_issues(), [], "resolved_at", "resolved_issues_count"),
+                    gen_ts(
+                        query_issues_by_release(),
+                        ["first_release__version"],
+                        "first_seen",
+                        "new_issues_count_by_release",
+                    ),
+                ),
                 "meta": {
-                    "fields": {"time": "date", "issues_count": "integer"},
-                    "units": {"time": None, "issues_count": None},
-                    "isMetricsData": False,
-                    "isMetricsExtractedData": False,
-                    "tips": {},
-                    "datasetReason": "unchanged",
-                    "dataset": "groups",
+                    "dataset": "issues",
+                    "end": end.timestamp(),
+                    "start": start.timestamp(),
                 },
             },
             status=200,
         )
+
+
+class TimeSeries(TypedDict):
+    timestamp: float
+    value: float
+
+
+class TimeSeriesResultMeta(TypedDict):
+    groupby: list[str]
+    interval: float
+    isOther: bool
+    order: int
+    type: str
+    unit: str | None
+
+
+class TimeSeriesResult(TypedDict):
+    axis: str
+    meta: TimeSeriesResultMeta
+    values: list[TimeSeries]
+
+
+def make_timeseries_query(
+    qs: QuerySet[Group],
+    projects: list[Project],
+    environments: list[int],
+    type_filter: Q,
+    group_by: list[str],
+    stride: timedelta,
+    source: str,
+    start: datetime,
+    end: datetime,
+) -> QuerySet[Group, dict[str, Any]]:
+    environment_filter = (
+        Q(groupenvironment__environment_id=environments[0]) if environments else Q()
+    )
+    range_filters = {f"{source}__gte": start, f"{source}__lte": end}
+
+    annotations = {}
+    order_by = []
+    values = []
+    for group in group_by:
+        annotations[group] = F(group)
+        order_by.append(group)
+        values.append(group)
+
+    order_by.append("timestamp")
+    values.append("timestamp")
+
+    annotations["timestamp"] = Extract(
+        Func(
+            stride,
+            source,
+            start,
+            function="date_bin",
+            output_field=DateTimeField(),
+        ),
+        "epoch",
+    )
+
+    return (
+        qs.filter(
+            environment_filter,
+            type_filter,
+            project_id__in=[p.id for p in projects],
+            **range_filters,
+        )
+        .annotate(**annotations)
+        .order_by(*order_by)
+        .values(*values)
+        .annotate(value=Count("id"))
+    )
+
+
+def make_timeseries_result(
+    axis: str,
+    group: list[str],
+    interval: int,
+    order: int,
+    values: list[TimeSeries],
+) -> TimeSeriesResult:
+    return {
+        "axis": axis,
+        "meta": {
+            "groupBy": group,
+            "interval": interval,
+            "isOther": False,
+            "order": order,
+            "type": "integer",
+            "unit": None,
+        },
+        "values": values,
+    }
 
 
 # Series generation.
@@ -100,88 +207,19 @@ class SeriesResponseItem(TypedDict):
 SeriesResponse = dict[str, list[SeriesResponseItem]]
 
 
-def query_new_issues(
-    projects: list[Project],
-    environments: list[int],
-    type_filter: Q,
-    start: datetime,
-    end: datetime,
-) -> list[dict[str, Any]]:
+def query_new_issues() -> QuerySet[Group]:
     # SELECT count(*), day(first_seen) FROM issues GROUP BY day(first_seen)
-    group_environment_filter = (
-        Q(groupenvironment__environment_id=environments[0]) if environments else Q()
-    )
-
-    issues_query = (
-        Group.objects.filter(
-            group_environment_filter,
-            type_filter,
-            first_seen__gte=start,
-            first_seen__lte=end,
-            project__in=projects,
-        )
-        .annotate(bucket=TruncHour("first_seen"))
-        .order_by("bucket")
-        .values("bucket")
-        .annotate(count=Count("id"))
-    )
-    return list(issues_query)
+    return Group.objects
 
 
-def query_resolved_issues(
-    projects: list[Project],
-    environments: list[int],
-    type_filter: Q,
-    start: datetime,
-    end: datetime,
-) -> list[dict[str, Any]]:
+def query_resolved_issues() -> QuerySet[Group]:
     # SELECT count(*), day(resolved_at) FROM issues WHERE status = resolved GROUP BY day(resolved_at)
-    group_environment_filter = (
-        Q(groupenvironment__environment_id=environments[0]) if environments else Q()
-    )
-    resolved_issues_query = (
-        Group.objects.filter(
-            group_environment_filter,
-            type_filter,
-            resolved_at__gte=start,
-            resolved_at__lte=end,
-            project__in=projects,
-            status=GroupStatus.RESOLVED,
-        )
-        .annotate(bucket=TruncHour("resolved_at"))
-        .order_by("bucket")
-        .values("bucket")
-        .annotate(count=Count("id"))
-    )
-    return list(resolved_issues_query)
+    return Group.objects.filter(status=GroupStatus.RESOLVED)
 
 
-def query_issues_by_release(
-    projects: list[Project],
-    environments: list[int],
-    type_filter: Q,
-    start: datetime,
-    end: datetime,
-) -> SeriesResponse:
+def query_issues_by_release() -> QuerySet[Group]:
     # SELECT count(*), first_release.version FROM issues JOIN release GROUP BY first_release.version
-    group_environment_filter = (
-        Q(groupenvironment__environment_id=environments[0]) if environments else Q()
-    )
-    issues_by_release_query = (
-        Group.objects.filter(
-            group_environment_filter,
-            type_filter,
-            first_seen__gte=start,
-            first_seen__lte=end,
-            project__in=projects,
-            first_release__isnull=False,
-        )
-        .annotate(bucket=F("first_release__version"))
-        .order_by("bucket")
-        .values("bucket")
-        .annotate(count=Count("id"))
-    )
-    return to_series(issues_by_release_query)
+    return Group.objects.filter(first_release__isnull=False)
 
 
 # Response filling and formatting.
