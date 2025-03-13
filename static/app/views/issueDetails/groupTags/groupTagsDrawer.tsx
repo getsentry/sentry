@@ -263,11 +263,15 @@ export function GroupTagsDrawer({
         {tagKey ? (
           <TagDetailsDrawerContent group={group} />
         ) : tab === FEATURE_FLAGS_TAB ? (
-          <GroupFeatureFlagsDrawerContent
-            group={group}
-            environments={environments}
-            search={search}
-          />
+          <Wrapper>
+            <Container>
+              <GroupFeatureFlagsDrawerContent
+                group={group}
+                environments={environments}
+                search={search}
+              />
+            </Container>
+          </Wrapper>
         ) : isPending || isHighlightsPending ? (
           <LoadingIndicator />
         ) : isError ? (
