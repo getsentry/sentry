@@ -79,11 +79,13 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
     ):
-        assert notification_context.integration_id == integration_id
-        assert notification_context.target_identifier == target_identifier
-        assert notification_context.target_display == target_display
-        assert notification_context.sentry_app_config == sentry_app_config
-        assert notification_context.sentry_app_id == sentry_app_id
+        assert asdict(notification_context) == {
+            "integration_id": integration_id,
+            "target_identifier": target_identifier,
+            "target_display": target_display,
+            "sentry_app_config": sentry_app_config,
+            "sentry_app_id": sentry_app_id,
+        }
 
     def assert_alert_context(
         self,
