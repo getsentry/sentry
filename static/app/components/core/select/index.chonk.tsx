@@ -190,8 +190,7 @@ export const getChonkStylesConfig = ({
           }
         : {
             '&:hover': {
-              color: theme.headingColor,
-              background: theme.backgroundTertiary,
+              background: theme.hover,
             },
           }),
     }),
