@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeAlias
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -22,6 +22,9 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
 
+ResolvedArgument: TypeAlias = AttributeKey | str | int
+ResolvedArguments: TypeAlias = list[ResolvedArgument]
+
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedColumn:
@@ -33,8 +36,6 @@ class ResolvedColumn:
     search_type: constants.SearchType
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Only for aggregates, we only support functions with 1 argument right now
-    argument: AttributeKey | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
@@ -154,6 +155,8 @@ class ResolvedAggregate(ResolvedFunction):
     # Whether to enable extrapolation
     extrapolation: bool = True
     is_aggregate: bool = field(default=True, init=False)
+    # Only for aggregates, we only support functions with 1 argument right now
+    argument: AttributeKey | None = None
 
     @property
     def proto_definition(self) -> AttributeAggregation:
@@ -227,7 +230,7 @@ class FunctionDefinition:
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_argument: AttributeKey | Any | None,
+        resolved_arguments: ResolvedArguments,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -237,8 +240,21 @@ class AggregateDefinition(FunctionDefinition):
     internal_function: Function.ValueType
 
     def resolve(
-        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
     ) -> ResolvedAggregate:
+        if len(resolved_arguments) > 1:
+            raise InvalidSearchQuery(
+                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
+            )
+        resolved_argument = None
+        if len(resolved_arguments) == 1:
+            if not isinstance(resolved_arguments[0], AttributeKey):
+                raise InvalidSearchQuery("Aggregates accept attribute keys only")
+            resolved_argument = resolved_arguments[0]
+
         return ResolvedAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
@@ -261,31 +277,32 @@ class ConditionalAggregateDefinition(FunctionDefinition):
 
     # The type of aggregation (ex. sum, avg)
     internal_function: Function.ValueType
-    # The attribute to conditionally aggregate on
-    key: AttributeKey
-    # A function that takes in the resolved argument and returns the condition to filter on
-    filter_resolver: Callable[..., TraceItemFilter]
+    # A function that takes in the resolved argument and returns the condition to filter on and the key to aggregate on
+    aggregate_resolver: Callable[[ResolvedArguments], tuple[AttributeKey, TraceItemFilter]]
 
     def resolve(
-        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
     ) -> ResolvedConditionalAggregate:
+        key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
             internal_type=self.internal_type,
-            filter=self.filter_resolver(resolved_argument),
-            key=self.key,
+            filter=filter,
+            key=key,
             processor=self.processor,
             extrapolation=self.extrapolation,
-            argument=resolved_argument,
         )
 
 
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[[Any], Column.BinaryFormula]
+    formula_resolver: Callable[..., Column.BinaryFormula]
     is_aggregate: bool
 
     @property
@@ -296,14 +313,13 @@ class FormulaDefinition(FunctionDefinition):
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_argument: AttributeKey | Any | None,
+        resolved_arguments: list[AttributeKey | Any],
     ) -> ResolvedFormula:
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_argument),
+            formula=self.formula_resolver(resolved_arguments),
             is_aggregate=self.is_aggregate,
-            argument=resolved_argument,
             internal_type=self.internal_type,
             processor=self.processor,
         )
