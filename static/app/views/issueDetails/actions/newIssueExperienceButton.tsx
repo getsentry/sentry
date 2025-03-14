@@ -171,6 +171,10 @@ export function NewIssueExperienceButton() {
     },
   ];
 
+  if (items.every(item => item.hidden)) {
+    return null;
+  }
+
   return (
     <TourGuide
       title={t('Come back anytime')}
@@ -187,7 +191,7 @@ export function NewIssueExperienceButton() {
           <StyledDropdownButton
             {...triggerProps}
             size={hasStreamlinedUI ? 'xs' : 'sm'}
-            aria-label={t('Switch issue experience')}
+            aria-label={t('Manage issue experience')}
           >
             {/* Passing icon as child to avoid extra icon margin */}
             <IconLab isSolid={hasStreamlinedUI} />
