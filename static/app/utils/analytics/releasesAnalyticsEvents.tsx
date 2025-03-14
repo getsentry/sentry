@@ -1,6 +1,7 @@
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 
 export type ReleasesEventParameters = {
+  'releases.bubbles_legend': {selected: boolean};
   'releases.change_chart_type': {chartType: ReleaseComparisonChartType};
   'releases.quickstart_copied': {project_id: string};
   'releases.quickstart_create_integration.success': {
@@ -21,4 +22,5 @@ export const releasesEventMap: Record<ReleasesEventKey, string | null> = {
   'releases.quickstart_create_integration_modal.close':
     'Releases: Quickstart Create Integration Modal Exit',
   'releases.change_chart_type': 'Releases: Change Chart Type',
+  'releases.bubbles_legend': 'Releases: Toggle Legend for Bubble',
 };
