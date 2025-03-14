@@ -766,30 +766,30 @@ class SearchResolver:
                 and parsed_argument.search_type not in argument.argument_types
             ):
                 raise InvalidSearchQuery(
-                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a field that are one of these types: {argument.argument_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument.argument_types}"
                 )
             parsed_args.append(parsed_argument)
 
-        # Proto doesn't support anything more than 1 argument yet
-        if len(parsed_args) > 1:
-            raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_args) == 1:
-            parsed_arg = parsed_args[0]
+        resolved_arguments = []
+        for parsed_arg in parsed_args:
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
                 search_type = function_definition.default_search_type
             elif isinstance(parsed_arg.proto_definition, AttributeKey):
                 resolved_argument = parsed_arg.proto_definition
-                search_type = (
-                    parsed_arg.search_type
-                    if function_definition.infer_search_type_from_arguments
-                    else function_definition.default_search_type
-                )
-        else:
-            resolved_argument = None
-            search_type = function_definition.default_search_type
+            resolved_arguments.append(resolved_argument)
 
-        resolved_function = function_definition.resolve(alias, search_type, resolved_argument)
+        # We assume the first argument contains the resolved search_type as this is always the case for now
+        if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
+            search_type = function_definition.default_search_type
+        else:
+            search_type = (
+                parsed_args[0].search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
+            )
+
+        resolved_function = function_definition.resolve(alias, search_type, resolved_arguments)
 
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)
