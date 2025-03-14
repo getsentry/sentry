@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
@@ -6,6 +7,7 @@ import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -70,9 +72,11 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
                   key={project.id}
                   to={`${baseUrl}/projects/${project.slug}/`}
                   leadingItems={
-                    <ProjectIcon
-                      projectPlatforms={project.platform ? [project.platform] : []}
-                    />
+                    <IconWrap>
+                      <ProjectIcon
+                        projectPlatforms={project.platform ? [project.platform] : []}
+                      />
+                    </IconWrap>
                   }
                 >
                   {project.slug}
@@ -98,3 +102,7 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
 
   return <InsightsSecondaryNav>{children}</InsightsSecondaryNav>;
 }
+
+const IconWrap = styled('div')`
+  margin-right: ${space(0.75)};
+`;

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {IconAllProjects} from 'sentry/components/nav/iconAllProjects';
-import {space} from 'sentry/styles/space';
 
 interface ProjectIconProps {
   projectPlatforms: string[];
@@ -45,7 +44,6 @@ const IconWrap = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const IconContainer = styled('div')`
