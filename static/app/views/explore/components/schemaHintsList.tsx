@@ -12,7 +12,12 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
-import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
@@ -164,9 +169,12 @@ function SchemaHintsList({
       }
 
       const newSearchQuery = new MutableSearch(exploreQuery);
+      const isBoolean =
+        getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
+        FieldValueType.BOOLEAN;
       newSearchQuery.addFilterValue(
         hint.key,
-        hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
       );
       setExploreQuery(newSearchQuery.formatString());
     },
