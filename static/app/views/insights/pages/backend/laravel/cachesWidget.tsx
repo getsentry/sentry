@@ -88,7 +88,11 @@ export function CachesWidget({query}: {query?: string}) {
   });
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+    if (
+      (!timeSeriesRequest.data && timeSeriesRequest.meta) ||
+      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
+      'data' in timeSeriesRequest.data
+    ) {
       return [];
     }
 
