@@ -17,7 +17,8 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionResu
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
-    type = [DataConditionHandler.Type.WORKFLOW_TRIGGER, DataConditionHandler.Type.ACTION_FILTER]
+    type = DataConditionHandler.Type.ACTION_FILTER
+    filter_group = DataConditionHandler.FilterGroup.FREQUENCY
 
     comparison_json_schema = {
         "type": "object",
@@ -43,7 +44,8 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
-    type = [DataConditionHandler.Type.WORKFLOW_TRIGGER, DataConditionHandler.Type.ACTION_FILTER]
+    type = DataConditionHandler.Type.ACTION_FILTER
+    filter_group = DataConditionHandler.FilterGroup.FREQUENCY
 
     comparison_json_schema = {
         "type": "object",

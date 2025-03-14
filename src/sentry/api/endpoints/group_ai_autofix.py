@@ -17,6 +17,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
@@ -74,9 +75,21 @@ class GroupAutofixEndpoint(GroupEndpoint):
         """
         Returns a tree of errors and transactions in the trace for a given event. Does not include non-transaction/non-error spans to reduce noise.
         """
+        trace_id = event.trace_id
+        if not trace_id:
+            return None
+
+        project_ids = list(
+            dict(
+                Project.objects.filter(
+                    organization=project.organization, status=ObjectStatus.ACTIVE
+                ).values_list("id", "slug")
+            ).keys()
+        )
         event_filter = eventstore.Filter(
+            project_ids=project_ids,
             conditions=[
-                ["trace_id", "=", event.trace_id],
+                ["trace_id", "=", trace_id],
             ],
         )
         transactions = eventstore.backend.get_events(
@@ -121,7 +134,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
             if is_transaction:
                 op = event_data.get("contexts", {}).get("trace", {}).get("op")
                 transaction_title = event.title
-                duration_obj = event_data.get("breakdowns", {}).get("total.time", {})
+                duration_obj = (
+                    event_data.get("breakdowns", {}).get("span_ops", {}).get("total.time", {})
+                )
                 duration_str = (
                     f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
                 )

@@ -1796,6 +1796,7 @@ class MetricsDatasetConfig(DatasetConfig):
             return Function("toFloat64", [self.total_score_weights[column]], alias)
 
         # Pull out browser.name filters from the query
+        assert self.builder.query is not None
         parsed_terms = parse_search_query(self.builder.query)
         query = " ".join(
             term.to_query_string()

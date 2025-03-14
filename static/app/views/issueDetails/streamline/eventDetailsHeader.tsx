@@ -142,7 +142,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   });
                 }}
                 triggerLabel={
-                  period === defaultStatsPeriod ? t('Since First Seen') : undefined
+                  period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
+                    ? t('Since First Seen')
+                    : undefined
                 }
                 triggerProps={{
                   borderless: true,
