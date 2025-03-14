@@ -37,7 +37,7 @@ export const getChonkStylesConfig = ({
   const indicatorStyles: StylesConfig['clearIndicator'] &
     StylesConfig['loadingIndicator'] = (provided, state: any) => ({
     ...provided,
-    padding: '4px',
+    padding: '0 4px 0 4px',
     alignItems: 'center',
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',
     color: state.isDisabled ? theme.disabled : theme.textColor,
