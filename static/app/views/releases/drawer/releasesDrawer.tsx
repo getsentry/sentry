@@ -12,6 +12,7 @@ import {
 import {PlatformList} from 'sentry/components/platformList';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
@@ -48,7 +49,7 @@ export function ReleasesDrawer({
   );
   const crumbs = [
     {label: t('Releases'), to: '#'},
-    ...(releaseOrSelected ? [{label: releaseOrSelected, to: '#'}] : []),
+    ...(releaseOrSelected ? [{label: formatVersion(releaseOrSelected), to: '#'}] : []),
   ];
   const title =
     releaseOrSelected && releaseDetailsQuery.data ? (
@@ -56,7 +57,7 @@ export function ReleasesDrawer({
         <PlatformList
           platforms={releaseDetailsQuery.data.projects.map(({platform}) => platform)}
         />
-        {releaseOrSelected}
+        {formatVersion(releaseOrSelected)}
       </ReleaseWithPlatform>
     ) : (
       tn('%s Release', '%s Releases', releases.length ?? 0)
