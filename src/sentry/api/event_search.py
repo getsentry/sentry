@@ -1328,7 +1328,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query,
+    query: str,
     *,
     config: SearchConfig | None = None,
     params=None,
