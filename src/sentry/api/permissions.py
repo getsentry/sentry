@@ -165,6 +165,18 @@ class SentryPermission(ScopedPermission):
             assert False, "Failed to fetch organization in determine_access"
 
         organization = org_context.organization
+        extra = {"organization_id": organization.id, "user_id": user_id}
+
+        if self.is_not_2fa_compliant(request, organization):
+            logger.info(
+                "access.not-2fa-compliant",
+                extra=extra,
+            )
+            if request.user.is_superuser and extract_id_from(organization) != SUPERUSER_ORG_ID:
+                raise SuperuserRequired()
+
+            raise TwoFactorRequired()
+
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
                 request=request,
@@ -184,8 +196,6 @@ class SentryPermission(ScopedPermission):
             rpc_user_org_context=org_context,
         )
 
-        extra = {"organization_id": org_context.organization.id, "user_id": request.user.id}
-
         if auth.is_user_signed_request(request):
             # if the user comes from a signed request
             # we let them pass if sso is enabled
@@ -195,7 +205,7 @@ class SentryPermission(ScopedPermission):
             )
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
-            if self.needs_sso(request, org_context.organization):
+            if self.needs_sso(request, organization):
                 logger.info(
                     "access.must-sso",
                     extra=extra,
@@ -210,16 +220,6 @@ class SentryPermission(ScopedPermission):
                 raise SsoRequired(
                     organization=organization, after_login_redirect=after_login_redirect
                 )
-
-            if self.is_not_2fa_compliant(request, org_context.organization):
-                logger.info(
-                    "access.not-2fa-compliant",
-                    extra=extra,
-                )
-                if request.user.is_superuser and extract_id_from(organization) != SUPERUSER_ORG_ID:
-                    raise SuperuserRequired()
-
-                raise TwoFactorRequired()
 
             if self.is_member_disabled_from_limit(request, org_context):
                 logger.info(
