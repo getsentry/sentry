@@ -108,13 +108,12 @@ export function QueriesWidget({query}: {query?: string}) {
     return Object.keys(timeSeriesRequest.data)
       .filter(key => key !== 'Other')
       .map(key => {
-        const seriesData = timeSeriesRequest.data[key];
+        const seriesData = timeSeriesRequest.data[key]!;
         return {
-          data:
-            seriesData?.data.map(([time, value]) => ({
-              name: new Date(time * 1000).toISOString(),
-              value: value?.[0]?.count || 0,
-            })) ?? [],
+          data: seriesData.data.map(([time, value]) => ({
+            name: new Date(time * 1000).toISOString(),
+            value: value?.[0]?.count || 0,
+          })),
           seriesName: key,
           meta: {
             fields: {
