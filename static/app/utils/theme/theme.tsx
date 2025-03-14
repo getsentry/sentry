@@ -903,7 +903,13 @@ const iconSizes: Sizes = {
 const dataCategory: Record<
   Exclude<
     DataCategory,
-    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
+    | 'profiles'
+    | 'profileChunks'
+    | 'profileDuration'
+    | 'profileDurationUI'
+    | 'spans'
+    | 'spansIndexed'
+    | 'uptime'
   >,
   string
 > = {
