@@ -17,7 +17,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataConditionHandler, DataSourceTypeHandler
 
 
 class ActionSerializerResponse(TypedDict):
@@ -130,6 +130,18 @@ class DataConditionGroupSerializer(Serializer):
             "conditions": attrs.get("conditions"),
             "actions": attrs.get("actions"),
         }
+
+
+@register(DataConditionHandler)
+class DataConditionHandlerSerializer(Serializer):
+    def serialize(self, obj: DataConditionHandler, *args, **kwargs) -> dict[str, Any]:
+        result = {
+            "type": obj.type.value,
+            "comparison_json_schema": obj.comparison_json_schema,
+        }
+        if hasattr(obj, "filter_group"):
+            result["filter_group"] = obj.filter_group.value
+        return result
 
 
 @register(Detector)
