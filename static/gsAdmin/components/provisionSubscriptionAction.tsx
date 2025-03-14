@@ -86,7 +86,6 @@ type Props = {
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
-  canProvisionDsPlan?: boolean; // TODO(DS Spans): remove once we need to provision DS plans
 };
 
 type ModalProps = ModalRenderProps & Props;
@@ -694,7 +693,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   ];
 
   render() {
-    const {Header, Body, closeModal, canProvisionDsPlan = false} = this.props;
+    const {Header, Body, closeModal} = this.props;
     const {data} = this.state;
 
     const isAmEnt = isAmEnterprisePlan(data.plan);
@@ -702,12 +701,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const isAm3Ds = isAm3DsPlan(data.plan);
     const hasCustomSkuPrices = isAmEnt;
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
-
-    if (!canProvisionDsPlan) {
-      this.provisionablePlans = this.provisionablePlans.filter(
-        plan => !isAm3DsPlan(plan[0])
-      );
-    }
 
     return (
       <Fragment>
@@ -1785,7 +1778,7 @@ const StyledDollarsAndCentsField = styled(DollarsAndCentsField)`
 
 const Modal = withApi(ProvisionSubscriptionModal);
 
-type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'canProvisionDsPlan'>;
+type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess'>;
 
 const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});

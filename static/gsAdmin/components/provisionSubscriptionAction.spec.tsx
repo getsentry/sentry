@@ -468,7 +468,6 @@ describe('provisionSubscriptionAction', function () {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
-      canProvisionDsPlan: true,
       onSuccess,
     });
 
@@ -527,7 +526,6 @@ describe('provisionSubscriptionAction', function () {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
-      canProvisionDsPlan: true,
       onSuccess,
     });
 
@@ -1238,7 +1236,6 @@ describe('provisionSubscriptionAction', function () {
       subscription: am3Sub,
       orgId: am3Sub.slug,
       onSuccess,
-      canProvisionDsPlan: true,
     });
 
     renderGlobalModal();
