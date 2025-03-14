@@ -37,6 +37,10 @@ export function IssueViewNavItems({
 
   const queryParams = location.query;
 
+  /**
+   * TODO(msun): Revisit whether we can use the useApiQuery's cache as the
+   * source of truth for the view state, rather than a separate state
+   */
   const [views, setViews] = useState<IssueView[]>(loadedViews);
   const [isDragging, setIsDragging] = useState(false);
   const queryClient = useQueryClient();
