@@ -43,9 +43,7 @@ class WorkflowEngineActionSerializer(Serializer):
 
         result = {
             "id": str(obj.id),
-            "alertRuleTriggerId": str(
-                data_condition_group.id
-            ),  # CEO: it feels wrong to set this, will it mess up customer's workflows?
+            "alertRuleTriggerId": str(data_condition_group.id),
             "type": obj.type,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
             "targetIdentifier": get_identifier_from_action(
