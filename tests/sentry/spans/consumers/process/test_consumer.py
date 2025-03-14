@@ -30,7 +30,7 @@ def test_basic(monkeypatch, request):
         # because we also patched futures.wait
         return None
 
-    fac.producer.produce = produce
+    fac.producer.produce = produce  # type:ignore[method-assign]
 
     commits = []
 
