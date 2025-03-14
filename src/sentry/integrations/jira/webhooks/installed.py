@@ -49,9 +49,9 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             lifecycle.add_extras(
                 {
                     "key_id": key_id,
-                    "base_url": state.get("baseUrl"),
-                    "description": state.get("description"),
-                    "clientKey": state.get("clientKey"),
+                    "base_url": state.get("baseUrl", ""),
+                    "description": state.get("description", ""),
+                    "clientKey": state.get("clientKey", ""),
                 }
             )
 
