@@ -86,6 +86,7 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -426,6 +427,13 @@ class ExhaustiveFixtures(Fixtures):
         if pending_invites:
             for inviter, email in pending_invites.items():
                 OrganizationMember.objects.create(
+                    organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
+                OrganizationMemberInvite.objects.create(
                     organization_id=org.id,
                     role="member",
                     email=email,

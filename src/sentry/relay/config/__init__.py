@@ -159,18 +159,17 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
-    if options.get("relay.emit-generic-inbound-filters"):
-        try:
-            # At the end we compute the generic inbound filters, which are inbound filters expressible with a
-            # conditional DSL that Relay understands.
-            generic_filters = get_generic_filters(project)
-            if generic_filters is not None:
-                filter_settings["generic"] = generic_filters
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception(
-                "Exception while building Relay project config: error building generic filters"
-            )
+    try:
+        # At the end we compute the generic inbound filters, which are inbound filters expressible with a
+        # conditional DSL that Relay understands.
+        generic_filters = get_generic_filters(project)
+        if generic_filters is not None:
+            filter_settings["generic"] = generic_filters
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            "Exception while building Relay project config: error building generic filters"
+        )
 
     return filter_settings
 

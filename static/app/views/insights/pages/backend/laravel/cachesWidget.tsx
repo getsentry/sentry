@@ -24,6 +24,7 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isCacheHitError(error: RequestError | null) {
   return (
@@ -87,7 +88,11 @@ export function CachesWidget({query}: {query?: string}) {
   });
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+    if (
+      (!timeSeriesRequest.data && timeSeriesRequest.meta) ||
+      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
+      'data' in timeSeriesRequest.data
+    ) {
       return [];
     }
 
@@ -126,6 +131,7 @@ export function CachesWidget({query}: {query?: string}) {
       isLoading={isLoading}
       error={error}
       isEmpty={!hasData}
+      emptyMessage={<HighestCacheMissRateTransactionsWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables: timeSeries.map(
