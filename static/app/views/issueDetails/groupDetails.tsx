@@ -639,13 +639,7 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const hasFlagsDistributions = organization.features.includes(
-    'feature-flag-distribution-flyout'
-  );
-  const {openTagsDrawer} = useGroupTagsDrawer({
-    group,
-    includeFeatureFlagsTab: hasFlagsDistributions,
-  });
+  const {openTagsDrawer} = useGroupTagsDrawer({group});
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});

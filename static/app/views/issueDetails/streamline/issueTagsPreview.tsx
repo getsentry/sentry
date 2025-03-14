@@ -172,9 +172,6 @@ function IssueTagButton({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
-  const hasFlagsDistributions = organization.features.includes(
-    'feature-flag-distribution-flyout'
-  );
 
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
@@ -188,7 +185,7 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
+        {t('View All Tags')}
       </VerticalIssueTagsButton>
     );
   }
@@ -203,7 +200,7 @@ function IssueTagButton({
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
+      {t('View all tags')}
     </IssueTagsLink>
   );
 }
