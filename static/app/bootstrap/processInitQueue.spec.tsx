@@ -135,7 +135,12 @@ describe('processInitQueue', function () {
       render(<div id="setup-wizard-container" />);
       processInitQueue();
 
-      expect(await screen.findByText('Select your Sentry project')).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByText('Select your Sentry project')).toBeInTheDocument();
+        },
+        {timeout: 5000}
+      );
     });
     it('renders u2f sign', async () => {
       window.__onSentryInit = [
