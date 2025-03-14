@@ -130,7 +130,6 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     )
     if not decoded_claims:
         raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
-
     return decoded_claims
 
 
