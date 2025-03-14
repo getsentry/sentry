@@ -225,7 +225,7 @@
   },
   "resolutions": {
     "react-mentions/@babel/runtime": "*",
-    "**/react-is": "18.3.1"
+    "**/react-is": "19.0.0"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
