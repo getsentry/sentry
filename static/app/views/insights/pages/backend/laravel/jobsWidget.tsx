@@ -34,7 +34,9 @@ function createEmptySeries(color: string, seriesName: string): DiscoverSeries {
     data: [],
     seriesName,
     meta: {
-      fields: {},
+      fields: {
+        [seriesName]: 'integer',
+      },
       units: {},
     },
     color,
@@ -85,9 +87,7 @@ export function JobsWidget({query}: {query?: string}) {
           fields: {
             [name]: 'integer',
           },
-          units: {
-            [name]: '',
-          },
+          units: {},
         },
         color,
       };
