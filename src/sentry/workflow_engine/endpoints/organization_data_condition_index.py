@@ -1,3 +1,5 @@
+from typing import NotRequired, TypedDict
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -15,6 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.workflow_engine.endpoints.serializers import DataConditionHandlerSerializer
 from sentry.workflow_engine.models.data_condition import IGNORED_CONDITIONS
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -22,7 +25,16 @@ from sentry.workflow_engine.types import DataConditionHandler
 
 
 class DataConditionRequestSerializer(serializers.Serializer):
-    type = serializers.ChoiceField(choices=DataConditionHandler.Type, required=False)
+    type = serializers.ChoiceField(
+        choices=[type.value for type in DataConditionHandler.Type],
+    )
+
+
+class DataConditionHandlerResponse(TypedDict):
+    condition_id: str
+    type: str
+    filter_group: NotRequired[str]
+    comparison_json_schema: dict
 
 
 @region_silo_endpoint
@@ -38,7 +50,9 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
-            201: DataConditionHandlerSerializer,
+            201: inline_sentry_response_serializer(
+                "ListDataConditionHandlerResponse", list[DataConditionHandlerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -59,8 +73,9 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         data_conditions = []
 
         for condition, handler in condition_handler_registry.registrations.items():
-            if not type or (condition not in IGNORED_CONDITIONS and handler.type == type):
-                condition_json = {"condition_id": condition.value}
+            if condition not in IGNORED_CONDITIONS and handler.type == type:
+                condition_json = {"condition_id": condition}
+
                 condition_json.update(
                     serialize(handler, request.user, DataConditionHandlerSerializer())
                 )
