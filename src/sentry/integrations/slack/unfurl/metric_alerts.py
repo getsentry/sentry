@@ -11,9 +11,12 @@ from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
+from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -124,9 +127,12 @@ def _unfurl_metric_alerts(
         chart_url = None
         if features.has("organizations:metric-alert-chartcuterie", org):
             try:
+                alert_rule_serialized_response = serialize(alert_rule, user, AlertRuleSerializer())
                 chart_url = build_metric_alert_chart(
                     organization=org,
-                    alert_rule=alert_rule,
+                    alert_rule_serialized_response=alert_rule_serialized_response,
+                    snuba_query=alert_rule.snuba_query,
+                    alert_context=AlertContext.from_alert_rule_incident(alert_rule),
                     selected_incident=selected_incident,
                     period=link.args["period"],
                     start=link.args["start"],
