@@ -32,7 +32,7 @@ const ChonkComponentWithRef = forwardRef<HTMLDivElement, {theme: DO_NOT_USE_Chon
 
 describe('withChonk', () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     OrganizationStore.onUpdate(OrganizationFixture({features: []}));
   });
 
@@ -49,7 +49,7 @@ describe('withChonk', () => {
   });
 
   it('renders chonk component when chonk is enabled', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -85,7 +85,7 @@ describe('withChonk', () => {
   });
 
   it('passes ref to chonk component', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
