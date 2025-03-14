@@ -88,8 +88,6 @@ def translate_columns(columns):
             translated_columns.append(translated_func)
             continue
 
-        match = fields.is_function(column)
-
         raw_function = match.group("function")
         arguments = fields.parse_arguments(raw_function, match.group("columns"))
         translated_arguments = []
