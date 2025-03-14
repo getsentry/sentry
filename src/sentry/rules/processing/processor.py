@@ -149,7 +149,7 @@ def activate_downstream_actions(
     event: GroupEvent,
     notification_uuid: str | None = None,
     rule_fire_history: RuleFireHistory | None = None,
-    is_post_process: bool | None = None,
+    is_post_process: bool | None = True,
 ) -> MutableMapping[
     str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
 ]:
@@ -184,7 +184,7 @@ def activate_downstream_actions(
             else:
                 grouped_futures[key][1].append(rule_future)
 
-    if is_post_process is not None and features.has(
+    if features.has(
         "organizations:workflow-engine-process-workflows",
         rule.project.organization,
     ):
@@ -399,7 +399,7 @@ class RuleProcessor:
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
-            rule, self.event, notification_uuid, rule_fire_history, is_post_process=True
+            rule, self.event, notification_uuid, rule_fire_history
         )
 
         if not self.grouped_futures:
