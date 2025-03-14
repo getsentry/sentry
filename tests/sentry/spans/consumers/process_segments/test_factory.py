@@ -12,7 +12,7 @@ from sentry.spans.consumers.process_segments.factory import DetectPerformanceIss
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
-from tests.sentry.spans.consumers.process.test_factory import build_mock_span
+from tests.sentry.spans.consumers.process import build_mock_span
 
 SNUBA_SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.SNUBA_SPANS)
 
