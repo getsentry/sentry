@@ -579,7 +579,7 @@ describe('provisionSubscriptionAction', function () {
       categories: {
         errors: MetricHistoryFixture({
           reserved: 100_000,
-          onDemandCpe: 84,
+          paygCpe: 84,
           customPrice: 20_000_00,
         }),
         replays: MetricHistoryFixture({
@@ -1432,10 +1432,10 @@ describe('provisionSubscriptionAction', function () {
           customPriceUptime: 0,
           customPriceTransactions: 100000,
           managed: true,
-          onDemandCpeErrors: 50,
-          onDemandCpeTransactions: 1.11,
-          onDemandCpeReplays: 100,
-          onDemandCpeAttachments: 0.02,
+          paygCpeErrors: 50,
+          paygCpeTransactions: 1.11,
+          paygCpeReplays: 100,
+          paygCpeAttachments: 0.02,
           onDemandInvoicedManual: 'SHARED',
           plan: 'am2_business_ent',
           reservedAttachments: 50,

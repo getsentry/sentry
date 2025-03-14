@@ -638,13 +638,13 @@ export type BillingMetricHistory = {
   customPrice: number | null;
   free: number;
   onDemandBudget: number;
-  onDemandCpe: number | null;
   onDemandQuantity: number;
   onDemandSpendUsed: number;
   /**
    * List order for billing metrics
    */
   order: number;
+  paygCpe: number | null;
   prepaid: number;
   reserved: number | null;
   sentUsageWarning: boolean;

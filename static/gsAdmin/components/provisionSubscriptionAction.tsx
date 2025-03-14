@@ -5,14 +5,16 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import DateTimeField from 'sentry/components/deprecatedforms/dateTimeField';
 import Form from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
@@ -96,6 +98,24 @@ type ModalState = {
   effectiveAtDisabled: boolean;
 };
 
+/**
+ * Convert cents to dollars
+ * @param cents - cents to convert
+ * @returns dollars
+ */
+function toDollars(cents: number | null | undefined, decimals = 0) {
+  if (typeof cents !== 'number') {
+    return cents;
+  }
+  return parseFloat((cents / 100).toFixed(decimals));
+}
+
+/**
+ * Convert cents to annual dollars
+ * @param cents - cents to convert
+ * @param billingInterval - billing interval
+ * @returns annual dollars
+ */
 function toAnnualDollars(
   cents: number | null | undefined,
   billingInterval: string | null | undefined,
@@ -105,9 +125,9 @@ function toAnnualDollars(
     return cents;
   }
   if (billingInterval === 'monthly') {
-    return parseFloat(((cents * 12) / 100).toFixed(decimals));
+    return toDollars(cents * 12, decimals);
   }
-  return parseFloat((cents / 100).toFixed(decimals));
+  return toDollars(cents, decimals);
 }
 
 /**
@@ -146,15 +166,42 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       plan => plan[0] === existingPlanWithoutSuffix
     );
 
-    const reservedBudgets = subscription.reservedBudgets;
-    const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
-    reservedBudgets?.forEach(budget => {
-      Object.entries(budget.categories).forEach(([category, info]) => {
-        reservedBudgetMetricHistories[category] = info;
-      });
-    });
-
     if (existingPlanIsEnterprise) {
+      const reservedBudgets = subscription.reservedBudgets;
+      const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
+        {};
+      reservedBudgets?.forEach(budget => {
+        Object.entries(budget.categories).forEach(([category, info]) => {
+          reservedBudgetMetricHistories[category] = info;
+        });
+      });
+
+      const infoFromMetricHistories: Record<string, any> = {};
+      Object.entries(subscription.categories).forEach(([category, info]) => {
+        const suffix = capitalize(category);
+        infoFromMetricHistories[`reserved${suffix}`] = info.reserved;
+        infoFromMetricHistories[`softCapType${suffix}`] = info.softCapType;
+        infoFromMetricHistories[`customPrice${suffix}`] = toAnnualDollars(
+          info.customPrice,
+          subscription.billingInterval
+        );
+        infoFromMetricHistories[`paygCpe${suffix}`] = toDollars(
+          info.paygCpe,
+          CPE_DECIMAL_PRECISION
+        );
+        infoFromMetricHistories[`reservedCpe${suffix}`] = toDollars(
+          reservedBudgetMetricHistories[category]?.reservedCpe,
+          CPE_DECIMAL_PRECISION
+        );
+        infoFromMetricHistories[`paygCpe${suffix}`] = toDollars(
+          info.paygCpe,
+          CPE_DECIMAL_PRECISION
+        );
+        infoFromMetricHistories[`reservedCpe${suffix}`] = toDollars(
+          reservedBudgetMetricHistories[category]?.reservedCpe,
+          CPE_DECIMAL_PRECISION
+        );
+      });
       this.setState(state => ({
         ...state,
         data: {
@@ -169,61 +216,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
               ? null
               : 'DISABLE',
           managed: subscription.isManaged,
-          reservedErrors: subscription.categories.errors?.reserved,
-          reservedTransactions: subscription.categories.transactions?.reserved,
-          reservedReplays: subscription.categories.replays?.reserved,
-          reservedMonitorSeats: subscription.categories.monitorSeats?.reserved,
-          reservedUptime: subscription.categories.uptime?.reserved,
-          reservedSpans: subscription.categories.spans?.reserved,
-          reservedSpansIndexed: subscription.categories.spansIndexed?.reserved,
-          reservedAttachments: subscription.categories.attachments?.reserved,
-          reservedProfileDuration: subscription.categories.profileDuration?.reserved,
-          softCapTypeErrors: subscription.categories.errors?.softCapType,
-          softCapTypeTransactions: subscription.categories.transactions?.softCapType,
-          softCapTypeReplays: subscription.categories.replays?.softCapType,
-          softCapTypeMonitorSeats: subscription.categories.monitorSeats?.softCapType,
-          softCapTypeUptime: subscription.categories.uptime?.softCapType,
-          softCapTypeSpans: subscription.categories.spans?.softCapType,
-          softCapTypeSpansIndexed: subscription.categories.spansIndexed?.softCapType,
-          softCapTypeAttachments: subscription.categories.attachments?.softCapType,
-          softCapTypeProfileDuration:
-            subscription.categories.profileDuration?.softCapType,
-          customPriceErrors: toAnnualDollars(
-            subscription.categories.errors?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceTransactions: toAnnualDollars(
-            subscription.categories.transactions?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceReplays: toAnnualDollars(
-            subscription.categories.replays?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceMonitorSeats: toAnnualDollars(
-            subscription.categories.monitorSeats?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceUptime: toAnnualDollars(
-            subscription.categories.uptime?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceSpans: toAnnualDollars(
-            subscription.categories.spans?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceSpansIndexed: toAnnualDollars(
-            subscription.categories.spansIndexed?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceAttachments: toAnnualDollars(
-            subscription.categories.attachments?.customPrice,
-            subscription.billingInterval
-          ),
-          customPriceProfileDuration: toAnnualDollars(
-            subscription.categories.profileDuration?.customPrice,
-            subscription.billingInterval
-          ),
           customPricePcss: toAnnualDollars(
             subscription.customPricePcss,
             subscription.billingInterval
@@ -232,62 +224,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             subscription.customPrice,
             subscription.billingInterval
           ),
-          onDemandCpeErrors: toAnnualDollars(
-            subscription.categories.errors?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeTransactions: toAnnualDollars(
-            subscription.categories.transactions?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeReplays: toAnnualDollars(
-            subscription.categories.replays?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeMonitorSeats: toAnnualDollars(
-            subscription.categories.monitorSeats?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeUptime: toAnnualDollars(
-            subscription.categories.uptime?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeSpans: toAnnualDollars(
-            subscription.categories.spans?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeSpansIndexed: toAnnualDollars(
-            subscription.categories.spansIndexed?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeAttachments: toAnnualDollars(
-            subscription.categories.attachments?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          onDemandCpeProfileDuration: toAnnualDollars(
-            subscription.categories.profileDuration?.onDemandCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          // coming from the API, reservedCpe is in cents
-          reservedCpeSpans: toAnnualDollars(
-            reservedBudgetMetricHistories.spans?.reservedCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
-          reservedCpeSpansIndexed: toAnnualDollars(
-            reservedBudgetMetricHistories.spansIndexed?.reservedCpe,
-            null,
-            CPE_DECIMAL_PRECISION
-          ),
+          ...infoFromMetricHistories,
         },
       }));
     }
@@ -302,26 +239,37 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     this.state.data.onDemandInvoicedManual === 'PER_CATEGORY';
 
   isEnablingSoftCap = () =>
-    this.state.data.softCapTypeErrors ||
-    this.state.data.softCapTypeTransactions ||
-    this.state.data.softCapTypeReplays ||
-    this.state.data.softCapTypeMonitorSeats ||
-    this.state.data.softCapTypeUptime ||
-    this.state.data.softCapTypeSpans ||
-    this.state.data.softCapTypeSpansIndexed ||
-    this.state.data.softCapTypeAttachments;
+    Object.entries(this.state.data)
+      .filter(([key, _]) => key.startsWith('softCapType'))
+      .some(([_, value]) => value !== null);
 
+  /**
+   * If the user has set reserved CPEs for both span categories, assume we're setting the spans budget
+   * NOTE: this and probably the way we let users set reserved budgets in this form will need to
+   * change if we ever allowed reserved budgets for other subsets of categories
+   */
   isSettingSpansBudget = () =>
     isAm3DsPlan(this.state.data.plan) &&
-    this.state.data.reservedCpeSpans &&
-    this.state.data.reservedCpeSpansIndexed;
+    Object.entries(this.state.data)
+      .filter(([key, _]) => key.startsWith('reservedCpeSpans'))
+      .every(([_, value]) => value !== null && value !== 0);
 
+  /**
+   * Whether the user has set all the required fields to provision a spans budget.
+   * These include the reserved CPEs and reserved volumes for each span category,
+   * as well as a custom price for spans which serves as the budget amount.
+   */
   hasCompleteSpansBudget = () =>
     this.isSettingSpansBudget() &&
-    this.state.data.reservedSpans === RESERVED_BUDGET_QUOTA &&
-    this.state.data.reservedSpansIndexed === RESERVED_BUDGET_QUOTA &&
+    Object.entries(this.state.data)
+      .filter(([key, _]) => key.startsWith('reservedSpans'))
+      .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
     this.state.data.customPriceSpans;
 
+  /**
+   * If the user is changing the on-demand max spend mode or disabling it,
+   * don't retain the customer's existing on-demand max spend settings.
+   */
   disableRetainOnDemand = () => {
     if (this.state.data.onDemandInvoicedManual === null) {
       // don't show the toggle if there is no ondemand type
@@ -358,37 +306,52 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
     const hasCustomSkuPrices = isAmEnterprisePlan(postData.plan);
     if (!hasCustomSkuPrices) {
-      delete postData.customPriceErrors;
-      delete postData.customPriceTransactions;
-      delete postData.customPriceAttachments;
-      delete postData.customPricePcss;
-      delete postData.customPriceReplays;
-      delete postData.customPriceMonitorSeats;
-      delete postData.customPriceUptime;
-      delete postData.customPriceSpans;
-      delete postData.customPriceSpansIndexed;
-      delete postData.customPriceProfileDuration;
+      const customSkuFields = Object.keys(postData).filter(key =>
+        key.startsWith('customPrice')
+      );
+      customSkuFields.forEach(key => {
+        delete postData[key];
+      });
     }
 
-    // only set reserved & custom price for spans OR transactions
-    if (isAm3Plan(postData.plan)) {
-      delete postData.reservedTransactions;
-      delete postData.customPriceTransactions;
-    } else {
-      delete postData.reservedSpans;
-      delete postData.customPriceSpans;
+    // TODO: get plans from API so we can also check what categories are available for the plan
+    const allCategories = Object.values(DATA_CATEGORY_INFO)
+      .filter(c => c.isBilledCategory)
+      .map(c => c.plural);
+    const includedCategories = [DataCategory.ERRORS];
+    if (isAmPlan(postData.plan)) {
+      includedCategories.push(DataCategory.REPLAYS);
+      includedCategories.push(DataCategory.ATTACHMENTS);
+      includedCategories.push(DataCategory.MONITOR_SEATS);
+      includedCategories.push(DataCategory.UPTIME);
+
+      if (isAm3Plan(postData.plan)) {
+        includedCategories.push(DataCategory.SPANS);
+        if (isAm3DsPlan(postData.plan)) {
+          includedCategories.push(DataCategory.SPANS_INDEXED);
+        }
+      } else {
+        includedCategories.push(DataCategory.TRANSACTIONS);
+      }
     }
+    allCategories.forEach(category => {
+      if (!includedCategories.includes(category as DataCategory)) {
+        delete postData[`reserved${category}`];
+        delete postData[`customPrice${category}`];
+        delete postData[`softCapType${category}`];
+        delete postData[`paygCpe${category}`];
+        delete postData[`reservedCpe${category}`];
+      }
+    });
 
     if (postData.type !== 'invoiced') {
       delete postData.onDemandInvoicedManual;
-      delete postData.onDemandCpeErrors;
-      delete postData.onDemandCpeTransactions;
-      delete postData.onDemandCpeReplays;
-      delete postData.onDemandCpeAttachments;
-      delete postData.onDemandCpeMonitorSeats;
-      delete postData.onDemandCpeUptime;
-      delete postData.onDemandCpeSpans;
-      delete postData.onDemandCpeProfileDuration;
+      const paygCpeFields = Object.keys(postData).filter(key =>
+        key.startsWith('paygCpe')
+      );
+      paygCpeFields.forEach(key => {
+        delete postData[key];
+      });
 
       // clear corresponding state
       this.setState(state => ({
@@ -401,172 +364,67 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }
 
     if (this.isEnablingOnDemandMaxSpend()) {
-      postData.softCapTypeErrors = null;
-      postData.softCapTypeTransactions = null;
-      postData.softCapTypeReplays = null;
-      postData.softCapTypeAttachments = null;
-      postData.softCapTypeMonitorSeats = null;
-      postData.softCapTypeUptime = null;
-      postData.softCapTypeSpans = null;
-      postData.softCapTypeProfileDuration = null;
-      this.setState(state => ({
-        ...state,
-        data: {
-          ...state.data,
-          softCapTypeErrors: null,
-          softCapTypeTransactions: null,
-          softCapTypeReplays: null,
-          softCapTypeAttachments: null,
-          softCapTypeMonitorSeats: null,
-          softCapTypeUptime: null,
-          softCapTypeSpans: null,
-          softCapTypeProfileDuration: null,
-        },
-      }));
+      Object.keys(postData).forEach(key => {
+        if (key.startsWith('softCapType')) {
+          postData[key] = null;
+          this.setState(state => ({
+            ...state,
+            data: {
+              ...state.data,
+              [key]: null,
+            },
+          }));
+        }
+      });
     } else {
-      delete postData.onDemandCpeErrors;
-      delete postData.onDemandCpeTransactions;
-      delete postData.onDemandCpeReplays;
-      delete postData.onDemandCpeAttachments;
-      delete postData.onDemandCpeMonitorSeats;
-      delete postData.onDemandCpeUptime;
-      delete postData.onDemandCpeSpans;
-      delete postData.onDemandCpeProfileDuration;
+      const paygCpeFields = Object.keys(postData).filter(key =>
+        key.startsWith('paygCpe')
+      );
+      paygCpeFields.forEach(key => {
+        delete postData[key];
+      });
     }
 
     if (this.isEnablingSoftCap()) {
       postData.onDemandInvoicedManual = 'DISABLE';
-      delete postData.onDemandCpeErrors;
-      delete postData.onDemandCpeTransactions;
-      delete postData.onDemandCpeReplays;
-      delete postData.onDemandCpeAttachments;
-      delete postData.onDemandCpeMonitorSeats;
-      delete postData.onDemandCpeUptime;
-      delete postData.onDemandCpeSpans;
-      delete postData.onDemandCpeProfileDuration;
+      const paygCpeFields = Object.keys(postData).filter(key =>
+        key.startsWith('paygCpe')
+      );
+      paygCpeFields.forEach(key => {
+        delete postData[key];
+      });
     }
 
-    if (!isNaN(postData.onDemandCpeErrors)) {
-      postData.onDemandCpeErrors = toCents(
-        postData.onDemandCpeErrors,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeTransactions)) {
-      postData.onDemandCpeTransactions = toCents(
-        postData.onDemandCpeTransactions,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeReplays)) {
-      postData.onDemandCpeReplays = toCents(
-        postData.onDemandCpeReplays,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeAttachments)) {
-      postData.onDemandCpeAttachments = toCents(
-        postData.onDemandCpeAttachments,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeMonitorSeats)) {
-      postData.onDemandCpeMonitorSeats = toCents(
-        postData.onDemandCpeMonitorSeats,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeUptime)) {
-      postData.onDemandCpeUptime = toCents(
-        postData.onDemandCpeUptime,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeSpans)) {
-      postData.onDemandCpeSpans = toCents(
-        postData.onDemandCpeSpans,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeSpansIndexed)) {
-      postData.onDemandCpeSpansIndexed = toCents(
-        postData.onDemandCpeSpansIndexed,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-    if (!isNaN(postData.onDemandCpeProfileDuration)) {
-      postData.onDemandCpeProfileDuration = toCents(
-        postData.onDemandCpeProfileDuration,
-        CPE_DECIMAL_PRECISION
-      );
-    }
-
-    if (!isNaN(postData.reservedCpeSpans)) {
-      postData.reservedCpeSpans = toCpeCents(postData.reservedCpeSpans);
-    }
-    if (!isNaN(postData.reservedCpeSpansIndexed)) {
-      postData.reservedCpeSpansIndexed = toCpeCents(postData.reservedCpeSpansIndexed);
-    }
-
-    postData.retainOnDemandBudget = postData.retainOnDemandBudget
-      ? !this.disableRetainOnDemand()
-      : false;
-
+    Object.entries(postData).forEach(([key, value]) => {
+      if (
+        (key.startsWith('payCpe') || key.startsWith('reservedCpe')) &&
+        !isNaN(value as number)
+      ) {
+        postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
+      } else if (key.startsWith('customPrice') && !isNaN(value as number)) {
+        postData[key] = toCents(value as number); // price should be in cents
+      }
+    });
     const hasCustomPrice = hasCustomSkuPrices || postData.managed;
     if (!hasCustomPrice) {
       delete postData.hasCustomPrice;
     }
 
-    if (!isNaN(postData.customPriceErrors)) {
-      postData.customPriceErrors *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceTransactions)) {
-      postData.customPriceTransactions *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceReplays)) {
-      postData.customPriceReplays *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceSpans)) {
-      postData.customPriceSpans *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceSpansIndexed)) {
-      postData.customPriceSpansIndexed *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceMonitorSeats)) {
-      postData.customPriceMonitorSeats *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceUptime)) {
-      postData.customPriceUptime *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceAttachments)) {
-      postData.customPriceAttachments *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPricePcss)) {
-      postData.customPricePcss *= 100; // Price should be in cents
-    }
-    if (!isNaN(postData.customPriceProfileDuration)) {
-      postData.customPriceProfileDuration *= 100; // Price should be in cents
-    }
-
-    if (!isNaN(postData.customPrice)) {
-      postData.customPrice *= 100; // Price should be in cents
-
+    if (postData.customPrice) {
       // For AM only: If customPrice is set, ensure that it is equal to sum of SKU prices
-      if (
-        hasCustomSkuPrices &&
-        postData.customPrice !==
-          postData.customPriceErrors +
-            (isAm3Plan(postData.plan)
-              ? (postData.customPriceSpans ?? 0)
-              : (postData.customPriceTransactions ?? 0)) +
-            (postData.customPriceReplays ?? 0) +
-            (postData.customPriceMonitorSeats ?? 0) +
-            (postData.customPriceUptime ?? 0) +
-            postData.customPriceAttachments +
-            postData.customPricePcss +
-            (postData.customPriceProfileDuration ?? 0) +
-            (isAm3DsPlan(postData.plan) ? (postData.customPriceSpansIndexed ?? 0) : 0)
-      ) {
+
+      const skuSum = Object.entries(postData).reduce((acc, [key, value]) => {
+        if (
+          key.startsWith('customPrice') &&
+          typeof value === 'number' &&
+          key !== 'customPrice'
+        ) {
+          return acc + (value ?? 0);
+        }
+        return acc;
+      }, 0);
+
+      if (hasCustomSkuPrices && postData.customPrice !== skuSum) {
         onSubmitError({
           responseJSON: {
             customPrice: ['Custom Price must be equal to sum of SKU prices'],
@@ -576,72 +434,31 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }
     }
 
+    postData.retainOnDemandBudget = postData.retainOnDemandBudget
+      ? !this.disableRetainOnDemand()
+      : false;
+
     if (isAmPlan(postData.plan)) {
       // Setting soft cap types to null if not `ON_DEMAND` or `TRUE_FORWARD` ensures soft cap type
       // is disabled if it was set but is not set with the new provisioning request.
-      if (!postData.softCapTypeErrors) {
-        postData.softCapTypeErrors = null;
-      }
-      if (!postData.softCapTypeReplays) {
-        postData.softCapTypeReplays = null;
-      }
-      if (!postData.softCapTypeAttachments) {
-        postData.softCapTypeAttachments = null;
-      }
-      if (!postData.softCapTypeMonitorSeats) {
-        postData.softCapTypeMonitorSeats = null;
-      }
-      if (!postData.softCapTypeUptime) {
-        postData.softCapTypeUptime = null;
-      }
-      if (!postData.softCapTypeProfileDuration) {
-        postData.softCapTypeProfileDuration = null;
-      }
-      // If a data category has a set soft cap type, trueForwad will also need to be set to true for that category
-      // until the true forward fields are fully deprecated and soft cap types are used in their place.
-      postData.trueForward = {
-        errors: postData.softCapTypeErrors ? true : false,
-        replays: postData.softCapTypeReplays ? true : false,
-        attachments: postData.softCapTypeAttachments ? true : false,
-        monitor_seats: postData.softCapTypeMonitorSeats ? true : false,
-        uptime: postData.softCapTypeUptime ? true : false,
-        profile_duration: postData.softCapTypeProfileDuration ? true : false,
-      };
-
-      if (isAm3Plan(postData.plan)) {
-        postData.trueForward = {
-          ...postData.trueForward,
-          spans: postData.softCapTypeSpans ? true : false,
-        };
-        delete postData.softCapTypeTransactions;
-        if (!postData.softCapTypeSpans) {
-          postData.softCapTypeSpans = null;
+      postData.trueForward = {};
+      Object.entries(postData).forEach(([key, value]) => {
+        if (key.startsWith('softCapType')) {
+          if (!value) {
+            postData[key] = null;
+          }
         }
-      } else {
-        postData.trueForward = {
-          ...postData.trueForward,
-          transactions: postData.softCapTypeTransactions ? true : false,
-        };
-        delete postData.softCapTypeSpans;
-        delete postData.softCapTypeSpansIndexed;
-        if (!postData.softCapTypeTransactions) {
-          postData.softCapTypeTransactions = null;
-        }
-      }
+      });
     }
 
     if (isAm3DsPlan(postData.plan)) {
-      postData.trueForward = {
-        ...postData.trueForward,
-        spansIndexed: postData.softCapTypeSpansIndexed ? true : false,
-      };
-      if (!postData.softCapTypeSpansIndexed) {
-        postData.softCapTypeSpansIndexed = null;
-      }
       if (this.hasCompleteSpansBudget()) {
         postData.reservedBudgets = [
           {
-            categories: ['spans', 'spansIndexed'],
+            categories: [
+              DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural,
+              DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED].plural,
+            ],
             budget: postData.customPriceSpans,
           },
         ];
@@ -655,13 +472,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         });
         return;
       }
-    } else {
-      for (const k in postData) {
-        if (k.endsWith('SpansIndexed')) {
-          delete postData[k];
-        }
-      }
-      delete postData.reservedCpeSpans;
     }
 
     this.props.api.request(this.endpoint, {
@@ -698,7 +508,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const {data} = this.state;
 
     const isAmEnt = isAmEnterprisePlan(data.plan);
-    const isAm3 = isAm3Plan(data.plan);
+    // const isAm3 = isAm3Plan(data.plan);
     const isAm3Ds = isAm3DsPlan(data.plan);
     const hasCustomSkuPrices = isAmEnt;
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
@@ -734,22 +544,22 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     const nextPrices = isManagedPlan
                       ? {}
                       : {
-                          customPriceErrors: '',
-                          customPriceTransactions: '',
-                          customPriceReplays: '',
-                          customPriceMonitorSeats: '',
-                          customPriceUptime: '',
-                          customPriceSpans: '',
-                          customPriceSpansIndexed: '',
-                          customPriceAttachments: '',
+                          ...Object.values(DATA_CATEGORY_INFO).map(categoryInfo => {
+                            return {
+                              [`customPrice${categoryInfo.plural}`]: '',
+                            };
+                          }),
                           customPricePcss: '',
                           customPrice: '',
                         };
                     const nextReservedCpes = chosenPlanIsAm3Ds
                       ? {}
                       : {
-                          reservedCpeSpans: '',
-                          reservedCpeSpansIndexed: '',
+                          ...Object.values(DATA_CATEGORY_INFO).map(categoryInfo => {
+                            return {
+                              [`reservedCpe${categoryInfo.plural}`]: '',
+                            };
+                          }),
                         };
 
                     this.setState(state => ({
@@ -892,528 +702,42 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }
                   />
                 )}
-                <SectionHeader>Plan Quotas</SectionHeader>
-                <SectionHeaderDescription>
-                  Monthly quantities for each SKU
-                </SectionHeaderDescription>
-
-                <NumberField
-                  label="Reserved Errors"
-                  name="reservedErrors"
-                  required={!!data.plan}
-                  value={this.state.data.reservedErrors}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedErrors: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label="Soft Cap Type Errors"
-                  name="softCapTypeErrors"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend()}
-                  value={this.state.data.softCapTypeErrors}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeErrors: v},
-                    }))
-                  }
-                />
-
-                <NumberField
-                  label="Reserved Performance Units"
-                  name="reservedTransactions"
-                  required={isAmEnt}
-                  disabled={!isAmEnt || isAm3}
-                  value={this.state.data.reservedTransactions}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedTransactions: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label="Soft Cap Type Performance Units"
-                  name="softCapTypeTransactions"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt || isAm3}
-                  value={this.state.data.softCapTypeTransactions}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeTransactions: v},
-                    }))
-                  }
-                />
-
-                <NumberField
-                  label="Reserved Replays"
-                  name="reservedReplays"
-                  required={isAmEnt}
-                  disabled={!isAmEnt}
-                  value={this.state.data.reservedReplays}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedReplays: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label="Soft Cap Type Replays"
-                  name="softCapTypeReplays"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt}
-                  value={this.state.data.softCapTypeReplays}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeReplays: v},
-                    }))
-                  }
-                />
-
-                <NumberField
-                  label={`Reserved ${isAm3Ds ? 'Accepted Spans' : 'Spans'}`}
-                  name="reservedSpans"
-                  required={isAmEnt}
-                  disabled={!isAm3 || this.state.data.reservedCpeSpans}
-                  value={this.state.data.reservedSpans}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedSpans: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label={`Soft Cap Type ${isAm3Ds ? 'Accepted Spans' : 'Spans'}`}
-                  name="softCapTypeSpans"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend() || !isAm3}
-                  value={this.state.data.softCapTypeSpans}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeSpans: v},
-                    }))
-                  }
-                />
-                {isAm3Ds && (
-                  <StyledDollarsAndCentsField
-                    label={`Reserved Cost-Per-${isAm3Ds ? 'Accepted Span' : 'Span'}`}
-                    name="reservedCpeSpans"
-                    disabled={!isAm3Ds}
-                    value={data.reservedCpeSpans}
-                    step={0.00000001}
-                    min={0.00000001}
-                    max={1}
-                    onChange={v =>
-                      this.setState(state => ({
-                        ...state,
-                        data: {
-                          ...state.data,
-                          reservedCpeSpans: v,
-                          reservedSpans: RESERVED_BUDGET_QUOTA,
-                        },
-                      }))
-                    }
-                    onBlur={() => {
-                      const currentValue = parseFloat(this.state.data.reservedCpeSpans);
-                      if (!isNaN(currentValue)) {
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            reservedCpeSpans: currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                          },
-                        }));
-                      }
-                    }}
-                  />
-                )}
-                {isAm3Ds && (
-                  <Fragment>
-                    <NumberField
-                      label="Reserved Stored Spans"
-                      name="reservedSpansIndexed"
-                      required={isAmEnt}
-                      disabled={!isAm3Ds || this.state.data.reservedCpeSpansIndexed}
-                      value={this.state.data.reservedSpansIndexed}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {...state.data, reservedSpansIndexed: v},
-                        }))
-                      }
-                    />
-                    <SelectField
-                      label="Soft Cap Type Stored Spans"
-                      name="softCapTypeSpansIndexed"
-                      clearable
-                      required={false}
-                      choices={[
-                        ['ON_DEMAND', 'On Demand'],
-                        ['TRUE_FORWARD', 'True Forward'],
-                      ]}
-                      disabled={this.isEnablingOnDemandMaxSpend() || !isAm3Ds}
-                      value={this.state.data.softCapTypeSpansIndexed}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {...state.data, softCapTypeSpansIndexed: v},
-                        }))
-                      }
-                    />
-                    <StyledDollarsAndCentsField
-                      label="Reserved Cost-Per-Stored Span"
-                      name="reservedCpeSpansIndexed"
-                      disabled={!isAm3Ds}
-                      value={data.reservedCpeSpansIndexed}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            reservedCpeSpansIndexed: v,
-                            reservedSpansIndexed: RESERVED_BUDGET_QUOTA,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.reservedCpeSpansIndexed
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              reservedCpeSpansIndexed:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                  </Fragment>
-                )}
-
-                <NumberField
-                  label="Reserved Monitor Seats"
-                  name="reservedMonitorSeats"
-                  required={isAmEnt}
-                  disabled={!isAmEnt}
-                  value={this.state.data.reservedMonitorSeats}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedMonitorSeats: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label="Soft Cap Type Monitor Seats"
-                  name="softCapTypeMonitorSeats"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt}
-                  value={this.state.data.softCapTypeMonitorSeats}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeMonitorSeats: v},
-                    }))
-                  }
-                />
-
-                <Fragment>
-                  <NumberField
-                    label="Reserved Uptime"
-                    name="reservedUptime"
-                    required={isAmEnt}
-                    disabled={!isAmEnt}
-                    value={this.state.data.reservedUptime}
-                    onChange={v =>
-                      this.setState(state => ({
-                        ...state,
-                        data: {...state.data, reservedUptime: v},
-                      }))
-                    }
-                  />
-                  <SelectField
-                    label="Soft Cap Type Uptime"
-                    name="softCapTypeUptime"
-                    clearable
-                    required={false}
-                    choices={[
-                      ['ON_DEMAND', 'On Demand'],
-                      ['TRUE_FORWARD', 'True Forward'],
-                    ]}
-                    disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt}
-                    value={this.state.data.softCapTypeUptime}
-                    onChange={v =>
-                      this.setState(state => ({
-                        ...state,
-                        data: {...state.data, softCapTypeUptime: v},
-                      }))
-                    }
-                  />
-                </Fragment>
-
-                <NumberField
-                  label="Reserved Attachments (in GB)"
-                  name="reservedAttachments"
-                  required={isAmEnt}
-                  disabled={!isAmEnt}
-                  value={this.state.data.reservedAttachments}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedAttachments: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label="Soft Cap Type Attachments"
-                  name="softCapTypeAttachments"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt}
-                  value={this.state.data.softCapTypeAttachments}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeAttachments: v},
-                    }))
-                  }
-                />
-                <NumberField
-                  label="Reserved Profile Duration (in hours)"
-                  name="reservedProfileDuration"
-                  required={isAmEnt}
-                  disabled={!isAmEnt || true} // TODO: remove this when profile duration is enabled
-                  value={this.state.data.reservedProfileDuration}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, reservedProfileDuration: v},
-                    }))
-                  }
-                />
-                <SelectField
-                  label="Soft Cap Type Profile Duration"
-                  name="softCapTypeProfileDuration"
-                  clearable
-                  required={false}
-                  choices={[
-                    ['ON_DEMAND', 'On Demand'],
-                    ['TRUE_FORWARD', 'True Forward'],
-                  ]}
-                  disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt || true} // TODO: remove this when profile duration is enabled
-                  value={this.state.data.softCapTypeProfileDuration}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, softCapTypeProfileDuration: v},
-                    }))
-                  }
-                />
-              </div>
-              <div>
                 <SectionHeader>Reserved Volume Prices</SectionHeader>
                 <SectionHeaderDescription>
                   Annual prices for reserved volumes, in whole dollars.
                 </SectionHeaderDescription>
-
-                <StyledDollarsField
-                  label="Price for Errors"
-                  name="customPriceErrors"
-                  disabled={!hasCustomSkuPrices}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceErrors}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceErrors: v,
-                      },
-                    }))
-                  }
-                />
-                <StyledDollarsField
-                  label="Price for Performance Units"
-                  name="customPriceTransactions"
-                  disabled={!hasCustomSkuPrices || isAm3}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceTransactions}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceTransactions: v,
-                      },
-                    }))
-                  }
-                />
-
-                <StyledDollarsField
-                  label="Price for Replays"
-                  name="customPriceReplays"
-                  disabled={!hasCustomSkuPrices}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceReplays}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceReplays: v,
-                      },
-                    }))
-                  }
-                />
-
-                <StyledDollarsField
-                  label={`Price for ${isAm3Ds ? 'Accepted Spans' : 'Spans'}${this.isSettingSpansBudget() ? ' (Reserved Spans Budget)' : ''}`}
-                  name="customPriceSpans"
-                  disabled={!hasCustomSkuPrices || !isAm3}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceSpans}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceSpans: v,
-                      },
-                    }))
-                  }
-                />
-                {isAm3Ds && (
-                  <StyledDollarsField
-                    label={`Price for Stored Spans`}
-                    name="customPriceSpansIndexed"
-                    disabled={
-                      !hasCustomSkuPrices || !isAm3Ds || this.isSettingSpansBudget()
-                    }
-                    required={hasCustomSkuPrices}
-                    value={this.isSettingSpansBudget() ? 0 : data.customPriceSpansIndexed}
-                    onChange={v =>
-                      this.setState(state => ({
-                        ...state,
-                        data: {
-                          ...state.data,
-                          customPriceSpansIndexed: v,
-                        },
-                      }))
-                    }
-                  />
-                )}
-
-                <StyledDollarsField
-                  label="Price for Monitor Seats"
-                  name="customPriceMonitorSeats"
-                  disabled={!hasCustomSkuPrices}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceMonitorSeats}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceMonitorSeats: v,
-                      },
-                    }))
-                  }
-                />
-
-                <StyledDollarsField
-                  label="Price for Uptime"
-                  name="customPriceUptime"
-                  disabled={!hasCustomSkuPrices}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceUptime}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceUptime: v,
-                      },
-                    }))
-                  }
-                />
-
-                <StyledDollarsField
-                  label="Price for Attachments"
-                  name="customPriceAttachments"
-                  disabled={!hasCustomSkuPrices}
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceAttachments}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceAttachments: v,
-                      },
-                    }))
-                  }
-                />
-                <StyledDollarsField
-                  label="Price for Profile Duration"
-                  name="customPriceProfileDuration"
-                  disabled={!hasCustomSkuPrices || true} // TODO: remove this when profile duration is enabled
-                  required={hasCustomSkuPrices}
-                  value={data.customPriceProfileDuration}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPriceProfileDuration: v,
-                      },
-                    }))
-                  }
-                />
+                {Object.entries(DATA_CATEGORY_INFO)
+                  .filter(([_, categoryInfo]) => categoryInfo.isBilledCategory)
+                  .map(([category, categoryInfo]) => {
+                    const titleName =
+                      category === DataCategoryExact.SPAN && isAm3Ds
+                        ? 'Accepted Spans'
+                        : categoryInfo.titleName;
+                    const suffix =
+                      category === DataCategoryExact.SPAN
+                        ? ' (Reserved Spans Budget)'
+                        : '';
+                    const capitalizedApiName = capitalize(categoryInfo.plural);
+                    return (
+                      <StyledDollarsField
+                        key={`customPrice${capitalizedApiName}`}
+                        label={`Price for ${titleName}${suffix}`}
+                        name={`customPrice${capitalizedApiName}`}
+                        disabled={!hasCustomSkuPrices}
+                        required={hasCustomSkuPrices}
+                        value={data[`customPrice${capitalizedApiName}`]}
+                        onChange={v =>
+                          this.setState(state => ({
+                            ...state,
+                            data: {
+                              ...state.data,
+                              [`customPrice${capitalizedApiName}`]: v,
+                            },
+                          }))
+                        }
+                      />
+                    );
+                  })}
                 <StyledDollarsField
                   label="Price for PCSS"
                   name="customPricePcss"
@@ -1447,285 +771,148 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }))
                   }
                 />
-                {this.isEnablingOnDemandMaxSpend() && (
-                  <Fragment>
-                    <SectionHeader>On-Demand Cost-Per-Event (CPE)</SectionHeader>
-                    <SectionHeaderDescription>
-                      The cost of on-demand units, in dollars, for invoiced customers with
-                      on-demand max spend. If not set, the on-demand spend will be
-                      calculated with the self-serve on-demand pricing.
-                    </SectionHeaderDescription>
-                    <Alert.Container>
-                      <Alert type="warning">
-                        If the subscription already has on-demand spend in the current
-                        period, and the new cost-per-event overrides would cause the spend
-                        to exceed the on-demand budget, the request will fail.
-                      </Alert>
-                    </Alert.Container>
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Error"
-                      name="onDemandCpeErrors"
-                      disabled={!this.isEnablingOnDemandMaxSpend()}
-                      value={data.onDemandCpeErrors}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeErrors: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeErrors
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeErrors:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Performance Unit"
-                      name="onDemandCpeTransactions"
-                      disabled={!this.isEnablingOnDemandMaxSpend() || isAm3}
-                      value={data.onDemandCpeTransactions}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeTransactions: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeTransactions
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeTransactions:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Replay"
-                      name="onDemandCpeReplays"
-                      disabled={!this.isEnablingOnDemandMaxSpend()}
-                      value={data.onDemandCpeReplays}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeReplays: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeReplays
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeReplays:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Span"
-                      name="onDemandCpeSpans"
-                      disabled={!this.isEnablingOnDemandMaxSpend() || !isAm3}
-                      value={data.onDemandCpeSpans}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeSpans: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(this.state.data.onDemandCpeSpans);
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeSpans:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Attachment"
-                      name="onDemandCpeAttachments"
-                      disabled={!this.isEnablingOnDemandMaxSpend()}
-                      value={data.onDemandCpeAttachments}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeAttachments: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeAttachments
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeAttachments:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Profile Duration"
-                      name="onDemandCpeProfileDuration"
-                      disabled={!this.isEnablingOnDemandMaxSpend() || true} // TODO: remove this when profile duration is enabled
-                      value={data.onDemandCpeProfileDuration}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeProfileDuration: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeProfileDuration
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeProfileDuration:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Cron Monitor"
-                      name="onDemandCpeMonitorSeats"
-                      disabled={!this.isEnablingOnDemandMaxSpend()}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      value={data.onDemandCpeMonitorSeats}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeMonitorSeats: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeMonitorSeats
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeMonitorSeats:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                    <StyledDollarsAndCentsField
-                      label="On-Demand Cost-Per-Uptime Monitor"
-                      name="onDemandCpeUptime"
-                      disabled={!this.isEnablingOnDemandMaxSpend()}
-                      step={0.00000001}
-                      min={0.00000001}
-                      max={1}
-                      value={data.onDemandCpeUptime}
-                      onChange={v =>
-                        this.setState(state => ({
-                          ...state,
-                          data: {
-                            ...state.data,
-                            onDemandCpeUptime: v,
-                          },
-                        }))
-                      }
-                      onBlur={() => {
-                        const currentValue = parseFloat(
-                          this.state.data.onDemandCpeUptime
-                        );
-                        if (!isNaN(currentValue)) {
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              onDemandCpeUptime:
-                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                            },
-                          }));
-                        }
-                      }}
-                    />
-                  </Fragment>
-                )}
+              </div>
+              <div>
+                <SectionHeader>Plan Quotas</SectionHeader>
+                <SectionHeaderDescription>
+                  Monthly quantities for each SKU
+                </SectionHeaderDescription>
+                {Object.entries(DATA_CATEGORY_INFO)
+                  .filter(([_, categoryInfo]) => categoryInfo.isBilledCategory)
+                  .map(([category, categoryInfo]) => {
+                    const titleName =
+                      category === DataCategoryExact.SPAN && isAm3Ds
+                        ? 'Accepted Spans'
+                        : categoryInfo.titleName;
+                    const suffix =
+                      category === DataCategoryExact.ATTACHMENT
+                        ? ' (in GB)'
+                        : category === DataCategoryExact.PROFILE_DURATION
+                          ? ' (in hours)'
+                          : '';
+                    const capitalizedApiName = capitalize(categoryInfo.plural);
+                    return (
+                      <Fragment key={categoryInfo.plural}>
+                        <NumberField
+                          label={`Reserved ${titleName}${suffix}`}
+                          name={`reserved${capitalizedApiName}`}
+                          required={
+                            category === DataCategoryExact.ERROR ? !!data.plan : isAmEnt
+                          }
+                          disabled={
+                            [
+                              DataCategoryExact.SPAN,
+                              DataCategoryExact.SPAN_INDEXED,
+                            ].includes(category as DataCategoryExact) &&
+                            this.state.data[`reservedCpe${capitalizedApiName}`]
+                          }
+                          value={this.state.data[`reserved${capitalizedApiName}`]}
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                [`reserved${capitalizedApiName}`]: v,
+                              },
+                            }))
+                          }
+                        />
+                        <SelectField
+                          label={`Soft Cap Type ${titleName}`}
+                          name={`softCapType${capitalizedApiName}`}
+                          clearable
+                          required={false}
+                          choices={[
+                            ['ON_DEMAND', 'On Demand'],
+                            ['TRUE_FORWARD', 'True Forward'],
+                          ]}
+                          disabled={this.isEnablingOnDemandMaxSpend()}
+                          value={this.state.data[`softCapType${capitalizedApiName}`]}
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                [`softCapType${capitalizedApiName}`]: v,
+                              },
+                            }))
+                          }
+                        />
+                        {[
+                          DataCategoryExact.SPAN,
+                          DataCategoryExact.SPAN_INDEXED,
+                        ].includes(category as DataCategoryExact) && (
+                          <StyledDollarsAndCentsField
+                            label={`Reserved Cost-Per-${titleName}`}
+                            name={`reservedCpe${capitalizedApiName}`}
+                            disabled={!isAm3Ds}
+                            value={data[`reservedCpe${capitalizedApiName}`]}
+                            step={0.00000001}
+                            min={0.00000001}
+                            max={1}
+                            onChange={v =>
+                              this.setState(state => ({
+                                ...state,
+                                data: {
+                                  ...state.data,
+                                  [`reservedCpe${capitalizedApiName}`]: v,
+                                },
+                              }))
+                            }
+                            onBlur={() => {
+                              const currentValue = parseFloat(
+                                this.state.data[`reservedCpe${capitalizedApiName}`]
+                              );
+                              if (!isNaN(currentValue)) {
+                                this.setState(state => ({
+                                  ...state,
+                                  data: {
+                                    ...state.data,
+                                    [`reservedCpe${capitalizedApiName}`]:
+                                      currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                  },
+                                }));
+                              }
+                            }}
+                          />
+                        )}
+                        {this.isEnablingOnDemandMaxSpend() && (
+                          <StyledDollarsAndCentsField
+                            label={`On-Demand Cost-Per-${titleName}`}
+                            name={`paygCpe${capitalizedApiName}`}
+                            value={data[`paygCpe${capitalizedApiName}`]}
+                            step={0.00000001}
+                            min={0.00000001}
+                            max={1}
+                            onChange={v =>
+                              this.setState(state => ({
+                                ...state,
+                                data: {
+                                  ...state.data,
+                                  [`paygCpe${capitalizedApiName}`]: v,
+                                },
+                              }))
+                            }
+                            onBlur={() => {
+                              const currentValue = parseFloat(
+                                this.state.data[`paygCpe${capitalizedApiName}`]
+                              );
+                              if (!isNaN(currentValue)) {
+                                this.setState(state => ({
+                                  ...state,
+                                  data: {
+                                    ...state.data,
+                                    [`paygCpe${capitalizedApiName}`]:
+                                      currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                  },
+                                }));
+                              }
+                            }}
+                          />
+                        )}
+                      </Fragment>
+                    );
+                  })}
               </div>
             </Columns>
           </Form>
