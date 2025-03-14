@@ -63,7 +63,6 @@ def add_environment_to_queryset(queryset, filter_params):
     if "environment" in filter_params:
         return queryset.filter(
             releaseprojectenvironment__environment__name__in=filter_params["environment"],
-            releaseprojectenvironment__project_id__in=filter_params["project_id"],
         )
     return queryset
 
@@ -287,7 +286,14 @@ class OrganizationReleasesEndpoint(
         # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization=organization)
+        project_releases = (
+            ReleaseProject.objects.filter(
+                project_id__in=filter_params["project_id"],
+            )
+            .values_list("release", flat=True)
+            .distinct()
+        )
+        queryset = Release.objects.filter(id__in=project_releases)
 
         if status_filter:
             try:
@@ -312,13 +318,7 @@ class OrganizationReleasesEndpoint(
                     status=400,
                 )
 
-        select_extra = {}
-
         queryset = queryset.distinct()
-        if flatten:
-            select_extra["_for_project_id"] = "sentry_release_project.project_id"
-
-        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -404,7 +404,9 @@ class OrganizationReleasesEndpoint(
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
-        queryset = queryset.extra(select=select_extra)
+        if flatten:
+            queryset = queryset.annotate(_for_project_id=F("releaseproject__project_id"))
+
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
         return self.paginate(
