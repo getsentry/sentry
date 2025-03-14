@@ -411,15 +411,18 @@ describe('Modals -> WidgetViewerModal', function () {
           unselectedSeries: [`${mockWidget.id}:Query Name`],
         };
         await renderModal({initialData, widget: mockWidget});
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+
+        const echartsMock = jest.mocked(ReactEchartsCore);
+        const lastCall = echartsMock.mock.calls[echartsMock.mock.calls.length - 1]![0];
+        // TODO(react19): Can change this back to expect(ReactEchartsCore).toHaveBeenLastCalledWith()
+        expect(lastCall).toEqual(
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
                 selected: {[`Query Name;${mockWidget.id}`]: false},
               }),
             }),
-          }),
-          {}
+          })
         );
       });
 
