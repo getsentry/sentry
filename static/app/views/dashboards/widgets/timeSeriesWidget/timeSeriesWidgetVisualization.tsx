@@ -54,6 +54,11 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   aliases?: Aliases;
   /**
+   * Disables navigating to release details when clicked
+   * TODO(billy): temporary until we implement route based nav
+   */
+  disableReleaseNavigation?: boolean;
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
@@ -116,6 +121,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       return (
         <TimeSeriesWidgetVisualization
           {...props}
+          disableReleaseNavigation
           plottables={props.plottables.map(plottable =>
             plottable.constrain(trimStart, trimEnd)
           )}
@@ -137,6 +143,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           theme,
           props.releases,
           function onReleaseClick(release: Release) {
+            if (props.disableReleaseNavigation) {
+              return;
+            }
             navigate(
               makeReleasesPathname({
                 organization,
