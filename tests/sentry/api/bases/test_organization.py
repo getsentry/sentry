@@ -175,7 +175,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         self.create_member(user=user, organization=self.org, role="owner")
         token = self.create_user_auth_token(user)
 
-        request = self.make_request(user=user, auth=token, method="GET")
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="GET"))
         permission = self.permission_cls()
 
         with pytest.raises(TwoFactorRequired), assume_test_silo_mode(SiloMode.CONTROL):
