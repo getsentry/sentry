@@ -38,9 +38,7 @@ __all__ = (
     "from_member",
     "DEFAULT",
     "from_user_and_rpc_user_org_context",
-    "from_user_and_api_user_org_context",
     "from_rpc_member",
-    "from_api_member",
 )
 
 
@@ -992,9 +990,6 @@ def from_user_and_rpc_user_org_context(
     )
 
 
-from_user_and_api_user_org_context = from_user_and_rpc_user_org_context
-
-
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
@@ -1161,9 +1156,6 @@ def from_rpc_member(
             org_member=rpc_user_organization_context.member,
         ),
     )
-
-
-from_api_member = from_rpc_member
 
 
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
