@@ -116,7 +116,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRef,
     chartRenderer: ({start: trimStart, end: trimEnd}) => {
       return (
         <TimeSeriesWidgetVisualization
@@ -171,7 +170,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       registerWithWidgetSyncContext(echartsInstance);
 
       if (hasReleaseBubblesSeries) {
-        createReleaseBubbleHighlighter(echartsInstance);
+        createReleaseBubbleHighlighter(e);
       }
     },
     [

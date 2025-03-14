@@ -25,7 +25,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
@@ -46,6 +48,8 @@ interface EventGraphProps {
   event: Event | undefined;
   group: Group;
   className?: string;
+  showReleasesAs?: 'line' | 'bubble';
+  showSummary?: boolean;
   style?: CSSProperties;
 }
 
@@ -68,7 +72,13 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
+export function EventGraph({
+  group,
+  event,
+  showReleasesAs,
+  showSummary = true,
+  ...styleProps
+}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -79,6 +89,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
+  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
 
   const {
     data: groupStats = {},
@@ -176,7 +187,54 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     event,
     group,
   });
-  const releaseSeries = useReleaseMarkLineSeries({group});
+
+  const {releases = []} = useReleaseStats(
+    {
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+      },
+    },
+    {
+      staleTime: 0,
+    }
+  );
+
+  const releaseSeries = useReleaseMarkLineSeries({
+    group,
+    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+  });
+
+  const {
+    createReleaseBubbleHighlighter,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+      return (
+        <EventGraph
+          group={group}
+          event={event}
+          showSummary={false}
+          showReleasesAs="line"
+          {...styleProps}
+        />
+      );
+    },
+    minTime: eventSeries.length && (eventSeries[0]!.name as number),
+    maxTime: eventSeries.length && (eventSeries[eventSeries.length - 1]!.name as number),
+    bubbleSize: 4,
+    bubblePadding: {
+      x: 1,
+      y: 2,
+    },
+    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+  });
   const flagSeries = useFlagSeries({
     query: {
       start: eventView.start,
@@ -249,7 +307,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
-    if (releaseSeries.markLine) {
+    if (releaseSeries?.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
@@ -339,32 +397,39 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   return (
     <GraphWrapper {...styleProps}>
-      <SummaryContainer>
-        <GraphButton
-          onClick={() =>
-            visibleSeries === EventGraphSeries.USER &&
-            setVisibleSeries(EventGraphSeries.EVENT)
-          }
-          isActive={visibleSeries === EventGraphSeries.EVENT}
-          disabled={visibleSeries === EventGraphSeries.EVENT}
-          label={tn('Event', 'Events', eventCount)}
-          count={String(eventCount)}
-        />
-        <GraphButton
-          onClick={() =>
-            visibleSeries === EventGraphSeries.EVENT &&
-            setVisibleSeries(EventGraphSeries.USER)
-          }
-          isActive={visibleSeries === EventGraphSeries.USER}
-          disabled={visibleSeries === EventGraphSeries.USER}
-          label={tn('User', 'Users', userCount)}
-          count={String(userCount)}
-        />
-      </SummaryContainer>
+      {showSummary ? (
+        <SummaryContainer>
+          <GraphButton
+            onClick={() =>
+              visibleSeries === EventGraphSeries.USER &&
+              setVisibleSeries(EventGraphSeries.EVENT)
+            }
+            isActive={visibleSeries === EventGraphSeries.EVENT}
+            disabled={visibleSeries === EventGraphSeries.EVENT}
+            label={tn('Event', 'Events', eventCount)}
+            count={String(eventCount)}
+          />
+          <GraphButton
+            onClick={() =>
+              visibleSeries === EventGraphSeries.EVENT &&
+              setVisibleSeries(EventGraphSeries.USER)
+            }
+            isActive={visibleSeries === EventGraphSeries.USER}
+            disabled={visibleSeries === EventGraphSeries.USER}
+            label={tn('User', 'Users', userCount)}
+            count={String(userCount)}
+          />
+        </SummaryContainer>
+      ) : (
+        <div />
+      )}
       <ChartContainer role="figure">
         <BarChart
+          {...releaseBubbleEventHandlers}
+          ref={createReleaseBubbleHighlighter}
           height={100}
           series={series}
+          additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
           legend={legend}
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
@@ -373,6 +438,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             right: 8,
             top: 20,
             bottom: 0,
+            ...releaseBubbleGrid,
           }}
           tooltip={{
             formatAxisLabel: (
@@ -403,6 +469,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
                 return formatAbbreviatedNumber(value);
               },
             },
+          }}
+          xAxis={{
+            ...releaseBubbleXAxis,
           }}
           {...chartZoomProps}
         />
@@ -435,6 +504,7 @@ function GraphButton({
 const GraphWrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
+  min-height: 100px;
 `;
 
 const SummaryContainer = styled('div')`

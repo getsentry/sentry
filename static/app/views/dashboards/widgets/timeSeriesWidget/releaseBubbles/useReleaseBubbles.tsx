@@ -1,4 +1,4 @@
-import type {ReactElement} from 'react';
+import {type ReactElement, useCallback, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -325,7 +325,6 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef | null>;
   bubblePadding?: {x: number; y: number};
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
@@ -338,7 +337,6 @@ interface UseReleaseBubblesParams {
   releases?: ReleaseMetaBasic[];
 }
 export function useReleaseBubbles({
-  chartRef,
   chartRenderer,
   releases,
   minTime,
@@ -350,7 +348,15 @@ export function useReleaseBubbles({
   const {openDrawer} = useDrawer();
   const theme = useTheme();
   const {options} = useUser();
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
+  const handleChartRef = useCallback((e: ReactEchartsRef | null) => {
+    chartRef.current = e;
+
+    if (e?.getEchartsInstance) {
+      createReleaseBubbleHighlighter(e.getEchartsInstance());
+    }
+  }, []);
   const buckets =
     (hasReleaseBubbles &&
       releases?.length &&
@@ -373,7 +379,7 @@ export function useReleaseBubbles({
   const totalBubblePaddingY = 1 + bubblePadding.y * 2;
 
   return {
-    createReleaseBubbleHighlighter,
+    createReleaseBubbleHighlighter: handleChartRef,
 
     /**
      * An object map of ECharts event handlers. These should be spread onto a Chart component

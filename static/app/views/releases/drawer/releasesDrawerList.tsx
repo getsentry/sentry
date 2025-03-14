@@ -84,6 +84,5 @@ export function ReleasesDrawerList({
 }
 
 const ChartContainer = styled('div')`
-  height: 220px;
   margin-bottom: ${space(2)};
 `;
