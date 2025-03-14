@@ -2,6 +2,7 @@ import type {Plan} from 'getsentry/types';
 
 export function PlanFixture(fields: Partial<Plan>): Plan {
   return {
+    adminSelectable: true,
     allowAdditionalReservedEvents: false,
     allowOnDemand: false,
     availableCategories: [],

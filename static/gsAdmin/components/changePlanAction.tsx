@@ -254,13 +254,14 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       .sort((a, b) => a.reservedMinimum - b.reservedMinimum)
       .filter(
         p =>
-          p.price &&
-          p.contractInterval === contractInterval &&
-          p.billingInterval === billingInterval &&
-          (p.userSelectable || p.checkoutType === CheckoutType.BUNDLE) &&
-          // Plan id on partner sponsored subscriptions is not modifiable so only including
-          // the existing plan in the list
-          (partnerPlanId === null || partnerPlanId === p.id)
+          (p.adminSelectable && p.billingInterval === billingInterval) ||
+          (p.price &&
+            p.contractInterval === contractInterval &&
+            p.billingInterval === billingInterval &&
+            (p.userSelectable || p.checkoutType === CheckoutType.BUNDLE) &&
+            // Plan id on partner sponsored subscriptions is not modifiable so only including
+            // the existing plan in the list
+            (partnerPlanId === null || partnerPlanId === p.id))
       );
 
     // Plan for partner sponsored subscriptions is not modifiable so skipping
