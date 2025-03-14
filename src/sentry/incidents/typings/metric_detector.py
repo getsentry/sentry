@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from sentry.eventstore.models import GroupEvent
@@ -161,4 +162,22 @@ class MetricIssueContext:
             snuba_query=incident.alert_rule.snuba_query,
             new_status=new_status,
             metric_value=metric_value,
+        )
+
+
+@dataclass
+class OpenPeriodContext:
+    """
+    We want to eventually delete this class. it serves as a way to pass data around
+    that we used to use `incident` for.
+    """
+
+    date_started: datetime
+    date_closed: datetime | None
+
+    @classmethod
+    def from_incident(cls, incident: Incident) -> OpenPeriodContext:
+        return cls(
+            date_started=incident.date_added,
+            date_closed=incident.date_closed,
         )
