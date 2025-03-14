@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from django.db.models import Count, DateTimeField, F, Func, Q
 from django.db.models.functions import Extract
 from django.db.models.query import QuerySet
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,11 +22,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-CATEGORY_MAP = {
-    "error": GroupCategory.ERROR,
-    "feedback": GroupCategory.FEEDBACK,
-}
-
 
 @region_silo_endpoint
 class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
@@ -36,6 +32,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         """Stats bucketed by time."""
         environments = [e.id for e in get_environments(request, organization)]
         projects = self.get_projects(request, organization)
+        start, end = get_date_range_from_params(request.GET)
         issue_category = request.GET.get("category", "error")
         type_filter = (
             ~Q(type=GroupCategory.FEEDBACK)
@@ -43,11 +40,32 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             else Q(type=GroupCategory.FEEDBACK)
         )
 
-        interval_s = int(request.GET.get("interval", 3_600_000)) // 1000  # TODO: Safe parse
-        interval = timedelta(seconds=interval_s)
-        start, end = get_date_range_from_params(request.GET)
+        try:
+            interval_s = int(request.GET["interval"]) // 1000
+            interval = timedelta(seconds=interval_s)
+        except KeyError:
+            # Defaulting for now. Probably better to compute some known interval. I.e. if we're
+            # close to an hour round up to an hour to ensure the best visual experience.
+            #
+            # Or maybe we require this field and ignore all these problems.
+            interval_s = 3600
+            interval = timedelta(seconds=interval_s)
+        except ValueError:
+            raise ParseError("Could not parse interval value.")
 
-        def gen_ts(qs: QuerySet[Group], group_by: list[str], source: str, axis: str):
+        # This step validates our maximum granularity. Without this we could see unbounded
+        # cardinality in our queries. Our maximum granularity is 200 which is more than enough to
+        # accommodate common aggregation intervals.
+        #
+        # Max granularity estimates for a given range (rounded to understandable intervals):
+        #   - One week range -> one hour interval.
+        #   - One day range -> ten minute interval.
+        #   - One hour range -> twenty second interval.
+        number_of_buckets = (end - start).seconds // interval.seconds
+        if number_of_buckets > 200:
+            raise ParseError("The specified granularity is too precise. Increase your interval.")
+
+        def gen_ts(qs: QuerySet[Group], group_by: list[str], date_column_name: str, axis: str):
             qs = make_timeseries_query(
                 qs,
                 projects,
@@ -55,7 +73,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 type_filter,
                 group_by,
                 interval,
-                source,
+                date_column_name,
                 start,
                 end,
             )
@@ -70,7 +88,9 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 make_timeseries_result(
                     axis=axis,
                     group=key.split("||||") if key else [],
-                    interval=interval.seconds * 1000,
+                    start=start,
+                    end=end,
+                    interval=interval,
                     order=i,
                     values=series,
                 )
@@ -80,13 +100,23 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         return Response(
             {
                 "timeseries": chain(
-                    gen_ts(query_new_issues(), [], "first_seen", "new_issues_count"),
-                    gen_ts(query_resolved_issues(), [], "resolved_at", "resolved_issues_count"),
                     gen_ts(
-                        query_issues_by_release(),
-                        ["first_release__version"],
-                        "first_seen",
-                        "new_issues_count_by_release",
+                        Group.objects,
+                        axis="new_issues_count",
+                        date_column_name="first_seen",
+                        group_by=[],
+                    ),
+                    gen_ts(
+                        Group.objects.filter(status=GroupStatus.RESOLVED),
+                        axis="resolved_issues_count",
+                        date_column_name="resolved_at",
+                        group_by=[],
+                    ),
+                    gen_ts(
+                        Group.objects.filter(first_release__isnull=False),
+                        axis="new_issues_count_by_release",
+                        date_column_name="first_seen",
+                        group_by=["first_release__version"],
                     ),
                 ),
                 "meta": {
@@ -143,9 +173,6 @@ def make_timeseries_query(
         order_by.append(group)
         values.append(group)
 
-    order_by.append("timestamp")
-    values.append("timestamp")
-
     annotations["timestamp"] = Extract(
         Func(
             stride,
@@ -156,6 +183,8 @@ def make_timeseries_query(
         ),
         "epoch",
     )
+    order_by.append("timestamp")
+    values.append("timestamp")
 
     return (
         qs.filter(
@@ -174,7 +203,9 @@ def make_timeseries_query(
 def make_timeseries_result(
     axis: str,
     group: list[str],
-    interval: int,
+    start: datetime,
+    end: datetime,
+    interval: timedelta,
     order: int,
     values: list[TimeSeries],
 ) -> TimeSeriesResult:
@@ -182,86 +213,41 @@ def make_timeseries_result(
         "axis": axis,
         "meta": {
             "groupBy": group,
-            "interval": interval,
+            "interval": interval.seconds * 1000,
             "isOther": False,
             "order": order,
             "type": "integer",
             "unit": None,
         },
-        "values": values,
+        "values": fill_timeseries(start, end, interval, values),
     }
 
 
-# Series generation.
-
-
-class Series(TypedDict):
-    bucket: datetime
-    count: int
-
-
-class SeriesResponseItem(TypedDict):
-    count: int
-
-
-SeriesResponse = dict[str, list[SeriesResponseItem]]
-
-
-def query_new_issues() -> QuerySet[Group]:
-    # SELECT count(*), day(first_seen) FROM issues GROUP BY day(first_seen)
-    return Group.objects
-
-
-def query_resolved_issues() -> QuerySet[Group]:
-    # SELECT count(*), day(resolved_at) FROM issues WHERE status = resolved GROUP BY day(resolved_at)
-    return Group.objects.filter(status=GroupStatus.RESOLVED)
-
-
-def query_issues_by_release() -> QuerySet[Group]:
-    # SELECT count(*), first_release.version FROM issues JOIN release GROUP BY first_release.version
-    return Group.objects.filter(first_release__isnull=False)
-
-
-# Response filling and formatting.
-
-
-class BucketNotFound(LookupError):
+class UnconsumedBuckets(LookupError):
     pass
 
 
-def append_series(resp: SeriesResponse, series: list[dict[str, Any]]) -> None:
-    # We're going to increment this index as we consume the series.
+def fill_timeseries(
+    start: datetime,
+    end: datetime,
+    interval: timedelta,
+    values: list[TimeSeries],
+) -> list[TimeSeries]:
+    def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[int]:
+        while start <= end:
+            yield int(start.timestamp())
+            start = start + interval
+
+    filled_values: list[TimeSeries] = []
     idx = 0
-
-    for bucket in resp.keys():
-        try:
-            next_bucket = str(int(series[idx]["bucket"].timestamp()))
-        except IndexError:
-            next_bucket = "-1"
-
-        # If the buckets match use the series count.
-        if next_bucket == bucket:
-            resp[bucket].append({"count": series[idx]["count"]})
+    for ts in iter_interval(start, end, interval):
+        if idx < len(values) and ts == values[idx]["timestamp"]:
+            filled_values.append(values[idx])
             idx += 1
-        # If the buckets do not match generate a value to fill its slot.
         else:
-            resp[bucket].append({"count": 0})
+            filled_values.append({"timestamp": ts, "value": 0})
 
-    # Programmer error. Requires code fix. Likely your query is not truncating timestamps the way
-    # you think it is.
-    if idx != len(series):
-        raise BucketNotFound("No buckets matched. Did your query truncate correctly?")
+    if idx != len(values):
+        raise UnconsumedBuckets("Could not fill every bucket.")
 
-
-def empty_response(start: datetime, end: datetime, interval: timedelta) -> SeriesResponse:
-    return {bucket: [] for bucket in iter_interval(start, end, interval)}
-
-
-def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[str]:
-    while start <= end:
-        yield str(int(start.timestamp()))
-        start = start + interval
-
-
-def to_series(series: QuerySet[Any, dict[str, Any]]) -> SeriesResponse:
-    return {s["bucket"]: [{"count": s["count"]}] for s in series}
+    return filled_values
