@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -7,6 +8,8 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import {useNavContext} from 'sentry/components/nav/context';
+import {NavLayout} from 'sentry/components/nav/types';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -44,7 +47,7 @@ function createOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-export function OrgDropdown() {
+export function OrgDropdown({className}: {className?: string}) {
   const api = useApi();
 
   const config = useLegacyStore(ConfigStore);
@@ -62,20 +65,29 @@ export function OrgDropdown() {
 
   const {projects} = useProjects();
 
+  const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
+
   function handleLogout() {
     logout(api);
   }
 
   return (
     <DropdownMenu
+      className={className}
       trigger={props => (
         <OrgDropdownTrigger
+          isMobile={isMobile}
           size="zero"
           borderless
           aria-label={t('Toggle organization menu')}
           {...props}
         >
-          <StyledOrganizationAvatar size={32} round={false} organization={organization} />
+          <StyledOrganizationAvatar
+            size={isMobile ? 24 : 32}
+            round={false}
+            organization={organization}
+          />
         </OrgDropdownTrigger>
       )}
       minMenuWidth={200}
@@ -175,9 +187,16 @@ export function OrgDropdown() {
   );
 }
 
-const OrgDropdownTrigger = styled(Button)`
+const OrgDropdownTrigger = styled(Button)<{isMobile: boolean}>`
   height: 44px;
   width: 44px;
+
+  ${p =>
+    p.isMobile &&
+    css`
+      width: 32px;
+      height: 32px;
+    `}
 `;
 
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`
