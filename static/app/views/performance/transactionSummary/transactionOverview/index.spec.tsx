@@ -732,9 +732,11 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('My Projects')).toBeInTheDocument();
 
       await userEvent.click(firstProjectOption);
-      expect(spy).toHaveBeenCalledWith(
-        '/organizations/org-slug/performance/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
-      );
+      expect(spy).toHaveBeenCalledWith({
+        pathname:
+          '/organizations/org-slug/performance/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1',
+        state: undefined,
+      });
     });
 
     it('fetches transaction threshold', function () {
