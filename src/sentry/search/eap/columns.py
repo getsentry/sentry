@@ -87,7 +87,9 @@ class ArgumentDefinition:
     # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
     is_attribute: bool = True
     # Validator to check if the value is allowed for this argument
-    validator: Callable[[Any], Any] | None = None
+    validator: Callable[[str], bool] | None = None
+    # Transforms the raw argument before it is parsed
+    transformer: Callable[[str], str] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
 
