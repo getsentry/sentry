@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {CombinedBreadcrumbsAndLogsSection} from 'sentry/components/events/breadcrumbs/combinedBreadcrumbsAndLogsSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -70,7 +70,6 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
@@ -95,7 +94,6 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const location = useLocation();
-  const params = useParams<{eventId: string; groupId: string}>();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
@@ -422,19 +420,6 @@ export function EventDetailsContent({
               event={event}
               projectSlug={project.slug}
               ref={tagsRef}
-              additionalActions={
-                <LinkButton
-                  to={{
-                    pathname: params.eventId
-                      ? `/organizations/${organization.slug}/issues/${group.id}/events/${params.eventId}/tags/`
-                      : `/organizations/${organization.slug}/issues/${group.id}/tags/`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                >
-                  {t('View All Issue Tags')}
-                </LinkButton>
-              }
             />
           ) : (
             <div ref={tagsRef}>
