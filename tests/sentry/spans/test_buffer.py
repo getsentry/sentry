@@ -6,7 +6,7 @@ import pytest
 import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
-from sentry.spans.buffer import SegmentId, Span, SpansBuffer
+from sentry.spans.buffer import OutputSpan, SegmentId, Span, SpansBuffer
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
@@ -15,6 +15,21 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
 
 def _payload(span_id: bytes) -> bytes:
     return rapidjson.dumps({"span_id": span_id}).encode("ascii")
+
+
+def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> OutputSpan:
+    return OutputSpan(
+        payload={
+            "span_id": span_id.decode("ascii"),
+            "segment_id": segment_id.decode("ascii"),
+            "is_segment": is_segment,
+        }
+    )
+
+
+def _normalize_output(output: dict[SegmentId, list[OutputSpan]]):
+    for segment in output.values():
+        segment.sort(key=lambda span: span.payload["span_id"])
 
 
 @pytest.fixture(params=["cluster", "single"])
@@ -96,13 +111,14 @@ def test_basic(buffer: SpansBuffer, spans):
 
     assert buffer.flush_segments(now=5) == (1, {})
     _, rv = buffer.flush_segments(now=11)
+    _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): {
-            _payload(b"d" * 16),
-            _payload(b"b" * 16),
-            _payload(b"a" * 16),
-            _payload(b"c" * 16),
-        }
+        _segment_id(1, "a" * 32, "b" * 16): [
+            _output_segment(b"a" * 16, b"b" * 16, False),
+            _output_segment(b"b" * 16, b"b" * 16, True),
+            _output_segment(b"c" * 16, b"b" * 16, False),
+            _output_segment(b"d" * 16, b"b" * 16, False),
+        ]
     }
     buffer.done_flush_segments(rv)
     assert buffer.flush_segments(now=30) == (0, {})
@@ -153,13 +169,14 @@ def test_deep(buffer: SpansBuffer, spans):
     assert_ttls(buffer.client)
 
     _, rv = buffer.flush_segments(now=10)
+    _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): {
-            _payload(b"d" * 16),
-            _payload(b"b" * 16),
-            _payload(b"a" * 16),
-            _payload(b"c" * 16),
-        }
+        _segment_id(1, "a" * 32, "a" * 16): [
+            _output_segment(b"a" * 16, b"a" * 16, True),
+            _output_segment(b"b" * 16, b"a" * 16, False),
+            _output_segment(b"c" * 16, b"a" * 16, False),
+            _output_segment(b"d" * 16, b"a" * 16, False),
+        ]
     }
 
     buffer.done_flush_segments(rv)
@@ -220,14 +237,15 @@ def test_deep2(buffer: SpansBuffer, spans):
     assert_ttls(buffer.client)
 
     _, rv = buffer.flush_segments(now=10)
+    _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): {
-            _payload(b"a" * 16),
-            _payload(b"b" * 16),
-            _payload(b"c" * 16),
-            _payload(b"d" * 16),
-            _payload(b"e" * 16),
-        }
+        _segment_id(1, "a" * 32, "a" * 16): [
+            _output_segment(b"a" * 16, b"a" * 16, True),
+            _output_segment(b"b" * 16, b"a" * 16, False),
+            _output_segment(b"c" * 16, b"a" * 16, False),
+            _output_segment(b"d" * 16, b"a" * 16, False),
+            _output_segment(b"e" * 16, b"a" * 16, False),
+        ]
     }
 
     buffer.done_flush_segments(rv)
@@ -282,18 +300,19 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
 
     assert buffer.flush_segments(now=5) == (2, {})
     _, rv = buffer.flush_segments(now=11)
-    assert rv == {_segment_id(2, "a" * 32, "b" * 16): {_payload(b"b" * 16)}}
+    assert rv == {_segment_id(2, "a" * 32, "b" * 16): [_output_segment(b"b" * 16, b"b" * 16, True)]}
     buffer.done_flush_segments(rv)
 
     # TODO: flush faster, since we already saw parent in other project
     assert buffer.flush_segments(now=30) == (1, {})
     _, rv = buffer.flush_segments(now=60)
+    _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): {
-            _payload(b"c" * 16),
-            _payload(b"d" * 16),
-            _payload(b"e" * 16),
-        }
+        _segment_id(1, "a" * 32, "b" * 16): [
+            _output_segment(b"c" * 16, b"b" * 16, False),
+            _output_segment(b"d" * 16, b"b" * 16, False),
+            _output_segment(b"e" * 16, b"b" * 16, False),
+        ]
     }
     buffer.done_flush_segments(rv)
 

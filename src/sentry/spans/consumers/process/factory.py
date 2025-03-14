@@ -153,7 +153,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_time: int,
         num_processes: int,
         max_flush_segments: int,
-        max_inflight_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
     ):
@@ -163,7 +162,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
-        self.max_inflight_segments = max_inflight_segments
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.__pool = MultiprocessingPool(num_processes)
@@ -190,7 +188,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.producer,
             self.output_topic,
             self.max_flush_segments,
-            self.max_inflight_segments,
             next_step=committer,
         )
 

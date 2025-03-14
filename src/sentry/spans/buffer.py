@@ -65,7 +65,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Sequence
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import rapidjson
 from django.conf import settings
@@ -82,7 +82,7 @@ from sentry.utils import metrics, redis
 SegmentId = bytes
 
 
-def segment_to_span_id(segment_id: SegmentId) -> bytes:
+def _segment_to_span_id(segment_id: SegmentId) -> bytes:
     return parse_segment_id(segment_id)[2]
 
 
@@ -112,6 +112,10 @@ class Span(NamedTuple):
     is_segment_span: bool = False
 
 
+class OutputSpan(NamedTuple):
+    payload: dict[str, Any]
+
+
 class SpansBuffer:
     def __init__(
         self,
@@ -139,6 +143,10 @@ class SpansBuffer:
         )
 
     def _is_root_span(self, span: Span) -> bool:
+        # Note: For the case where the span's parent is in another project, we
+        # will still flush the segment-without-root-span as one unit, just
+        # after span_buffer_timeout_secs rather than
+        # span_buffer_root_timeout_secs.
         return span.parent_span_id is None or span.is_segment_span
 
     def process_spans(self, spans: Sequence[Span], now: int):
@@ -219,7 +227,7 @@ class SpansBuffer:
 
     def flush_segments(
         self, now: int, max_segments: int = 0
-    ) -> tuple[int, dict[SegmentId, set[bytes]]]:
+    ) -> tuple[int, dict[SegmentId, list[OutputSpan]]]:
         cutoff = now
 
         with metrics.timer("sentry.spans.buffer.flush_segments.load_segment_ids"):
@@ -260,22 +268,27 @@ class SpansBuffer:
         return_segments = {}
 
         for segment_id, segment in zip(segment_ids, segments):
-            return_segment = set()
+            segment_span_id = _segment_to_span_id(segment_id).decode("ascii")
+
+            return_segment = []
             metrics.timing("sentry.spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
-                return_segment.add(payload)
+                val = rapidjson.loads(payload)
+                val["segment_id"] = segment_span_id
+                val["is_segment"] = segment_span_id == val["span_id"]
+                return_segment.append(OutputSpan(payload=val))
 
             return_segments[segment_id] = return_segment
         metrics.timing("sentry.spans.buffer.flush_segments.num_segments", len(return_segments))
 
         return sum(queue_sizes), return_segments
 
-    def done_flush_segments(self, segment_ids: dict[SegmentId, set[bytes]]):
+    def done_flush_segments(self, segment_ids: dict[SegmentId, list[OutputSpan]]):
         num_hdel = []
         metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))
         with metrics.timer("sentry.spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
-                for segment_id, payloads in segment_ids.items():
+                for segment_id, output_spans in segment_ids.items():
                     hrs_key = b"span-buf:hrs:" + segment_id
                     p.get(hrs_key)
                     p.delete(hrs_key)
@@ -287,11 +300,11 @@ class SpansBuffer:
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
                     i = 0
-                    for payload_batch in itertools.batched(payloads, 100):
+                    for span_batch in itertools.batched(output_spans, 100):
                         i += 1
                         p.hdel(
                             redirect_map_key,
-                            *[rapidjson.loads(payload)["span_id"] for payload in payload_batch],
+                            *[output_span.payload["span_id"] for output_span in span_batch],
                         )
 
                     num_hdel.append(i)

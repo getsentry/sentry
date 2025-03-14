@@ -424,12 +424,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 default=100,
                 help="The number of segments to download from redis at once. Defaults to 100.",
             ),
-            click.Option(
-                ["--max-inflight-segments", "max_inflight_segments"],
-                type=int,
-                default=10000,
-                help="The number of segments that can exist in Redis before the consumer applies backpressure. 0 is unlimited. Defaults to 10000.",
-            ),
             *multiprocessing_options(default_max_batch_size=100),
         ],
     },
