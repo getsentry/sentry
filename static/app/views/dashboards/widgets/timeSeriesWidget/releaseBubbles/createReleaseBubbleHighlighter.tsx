@@ -18,7 +18,7 @@ interface LegendSelectChangedParams {
 const trackLegend = debounce((params: LegendSelectChangedParams) => {
   trackAnalytics('releases.bubbles_legend', {
     organization: null,
-    selected: params.selected.Releases,
+    selected: Boolean(params.selected.Releases),
   });
 });
 
