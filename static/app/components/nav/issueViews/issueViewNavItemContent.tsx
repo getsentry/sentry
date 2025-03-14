@@ -402,8 +402,8 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   background: ${p => p.theme.purple400};
   border: solid 2px ${p => p.theme.surface200};
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   top: -3px;
   right: -3px;
 `;
