@@ -132,9 +132,26 @@ export const ChonkLeadingItems = chonkStyled('div')<{
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  margin-top: ${p => getVerticalPadding(p.size)};
+  line-height: 1;
+  height: ${p => p.theme.form[p.size ?? 'md'].height};
   margin-right: ${space(1)};
   flex-shrink: 0;
 
   ${p => p.disabled && `opacity: 0.5;`}
+`;
+
+export const ChonkLabel = chonkStyled('div')`
+  margin-bottom: 0;
+  line-height: 1;
+  white-space: nowrap;
+
+  ${p => p.theme.overflowEllipsis}
+`;
+
+export const ChonkLabelWrap = chonkStyled('div')`
+  padding-right: ${space(1)};
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
 `;

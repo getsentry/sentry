@@ -8,6 +8,8 @@ import styled from '@emotion/styled';
 import {
   ChonkContentWrap,
   ChonkInnerWrap,
+  ChonkLabel,
+  ChonkLabelWrap,
   ChonkLeadingItems,
   type Priority,
 } from 'sentry/components/core/menuListItem/index.chonk';
@@ -415,19 +417,25 @@ export const LeadingItems = withChonk(
   ChonkLeadingItems
 );
 
-const LabelWrap = styled('div')`
-  padding-right: ${space(1)};
-  width: 100%;
-  min-width: 0;
-`;
+const LabelWrap = withChonk(
+  styled('div')`
+    padding-right: ${space(1)};
+    width: 100%;
+    min-width: 0;
+  `,
+  ChonkLabelWrap
+);
 
-const Label = styled('div')`
-  margin-bottom: 0;
-  line-height: 1.4;
-  white-space: nowrap;
+const Label = withChonk(
+  styled('div')`
+    margin-bottom: 0;
+    line-height: 1.4;
+    white-space: nowrap;
 
-  ${p => p.theme.overflowEllipsis}
-`;
+    ${p => p.theme.overflowEllipsis}
+  `,
+  ChonkLabel
+);
 
 const Details = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};

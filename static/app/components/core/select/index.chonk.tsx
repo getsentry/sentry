@@ -268,12 +268,12 @@ export const ChonkCheckWrap = chonkStyled('div')<{
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 1em;
+  height: 1em;
 
   ${p =>
     p.isMultiple
       ? `
-      width: 1em;
-      height: 1em;
       padding: 1px;
       border: solid 1px ${p.theme.border};
       background: ${p.theme.backgroundElevated};
@@ -288,9 +288,6 @@ export const ChonkCheckWrap = chonkStyled('div')<{
       }
     `
       : `
-      width: 1em;
-      height: 1.4em;
-      padding-bottom: 1px;
       ${
         p.isSelected &&
         `
