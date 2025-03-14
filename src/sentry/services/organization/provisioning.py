@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.db import router, transaction
+from django.db import DataError, router, transaction
 from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
@@ -205,11 +205,17 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.get()
 
-    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
-        organization_id=organization_id,
-        provision_payload=provisioning_payload,
-        region_name=region_name,
-    )
+    try:
+        able_to_provision = (
+            region_organization_provisioning_rpc_service.create_organization_in_region(
+                organization_id=organization_id,
+                provision_payload=provisioning_payload,
+                region_name=region_name,
+            )
+        )
+    except DataError as e:  # handle any cases where data is malformed
+        capture_exception(e)
+        able_to_provision = False
 
     if not able_to_provision:
         # If the region returns false when validating provisioning information,
