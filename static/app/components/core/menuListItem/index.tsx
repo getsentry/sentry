@@ -8,6 +8,7 @@ import styled from '@emotion/styled';
 import {
   ChonkContentWrap,
   ChonkInnerWrap,
+  ChonkLeadingItems,
   type Priority,
 } from 'sentry/components/core/menuListItem/index.chonk';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -396,20 +397,23 @@ const ContentWrap = withChonk(
   ChonkContentWrap
 );
 
-export const LeadingItems = styled('div')<{
-  disabled: boolean;
-  size: Props['size'];
-}>`
-  display: flex;
-  align-items: center;
-  height: 1.4em;
-  gap: ${space(1)};
-  margin-top: ${p => getVerticalPadding(p.size)};
-  margin-right: ${space(1)};
-  flex-shrink: 0;
+export const LeadingItems = withChonk(
+  styled('div')<{
+    disabled: boolean;
+    size: Props['size'];
+  }>`
+    display: flex;
+    align-items: center;
+    height: 1.4em;
+    gap: ${space(1)};
+    margin-top: ${p => getVerticalPadding(p.size)};
+    margin-right: ${space(1)};
+    flex-shrink: 0;
 
-  ${p => p.disabled && `opacity: 0.5;`}
-`;
+    ${p => p.disabled && `opacity: 0.5;`}
+  `,
+  ChonkLeadingItems
+);
 
 const LabelWrap = styled('div')`
   padding-right: ${space(1)};

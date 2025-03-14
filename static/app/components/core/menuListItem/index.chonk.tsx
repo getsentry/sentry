@@ -124,3 +124,17 @@ export const ChonkContentWrap = chonkStyled('div')<{
       }
     `}
   `;
+
+export const ChonkLeadingItems = chonkStyled('div')<{
+  disabled: boolean;
+  size: FormSize;
+}>`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-top: ${p => getVerticalPadding(p.size)};
+  margin-right: ${space(1)};
+  flex-shrink: 0;
+
+  ${p => p.disabled && `opacity: 0.5;`}
+`;
