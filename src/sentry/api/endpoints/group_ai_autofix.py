@@ -134,7 +134,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
             if is_transaction:
                 op = event_data.get("contexts", {}).get("trace", {}).get("op")
                 transaction_title = event.title
-                duration_obj = event_data.get("breakdowns", {}).get("total.time", {})
+                duration_obj = (
+                    event_data.get("breakdowns", {}).get("span_ops", {}).get("total.time", {})
+                )
                 duration_str = (
                     f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
                 )
