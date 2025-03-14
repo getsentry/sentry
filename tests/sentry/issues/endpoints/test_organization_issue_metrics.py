@@ -136,6 +136,23 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             }
         ]
 
+    def test_get_too_much_granularity(self):
+        response = self.client.get(self.url + "?statsPeriod=14d&interval=1001")
+        assert response.status_code == 400
+        assert response.json() == {
+            "detail": "The specified granularity is too precise. Increase your interval."
+        }
+
+    def test_get_invalid_interval(self):
+        response = self.client.get(self.url + "?interval=foo")
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Could not parse interval value."}
+
+    def test_get_zero_interval(self):
+        response = self.client.get(self.url + "?interval=0")
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Interval must be greater than 1000 milliseconds."}
+
     def test_new_feedback(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")

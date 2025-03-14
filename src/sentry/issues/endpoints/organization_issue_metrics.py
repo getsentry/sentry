@@ -41,6 +41,8 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         try:
             interval_s = int(request.GET["interval"]) // 1000
+            if interval_s == 0:
+                raise ParseError("Interval must be greater than 1000 milliseconds.")
             interval = timedelta(seconds=interval_s)
         except KeyError:
             # Defaulting for now. Probably better to compute some known interval. I.e. if we're
@@ -60,7 +62,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         #   - One week range -> one hour interval.
         #   - One day range -> ten minute interval.
         #   - One hour range -> twenty second interval.
-        number_of_buckets = (end - start).seconds // interval.seconds
+        number_of_buckets = (end - start).total_seconds() // interval.total_seconds()
         if number_of_buckets > 200:
             raise ParseError("The specified granularity is too precise. Increase your interval.")
 
