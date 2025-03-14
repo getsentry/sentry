@@ -298,6 +298,11 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
+    def test_paren_expression_to_query_string(self):
+        (val,) = parse_search_query("(has:1 random():<5)")
+        assert isinstance(val, ParenExpression)
+        assert val.to_query_string() == "(has:=1 random():<5.0)"  # type: ignore[unreachable]  # will be fixed once parse_search_query is fixed!
+
     def test_bool_operator_with_bool_disabled(self):
         config = SearchConfig.create_from(default_config, allow_boolean=False)
         with pytest.raises(InvalidSearchQuery) as excinfo:
