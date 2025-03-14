@@ -1288,7 +1288,10 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
 
     feedback_source = event.occurrence.evidence_data.get("source")
 
-    if feedback_source in FeedbackCreationSource.new_feedback_category_values():
+    if (
+        feedback_source is None
+        or feedback_source in FeedbackCreationSource.new_feedback_category_values()
+    ):
         return True
 
     should_notify_on_old_feedbacks = job["event"].project.get_option(
