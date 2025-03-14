@@ -9,6 +9,13 @@ from sentry_redis_tools.clients import StrictRedis
 from sentry.spans.buffer import OutputSpan, SegmentId, Span, SpansBuffer
 
 
+def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
+    return [
+        spans,
+        list(reversed(spans)),
+    ]
+
+
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
     return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
@@ -313,6 +320,74 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
             _output_segment(b"d" * 16, b"b" * 16, False),
             _output_segment(b"e" * 16, b"b" * 16, False),
         ]
+    }
+    buffer.done_flush_segments(rv)
+
+    assert buffer.flush_segments(now=90) == (0, {})
+
+    assert_clean(buffer.client)
+
+
+@pytest.mark.parametrize(
+    "spans",
+    shallow_permutations(
+        [
+            Span(
+                payload=_payload(b"c" * 16),
+                trace_id="a" * 32,
+                span_id="c" * 16,
+                parent_span_id="d" * 16,
+                project_id=1,
+                is_segment_span=True,
+            ),
+            Span(
+                payload=_payload(b"d" * 16),
+                trace_id="a" * 32,
+                span_id="d" * 16,
+                parent_span_id="b" * 16,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload(b"e" * 16),
+                trace_id="a" * 32,
+                span_id="e" * 16,
+                parent_span_id="b" * 16,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload(b"b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                project_id=2,
+            ),
+        ]
+    ),
+)
+def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer, spans):
+    buffer.process_spans(spans, now=0)
+
+    assert_ttls(buffer.client)
+
+    assert buffer.flush_segments(now=5) == (3, {})
+    _, rv = buffer.flush_segments(now=11)
+    assert rv == {
+        _segment_id(2, "a" * 32, "b" * 16): [_output_segment(b"b" * 16, b"b" * 16, True)],
+        _segment_id(1, "a" * 32, "c" * 16): [
+            _output_segment(b"c" * 16, b"c" * 16, True),
+        ],
+    }
+    buffer.done_flush_segments(rv)
+
+    # TODO: flush faster, since we already saw parent in other project
+    assert buffer.flush_segments(now=30) == (1, {})
+    _, rv = buffer.flush_segments(now=60)
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): [
+            _output_segment(b"d" * 16, b"b" * 16, False),
+            _output_segment(b"e" * 16, b"b" * 16, False),
+        ],
     }
     buffer.done_flush_segments(rv)
 

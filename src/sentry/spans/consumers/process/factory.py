@@ -21,7 +21,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.buffer_v2 import RedisSpansBuffer, Span
+from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -181,7 +181,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         committer = CommitOffsets(commit)
 
-        buffer = RedisSpansBuffer(assigned_shards=[p.index for p in partitions])
+        buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
 
         flusher = SpanFlusher(
             buffer,
@@ -226,7 +226,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def process_batch(
-    buffer: RedisSpansBuffer, values: Message[ValuesBatch[tuple[int, KafkaPayload]]]
+    buffer: SpansBuffer, values: Message[ValuesBatch[tuple[int, KafkaPayload]]]
 ) -> int:
     min_timestamp = None
     spans = []

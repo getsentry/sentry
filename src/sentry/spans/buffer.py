@@ -170,11 +170,13 @@ class SpansBuffer:
                     # (parent_span_id) -> [Span]
                     shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
                     queue_key = f"span-buf:q:{shard}"
-                    parent_span_id = span.parent_span_id or span.span_id
 
                     is_root_span = self._is_root_span(span)
                     if is_root_span:
                         is_root_span_count += 1
+                        parent_span_id = span.span_id
+                    else:
+                        parent_span_id = span.parent_span_id or span.span_id
 
                     # hack to make redis-cluster-py pipelines work well with
                     # scripts. we cannot use EVALSHA or "the normal way to do

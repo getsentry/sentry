@@ -8,7 +8,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message
 
-from sentry.spans.buffer_v2 import RedisSpansBufferV2
+from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 
 
@@ -30,7 +30,7 @@ class SpanFlusher(ProcessingStrategy[int]):
 
     def __init__(
         self,
-        buffer: RedisSpansBufferV2,
+        buffer: SpansBuffer,
         producer: KafkaProducer,
         topic: ArroyoTopic,
         max_flush_segments: int,
