@@ -41,6 +41,19 @@ class OrganizationDataConditionAPITestCase(APITestCase):
                 "additionalProperties": False,
             }
 
+        @self.registry.register(Condition.ANOMALY_DETECTION)
+        @dataclass(frozen=True)
+        class TestDetectorTrigger(DataConditionHandler):
+            type = DataConditionHandler.Type.DETECTOR_TRIGGER
+            comparison_json_schema = {"type": "boolean"}
+
+        # This condition should not be included in the response
+        @self.registry.register(Condition.EVERY_EVENT)
+        @dataclass(frozen=True)
+        class TestIgnoredCondition(DataConditionHandler):
+            type = DataConditionHandler.Type.WORKFLOW_TRIGGER
+            comparison_json_schema = {"type": "boolean"}
+
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.__exit__(None, None, None)
@@ -48,10 +61,6 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCase):
-    def test_simple(self):
-        response = self.get_success_response(self.organization.slug)
-        assert len(response.data) == 2
-
     def test_type_filter(self):
         response = self.get_success_response(
             self.organization.slug, type=DataConditionHandler.Type.WORKFLOW_TRIGGER
@@ -83,4 +92,8 @@ class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCas
 
     def test_invalid_type(self):
         response = self.get_error_response(self.organization.slug, type="invalid")
+        assert response.status_code == 400
+
+    def test_no_type(self):
+        response = self.get_error_response(self.organization.slug)
         assert response.status_code == 400
