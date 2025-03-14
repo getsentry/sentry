@@ -1,72 +1,70 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {useCallback} from 'react';
+
+import {
+  type FormFieldProps,
+  useFormField,
+} from 'sentry/components/deprecatedforms/formField';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
-type Props = InputField['props'];
+type Props = FormFieldProps;
 
-type State = InputField['state'] & {
-  value: boolean;
+const coerceValue = (value: any) => {
+  // Handle null/undefined explicitly
+  if (value === null || value === undefined || value === '') {
+    return false;
+  }
+  // Convert any truthy/falsy value to boolean
+  return Boolean(value);
 };
 
-// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+const getClassName = () => 'control-group checkbox';
 
 /**
  * @deprecated Do not use this
  */
-export default class BooleanField extends InputField<Props, State> {
-  coerceValue(initialValue: string | number) {
-    const value = super.coerceValue(initialValue);
-    return value ? true : false;
-  }
+function BooleanField(props: Props) {
+  const field = useFormField({
+    ...props,
+    coerceValue,
+    getClassName,
+  });
 
-  onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.checked;
-    this.setValue(value);
-  };
+  // Handle checkbox change
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      field.setValue(e.target.checked);
+    },
+    [field]
+  );
 
-  getField() {
-    return (
-      <input
-        id={this.getId()}
-        type={this.getType()}
-        checked={this.state.value}
-        onChange={this.onChange.bind(this)}
-        disabled={this.props.disabled}
-      />
-    );
-  }
+  // Determine if error message should be shown
+  const shouldShowErrorMessage = field.error && !props.hideErrorMessage;
 
-  render() {
-    const {error} = this.state;
-    let className = this.getClassName();
-    if (error) {
-      className += ' has-error';
-    }
-    return (
-      <div className={className}>
-        <div className="controls">
-          <label className="control-label">
-            {this.getField()}
-            {this.props.label}
-            {this.props.disabled && this.props.disabledReason && (
-              <Tooltip title={this.props.disabledReason}>
-                <IconQuestion size="xs" />
-              </Tooltip>
-            )}
-          </label>
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {error && <p className="error">{error}</p>}
-        </div>
+  return (
+    <div className={field.getClassName()}>
+      <div className="controls">
+        <label className="control-label">
+          <input
+            id={field.id}
+            type="checkbox"
+            checked={Boolean(field.value)}
+            onChange={handleChange}
+            disabled={props.disabled}
+          />
+          {props.label}
+          {props.disabled && props.disabledReason && (
+            <Tooltip title={props.disabledReason}>
+              <IconQuestion size="xs" />
+            </Tooltip>
+          )}
+        </label>
+        {defined(props.help) && <p className="help-block">{props.help}</p>}
+        {shouldShowErrorMessage && <p className="error">{field.error}</p>}
       </div>
-    );
-  }
-
-  getClassName() {
-    return 'control-group checkbox';
-  }
-
-  getType() {
-    return 'checkbox';
-  }
+    </div>
+  );
 }
+
+export default BooleanField;

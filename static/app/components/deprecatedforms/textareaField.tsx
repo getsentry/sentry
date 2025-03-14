@@ -1,33 +1,42 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {useCallback} from 'react';
 
-type State = InputField['state'] & {
-  value?: string;
+import {
+  type FormFieldProps,
+  useFormField,
+} from 'sentry/components/deprecatedforms/formField';
+
+type Props = FormFieldProps & {
+  placeholder?: string;
 };
-
-// XXX: This is ONLY used in GenericField. If we can delete that this can go.
 
 /**
  * @deprecated Do not use this
  */
-export default class TextareaField extends InputField<InputField['props'], State> {
-  getField() {
-    return (
-      <textarea
-        id={this.getId()}
-        className="form-control"
-        value={this.state.value}
-        disabled={this.props.disabled}
-        required={this.props.required}
-        placeholder={this.props.placeholder}
-        onChange={this.onChange.bind(this)}
-      />
-    );
-  }
+function TextareaField(props: Props) {
+  const field = useFormField({
+    ...props,
+    getClassName: () => 'control-group',
+  });
 
-  /**
-   * Unused, only defined to satisfy abstract class
-   */
-  getType() {
-    return '';
-  }
+  // Create a custom onChange handler for textarea
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      field.setValue(e.target.value);
+    },
+    [field]
+  );
+
+  return field.renderField(({id, value, disabled, required}) => (
+    <textarea
+      id={id}
+      className="form-control"
+      value={value as string}
+      disabled={disabled}
+      required={required}
+      placeholder={props.placeholder}
+      onChange={handleChange}
+    />
+  ));
 }
+
+export default TextareaField;

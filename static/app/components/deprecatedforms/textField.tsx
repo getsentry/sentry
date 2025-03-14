@@ -1,22 +1,38 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {
+  type InputFieldProps,
+  useInputField,
+} from 'sentry/components/deprecatedforms/inputField';
 
-type Props = InputField['props'] & {
+type Props = InputFieldProps & {
   spellCheck?: string;
 };
-
-// XXX: This is ONLY used in GenericField. If we can delete that this can go.
 
 /**
  * @deprecated Do not use this
  */
-export default class TextField extends InputField<Props> {
-  getAttributes() {
-    return {
-      spellCheck: this.props.spellCheck,
-    };
-  }
+function TextField(props: Props) {
+  const {spellCheck, ...rest} = props;
 
-  getType() {
-    return 'text';
-  }
+  const field = useInputField({
+    ...rest,
+    type: 'text',
+  });
+
+  return field.renderField(fieldProps => {
+    return (
+      <input
+        id={fieldProps.id}
+        name={fieldProps.name}
+        value={fieldProps.value}
+        onChange={fieldProps.onChange}
+        disabled={fieldProps.disabled}
+        required={fieldProps.required}
+        type="text"
+        className="form-control"
+        spellCheck={spellCheck as any}
+      />
+    );
+  });
 }
+
+export default TextField;

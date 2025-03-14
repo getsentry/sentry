@@ -1,84 +1,98 @@
+import {useCallback, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
+import FormContext from 'sentry/components/deprecatedforms/formContext';
+import {
+  type FormFieldProps,
+  useFormField,
+} from 'sentry/components/deprecatedforms/formField';
+import {selectUtils} from 'sentry/components/deprecatedforms/selectField';
 import type {SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+
+type Props = FormFieldProps & {
+  // Select props
+  choices?: Array<{label: string; value: string | number}> | string[] | string[][];
+  clearable?: boolean;
+  disabled?: boolean;
+  multi?: boolean;
+  multiple?: boolean;
+  options?: Array<SelectValue<any>>;
+  placeholder?: string;
+};
 
 // XXX: This is ONLY used in GenericField. If we can delete that this can go.
 
 /**
  * @deprecated Do not use this
  *
- * This is a <SelectField> that allows the user to create new options if one does't exist.
+ * This is a select field that allows the user to create new options if one doesn't exist.
  *
  * This is used in some integrations
  */
-export default class SelectCreatableField extends SelectField {
-  options: Array<SelectValue<any>> | undefined;
+function SelectCreatableField({
+  clearable = true,
+  multiple = false,
+  multi = false,
+  choices,
+  options: propOptions,
+  ...props
+}: Props) {
+  // Determine if multiple selection is enabled
+  const isMultiple = multiple || multi;
 
-  constructor(props: any, context: any) {
-    super(props, context);
+  // Parse options once because react-select relies on `options` mutation
+  // when you create a new option
+  const options = useMemo(() => {
+    return convertFromSelect2Choices(choices) || propOptions;
+  }, [choices, propOptions]);
 
-    // We only want to parse options once because react-select relies
-    // on `options` mutation when you create a new option
-    //
-    // Otherwise you will not get the created option in the dropdown menu
-    this.options = this.getOptions(props);
-  }
+  // Coerce value for the form using the shared utility
+  const coerceValue = useCallback(
+    (value: any) => {
+      return selectUtils.createCoerceValue(isMultiple)(value);
+    },
+    [isMultiple]
+  );
 
-  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
-    const newError = this.getError(nextProps, nextContext);
-    if (newError !== this.state.error) {
-      this.setState({error: newError});
-    }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
-      // This is the only thing that is different from parent, we compare newValue against coerced value in state
-      // To remain compatible with react-select, we need to store the option object that
-      // includes `value` and `label`, but when we submit the format, we need to coerce it
-      // to just return `value`. Also when field changes, it propagates the coerced value up
-      const coercedValue = this.coerceValue(this.state.value);
+  // Get form field functionality
+  const field = useFormField({
+    ...props,
+    // Override getClassName to match SelectField
+    getClassName: () => '',
+    coerceValue,
+  });
 
-      // newValue can be empty string because of `getValue`, while coerceValue needs to return null (to differentiate
-      // empty string from cleared item). We could use `!=` to compare, but lets be a bit more explicit with strict equality
-      //
-      // This can happen when this is apart of a field, and it re-renders onChange for a different field,
-      // there will be a mismatch between this component's state.value and `this.getValue` result above
-      if (
-        newValue !== coercedValue &&
-        !!newValue !== !!coercedValue &&
-        newValue !== this.state.value
-      ) {
-        this.setValue(newValue);
-      }
-    }
-  }
+  // Use the custom hook to handle special value comparison logic
+  const context = useContext(FormContext);
+  selectUtils.useSelectValueSync(field.value, field.setValue, context);
 
-  getOptions(props: any) {
-    return convertFromSelect2Choices(props.choices) || props.options;
-  }
+  return field.renderField(({id, name, value, onChange, disabled, required}) => {
+    // Destructure props to avoid duplicates
+    const {name: _, disabled: __, placeholder, ...restProps} = props;
 
-  getField() {
-    const {placeholder, disabled, clearable, name} = this.props;
+    // Format the value for the select component using the shared utility
+    const formattedValue = selectUtils.formatValue(value, isMultiple);
 
     return (
       <StyledSelectControl
         creatable
-        id={this.getId()}
-        options={this.options}
+        id={id}
+        name={name}
+        options={options}
         placeholder={placeholder}
         disabled={disabled}
-        value={this.state.value}
-        onChange={this.onChange}
+        required={required}
+        value={formattedValue}
+        onChange={onChange}
         clearable={clearable}
-        multiple={this.isMultiple()}
-        name={name}
+        multiple={isMultiple}
+        {...restProps}
       />
     );
-  }
+  });
 }
 
 // This is because we are removing `control-group` class name which provides margin-bottom
@@ -91,3 +105,5 @@ const StyledSelectControl = styled(Select)`
     margin-bottom: 15px;
   }
 `;
+
+export default SelectCreatableField;

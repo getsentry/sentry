@@ -26,7 +26,7 @@ describe('SelectAsyncField', function () {
   it('supports autocomplete arguments from an integration', async function () {
     render(<SelectAsyncField {...defaultProps} />);
 
-    await selectEvent.openMenu(screen.getByText('Select me'));
+    await selectEvent.openMenu(await screen.findByText('Select me'));
     await userEvent.type(screen.getByRole('textbox'), 'baz');
 
     expect(api).toHaveBeenCalled();
@@ -43,7 +43,7 @@ describe('SelectAsyncField', function () {
       </Form>
     );
 
-    await selectEvent.openMenu(screen.getByText('Select me'));
+    await selectEvent.openMenu(await screen.findByText('Select me'));
     await userEvent.type(screen.getByRole('textbox'), 'baz');
     await userEvent.click(screen.getByText('Baz Label'));
 

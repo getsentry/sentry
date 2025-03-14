@@ -1,6 +1,12 @@
-import FormField from 'sentry/components/deprecatedforms/formField';
+import {useCallback} from 'react';
 
-type InputFieldProps = FormField['props'] & {
+import {
+  type FormFieldProps,
+  type FormFieldRenderProps,
+  useFormField,
+} from 'sentry/components/deprecatedforms/formField';
+
+export type InputFieldProps = FormFieldProps & {
   autoComplete?: string;
   inputStyle?: Record<PropertyKey, unknown>;
   min?: number;
@@ -15,41 +21,95 @@ type InputFieldProps = FormField['props'] & {
 // XXX: This is ONLY used in GenericField. If we can delete that this can go.
 
 /**
+ * A hook that provides input field functionality
+ *
  * @deprecated Do not use this
  */
-abstract class InputField<
-  Props extends InputFieldProps = InputFieldProps,
-  State extends FormField['state'] = FormField['state'],
-> extends FormField<Props, State> {
-  getField() {
-    return (
-      <input
-        id={this.getId()} // TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
-        type={this.getType()}
-        className="form-control"
-        autoComplete={this.props.autoComplete}
-        placeholder={this.props.placeholder}
-        onChange={this.onChange}
-        disabled={this.props.disabled}
-        name={this.props.name}
-        required={this.props.required}
-        value={this.state.value as string | number} // can't pass in boolean here
-        style={this.props.inputStyle}
-        onBlur={this.props.onBlur}
-        onFocus={this.props.onFocus}
-        onKeyPress={this.props.onKeyPress}
-        onKeyDown={this.props.onKeyDown}
-        min={this.props.min}
-        step={this.props.step}
-      />
-    );
-  }
+export function useInputField<T = string | number>({
+  type,
+  ...props
+}: InputFieldProps & {
+  type: string;
+  coerceValue?: (value: any) => T;
+}) {
+  const getClassName = useCallback(() => 'control-group', []);
 
-  getClassName() {
-    return 'control-group';
-  }
+  const field = useFormField({
+    ...props,
+    getClassName,
+  });
 
-  abstract getType(): string;
+  // Render the input field
+  const renderInputField = useCallback(
+    (customProps?: Partial<FormFieldRenderProps<T>>) => {
+      return field.renderField(fieldProps => {
+        const {id, name, value, onChange, disabled, required} = {
+          ...fieldProps,
+          ...customProps,
+        };
+
+        // For number inputs, we need to convert null to empty string
+        // and ensure we're not passing 'null' as a string
+        const displayValue = value === null ? '' : value;
+
+        return (
+          <input
+            id={id}
+            type={type}
+            className="form-control"
+            autoComplete={props.autoComplete}
+            placeholder={props.placeholder}
+            onChange={onChange}
+            disabled={disabled}
+            name={name}
+            required={required}
+            value={displayValue as string | number} // can't pass in boolean here
+            style={props.inputStyle}
+            onBlur={props.onBlur}
+            onFocus={props.onFocus}
+            onKeyPress={props.onKeyPress}
+            onKeyDown={props.onKeyDown}
+            min={props.min}
+            step={props.step}
+          />
+        );
+      });
+    },
+    [
+      field,
+      type,
+      props.autoComplete,
+      props.placeholder,
+      props.inputStyle,
+      props.onBlur,
+      props.onFocus,
+      props.onKeyPress,
+      props.onKeyDown,
+      props.min,
+      props.step,
+    ]
+  );
+
+  return {
+    ...field,
+    renderInputField,
+  };
 }
 
-export default InputField;
+/**
+ * A utility function to create an input field component
+ *
+ * @deprecated Do not use this
+ */
+export function createInputField(type: string) {
+  return function InputFieldComponent(props: InputFieldProps) {
+    const field = useInputField({
+      ...props,
+      type,
+    });
+
+    return field.renderInputField();
+  };
+}
+
+export default useInputField;

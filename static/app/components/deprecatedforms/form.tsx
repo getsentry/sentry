@@ -62,8 +62,8 @@ class Form<
     ),
   };
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
     this.state = {
       data: {...this.props.initialData},
       errors: {},

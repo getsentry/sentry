@@ -1,4 +1,4 @@
-import {PureComponent} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -16,7 +16,7 @@ type DefaultProps = {
   required?: boolean;
 };
 
-type FormFieldProps = DefaultProps & {
+export type FormFieldProps = DefaultProps & {
   name: string;
   className?: string;
   defaultValue?: any;
@@ -30,138 +30,230 @@ type FormFieldProps = DefaultProps & {
   value?: Value;
 };
 
-type FormFieldState = {
+export type FormFieldRenderProps<T = Value> = {
   error: string | null;
-  value: Value;
+  id: string;
+  name: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setValue: (value: Value) => void;
+  value: T;
+  disabled?: boolean;
+  required?: boolean;
 };
 
-export default abstract class FormField<
-  Props extends FormFieldProps = FormFieldProps,
-  State extends FormFieldState = FormFieldState,
-> extends PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
-    hideErrorMessage: false,
-    disabled: false,
-    required: false,
-  };
+export type FormFieldHookReturn<T = Value> = {
+  error: string | null;
+  getClassName: (customClassName?: string) => string;
+  id: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  renderDisabledReason: () => React.ReactNode;
+  renderField: (
+    renderFunc: (props: FormFieldRenderProps<T>) => React.ReactNode
+  ) => React.ReactNode;
+  setValue: (value: Value) => void;
+  value: T;
+};
 
-  constructor(props: Props, context?: any) {
-    super(props, context);
-    this.state = {
-      error: null,
-      value: this.getValue(props, context),
-    } as State;
-  }
+/**
+ * A hook that provides form field functionality
+ *
+ * @deprecated Use the new form components instead
+ */
+export function useFormField<T = Value>({
+  name,
+  value: propValue,
+  defaultValue,
+  error: propError,
+  onChange: propOnChange,
+  disabled = false,
+  required = false,
+  hideErrorMessage = false,
+  disabledReason,
+  className,
+  label,
+  help,
+  style,
+  coerceValue = (val: any) => val as T,
+  getClassName = () => 'control-group',
+}: FormFieldProps & {
+  coerceValue?: (value: any) => T;
+  getClassName?: () => string;
+}): FormFieldHookReturn<T> {
+  const context = useContext<FormContextData>(FormContext);
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: FormContextData) {
-    const newError = this.getError(nextProps, nextContext);
-    if (newError !== this.state.error) {
-      this.setState({error: newError});
+  // Helper function to get value from props or context
+  const getValueFromPropsOrContext = useCallback(
+    (props: {name: string; defaultValue?: any; value?: Value}) => {
+      const form = context?.form;
+
+      if (defined(props.value)) {
+        return props.value;
+      }
+
+      if (form?.data.hasOwnProperty(props.name)) {
+        return defined(form.data[props.name]) ? form.data[props.name] : '';
+      }
+
+      return defined(props.defaultValue) ? props.defaultValue : '';
+    },
+    [context]
+  );
+
+  // Helper function to get error from props or context
+  const getErrorFromPropsOrContext = useCallback(
+    (props: {name: string; error?: string}) => {
+      const form = context?.form;
+
+      if (defined(props.error)) {
+        return props.error;
+      }
+
+      return form?.errors[props.name] || null;
+    },
+    [context]
+  );
+
+  // Initialize state
+  const [error, setError] = useState<string | null>(
+    getErrorFromPropsOrContext({error: propError, name})
+  );
+
+  const [fieldValue, setFieldValue] = useState<Value>(() =>
+    getValueFromPropsOrContext({value: propValue, defaultValue, name})
+  );
+
+  // Update error when props or context change
+  useEffect(() => {
+    const newError = getErrorFromPropsOrContext({error: propError, name});
+    if (newError !== error) {
+      setError(newError);
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
-      if (newValue !== this.state.value) {
-        this.setValue(newValue);
+  }, [propError, name, getErrorFromPropsOrContext, error]);
+
+  // Update value when props or context change
+  useEffect(() => {
+    if (propValue !== undefined || defined(context?.form)) {
+      const newValue = getValueFromPropsOrContext({value: propValue, defaultValue, name});
+      if (newValue !== fieldValue) {
+        setFieldValue(newValue);
       }
     }
-  }
+  }, [propValue, defaultValue, name, context, getValueFromPropsOrContext, fieldValue]);
 
-  declare context: React.ContextType<typeof FormContext>;
-  static contextType = FormContext;
+  // Generate ID for the field
+  const id = useMemo(() => `id-${name}`, [name]);
 
-  getValue(props: Props, context: FormContextData) {
-    const form = (context || this.context)?.form;
-    props = props || this.props;
-    if (defined(props.value)) {
-      return props.value;
-    }
-    if (form?.data.hasOwnProperty(props.name)) {
-      return defined(form.data[props.name]) ? form.data[props.name] : '';
-    }
-    return defined(props.defaultValue) ? props.defaultValue : '';
-  }
-
-  getError(props: Props, context: FormContextData) {
-    const form = (context || this.context)?.form;
-    props = props || this.props;
-    if (defined(props.error)) {
-      return props.error;
-    }
-    return form?.errors[props.name] || null;
-  }
-
-  getId() {
-    return `id-${this.props.name}`;
-  }
-
-  coerceValue(value: any) {
-    return value;
-  }
-
-  onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    this.setValue(value);
-  };
-
-  setValue = (value: Value) => {
-    const form = this.context?.form;
-    this.setState(
-      {
-        value,
-      },
-      () => {
-        const finalValue = this.coerceValue(this.state.value);
-        this.props.onChange?.(finalValue);
-        form?.onFieldChange(this.props.name, finalValue);
+  // Set value and notify parent/form
+  const setValue = useCallback(
+    (value: Value) => {
+      const finalValue = coerceValue(value);
+      setFieldValue(finalValue as Value);
+      if (Array.isArray(finalValue) && finalValue.length === 1) {
+        propOnChange?.(finalValue[0] as Value);
+      } else {
+        propOnChange?.(finalValue as Value);
       }
-    );
-  };
 
-  abstract getField(): React.ReactNode;
-  abstract getClassName(): string;
+      // Only call onFieldChange if finalValue is not null
+      if (finalValue === null) {
+        // For null values, pass an empty string to the form
+        context?.form?.onFieldChange(name, '');
+      } else {
+        context?.form?.onFieldChange(name, finalValue as string | number);
+      }
+    },
+    [coerceValue, context?.form, name, propOnChange]
+  );
 
-  getFinalClassNames() {
-    const {className, required} = this.props;
-    const {error} = this.state;
-    return classNames(className, this.getClassName(), {
-      'has-error': !!error,
-      required,
-    });
-  }
+  // Handle input change
+  const onChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement> | any) => {
+      const value = e?.target?.value ?? e;
+      // Use setValue instead of directly setting the field value
+      // This ensures the value goes through coerceValue
+      setValue(value);
+    },
+    [setValue]
+  );
 
-  renderDisabledReason() {
-    const {disabled, disabledReason} = this.props;
-    if (!disabled) {
-      return null;
-    }
-    if (!disabledReason) {
+  // Get final class names
+  const getFinalClassNames = useCallback(
+    (customClassName?: string) => {
+      return classNames(customClassName || className, getClassName(), {
+        'has-error': !!error,
+        required,
+      });
+    },
+    [className, error, getClassName, required]
+  );
+
+  // Render disabled reason tooltip if needed
+  const renderDisabledReason = useCallback(() => {
+    if (!disabled || !disabledReason) {
       return null;
     }
     return <QuestionTooltip title={disabledReason} position="top" size="sm" />;
-  }
+  }, [disabled, disabledReason]);
 
-  render() {
-    const {label, hideErrorMessage, help, style} = this.props;
-    const {error} = this.state;
-    const cx = this.getFinalClassNames();
-    const shouldShowErrorMessage = error && !hideErrorMessage;
+  // Render the field with the provided render function
+  const renderField = useCallback(
+    (renderFunc: (props: FormFieldRenderProps<T>) => React.ReactNode) => {
+      const cx = getFinalClassNames();
+      const shouldShowErrorMessage = error && !hideErrorMessage;
 
-    return (
-      <div style={style} className={cx}>
-        <div className="controls">
-          {label && (
-            <label htmlFor={this.getId()} className="control-label">
-              {label}
-            </label>
-          )}
-          {this.getField()}
-          {this.renderDisabledReason()}
-          {defined(help) && <p className="help-block">{help}</p>}
-          {shouldShowErrorMessage && <ErrorMessage>{error}</ErrorMessage>}
+      return (
+        <div style={style} className={cx}>
+          <div className="controls">
+            {label && (
+              <label htmlFor={id} className="control-label">
+                {label}
+              </label>
+            )}
+            {renderFunc({
+              error,
+              id,
+              name,
+              value: fieldValue as T,
+              onChange,
+              setValue,
+              disabled,
+              required,
+            })}
+            {renderDisabledReason()}
+            {defined(help) && <p className="help-block">{help}</p>}
+            {shouldShowErrorMessage && <ErrorMessage>{error}</ErrorMessage>}
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    },
+    [
+      getFinalClassNames,
+      error,
+      hideErrorMessage,
+      style,
+      label,
+      id,
+      name,
+      fieldValue,
+      onChange,
+      setValue,
+      disabled,
+      required,
+      renderDisabledReason,
+      help,
+    ]
+  );
+
+  return {
+    error,
+    value: fieldValue as T,
+    id,
+    onChange,
+    setValue,
+    renderField,
+    renderDisabledReason,
+    getClassName: getFinalClassNames,
+  };
 }
 
 const ErrorMessage = styled('p')`

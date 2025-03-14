@@ -1,7 +1,8 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {createInputField} from 'sentry/components/deprecatedforms/inputField';
 
-export default class DateTimeField extends InputField {
-  getType() {
-    return 'datetime-local';
-  }
-}
+/**
+ * @deprecated Do not use this
+ */
+const DateTimeField = createInputField('datetime-local');
+
+export default DateTimeField;
