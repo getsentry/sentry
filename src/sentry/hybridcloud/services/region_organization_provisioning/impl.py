@@ -52,8 +52,9 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
+        truncated_name = organization_name[:64]
         org = Organization.objects.create(
-            id=organization_id, name=organization_name, slug=slug, is_test=is_test
+            id=organization_id, name=truncated_name, slug=slug, is_test=is_test
         )
 
         apply_streamline_rollout_group(organization=org)
