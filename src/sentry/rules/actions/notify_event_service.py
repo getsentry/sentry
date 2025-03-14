@@ -96,7 +96,6 @@ def send_incident_alert_notification(
         incident_attachment_json=json.dumps(incident_attachment),
         metric_value=metric_value,
     )
-
     return success
 
 
