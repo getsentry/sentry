@@ -108,7 +108,15 @@ export function NewIssueExperienceButton() {
         size="sm"
         title={t('Switch to the new issue experience')}
         aria-label={t('Switch to the new issue experience')}
-        onClick={handleToggle}
+        onClick={() => {
+          handleToggle();
+          tourDispatch({
+            type: 'SET_AVAILABILITY',
+            isAvailable:
+              location.hash === '#tour' ||
+              organization.features.includes('issue-details-streamline-tour'),
+          });
+        }}
       >
         {t('Try New UI')}
       </TryNewButton>
