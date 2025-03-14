@@ -97,19 +97,24 @@ export function QueriesWidget({query}: {query?: string}) {
   );
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data) {
+    if (
+      !timeSeriesRequest.data ||
+      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
+      'data' in timeSeriesRequest.data
+    ) {
       return [];
     }
 
     return Object.keys(timeSeriesRequest.data)
       .filter(key => key !== 'Other')
       .map(key => {
-        const seriesData = timeSeriesRequest.data[key]!;
+        const seriesData = timeSeriesRequest.data[key];
         return {
-          data: seriesData.data.map(([time, value]) => ({
-            name: new Date(time * 1000).toISOString(),
-            value: value?.[0]?.count || 0,
-          })),
+          data:
+            seriesData?.data.map(([time, value]) => ({
+              name: new Date(time * 1000).toISOString(),
+              value: value?.[0]?.count || 0,
+            })) ?? [],
           seriesName: key,
           meta: {
             fields: {
