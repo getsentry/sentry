@@ -11,7 +11,12 @@ trap "rm -f $files_changed_upstream" EXIT
 
 git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD >"$files_changed_upstream"
 
-if grep --quiet 'requirements-dev-frozen.txt' "$files_changed_upstream" || grep --quiet 'yarn.lock' "$files_changed_upstream" || grep --quiet 'migrations' "$files_changed_upstream"; then
+grep_pattern="requirements-dev-frozen.txt|migrations"
+if [[ "$SENTRY_DEVENV_SKIP_FRONTEND" != "1" ]]; then
+  grep_pattern+="|yarn.lock"
+fi
+
+if grep -E --quiet "$grep_pattern" "$files_changed_upstream"; then
   cat <<EOF
 
 [${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed. Run devenv sync to resync your environment.${reset}
