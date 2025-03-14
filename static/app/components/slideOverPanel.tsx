@@ -1,7 +1,7 @@
 import type {ForwardedRef} from 'react';
 import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, type Interpolation, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AnimationProps, motion} from 'framer-motion';
 
@@ -30,6 +30,7 @@ type SlideOverPanelProps = {
   className?: string;
   'data-test-id'?: string;
   onOpen?: () => void;
+  panelCss?: Interpolation<Theme>;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
@@ -46,6 +47,7 @@ function SlideOverPanel(
     onOpen,
     slidePosition,
     transitionProps = {},
+    panelCss,
   }: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
@@ -79,6 +81,7 @@ function SlideOverPanel(
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
       data-test-id={testId}
+      css={panelCss}
     >
       {children}
     </_SlideOverPanel>

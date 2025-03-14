@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {Interpolation, Theme} from '@emotion/react';
 import type {AnimationProps} from 'framer-motion';
 import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
@@ -32,6 +33,10 @@ export interface DrawerOptions {
    * If true (default), closes the drawer when anywhere else is clicked
    */
   closeOnOutsideClick?: boolean;
+  /**
+   * Custom css for the drawer
+   */
+  drawerCss?: Interpolation<Theme>;
   /**
    * Custom content for the header of the drawer
    */
@@ -181,6 +186,7 @@ export function GlobalDrawer({children}: any) {
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
               transitionProps={currentDrawerConfig?.options?.transitionProps}
+              drawerCss={currentDrawerConfig?.options?.drawerCss}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>
