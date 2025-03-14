@@ -79,8 +79,8 @@ def make_snql_request(
 def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultForComparison):
     aligned_results: dict[str, Any] = defaultdict(lambda: {"rpc_value": None, "snql_value": None})
 
-    def fill_aligned_series(data: SnubaTSResult, alias: str, key: str):
-        for element in data.data:
+    def fill_aligned_series(data: dict[str, Any], alias: str, key: str):
+        for element in data["data"]:
             element_value = element.get(alias) or 0
             element_time = element["time"]
             aligned_results[element_time][key] = float(element_value)
