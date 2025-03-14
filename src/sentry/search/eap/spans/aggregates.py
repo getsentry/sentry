@@ -64,6 +64,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     return (aggregate_key, filter)
 
 
+# TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     score_column = cast(str, args[0])
     ratio_column_name = score_column.replace("measurements.score", "score.ratio")
