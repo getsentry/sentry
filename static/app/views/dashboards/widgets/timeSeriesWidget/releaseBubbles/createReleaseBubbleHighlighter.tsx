@@ -1,9 +1,26 @@
 import type {ElementEvent} from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
+import debounce from 'lodash/debounce';
 
 import type {Series} from 'sentry/types/echarts';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {BUBBLE_SERIES_ID} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
+
+interface LegendSelectChangedParams {
+  name: string;
+  selected: Record<string, boolean>;
+}
+
+// This needs to be debounced because some charts (e.g. in TimeseriesWidgets)
+// are in a group and share events. Thus on a page with 4 widgets, clicking on
+// a legend item would result in 4 events.
+const trackLegend = debounce((params: LegendSelectChangedParams) => {
+  trackAnalytics('releases.bubbles_legend', {
+    organization: null,
+    selected: Boolean(params.selected.Releases),
+  });
+});
 
 /**
  * Attaches an event listener to eCharts that will "highlight" a release bubble
@@ -70,4 +87,12 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
   }
 
   echartsInstance.getZr().on('mousemove', handleMouseMove);
+
+  echartsInstance.on('legendselectchanged', (params: LegendSelectChangedParams) => {
+    if (params.name !== 'Releases' || !('Releases' in params.selected)) {
+      return;
+    }
+
+    trackLegend(params);
+  });
 }

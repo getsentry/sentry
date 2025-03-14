@@ -285,6 +285,7 @@ function ReleaseBubbleSeries({
     id: BUBBLE_SERIES_ID,
     type: 'custom',
     renderItem: renderReleaseBubble,
+    name: t('Releases'),
     data,
     tooltip: {
       trigger: 'item',
