@@ -237,6 +237,8 @@ function getSourceMapsDocLinks({
   };
 }
 
+type SourceMapsDocLinks = ReturnType<typeof getSourceMapsDocLinks>;
+
 export function SourceMapsDebuggerModal({
   Body,
   Header,
@@ -625,17 +627,28 @@ function InstalledSdkChecklistItem({
 function getToolUsedToUploadSourceMaps({
   releaseUserAgent,
 }: Pick<FrameSourceMapDebuggerData, 'releaseUserAgent'>) {
-  return {
-    sentryCli: releaseUserAgent?.includes('sentry-cli'),
-    vitePlugin: releaseUserAgent?.includes('vite-plugin'),
-    webpackPlugin: releaseUserAgent?.includes('webpack-plugin'),
-    rollupPlugin: releaseUserAgent?.includes('rollup-plugin'),
-    esbuildPlugin: releaseUserAgent?.includes('esbuild-plugin'),
-  };
+  const tools = [
+    'sentry-cli',
+    'vite-plugin',
+    'webpack-plugin',
+    'rollup-plugin',
+    'esbuild-plugin',
+  ];
+
+  return tools.reduce(
+    (acc, tool) => {
+      const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
+      acc[key] = releaseUserAgent?.includes(tool) ?? false;
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
 }
 
+type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMaps>;
+
 const pluginConfig: Record<
-  keyof Omit<ReturnType<typeof getToolUsedToUploadSourceMaps>, 'sentryCli'>,
+  keyof Omit<ToolUsedToUploadSourceMaps, 'sentryCli'>,
   {
     configFile: string;
     link: string;
@@ -668,18 +681,18 @@ function SentryPluginMessage({
   toolUsedToUploadSourceMaps,
   sourceMapsDocLinks,
 }: {
-  sourceMapsDocLinks: ReturnType<typeof getSourceMapsDocLinks>;
-  toolUsedToUploadSourceMaps: ReturnType<typeof getToolUsedToUploadSourceMaps>;
+  sourceMapsDocLinks: SourceMapsDocLinks;
+  toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
 }) {
   const activePlugin = Object.keys(pluginConfig).find(
-    key =>
-      toolUsedToUploadSourceMaps[
-        key as keyof ReturnType<typeof getToolUsedToUploadSourceMaps>
-      ]
+    key => toolUsedToUploadSourceMaps[key as keyof ToolUsedToUploadSourceMaps]
   );
 
-  if (activePlugin) {
-    const plugin = pluginConfig[activePlugin as keyof typeof pluginConfig];
+  const plugin = activePlugin
+    ? pluginConfig[activePlugin as keyof typeof pluginConfig]
+    : undefined;
+
+  if (plugin) {
     return (
       <p>
         {tct(
@@ -716,11 +729,11 @@ function SentryCliMessage({
   sourceMapsDocLinks,
   toolUsedToUploadSourceMaps,
 }: {
-  sourceMapsDocLinks: ReturnType<typeof getSourceMapsDocLinks> & {
-    sentryCli: NonNullable<ReturnType<typeof getSourceMapsDocLinks>['sentryCli']>;
+  sourceMapsDocLinks: SourceMapsDocLinks & {
+    sentryCli: NonNullable<SourceMapsDocLinks['sentryCli']>;
   };
   sourceResolutionResults: FrameSourceMapDebuggerData;
-  toolUsedToUploadSourceMaps: ReturnType<typeof getToolUsedToUploadSourceMaps>;
+  toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
 }) {
   if (isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})) {
     return (
