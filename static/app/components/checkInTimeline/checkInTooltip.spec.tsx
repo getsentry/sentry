@@ -8,6 +8,7 @@ import type {JobTickData, TimeWindowConfig} from './types';
 
 const tickConfig: TimeWindowConfig = {
   start: new Date('2023-06-15T11:00:00Z'),
+  periodStart: new Date('2023-06-15T11:00:00Z'),
   end: new Date('2023-06-15T12:00:00Z'),
   dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
   elapsedMinutes: 60,
@@ -23,9 +24,9 @@ const tickConfig: TimeWindowConfig = {
     interval: 0,
     timelineUnderscanWidth: 0,
     totalBuckets: 0,
-    underscanPeriod: 0,
+    underscanBuckets: 0,
+    underscanStartOffset: 0,
   },
-  showUnderscanHelp: false,
 };
 
 describe('CheckInTooltip', function () {

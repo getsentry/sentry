@@ -39,11 +39,16 @@ export interface RollupConfig {
    */
   totalBuckets: number;
   /**
-   * When there is an underscan we also will likely want to query the
-   * additional time range for that underscan, this is the additional period of
-   * time that the underscan represents in seconds.
+   * How many total buckets are part of the underscan area
    */
-  underscanPeriod: number;
+  underscanBuckets: number;
+  /**
+   * The negative pixel offset that must be applied to all ticks when the
+   * underscan width cannot evenly fit each bucket. This happens because the
+   * underscan is the "remaining" size of the timeine container and thus will
+   * not always be an even multiple of the pixel bucket size.
+   */
+  underscanStartOffset: number;
 }
 
 export interface TimeWindowConfig {
@@ -68,16 +73,18 @@ export interface TimeWindowConfig {
    */
   intervals: MarkerIntervals;
   /**
+   * The start of the window excluding the underscan period.
+   */
+  periodStart: Date;
+  /**
    * Configures how check-ins are bucketed into the timeline
    */
   rollupConfig: RollupConfig;
   /**
-   * When true the underscan help indicator should be rendered after the date
-   * time markers.
-   */
-  showUnderscanHelp: boolean;
-  /**
-   * The start of the window
+   * The start of the window.
+   *
+   * NOTE that this includes the underscan period. The periodStart value is
+   * what the selected period is actually configured for.
    */
   start: Date;
   /**
