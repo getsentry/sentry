@@ -96,7 +96,10 @@ export const getChonkStylesConfig = ({
       top: theme.form[size].height,
       marginTop: '8px',
     }),
-
+    noOptionsMessage: provided => ({
+      ...provided,
+      color: theme.disabled,
+    }),
     menuPortal: provided => ({
       ...provided,
       maxWidth: maxMenuWidth ?? '24rem',
