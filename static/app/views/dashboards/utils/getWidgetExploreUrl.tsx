@@ -67,9 +67,10 @@ export function getWidgetExploreUrl(
       : [locationQueryParams.field];
 
   const query = widget.queries[0]!;
-  const queryFields = defined(query.fields)
-    ? query.fields
-    : [...query.columns, ...query.aggregates];
+  const queryFields =
+    defined(query.fields) && widget.displayType === DisplayType.TABLE
+      ? query.fields
+      : [...query.columns, ...query.aggregates];
 
   // Updates fields by adding any individual terms from equation fields as a column
   getFieldsFromEquations(queryFields).forEach(term => {
@@ -86,7 +87,7 @@ export function getWidgetExploreUrl(
     utc: decodeBoolean(locationQueryParams.utc) ?? null,
   };
 
-  let groupBy = fields?.filter(field => !isAggregateFieldOrEquation(field));
+  let groupBy = queryFields?.filter(field => !isAggregateFieldOrEquation(field));
   if (groupBy && groupBy.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
