@@ -149,6 +149,7 @@ class IntegrationProviderSlug(StrEnum):
     BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
+    FAKE_LOG = "fake_log"
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
@@ -156,6 +157,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.SLACK,
         IntegrationProviderSlug.DISCORD,
         IntegrationProviderSlug.MSTEAMS,
+        IntegrationProviderSlug.FAKE_LOG,
     ],
     IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
