@@ -68,6 +68,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.explore.endpoints.explore_saved_queries import ExploreSavedQueriesEndpoint
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
@@ -1280,6 +1281,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/project-transaction-threshold-override/$",
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
+    ),
+    # Explore
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/$",
+        ExploreSavedQueriesEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-queries",
     ),
     # Dashboards
     re_path(
