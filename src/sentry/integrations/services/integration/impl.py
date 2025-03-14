@@ -373,9 +373,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         notification_uuid: str | None = None,
     ) -> bool:
         try:
-            event = SentryAppEventType(
-                f"metric_alert.{INCIDENT_STATUS[IncidentStatus(new_status)].lower()}"
-            )
+            new_status_str = INCIDENT_STATUS[IncidentStatus(new_status)].lower()
+            event = SentryAppEventType(f"metric_alert.{new_status_str}")
         except ValueError as e:
             sentry_sdk.capture_exception(e)
             return False
@@ -406,7 +405,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
             app_platform_event = AppPlatformEvent(
                 resource="metric_alert",
-                action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
+                action=new_status_str,
                 install=install,
                 data=json.loads(incident_attachment_json),
             )
