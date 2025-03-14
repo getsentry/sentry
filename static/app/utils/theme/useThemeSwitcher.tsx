@@ -38,7 +38,10 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   // likely redundant, but it gives us some extra safety and ensures we react to changes in the store
   const previousTheme = usePrevious(config.theme);
   useLayoutEffect(() => {
-    if (previousTheme !== config.theme || !organization?.features?.includes('chonk-ui')) {
+    if (
+      previousTheme !== config.theme ||
+      (organization && !organization?.features?.includes('chonk-ui'))
+    ) {
       removeBodyTheme();
       setChonkTheme({theme: null});
     }
