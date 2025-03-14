@@ -19,11 +19,6 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.spans_rpc import run_timeseries_query
 from sentry.utils.snuba import SnubaTSResult
 
-WINDOW_TO_INTERVAL_MAP = {
-    60: "24h",
-    300: "24h",
-}
-
 
 class TSResultForComparison(TypedDict):
     result: SnubaTSResult
@@ -115,7 +110,7 @@ def assert_timeseries_close(aligned_timeseries):
             mismatches[timestamp] = {
                 "rpc_value": rpc_value,
                 "snql_value": snql_value,
-                "mismatch_percentage": mismatch,
+                "mismatch_percentage": diff,
             }
 
     if mismatches:
