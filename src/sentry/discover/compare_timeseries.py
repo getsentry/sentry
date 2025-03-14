@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 
 from sentry import features
+from sentry.api.bases.organization import NoProjects
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
@@ -79,7 +80,7 @@ def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultFor
     aligned_results: dict[str, Any] = defaultdict(lambda: {"rpc_value": None, "snql_value": None})
 
     def fill_aligned_series(data: SnubaTSResult, alias: str, key: str):
-        for element in data["data"]:
+        for element in data.data:
             element_value = element.get(alias) or 0
             element_time = element["time"]
             aligned_results[element_time][key] = float(element_value)
@@ -131,6 +132,9 @@ def assert_timeseries_close(aligned_timeseries):
 def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     snuba_query: SnubaQuery = alert_rule.snuba_query
     project = alert_rule.projects.first()
+    if not project:
+        raise NoProjects
+
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     on_demand_metrics_enabled = features.has(
