@@ -153,7 +153,7 @@ export function NewIssueExperienceButton() {
       //  - The user is on the old UI
       //  - The org does not have the opt-in flag
       //  - The org has the enforce flag
-      //  - The org has the new UI only flag
+      //  - The org has the new UI only option
       hidden:
         !hasStreamlinedUI ||
         !hasStreamlinedUIFlag ||
