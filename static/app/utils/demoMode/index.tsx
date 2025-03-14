@@ -8,6 +8,8 @@ import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
 const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
+const INACTIVITY_TIMEOUT_MS = 10 * 1000;
+
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
 export function extraQueryParameter(): URLSearchParams {
@@ -70,8 +72,19 @@ function onAddedEmail(email: string) {
   openDemoSignupModal();
 }
 
+let inactivityTimeout: number | undefined;
+
 window.addEventListener('blur', () => {
   if (isDemoModeEnabled()) {
-    logout(new Client());
+    inactivityTimeout = window.setTimeout(() => {
+      logout(new Client());
+    }, INACTIVITY_TIMEOUT_MS);
+  }
+});
+
+window.addEventListener('focus', () => {
+  if (inactivityTimeout) {
+    window.clearTimeout(inactivityTimeout);
+    inactivityTimeout = undefined;
   }
 });
