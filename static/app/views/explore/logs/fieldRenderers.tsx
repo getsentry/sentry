@@ -9,12 +9,13 @@ import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
-  CenteredRow,
+  AlignedCellContent,
   ColoredLogCircle,
   ColoredLogText,
   type getLogColors,
   LogDate,
   LogsHighlight,
+  NonClickableCell,
   WrappingText,
 } from 'sentry/views/explore/logs/styles';
 import {
@@ -37,6 +38,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface LogFieldRendererProps {
   extra: RendererExtra;
   item: LogRowItem | LogAttributeItem;
+  align?: 'left' | 'center' | 'right';
   basicRendered?: React.ReactNode;
   meta?: EventsMetaType;
   tableResultLogRow?: OurLogsResponseItem;
@@ -81,25 +83,29 @@ export function SeverityTextRenderer(props: LogFieldRendererProps) {
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
   const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
   return (
-    <Fragment>
-      {renderSeverityCircle && (
-        <SeverityCircle
-          level={level}
-          levelLabel={levelLabel}
-          severityText={attribute_value}
-          logColors={props.extra.logColors}
-        />
-      )}
-      <ColoredLogText logColors={props.extra.logColors}>[{levelLabel}]</ColoredLogText>
-    </Fragment>
+    <NonExpandingCell>
+      <AlignedCellContent align={props.align}>
+        {renderSeverityCircle && (
+          <SeverityCircle
+            level={level}
+            levelLabel={levelLabel}
+            severityText={attribute_value}
+            logColors={props.extra.logColors}
+          />
+        )}
+        <ColoredLogText logColors={props.extra.logColors}>[{levelLabel}]</ColoredLogText>
+      </AlignedCellContent>
+    </NonExpandingCell>
   );
 }
 
 export function TimestampRenderer(props: LogFieldRendererProps) {
   return (
-    <LogDate align={props.extra.align}>
-      <DateTime seconds date={props.item.value} />
-    </LogDate>
+    <NonExpandingCell>
+      <LogDate align={props.extra.align}>
+        <DateTime seconds date={props.item.value} />
+      </LogDate>
+    </NonExpandingCell>
   );
 }
 
@@ -122,7 +128,9 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <WrappingText wrap={props.extra.wrapBody}>
-      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      <NonExpandingCell>
+        <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      </NonExpandingCell>
     </WrappingText>
   );
 }
@@ -157,11 +165,13 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
   if (!customRenderer) {
-    return <Fragment>{basicRendered}</Fragment>;
+    return <NonExpandingCell>{basicRendered}</NonExpandingCell>;
   }
 
   return (
-    <CenteredRow align={align}>{customRenderer({...props, basicRendered})}</CenteredRow>
+    <AlignedCellContent align={align}>
+      {customRenderer({...props, align, basicRendered})}
+    </AlignedCellContent>
   );
 }
 
@@ -184,3 +194,11 @@ export function getLogFieldRenderer(field: OurLogFieldKey) {
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
   [OurLogKnownFieldKey.TRACE_ID]: 'trace',
 };
+
+function NonExpandingCell(props: {children: React.ReactNode}) {
+  return (
+    <NonClickableCell onClick={e => e.stopPropagation()}>
+      {props.children}
+    </NonClickableCell>
+  );
+}
