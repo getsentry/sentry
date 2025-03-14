@@ -287,6 +287,7 @@ function ReleaseBubbleSeries({
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
+    color: theme.blue300,
     tooltip: {
       trigger: 'item',
       position: 'bottom',
