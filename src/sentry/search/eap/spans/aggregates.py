@@ -1,7 +1,11 @@
 from typing import cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    ExistsFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -10,6 +14,16 @@ from sentry.search.eap.columns import (
     ConditionalAggregateDefinition,
     ResolvedArguments,
 )
+from sentry.search.eap.utils import literal_validator
+
+WEB_VITALS_MEASUREMENTS = [
+    "measurements.score.total",
+    "measurements.score.lcp",
+    "measurements.score.fcp",
+    "measurements.score.cls",
+    "measurements.score.ttfb",
+    "measurements.score.inp",
+]
 
 
 def count_processor(count_value: int | None) -> int:
@@ -50,6 +64,15 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     return (aggregate_key, filter)
 
 
+def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    score_column = cast(str, args[0])
+    ratio_column_name = score_column.replace("measurements.score", "score.ratio")
+    attribute_key = AttributeKey(name=ratio_column_name, type=AttributeKey.TYPE_DOUBLE)
+    filter = TraceItemFilter(exists_filter=ExistsFilter(key=attribute_key))
+
+    return (attribute_key, filter)
+
+
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -81,6 +104,18 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "count_scores": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+                is_attribute=False,
+            )
+        ],
+        aggregate_resolver=resolve_count_scores,
     ),
 }
 
