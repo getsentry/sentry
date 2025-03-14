@@ -35,14 +35,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {
   AlertType,
-  Tab,
-} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
+  IntegrationTab,
+} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
+import InstalledIntegration from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-
-import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['github', 'slack'];
@@ -80,10 +79,13 @@ function makeIntegrationQueryKey({
 }
 
 export default function IntegrationDetailedView() {
-  const tabs: Tab[] = useMemo(() => ['overview', 'configurations', 'features'], []);
+  const tabs: IntegrationTab[] = useMemo(
+    () => ['overview', 'configurations', 'features'],
+    []
+  );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const {activeTab, setActiveTab} = useIntegrationTabs<Tab>({
+  const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
     initialTab: 'overview',
   });
   const navigate = useNavigate();
@@ -170,7 +172,7 @@ export default function IntegrationDetailedView() {
   }, [provider]);
 
   const onTabChange = useCallback(
-    (tab: Tab) => {
+    (tab: IntegrationTab) => {
       setActiveTab(tab);
       trackIntegrationAnalytics('integrations.integration_tab_clicked', {
         view: 'integrations_directory_integration_detail',

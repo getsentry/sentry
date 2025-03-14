@@ -24,6 +24,7 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isCacheHitError(error: RequestError | null) {
   return (
@@ -126,6 +127,7 @@ export function CachesWidget({query}: {query?: string}) {
       isLoading={isLoading}
       error={error}
       isEmpty={!hasData}
+      emptyMessage={<HighestCacheMissRateTransactionsWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables: timeSeries.map(

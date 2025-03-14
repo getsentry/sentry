@@ -255,9 +255,7 @@ function AutofixHighlightPopupContent({
   return (
     <Container onClick={handleContainerClick}>
       <Header>
-        <SelectedText>
-          <span>"{truncatedText}"</span>
-        </SelectedText>
+        <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
         {allMessages.length > 0 && (
           <ResolveButton
             size="zero"

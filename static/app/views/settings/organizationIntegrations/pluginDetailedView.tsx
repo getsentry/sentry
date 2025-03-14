@@ -26,17 +26,16 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import {
   INSTALLED,
   NOT_INSTALLED,
 } from 'sentry/views/settings/organizationIntegrations/constants';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
+import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
-
-import InstalledPlugin from './installedPlugin';
-import PluginDeprecationAlert from './pluginDeprecationAlert';
+import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
 function makePluginQueryKey({
   orgSlug,
@@ -49,8 +48,8 @@ function makePluginQueryKey({
 }
 
 function PluginDetailedView() {
-  const tabs: Tab[] = ['overview', 'configurations'];
-  const {activeTab, setActiveTab} = useIntegrationTabs<Tab>({
+  const tabs: IntegrationTab[] = ['overview', 'configurations'];
+  const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
     initialTab: 'overview',
   });
 
@@ -99,7 +98,7 @@ function PluginDetailedView() {
     integrationType,
   ]);
 
-  const getTabDisplay = useCallback((tab: Tab) => {
+  const getTabDisplay = useCallback((tab: IntegrationTab) => {
     if (tab === 'configurations') {
       return 'project configurations';
     }
@@ -107,7 +106,7 @@ function PluginDetailedView() {
   }, []);
 
   const onTabChange = useCallback(
-    (tab: Tab) => {
+    (tab: IntegrationTab) => {
       setActiveTab(tab);
       trackIntegrationAnalytics('integrations.integration_tab_clicked', {
         view: 'integrations_directory_integration_detail',

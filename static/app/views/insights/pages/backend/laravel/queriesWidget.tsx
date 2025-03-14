@@ -26,6 +26,7 @@ import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 interface QueriesDiscoverQueryResponse {
   data: Array<{
@@ -135,6 +136,7 @@ export function QueriesWidget({query}: {query?: string}) {
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
+      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         aliases: Object.fromEntries(
