@@ -1213,7 +1213,7 @@ class TestWebhookRequests(TestCase):
             self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         # event.alert is not in the servicehook events
-        with pytest.raises(SentryAppSentryError):
+        with pytest.raises(ValueError):
             for i in range(3):
                 send_webhooks(
                     installation=self.install, event="event.alert", data=data, actor=self.user

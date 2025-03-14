@@ -71,7 +71,7 @@ CONTROL_TASK_OPTIONS = {
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
     ignore=(ClientError,),
-    ignore_and_capture=(SentryAppSentryError, AssertionError),
+    ignore_and_capture=(SentryAppSentryError, AssertionError, ValueError),
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -234,15 +234,10 @@ def _process_resource_change(
         # Looks up the human name for the model. Defaults to the model name.
         name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
-    try:
-        event = SentryAppEventType(f"{name}.{action}")
-    except ValueError as e:
-        raise SentryAppSentryError(
-            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-        ) from e
-
+    event = SentryAppEventType(f"{name}.{action}")
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK, event_type=event
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
     ).capture():
         project_id: int | None = kwargs.get("project_id", None)
         group_id: int | None = kwargs.get("group_id", None)
@@ -390,11 +385,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 def workflow_notification(
     installation_id: int, issue_id: int, type: str, user_id: int | None, *args: Any, **kwargs: Any
 ) -> None:
-    try:
-        event = SentryAppEventType(f"issue.{type}")
-    except ValueError as e:
-        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT) from e
-
+    event = SentryAppEventType(f"issue.{type}")
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
@@ -421,11 +412,7 @@ def workflow_notification(
 def build_comment_webhook(
     installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
 ) -> None:
-    try:
-        event = SentryAppEventType(type)
-    except ValueError as e:
-        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT) from e
-
+    event = SentryAppEventType(type)
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
@@ -536,15 +523,9 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
-    try:
-        event = SentryAppEventType(event)
-    except ValueError as e:
-        raise SentryAppSentryError(
-            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-        ) from e
-
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK,
+        event_type=SentryAppEventType(event),
     ).capture():
         servicehook: ServiceHook
         try:
