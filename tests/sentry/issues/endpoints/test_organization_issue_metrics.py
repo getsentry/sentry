@@ -43,13 +43,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         assert response_json["timeseries"] == [
             {
                 "axis": "new_issues_count",
+                "groupBy": [],
                 "meta": {
-                    "groupBy": [],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 0,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 3},
@@ -58,13 +58,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "resolved_issues_count",
+                "groupBy": [],
                 "meta": {
-                    "groupBy": [],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 0,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 1},
@@ -73,13 +73,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
+                "groupBy": ["1.0.0"],
                 "meta": {
-                    "groupBy": ["1.0.0"],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 0,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 1},
@@ -88,13 +88,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
+                "groupBy": ["1.2.0"],
                 "meta": {
-                    "groupBy": ["1.2.0"],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 1,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 0},
@@ -121,13 +121,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         assert response_json["timeseries"] == [
             {
                 "axis": "new_issues_count",
+                "groupBy": [],
                 "meta": {
-                    "groupBy": [],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 0,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 0},
@@ -163,13 +163,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         assert response_json["timeseries"] == [
             {
                 "axis": "new_issues_count",
+                "groupBy": [],
                 "meta": {
-                    "groupBy": [],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 0,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 1},
@@ -178,13 +178,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "resolved_issues_count",
+                "groupBy": [],
                 "meta": {
-                    "groupBy": [],
                     "interval": 3600000,
                     "isOther": False,
                     "order": 0,
-                    "type": "integer",
-                    "unit": None,
+                    "valueType": "integer",
+                    "valueUnit": None,
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 1},

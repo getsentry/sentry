@@ -211,13 +211,13 @@ def make_timeseries_result(
 ) -> TimeSeriesResult:
     return {
         "axis": axis,
+        "groupBy": group,
         "meta": {
-            "groupBy": group,
             "interval": interval.seconds * 1000,
             "isOther": False,
             "order": order,
-            "type": "integer",
-            "unit": None,
+            "valueType": "integer",
+            "valueUnit": None,
         },
         "values": fill_timeseries(start, end, interval, values),
     }
