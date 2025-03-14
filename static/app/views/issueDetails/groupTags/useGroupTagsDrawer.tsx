@@ -8,44 +8,32 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function useGroupTagsDrawer({
-  group,
-  includeFeatureFlagsTab,
-}: {
-  group: Group;
-  includeFeatureFlagsTab: boolean;
-}) {
+export function useGroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
   const navigate = useNavigate();
   const {openDrawer} = useDrawer();
   const {baseUrl} = useGroupDetailsRoute();
 
   const openTagsDrawer = useCallback(() => {
-    openDrawer(
-      () => (
-        <GroupTagsDrawer group={group} includeFeatureFlagsTab={includeFeatureFlagsTab} />
-      ),
-      {
-        ariaLabel: t('Tags Drawer'),
-        onClose: () => {
-          navigate(
-            {
-              pathname: baseUrl,
-              query: {
-                ...location.query,
-                tagDrawerSort: undefined,
-                tab: undefined,
-              },
+    openDrawer(() => <GroupTagsDrawer group={group} />, {
+      ariaLabel: t('Tags Drawer'),
+      onClose: () => {
+        navigate(
+          {
+            pathname: baseUrl,
+            query: {
+              ...location.query,
+              tagDrawerSort: undefined,
             },
-            {replace: true}
-          );
-        },
-        shouldCloseOnLocationChange: newLocation => {
-          return !newLocation.pathname.includes('/tags/');
-        },
-      }
-    );
-  }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);
+          },
+          {replace: true}
+        );
+      },
+      shouldCloseOnLocationChange: newLocation => {
+        return !newLocation.pathname.includes('/tags/');
+      },
+    });
+  }, [location, navigate, openDrawer, group, baseUrl]);
 
   return {openTagsDrawer};
 }
