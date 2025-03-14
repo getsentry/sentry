@@ -21,6 +21,7 @@ import PanelLayout from '../panelLayout';
 import CustomOverride from './customOverride';
 import FeatureFlagItem from './featureFlagItem';
 import {useFeatureFlagsContext} from './featureFlagsContext';
+import FlagOverridesBadge from './flagOverridesBadge';
 
 type Prefilter = 'all' | 'overrides';
 
@@ -152,10 +153,22 @@ function Filters({
           grid-area: segments;
         `}
       >
-        <SegmentedControl<Prefilter> onChange={setPrefilter} size="xs" value={prefilter}>
-          <SegmentedControl.Item key="all">All</SegmentedControl.Item>
-          <SegmentedControl.Item key="overrides">Overrides</SegmentedControl.Item>
-        </SegmentedControl>
+        <div
+          css={css`
+            position: relative;
+            display: grid;
+          `}
+        >
+          <SegmentedControl<Prefilter>
+            onChange={setPrefilter}
+            size="xs"
+            value={prefilter}
+          >
+            <SegmentedControl.Item key="all">All</SegmentedControl.Item>
+            <SegmentedControl.Item key="overrides">Overrides</SegmentedControl.Item>
+          </SegmentedControl>
+          <FlagOverridesBadge />
+        </div>
       </div>
       <Input
         css={css`
