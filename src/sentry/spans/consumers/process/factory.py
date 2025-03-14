@@ -69,7 +69,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
 
-        flusher = SpanFlusher(
+        # patch onto self just for testing
+        flusher = self._flusher = SpanFlusher(
             buffer,
             self.producer,
             self.output_topic,

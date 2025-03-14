@@ -72,8 +72,10 @@ class SpanFlusher(ProcessingStrategy[int]):
                     metrics.incr("sentry.spans.buffer.empty_segments")
                     continue
 
+                spans = [span.payload for span in spans_set]
+
                 kafka_payload = KafkaPayload(
-                    None, rapidjson.dumps({"spans": spans_set}).encode("utf8"), []
+                    None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
                 )
 
                 producer_futures.append(self.producer.produce(self.topic, kafka_payload))
