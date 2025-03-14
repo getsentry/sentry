@@ -5,7 +5,6 @@ import {
   fetchFeatureFlagValues,
   fetchSpanFieldValues,
   fetchTagValues,
-  useFetchOrganizationTags,
 } from 'sentry/actionCreators/tags';
 import {
   STATIC_FIELD_TAGS,
@@ -52,8 +51,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
-import {Dataset as AlertsDatasets} from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 const getFunctionTags = (fields: readonly Field[] | undefined) => {
   if (!fields?.length) {
@@ -182,13 +181,10 @@ function ResultsSearchQueryBuilder(props: Props) {
   const measurements = useMemo(() => getMeasurements(), []);
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
 
-  const featureFlagQuery = useFetchOrganizationTags(
+  const featureFlagsQuery = useFetchOrganizationFeatureFlags(
     {
       orgSlug: organization.slug,
       projectIds: projectIdStrings,
-      dataset: AlertsDatasets.ERRORS,
-      useCache: true,
-      useFlagsBackend: true,
       enabled: includeFeatureFlags,
       ...dateTimeParams,
     },
@@ -196,13 +192,13 @@ function ResultsSearchQueryBuilder(props: Props) {
   );
   const featureFlagTags: TagCollection = useMemo(
     () =>
-      featureFlagQuery.data?.reduce<TagCollection>((acc, tag) => {
+      featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {
         // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
         const key = `flags["${tag.key}"]`;
         acc[key] = {...tag, kind: FieldKind.FEATURE_FLAG, key};
         return acc;
       }, {}) || {},
-    [featureFlagQuery.data]
+    [featureFlagsQuery.data]
   );
 
   const getTagList: TagCollection = useMemo(() => {
