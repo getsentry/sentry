@@ -73,7 +73,7 @@ class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCas
         }
 
         response = self.get_success_response(
-            self.organization.slug, type=DataConditionHandler.Type.ACTION_FILTER
+            self.organization.slug, type=DataConditionHandler.Type.ACTION_FILTER, status_code=200
         )
         assert len(response.data) == 1
         assert response.data[0] == {
@@ -91,9 +91,7 @@ class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCas
         }
 
     def test_invalid_type(self):
-        response = self.get_error_response(self.organization.slug, type="invalid")
-        assert response.status_code == 400
+        self.get_error_response(self.organization.slug, type="invalid", status_code=400)
 
     def test_no_type(self):
-        response = self.get_error_response(self.organization.slug)
-        assert response.status_code == 400
+        self.get_error_response(self.organization.slug, status_code=400)
