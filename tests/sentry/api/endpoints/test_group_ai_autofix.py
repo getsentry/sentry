@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock, patch
 
 from sentry.autofix.utils import AutofixState, AutofixStatus, CodebaseState
 from sentry.models.group import Group

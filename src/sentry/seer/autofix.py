@@ -430,8 +430,8 @@ def _call_autofix(
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
-    instruction: str,
-    timeout_secs: int,
+    instruction: str | None = None,
+    timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
 ):
     path = "/v1/automation/autofix/start"
