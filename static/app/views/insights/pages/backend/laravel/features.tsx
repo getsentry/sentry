@@ -14,13 +14,13 @@ export function hasLaravelInsightsFeature(organization: Organization) {
 
 export function useIsLaravelInsightsAvailable() {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
 
-  const selectedProjects = getSelectedProjectList(selection.projects, projects);
-
-  return selectedProjects.length === 1 && hasLaravelInsightsFeature(organization);
+  return hasLaravelInsightsFeature(organization);
 }
+
+// It started out as a dictionary of project IDs, but as we now want a global toggle we use a special key
+// to represent all projects. (This user option is a temporary feature and will be removed in the future.)
+const ALL_PROJECTS_KEY = 'all';
 
 export function useIsLaravelInsightsEnabled() {
   const organization = useOrganization();
@@ -29,40 +29,32 @@ export function useIsLaravelInsightsEnabled() {
   const user = useUser();
 
   const selectedProjects = getSelectedProjectList(selection.projects, projects);
-  const isSingleProject = selectedProjects.length === 1;
-  const selectedProject = selectedProjects[0];
 
   // The new experience is enabled by default for Laravel projects
   const defaultValue = Boolean(
-    selectedProject && selectedProject.platform === 'php-laravel'
+    selectedProjects.every(project => project.platform === 'php-laravel')
   );
 
   const isEnabled = Boolean(
     hasLaravelInsightsFeature(organization) &&
-      isSingleProject &&
-      selectedProject &&
-      (user.options.prefersSpecializedProjectOverview[selectedProject.id] ?? defaultValue)
+      (user.options.prefersSpecializedProjectOverview[ALL_PROJECTS_KEY] ?? defaultValue)
   );
 
   const {mutate: mutateUserOptions} = useMutateUserOptions();
 
   const setIsEnabled = useCallback(
     (enabled: boolean) => {
-      if (
-        !isSingleProject ||
-        !selectedProject ||
-        !hasLaravelInsightsFeature(organization)
-      ) {
+      if (!hasLaravelInsightsFeature(organization)) {
         return;
       }
 
       mutateUserOptions({
         prefersSpecializedProjectOverview: {
-          [selectedProject.id]: enabled,
+          [ALL_PROJECTS_KEY]: enabled,
         },
       });
     },
-    [mutateUserOptions, selectedProject, isSingleProject, organization]
+    [mutateUserOptions, organization]
   );
 
   return [isEnabled, setIsEnabled] as const;
