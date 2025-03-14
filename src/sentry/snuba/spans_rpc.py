@@ -109,7 +109,7 @@ def get_timeseries_query(
             filter=query,
             expressions=[
                 Expression(
-                    formula=transform_binary_formula_to_expression(agg.proto_definition),
+                    formula=transform_binary_formula_to_expression(agg.proto_definition), # remove transformer with https://github.com/getsentry/eap-planning/issues/206
                     label=agg.public_alias,
                 )
                 for agg in functions
