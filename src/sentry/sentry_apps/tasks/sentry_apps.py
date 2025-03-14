@@ -495,6 +495,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
                 "notify_sentry_app.future_missing_sentry_app",
                 extra={"event": event.as_dict(), "future": f, "event_id": event.event_id},
             )
+            continue
 
         extra_kwargs: dict[str, Any] = {
             "additional_payload_key": None,
