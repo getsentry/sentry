@@ -6,7 +6,7 @@ import pytest
 import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
-from sentry.spans.buffer_v2 import RedisSpansBufferV2, SegmentId, Span
+from sentry.spans.buffer import SegmentId, Span, SpansBuffer
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
@@ -23,13 +23,13 @@ def buffer(request):
         from sentry.testutils.helpers.redis import use_redis_cluster
 
         with use_redis_cluster("default"):
-            buf = RedisSpansBufferV2(assigned_shards=list(range(32)))
+            buf = SpansBuffer(assigned_shards=list(range(32)))
             # since we patch the default redis cluster only temporarily, we
             # need to clean it up ourselves.
             buf.client.flushall()
             yield buf
     else:
-        yield RedisSpansBufferV2(assigned_shards=list(range(32)))
+        yield SpansBuffer(assigned_shards=list(range(32)))
 
 
 def assert_ttls(client: StrictRedis[bytes]):
@@ -89,7 +89,7 @@ def assert_clean(client: StrictRedis[bytes]):
         )
     ),
 )
-def test_basic(buffer: RedisSpansBufferV2, spans):
+def test_basic(buffer: SpansBuffer, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)
@@ -147,7 +147,7 @@ def test_basic(buffer: RedisSpansBufferV2, spans):
         )
     ),
 )
-def test_deep(buffer: RedisSpansBufferV2, spans):
+def test_deep(buffer: SpansBuffer, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)
@@ -214,7 +214,7 @@ def test_deep(buffer: RedisSpansBufferV2, spans):
         )
     ),
 )
-def test_deep2(buffer: RedisSpansBufferV2, spans):
+def test_deep2(buffer: SpansBuffer, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)
@@ -275,7 +275,7 @@ def test_deep2(buffer: RedisSpansBufferV2, spans):
         )
     ),
 )
-def test_parent_in_other_project(buffer: RedisSpansBufferV2, spans):
+def test_parent_in_other_project(buffer: SpansBuffer, spans):
     buffer.process_spans(spans, now=0)
 
     assert_ttls(buffer.client)

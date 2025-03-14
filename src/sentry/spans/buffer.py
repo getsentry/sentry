@@ -82,6 +82,19 @@ from sentry.utils import metrics, redis
 SegmentId = bytes
 
 
+def segment_to_span_id(segment_id: SegmentId) -> bytes:
+    return parse_segment_id(segment_id)[2]
+
+
+def parse_segment_id(segment_id: SegmentId) -> tuple[bytes, bytes, bytes]:
+    segment_id_parts = segment_id.split(b":")
+    project_id = segment_id_parts[2][1:]
+    trace_id = segment_id_parts[3][:-1]
+    span_id = segment_id_parts[4]
+
+    return project_id, trace_id, span_id
+
+
 def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
@@ -89,20 +102,7 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 
-def segment_to_span_id(segment_id: SegmentId) -> bytes:
-    return parse_segment_id(segment_id)[2]
-
-
-def parse_segment_id(segment_id: SegmentId) -> tuple[int, bytes, bytes]:
-    segment_id_parts = segment_id.split(b":")
-    project_id = int(segment_id_parts[2][1:].decode("ascii"))
-    trace_id = segment_id_parts[3][:-1]
-    span_id = segment_id_parts[4]
-
-    return project_id, trace_id, span_id
-
-
-# fun fact: namedtuples are faster to construct than dataclasses
+# NamedTuples are faster to construct than dataclasses
 class Span(NamedTuple):
     trace_id: str
     span_id: str
@@ -112,7 +112,7 @@ class Span(NamedTuple):
     is_segment_span: bool = False
 
 
-class RedisSpansBufferV2:
+class SpansBuffer:
     def __init__(
         self,
         assigned_shards: list[int],
@@ -129,7 +129,7 @@ class RedisSpansBufferV2:
     # make it pickleable
     def __reduce__(self):
         return (
-            RedisSpansBufferV2,
+            SpansBuffer,
             (
                 self.assigned_shards,
                 self.span_buffer_timeout_secs,
@@ -142,6 +142,12 @@ class RedisSpansBufferV2:
         return span.parent_span_id is None or span.is_segment_span
 
     def process_spans(self, spans: Sequence[Span], now: int):
+        """
+        :param spans: List of to-be-ingested spans.
+        :param now: The current time to be used for setting expiration/flush
+            deadlines. Used for unit-testing and managing backlogging behavior.
+        """
+
         queue_keys = []
         queue_delete_items = []
         queue_items = []
@@ -265,7 +271,7 @@ class RedisSpansBufferV2:
         return sum(queue_sizes), return_segments
 
     def done_flush_segments(self, segment_ids: dict[SegmentId, set[bytes]]):
-        payload_nums = []
+        num_hdel = []
         metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))
         with metrics.timer("sentry.spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
@@ -280,24 +286,27 @@ class RedisSpansBufferV2:
                     shard = self.assigned_shards[int(trace_id, 16) % len(self.assigned_shards)]
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
-                    payload_nums.append(len(payloads))
+                    i = 0
                     for payload_batch in itertools.batched(payloads, 100):
+                        i += 1
                         p.hdel(
                             redirect_map_key,
                             *[rapidjson.loads(payload)["span_id"] for payload in payload_batch],
                         )
 
+                    num_hdel.append(i)
+
                 results = iter(p.execute())
 
             has_root_span_count = 0
-            for result, payload_num in zip(results, payload_nums):
+            for result, num_hdel in zip(results, num_hdel):
                 if result:
                     has_root_span_count += 1
 
                 next(results)  # DEL hrs_key
                 next(results)  # DEL segment_id
                 next(results)  # ZREM ...
-                for _ in range(payload_num):  # HDEL ...
+                for _ in range(num_hdel):  # HDEL ...
                     next(results)
 
             metrics.timing(
