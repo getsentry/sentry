@@ -28,7 +28,7 @@ import {
   IconCode,
   IconDelete,
   IconFix,
-  IconTimer,
+  IconLab,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -333,7 +333,7 @@ function getEventIcon(eventType: string) {
     case 'human_instruction':
       return <IconUser {...iconProps} />;
     case 'repro_test':
-      return <IconTimer {...iconProps} />;
+      return <IconLab {...iconProps} />;
     default:
       return <IconCode {...iconProps} />;
   }
