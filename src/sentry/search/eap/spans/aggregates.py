@@ -66,19 +66,33 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 
 # TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    score_column = cast(str, args[0])
-    ratio_column_name = score_column.replace("measurements.score", "score.ratio")
-    attribute_key = AttributeKey(name=ratio_column_name, type=AttributeKey.TYPE_DOUBLE)
+    attribute_key = cast(AttributeKey, args[0])
+    print("KEY!", attribute_key)
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=attribute_key))
 
     return (attribute_key, filter)
+
+
+def transform_measurement_to_ratio(measurement: str) -> str:
+    return measurement.replace("measurements.score", "score.ratio")
 
 
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
-        arguments=[ArgumentDefinition(argument_types={"string"}, is_attribute=False)],
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                transformer=transform_measurement_to_ratio,
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            )
+        ],
         aggregate_resolver=resolve_count_op,
     ),
     "avg_if": ConditionalAggregateDefinition(
@@ -113,7 +127,8 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ArgumentDefinition(
                 argument_types={"string"},
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
-                is_attribute=False,
+                transformer=transform_measurement_to_ratio,
+                is_attribute=True,
             )
         ],
         aggregate_resolver=resolve_count_scores,
@@ -351,6 +366,23 @@ SPAN_AGGREGATE_DEFINITIONS = {
             ArgumentDefinition(
                 argument_types={"string"},
             )
+        ],
+    ),
+    "performance_score": AggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+                is_attribute=True,
+            ),
         ],
     ),
 }
