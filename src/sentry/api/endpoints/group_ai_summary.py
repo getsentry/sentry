@@ -239,8 +239,11 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
                 issue_summary = self._generate_fixability_score(group.id)
 
-            with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
-                response = trigger_autofix(group=group, event_id=event.event_id, user=request.user)
+            if issue_summary.scores.is_fixable:
+                with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+                    response = trigger_autofix(
+                        group=group, event_id=event.event_id, user=request.user
+                    )
 
             if response.status_code != 202:
                 # If autofix trigger fails, we don't cache to let it error and we can run again, this is only temporary for when we're testing this internally.
