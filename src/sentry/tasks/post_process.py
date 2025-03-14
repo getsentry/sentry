@@ -993,16 +993,6 @@ def process_rules(job: PostProcessJob) -> None:
             has_alert = True
             safe_execute(callback, group_event, futures)
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows",
-            group_event.project.organization,
-        ):
-            metrics.incr(
-                "post_process.process_rules.triggered_actions",
-                amount=len(callback_and_futures),
-                tags={"event_type": group_event.group.type},
-            )
-
     job["has_alert"] = has_alert
     return
 
