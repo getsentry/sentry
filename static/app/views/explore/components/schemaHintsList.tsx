@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -149,8 +150,8 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    {...location.query, query: {}},
-                    {...newLocation.query, query: {}}
+                    omit(location.query, ['query']),
+                    omit(newLocation.query, ['query'])
                   )
                 );
               },
