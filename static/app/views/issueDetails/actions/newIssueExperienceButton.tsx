@@ -124,7 +124,7 @@ export function NewIssueExperienceButton() {
     },
     {
       key: 'give-feedback',
-      label: t('Give feedback on the new UI'),
+      label: t('Give feedback on the UI'),
       hidden: !openForm,
       onAction: () => {
         openForm?.({
