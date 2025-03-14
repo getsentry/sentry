@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +8,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -27,6 +29,8 @@ interface DiscoverQueryResponse {
     transaction: string;
   }>;
 }
+
+type SortableField = keyof DiscoverQueryResponse['data'][number];
 
 interface RouteControllerMapping {
   'count(span.duration)': number;
@@ -51,10 +55,18 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0];
 };
 
+const getOrderBy = (field: string, order: 'asc' | 'desc') => {
+  return order === 'asc' ? field : `-${field}`;
+};
+
 export function PathsTable({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
   const theme = useTheme();
+  const [sortState, setSortState] = useSearchParams({field: 'count()', order: 'desc'});
+
+  const sortField = sortState.get('field') as SortableField;
+  const sortOrder = sortState.get('order') as 'asc' | 'desc';
 
   const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
     [
@@ -75,7 +87,7 @@ export function PathsTable({query}: {query?: string}) {
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: 'api.performance.landing-table',
-          orderby: '-count()',
+          orderby: getOrderBy(sortField, sortOrder as 'asc' | 'desc'),
           per_page: 10,
         },
       },
@@ -145,21 +157,62 @@ export function PathsTable({query}: {query?: string}) {
     }));
   }, [transactionsRequest.data, routeControllersRequest.data]);
 
+  function handleSort(field: SortableField) {
+    setSortState(params => {
+      const prevField = params.get('field') as SortableField;
+      const prevOrder = params.get('order') as 'asc' | 'desc';
+      params.set('field', field);
+      params.set(
+        'order',
+        prevField === field ? (prevOrder === 'asc' ? 'desc' : 'asc') : 'desc'
+      );
+      return params;
+    });
+  }
+
+  function SortableHeaderCell({
+    children,
+    field,
+    ...props
+  }: {
+    children: React.ReactNode;
+    field: SortableField;
+  } & React.HTMLAttributes<HTMLDivElement>) {
+    return (
+      <HeaderCell data-clickable onClick={() => handleSort(field)} {...props}>
+        {sortField === field ? (
+          <IconArrow direction={sortOrder === 'asc' ? 'up' : 'down'} />
+        ) : null}
+        {children}
+      </HeaderCell>
+    );
+  }
+
+  // TODO(aknaus): Use GridEditable for better sorting UX
   return (
     <StyledPanelTable
       headers={[
-        'Method',
-        'Path',
-        <HeaderCell key="requests">
-          <IconArrow direction="down" />
-          Requests
-        </HeaderCell>,
-        'Error Rate',
-        'AVG',
-        'P95',
-        <HeaderCell key="users" data-align="right">
-          Users
-        </HeaderCell>,
+        <SortableHeaderCell key="method" field="http.method">
+          {t('Method')}
+        </SortableHeaderCell>,
+        <SortableHeaderCell key="path" field="transaction">
+          {t('Path')}
+        </SortableHeaderCell>,
+        <SortableHeaderCell key="requests" field="count()">
+          {t('Requests')}
+        </SortableHeaderCell>,
+        <SortableHeaderCell key="errorRate" field="failure_rate()">
+          {t('Error Rate')}
+        </SortableHeaderCell>,
+        <SortableHeaderCell key="avg" field="avg(transaction.duration)">
+          {t('AVG')}
+        </SortableHeaderCell>,
+        <SortableHeaderCell key="p95" field="p95()">
+          {t('P95')}
+        </SortableHeaderCell>,
+        <SortableHeaderCell key="users" field="count_unique(user)">
+          {t('Users')}
+        </SortableHeaderCell>,
       ]}
       isLoading={transactionsRequest.isLoading}
       isEmpty={!tableData || tableData.length === 0}
@@ -259,6 +312,11 @@ const Cell = styled('div')`
 
 const HeaderCell = styled(Cell)`
   padding: 0;
+
+  &[data-clickable] {
+    cursor: pointer;
+    user-select: none;
+  }
 `;
 
 const PathCell = styled(Cell)`
