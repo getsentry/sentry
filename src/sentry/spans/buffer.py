@@ -286,7 +286,7 @@ class SpansBuffer:
         return sum(queue_sizes), return_segments
 
     def done_flush_segments(self, segment_ids: dict[SegmentId, list[OutputSpan]]):
-        num_hdel = []
+        num_hdels = []
         metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))
         with metrics.timer("sentry.spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
@@ -309,12 +309,12 @@ class SpansBuffer:
                             *[output_span.payload["span_id"] for output_span in span_batch],
                         )
 
-                    num_hdel.append(i)
+                    num_hdels.append(i)
 
                 results = iter(p.execute())
 
             has_root_span_count = 0
-            for result, num_hdel in zip(results, num_hdel):
+            for result, num_hdel in zip(results, num_hdels):
                 if result:
                     has_root_span_count += 1
 
