@@ -4,9 +4,15 @@ from unittest.mock import patch
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart, incident_date_range
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import Incident
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -27,7 +33,7 @@ class IncidentDateRangeTest(TestCase):
         incident = Incident(
             date_started=must_parse_datetime("2022-05-16T18:55:00Z"), date_closed=None
         )
-        assert incident_date_range(60, incident) == {
+        assert incident_date_range(60, incident.date_started, incident.date_closed) == {
             "start": "2022-05-16T17:40:00",
             "end": now,
         }
@@ -38,7 +44,7 @@ class IncidentDateRangeTest(TestCase):
             date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
             date_closed=must_parse_datetime("2022-05-16T18:57:00Z"),
         )
-        assert incident_date_range(60, incident) == {
+        assert incident_date_range(60, incident.date_started, incident.date_closed) == {
             "start": "2022-05-16T17:40:00",
             "end": now,
         }
@@ -50,7 +56,7 @@ class IncidentDateRangeTest(TestCase):
             date_started=must_parse_datetime("2022-05-04T18:55:00Z"),
             date_closed=must_parse_datetime("2022-05-04T18:57:00Z"),
         )
-        assert incident_date_range(60, incident) == {
+        assert incident_date_range(60, incident.date_started, incident.date_closed) == {
             "start": "2022-05-04T17:40:00",
             "end": "2022-05-04T20:12:00",
         }
@@ -62,7 +68,7 @@ class IncidentDateRangeTest(TestCase):
             date_closed=None,
         )
         one_day = 1440 * 60
-        assert incident_date_range(one_day, incident) == {
+        assert incident_date_range(one_day, incident.date_started, incident.date_closed) == {
             "start": "2022-02-04T20:28:00",
             "end": now,
         }
@@ -88,9 +94,15 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
+        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+            alert_rule, None, AlertRuleSerializer()
+        )
+
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule,
+            alert_rule_serialized_response=alert_rule_serialized_response,
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            snuba_query=alert_rule.snuba_query,
             selected_incident=incident,
         )
 

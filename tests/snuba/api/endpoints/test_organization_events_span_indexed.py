@@ -2985,7 +2985,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                     {
                         "measurements": {
                             "score.ratio.lcp": {"value": 0.03},
-                            "score.ratio.total": {"value": 0.43},
+                            "score.total": {"value": 0.43},
                         }
                     },
                     start_ts=self.ten_mins_ago,
@@ -2993,7 +2993,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 self.create_span(
                     {
                         "measurements": {
-                            "score.ratio.total": {"value": 1.0},
+                            "score.total": {"value": 1.0},
                         }
                     },
                     start_ts=self.ten_mins_ago,
@@ -3001,7 +3001,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 self.create_span(
                     {
                         "measurements": {
-                            "score.ratio.total": {"value": 0.0},
+                            "score.total": {"value": 0.0},
                         }
                     },
                     start_ts=self.ten_mins_ago,
