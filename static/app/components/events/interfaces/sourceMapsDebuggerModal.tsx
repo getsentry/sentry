@@ -31,6 +31,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import useProjects from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -146,7 +147,9 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   analyticsParams: SourceMapWizardBlueThunderAnalyticsParams & {
     organization: Organization | null;
   };
+  projectId: string;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  orgSlug?: string;
 }
 
 const projectPlatformToDocsMap: Record<string, string> = {
@@ -168,7 +171,7 @@ function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>
   return sdkName === 'sentry.javascript.react-native';
 }
 
-function getSourceMapsDocLinks({
+function getPlatform({
   sdkName,
   projectPlatform,
 }: Pick<FrameSourceMapDebuggerData, 'sdkName' | 'projectPlatform'>) {
@@ -176,11 +179,13 @@ function getSourceMapsDocLinks({
   const platformByProjectName = defined(projectPlatform)
     ? projectPlatformToDocsMap[projectPlatform]
     : undefined;
-
-  const platform =
+  return (
     (platformBySdkName === 'node' ? platformByProjectName : platformBySdkName) ??
-    'javascript';
+    'javascript'
+  );
+}
 
+function getSourceMapsDocLinks(platform: string) {
   if (platform === 'react-native') {
     return {
       sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
@@ -236,16 +241,173 @@ function getSourceMapsDocLinks({
   };
 }
 
+function SentryWizardCallout({
+  analyticsParams,
+}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'>) {
+  return (
+    <Fragment>
+      <WizardInstructionParagraph>
+        {tct(
+          'Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project’s terminal? It’s the easiest way to get source maps set up:',
+          {
+            code: <code />,
+          }
+        )}
+      </WizardInstructionParagraph>
+      <InstructionCodeSnippet
+        language="bash"
+        dark
+        onCopy={() => {
+          trackAnalytics(
+            'source_map_debug_blue_thunder.source_map_wizard_command_copied',
+            analyticsParams
+          );
+        }}
+        onSelectAndCopy={() => {
+          trackAnalytics(
+            'source_map_debug_blue_thunder.source_map_wizard_command_copied',
+            analyticsParams
+          );
+        }}
+      >
+        {'npx @sentry/wizard@latest -i sourcemaps'}
+      </InstructionCodeSnippet>
+    </Fragment>
+  );
+}
+
+const metaFrameworksWithSentryWizardInOnboarding = [
+  'nextjs',
+  'nuxt',
+  'remix',
+  'sveltekit',
+];
+
+function MetaFrameworkConfigInfo({
+  framework,
+  orgSlug = 'example-org',
+  projectSlug = 'example-project',
+}: {
+  framework: string;
+  orgSlug?: string;
+  projectSlug?: string;
+}) {
+  if (framework === 'nextjs') {
+    return (
+      <p>
+        {t('Firstly, ensure that source maps are enabled as following:')}
+        <InstructionCodeSnippet
+          language="javascript"
+          dark
+          filename="next.config.(js|mjs)"
+        >
+          {`export default withSentryConfig(nextConfig, {
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+});`}
+        </InstructionCodeSnippet>
+      </p>
+    );
+  }
+
+  if (framework === 'nuxt') {
+    return (
+      <p>
+        {t('Firstly, ensure that source maps are enabled as following:')}
+        <InstructionCodeSnippet language="javascript" dark filename="nuxt.config.ts">
+          {`export default defineNuxtConfig({
+  modules: ["@sentry/nuxt/module"],
+  sentry: {
+    sourceMapsUploadOptions: {
+      // If you use .sentryclirc or environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }
+  },
+  // Enable it explicitly for the client-side
+  // The 'hidden' option functions the same as true
+  sourcemap: { client: "hidden" }
+});
+`}
+        </InstructionCodeSnippet>
+      </p>
+    );
+  }
+
+  if (framework === 'remix') {
+    return (
+      <p>
+        {tct(
+          'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as following:',
+          {
+            vitePluginLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+            ),
+          }
+        )}
+        <InstructionCodeSnippet language="javascript" dark filename="vite.config.ts">
+          {`export default defineConfig({
+  plugins: [
+    remix({
+      // ... your Remix plugin options
+    }),
+    sentryVitePlugin({
+      // If you use .sentryclirc or environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
+  build: {
+    sourcemap: true,
+    // ... rest of your Vite build options
+  },
+  // ... rest of your Vite config
+});`}
+        </InstructionCodeSnippet>
+      </p>
+    );
+  }
+
+  // sveltekit
+  return (
+    <p>
+      {t('Firstly, make sure source maps is not disabled as following:')}
+      <InstructionCodeSnippet language="javascript" dark filename="vite.config.(js|ts)">
+        {`export default {
+plugins: [
+  sentrySvelteKit({
+    // Set this to true, or omit it entirely
+    autoUploadSourceMaps: true,
+  }),
+  sveltekit(),
+],
+// ... rest of your Vite config
+};`}
+      </InstructionCodeSnippet>
+    </p>
+  );
+}
+
 export function SourceMapsDebuggerModal({
   Body,
   Header,
   Footer,
   sourceResolutionResults,
   analyticsParams,
+  orgSlug,
+  projectId,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === projectId);
+
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
@@ -272,32 +434,18 @@ export function SourceMapsDebuggerModal({
             "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
           )}
         </p>
-        <WizardInstructionParagraph>
-          {t(
-            'The easiest way to get started with source maps is by running the Sentry Source Map Wizard in the terminal inside your project:'
-          )}
-        </WizardInstructionParagraph>
-        <InstructionCodeSnippet
-          language="bash"
-          dark
-          onCopy={() => {
-            trackAnalytics(
-              'source_map_debug_blue_thunder.source_map_wizard_command_copied',
-              analyticsParams
-            );
-          }}
-          onSelectAndCopy={() => {
-            trackAnalytics(
-              'source_map_debug_blue_thunder.source_map_wizard_command_copied',
-              analyticsParams
-            );
-          }}
-        >
-          {'npx @sentry/wizard@latest -i sourcemaps'}
-        </InstructionCodeSnippet>
+        {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+          <MetaFrameworkConfigInfo
+            framework={platform}
+            orgSlug={orgSlug}
+            projectSlug={project?.slug}
+          />
+        ) : (
+          <SentryWizardCallout analyticsParams={analyticsParams} />
+        )}
         <p>
           {t(
-            'There are multiple ways to configure source maps. The checklists below will help you set them up correctly. Choose one of the following processes:'
+            "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
           )}
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
@@ -628,7 +776,8 @@ function HasDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Stack frame has Debug IDs');
   const errorMessage = t("Stack frame doesn't have Debug IDs");
 
@@ -766,7 +915,8 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Source file with a matching Debug ID was uploaded');
   const errorMessage = t('Missing source file with a matching Debug ID');
 
@@ -829,7 +979,8 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Uploaded source map with a matching Debug ID');
   const errorMessage = t('Missing source map with a matching Debug ID');
 
@@ -892,7 +1043,8 @@ function EventHasReleaseNameChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Event has release value');
   const errorMessage = t("Event doesn't have a release value");
 
@@ -939,7 +1091,8 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Release has uploaded artifacts');
   const errorMessage = t("Release doesn't have uploaded artifacts");
 
@@ -985,7 +1138,8 @@ function ReleaseSourceFileMatchingChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const sourceMapsDocLinks = getSourceMapsDocLinks(sourceResolutionResults);
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Stack frame path matches a source file artifact name');
   const errorMessage = t("Stack frame path doesn't match a source file artifact name");
 

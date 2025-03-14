@@ -424,6 +424,8 @@ export class DeprecatedLine extends Component<Props, State> {
                           sourceResolutionResults={
                             this.props.frameSourceResolutionResults!
                           }
+                          orgSlug={this.props.organization?.slug}
+                          projectId={this.props.event.projectID}
                           {...modalProps}
                         />
                       ),
