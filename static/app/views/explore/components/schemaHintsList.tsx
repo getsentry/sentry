@@ -10,7 +10,6 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
@@ -66,18 +65,18 @@ function SchemaHintsList({
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
     filterTags.has = getHasTag({...stringTags});
 
-    const schemaHintsPresetKeys = SCHEMA_HINTS_LIST_ORDER_KEYS.filter(key =>
-      defined(filterTags[key])
+    const schemaHintsPresetTags = getTagsFromKeys(
+      SCHEMA_HINTS_LIST_ORDER_KEYS,
+      filterTags
     );
-    const schemaHintsPresetTags = getTagsFromKeys(schemaHintsPresetKeys, filterTags);
 
     const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
       section => section.children
-    ).filter(key => !schemaHintsPresetKeys.includes(key));
+    ).filter(key => !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key));
     const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
 
     const otherKeys = Object.keys(filterTags).filter(
-      key => !sectionKeys.includes(key) && !schemaHintsPresetKeys.includes(key)
+      key => !sectionKeys.includes(key) && !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key)
     );
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
