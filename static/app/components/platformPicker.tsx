@@ -333,7 +333,7 @@ const PlatformCard = styled(
   cursor: pointer;
 
   ${p =>
-    p.selected && p.visibleSelection && `background: ${p.theme.alert.info.background};`}
+    p.selected && p.visibleSelection && `background: ${p.theme.alert.info.backgroundLight};`}
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};
