@@ -2,11 +2,10 @@ import collections
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from itertools import chain
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.db.models import Count, DateTimeField, F, Func, Q
 from django.db.models.functions import Extract
-from django.db.models.query import QuerySet
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -65,7 +64,12 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if number_of_buckets > 200:
             raise ParseError("The specified granularity is too precise. Increase your interval.")
 
-        def gen_ts(qs: QuerySet[Group], group_by: list[str], date_column_name: str, axis: str):
+        def gen_ts(
+            qs,
+            group_by: list[str],
+            date_column_name: str,
+            axis: str,
+        ):
             qs = make_timeseries_query(
                 qs,
                 projects,
@@ -78,7 +82,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 end,
             )
 
-            grouped_series = collections.defaultdict(list)
+            grouped_series: dict[str, list[TimeSeries]] = collections.defaultdict(list)
             for row in qs:
                 grouping = [row[g] for g in group_by]
                 key = "||||".join(grouping)
@@ -135,22 +139,22 @@ class TimeSeries(TypedDict):
 
 
 class TimeSeriesResultMeta(TypedDict):
-    groupby: list[str]
     interval: float
     isOther: bool
     order: int
-    type: str
-    unit: str | None
+    valueType: str
+    valueUnit: str | None
 
 
 class TimeSeriesResult(TypedDict):
     axis: str
+    groupBy: list[str]
     meta: TimeSeriesResultMeta
     values: list[TimeSeries]
 
 
 def make_timeseries_query(
-    qs: QuerySet[Group],
+    qs,
     projects: list[Project],
     environments: list[int],
     type_filter: Q,
@@ -159,13 +163,13 @@ def make_timeseries_query(
     source: str,
     start: datetime,
     end: datetime,
-) -> QuerySet[Group, dict[str, Any]]:
+):
     environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
     )
     range_filters = {f"{source}__gte": start, f"{source}__lte": end}
 
-    annotations = {}
+    annotations: dict[str, F | Extract] = {}
     order_by = []
     values = []
     for group in group_by:
@@ -186,7 +190,7 @@ def make_timeseries_query(
     order_by.append("timestamp")
     values.append("timestamp")
 
-    return (
+    qs = (
         qs.filter(
             environment_filter,
             type_filter,
@@ -198,6 +202,7 @@ def make_timeseries_query(
         .values(*values)
         .annotate(value=Count("id"))
     )
+    return qs
 
 
 def make_timeseries_result(
