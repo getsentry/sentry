@@ -48,8 +48,22 @@ export function ReleasesDrawer({
     {enabled: !!releaseOrSelected}
   );
   const crumbs = [
-    {label: t('Releases'), to: '#'},
-    ...(releaseOrSelected ? [{label: formatVersion(releaseOrSelected), to: '#'}] : []),
+    {
+      // This is just temporary until we move to URL based nav for this drawer
+      label: (
+        <div
+          style={{cursor: selectedRelease?.release ? 'pointer' : 'default'}}
+          onClick={() => {
+            if (selectedRelease?.release) {
+              setSelectedRelease(null);
+            }
+          }}
+        >
+          {t('Releases')}
+        </div>
+      ),
+    },
+    ...(releaseOrSelected ? [{label: formatVersion(releaseOrSelected)}] : []),
   ];
   const title =
     releaseOrSelected && releaseDetailsQuery.data ? (
