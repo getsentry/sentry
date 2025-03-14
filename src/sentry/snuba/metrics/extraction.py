@@ -438,7 +438,7 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
 
 @metrics.wraps("metrics.extraction.parse_search_query")
 def parse_search_query(
-    query: str | None,
+    query: str,
     removed_blacklisted: bool = False,
     force_transaction_event_type: bool = False,
 ) -> Sequence[QueryToken]:
@@ -596,7 +596,7 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
 def _should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
-    query: str | None,
+    query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
 ) -> bool:
@@ -637,7 +637,7 @@ def _should_use_on_demand_metrics(
 def should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
-    query: str | None,
+    query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
@@ -777,7 +777,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
     return SupportedBy.combine(*[_get_field_support(groupby) for groupby in groupbys])
 
 
-def _get_query_supported_by(query: str | None) -> SupportedBy:
+def _get_query_supported_by(query: str) -> SupportedBy:
     try:
         parsed_query = parse_search_query(query=query, removed_blacklisted=False)
 
