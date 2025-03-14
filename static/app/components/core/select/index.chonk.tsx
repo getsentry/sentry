@@ -24,8 +24,8 @@ const multiValueSizeMapping = {
     spacing: '2px',
   },
   xs: {
-    height: '15px',
-    spacing: '1px',
+    height: '16px',
+    spacing: '2px',
   },
 } satisfies Record<FormSize, {height: string; spacing: string}>;
 
