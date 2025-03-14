@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.api.event_search import ParenExpression, QueryToken
 from sentry.replays.lib.new_query.conditions import (
     NonEmptyStringScalar,
     StringArray,
@@ -96,7 +96,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 
 def can_scalar_search_subquery(
-    search_filters: Sequence[ParenExpression | SearchFilter | str],
+    search_filters: Sequence[QueryToken],
     started_at: datetime,
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""

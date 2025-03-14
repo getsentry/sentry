@@ -27,7 +27,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
-from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
+from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
@@ -187,7 +187,7 @@ def query_selector_dataset(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    search_filters: list[SearchFilter | ParenExpression | str],
+    search_filters: list[QueryToken],
     environment: list[str],
     pagination: Paginators | None,
     sort: str | None,
