@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 
@@ -76,7 +76,7 @@ def make_snql_request(
 
 
 def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultForComparison):
-    aligned_results = defaultdict(lambda: {"rpc_value": None, "snql_value": None})
+    aligned_results: dict[str, Any] = defaultdict(lambda: {"rpc_value": None, "snql_value": None})
 
     def fill_aligned_series(data: SnubaTSResult, alias: str, key: str):
         for element in data["data"]:

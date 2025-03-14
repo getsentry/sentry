@@ -61,7 +61,7 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
         ),
     ],
 )
-def test_mep_to_eap_simple_selected_columns(input: str, expected: str):
+def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str]):
     old = QueryParts(
         selected_columns=input,
         query="",
