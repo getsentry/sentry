@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
-import {ClassNames} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {MenuListItem} from 'sentry/components/core/menuListItem';
+import {ChonkCheckWrap} from 'sentry/components/core/select/index.chonk';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
@@ -21,6 +23,7 @@ export function SelectOption(props: Props) {
     innerProps,
     innerRef,
   } = props;
+  const theme = useTheme();
   const {showDividers, size} = selectProps;
   const {value, selectionMode, priority, ...itemProps} = data;
 
@@ -28,7 +31,10 @@ export function SelectOption(props: Props) {
 
   // Unless the priority prop is explicitly defined, use 'primary' for
   // selected items in single-selection menus and 'default' for the rest.
-  const itemPriority = priority ?? (isSelected && !isMultiple ? 'primary' : 'default');
+  // (chonk doesn't need this)
+  const itemPriority =
+    priority ??
+    (theme.isChonk ? 'default' : isSelected && !isMultiple ? 'primary' : 'default');
 
   return (
     <ClassNames>
@@ -81,14 +87,15 @@ export function SelectOption(props: Props) {
   );
 }
 
-const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
+const CheckWrap = withChonk(
+  styled('div')<{isMultiple: boolean; isSelected: boolean}>`
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-  ${p =>
-    p.isMultiple
-      ? `
+    ${p =>
+      p.isMultiple
+        ? `
       width: 1em;
       height: 1em;
       padding: 1px;
@@ -104,9 +111,11 @@ const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
        `
       }
     `
-      : `
+        : `
       width: 1em;
       height: 1.4em;
       padding-bottom: 1px;
     `}
-`;
+  `,
+  ChonkCheckWrap
+);
