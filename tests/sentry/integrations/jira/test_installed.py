@@ -152,7 +152,7 @@ class JiraInstalledTest(APITestCase):
         # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 2)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
             "JWT contained invalid key_id (kid)",

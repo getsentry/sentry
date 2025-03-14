@@ -6,16 +6,18 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.tasks import sync_metadata
+from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.utils import jwt
-
-from ...base import IntegrationDomain
-from ...project_management.metrics import ProjectManagementFailuresReason
-from ...utils.metrics import IntegrationPipelineViewEvent, IntegrationPipelineViewType
-from ..integration import JiraIntegrationProvider
-from .base import JiraWebhookBase
 
 # Atlassian sends scanner bots to "test" Atlassian apps and they often hit this endpoint with a bad kid causing errors
 INVALID_KEY_IDS = ["fake-kid"]
