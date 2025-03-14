@@ -48,13 +48,12 @@ def send_incident_alert_notification(
             incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
                 incident, None, DetailedIncidentSerializer()
             )
-            open_period_context = OpenPeriodContext.from_incident(incident)
             chart_url = build_metric_alert_chart(
                 organization=incident.organization,
                 alert_rule_serialized_response=alert_rule_serialized_response,
                 snuba_query=incident.alert_rule.snuba_query,
                 alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-                open_period_context=open_period_context,
+                open_period_context=OpenPeriodContext.from_incident(incident),
                 selected_incident_serialized=incident_serialized_response,
                 subscription=incident.subscription,
             )
