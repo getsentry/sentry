@@ -5,9 +5,10 @@ import {IconAllProjects} from 'sentry/components/nav/iconAllProjects';
 
 interface ProjectIconProps {
   projectPlatforms: string[];
+  className?: string;
 }
 
-function ProjectIcon({projectPlatforms}: ProjectIconProps) {
+function ProjectIcon({projectPlatforms, className}: ProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
@@ -35,7 +36,11 @@ function ProjectIcon({projectPlatforms}: ProjectIconProps) {
       );
   }
 
-  return <IconWrap data-project-icon>{renderedIcons}</IconWrap>;
+  return (
+    <IconWrap className={className} data-project-icon>
+      {renderedIcons}
+    </IconWrap>
+  );
 }
 
 const IconWrap = styled('div')`

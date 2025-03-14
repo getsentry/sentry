@@ -72,11 +72,9 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
                   key={project.id}
                   to={`${baseUrl}/projects/${project.slug}/`}
                   leadingItems={
-                    <IconWrap>
-                      <ProjectIcon
-                        projectPlatforms={project.platform ? [project.platform] : []}
-                      />
-                    </IconWrap>
+                    <StyledProjectIcon
+                      projectPlatforms={project.platform ? [project.platform] : []}
+                    />
                   }
                 >
                   {project.slug}
@@ -103,6 +101,6 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
   return <InsightsSecondaryNav>{children}</InsightsSecondaryNav>;
 }
 
-const IconWrap = styled('div')`
+const StyledProjectIcon = styled(ProjectIcon)`
   margin-right: ${space(0.75)};
 `;
