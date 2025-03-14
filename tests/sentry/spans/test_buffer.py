@@ -105,6 +105,7 @@ def assert_clean(client: StrictRedis[bytes]):
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
+                    is_segment_span=True,
                     project_id=1,
                 ),
             ]
@@ -157,6 +158,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     trace_id="a" * 32,
                     span_id="a" * 16,
                     parent_span_id=None,
+                    is_segment_span=True,
                     project_id=1,
                 ),
                 Span(
@@ -232,6 +234,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     trace_id="a" * 32,
                     span_id="a" * 16,
                     parent_span_id=None,
+                    is_segment_span=True,
                     project_id=1,
                 ),
             ]
@@ -294,6 +297,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     trace_id="a" * 32,
                     span_id="b" * 16,
                     parent_span_id=None,
+                    is_segment_span=True,
                     project_id=2,
                 ),
             ]
@@ -359,6 +363,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 trace_id="a" * 32,
                 span_id="b" * 16,
                 parent_span_id=None,
+                is_segment_span=True,
                 project_id=2,
             ),
         ]

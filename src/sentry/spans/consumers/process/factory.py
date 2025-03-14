@@ -93,14 +93,19 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=run_task,
         )
 
-        def add_timestamp_cb(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
+        # We use the produce timestamp to drive the clock for flushing, so that
+        # consumer backlogs do not cause segments to be flushed prematurely.
+        # The received timestamp in the span is too old for this purpose if
+        # Relay starts buffering, and we don't want that effect to propagate
+        # into this system.
+        def add_produce_timestamp_cb(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
             return (
                 int(message.timestamp.timestamp() if message.timestamp else time.time()),
                 message.payload,
             )
 
         add_timestamp = RunTask(
-            function=add_timestamp_cb,
+            function=add_produce_timestamp_cb,
             next_step=batch,
         )
 

@@ -142,13 +142,6 @@ class SpansBuffer:
             ),
         )
 
-    def _is_root_span(self, span: Span) -> bool:
-        # Note: For the case where the span's parent is in another project, we
-        # will still flush the segment-without-root-span as one unit, just
-        # after span_buffer_timeout_secs rather than
-        # span_buffer_root_timeout_secs.
-        return span.parent_span_id is None or span.is_segment_span
-
     def process_spans(self, spans: Sequence[Span], now: int):
         """
         :param spans: List of to-be-ingested spans.
@@ -171,7 +164,12 @@ class SpansBuffer:
                     shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
                     queue_key = f"span-buf:q:{shard}"
 
-                    is_root_span = self._is_root_span(span)
+                    # Note: For the case where the span's parent is in another project, we
+                    # will still flush the segment-without-root-span as one unit, just
+                    # after span_buffer_timeout_secs rather than
+                    # span_buffer_root_timeout_secs.
+                    is_root_span = span.is_segment_span
+
                     if is_root_span:
                         is_root_span_count += 1
                         parent_span_id = span.span_id
