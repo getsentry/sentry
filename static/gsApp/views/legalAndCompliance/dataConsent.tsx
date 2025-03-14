@@ -30,7 +30,7 @@ const formGroups: JsonFormObject[] = [
           }
         ),
         disabled: ({isTouchCustomerAndNeedsMsaUpdate, hasBillingAccess, isSuperuser}) =>
-          (!isTouchCustomerAndNeedsMsaUpdate || !hasBillingAccess) && !isSuperuser,
+          (isTouchCustomerAndNeedsMsaUpdate || !hasBillingAccess) && !isSuperuser,
         disabledReason: ({isTouchCustomerAndNeedsMsaUpdate, hasBillingAccess}) =>
           isTouchCustomerAndNeedsMsaUpdate
             ? t(
