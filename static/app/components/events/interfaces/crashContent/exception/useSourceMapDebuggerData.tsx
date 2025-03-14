@@ -156,6 +156,7 @@ export function prepareSourceMapDebuggerFrameInformation(
     releaseHasSomeArtifact: sourceMapDebuggerData.release_has_some_artifact,
     releaseSourceMapReference:
       debuggerFrame.release_process?.source_map_reference ?? null,
+    releaseUserAgent: event.release?.userAgent ?? null,
     sdkDebugIdSupport: sourceMapDebuggerData.sdk_debug_id_support,
     sourceFileReleaseNameFetchingResult:
       debuggerFrame.release_process?.source_file_lookup_result ?? 'unsuccessful',
