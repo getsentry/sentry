@@ -8,7 +8,7 @@ from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimenta
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from tests.sentry.spans.consumers.process.test_factory import build_mock_span
+from tests.sentry.spans.consumers.process import build_mock_span
 
 
 class TestSpansTask(TestCase):

@@ -75,6 +75,10 @@ class GroupAutofixEndpoint(GroupEndpoint):
         """
         Returns a tree of errors and transactions in the trace for a given event. Does not include non-transaction/non-error spans to reduce noise.
         """
+        trace_id = event.trace_id
+        if not trace_id:
+            return None
+
         project_ids = list(
             dict(
                 Project.objects.filter(
@@ -85,7 +89,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         event_filter = eventstore.Filter(
             project_ids=project_ids,
             conditions=[
-                ["trace_id", "=", event.trace_id],
+                ["trace_id", "=", trace_id],
             ],
         )
         transactions = eventstore.backend.get_events(
@@ -130,7 +134,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
             if is_transaction:
                 op = event_data.get("contexts", {}).get("trace", {}).get("op")
                 transaction_title = event.title
-                duration_obj = event_data.get("breakdowns", {}).get("total.time", {})
+                duration_obj = (
+                    event_data.get("breakdowns", {}).get("span_ops", {}).get("total.time", {})
+                )
                 duration_str = (
                     f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
                 )

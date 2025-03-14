@@ -1294,8 +1294,6 @@ def create_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
-
     target_display: str | None = None
     if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
         raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
@@ -1340,15 +1338,6 @@ def create_alert_rule_trigger_action(
             sentry_app_id=sentry_app_id,
             sentry_app_config=sentry_app_config,
         )
-        # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
-        if (
-            features.has(
-                "organizations:workflow-engine-metric-alert-dual-write",
-                trigger.alert_rule.organization,
-            )
-            and trigger.alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
-        ):
-            migrate_metric_action(trigger_action)
     return trigger_action
 
 
