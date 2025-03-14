@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Mapping
+from dataclasses import asdict
 from typing import Any
 from unittest import mock
 
@@ -93,11 +94,13 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         detection_type: AlertRuleDetectionType | None = None,
         comparison_delta: int | None = None,
     ):
-        assert alert_context.name == name
-        assert alert_context.action_identifier_id == action_identifier_id
-        assert alert_context.threshold_type == threshold_type
-        assert alert_context.detection_type == detection_type
-        assert alert_context.comparison_delta == comparison_delta
+        assert asdict(alert_context) == {
+            "name": name,
+            "action_identifier_id": action_identifier_id,
+            "threshold_type": threshold_type,
+            "detection_type": detection_type,
+            "comparison_delta": comparison_delta,
+        }
 
     def assert_metric_issue_context(
         self,
@@ -107,10 +110,12 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         new_status: IncidentStatus,
         metric_value: float | None = None,
     ):
-        assert metric_issue_context.open_period_identifier == open_period_identifier
-        assert metric_issue_context.snuba_query == snuba_query
-        assert metric_issue_context.new_status == new_status
-        assert metric_issue_context.metric_value == metric_value
+        assert asdict(metric_issue_context) == {
+            "open_period_identifier": open_period_identifier,
+            "snuba_query": snuba_query,
+            "new_status": new_status,
+            "metric_value": metric_value,
+        }
 
 
 class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
