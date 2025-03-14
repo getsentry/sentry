@@ -274,9 +274,29 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         organization = kwargs["organization"]
         notification_uuid = kwargs["notification_uuid"]
 
-        assert isinstance(notification_context, NotificationContext)
-        assert isinstance(alert_context, AlertContext)
-        assert metric_issue_context == MetricIssueContext.from_group_event(self.group_event)
+        self.assert_notification_context(
+            notification_context,
+            integration_id=self.action.integration_id,
+            target_identifier=self.action.config["target_identifier"],
+            target_display=None,
+            sentry_app_config=None,
+            sentry_app_id=None,
+        )
+        self.assert_alert_context(
+            alert_context,
+            name=self.detector.name,
+            action_identifier_id=self.detector.id,
+            threshold_type=None,
+            detection_type=None,
+            comparison_delta=None,
+        )
+        self.assert_metric_issue_context(
+            metric_issue_context,
+            open_period_identifier=self.group_event.group.id,
+            snuba_query=self.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=123.45,
+        )
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
 
@@ -361,9 +381,6 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         organization = kwargs["organization"]
         notification_uuid = kwargs["notification_uuid"]
 
-        assert isinstance(notification_context, NotificationContext)
-        assert isinstance(alert_context, AlertContext)
-        assert isinstance(metric_issue_context, MetricIssueContext)
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
 
@@ -392,6 +409,3 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
         )
-
-        assert organization == self.detector.project.organization
-        assert isinstance(notification_uuid, str)
