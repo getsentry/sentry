@@ -38,6 +38,7 @@ def add_start_end_conditions(
 
     return in_msg
 
+
 # Remove with https://github.com/getsentry/eap-planning/issues/206 is merged
 def transform_binary_formula_to_expression(
     column: Column.BinaryFormula,
