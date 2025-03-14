@@ -3018,13 +3018,14 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
-    def test_ran_if_source_missing(self):
+    def test_logs_if_source_missing(self):
         event = self.create_event(
             data={},
             project_id=self.project.id,
             feedback_type=None,
         )
         mock_process_func = Mock()
+        mock_logger = Mock()
         with patch(
             "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
             {
@@ -3033,14 +3034,17 @@ class PostProcessGroupFeedbackTest(
                 ]
             },
         ):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-                cache_key="total_rubbish",
-            )
-        assert mock_process_func.call_count == 1
+            with patch("sentry.tasks.post_process.logger", mock_logger):
+                self.call_post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    event=event,
+                    cache_key="total_rubbish",
+                )
+
+        assert mock_process_func.call_count == 0
+        assert mock_logger.error.call_count == 1
 
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
