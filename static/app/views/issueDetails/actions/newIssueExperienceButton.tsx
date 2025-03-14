@@ -187,7 +187,7 @@ export function NewIssueExperienceButton() {
   if (isSuperUser && isTourCompleted) {
     items.push({
       key: 'reset-tour-modal',
-      label: t('Reset tour modal'),
+      label: t('Reset tour modal (Superuser only)'),
       onAction: () => {
         mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'restart'});
       },

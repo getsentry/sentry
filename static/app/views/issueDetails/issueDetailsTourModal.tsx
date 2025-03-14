@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import issueDetailsPreviewImage from 'sentry-images/spot/issue-details-preview.svg';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {darkTheme} from 'sentry/utils/theme';
 
 interface IssueDetailsTourModalProps extends ModalRenderProps {
   handleDismissTour: () => void;
@@ -24,12 +25,12 @@ export function IssueDetailsTourModal({
         <Header>{t('Welcome to the new Issue Details')}</Header>
         <Description>{t('Make the most out of the redesigned experience.')}</Description>
         <Footer>
-          <InvertedButton size="sm" onClick={handleDismissTour} borderless>
+          <TextTourAction size="sm" onClick={handleDismissTour} borderless>
             {t('Got it')}
-          </InvertedButton>
-          <InvertedButtonPrimary size="sm" onClick={handleStartTour} borderless autoFocus>
+          </TextTourAction>
+          <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
             {t('Take a tour')}
-          </InvertedButtonPrimary>
+          </TourAction>
         </Footer>
       </TextContainer>
     </TourContainer>
@@ -38,7 +39,7 @@ export function IssueDetailsTourModal({
 
 const ImageContainer = styled('div')`
   width: 100%;
-  height: 260px;
+  height: 226px;
   background-image: url(${issueDetailsPreviewImage});
   background-size: cover;
   background-position: center;
@@ -51,7 +52,7 @@ const TourContainer = styled('div')`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.inverted.backgroundElevated};
+  background: ${darkTheme.backgroundElevated};
   overflow: hidden;
 `;
 
@@ -60,14 +61,14 @@ const TextContainer = styled('div')`
 `;
 
 const Header = styled('div')`
-  color: ${p => p.theme.inverted.headingColor};
+  color: ${darkTheme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.inverted.subText};
+  color: ${darkTheme.subText};
 `;
 
 const Footer = styled('div')`
@@ -75,25 +76,6 @@ const Footer = styled('div')`
   justify-content: flex-end;
   margin-top: ${space(2)};
   gap: ${space(1)};
-`;
-
-const InvertedButton = styled(Button)`
-  color: ${p => p.theme.inverted.textColor};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.inverted.textColor};
-  }
-`;
-
-const InvertedButtonPrimary = styled(Button)`
-  background: ${p => p.theme.backgroundElevated};
-  color: ${p => p.theme.textColor};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 export const IssueDetailsTourModalCss = css`
