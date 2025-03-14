@@ -1,3 +1,8 @@
+from collections.abc import Mapping
+from typing import Any
+
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer
 from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
     get_identifier_from_action,
@@ -5,15 +10,20 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
     human_desc,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.notifications.models.notificationaction import ActionService
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.models import Action, DataConditionGroup, DataConditionGroupAction
 
 
 class WorkflowEngineActionSerializer(Serializer):
-    def serialize(self, obj: Action, attrs, user, **kwargs):
+    def serialize(
+        self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
+    ) -> dict[str, Any]:
         """
         Temporary serializer to take an Action and serialize it for the old metric alert rule endpoints
         """
@@ -40,13 +50,9 @@ class WorkflowEngineActionSerializer(Serializer):
             "id": str(aarta.alert_rule_trigger_action_id),
             "alertRuleTriggerId": str(trigger_action.alert_rule_trigger.id),
             "type": obj.type,
-            "targetType": ACTION_TARGET_TYPE_TO_STRING[
-                AlertRuleTriggerAction.TargetType(target_type)
-            ],
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
             "targetIdentifier": get_identifier_from_action(
-                type_value,
-                str(target_identifier),
-                target_display,
+                type_value, str(target_identifier), target_display
             ),
             "inputChannelId": get_input_channel_id(type_value, target_identifier),
             "integrationId": obj.integration_id,
