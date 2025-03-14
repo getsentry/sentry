@@ -127,7 +127,8 @@ def process_data_condition_group(
     logic_result, condition_results = evaluate_data_conditions(conditions_to_evaluate, logic_type)
 
     if (not logic_result and logic_type == DataConditionGroup.Type.ALL) or (
-        logic_result and logic_type == DataConditionGroup.Type.ANY
+        logic_result
+        and logic_type in (DataConditionGroup.Type.ANY, DataConditionGroup.Type.ANY_SHORT_CIRCUIT)
     ):
         # if we have a logic type of all and a False result,
         # or if we have a logic type of any and a True result, then
