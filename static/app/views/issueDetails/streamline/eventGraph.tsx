@@ -48,6 +48,8 @@ interface EventGraphProps {
   event: Event | undefined;
   group: Group;
   className?: string;
+  showReleasesAs?: 'line' | 'bubble';
+  showSummary?: boolean;
   style?: CSSProperties;
 }
 
@@ -70,7 +72,13 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
+export function EventGraph({
+  group,
+  event,
+  showReleasesAs,
+  showSummary = true,
+  ...styleProps
+}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -197,7 +205,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
-    releases: hasReleaseBubblesSeries ? [] : releases,
+    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
   });
 
   const {
@@ -207,6 +215,17 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
+    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+      return (
+        <EventGraph
+          group={group}
+          event={event}
+          showSummary={false}
+          showReleasesAs="line"
+          {...styleProps}
+        />
+      );
+    },
     minTime: eventSeries.length && (eventSeries[0]!.name as number),
     maxTime: eventSeries.length && (eventSeries[eventSeries.length - 1]!.name as number),
     bubbleSize: 4,
@@ -214,7 +233,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       x: 1,
       y: 2,
     },
-    releases,
+    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
   });
   const flagSeries = useFlagSeries({
     query: {
@@ -378,28 +397,32 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   return (
     <GraphWrapper {...styleProps}>
-      <SummaryContainer>
-        <GraphButton
-          onClick={() =>
-            visibleSeries === EventGraphSeries.USER &&
-            setVisibleSeries(EventGraphSeries.EVENT)
-          }
-          isActive={visibleSeries === EventGraphSeries.EVENT}
-          disabled={visibleSeries === EventGraphSeries.EVENT}
-          label={tn('Event', 'Events', eventCount)}
-          count={String(eventCount)}
-        />
-        <GraphButton
-          onClick={() =>
-            visibleSeries === EventGraphSeries.EVENT &&
-            setVisibleSeries(EventGraphSeries.USER)
-          }
-          isActive={visibleSeries === EventGraphSeries.USER}
-          disabled={visibleSeries === EventGraphSeries.USER}
-          label={tn('User', 'Users', userCount)}
-          count={String(userCount)}
-        />
-      </SummaryContainer>
+      {showSummary ? (
+        <SummaryContainer>
+          <GraphButton
+            onClick={() =>
+              visibleSeries === EventGraphSeries.USER &&
+              setVisibleSeries(EventGraphSeries.EVENT)
+            }
+            isActive={visibleSeries === EventGraphSeries.EVENT}
+            disabled={visibleSeries === EventGraphSeries.EVENT}
+            label={tn('Event', 'Events', eventCount)}
+            count={String(eventCount)}
+          />
+          <GraphButton
+            onClick={() =>
+              visibleSeries === EventGraphSeries.EVENT &&
+              setVisibleSeries(EventGraphSeries.USER)
+            }
+            isActive={visibleSeries === EventGraphSeries.USER}
+            disabled={visibleSeries === EventGraphSeries.USER}
+            label={tn('User', 'Users', userCount)}
+            count={String(userCount)}
+          />
+        </SummaryContainer>
+      ) : (
+        <div />
+      )}
       <ChartContainer role="figure">
         <BarChart
           {...releaseBubbleEventHandlers}
@@ -481,6 +504,7 @@ function GraphButton({
 const GraphWrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
+  min-height: 100px;
 `;
 
 const SummaryContainer = styled('div')`
