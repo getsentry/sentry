@@ -53,7 +53,7 @@ export function NewIssueExperienceButton() {
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
-  const hasNewUIOnly = organization.streamlineOnly;
+  const hasNewUIOnly = Boolean(organization.streamlineOnly);
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -101,18 +101,6 @@ export function NewIssueExperienceButton() {
     }
   }, [isPromoVisible, tourDispatch, mutateAssistant]);
 
-  // We hide the toggle if the org...
-  if (
-    // doesn't have the 'opt-in' flag,
-    !hasStreamlinedUIFlag ||
-    // has the 'remove opt-out' flag,
-    hasEnforceStreamlinedUIFlag ||
-    // has access to only the updated experience through the experiment
-    hasNewUIOnly
-  ) {
-    return null;
-  }
-
   if (!hasStreamlinedUI) {
     return (
       <TryNewButton
@@ -153,7 +141,16 @@ export function NewIssueExperienceButton() {
     {
       key: 'switch-to-old-ui',
       label: t('Switch to the old issue experience'),
-      hidden: !hasStreamlinedUI,
+      // Do not show the toggle out of the new UI if any of these are true:
+      //  - The user is on the old UI
+      //  - The org does not have the opt-in flag
+      //  - The org has the enforce flag
+      //  - The org has the new UI only flag
+      hidden:
+        !hasStreamlinedUI ||
+        !hasStreamlinedUIFlag ||
+        hasEnforceStreamlinedUIFlag ||
+        hasNewUIOnly,
       onAction: handleToggle,
     },
     {
