@@ -5,6 +5,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {chonkInputStyles} from 'sentry/components/core/input/index.chonk';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface InputStylesProps {
@@ -71,7 +73,12 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
 
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
-    InputStylesProps {}
+    InputStylesProps {
+  /**
+   * If true, the input will autosize to fit the content inside it.
+   */
+  autosize?: boolean;
+}
 
 /**
  * Basic input component.
@@ -94,12 +101,30 @@ export const Input = styled(
         size: _size,
         // Use `nativeSize` as the native `size` attribute
         nativeSize,
+        autosize,
         ...props
       },
       ref
-    ) => <input {...props} ref={ref} size={nativeSize} />
+    ) => {
+      const autosizeRef = useAutosizeInput({
+        value: props.value,
+        disabled: !autosize,
+      });
+
+      return <input {...props} ref={mergeRefs([ref, autosizeRef])} size={nativeSize} />;
+    }
   ),
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+  {
+    shouldForwardProp: prop => {
+      return (
+        typeof prop === 'string' &&
+        (isPropValid(prop) ||
+          prop === 'autosize' ||
+          prop === 'nativeSize' ||
+          prop === 'size')
+      );
+    },
+  }
 )`
   ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
 `;
