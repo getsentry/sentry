@@ -170,8 +170,8 @@ const GrabberContainer = styled(Container)`
 
 const VitalMetersContainer = styled('div')`
   display: flex;
-  justify-content: space-between;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: ${space(1)};
   width: 100%;
 `;
