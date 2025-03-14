@@ -209,9 +209,14 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
-        if "username" in request.data:
+        email = None
+        if "email" in request.data and len(request.data["email"]) > 0:
+            email = request.data["email"]
+        elif "username" in request.data and len(request.data["username"]) > 0:
+            email = request.data["username"]
+        if email:
             verified_email_found = UserEmail.objects.filter(
-                user_id=user.id, email=request.data["username"], is_verified=True
+                user_id=user.id, email=email, is_verified=True
             ).exists()
             if not verified_email_found:
                 return Response({"detail": "Verified email address is not found."}, status=400)
