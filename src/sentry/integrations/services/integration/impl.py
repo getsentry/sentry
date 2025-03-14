@@ -44,7 +44,7 @@ from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEve
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -378,8 +378,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 },
             )
             return False
-
-        metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 
         try:
             install = SentryAppInstallation.objects.get(
