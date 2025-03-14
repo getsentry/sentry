@@ -3,12 +3,9 @@ from unittest.mock import ANY, Mock, call, patch
 
 import orjson
 
-from sentry.api.endpoints.group_ai_summary import (
-    GroupAiSummaryEndpoint,
-    SummarizeIssueResponse,
-    SummarizeIssueScores,
-)
+from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
@@ -141,6 +138,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             "scores": {
                 "possible_cause_confidence": 0.9,
                 "possible_cause_novelty": 0.8,
+                "fixability_score": 0.5,
+                "is_fixable": True,
+                "fixability_score_version": 1,
             },
         }
         mock_post.return_value = mock_response
