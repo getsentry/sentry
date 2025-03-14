@@ -1,9 +1,7 @@
 import dataclasses
 import logging
-import threading
 import time
 from collections.abc import Mapping
-from concurrent import futures
 from functools import partial
 from typing import Any
 
@@ -13,11 +11,7 @@ import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
-from arroyo.processing.strategies.abstract import (
-    MessageRejected,
-    ProcessingStrategy,
-    ProcessingStrategyFactory,
-)
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
@@ -27,7 +21,8 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span, segment_to_span_id
+from sentry.spans.buffer_v2 import RedisSpansBufferV2, Span
+from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -262,121 +257,3 @@ def process_batch(
     assert min_timestamp is not None
     buffer.process_spans(spans, now=min_timestamp)
     return min_timestamp
-
-
-class SpanFlusher(ProcessingStrategy[int]):
-    def __init__(
-        self,
-        buffer: RedisSpansBufferV2,
-        producer: KafkaProducer,
-        topic: ArroyoTopic,
-        max_flush_segments: int,
-        max_inflight_segments: int,
-        next_step: ProcessingStrategy[int],
-    ):
-        self.buffer = buffer
-        self.producer = producer
-        self.topic = topic
-        self.max_flush_segments = max_flush_segments
-        self.max_inflight_segments = max_inflight_segments
-        self.next_step = next_step
-
-        self.stopped = False
-        self.enable_backpressure = False
-        self.current_drift = 0
-
-        self.thread = threading.Thread(target=self.main, daemon=True)
-        self.thread.start()
-
-        # start_check_hang()
-
-    def main(self):
-        while not self.stopped:
-            now = int(time.time()) + self.current_drift
-
-            producer_futures = []
-
-            queue_size, flushed_segments = self.buffer.flush_segments(
-                max_segments=self.max_flush_segments, now=now
-            )
-            metrics.timing("sentry.spans.buffer.inflight_segments", queue_size)
-            self.enable_backpressure = (
-                self.max_inflight_segments > 0 and queue_size >= self.max_inflight_segments
-            )
-
-            if not flushed_segments:
-                time.sleep(1)
-                continue
-
-            for segment_id, spans_set in flushed_segments.items():
-                # TODO: Check if this is correctly placed
-                segment_span_id = segment_to_span_id(segment_id)
-                if not spans_set:
-                    # This is a bug, most likely the input topic is not
-                    # partitioned by trace_id so multiple consumers are writing
-                    # over each other. The consequence is duplicated segments,
-                    # worst-case.
-                    metrics.incr("sentry.spans.buffer.empty_segments")
-                    continue
-
-                segment_spans = []
-                for payload in spans_set:
-                    val = rapidjson.loads(payload)
-                    val["segment_id"] = segment_span_id
-                    val["is_segment"] = segment_span_id == val["span_id"]
-                    segment_spans.append(val)
-
-                kafka_payload = KafkaPayload(
-                    None, rapidjson.dumps({"spans": segment_spans}).encode("utf8"), []
-                )
-
-                producer_futures.append(self.producer.produce(self.topic, kafka_payload))
-
-            futures.wait(producer_futures)
-
-            self.buffer.done_flush_segments(flushed_segments)
-
-    def poll(self) -> None:
-        self.next_step.poll()
-
-    def submit(self, message: Message[int]) -> None:
-        self.current_drift = message.payload - int(time.time())
-
-        if self.enable_backpressure:
-            raise MessageRejected()
-
-        self.next_step.submit(message)
-
-    def terminate(self) -> None:
-        self.stopped = True
-        self.next_step.terminate()
-
-    def close(self) -> None:
-        self.stopped = True
-        self.next_step.close()
-
-    def join(self, timeout: float | None = None):
-        # set stopped flag first so we can "flush" the background thread while
-        # next_step is also shutting down. we can do two things at once!
-        self.stopped = True
-        deadline = time.time() + timeout if timeout else None
-
-        self.next_step.join(timeout)
-
-        while self.thread.is_alive() and (deadline is None or deadline > time.time()):
-            time.sleep(0.1)
-
-
-def start_check_hang():
-    main_thread = threading.get_ident()
-
-    def main():
-        import sys
-        import traceback
-
-        while True:
-            traceback.print_stack(sys._current_frames()[main_thread])
-            time.sleep(10)
-
-    hang_thread = threading.Thread(target=main, daemon=True)
-    hang_thread.start()

@@ -33,7 +33,7 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 Now how does that look like in Redis? For each incoming span, we:
 
 1. Try to figure out what the name of the respective span buffer is (`set_key` in `add-buffer.lua`)
-  a. We look up any "redirects" from the span buffer's parent_span_id (key "span-buf:sr:{project_id:trace_id}:span_id") to another key.
+  a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "span-buf:sr:{project_id:trace_id}") to another key.
   b. Otherwise we use "span-buf:s:{project_id:trace_id}:span_id"
 2. Rename any span buffers keyed under the span's own span ID to `set_key`, merging their contents.
 3. Add the ingested span's payload to the set under `set_key`.
@@ -52,10 +52,18 @@ consumer reads and writes to shards that correspond to its own assigned
 partitions. This means that extra care needs to be taken when recreating topics
 or using spillover topics, especially when their new partition count is lower
 than the original topic.
+
+Glossary for types of keys:
+
+    * span-buf:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
+    * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
+    * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
+    * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:s: set.
 """
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Sequence
 from typing import NamedTuple
 
@@ -82,7 +90,16 @@ add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 
 def segment_to_span_id(segment_id: SegmentId) -> bytes:
-    return segment_id.rsplit(b":", 1)[1]
+    return parse_segment_id(segment_id)[2]
+
+
+def parse_segment_id(segment_id: SegmentId) -> tuple[int, bytes, bytes]:
+    segment_id_parts = segment_id.split(b":")
+    project_id = int(segment_id_parts[2][1:].decode("ascii"))
+    trace_id = segment_id_parts[3][:-1]
+    span_id = segment_id_parts[4]
+
+    return project_id, trace_id, span_id
 
 
 # fun fact: namedtuples are faster to construct than dataclasses
@@ -133,7 +150,7 @@ class RedisSpansBufferV2:
         is_root_span_count = 0
         has_root_span_count = 0
 
-        with metrics.timer("sentry.spans.buffer.process_spans.step1"):
+        with metrics.timer("sentry.spans.buffer.process_spans.insert_spans"):
             with self.client.pipeline(transaction=False) as p:
                 for span in spans:
                     # (parent_span_id) -> [Span]
@@ -169,7 +186,7 @@ class RedisSpansBufferV2:
                     queue_items.append(item)
                     queue_item_has_root_span.append(has_root_span)
 
-        with metrics.timer("sentry.spans.buffer.process_spans.step2"):
+        with metrics.timer("sentry.spans.buffer.process_spans.update_queue"):
             with self.client.pipeline(transaction=False) as p:
                 for key, delete_item, item, has_root_span in zip(
                     queue_keys, queue_delete_items, queue_items, queue_item_has_root_span
@@ -199,7 +216,7 @@ class RedisSpansBufferV2:
     ) -> tuple[int, dict[SegmentId, set[bytes]]]:
         cutoff = now
 
-        with metrics.timer("sentry.spans.buffer.flush_segments.step1"):
+        with metrics.timer("sentry.spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = f"span-buf:q:{shard}"
@@ -213,13 +230,12 @@ class RedisSpansBufferV2:
         segment_ids = []
         queue_sizes = []
 
-        with metrics.timer("sentry.spans.buffer.flush_segments.step2"):
+        with metrics.timer("sentry.spans.buffer.flush_segments.load_segment_data"):
             with self.client.pipeline(transaction=False) as p:
                 # ZRANGEBYSCORE output
                 for segment_span_ids in result:
                     # process return value of zrevrangebyscore
                     for segment_id in segment_span_ids:
-                        # TODO: SSCAN
                         segment_ids.append(segment_id)
                         p.smembers(segment_id)
 
@@ -259,18 +275,17 @@ class RedisSpansBufferV2:
                     p.delete(hrs_key)
                     p.delete(segment_id)
 
-                    # parse trace_id out of SegmentId, then remove from queue
-                    segment_id_parts = segment_id.split(b":")
-                    project_id = segment_id_parts[2][1:]
-                    trace_id = segment_id_parts[3][:-1]
+                    project_id, trace_id, _ = parse_segment_id(segment_id)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     shard = self.assigned_shards[int(trace_id, 16) % len(self.assigned_shards)]
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
                     payload_nums.append(len(payloads))
-                    for payload in payloads:
-                        span_id = rapidjson.loads(payload)["span_id"]
-                        p.hdel(redirect_map_key, span_id)
+                    for payload_batch in itertools.batched(payloads, 100):
+                        p.hdel(
+                            redirect_map_key,
+                            *[rapidjson.loads(payload)["span_id"] for payload in payload_batch],
+                        )
 
                 results = iter(p.execute())
 
