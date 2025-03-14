@@ -219,16 +219,21 @@ Sentry.init({
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-      : ''
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+    profileSessionSampleRate: 1.0,
+    // Trace lifecycle automatically enables profiling during active traces
+    profileLifecycle: 'trace',`
+      : `
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init
+    profileSessionSampleRate: 1.0,
+    `
   }});${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
       ? `
-// Manually call startProfiler and stopProfiler
+// Manually call startProfileSession and stopProfileSession
 // to profile the code in between
-Sentry.profiler.startProfiler();
+Sentry.profiler.startProfileSession();
 ${
   params.isPerformanceSelected
     ? `
@@ -241,9 +246,9 @@ Sentry.startSpan({
 `
     : '// this code will be profiled'
 }
-// Calls to stopProfiling are optional - if you don't stop the profiler, it will keep profiling
-// your application until the process exits or stopProfiling is called.
-Sentry.profiler.stopProfiler();`
+// Calls to stopProfileSession are optional - if you don't stop the profile session, it will keep profiling
+// your application until the process exits or stopProfileSession is called.
+Sentry.profiler.stopProfileSession();`
       : ''
   }`;
 
