@@ -171,18 +171,14 @@ export const getChonkStylesConfig = ({
       color: isDisabled ? theme.disabled : theme.textColor,
       padding: multiValueSizeMapping[size].spacing,
       paddingLeft: multiValueSizeMapping[size].spacing,
-      // lineHeight: 1.2,
       height: multiValueSizeMapping[size].height,
       display: 'flex',
       alignItems: 'center',
     }),
     multiValueRemove: () => ({
       alignItems: 'center',
-      // borderLeft: `1px solid ${theme.innerBorder}`,
-      // borderRadius: '0 2px 2px 0',
       display: 'flex',
       padding: '0 4px',
-      // marginLeft: '4px',
 
       ...(isDisabled
         ? {
