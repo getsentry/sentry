@@ -1217,7 +1217,6 @@ def test_project_config_cardinality_limits_organization_options_override_options
 
 @django_db_all
 @region_silo_test
-@override_options({"relay.emit-generic-inbound-filters": True})
 def test_project_config_with_generic_filters(default_project):
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])

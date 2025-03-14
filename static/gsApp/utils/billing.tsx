@@ -279,15 +279,9 @@ export const hasActiveVCFeature = (organization: Organization) =>
 
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
-export const isBizPlanFamily = (plan?: Plan) =>
-  plan?.name === PlanName.BUSINESS ||
-  plan?.name === PlanName.BUSINESS_BUNDLE ||
-  plan?.name === PlanName.BUSINESS_SPONSORED;
+export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
 
-export const isTeamPlanFamily = (plan?: Plan) =>
-  plan?.name === PlanName.TEAM ||
-  plan?.name === PlanName.TEAM_BUNDLE ||
-  plan?.name === PlanName.TEAM_SPONSORED;
+export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
 export const isBusinessTrial = (subscription: Subscription) => {
   return (
