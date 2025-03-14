@@ -176,6 +176,7 @@ function GenericBackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
