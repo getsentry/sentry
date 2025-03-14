@@ -273,7 +273,6 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
     p.labelPosition === 'left-top' &&
     css`
       height: 50px;
-      box-shadow: -1px 0 0 0 ${p.theme.translucentInnerBorder};
     `}
   ${p =>
     p.labelPosition === 'center-bottom' &&
