@@ -68,6 +68,8 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     score_column = cast(str, args[0])
     ratio_column_name = score_column.replace("measurements.score", "score.ratio")
+    if ratio_column_name == "score.ratio.total":
+        ratio_column_name = "score.total"
     attribute_key = AttributeKey(name=ratio_column_name, type=AttributeKey.TYPE_DOUBLE)
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=attribute_key))
 
