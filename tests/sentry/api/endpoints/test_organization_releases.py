@@ -57,7 +57,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     def assert_expected_versions(self, response, expected):
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
-    def test_simple_a(self):
+    def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()
