@@ -152,12 +152,13 @@ class SentryPermission(ScopedPermission):
     ) -> None:
         from sentry.api.base import logger
 
+        user_id = request.user.id if request.user else None
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
         else:
             org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+                id=extract_id_from(organization), user_id=user_id
             )
 
         if org_context is None:
