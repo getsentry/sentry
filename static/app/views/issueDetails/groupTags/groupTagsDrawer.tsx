@@ -94,15 +94,13 @@ export function GroupTagsDrawer({
 
   const {
     data = [],
-    // isPending,
-    // isError,
+    isPending,
+    isError,
     refetch,
   } = useGroupTags({
     groupId: group.id,
     environment: environments,
   });
-  const isPending = false;
-  const isError = true;
 
   const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
     orgSlug: organization.slug,
