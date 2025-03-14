@@ -1,8 +1,11 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {lightTheme} from 'sentry/utils/theme';
+
+const theme = makeLightFlamegraphTheme(lightTheme);
 
 describe('PositionIndicatorRenderer', () => {
   it('draws nothing if view is not zoomed', () => {
@@ -23,10 +26,7 @@ describe('PositionIndicatorRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const renderer = new PositionIndicatorRenderer(
-      canvas as HTMLCanvasElement,
-      LightFlamegraphTheme
-    );
+    const renderer = new PositionIndicatorRenderer(canvas as HTMLCanvasElement, theme);
     renderer.draw(configView, configSpace, mat3.create());
 
     expect(context.beginPath).not.toHaveBeenCalled();
@@ -50,10 +50,7 @@ describe('PositionIndicatorRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const renderer = new PositionIndicatorRenderer(
-      canvas as HTMLCanvasElement,
-      LightFlamegraphTheme
-    );
+    const renderer = new PositionIndicatorRenderer(canvas as HTMLCanvasElement, theme);
     renderer.draw(
       configView,
       configSpace,
@@ -66,9 +63,9 @@ describe('PositionIndicatorRenderer', () => {
     // @ts-expect-error this is a mock
     // We offset x by width of the border be
     expect(context.rect.mock.calls[1]).toEqual([
-      80 - LightFlamegraphTheme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,
+      80 - theme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,
       80,
-      40 + LightFlamegraphTheme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,
+      40 + theme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,
       200,
     ]);
   });

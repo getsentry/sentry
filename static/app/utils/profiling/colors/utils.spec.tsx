@@ -5,14 +5,12 @@ import {
   makeColorMapBySymbolName,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
-import {
-  LCH_LIGHT,
-  LightFlamegraphTheme,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {lightTheme} from 'sentry/utils/theme';
 
-import {makeColorBucketTheme} from '../speedscope';
+const theme = makeLightFlamegraphTheme(lightTheme);
 
 const f = (key: number, name: string, file?: string, image?: string): FlamegraphFrame => {
   return {
@@ -53,8 +51,8 @@ describe('makeStackToColor', () => {
     const {colorBuffer} = makeFn(
       frames,
       () => new Map(),
-      makeColorBucketTheme(LCH_LIGHT),
-      LightFlamegraphTheme
+      theme.COLORS.COLOR_BUCKET,
+      theme
     );
     expect(colorBuffer.slice(0, 4)).toEqual(fallback);
     expect(colorBuffer).toHaveLength(24);
@@ -70,8 +68,8 @@ describe('makeStackToColor', () => {
     const {colorBuffer} = makeFn(
       frames,
       makeColorMapBySymbolName,
-      makeColorBucketTheme(LCH_LIGHT),
-      LightFlamegraphTheme
+      theme.COLORS.COLOR_BUCKET,
+      theme
     );
     expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
     expect(
@@ -95,8 +93,8 @@ describe('makeStackToColor', () => {
         m.set('a', [1, 0, 0]);
         return m;
       },
-      makeColorBucketTheme(LCH_LIGHT),
-      LightFlamegraphTheme
+      theme.COLORS.COLOR_BUCKET,
+      theme
     );
     expect(colorBuffer.slice(0, 4)).toEqual([1, 0, 0, 1]);
     expect(colorBuffer).toHaveLength(24);
@@ -111,14 +109,14 @@ describe('makeColorMap', () => {
 
     b.frame = a.frame;
 
-    const map = makeColorMapBySymbolName([a, b], makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapBySymbolName([a, b], theme.COLORS.COLOR_BUCKET);
     expect(map.get(a.key)).toEqual(map.get(b.key));
   });
   it('default colors by frame name', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(1, 'c'), f(2, 'b'), f(3, 'a')];
 
-    const map = makeColorMapBySymbolName(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapBySymbolName(frames, theme.COLORS.COLOR_BUCKET);
 
     expect(getDominantColor(map.get(3))).toBe('red');
     expect(getDominantColor(map.get(2))).toBe('green');
@@ -133,7 +131,7 @@ describe('makeColorMap', () => {
       f(3, 'a', undefined, 'a'),
     ];
 
-    const map = makeColorMapByLibrary(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapByLibrary(frames, theme.COLORS.COLOR_BUCKET);
 
     expect(getDominantColor(map.get(3))).toBe('red');
     expect(getDominantColor(map.get(2))).toBe('green');
@@ -147,7 +145,7 @@ describe('makeColorMap', () => {
     frames[1]!.node.recursive = frames[0]!.node;
     frames[2]!.node.recursive = frames[1]!.node;
 
-    const map = makeColorMapByRecursion(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapByRecursion(frames, theme.COLORS.COLOR_BUCKET);
 
     expect(getDominantColor(map.get(1))).toBe('red');
     expect(map.get(3)).toBeUndefined();
