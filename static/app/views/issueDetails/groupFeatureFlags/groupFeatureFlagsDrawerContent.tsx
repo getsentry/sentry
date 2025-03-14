@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
@@ -64,6 +66,25 @@ export default function GroupFeatureFlagsDrawerContent({
       onRetry={refetch}
     />
   ) : (
-    displayTags.map((tag, tagIdx) => <TagDistribution tag={tag} key={tagIdx} />)
+    <Wrapper>
+      <Container>
+        {displayTags.map((tag, tagIdx) => (
+          <TagDistribution tag={tag} key={tagIdx} />
+        ))}
+      </Container>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+const Container = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+`;

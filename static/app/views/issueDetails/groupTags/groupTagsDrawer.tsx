@@ -94,13 +94,15 @@ export function GroupTagsDrawer({
 
   const {
     data = [],
-    isPending,
-    isError,
+    // isPending,
+    // isError,
     refetch,
   } = useGroupTags({
     groupId: group.id,
     environment: environments,
   });
+  const isPending = false;
+  const isError = true;
 
   const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
     orgSlug: organization.slug,
@@ -263,15 +265,11 @@ export function GroupTagsDrawer({
         {tagKey ? (
           <TagDetailsDrawerContent group={group} />
         ) : tab === FEATURE_FLAGS_TAB ? (
-          <Wrapper>
-            <Container>
-              <GroupFeatureFlagsDrawerContent
-                group={group}
-                environments={environments}
-                search={search}
-              />
-            </Container>
-          </Wrapper>
+          <GroupFeatureFlagsDrawerContent
+            group={group}
+            environments={environments}
+            search={search}
+          />
         ) : isPending || isHighlightsPending ? (
           <LoadingIndicator />
         ) : isError ? (
