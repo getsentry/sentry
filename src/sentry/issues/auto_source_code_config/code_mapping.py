@@ -15,8 +15,10 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
+from .constants import METRIC_PREFIX
 from .integration_utils import InstallationNotFoundError, get_installation
 from .utils import PlatformConfig
 
@@ -172,16 +174,19 @@ class CodeMappingTreesHelper:
         self.code_mappings = {}
         self.platform = platform
 
-        buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
+        with metrics.timer(
+            f"{METRIC_PREFIX}.generate_code_mappings.duration", tags={"platform": platform}
+        ):
+            buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
 
-        # We reprocess stackframes until we are told that no code mappings were produced
-        # This is order to reprocess past stackframes in light of newly discovered code mappings
-        # This allows for idempotency since the order of the stackframes will not matter
-        # This has no performance issue because stackframes that match an existing code mapping
-        # will be skipped
-        while True:
-            if not self._process_stackframes(buckets):
-                break
+            # We reprocess stackframes until we are told that no code mappings were produced
+            # This is order to reprocess past stackframes in light of newly discovered code mappings
+            # This allows for idempotency since the order of the stackframes will not matter
+            # This has no performance issue because stackframes that match an existing code mapping
+            # will be skipped
+            while True:
+                if not self._process_stackframes(buckets):
+                    break
 
         return list(self.code_mappings.values())
 
