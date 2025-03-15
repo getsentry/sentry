@@ -6,12 +6,20 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from requests import RequestException
 
 from sentry.http import safe_urlread
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppExternalRequestFailureReason,
+    SentryAppExternalRequestHaltReason,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryApp
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
@@ -41,66 +49,83 @@ class SelectRequester:
     dependent_data: str | None = field(default=None)
 
     def run(self) -> SelectRequesterResult:
+
         response: list[dict[str, str]] = []
         url = None
+
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
+            event_type=SentryAppEventType.SELECT_OPTIONS_REQUESTED,
+        ).capture() as lifecycle:
+            extras: dict[str, Any] = {
+                "sentry_app_slug": self.sentry_app.slug,
+                "install_uuid": self.install.uuid,
+            }
+            lifecycle.add_extras(extras)
+
+            try:
+                url = self._build_url()
+                body = safe_urlread(
+                    send_and_save_sentry_app_request(
+                        url,
+                        self.sentry_app,
+                        self.install.organization_id,
+                        SentryAppEventType.SELECT_OPTIONS_REQUESTED,
+                        headers=self._build_headers(),
+                    )
+                )
+
+                response = json.loads(body)
+                extras.update({"response": response})
+            except RequestException as e:
+                extras.update({"url": url})
+                halt_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.BAD_RESPONSE}"
+                lifecycle.record_halt(
+                    halt_reason=e,
+                    extra={"reason": halt_reason, **extras},
+                )
+                raise SentryAppIntegratorError(
+                    message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}",
+                    webhook_context={"error_type": halt_reason, **extras},
+                    status_code=500,
+                ) from e
+
+            except Exception as e:
+                failure_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR}"
+                if not url:
+                    failure_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.MISSING_URL}"
+                    extras.update(
+                        {
+                            "uri": self.uri,
+                            "dependent_data": self.dependent_data,
+                            "webhook_url": self.sentry_app.webhook_url,
+                        }
+                    )
+
+                raise SentryAppSentryError(
+                    message="Something went wrong while preparing to get Select FormField options",
+                    webhook_context={"error_type": failure_reason, **extras},
+                ) from e
+
+            if not self._validate_response(response):
+                halt_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}"
+                lifecycle.record_halt(halt_reason=halt_reason, extra=extras)
+
+                raise SentryAppIntegratorError(
+                    message=f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {self.uri}",
+                    webhook_context={
+                        "error_type": halt_reason,
+                        **extras,
+                    },
+                )
+
         try:
-            url = self._build_url()
-            body = safe_urlread(
-                send_and_save_sentry_app_request(
-                    url,
-                    self.sentry_app,
-                    self.install.organization_id,
-                    "select_options.requested",
-                    headers=self._build_headers(),
-                )
-            )
+            formatted_response = self._format_response(response)
+        except SentryAppIntegratorError as e:
+            lifecycle.record_halt(halt_reason=e, **extras)
+            raise
 
-            response = json.loads(body)
-        except Exception as e:
-            extra = {
-                "sentry_app_slug": self.sentry_app.slug,
-                "install_uuid": self.install.uuid,
-                "project_slug": self.project_slug,
-            }
-
-            if not url:
-                extra.update(
-                    {
-                        "uri": self.uri,
-                        "dependent_data": self.dependent_data,
-                        "webhook_url": self.sentry_app.webhook_url,
-                    }
-                )
-                message = "select-requester.missing-url"
-            else:
-                extra.update({"url": url})
-                message = "select-requester.request-failed"
-
-            logger.info(message, exc_info=e, extra=extra)
-            raise SentryAppIntegratorError(
-                message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}",
-                webhook_context={"error_type": message, **extra},
-                status_code=500,
-            ) from e
-
-        if not self._validate_response(response):
-            extras = {
-                "response": response,
-                "sentry_app_slug": self.sentry_app.slug,
-                "install_uuid": self.install.uuid,
-                "project_slug": self.project_slug,
-                "url": url,
-            }
-            logger.info("select-requester.invalid-response", extra=extras)
-
-            raise SentryAppIntegratorError(
-                message=f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {self.uri}",
-                webhook_context={
-                    "error_type": "select-requester.invalid-integrator-response",
-                    **extras,
-                },
-            )
-        return self._format_response(response)
+        return formatted_response
 
     def _build_url(self) -> str:
         urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
@@ -137,7 +162,7 @@ class SelectRequester:
                 raise SentryAppIntegratorError(
                     message="Missing `value` or `label` in option data for Select FormField",
                     webhook_context={
-                        "error_type": "select-requester.missing-fields",
+                        "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}",
                         "response": resp,
                     },
                     status_code=500,

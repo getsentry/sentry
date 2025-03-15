@@ -14,6 +14,9 @@ class SentryAppInteractionType(StrEnum):
     PREPARE_WEBHOOK = "prepare_webhook"
     SEND_WEBHOOK = "send_webhook"
 
+    # External Requests
+    EXTERNAL_REQUEST = "external_request"
+
 
 @dataclass
 class SentryAppInteractionEvent(EventLifecycleMetric):
@@ -58,6 +61,21 @@ class SentryAppWebhookHaltReason(StrEnum):
 
     GOT_CLIENT_ERROR = "got_client_error"
     INTEGRATOR_ERROR = "integrator_error"
+
+
+class SentryAppExternalRequestFailureReason(StrEnum):
+    """Reasons why sentry app external request processes can fail"""
+
+    MISSING_URL = "missing_url"
+    UNEXPECTED_ERROR = "unexpected_error"
+    INVALID_EVENT = "invalid_event"
+
+
+class SentryAppExternalRequestHaltReason(StrEnum):
+    """Reasons why sentry app external request processes can halt"""
+
+    MISSING_FIELDS = "missing_fields"
+    BAD_RESPONSE = "bad_response"
 
 
 class SentryAppEventType(StrEnum):
