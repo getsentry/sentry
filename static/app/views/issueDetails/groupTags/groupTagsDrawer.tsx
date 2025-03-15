@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -260,14 +261,14 @@ export function GroupTagsDrawer({
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
-        {tagKey ? (
-          <TagDetailsDrawerContent group={group} />
-        ) : tab === FEATURE_FLAGS_TAB ? (
+        {tab === FEATURE_FLAGS_TAB ? (
           <GroupFeatureFlagsDrawerContent
             group={group}
             environments={environments}
             search={search}
           />
+        ) : tagKey ? (
+          <TagDetailsDrawerContent group={group} />
         ) : isPending || isHighlightsPending ? (
           <LoadingIndicator />
         ) : isError ? (
@@ -275,6 +276,10 @@ export function GroupTagsDrawer({
             message={t('There was an error loading issue tags.')}
             onRetry={refetch}
           />
+        ) : displayTags.length === 0 ? (
+          <StyledEmptyStateWarning withIcon>
+            {t('No tags were found for this issue')}
+          </StyledEmptyStateWarning>
         ) : (
           <Wrapper>
             <Container>
@@ -293,22 +298,30 @@ export function GroupTagsDrawer({
   );
 }
 
-const Wrapper = styled('div')`
+export const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
 `;
 
-const Container = styled('div')`
+export const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
 
-const Header = styled('h3')`
+export const Header = styled('h3')`
   ${p => p.theme.overflowEllipsis};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
+`;
+
+export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
