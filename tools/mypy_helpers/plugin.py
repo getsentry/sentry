@@ -27,6 +27,7 @@ from mypy.types import (
     TypedDictType,
     TypeOfAny,
     UnionType,
+    get_proper_type,
 )
 
 SERIALIZE_TYPEDDICT_CODE = ErrorCode(
@@ -36,9 +37,9 @@ SERIALIZE_TYPEDDICT_CODE = ErrorCode(
 SERIALIZER_BASE_CLASS = "sentry.api.serializers.base.Serializer"
 
 
-def _is_typed_dict(typ: Type) -> bool:
+def _is_typed_dict(typ: Type, api: SemanticAnalyzerPluginInterface) -> bool:
     """Check if a type is a TypedDict"""
-    if isinstance(typ, TypedDictType):
+    if isinstance(get_proper_type(typ), TypedDictType):
         return True
 
     return False
@@ -188,12 +189,12 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
-def _check_serializer_class(ctx: ClassDefContext) -> None:
+def _check_serializer_class(ctx: ClassDefContext) -> bool:
     """
     Hook that checks if subclasses of Serializer have a serialize method that returns a TypedDict.
     """
     if not ctx.cls.info.has_base(SERIALIZER_BASE_CLASS):
-        return
+        return True
 
     # Look for the serialize method in the class
     for name, node in ctx.cls.info.names.items():
@@ -210,8 +211,7 @@ def _check_serializer_class(ctx: ClassDefContext) -> None:
             # Then check if it's a callable with a proper return type
             if isinstance(node.node.type, CallableType):
                 ret_type = node.node.type.ret_type
-                if not _is_typed_dict(ret_type):
-                    print(ret_type, _is_typed_dict(ret_type))
+                if not _is_typed_dict(ret_type, ctx.api):
                     ctx.api.fail(
                         "Method 'serialize' must return a TypedDict in classes inheriting from Serializer",
                         node.node,
@@ -225,6 +225,8 @@ def _check_serializer_class(ctx: ClassDefContext) -> None:
                     code=SERIALIZE_TYPEDDICT_CODE,
                 )
 
+    return True
+
 
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
@@ -234,9 +236,7 @@ class SentryMypyPlugin(Plugin):
 
     def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class
-        if fullname == SERIALIZER_BASE_CLASS:
-            return _check_serializer_class
-        elif fullname == "_io.BytesIO":
+        if fullname == "_io.BytesIO":
             return _adjust_http_request_members
         elif fullname == "django.http.request.HttpRequest":
             return _adjust_request_members
@@ -244,6 +244,9 @@ class SentryMypyPlugin(Plugin):
             return _adjust_http_response_members
         else:
             return None
+
+    def get_class_decorator_hook_2(self, fullname: str) -> Callable[[ClassDefContext], bool] | None:
+        return _check_serializer_class
 
     def get_attribute_hook(self, fullname: str) -> Callable[[AttributeContext], Type] | None:
         if fullname.startswith("sentry.utils.lazy_service_wrapper.LazyServiceWrapper."):
