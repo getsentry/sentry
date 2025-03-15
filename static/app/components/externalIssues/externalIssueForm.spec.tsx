@@ -5,8 +5,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import ExternalIssueForm from 'sentry/components/externalIssues/externalIssueForm';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import ExternalIssueForm from 'sentry/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
