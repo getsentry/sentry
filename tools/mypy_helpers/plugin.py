@@ -4,9 +4,9 @@ import functools
 from collections.abc import Callable
 
 from mypy.build import PRI_MYPY
-from mypy.errorcodes import ATTR_DEFINED
+from mypy.errorcodes import ATTR_DEFINED, ErrorCode
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS, MDEF, MypyFile, SymbolTableNode, TypeInfo, Var
+from mypy.nodes import ARG_POS, MDEF, FuncDef, MypyFile, SymbolTableNode, TypeInfo, Var
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
@@ -24,9 +24,24 @@ from mypy.types import (
     Instance,
     NoneType,
     Type,
+    TypedDictType,
     TypeOfAny,
     UnionType,
 )
+
+SERIALIZE_TYPEDDICT_CODE = ErrorCode(
+    "serialize-typeddict", "Serialize method must return a TypedDict", "attr-defined"
+)
+
+SERIALIZER_BASE_CLASS = "sentry.api.serializers.base.Serializer"
+
+
+def _is_typed_dict(typ: Type) -> bool:
+    """Check if a type is a TypedDict"""
+    if isinstance(typ, TypedDictType):
+        return True
+
+    return False
 
 
 def _make_using_required_str(ctx: FunctionSigContext) -> CallableType:
@@ -173,6 +188,44 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
+def _check_serializer_class(ctx: ClassDefContext) -> None:
+    """
+    Hook that checks if subclasses of Serializer have a serialize method that returns a TypedDict.
+    """
+    if not ctx.cls.info.has_base(SERIALIZER_BASE_CLASS):
+        return
+
+    # Look for the serialize method in the class
+    for name, node in ctx.cls.info.names.items():
+        if name == "serialize" and isinstance(node.node, FuncDef):
+            # First check if the method has a return type annotation at all
+            if not node.node.type:
+                ctx.api.fail(
+                    "Method 'serialize' must have an explicit return type annotation in classes inheriting from Serializer",
+                    node.node,
+                    code=SERIALIZE_TYPEDDICT_CODE,
+                )
+                continue
+
+            # Then check if it's a callable with a proper return type
+            if isinstance(node.node.type, CallableType):
+                ret_type = node.node.type.ret_type
+                if not _is_typed_dict(ret_type):
+                    print(ret_type, _is_typed_dict(ret_type))
+                    ctx.api.fail(
+                        "Method 'serialize' must return a TypedDict in classes inheriting from Serializer",
+                        node.node,
+                        code=SERIALIZE_TYPEDDICT_CODE,
+                    )
+            else:
+                # This case should be rare, but handle it for completeness
+                ctx.api.fail(
+                    "Method 'serialize' has an invalid type annotation",
+                    node.node,
+                    code=SERIALIZE_TYPEDDICT_CODE,
+                )
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
@@ -181,7 +234,9 @@ class SentryMypyPlugin(Plugin):
 
     def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class
-        if fullname == "_io.BytesIO":
+        if fullname == SERIALIZER_BASE_CLASS:
+            return _check_serializer_class
+        elif fullname == "_io.BytesIO":
             return _adjust_http_request_members
         elif fullname == "django.http.request.HttpRequest":
             return _adjust_request_members
