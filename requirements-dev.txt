@@ -22,6 +22,9 @@ pytest-xdist>=3
 responses>=0.23.1
 selenium>=4.16.0
 sentry-cli>=2.16.0
+html2text>=2024.2.26
+djlint>=1.36.4
+
 
 # pre-commit dependencies
 pre-commit>=4
