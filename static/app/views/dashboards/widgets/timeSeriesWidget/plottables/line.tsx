@@ -15,7 +15,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     return new Line(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
   }
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
-    const {timeSeries, config = {}} = this;
+    const {config = {}} = this;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
     const scaledSeries = this.scaleToUnit(plottingOptions.unit);
@@ -26,7 +26,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions = {
-      name: timeSeries.field,
+      name: this.label,
       color,
       animation: false,
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,

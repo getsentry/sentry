@@ -490,21 +490,18 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
-          You can also provide aliases for legends to give them a friendlier name. In this
-          example, verbose names like "p99(span.duration)" are truncated, and the p99
-          series is hidden by default.
+          You can also provide aliases for plottables like <code>Line</code> This will
+          give the legends and tooltips a friendlier name. In this example, verbose names
+          like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default.
         </p>
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
             plottables={[
-              new Area(sampleDurationTimeSeries, {}),
-              new Area(sampleDurationTimeSeries2, {}),
+              new Area(sampleDurationTimeSeries, {alias: 'p50'}),
+              new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
             ]}
-            aliases={{
-              'p99(span.duration)': 'p99',
-              'p50(span.duration)': 'p50',
-            }}
             legendSelection={legendSelection}
             onLegendSelectionChange={setLegendSelection}
           />
