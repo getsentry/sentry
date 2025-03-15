@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
@@ -82,4 +83,7 @@ def enforce_config_schema(sender, instance: Action, **kwargs):
         instance.validate_config(config_schema)
 
     if data_schema is not None:
-        instance.validate_config(data_schema)
+        try:
+            validate(instance.data, data_schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")
