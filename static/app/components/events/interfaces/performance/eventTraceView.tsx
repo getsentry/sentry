@@ -62,7 +62,7 @@ interface EventTraceViewInnerProps {
   traceTarget: LocationDescriptor;
 }
 
-function EventTraceViewInner({
+export function EventTraceViewInner({
   event,
   organization,
   traceId,
@@ -179,7 +179,12 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
 
-  if (!traceId) {
+  // Performance issues have a Span Evidence section that contains the trace view
+  const hideForPerformanceIssues =
+    group.issueCategory === IssueCategory.PERFORMANCE &&
+    organization.features.includes('issues-performance-new-trace-view');
+
+  if (!traceId || hideForPerformanceIssues) {
     return null;
   }
 
