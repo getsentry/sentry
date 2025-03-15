@@ -75,6 +75,8 @@ class NotificationActionHandler(ActionHandler):
         },
     }
 
+    data_schema = {}
+
     @staticmethod
     def execute(
         job: WorkflowJob,

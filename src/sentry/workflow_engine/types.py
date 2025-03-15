@@ -47,6 +47,7 @@ class WorkflowJob(EventJob, total=False):
 
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
+    data_schema: ClassVar[dict[str, Any]]
 
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:

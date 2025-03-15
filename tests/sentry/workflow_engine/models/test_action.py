@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.test import TestCase
+from jsonschema import ValidationError
 
 from sentry.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
@@ -19,10 +20,16 @@ class TestAction(TestCase):
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of a user profile",
             "type": "object",
-            "required": [],
             "properties": {
                 "foo": {"type": "string"},
             },
+            "additionalProperties": False,
+        }
+
+        self.valid_params = {
+            "type": Action.Type.SLACK,
+            "config": {"foo": "bar"},
+            "data": {"foo": "bar"},
         }
 
     def test_get_handler_notification_type(self):
@@ -82,15 +89,44 @@ class TestAction(TestCase):
     def test_config_schema(self):
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
+        mock_handler.data_schema = self.config_schema
 
         with patch.object(Action, "get_handler", return_value=mock_handler):
-            result = Action.objects.create(type=Action.Type.SLACK, config={"foo": "bar"})
+            params = self.valid_params.copy()
+            params["config"] = {"foo": "bar"}
+            result = Action.objects.create(**params)
             assert result is not None
 
     def test_config_schema__invalid(self):
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
+        mock_handler.data_schema = self.config_schema
 
         with patch.object(Action, "get_handler", return_value=mock_handler):
-            with pytest.raises(Exception):
-                Action.objects.create(type=Action.Type.SLACK, config={"foo": 42})
+            with pytest.raises(ValidationError):
+                params = self.valid_params.copy()
+                params["config"] = {"baz": 42}
+                Action.objects.create(**params)
+
+    def test_data_schema(self):
+        mock_handler = Mock(spec=ActionHandler)
+        mock_handler.config_schema = self.config_schema
+        mock_handler.data_schema = self.config_schema
+
+        with patch.object(Action, "get_handler", return_value=mock_handler):
+            params = self.valid_params.copy()
+            params["data"] = {"foo": "bar"}
+            result = Action.objects.create(**params)
+
+            assert result is not None
+
+    def test_data_schema__invalid(self):
+        mock_handler = Mock(spec=ActionHandler)
+        mock_handler.config_schema = self.config_schema
+        mock_handler.data_schema = self.config_schema
+
+        with patch.object(Action, "get_handler", return_value=mock_handler):
+            with pytest.raises(ValidationError):
+                params = self.valid_params.copy()
+                params["data"] = {"baz": 42}
+                Action.objects.create(**params)
