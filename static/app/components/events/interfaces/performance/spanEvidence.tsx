@@ -90,7 +90,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
   const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
   const hasNewTraceView = organization.features.includes(
-    'issues-performance-new-trace-view'
+    'issue-details-new-performance-trace-view'
   );
   const traceId = event.contexts.trace?.trace_id;
 
