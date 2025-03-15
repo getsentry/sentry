@@ -9,6 +9,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {
+  type AutofixFeedback,
   type AutofixRepository,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
@@ -20,7 +21,7 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconEdit, IconFocus} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconEdit, IconFocus, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -39,6 +40,7 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -140,6 +142,59 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
+    },
+  });
+}
+
+export function useUpdateRootCauseFeedback({
+  groupId,
+  runId,
+}: {
+  groupId: string;
+  runId: string;
+}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {action: 'root_cause_thumbs_up' | 'root_cause_thumbs_down'}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'feedback',
+            action: params.action,
+          },
+        },
+      });
+    },
+    onMutate: params => {
+      queryClient.setQueryData(makeAutofixQueryKey(groupId), (data: AutofixResponse) => {
+        if (!data || !data.autofix) {
+          return data;
+        }
+
+        return {
+          ...data,
+          autofix: {
+            ...data.autofix,
+            feedback: {
+              ...data.autofix.feedback,
+              root_cause_thumbs_up: params.action === 'root_cause_thumbs_up',
+              root_cause_thumbs_down: params.action === 'root_cause_thumbs_down',
+            },
+          },
+        };
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(groupId),
+      });
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when updating the root cause feedback.'));
     },
   });
 }
@@ -262,6 +317,52 @@ function CopyRootCauseButton({
   return <CopyToClipboardButton size="sm" text={text} borderless />;
 }
 
+function ThumbsUpDownButtons({
+  feedback,
+  groupId,
+  runId,
+}: {
+  groupId: string;
+  runId: string;
+  feedback?: AutofixFeedback;
+}) {
+  const {mutate: handleUpdateRootCauseFeedback} = useUpdateRootCauseFeedback({
+    groupId,
+    runId,
+  });
+
+  return (
+    <ButtonBar>
+      <Button
+        size="sm"
+        borderless
+        onClick={() => handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_up'})}
+      >
+        {
+          <IconThumb
+            color={feedback?.root_cause_thumbs_up ? 'green400' : 'gray300'}
+            size="sm"
+            direction="up"
+            fill="red"
+          />
+        }
+      </Button>
+      <Button
+        size="sm"
+        borderless
+        onClick={() => handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_down'})}
+      >
+        {
+          <IconThumb
+            color={feedback?.root_cause_thumbs_down ? 'red400' : 'gray300'}
+            size="sm"
+            direction="down"
+          />
+        }
+      </Button>
+    </ButtonBar>
+  );
+}
 function AutofixRootCauseDisplay({
   causes,
   groupId,
@@ -270,6 +371,7 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  feedback,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
@@ -318,6 +420,7 @@ function AutofixRootCauseDisplay({
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
+            <ThumbsUpDownButtons feedback={feedback} groupId={groupId} runId={runId} />
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
