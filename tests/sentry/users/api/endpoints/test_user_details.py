@@ -184,11 +184,11 @@ class UserDetailsUpdateTest(UserDetailsTest):
         self.login_as(user=user, superuser=False)
 
         self.create_useremail(user, "new@example.com", is_verified=True)
-        self.get_success_response("me", username="new@example.com")
-
+        response = self.get_success_response("me", username="new@example.com")
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
+        assert response.data["email"] == "c@example.com"
         assert user.username == "new@example.com"
 
     def test_change_username_when_same(self):
