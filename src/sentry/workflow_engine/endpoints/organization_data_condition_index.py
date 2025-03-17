@@ -1,5 +1,3 @@
-from typing import NotRequired, TypedDict
-
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 
@@ -17,17 +15,13 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.workflow_engine.endpoints.serializers import DataConditionHandlerSerializer
+from sentry.workflow_engine.endpoints.serializers import (
+    DataConditionHandlerResponse,
+    DataConditionHandlerSerializer,
+)
 from sentry.workflow_engine.models.data_condition import LEGACY_CONDITIONS
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
-
-
-class DataConditionHandlerResponse(TypedDict):
-    condition_id: str
-    type: str
-    filter_group: NotRequired[str]
-    comparison_json_schema: dict
 
 
 @region_silo_endpoint
@@ -56,22 +50,23 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of data conditions for a given org
         """
-        type = request.GET.get("type")
+        group = request.GET.get("group")
         try:
-            DataConditionHandler.Type(type)
+            DataConditionHandler.Group(group)
         except ValueError:
             raise serializers.ValidationError("Invalid group")
 
         data_conditions = []
 
         for condition, handler in condition_handler_registry.registrations.items():
-            if condition not in LEGACY_CONDITIONS and handler.type == type:
-                condition_json = {"condition_id": condition}
-
-                condition_json.update(
-                    serialize(handler, request.user, DataConditionHandlerSerializer())
+            if condition not in LEGACY_CONDITIONS and handler.group == group:
+                serialized = serialize(
+                    handler,
+                    request.user,
+                    DataConditionHandlerSerializer(),
+                    condition_type=condition,
                 )
-                data_conditions.append(condition_json)
+                data_conditions.append(serialized)
 
         return self.paginate(
             request=request,

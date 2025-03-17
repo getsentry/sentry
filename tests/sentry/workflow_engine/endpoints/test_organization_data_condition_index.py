@@ -24,14 +24,14 @@ class OrganizationDataConditionAPITestCase(APITestCase):
         @self.registry.register(Condition.REAPPEARED_EVENT)
         @dataclass(frozen=True)
         class TestWorkflowTrigger(DataConditionHandler):
-            type = DataConditionHandler.Type.WORKFLOW_TRIGGER
+            group = DataConditionHandler.Group.WORKFLOW_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
         @self.registry.register(Condition.AGE_COMPARISON)
         @dataclass(frozen=True)
         class TestActionFilter(DataConditionHandler):
-            type = DataConditionHandler.Type.ACTION_FILTER
-            filter_group = DataConditionHandler.FilterGroup.ISSUE_ATTRIBUTES
+            group = DataConditionHandler.Group.ACTION_FILTER
+            subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
             comparison_json_schema = {
                 "type": "object",
                 "properties": {
@@ -44,14 +44,14 @@ class OrganizationDataConditionAPITestCase(APITestCase):
         @self.registry.register(Condition.ANOMALY_DETECTION)
         @dataclass(frozen=True)
         class TestDetectorTrigger(DataConditionHandler):
-            type = DataConditionHandler.Type.DETECTOR_TRIGGER
+            group = DataConditionHandler.Group.DETECTOR_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
         # This condition should not be included in the response
         @self.registry.register(Condition.EVERY_EVENT)
         @dataclass(frozen=True)
         class TestIgnoredCondition(DataConditionHandler):
-            type = DataConditionHandler.Type.WORKFLOW_TRIGGER
+            group = DataConditionHandler.Group.WORKFLOW_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
     def tearDown(self) -> None:
@@ -61,25 +61,25 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCase):
-    def test_type_filter(self):
+    def test_group_filter(self):
         response = self.get_success_response(
-            self.organization.slug, type=DataConditionHandler.Type.WORKFLOW_TRIGGER
+            self.organization.slug, group=DataConditionHandler.Group.WORKFLOW_TRIGGER
         )
         assert len(response.data) == 1
         assert response.data[0] == {
-            "condition_id": Condition.REAPPEARED_EVENT.value,
-            "type": DataConditionHandler.Type.WORKFLOW_TRIGGER.value,
+            "type": Condition.REAPPEARED_EVENT.value,
+            "handler_group": DataConditionHandler.Group.WORKFLOW_TRIGGER.value,
             "comparison_json_schema": {"type": "boolean"},
         }
 
         response = self.get_success_response(
-            self.organization.slug, type=DataConditionHandler.Type.ACTION_FILTER, status_code=200
+            self.organization.slug, group=DataConditionHandler.Group.ACTION_FILTER, status_code=200
         )
         assert len(response.data) == 1
         assert response.data[0] == {
-            "condition_id": Condition.AGE_COMPARISON.value,
-            "type": DataConditionHandler.Type.ACTION_FILTER.value,
-            "filter_group": DataConditionHandler.FilterGroup.ISSUE_ATTRIBUTES.value,
+            "type": Condition.AGE_COMPARISON.value,
+            "handler_group": DataConditionHandler.Group.ACTION_FILTER.value,
+            "handler_subgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
             "comparison_json_schema": {
                 "type": "object",
                 "properties": {
@@ -90,8 +90,8 @@ class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCas
             },
         }
 
-    def test_invalid_type(self):
-        self.get_error_response(self.organization.slug, type="invalid", status_code=400)
+    def test_invalid_group(self):
+        self.get_error_response(self.organization.slug, group="invalid", status_code=400)
 
-    def test_no_type(self):
+    def test_no_group(self):
         self.get_error_response(self.organization.slug, status_code=400)

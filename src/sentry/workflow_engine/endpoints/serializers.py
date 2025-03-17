@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.grouping.grouptype import ErrorGroupType
@@ -132,15 +132,25 @@ class DataConditionGroupSerializer(Serializer):
         }
 
 
+class DataConditionHandlerResponse(TypedDict):
+    type: str
+    handler_group: str
+    handler_subgroup: NotRequired[str]
+    comparison_json_schema: dict
+
+
 @register(DataConditionHandler)
 class DataConditionHandlerSerializer(Serializer):
-    def serialize(self, obj: DataConditionHandler, *args, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: DataConditionHandler, *args, condition_type: str, **kwargs
+    ) -> DataConditionHandlerResponse:
         result = {
-            "type": obj.type.value,
+            "type": condition_type,
+            "handler_group": obj.group.value,
             "comparison_json_schema": obj.comparison_json_schema,
         }
-        if hasattr(obj, "filter_group"):
-            result["filter_group"] = obj.filter_group.value
+        if hasattr(obj, "subgroup"):
+            result["handler_subgroup"] = obj.subgroup.value
         return result
 
 
