@@ -1,6 +1,9 @@
+import trimStart from 'lodash/trimStart';
+
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
 import {
   getAggregateAlias,
   isAggregateFieldOrEquation,
@@ -27,6 +30,11 @@ export function getWidgetExploreUrl(
     false,
     undefined
   );
+
+  // Inject the sort field for cases of arbitrary sorting
+  // The sort is not picked up by eventView unless it is
+  // injected into the fields
+  locationQueryParams.sort = widget.queries[0]!.orderby;
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -109,14 +117,23 @@ export function getWidgetExploreUrl(
         chartType,
         yAxes: locationQueryParams.yAxes,
       },
+      // Explore widgets do not allow sorting by arbitrary aggregates
+      // so dashboard widgets need to inject another visualize to plot the sort
+      // and it available for sorting the main chart
+      ...(locationQueryParams.sort &&
+      !_isSortIncluded(locationQueryParams.sort, locationQueryParams.yAxes)
+        ? [
+            {
+              chartType,
+              yAxes: toArray(trimStart(locationQueryParams.sort, '-')),
+            },
+          ]
+        : []),
     ],
     groupBy,
     field: decodeList(locationQueryParams.field),
     query: decodeScalar(locationQueryParams.query),
-    sort:
-      defined(fields) && defined(locationQueryParams.sort)
-        ? _getSort(fields, locationQueryParams.sort as string)
-        : undefined,
+    sort: locationQueryParams.sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget.displayType, selection.datetime),
@@ -125,9 +142,7 @@ export function getWidgetExploreUrl(
   return getExploreUrl(queryParams);
 }
 
-function _getSort(fields: string[], sort: string) {
-  const descending = sort.startsWith('-');
-  const rawSort = descending ? sort.slice(1) : sort;
-  const sortedField = fields?.find(field => getAggregateAlias(field) === rawSort);
-  return descending ? `-${sortedField}` : sortedField;
+function _isSortIncluded(sort: string, yAxes: string[]) {
+  const rawSort = trimStart(sort, '-');
+  return yAxes.map(getAggregateAlias).includes(getAggregateAlias(rawSort));
 }
