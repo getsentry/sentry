@@ -7,9 +7,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -303,9 +303,9 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
           <SelectGroupRow>
             <StyledCompactSelect
               triggerLabel={
-                newThresholdValue !== undefined
-                  ? `${newThresholdValue}%`
-                  : t('Add threshold')
+                newThresholdValue === undefined
+                  ? t('Add threshold')
+                  : `${newThresholdValue}%`
               }
               triggerProps={{style: {width: '100%', fontWeight: 'normal'}}}
               value={undefined}

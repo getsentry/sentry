@@ -3,9 +3,19 @@ from __future__ import annotations
 import sentry_sdk
 
 from sentry import features
+from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
@@ -16,7 +26,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
@@ -25,17 +35,26 @@ from ..utils import logger
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
+    metric_value: int | float | None,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
+            alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+                incident.alert_rule, None, AlertRuleSerializer()
+            )
+            incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+                incident, None, DetailedIncidentSerializer()
+            )
             chart_url = build_metric_alert_chart(
                 organization=incident.organization,
-                alert_rule=incident.alert_rule,
-                selected_incident=incident,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                snuba_query=incident.alert_rule.snuba_query,
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                open_period_context=OpenPeriodContext.from_incident(incident),
+                selected_incident_serialized=incident_serialized_response,
                 subscription=incident.subscription,
             )
         except Exception as e:

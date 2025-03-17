@@ -1,8 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
@@ -115,7 +115,6 @@ function RelatedIssues({
 
       <TableWrapper>
         <GroupList
-          orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
           canSelectGroups={false}

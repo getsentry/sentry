@@ -11,6 +11,7 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+import pluginQuery from '@tanstack/eslint-plugin-query';
 import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
@@ -317,6 +318,16 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/tanstack/query',
+    plugins: {
+      '@tanstack/query': pluginQuery,
+    },
+    rules: {
+      ...pluginQuery.configs.recommended.rules,
+      '@tanstack/query/no-rest-destructuring': 'error',
+    },
+  },
+  {
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     plugins: {
@@ -544,13 +555,48 @@ export default typescript.config([
   },
   {
     name: 'plugin/unicorn',
+    // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
     plugins: {unicorn},
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
 
+      'unicorn/custom-error-definition': 'error',
+      'unicorn/error-message': 'error',
+      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/new-for-builtins': 'error',
+      'unicorn/no-abusive-eslint-disable': 'error',
+      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-await-in-promise-methods': 'error',
       'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-invalid-remove-event-listener': 'error',
+      'unicorn/no-negated-condition': 'error',
+      'unicorn/no-negation-in-equality-check': 'error',
+      'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-unnecessary-await': 'error',
+      'unicorn/no-useless-fallback-in-spread': 'error',
+      'unicorn/no-useless-length-check': 'error',
+      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-node-protocol': 'error',
+      'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
     },
   },
   {

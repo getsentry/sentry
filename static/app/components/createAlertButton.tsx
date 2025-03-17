@@ -6,15 +6,15 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
@@ -187,7 +187,7 @@ export default function CreateAlertButton({
   const renderButton = (hasAccess: boolean) => (
     <Button
       disabled={!hasAccess}
-      title={!hasAccess ? permissionTooltipText : undefined}
+      title={hasAccess ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
       to={projectSlug ? createAlertUrl(projectSlug) : undefined}
       tooltipProps={{
@@ -206,7 +206,7 @@ export default function CreateAlertButton({
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
   const canCreateAlert =
-    isDemoModeEnabled() ||
+    isDemoModeActive() ||
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
   const hasOrgWrite = hasEveryAccess(['org:write'], {organization});

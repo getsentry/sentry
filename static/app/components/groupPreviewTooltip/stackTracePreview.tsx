@@ -91,7 +91,7 @@ export function StackTracePreviewContent({
 }
 
 type StackTracePreviewProps = {
-  children: React.ReactChild;
+  children: React.ReactNode;
   groupId: string;
   eventId?: string;
   groupingCurrentLevel?: number;

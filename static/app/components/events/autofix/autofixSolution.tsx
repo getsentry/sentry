@@ -1,17 +1,14 @@
 import {useCallback, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
@@ -26,12 +23,12 @@ import {
 import {Timeline} from 'sentry/components/timeline';
 import {
   IconAdd,
-  IconCheckmark,
   IconChevron,
   IconClose,
   IconCode,
   IconDelete,
   IconFix,
+  IconLab,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -225,7 +222,7 @@ function SolutionEventList({
     const firstHighlightedIndex = events.findIndex(
       event => event.is_most_important_event
     );
-    return [firstHighlightedIndex !== -1 ? firstHighlightedIndex : 0];
+    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
   });
 
   const toggleItem = useCallback((index: number) => {
@@ -262,7 +259,7 @@ function SolutionEventList({
                   }}
                 />
                 <IconWrapper>
-                  {!isHumanAction && (
+                  {!isHumanAction && event.code_snippet_and_analysis && (
                     <StyledIconChevron
                       direction={isExpanded ? 'down' : 'right'}
                       size="xs"
@@ -335,6 +332,8 @@ function getEventIcon(eventType: string) {
       return <IconCode {...iconProps} />;
     case 'human_instruction':
       return <IconUser {...iconProps} />;
+    case 'repro_test':
+      return <IconLab {...iconProps} />;
     default:
       return <IconCode {...iconProps} />;
   }
@@ -517,7 +516,7 @@ function AutofixSolutionDisplay({
               )}
             </ButtonBar>
             <ButtonBar merged>
-              <CodeButton
+              <Button
                 title={
                   changesDisabled
                     ? t(
@@ -537,72 +536,14 @@ function AutofixSolutionDisplay({
                 }}
               >
                 {t('Code It Up')}
-              </CodeButton>
-              <DropdownMenu
-                isDisabled={changesDisabled}
-                offset={[-12, 8]}
-                items={[
-                  {
-                    key: 'fix',
-                    label: 'Write the fix',
-                    details: 'Autofix will implement this solution.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'fix',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <IconCheckmark size="sm" color="purple300" />,
-                  },
-                  {
-                    key: 'test',
-                    label: 'Write a reproduction test',
-                    details:
-                      'Autofix will write a unit test to reproduce the issue and validate future fixes.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'test',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <div style={{width: 16}} />,
-                  },
-                  {
-                    key: 'all',
-                    label: 'Write both',
-                    details:
-                      'Autofix will implement this solution and a test to validate the issue is fixed.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'all',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <div style={{width: 16}} />,
-                  },
-                ]}
-                position="bottom-end"
-                trigger={(triggerProps, isOpen) => (
-                  <DropdownButton
-                    size="sm"
-                    priority={solutionSelected ? 'default' : 'primary'}
-                    aria-label={t('More coding options')}
-                    icon={
-                      <Chevron
-                        light
-                        color="subText"
-                        weight="medium"
-                        direction={isOpen ? 'up' : 'down'}
-                      />
-                    }
-                    {...triggerProps}
-                  />
-                )}
-              />
+              </Button>
             </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
           {agentCommentThread && iconFixRef.current && (
             <AutofixHighlightPopup
-              selectedText="Solution"
+              selectedText=""
               referenceElement={iconFixRef.current}
               groupId={groupId}
               runId={runId}
@@ -726,28 +667,6 @@ const AnimationWrapper = styled(motion.div)`
 
 const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
-`;
-
-const DropdownButton = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  border-left: none;
-`;
-
-const CodeButton = styled(Button)`
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
 `;
 
 const AnimatedContent = styled(motion.div)`

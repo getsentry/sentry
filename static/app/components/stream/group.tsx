@@ -43,7 +43,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -136,7 +136,7 @@ function GroupCheckbox({
 
 function GroupLastSeen({group}: {group: Group}) {
   if (!group.lifetime) {
-    return <Placeholder height="18px" width="60px" />;
+    return <Placeholder height="18px" width="70px" />;
   }
 
   if (!group.lifetime.lastSeen) {
@@ -391,14 +391,14 @@ function StreamGroup({
           <TimeSince date={dateCreated} />
         </StartedColumn>
         <EventsReprocessedColumn>
-          {!defined(count) ? (
-            <Placeholder height="17px" />
-          ) : (
+          {defined(count) ? (
             <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
             </Fragment>
+          ) : (
+            <Placeholder height="17px" />
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
@@ -440,9 +440,7 @@ function StreamGroup({
     [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
-  const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupCount = defined(primaryCount) ? (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
         disabled={!useFilteredStats}
@@ -490,11 +488,11 @@ function StreamGroup({
         )}
       </Tooltip>
     </GuideAnchor>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupUsersCount = defined(primaryUserCount) ? (
     <Tooltip
       isHoverable
       disabled={!usePageFilters}
@@ -540,20 +538,22 @@ function StreamGroup({
         </Fragment>
       )}
     </Tooltip>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const lastTriggered = !defined(lastTriggeredDate) ? (
-    <Placeholder height="18px" />
-  ) : (
-    <TimeSince
+  const lastTriggered = defined(lastTriggeredDate) ? (
+    <PositionedTimeSince
       tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
       unitStyle="short"
     />
+  ) : (
+    <Placeholder height="18px" />
   );
 
-  const issueStreamAnchor = isDemoModeEnabled() ? (
+  const issueStreamAnchor = isDemoModeActive() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
     <GuideAnchor target="issue_stream" />
@@ -679,12 +679,13 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
+          {showLastTriggered && hasNewLayout && (
+            <NarrowLastTriggeredWrapper>{lastTriggered}</NarrowLastTriggeredWrapper>
+          )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-                {issueTypeConfig.stats.enabled ? (
-                  <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
-                ) : null}
+                {issueTypeConfig.stats.enabled ? groupCount : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper>
@@ -695,9 +696,7 @@ function StreamGroup({
           {withColumns.includes('users') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-                {issueTypeConfig.stats.enabled ? (
-                  <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
-                ) : null}
+                {issueTypeConfig.stats.enabled ? groupUsersCount : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper>
@@ -740,7 +739,9 @@ function StreamGroup({
                 />
               </AssigneeWrapper>
             ))}
-          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
+          {showLastTriggered && !hasNewLayout && (
+            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+          )}
         </Fragment>
       )}
     </Wrapper>
@@ -837,21 +838,23 @@ const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
   margin-right: ${space(1)};
   flex: 1;
-  width: 66.66%;
 
   ${p =>
-    p.hasNewLayout &&
-    css`
-      margin-right: ${space(4)};
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      font-size: ${p.theme.fontSizeMedium};
-    `}
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: 50%;
-  }
+    p.hasNewLayout
+      ? css`
+          margin-right: ${space(4)};
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          font-size: ${p.theme.fontSizeMedium};
+          width: auto;
+        `
+      : css`
+          width: 66.66%;
+          @media (min-width: ${p.theme.breakpoints.medium}) {
+            width: 50%;
+          }
+        `}
 `;
 
 const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
@@ -957,7 +960,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   align-self: center;
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -970,7 +973,7 @@ const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -983,7 +986,7 @@ const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
   padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -991,18 +994,16 @@ const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
 const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-end;
+  text-align: right;
   align-items: center;
   align-self: center;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   width: 60px;
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
-`;
-
-export const InnerCountsWrapper = styled('div')`
-  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
@@ -1018,14 +1019,32 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   }
 `;
 
+const LastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 80px;
+  margin: 0 ${space(2)};
+`;
+
+const NarrowLastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 100px;
+  padding-right: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
 const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
-  width: 70px;
+  width: 64px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   align-self: center;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -1056,9 +1075,10 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
 
 const NarrowAssigneeWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   text-align: right;
-  width: 60px;
+  width: 66px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   align-self: center;
 

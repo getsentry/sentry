@@ -7,7 +7,6 @@ import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
 type TPayload =
@@ -30,13 +29,10 @@ export default function useMutateFeedback({
   organization,
   projectIds,
 }: Props) {
-  const api = useApi({
-    persistInFlight: false,
-  });
   const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const mutation = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: ([ids, payload]) => {
       updateCached(ids, payload);
     },
@@ -54,7 +50,7 @@ export default function useMutateFeedback({
         : ids === 'all'
           ? listQueryKey?.[1]!
           : {query: {id: ids, project: projectIds}};
-      return fetchMutation(api)(['PUT', url, options, payload]);
+      return fetchMutation(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {
       invalidateCached(ids);
@@ -64,9 +60,9 @@ export default function useMutateFeedback({
 
   const markAsRead = useCallback(
     (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) => {
-      mutation.mutate([feedbackIds, {hasSeen}], options);
+      mutate([feedbackIds, {hasSeen}], options);
     },
-    [mutation, feedbackIds]
+    [mutate, feedbackIds]
   );
 
   const resolve = useCallback(
@@ -74,9 +70,9 @@ export default function useMutateFeedback({
       status: GroupStatus,
       options?: MutateOptions<TData, TError, TVariables, TContext>
     ) => {
-      mutation.mutate([feedbackIds, {status}], options);
+      mutate([feedbackIds, {status}], options);
     },
-    [mutation, feedbackIds]
+    [mutate, feedbackIds]
   );
 
   return {

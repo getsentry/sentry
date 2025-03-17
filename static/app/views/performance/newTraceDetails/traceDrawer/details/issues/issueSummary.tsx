@@ -93,7 +93,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
         <IssueTitle data={data} event_id={event_id} />
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
-      {!hasNewLayout ? (
+      {hasNewLayout ? null : (
         <StyledEventMessage
           data={data}
           level={'level' in data ? data.level : undefined}
@@ -101,7 +101,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
           type={data.type}
           levelIndicatorSize={9}
         />
-      ) : null}
+      )}
     </div>
   );
 }

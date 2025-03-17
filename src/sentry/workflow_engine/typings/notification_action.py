@@ -17,6 +17,16 @@ from sentry.workflow_engine.models.action import Action
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 
+class SentryAppIdentifier(StrEnum):
+    """
+    SentryAppIdentifier is an enum that represents the identifier for a Sentry app.
+    """
+
+    SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
+    SENTRY_APP_SLUG = "sentry_app_slug"
+    SENTRY_APP_ID = "sentry_app_id"
+
+
 @dataclass
 class FieldMapping:
     """
@@ -182,6 +192,18 @@ class BaseActionTranslator(ABC):
             if ActionFieldMappingKeys.TARGET_DISPLAY_KEY in mapping:
                 return self.action.get(mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value])
         return None
+
+    @property
+    def action_config(self) -> dict[str, str | int | None]:
+        base_config = {
+            "target_identifier": self.target_identifier,
+            "target_display": self.target_display,
+            "target_type": self.target_type.value if self.target_type is not None else None,
+        }
+        if self.action_type == Action.Type.SENTRY_APP:
+            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+
+        return base_config
 
     @property
     def blob_type(self) -> type[DataBlob] | None:
@@ -517,10 +539,12 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
     def target_identifier(self) -> str | None:
         target_type = self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
-            return self.action.get(
-                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]
+            return str(
+                self.action.get(
+                    ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
+                        ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                    ]
+                )
             )
         return None
 

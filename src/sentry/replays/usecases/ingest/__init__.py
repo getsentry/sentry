@@ -283,8 +283,21 @@ def emit_replay_events(
     retention_days: int,
     replay_event: dict[str, Any] | None,
 ) -> None:
+    environment = None
+    if replay_event and replay_event.get("payload"):
+        payload = replay_event["payload"]
+        if isinstance(payload, dict):
+            environment = payload.get("environment")
+        else:
+            environment = json.loads(bytes(payload)).get("environment")
+
     emit_click_events(
-        event_meta.click_events, project.id, replay_id, retention_days, start_time=time.time()
+        event_meta.click_events,
+        project.id,
+        replay_id,
+        retention_days,
+        start_time=time.time(),
+        environment=environment,
     )
     emit_request_response_metrics(event_meta)
     log_canvas_size(event_meta, org_id, project.id, replay_id)

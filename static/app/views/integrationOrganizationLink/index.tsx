@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -25,8 +25,8 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 // installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}>;
@@ -254,7 +254,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
                 >
                   {t('Install %s', provider.name)}
                 </Button>
-                {disabled && <DisabledNotice reason={disabledReason} />}
+                {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
               </ButtonWrapper>
             )}
           </AddIntegration>

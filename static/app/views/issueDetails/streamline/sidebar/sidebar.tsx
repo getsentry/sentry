@@ -22,7 +22,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
-import {ExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
+import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
@@ -54,7 +54,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
 
   return (
     <TourElement<IssueDetailsTour>
@@ -64,7 +64,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       description={t(
         'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
       )}
-      position={isScreenSmall ? 'top' : 'left-start'}
+      position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
         <GuideAnchor target="issue_sidebar_releases" position="left">
@@ -79,7 +79,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         )}
         {event && (
           <ErrorBoundary mini>
-            <ExternalIssueList group={group} event={event} project={project} />
+            <ExternalIssueSidebarList group={group} event={event} project={project} />
           </ErrorBoundary>
         )}
         <StreamlinedActivitySection group={group} />

@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -104,7 +104,7 @@ export default storyBook('GridEditable', story => {
 
   story('Row Mouse Events', () => {
     const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
-    const activeRow = activeRowKey !== undefined ? data[activeRowKey] : undefined;
+    const activeRow = activeRowKey === undefined ? undefined : data[activeRowKey];
 
     return (
       <Fragment>

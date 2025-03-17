@@ -117,7 +117,7 @@ def child_worker(
             break
 
         try:
-            activation = child_tasks.get(timeout=0.1)
+            activation = child_tasks.get(timeout=1.0)
         except queue.Empty:
             metrics.incr("taskworker.worker.child_task_queue_empty")
             continue
@@ -266,7 +266,9 @@ class TaskWorker:
         self._shutdown_event = mp_context.Event()
         self._task_receive_timing: dict[str, float] = {}
         self._result_thread: threading.Thread | None = None
-        self.backoff_sleep_seconds = 0
+
+        self._gettask_backoff_seconds = 0
+        self._setstatus_backoff_seconds = 0
 
     def __del__(self) -> None:
         self.shutdown()
@@ -363,10 +365,11 @@ class TaskWorker:
             with iopool as executor:
                 while not self._shutdown_event.is_set():
                     try:
-                        result = self._processed_tasks.get(timeout=0.1)
+                        result = self._processed_tasks.get(timeout=1.0)
+                        executor.submit(self._send_result, result)
                     except queue.Empty:
+                        metrics.incr("taskworker.worker.result_thread.queue_empty")
                         continue
-                    executor.submit(self._send_result, result)
 
         self._result_thread = threading.Thread(target=result_thread)
         self._result_thread.start()
@@ -387,11 +390,6 @@ class TaskWorker:
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
-            metrics.incr("taskworker.worker.fetch_next", tags={"next": fetch_next is not None})
-            logger.debug(
-                "taskworker.workers._send_result",
-                extra={"task_id": result.task_id, "next": fetch_next is not None},
-            )
             next_task = self._send_update_task(result, fetch_next)
             if next_task:
                 self._task_receive_timing[next_task.id] = time.time()
@@ -413,14 +411,22 @@ class TaskWorker:
         """
         Do the RPC call to this worker's taskbroker, and handle errors
         """
+        logger.debug(
+            "taskworker.workers._send_result",
+            extra={"task_id": result.task_id, "next": fetch_next is not None},
+        )
+        # Use the shutdown_event as a sleep mechanism
+        self._shutdown_event.wait(self._setstatus_backoff_seconds)
         try:
             next_task = self.client.update_task(
                 task_id=result.task_id,
                 status=result.status,
                 fetch_next_task=fetch_next,
             )
+            self._setstatus_backoff_seconds = 0
             return next_task
         except grpc.RpcError as e:
+            self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
             if e.code() == grpc.StatusCode.UNAVAILABLE:
                 self._processed_tasks.put(result)
             logger.exception(
@@ -450,25 +456,22 @@ class TaskWorker:
         self._children = active_children
 
     def fetch_task(self) -> TaskActivation | None:
+        # Use the shutdown_event as a sleep mechanism
+        self._shutdown_event.wait(self._gettask_backoff_seconds)
         try:
             activation = self.client.get_task(self._namespace)
         except grpc.RpcError as e:
-            metrics.incr("taskworker.worker.fetch_task", tags={"status": "failed"})
             logger.info("taskworker.fetch_task.failed", extra={"error": e})
+
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
             return None
 
         if not activation:
-            metrics.incr("taskworker.worker.fetch_task", tags={"status": "notfound"})
             logger.debug("taskworker.fetch_task.not_found")
 
-            self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
-            time.sleep(self.backoff_sleep_seconds)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
             return None
 
-        metrics.incr(
-            "taskworker.worker.fetch_task",
-            tags={"status": "success", "namespace": activation.namespace},
-        )
-        self.backoff_sleep_seconds = 0
+        self._gettask_backoff_seconds = 0
         self._task_receive_timing[activation.id] = time.time()
         return activation

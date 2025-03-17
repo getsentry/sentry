@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import type {AutofixRepository} from 'sentry/components/events/autofix/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -61,7 +61,7 @@ export function SolutionsHubNotices({
 }: SolutionsHubNoticesProps) {
   const organization = useOrganization();
   const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
-  const notices: JSX.Element[] = [];
+  const notices: React.JSX.Element[] = [];
 
   const integrationId = autofixRepositories.find(repo =>
     repo.provider.includes('github')

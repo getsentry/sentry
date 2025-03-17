@@ -14,10 +14,10 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -957,7 +957,7 @@ class GSBanner extends Component<Props, State> {
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
 
-    const eventTypeToElement = (eventType: EventType): JSX.Element => {
+    const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
         trackGetsentryAnalytics('quota_alert.clicked_link', {
           organization,
@@ -1356,7 +1356,7 @@ class GSBanner extends Component<Props, State> {
                   'There was an issue with your payment. [updateUrl:Update your payment information] to ensure uninterrupted access to Sentry.',
                   {
                     updateUrl: (
-                      <Button
+                      <LinkButton
                         to={billingUrl}
                         size="xs"
                         priority="default"
@@ -1370,7 +1370,7 @@ class GSBanner extends Component<Props, State> {
                   'There was an issue with your payment. Please have the [updateUrl: Org Owner or Billing Member] update your payment information to ensure continued access to Sentry.',
                   {
                     updateUrl: (
-                      <Button
+                      <LinkButton
                         to={membersPageUrl}
                         size="xs"
                         priority="default"
@@ -1415,14 +1415,14 @@ class GSBanner extends Component<Props, State> {
               type="muted"
               trailingItems={
                 <ButtonBar gap={1}>
-                  <Button
+                  <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
                     priority="primary"
                   >
                     {t('Upgrade')}
-                  </Button>
+                  </LinkButton>
                   <Button
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"

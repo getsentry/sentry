@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
@@ -169,10 +169,8 @@ function ProjectApdexScoreCard(props: Props) {
           previousPeriodValue={previousApdex}
           field="apdex()"
           meta={{
-            fields: {
-              'apdex()': 'number',
-            },
-            units: {},
+            type: 'number',
+            unit: null,
           }}
           preferredPolarity="+"
         />

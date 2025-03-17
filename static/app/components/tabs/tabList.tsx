@@ -38,7 +38,7 @@ export function useOverflowTabs({
   disabled: boolean | undefined;
   tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
-  tabListRef: React.RefObject<HTMLUListElement>;
+  tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
@@ -232,7 +232,9 @@ function BaseTabList({
             state={state}
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            ref={element => (tabItemsRef.current[item.key] = element)}
+            ref={element => {
+              tabItemsRef.current[item.key] = element;
+            }}
             variant={variant}
           />
         ))}

@@ -433,6 +433,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
+    "sentry.explore",
 )
 
 # Silence internal hints from Django's system checks
@@ -1210,6 +1211,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
     },
+    "uptime-broken-monitor-checker": {
+        "task": "sentry.uptime.tasks.broken_monitor_checker",
+        "schedule": crontab(minute="0", hour="*/1"),
+        "options": {"expires": 10 * 60},
+    },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
         # Run every minute
@@ -1564,11 +1570,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
 SENTRY_DEFAULT_TIME_ZONE = "UTC"
 
 SENTRY_DEFAULT_LANGUAGE = "en"
-
-# Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = None
-
-SENTRY_IGNORE_EXCEPTIONS = ("OperationalError",)
 
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
@@ -2858,7 +2859,20 @@ SENTRY_BUILTIN_SOURCES = {
         "name": "Electron",
         "layout": {"type": "native"},
         "url": "https://symbols.electronjs.org/",
-        "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
+        "filters": {
+            "filetypes": ["pdb", "breakpad", "sourcebundle"],
+            # These file paths were empirically determined by examining
+            # logs of successful downloads from the Electron symbol server.
+            "path_patterns": [
+                "*electron*",
+                "*ffmpeg*",
+                "*libEGL*",
+                "*libGLESv2*",
+                "*node*",
+                "*slack*",
+                "*vk_swiftshader*",
+            ],
+        },
         "is_public": True,
     },
     # === Various Linux distributions ===
@@ -2961,6 +2975,7 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "events": "default",
     "ingest-events-dlq": "default",
+    "ingest-events-backlog": "default",
     "snuba-commit-log": "default",
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
@@ -3035,6 +3050,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "uptime",
     "workflow_engine",
     "tempest",
+    "explore",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

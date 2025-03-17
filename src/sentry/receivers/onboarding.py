@@ -193,11 +193,10 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
-    try:
-        oot = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
-        )[0]
-    except IndexError:
+    oot = OrganizationOnboardingTask.objects.filter(
+        organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
+    ).first()
+    if not oot:
         return
 
     # Only counts if it's a new project
@@ -214,6 +213,13 @@ def record_first_event(project, event, **kwargs):
             },
         )
         if rows_affected or created:
+            # NOTE (vgrozdanic): preparation for deletion of this code
+            # this should never happen since the SECOND_PLATFORM task should be created
+            # when the project is created
+            logger.warning(
+                "Creating second platform task in record_first_event for project %s",
+                project.id,
+            )
             analytics.record(
                 "second_platform.added",
                 user_id=user.id if user else None,
@@ -369,7 +375,6 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
-@first_insight_span_received.connect(weak=False)
 def record_first_insight_span(project, module, **kwargs):
     flag = None
     if module == InsightModules.HTTP:
@@ -402,6 +407,9 @@ def record_first_insight_span(project, module, **kwargs):
         platform=project.platform,
         module=module,
     )
+
+
+first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
 @member_invited.connect(weak=False)

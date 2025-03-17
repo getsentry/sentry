@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -14,9 +14,9 @@ export default function CreateProjectButton() {
       size="sm"
       disabled={!canUserCreateProject}
       title={
-        !canUserCreateProject
-          ? t('You do not have permission to create projects')
-          : undefined
+        canUserCreateProject
+          ? undefined
+          : t('You do not have permission to create projects')
       }
       to={`/organizations/${organization.slug}/projects/new/`}
       icon={<IconAdd isCircled />}

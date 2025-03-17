@@ -89,7 +89,7 @@ describe('SentryAppExternalInstallation', () => {
           sentryUrl: 'https://sentry.io',
         },
         links: {
-          ...(window.__initialData?.links ?? {}),
+          ...window.__initialData?.links,
           sentryUrl: 'https://sentry.io',
         },
       });
@@ -229,7 +229,7 @@ describe('SentryAppExternalInstallation', () => {
           sentryUrl: 'https://sentry.io',
         },
         links: {
-          ...(window.__initialData?.links ?? {}),
+          ...window.__initialData?.links,
           sentryUrl: 'https://sentry.io',
         },
       });
@@ -296,7 +296,7 @@ describe('SentryAppExternalInstallation', () => {
           sentryUrl: 'https://sentry.io',
         },
         links: {
-          ...(window.__initialData?.links ?? {}),
+          ...window.__initialData?.links,
           sentryUrl: 'https://sentry.io',
         },
       });
