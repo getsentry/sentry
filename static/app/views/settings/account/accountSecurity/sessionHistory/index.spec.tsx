@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import SessionHistory from 'sentry/views/settings/account/accountSecurity/sessionHistory';
 
 const ENDPOINT = '/users/me/ips/';
@@ -48,7 +48,7 @@ describe('AccountSecuritySessionHistory', function () {
   });
 
   it('renders empty in demo mode even if ips exist', async () => {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     await render(<SessionHistory {...routerProps} />);
 
@@ -56,6 +56,6 @@ describe('AccountSecuritySessionHistory', function () {
     expect(screen.queryByText('192.168.0.1')).not.toBeInTheDocument();
     expect(screen.queryByText('US (CA)')).not.toBeInTheDocument();
 
-    (isDemoModeEnabled as jest.Mock).mockReset();
+    (isDemoModeActive as jest.Mock).mockReset();
   });
 });
