@@ -181,6 +181,25 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         with pytest.raises(TwoFactorRequired), assume_test_silo_mode(SiloMode.CONTROL):
             permission.determine_access(request=request, organization=self.org)
 
+    def test_sentryapp_passes_2fa(self):
+        self.org_require_2fa()
+        internal_sentry_app = self.create_internal_integration(
+            name="My Internal App",
+            organization=self.org,
+            scopes=["org:admin"],
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_sentry_app
+        )
+
+        request = drf_request_from_request(
+            self.make_request(user=internal_sentry_app.proxy_user, auth=token, method="GET")
+        )
+        permission = self.permission_cls()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
+
     def test_member_limit_error(self):
         user = self.create_user()
         self.create_member(

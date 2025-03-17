@@ -61,6 +61,9 @@ class OrganizationPermission(DemoSafePermission):
         if request.user.has_2fa():  # type: ignore[union-attr]
             return False
 
+        if request.user.is_sentry_app:
+            return False
+
         if is_active_superuser(request):
             return False
 
