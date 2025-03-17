@@ -1,10 +1,14 @@
 import logging
 
+from django.db import router, transaction
+
+from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created, project_created
 from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 
 logger = logging.getLogger("sentry")
 
@@ -36,7 +40,18 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
         return
 
     rule_data = DEFAULT_RULE_DATA
-    rule = RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
+
+    with transaction.atomic(router.db_for_write(RuleModel)):
+        rule = RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
+
+        if features.has(
+            "organizations:workflow-engine-issue-alert-dual-write", project.organization
+        ):
+            workflow = IssueAlertMigrator(rule).run()
+            logger.info(
+                "workflow_engine.default_issue_alert.migrated",
+                extra={"rule_id": rule.id, "workflow_id": workflow.id},
+            )
 
     try:
         user: RpcUser = project.organization.get_default_owner()

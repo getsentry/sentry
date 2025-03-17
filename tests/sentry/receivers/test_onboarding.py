@@ -15,6 +15,7 @@ from sentry.models.organizationonboardingtask import (
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.organizations.services.organization import organization_service
+from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -30,10 +31,12 @@ from sentry.signals import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+from sentry.workflow_engine.models import Workflow
 
 pytestmark = [requires_snuba]
 
@@ -137,6 +140,23 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
+
+    def test_project_created__default_rule(self):
+        project = self.create_project()
+        project_created.send(project=project, user=self.user, sender=type(project))
+
+        assert Rule.objects.filter(project=project).exists()
+        assert not Workflow.objects.filter(organization=project.organization).exists()
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_project_created__default_workflow(self):
+        project = self.create_project()
+        project_created.send(project=project, user=self.user, sender=type(project))
+
+        assert Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_RULE_LABEL
+        ).exists()
 
     @patch("sentry.analytics.record")
     def test_project_created_with_origin(self, record_analytics):
