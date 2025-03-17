@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -29,6 +30,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -84,6 +86,7 @@ function Onboarding(props: Props) {
   const onboardingSteps = getOrganizationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+
   const projectSlug =
     stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
@@ -93,6 +96,9 @@ function Onboarding(props: Props) {
     // Wait until the first event is received as we have an UI element that depends on it
     pollUntilFirstEvent: true,
   });
+
+  const prevStepIndex = usePrevious(stepIndex);
+  const prevRecentCreatedProject = usePrevious(recentCreatedProject);
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
@@ -206,126 +212,178 @@ function Onboarding(props: Props) {
     [organization.slug, onboardingSteps, cornerVariantControl, props.router]
   );
 
-  const deleteRecentCreatedProject = useCallback(async () => {
-    if (!recentCreatedProject?.slug) {
-      return;
-    }
+  const deleteRecentCreatedProject = useCallback(
+    async (projectToBeDeleted: Project) => {
+      const currentProjects = {...onboardingContext.data.projects};
+      const newProjects = Object.keys(currentProjects).reduce((acc, key) => {
+        if (currentProjects[key]!.slug !== onboardingContext.data.selectedSDK?.key) {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          acc[key] = currentProjects[key];
+        }
+        return acc;
+      }, {});
 
-    const currentProjects = {...onboardingContext.data.projects};
-    const newProjects = Object.keys(currentProjects).reduce((acc, key) => {
-      if (currentProjects[key]!.slug !== onboardingContext.data.selectedSDK?.key) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        acc[key] = currentProjects[key];
-      }
-      return acc;
-    }, {});
+      try {
+        if (docsOnPlatformClickEnabled) {
+          onboardingContext.setData({
+            ...onboardingContext.data,
+            projects: newProjects,
+            selectedSDK: undefined,
+          });
+        } else {
+          onboardingContext.setData({
+            ...onboardingContext.data,
+            projects: newProjects,
+          });
+        }
+        await removeProject({
+          api,
+          orgSlug: organization.slug,
+          projectSlug: projectToBeDeleted.slug,
+          origin: 'onboarding',
+        });
 
-    try {
-      if (docsOnPlatformClickEnabled) {
+        trackAnalytics('onboarding.data_removed', {
+          organization,
+          date_created: projectToBeDeleted.dateCreated,
+          platform: projectToBeDeleted.slug,
+          project_id: projectToBeDeleted.id,
+        });
+      } catch (error) {
         onboardingContext.setData({
           ...onboardingContext.data,
-          projects: newProjects,
-          selectedSDK: undefined,
+          projects: currentProjects,
         });
-      } else {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          projects: newProjects,
-        });
+        handleXhrErrorResponse('Unable to delete project in onboarding', error);
+        // we don't give the user any feedback regarding this error as this shall be silent
       }
-      await removeProject({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: recentCreatedProject.slug,
-        origin: 'onboarding',
-      });
+    },
+    [api, organization, onboardingContext, docsOnPlatformClickEnabled]
+  );
 
-      trackAnalytics('onboarding.data_removed', {
-        organization,
-        date_created: recentCreatedProject.dateCreated,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    } catch (error) {
-      onboardingContext.setData({
-        ...onboardingContext.data,
-        projects: currentProjects,
-      });
-      handleXhrErrorResponse('Unable to delete project in onboarding', error);
-      // we don't give the user any feedback regarding this error as this shall be silent
-    }
-  }, [
-    api,
-    organization,
-    recentCreatedProject,
-    onboardingContext,
-    docsOnPlatformClickEnabled,
-  ]);
+  const goBackStep = useCallback(
+    ({
+      currentStepIndex,
+      previousStepIndex,
+      browserBackButton,
+      projectToBeDeleted,
+    }: {
+      browserBackButton: boolean;
+      currentStepIndex: number;
+      previousStepIndex: number;
+      projectToBeDeleted: Project | undefined;
+    }) => {
+      const previousStep = onboardingSteps[previousStepIndex];
+      const currentStep = onboardingSteps[currentStepIndex];
 
-  const handleGoBack = useCallback(
-    (goToStepIndex?: number) => {
-      if (!stepObj) {
+      if (!previousStep || !currentStep) {
         return;
       }
 
-      const previousStep = defined(goToStepIndex)
-        ? onboardingSteps[goToStepIndex]
-        : onboardingSteps[stepIndex - 1];
-
-      if (!previousStep) {
-        return;
-      }
-
-      if (stepObj.cornerVariant !== previousStep.cornerVariant) {
+      if (currentStep?.cornerVariant !== previousStep?.cornerVariant) {
         cornerVariantControl.start('none');
       }
 
       trackAnalytics('onboarding.back_button_clicked', {
         organization,
-        from: onboardingSteps[stepIndex]!.id,
+        from: currentStep.id,
         to: previousStep.id,
+        browserBackButton,
       });
 
       // from selected platform to welcome
-      if (onboardingSteps[stepIndex]!.id === 'select-platform') {
+      if (currentStep.id === 'select-platform') {
         onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
-        props.router.replace(
-          normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
-        );
+        if (!browserBackButton) {
+          props.router.replace(
+            normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
+          );
+        }
         return;
       }
 
       // from setup docs to selected platform
       if (
-        onboardingSteps[stepIndex]!.id === 'setup-docs' &&
-        shallProjectBeDeleted &&
-        recentCreatedProject
+        currentStep.id === 'setup-docs' &&
+        defined(isProjectActive) &&
+        !isProjectActive &&
+        projectToBeDeleted
       ) {
         trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
           organization,
-          platform: recentCreatedProject.slug,
-          project_id: recentCreatedProject.id,
+          platform: projectToBeDeleted.slug,
+          project_id: projectToBeDeleted.id,
         });
-        deleteRecentCreatedProject();
+        deleteRecentCreatedProject(projectToBeDeleted);
       }
 
-      props.router.replace(
-        normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
-      );
+      if (!browserBackButton) {
+        props.router.replace(
+          normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
+        );
+      }
     },
     [
-      stepObj,
-      stepIndex,
       onboardingSteps,
       organization,
       cornerVariantControl,
       props.router,
       onboardingContext,
-      shallProjectBeDeleted,
+      isProjectActive,
       deleteRecentCreatedProject,
-      recentCreatedProject,
     ]
+  );
+
+  const safeStepIndexDependencies = useRef({
+    stepIndex,
+    goBackStep,
+    prevStepIndex,
+    prevRecentCreatedProject,
+  });
+
+  useEffect(() => {
+    safeStepIndexDependencies.current = {
+      stepIndex,
+      goBackStep,
+      prevStepIndex,
+      prevRecentCreatedProject,
+    };
+  });
+
+  const handlePopState = useCallback(() => {
+    if (
+      safeStepIndexDependencies.current.stepIndex <
+      safeStepIndexDependencies.current.prevStepIndex
+    ) {
+      safeStepIndexDependencies.current.goBackStep({
+        // previous and current are inverted, because the 'go back' action has already happened,
+        // unlike what happens in the handleGoBack function
+        previousStepIndex: safeStepIndexDependencies.current.stepIndex,
+        currentStepIndex: safeStepIndexDependencies.current.prevStepIndex,
+        projectToBeDeleted: safeStepIndexDependencies.current.prevRecentCreatedProject,
+        browserBackButton: true,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [handlePopState]);
+
+  const handleGoBack = useCallback(
+    (goToStepIndex?: number) => {
+      goBackStep({
+        previousStepIndex: defined(goToStepIndex) ? goToStepIndex : stepIndex - 1,
+        currentStepIndex: stepIndex,
+        projectToBeDeleted: recentCreatedProject,
+        browserBackButton: false,
+      });
+    },
+    [goBackStep, stepIndex, recentCreatedProject]
   );
 
   const genSkipOnboardingLink = () => {
