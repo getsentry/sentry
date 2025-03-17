@@ -57,8 +57,9 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       title: t('Set up the SDK'),
-      description:
-        t('In the following steps we will set up the SDK and instrument various parts of your application.'),
+      description: t(
+        'In the following steps we will set up the SDK and instrument various parts of your application.'
+      ),
       configurations: [
         {
           description: tct(
