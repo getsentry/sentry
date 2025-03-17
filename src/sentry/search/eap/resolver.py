@@ -741,10 +741,6 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{argument} is not a valid argument for {function}"
                         )
-
-                if argument_definition.transformer:
-                    argument = argument_definition.transformer(argument)
-
                 if argument_definition.is_attribute:
                     parsed_argument, _ = self.resolve_attribute(argument)
                 else:

@@ -88,8 +88,6 @@ class ArgumentDefinition:
     is_attribute: bool = True
     # Validator to check if the value is allowed for this argument
     validator: Callable[[str], bool] | None = None
-    # Transforms the raw argument before it is parsed
-    transformer: Callable[[str], str] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
 
@@ -240,6 +238,7 @@ class FunctionDefinition:
 @dataclass(kw_only=True)
 class AggregateDefinition(FunctionDefinition):
     internal_function: Function.ValueType
+    attribute_resolver: Callable[[ResolvedArguments], AttributeKey] | None = None
 
     def resolve(
         self,
@@ -251,11 +250,15 @@ class AggregateDefinition(FunctionDefinition):
             raise InvalidSearchQuery(
                 f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
             )
-        resolved_argument = None
+
+        resolved_attribute = None
+
         if len(resolved_arguments) == 1:
             if not isinstance(resolved_arguments[0], AttributeKey):
                 raise InvalidSearchQuery("Aggregates accept attribute keys only")
-            resolved_argument = resolved_arguments[0]
+            resolved_attribute = resolved_arguments[0]
+            if self.attribute_resolver is not None:
+                resolved_attribute = self.attribute_resolver(resolved_arguments)
 
         return ResolvedAggregate(
             public_alias=alias,
@@ -264,7 +267,7 @@ class AggregateDefinition(FunctionDefinition):
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation=self.extrapolation,
-            argument=resolved_argument,
+            argument=resolved_attribute,
         )
 
 
