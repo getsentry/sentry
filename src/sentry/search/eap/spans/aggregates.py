@@ -92,7 +92,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-                transformer=transform_measurement_to_ratio,
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
             )
         ],
@@ -383,6 +382,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+                transformer=transform_measurement_to_ratio,
                 is_attribute=True,
             ),
         ],

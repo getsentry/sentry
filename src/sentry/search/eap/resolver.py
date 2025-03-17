@@ -731,17 +731,20 @@ class SearchResolver:
             )
 
         for index, argument_definition in enumerate(function_definition.arguments):
-            argument = arguments[index]
             if argument_definition.ignored:
                 continue
-            if argument_definition.validator is not None:
-                if not argument_definition.validator(argument):
-                    raise InvalidSearchQuery(f"{argument} is not a valid argument for {function}")
-
-            if argument_definition.transformer:
-                argument = argument_definition.transformer(argument)
 
             if index < len(arguments):
+                argument = arguments[index]
+                if argument_definition.validator is not None:
+                    if not argument_definition.validator(argument):
+                        raise InvalidSearchQuery(
+                            f"{argument} is not a valid argument for {function}"
+                        )
+
+                if argument_definition.transformer:
+                    argument = argument_definition.transformer(argument)
+
                 if argument_definition.is_attribute:
                     parsed_argument, _ = self.resolve_attribute(argument)
                 else:
