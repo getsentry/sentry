@@ -74,7 +74,7 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
 
   const displayStarredProjects = starredProjects.length > 0;
   const projectsToDisplay = displayStarredProjects
-    ? starredProjects.slice(0, 12)
+    ? starredProjects.slice(0, 15)
     : nonStarredProjects.filter(project => project.isMember).slice(0, 5);
 
   return (
