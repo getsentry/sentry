@@ -344,4 +344,3 @@ const StyledActions = styled('div')`
 `;
 
 export default withOrganization(DiscoverLanding);
-export {DiscoverLanding};

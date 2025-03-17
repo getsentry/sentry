@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DiscoverLanding} from 'sentry/views/discover/landing';
+import DiscoverLanding from 'sentry/views/discover/landing';
 
 describe('Discover > Landing', function () {
   const eventTitle = 'Oh no something bad';
