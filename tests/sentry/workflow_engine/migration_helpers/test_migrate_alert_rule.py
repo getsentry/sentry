@@ -584,6 +584,19 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
             self.detector_workflow,
             self.data_source_detector,
         ) = self.create_migrated_metric_alert_objects(self.metric_alert)
+        self.alert_rule_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.metric_alert, label="critical", alert_threshold=200
+        )
+        self.critical_detector_trigger, self.critical_action_filter = (
+            self.create_migrated_metric_alert_rule_trigger_objects(
+                self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+            )
+        )
+        self.resolve_detector_trigger, self.resolve_action_filter = (
+            self.create_migrated_metric_alert_rule_resolve_objects(
+                self.metric_alert, 200, Condition.LESS_OR_EQUAL
+            )
+        )
 
     def test_dual_update_metric_alert(self):
         detector_state = self.detector_state
@@ -593,7 +606,8 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
             "description": "a Japanese green tea roasted over charcoal",
         }
 
-        dual_update_migrated_alert_rule(self.metric_alert, updated_fields)
+        self.metric_alert.update(**updated_fields)
+        dual_update_migrated_alert_rule(self.metric_alert)
         self.detector.refresh_from_db()
         detector_state.refresh_from_db()
 
@@ -604,18 +618,21 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         assert detector_state.active is False
 
     def test_dual_update_metric_alert_owner(self):
+        updated_fields: dict[str, Any] = {}
         updated_fields = {
             "user_id": self.user.id,
             "team_id": None,
         }
 
-        dual_update_migrated_alert_rule(self.metric_alert, updated_fields)
+        self.metric_alert.update(**updated_fields)
+        dual_update_migrated_alert_rule(self.metric_alert)
         self.detector.refresh_from_db()
 
         assert self.detector.owner_user_id == self.user.id
         assert self.detector.owner_team_id is None
 
     def test_update_metric_alert_config(self):
+        updated_fields: dict[str, Any] = {}
         updated_fields = {
             "detection_type": "percent",
             "threshold_period": 1,
@@ -624,7 +641,8 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
             "comparison_delta": 3600,
         }
 
-        dual_update_migrated_alert_rule(self.metric_alert, updated_fields)
+        self.metric_alert.update(**updated_fields)
+        dual_update_migrated_alert_rule(self.metric_alert)
         self.detector.refresh_from_db()
 
         assert self.detector.config == updated_fields
@@ -787,8 +805,10 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_metric_alert_threshold_type(self):
         # This field affects the data conditions, but it lives on the alert rule.
-        updated_fields = {"threshold_type": AlertRuleThresholdType.BELOW}
-        dual_update_migrated_alert_rule(self.metric_alert, updated_fields)
+        updated_fields: dict[str, Any] = {}
+        updated_fields = {"threshold_type": AlertRuleThresholdType.BELOW.value}
+        self.metric_alert.update(**updated_fields)
+        dual_update_migrated_alert_rule(self.metric_alert)
 
         self.critical_detector_trigger.refresh_from_db()
         self.resolve_detector_trigger.refresh_from_db()
@@ -798,25 +818,18 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_metric_alert_resolve_threshold(self):
         # This field affects the data conditions, but it lives on the alert rule.
+        updated_fields: dict[str, Any] = {}
         updated_fields = {"resolve_threshold": 10}
-        dual_update_migrated_alert_rule(self.metric_alert, updated_fields)
+        self.metric_alert.update(**updated_fields)
+        dual_update_migrated_alert_rule(self.metric_alert)
         self.resolve_detector_trigger.refresh_from_db()
 
         assert self.resolve_detector_trigger.comparison == 10
 
-    def test_dual_update_trigger_label(self):
-        updated_fields = {"label": "warning"}
-        dual_update_migrated_alert_rule_trigger(self.alert_rule_trigger, updated_fields)
-        # these are now the *warning* dataconditions
-        self.critical_detector_trigger.refresh_from_db()
-        self.critical_action_filter.refresh_from_db()
-
-        assert self.critical_detector_trigger.condition_result == PRIORITY_MAP["warning"]
-        assert self.critical_action_filter.comparison == PRIORITY_MAP["warning"]
-
     def test_dual_update_trigger_threshold(self):
         updated_fields = {"alert_threshold": 314}
-        dual_update_migrated_alert_rule_trigger(self.alert_rule_trigger, updated_fields)
+        self.alert_rule_trigger.update(**updated_fields)
+        dual_update_migrated_alert_rule_trigger(self.alert_rule_trigger)
         self.critical_detector_trigger.refresh_from_db()
 
         assert self.critical_detector_trigger.comparison == 314
@@ -1068,9 +1081,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app_id=sentry_app.id,
         )
-        dual_update_migrated_alert_rule_trigger_action(
-            self.alert_rule_trigger_action, updated_fields={}
-        )  # don't care about updated fields in this test
+        dual_update_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action)
 
         self.action.refresh_from_db()
         assert self.action.type == Action.Type.SENTRY_APP
@@ -1078,19 +1089,9 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
     def test_dual_update_trigger_action_type_invalid(self):
         self.alert_rule_trigger_action.update(type=12345)
         with pytest.raises(ValidationError):
-            dual_update_migrated_alert_rule_trigger_action(
-                self.alert_rule_trigger_action, updated_fields={}
-            )  # don't care about updated fields in this test
+            dual_update_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action)
 
     def test_dual_update_trigger_action_legacy_fields(self):
-        updated_fields = {
-            "integration_id": self.integration.id,
-            "target_display": "cool-team",
-            "target_identifier": "123-id",
-            "target_type": ActionTarget.USER,
-        }
-        # XXX: This is a bit of a hack, but we update the action's data blob based on the
-        # updated trigger action. So we need to update the trigger action first.
         update_alert_rule_trigger_action(
             self.alert_rule_trigger_action,
             type=ActionService.OPSGENIE,
@@ -1098,9 +1099,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             target_identifier="123-id",
             target_type=ActionTarget.USER,
         )
-        dual_update_migrated_alert_rule_trigger_action(
-            self.alert_rule_trigger_action, updated_fields
-        )
+        dual_update_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action)
 
         self.action.refresh_from_db()
         assert self.action.integration_id == self.integration.id
@@ -1112,14 +1111,6 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         """
         Test that we update the data blob correctly when changing action type
         """
-        updated_fields = {
-            "integration_id": self.integration.id,
-            "target_display": "cool-team",
-            "target_identifier": "123-id",
-            "target_type": ActionTarget.USER,
-        }
-        # XXX: This is a bit of a hack, but we update the action's data blob based on the
-        # updated trigger action. So we need to update the trigger action first.
         update_alert_rule_trigger_action(
             self.alert_rule_trigger_action,
             type=ActionService.OPSGENIE,
@@ -1127,9 +1118,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             target_identifier="123-id",
             target_type=ActionTarget.USER,
         )
-        dual_update_migrated_alert_rule_trigger_action(
-            self.alert_rule_trigger_action, updated_fields
-        )
+        dual_update_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action)
 
         self.action.refresh_from_db()
         assert self.action.data == {"priority": "P3"}
@@ -1152,20 +1141,6 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             alert_rule_trigger=self.alert_rule_trigger,
         )
         action, _, _ = migrate_metric_action(sentry_app_trigger_action)
-        updated_fields = {
-            "sentry_app_config": [
-                {
-                    "name": "mifu",
-                    "value": "matcha",
-                },
-            ],
-            "target_display": "oolong",
-            "target_identifier": str(sentry_app.id),
-            "target_type": ActionTarget.SENTRY_APP,
-        }
-
-        # XXX: This is a bit of a hack, but we update the action's data blob based on the
-        # updated trigger action. So we need to update the trigger action first.
         update_alert_rule_trigger_action(
             sentry_app_trigger_action,
             sentry_app_config=[
@@ -1175,7 +1150,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
                 },
             ],
         )
-        dual_update_migrated_alert_rule_trigger_action(sentry_app_trigger_action, updated_fields)
+        dual_update_migrated_alert_rule_trigger_action(sentry_app_trigger_action)
 
         action.refresh_from_db()
         assert action.data["settings"] == [
