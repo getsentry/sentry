@@ -261,7 +261,7 @@ function Onboarding(props: Props) {
     [api, organization, onboardingContext, docsOnPlatformClickEnabled]
   );
 
-  const goBackStep = useCallback(
+  const backStepActions = useCallback(
     ({
       currentStepIndex,
       previousStepIndex,
@@ -280,7 +280,7 @@ function Onboarding(props: Props) {
         return;
       }
 
-      if (currentStep?.cornerVariant !== previousStep?.cornerVariant) {
+      if (currentStep.cornerVariant !== previousStep.cornerVariant) {
         cornerVariantControl.start('none');
       }
 
@@ -337,7 +337,7 @@ function Onboarding(props: Props) {
 
   const safeStepIndexDependencies = useRef({
     stepIndex,
-    goBackStep,
+    backStepActions,
     prevStepIndex,
     prevRecentCreatedProject,
   });
@@ -345,7 +345,7 @@ function Onboarding(props: Props) {
   useEffect(() => {
     safeStepIndexDependencies.current = {
       stepIndex,
-      goBackStep,
+      backStepActions,
       prevStepIndex,
       prevRecentCreatedProject,
     };
@@ -356,7 +356,7 @@ function Onboarding(props: Props) {
       safeStepIndexDependencies.current.stepIndex <
       safeStepIndexDependencies.current.prevStepIndex
     ) {
-      safeStepIndexDependencies.current.goBackStep({
+      safeStepIndexDependencies.current.backStepActions({
         // previous and current are inverted, because the 'go back' action has already happened,
         // unlike what happens in the handleGoBack function
         previousStepIndex: safeStepIndexDependencies.current.stepIndex,
@@ -376,14 +376,14 @@ function Onboarding(props: Props) {
 
   const handleGoBack = useCallback(
     (goToStepIndex?: number) => {
-      goBackStep({
+      backStepActions({
         previousStepIndex: defined(goToStepIndex) ? goToStepIndex : stepIndex - 1,
         currentStepIndex: stepIndex,
         projectToBeDeleted: recentCreatedProject,
         browserBackButton: false,
       });
     },
-    [goBackStep, stepIndex, recentCreatedProject]
+    [backStepActions, stepIndex, recentCreatedProject]
   );
 
   const genSkipOnboardingLink = () => {
