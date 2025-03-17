@@ -22,6 +22,7 @@ import {
 import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
+  isModuleConsideredBeta,
   isModuleConsideredNew,
   isModuleEnabled,
   isModuleVisible,
@@ -144,10 +145,15 @@ function TabLabel({moduleName}: TabLabelProps) {
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
 
-  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
+  if (
+    showBusinessIcon ||
+    isModuleConsideredBeta(moduleName) ||
+    isModuleConsideredNew(moduleName)
+  ) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
+        {isModuleConsideredBeta(moduleName) && <Badge type="beta">{t('Beta')}</Badge>}
         {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
