@@ -41,12 +41,14 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
+  isDrawer,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
+  isDrawer?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -105,11 +107,11 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper>
+        <NoteWrapper isDrawer={isDrawer}>
           <NoteBody text={message} />
         </NoteWrapper>
       ) : (
-        message
+        <MessageWrapper isDrawer={isDrawer}>{message}</MessageWrapper>
       )}
     </ActivityTimelineItem>
   );
@@ -148,10 +150,7 @@ export default function StreamlinedActivitySection({
     placeholder: t('Add a comment\u2026'),
   };
 
-  const mutators = useMutateActivity({
-    organization,
-    group,
-  });
+  const mutators = useMutateActivity({organization, group});
 
   const handleDelete = useCallback(
     (item: GroupActivity) => {
@@ -229,19 +228,12 @@ export default function StreamlinedActivitySection({
 
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-    },
+    query: {...location.query, cursor: undefined},
   };
 
   const filteredActivityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-      filter: 'comments',
-    },
+    query: {...location.query, cursor: undefined, filter: 'comments'},
   };
 
   return (
@@ -277,16 +269,11 @@ export default function StreamlinedActivitySection({
             aria-label={t('Open activity drawer')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-              query: {
-                ...location.query,
-                cursor: undefined,
-              },
+              query: {...location.query, cursor: undefined},
             }}
             analyticsEventKey="issue_details.activity_drawer_opened"
             analyticsEventName="Issue Details: Activity Drawer Opened"
-            analyticsParams={{
-              num_activities: group.activity.length,
-            }}
+            analyticsParams={{num_activities: group.activity.length}}
           >
             {t('View')}
           </ViewButton>
@@ -316,6 +303,7 @@ export default function StreamlinedActivitySection({
                   group={group}
                   teams={teams}
                   key={item.id}
+                  isDrawer={isDrawer}
                 />
               );
             })}
@@ -330,6 +318,7 @@ export default function StreamlinedActivitySection({
                   group={group}
                   teams={teams}
                   key={item.id}
+                  isDrawer={isDrawer}
                 />
               );
             })}
@@ -341,9 +330,7 @@ export default function StreamlinedActivitySection({
                   size="xs"
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
-                  analyticsParams={{
-                    num_activities_hidden: group.activity.length - 3,
-                  }}
+                  analyticsParams={{num_activities_hidden: group.activity.length - 3}}
                 >
                   {t('View %s more', group.activity.length - 3)}
                 </LinkButton>
@@ -382,8 +369,13 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
 `;
 
-const NoteWrapper = styled('div')`
+const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
+  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+`;
+
+const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
+  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
 `;
 
 const CommentsLink = styled(Link)`
