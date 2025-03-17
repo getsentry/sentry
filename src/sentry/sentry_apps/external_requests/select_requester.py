@@ -60,11 +60,14 @@ class SelectRequester:
             extras: dict[str, Any] = {
                 "sentry_app_slug": self.sentry_app.slug,
                 "install_uuid": self.install.uuid,
+                "project_slug": self.project_slug,
             }
             lifecycle.add_extras(extras)
 
             try:
                 url = self._build_url()
+                extras.update({"url": url})
+
                 body = safe_urlread(
                     send_and_save_sentry_app_request(
                         url,
@@ -78,12 +81,9 @@ class SelectRequester:
                 response = json.loads(body)
                 extras.update({"response": response})
             except RequestException as e:
-                extras.update({"url": url})
                 halt_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.BAD_RESPONSE}"
-                lifecycle.record_halt(
-                    halt_reason=e,
-                    extra={"reason": halt_reason, **extras},
-                )
+                lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
+
                 raise SentryAppIntegratorError(
                     message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}",
                     webhook_context={"error_type": halt_reason, **extras},
@@ -119,11 +119,11 @@ class SelectRequester:
                     },
                 )
 
-        try:
-            formatted_response = self._format_response(response)
-        except SentryAppIntegratorError as e:
-            lifecycle.record_halt(halt_reason=e, **extras)
-            raise
+            try:
+                formatted_response = self._format_response(response)
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e, extra={**extras})
+                raise
 
         return formatted_response
 

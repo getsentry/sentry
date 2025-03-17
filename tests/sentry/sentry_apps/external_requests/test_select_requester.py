@@ -1,9 +1,20 @@
+from unittest.mock import patch
+
 import pytest
 import responses
+from requests import HTTPError
 
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.metrics import SentryAppEventType, SentryAppExternalRequestHaltReason
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_halt_metric,
+    assert_many_halt_metrics,
+    assert_success_metric,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -26,7 +37,8 @@ class TestSelectRequester(TestCase):
         self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     @responses.activate
-    def test_makes_request(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_request(self, mock_record):
         options = [
             {"label": "An Issue", "value": "123", "default": True},
             {"label": "Another Issue", "value": "456"},
@@ -57,8 +69,20 @@ class TestSelectRequester(TestCase):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "select_options.requested"
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # EXTERNAL_REQUEST (success) -> EXTERNAL_REQUEST (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @responses.activate
-    def test_invalid_response_missing_label(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_invalid_response_missing_label(self, mock_record):
         # missing 'label'
         url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         uri = "/get-issues"
@@ -78,13 +102,12 @@ class TestSelectRequester(TestCase):
                 project_slug=self.project.slug,
                 uri=uri,
             ).run()
-
         assert (
             exception_info.value.message
             == f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {uri}"
         )
         assert exception_info.value.webhook_context == {
-            "error_type": "select-requester.invalid-integrator-response",
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}",
             "response": invalid_format,
             "sentry_app_slug": self.sentry_app.slug,
             "install_uuid": self.install.uuid,
@@ -92,8 +115,26 @@ class TestSelectRequester(TestCase):
             "url": url,
         }
 
+        # SLO assertions
+        assert_halt_metric(
+            mock_record,
+            f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}",
+        )
+
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
     @responses.activate
-    def test_invalid_response_missing_value(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_invalid_response_missing_value(self, mock_record):
         # missing 'label' and 'value'
         invalid_format = [
             {"project": "ACME", "webUrl": "foo"},
@@ -118,9 +159,27 @@ class TestSelectRequester(TestCase):
             == "Missing `value` or `label` in option data for Select FormField"
         )
         assert exception_info.value.webhook_context == {
-            "error_type": "select-requester.missing-fields",
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}",
             "response": invalid_format,
         }
+
+        # SLO assertions
+        assert_halt_metric(
+            mock_record,
+            SentryAppIntegratorError(
+                message="Missing `value` or `label` in option data for Select FormField"
+            ),
+        )
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
 
     @responses.activate
     def test_500_response(self):
@@ -146,7 +205,8 @@ class TestSelectRequester(TestCase):
         assert requests[0]["event_type"] == "select_options.requested"
 
     @responses.activate
-    def test_api_error_message(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_api_error_message(self, mock_record):
         url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         responses.add(
             method=responses.GET,
@@ -166,9 +226,23 @@ class TestSelectRequester(TestCase):
             == f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}"
         )
         assert exception_info.value.webhook_context == {
-            "error_type": "select-requester.request-failed",
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.BAD_RESPONSE}",
             "sentry_app_slug": self.sentry_app.slug,
             "install_uuid": self.install.uuid,
             "project_slug": self.project.slug,
             "url": url,
         }
+
+        # SLO assertions
+        assert_many_halt_metrics(
+            mock_record,
+            [HTTPError(), HTTPError()],
+        )
+
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
