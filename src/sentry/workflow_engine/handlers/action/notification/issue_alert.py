@@ -29,6 +29,7 @@ from sentry.workflow_engine.typings.notification_action import (
     OnCallDataBlob,
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
+    SentryAppIdentifier,
     SlackDataBlob,
     TicketFieldMappingKeys,
     TicketingActionDataBlobHelper,
@@ -374,9 +375,23 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             if target_identifier is None:
                 raise ValueError(f"No target identifier found for action type: {action.type}")
 
-            sentry_app_installations = app_service.get_many(
-                filter=dict(app_ids=[target_identifier], organization_id=organization_id)
-            )
+            # Figure out what type of key we are dealing with
+            sentry_app_installations = None
+            if (
+                action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            ):
+                # It is a sentry app installation uuid
+                sentry_app_installations = app_service.get_many(
+                    filter=dict(
+                        uuids=[target_identifier],
+                    )
+                )
+            else:
+                # It is a sentry app id
+                sentry_app_installations = app_service.get_many(
+                    filter=dict(app_ids=[target_identifier], organization_id=organization_id)
+                )
 
             if len(sentry_app_installations) != 1:
                 raise ValueError(
