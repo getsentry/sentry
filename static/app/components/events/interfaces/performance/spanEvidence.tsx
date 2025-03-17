@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
-import {EventTraceViewInner} from 'sentry/components/events/interfaces/performance/eventTraceView';
+import {NewTraceViewContent} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -14,10 +13,8 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -36,42 +33,6 @@ interface Props {
 export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
-
-function NewTraceViewContent({
-  event,
-  organization,
-  traceId,
-}: {
-  event: EventTransaction;
-  organization: Organization;
-  traceId: string;
-}) {
-  const location = useLocation();
-
-  const traceTarget = generateTraceTarget(
-    event,
-    organization,
-    {
-      ...location,
-      query: {
-        ...location.query,
-        groupId: event.groupID,
-      },
-    },
-    TraceViewSources.ISSUE_DETAILS
-  );
-
-  // TODO: use affectedSpanIds to display more of the trace
-  // For example, the transaction has additional spans that should be highlighted are currently collapsed
-  return (
-    <EventTraceViewInner
-      event={event}
-      organization={organization}
-      traceId={traceId}
-      traceTarget={traceTarget}
-    />
-  );
-}
 
 export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   if (!event) {

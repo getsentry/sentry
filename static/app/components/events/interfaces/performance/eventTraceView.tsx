@@ -62,7 +62,7 @@ interface EventTraceViewInnerProps {
   traceTarget: LocationDescriptor;
 }
 
-export function EventTraceViewInner({
+function EventTraceViewInner({
   event,
   organization,
   traceId,
