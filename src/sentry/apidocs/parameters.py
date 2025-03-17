@@ -819,6 +819,16 @@ Available fields are:
     )
 
 
+class ExploreSavedQueryParams:
+    EXPLORE_SAVED_QUERY_ID = OpenApiParameter(
+        name="id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the Explore query you'd like to retrieve.""",
+    )
+
+
 class ExploreSavedQueriesParams:
     QUERY = OpenApiParameter(
         name="query",

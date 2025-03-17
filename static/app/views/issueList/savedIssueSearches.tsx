@@ -12,6 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -174,8 +175,14 @@ function SavedIssueSearches({
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!isOpen || isMobile) {
+  if (
+    !isOpen ||
+    isMobile ||
+    prefersStackedNav ||
+    organization.features.includes('issue-stream-custom-views')
+  ) {
     return null;
   }
 
