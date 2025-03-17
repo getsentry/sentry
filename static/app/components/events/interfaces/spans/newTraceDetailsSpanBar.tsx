@@ -1,5 +1,3 @@
-import 'intersection-observer'; // this is a polyfill
-
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
