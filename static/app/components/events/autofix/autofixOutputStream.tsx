@@ -219,7 +219,6 @@ const Wrapper = styled(motion.div)`
   margin-bottom: ${space(1)};
   margin-right: ${space(2)};
   gap: ${space(1)};
-  overflow: visible;
 `;
 
 const ScaleContainer = styled(motion.div)`
@@ -229,7 +228,6 @@ const ScaleContainer = styled(motion.div)`
   align-items: flex-start;
   transform-origin: top left;
   padding-left: ${space(2)};
-  overflow: visible;
 `;
 
 const Container = styled(motion.div)<{required: boolean}>`
@@ -238,7 +236,6 @@ const Container = styled(motion.div)<{required: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
-  overflow: visible;
 
   &:before {
     content: '';
