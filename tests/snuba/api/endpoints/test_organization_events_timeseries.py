@@ -214,7 +214,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["axis"] == "count()"
         assert timeseries["meta"] == {
             "order": 0,
-            "groupby": ["very bad"],
+            "groupBy": ["very bad"],
             "isOther": False,
             "unit": None,
             "type": "integer",
@@ -240,7 +240,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["axis"] == "p95()"
         assert timeseries["meta"] == {
             "order": 0,
-            "groupby": ["very bad"],
+            "groupBy": ["very bad"],
             "isOther": False,
             "unit": "millisecond",
             "type": "duration",
@@ -266,7 +266,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["axis"] == "count()"
         assert timeseries["meta"] == {
             "order": 1,
-            "groupby": ["oh my"],
+            "groupBy": ["oh my"],
             "isOther": False,
             "unit": None,
             "type": "integer",
@@ -292,7 +292,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["axis"] == "p95()"
         assert timeseries["meta"] == {
             "order": 1,
-            "groupby": ["oh my"],
+            "groupBy": ["oh my"],
             "isOther": False,
             "unit": "millisecond",
             "type": "duration",
