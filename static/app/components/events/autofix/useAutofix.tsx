@@ -76,7 +76,11 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
 };
 
 /** Will not poll when the autofix is in an error state or has completed */
-const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
+const isPolling = (
+  autofixData: AutofixData | null,
+  runStarted: boolean,
+  isSidebar?: boolean
+) => {
   if (!autofixData && !runStarted) {
     return false;
   }
@@ -106,7 +110,7 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
   }
 
   // Continue polling if there's an active comment thread, even if the run is completed
-  if (hasActiveCommentThread) {
+  if (!isSidebar && hasActiveCommentThread) {
     return true;
   }
 
@@ -131,7 +135,14 @@ export const useAutofixData = ({groupId}: {groupId: string}) => {
   return {data: data?.autofix ?? null, isPending};
 };
 
-export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
+export const useAiAutofix = (
+  group: GroupWithAutofix,
+  event: Event,
+  options: {
+    isSidebar?: boolean;
+    pollInterval?: number;
+  } = {}
+) => {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -146,10 +157,11 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       if (
         isPolling(
           query.state.data?.[0]?.autofix || null,
-          !!currentRunId || waitingForNextRun
+          !!currentRunId || waitingForNextRun,
+          options.isSidebar
         )
       ) {
-        return POLL_INTERVAL;
+        return options.pollInterval ?? POLL_INTERVAL;
       }
       return false;
     },
