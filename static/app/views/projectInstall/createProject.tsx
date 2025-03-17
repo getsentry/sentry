@@ -44,6 +44,7 @@ import IssueAlertOptions, {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
@@ -181,7 +182,10 @@ function CreateProject() {
 
         browserHistory.push(
           normalizeUrl(
-            `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
+            makeProjectsPathname({
+              orgSlug: organization.slug,
+              path: `/${projectData.slug}/getting-started/`,
+            })
           )
         );
       } catch (err) {
