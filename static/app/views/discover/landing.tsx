@@ -230,7 +230,7 @@ function DiscoverLanding() {
                   Show Prebuilt
                   <Switch
                     checked={renderPrebuilt}
-                    disabled={renderPrebuilt && (savedQueries ?? []).length === 0}
+                    disabled={renderPrebuilt && savedQueries.length === 0}
                     size="lg"
                     onChange={() => setRenderPrebuilt(!renderPrebuilt)}
                   />
