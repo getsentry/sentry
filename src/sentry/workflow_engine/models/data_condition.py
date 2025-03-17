@@ -83,7 +83,7 @@ SLOW_CONDITIONS = [
 ] + PERCENT_CONDITIONS
 
 # Conditions that are not supported in the UI
-IGNORED_CONDITIONS = [
+LEGACY_CONDITIONS = [
     Condition.EVERY_EVENT,
     Condition.EVENT_CREATED_BY_DETECTOR,
     Condition.EVENT_SEEN_COUNT,

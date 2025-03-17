@@ -19,7 +19,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
             "sentry.workflow_engine.registry.condition_handler_registry",
             new=self.registry,
         )
-        self.registry_patcher.__enter__()
+        self.registry_patcher.start()
 
         @self.registry.register(Condition.REAPPEARED_EVENT)
         @dataclass(frozen=True)
@@ -56,7 +56,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
     def tearDown(self) -> None:
         super().tearDown()
-        self.registry_patcher.__exit__(None, None, None)
+        self.registry_patcher.stop()
 
 
 @region_silo_test
