@@ -47,9 +47,10 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
 
   const handleSubmit = useCallback(
     async (email: string) => {
+      closeModal();
+
       const utmState = getUTMState();
 
-      // always save the email before the API call
       if (onAddedEmail) {
         onAddedEmail(email);
       }
@@ -67,8 +68,6 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
       } catch (error) {
         onFailure();
       }
-
-      closeModal();
     },
     [api, closeModal, onFailure, onAddedEmail]
   );
