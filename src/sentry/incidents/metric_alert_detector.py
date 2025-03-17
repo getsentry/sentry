@@ -51,6 +51,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError("Too many conditions")
         return attrs
 
+    # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
     def update_data_conditions(self, instance: Detector, data_conditions: list[DataConditionType]):
         """
         Update the data condition if it already exists, create one if it does not
@@ -116,6 +117,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
         )
 
+    # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         instance.name = validated_data.get("name", instance.name)
         instance.type = validated_data.get("detector_type", instance.group_type).slug
