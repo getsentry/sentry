@@ -19,6 +19,7 @@ import {navigationCss} from '../styles/navigation';
 import {resetDialogCss} from '../styles/reset';
 
 import AlertBadge from './alerts/alertBadge';
+import FlagOverridesBadge from './featureFlags/flagOverridesBadge';
 import IconButton from './navigation/iconButton';
 
 export default function Navigation({
@@ -57,7 +58,9 @@ export default function Navigation({
       <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />}>
         <AlertBadge />
       </NavButton>
-      <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
+      <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />}>
+        <FlagOverridesBadge />
+      </NavButton>
       <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
         <SessionStatusBadge />
       </NavButton>

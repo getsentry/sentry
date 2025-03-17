@@ -10,7 +10,6 @@ export const MODULES = [
   ModuleName.HTTP,
   ModuleName.CACHE,
   ModuleName.QUEUE,
-  ModuleName.SESSIONS,
   ModuleName.CRONS,
   ModuleName.UPTIME,
 ];

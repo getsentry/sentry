@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -367,13 +368,13 @@ export function GroupTagsDrawer({
   );
 }
 
-const Wrapper = styled('div')`
+export const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
 `;
 
-const Container = styled('div')`
+export const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
@@ -385,4 +386,13 @@ const Header = styled('h3')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
+`;
+
+export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

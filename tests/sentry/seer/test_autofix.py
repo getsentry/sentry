@@ -263,6 +263,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
             mock_event.platform = event_data["platform"]
             mock_event.project_id = event_data["project_id"]
             mock_event.trace_id = trace_id
+            mock_event.message = event_data.get("message", event_data["title"])
+            mock_event.transaction = event_data.get("transaction", None)
             error_events.append(mock_event)
 
         # Update to patch both Transactions and Events dataset calls
@@ -404,6 +406,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         child_event.platform = "python"
         child_event.project_id = self.project.id
         child_event.trace_id = trace_id
+        child_event.message = "Child First"
+        child_event.transaction = None
 
         # Create proper parent event object
         parent_event = Mock()
@@ -424,6 +428,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         parent_event.platform = "python"
         parent_event.project_id = self.project.id
         parent_event.trace_id = trace_id
+        parent_event.message = "Parent Last"
+        parent_event.transaction = None
 
         # Set up the mock to return different results for different dataset calls
         def side_effect(filter, dataset=None, **kwargs):
@@ -495,6 +501,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error1.platform = "python"
         error1.project_id = self.project.id
         error1.trace_id = trace_id
+        error1.message = "First Error"
+        error1.transaction = None
 
         error2_span_id = "error2-span-id"
         error2 = Mock()
@@ -514,6 +522,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error2.platform = "python"
         error2.project_id = self.project.id
         error2.trace_id = trace_id
+        error2.message = "Second Error"
+        error2.transaction = None
 
         # This error is a child of error2
         error3 = Mock()
@@ -533,6 +543,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error3.platform = "python"
         error3.project_id = self.project.id
         error3.trace_id = trace_id
+        error3.message = "Child Error"
+        error3.transaction = None
 
         # Another "orphaned" error with a parent_span_id that doesn't point to anything
         error4 = Mock()
@@ -552,6 +564,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error4.platform = "python"
         error4.project_id = self.project.id
         error4.trace_id = trace_id
+        error4.message = "Orphaned Error"
+        error4.transaction = None
 
         # Return empty transactions list but populate errors list
         def side_effect(filter, dataset=None, **kwargs):
@@ -628,6 +642,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         root_tx.platform = "python"
         root_tx.project_id = self.project.id
         root_tx.trace_id = trace_id
+        root_tx.message = "Root Transaction"
+        root_tx.transaction = "Root Transaction"
 
         # Rule 1: Child whose parent_span_id matches another event's span_id
         rule1_child = Mock()
@@ -647,6 +663,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         rule1_child.platform = "python"
         rule1_child.project_id = self.project.id
         rule1_child.trace_id = trace_id
+        rule1_child.message = "Rule 1 Child"
+        rule1_child.transaction = None
 
         # Rule 2: Child whose parent_span_id matches a span in a transaction
         rule2_child = Mock()
@@ -666,6 +684,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         rule2_child.platform = "python"
         rule2_child.project_id = self.project.id
         rule2_child.trace_id = trace_id
+        rule2_child.message = "Rule 2 Child"
+        rule2_child.transaction = None
 
         # Rule 3: Child whose span_id matches a span in a transaction
         rule3_child = Mock()
@@ -684,6 +704,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         rule3_child.platform = "python"
         rule3_child.project_id = self.project.id
         rule3_child.trace_id = trace_id
+        rule3_child.message = "Rule 3 Child"
+        rule3_child.transaction = None
 
         # Set up the mock to return our test events
         def side_effect(filter, dataset=None, **kwargs):
