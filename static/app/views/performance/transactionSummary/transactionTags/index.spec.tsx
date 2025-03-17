@@ -50,7 +50,7 @@ function initializeData({query} = {query: {}}) {
 describe('Performance > Transaction Tags', function () {
   let histogramMock: Record<string, any>;
 
-  beforeEach(() => {
+  beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/insights/summary/tags/'})
     );
@@ -162,7 +162,7 @@ describe('Performance > Transaction Tags', function () {
     act(() => ProjectsStore.reset());
   });
 
-  it('renders basic UI elements', async () => {
+  it('renders basic UI elements', async function () {
     const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {

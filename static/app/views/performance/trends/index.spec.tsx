@@ -34,7 +34,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('moment-timezone', function () {
+jest.mock('moment-timezone', () => {
   const moment = jest.requireActual('moment-timezone');
   moment.now = jest.fn().mockReturnValue(1601251200000);
   return moment;

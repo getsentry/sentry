@@ -33,7 +33,7 @@ const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</d
 let eventsMetaMock: jest.Mock;
 
 const waitForMetaToHaveBeenCalled = async () => {
-  await waitFor(function () {
+  await waitFor(() => {
     expect(eventsMetaMock).toHaveBeenCalled();
   });
 };
