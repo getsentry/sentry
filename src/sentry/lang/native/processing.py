@@ -69,7 +69,7 @@ APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 # during stackwalking.
 ELECTRON_FIRST_MODULE_REWRITE_RULES = [
     {"from": "([^/\\\\]+) (?<suffix>Framework|Helper( \\(.+\\))?)$", "to": "Electron $suffix"},
-    {"from": "([^/\\\\]+).exe.pdb$", "to": "electron.exe.pdb"},
+    {"from": "([^/\\\\]+)\\.exe\\.pdb$", "to": "electron.exe.pdb"},
     {"from": "([^/\\\\]+)$", "to": "electron"},
 ]
 
