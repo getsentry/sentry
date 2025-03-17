@@ -21,7 +21,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
@@ -654,7 +654,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('renders only current user in demo mode', async function () {
-      (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+      (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
       render(<OrganizationMembersList />, {organization, router});
       renderGlobalModal({router});
@@ -663,7 +663,7 @@ describe('OrganizationMembersList', function () {
       expect(screen.getByText(currentUser.name)).toBeInTheDocument();
       expect(screen.queryByText(member.name)).not.toBeInTheDocument();
 
-      (isDemoModeEnabled as jest.Mock).mockReset();
+      (isDemoModeActive as jest.Mock).mockReset();
     });
   });
 });

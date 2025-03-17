@@ -35,12 +35,12 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
   return url;
 }
 
-export function isDemoModeEnabled(): boolean {
+export function isDemoModeActive(): boolean {
   return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }
 
 export function openDemoSignupModal() {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return;
   }
   setTimeout(() => {
@@ -49,7 +49,7 @@ export function openDemoSignupModal() {
 }
 
 export function openDemoEmailModal() {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return;
   }
 
@@ -75,7 +75,7 @@ function onAddedEmail(email: string) {
 let inactivityTimeout: number | undefined;
 
 window.addEventListener('blur', () => {
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     inactivityTimeout = window.setTimeout(() => {
       logout(new Client());
     }, INACTIVITY_TIMEOUT_MS);

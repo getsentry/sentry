@@ -8,7 +8,7 @@ import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
@@ -82,7 +82,7 @@ export function addLoadingMessage(
 }
 
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     return addMessageWithType('error')(
       t('This action is not allowed in demo mode.'),
       options

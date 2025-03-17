@@ -61,12 +61,13 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
             email,
           },
         });
-        closeModal();
 
         updateTouches(utmState);
       } catch (error) {
         onFailure();
       }
+
+      closeModal();
     },
     [api, closeModal, onFailure, onAddedEmail]
   );

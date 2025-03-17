@@ -9,7 +9,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 jest.mock('sentry/utils/demoMode');
@@ -50,7 +50,7 @@ describe('ApiApplications', function () {
   });
 
   it('renders empty in demo mode even if there are applications', async function () {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
       url: '/api-applications/',
@@ -63,7 +63,7 @@ describe('ApiApplications', function () {
       await screen.findByText("You haven't created any applications yet.")
     ).toBeInTheDocument();
 
-    (isDemoModeEnabled as jest.Mock).mockReset();
+    (isDemoModeActive as jest.Mock).mockReset();
   });
 
   it('creates application', async function () {

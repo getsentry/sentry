@@ -11,7 +11,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -30,7 +30,7 @@ function SessionHistory({routes, params, location}: Props) {
     isError,
   } = useApiQuery<IpListType>(['/users/me/ips/'], {
     staleTime: 0,
-    enabled: !isDemoModeEnabled(),
+    enabled: !isDemoModeActive(),
   });
 
   if (isError) {

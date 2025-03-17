@@ -7,7 +7,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 
 jest.mock('sentry/utils/demoMode');
@@ -46,7 +46,7 @@ describe('ApiTokens', function () {
   });
 
   it('renders empty in demo mode even if there are tokens', async function () {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
@@ -59,7 +59,7 @@ describe('ApiTokens', function () {
       await screen.findByText("You haven't created any authentication tokens yet.")
     ).toBeInTheDocument();
 
-    (isDemoModeEnabled as jest.Mock).mockReset();
+    (isDemoModeActive as jest.Mock).mockReset();
   });
 
   it('can delete token', async function () {

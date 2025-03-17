@@ -15,7 +15,7 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -133,7 +133,7 @@ export function OrgDropdown({className}: {className?: string}) {
               label: t('Switch Organization'),
               isSubmenu: true,
               disabled: !organizations?.length,
-              hidden: config.singleOrganization || isDemoModeEnabled(),
+              hidden: config.singleOrganization || isDemoModeActive(),
               children: [
                 ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
                   key: switchOrg.id,

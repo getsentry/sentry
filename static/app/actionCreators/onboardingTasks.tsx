@@ -3,7 +3,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import type {OnboardingTaskStatus, UpdatedTask} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 
 /**
@@ -17,7 +17,7 @@ export function updateOnboardingTask(
   organization: Organization,
   updatedTask: UpdatedTask
 ) {
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     updateDemoWalkthroughTask(updatedTask);
     return;
   }

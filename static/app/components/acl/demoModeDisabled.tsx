@@ -1,13 +1,13 @@
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 type Props = {
   children?: React.ReactNode;
 };
 
 function DisableInDemoMode({children}: Props) {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return children;
   }
 
