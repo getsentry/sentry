@@ -81,7 +81,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
             />
             <StartTextRow>
               <StyledSeerWaitingIcon size="lg" />
-              <StartTextBody>Need help digging deeper?</StartTextBody>
+              <Fragment>Need help digging deeper?</Fragment>
             </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
@@ -372,10 +372,6 @@ const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
   color: ${p => p.theme.purple400};
   opacity: 0.9;
   filter: brightness(0.6);
-`;
-
-const StartTextBody = styled('div')`
-  margin-top: ${space(0.5)};
 `;
 
 const BackgroundStar = styled('img')`
