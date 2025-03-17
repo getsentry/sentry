@@ -125,7 +125,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             instance_id=group_event.event_id,
             group_id=group_event.group_id,
             occurrence_id=None,
-            rule_label=self.rule.label,
+            rule=self.rule.label,
             sentry_app_id=9999,
         )
 
@@ -155,7 +155,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             instance_id=123,
             group_id=issue.id,
             occurrence_id=None,
-            rule_label=self.rule.label,
+            rule=self.rule.label,
             sentry_app_id=self.sentry_app.id,
         )
 

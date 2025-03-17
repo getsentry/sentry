@@ -116,10 +116,36 @@ def _webhook_event_data(
     return event_context
 
 
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2", **TASK_OPTIONS
+)
+@retry_decorator
+def send_alert_webhook_v2(
+    rule_label: str,
+    sentry_app_id: int,
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+):
+    send_alert_webhook(
+        rule=rule_label,
+        sentry_app_id=sentry_app_id,
+        instance_id=instance_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        additional_payload_key=additional_payload_key,
+        additional_payload=additional_payload,
+        **kwargs,
+    )
+
+
 @instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_webhook(
-    rule_label: str,
+    rule: str,
     sentry_app_id: int,
     instance_id: str,
     group_id: int,
@@ -140,7 +166,7 @@ def send_alert_webhook(
             "sentry_app_id": sentry_app_id,
             "project_id": project.id,
             "organization_slug": organization.slug,
-            "rule": rule_label,
+            "rule": rule,
         }
         lifecycle.add_extras(extra)
 
@@ -185,7 +211,7 @@ def send_alert_webhook(
 
         event_context = _webhook_event_data(group_event, group.id, project.id)
 
-        data = {"event": event_context, "triggered_rule": rule_label}
+        data = {"event": event_context, "triggered_rule": rule}
 
         # Attach extra payload to the webhook
         if additional_payload_key and additional_payload:
@@ -516,7 +542,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule_label=f.rule.label,
+            rule=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )
