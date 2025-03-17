@@ -278,7 +278,9 @@ export function GroupTagsDrawer({
           />
         ) : displayTags.length === 0 ? (
           <StyledEmptyStateWarning withIcon>
-            {t('No tags were found for this issue')}
+            {data.length === 0
+              ? t('No tags were found for this issue')
+              : t('No tags were found for this search')}
           </StyledEmptyStateWarning>
         ) : (
           <Wrapper>

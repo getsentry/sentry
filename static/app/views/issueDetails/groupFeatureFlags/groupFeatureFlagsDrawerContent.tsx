@@ -70,7 +70,9 @@ export default function GroupFeatureFlagsDrawerContent({
     />
   ) : displayTags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
-      {t('No feature flags were found for this issue')}
+      {data.length === 0
+        ? t('No feature flags were found for this issue')
+        : t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
     <Wrapper>
