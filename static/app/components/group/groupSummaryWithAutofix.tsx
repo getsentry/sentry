@@ -2,6 +2,9 @@ import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
+import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixChangesStep,
   type AutofixCodebaseChange,
@@ -38,6 +41,8 @@ interface InsightCardObject {
   id: string;
   insight: string | null | undefined;
   title: string;
+  copyText?: string | null;
+  copyTitle?: string | null;
   icon?: React.ReactNode;
   insightElement?: React.ReactNode;
   isLoading?: boolean;
@@ -54,6 +59,23 @@ const getRootCauseDescription = (autofixData: AutofixData) => {
   return rootCause.causes.at(0)?.description ?? null;
 };
 
+const getRootCauseCopyText = (autofixData: AutofixData) => {
+  const rootCause = autofixData.steps?.find(
+    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+  );
+  if (!rootCause) {
+    return null;
+  }
+
+  const cause = rootCause.causes.at(0);
+
+  if (!cause) {
+    return null;
+  }
+
+  return formatRootCauseText(cause);
+};
+
 const getSolutionDescription = (autofixData: AutofixData) => {
   const solution = autofixData.steps?.find(
     step => step.type === AutofixStepType.SOLUTION
@@ -63,6 +85,17 @@ const getSolutionDescription = (autofixData: AutofixData) => {
   }
 
   return solution.description ?? null;
+};
+
+const getSolutionCopyText = (autofixData: AutofixData) => {
+  const solution = autofixData.steps?.find(
+    step => step.type === AutofixStepType.SOLUTION
+  );
+  if (!solution) {
+    return null;
+  }
+
+  return formatSolutionText(solution.solution, solution.custom_solution);
 };
 
 const getSolutionIsLoading = (autofixData: AutofixData) => {
@@ -155,8 +188,18 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
+  const rootCauseCopyText = useMemo(
+    () => (autofixData ? getRootCauseCopyText(autofixData) : null),
+    [autofixData]
+  );
+
   const solutionDescription = useMemo(
     () => (autofixData ? getSolutionDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionCopyText = useMemo(
+    () => (autofixData ? getSolutionCopyText(autofixData) : null),
     [autofixData]
   );
 
@@ -188,6 +231,8 @@ export function GroupSummaryWithAutofix({
         codeChangesDescription={codeChangesDescription}
         codeChangesIsLoading={codeChangesIsLoading}
         openSolutionsDrawer={openSolutionsDrawer}
+        rootCauseCopyText={rootCauseCopyText}
+        solutionCopyText={solutionCopyText}
       />
     );
   }
@@ -202,11 +247,15 @@ function AutofixSummary({
   codeChangesDescription,
   codeChangesIsLoading,
   openSolutionsDrawer,
+  rootCauseCopyText,
+  solutionCopyText,
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
   openSolutionsDrawer: () => void;
+  rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
+  solutionCopyText: string | null;
   solutionDescription: string | null;
   solutionIsLoading: boolean;
 }) {
@@ -217,6 +266,8 @@ function AutofixSummary({
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" color="pink400" />,
       onClick: openSolutionsDrawer,
+      copyTitle: t('Copy root cause as Markdown'),
+      copyText: rootCauseCopyText,
     },
 
     ...(solutionDescription || solutionIsLoading
@@ -228,6 +279,8 @@ function AutofixSummary({
             icon: <IconFix size="sm" color="green400" />,
             isLoading: solutionIsLoading,
             onClick: openSolutionsDrawer,
+            copyTitle: t('Copy solution as Markdown'),
+            copyText: solutionCopyText,
           },
         ]
       : []),
@@ -265,8 +318,21 @@ function AutofixSummary({
               >
                 <InsightCard>
                   <CardTitle preview={card.isLoading}>
-                    <CardTitleIcon>{card.icon}</CardTitleIcon>
-                    <CardTitleText>{card.title}</CardTitleText>
+                    <CardTitleSpacer>
+                      <CardTitleIcon>{card.icon}</CardTitleIcon>
+                      <CardTitleText>{card.title}</CardTitleText>
+                    </CardTitleSpacer>
+                    {card.copyText && card.copyTitle && (
+                      <CopyToClipboardButton
+                        size="xs"
+                        text={card.copyText}
+                        borderless
+                        title={card.copyTitle}
+                        onClick={e => {
+                          e.stopPropagation();
+                        }}
+                      />
+                    )}
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -350,8 +416,16 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  justify-content: space-between;
+`;
+
+const CardTitleSpacer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const CardTitleText = styled('p')`

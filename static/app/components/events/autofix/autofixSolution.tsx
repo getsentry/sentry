@@ -353,7 +353,7 @@ function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
   };
 }
 
-function formatSolutionText(
+export function formatSolutionText(
   solution: AutofixSolutionTimelineEvent[],
   customSolution?: string
 ) {
