@@ -9,8 +9,8 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {Overlay} from 'sentry/components/overlay';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -229,7 +229,7 @@ function findChildElementsInTree(
 }
 
 const StyledOverlay = styled(Overlay)<{
-  accordionRef: React.RefObject<HTMLDivElement>;
+  accordionRef: React.RefObject<HTMLDivElement | null>;
   horizontal: boolean;
 }>`
   position: absolute;

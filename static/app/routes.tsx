@@ -2110,7 +2110,7 @@ function buildRoutes() {
   );
 
   const issueRoutes = (
-    <Route path="/issues" component={errorHandler(IssueNavigation)} withOrgPath>
+    <Route path="/issues/" component={errorHandler(IssueNavigation)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
@@ -2563,6 +2563,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp({children}: {children: JSX.Element}) {
+function NoOp({children}: {children: React.JSX.Element}) {
   return children;
 }

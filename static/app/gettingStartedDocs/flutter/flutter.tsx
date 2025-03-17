@@ -39,9 +39,9 @@ const platformOptions = {
       },
     ],
     defaultValue:
-      navigator.userAgent.indexOf('Win') !== -1
-        ? InstallationMode.MANUAL
-        : InstallationMode.AUTO,
+      navigator.userAgent.indexOf('Win') === -1
+        ? InstallationMode.AUTO
+        : InstallationMode.MANUAL,
   },
 } satisfies BasePlatformOptions;
 
@@ -63,7 +63,10 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn.public}';${
+      options.dsn = '${params.dsn.public}';
+      // Adds request headers and IP for users,
+      // visit: https://docs.sentry.io/platforms/dart/data-management/data-collected/ for more info
+      options.sendDefaultPii = true;${
         params.isPerformanceSelected
           ? `
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.

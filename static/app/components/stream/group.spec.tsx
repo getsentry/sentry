@@ -179,12 +179,12 @@ describe('StreamGroup', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows lifespan column', function () {
+  it('shows first/last seen column', function () {
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        withColumns={['lifespan']}
+        withColumns={['firstSeen', 'lastSeen']}
       />,
       {
         organization: OrganizationFixture({
@@ -219,6 +219,7 @@ describe('StreamGroup', function () {
         pathname: '/organizations/org-slug/issues/1337/',
         query: {
           _allp: 1,
+          project: '13',
           query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
           referrer: 'issue-stream',
           stream_index: undefined,

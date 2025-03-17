@@ -29,7 +29,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
+from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
@@ -128,7 +128,7 @@ def query_replay_clicks(
     end: datetime.datetime,
     limit: int,
     offset: int,
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     organization_id: int,
 ):
     """Query replay clicks.
@@ -196,7 +196,7 @@ def query_replay_clicks(
 # transformed into `Or` operations.
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []

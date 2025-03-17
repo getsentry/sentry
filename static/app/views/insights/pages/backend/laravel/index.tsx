@@ -1,3 +1,4 @@
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -10,12 +11,14 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -25,6 +28,7 @@ import {CachesWidget} from 'sentry/views/insights/pages/backend/laravel/cachesWi
 import {DurationWidget} from 'sentry/views/insights/pages/backend/laravel/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/backend/laravel/issuesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/backend/laravel/jobsWidget';
+import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {PathsTable} from 'sentry/views/insights/pages/backend/laravel/pathsTable';
 import {QueriesWidget} from 'sentry/views/insights/pages/backend/laravel/queriesWidget';
 import {RequestsWidget} from 'sentry/views/insights/pages/backend/laravel/requestsWidget';
@@ -55,9 +59,18 @@ export function LaravelOverviewPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+
+  useEffect(() => {
+    trackAnalytics('laravel-insights.page-view', {
+      organization,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -83,7 +96,12 @@ export function LaravelOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
+        headerActions={
+          <Fragment>
+            <ViewTrendsButton />
+            <NewLaravelExperienceButton />
+          </Fragment>
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -91,9 +109,13 @@ export function LaravelOverviewPage() {
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
+                  <ProjectPageFilter resetParamsOnChange={['starred']} />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter
+                    maxPickableDays={maxPickableDays}
+                    defaultPeriod={defaultPeriod}
+                    relativeOptions={relativeOptions}
+                  />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -155,7 +177,7 @@ const WidgetGrid = styled('div')`
   padding-bottom: ${space(2)};
 
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 180px 300px 300px;
+  grid-template-rows: 180px 180px 300px 240px 300px 300px;
   grid-template-areas:
     'requests'
     'duration'
@@ -166,7 +188,7 @@ const WidgetGrid = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 180px 300px;
+    grid-template-rows: 180px 300px 240px 300px;
     grid-template-areas:
       'requests duration'
       'issues issues'

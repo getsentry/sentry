@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -192,63 +193,80 @@ Sentry.captureException(new Error("Something went wrong!"));`,
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
 
-const getSdkSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/browser";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-        Sentry.browserTracingIntegration(),`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-          Sentry.browserProfilingIntegration(),`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-      : ''
+const getIntegrations = (params: Params): string[] => {
+  const integrations = [];
+  if (params.isPerformanceSelected) {
+    integrations.push(`Sentry.browserTracingIntegration()`);
   }
-],${
-  params.isPerformanceSelected
-    ? `
+
+  if (params.isProfilingSelected) {
+    integrations.push(`Sentry.browserProfilingIntegration()`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      }),`);
+  }
+
+  return integrations;
+};
+
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-    : ''
-}${
-  params.isReplaySelected
-    ? `
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isProfilingSelected) {
+    dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
         // Since profilesSampleRate is relative to tracesSampleRate,
         // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
         // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
         // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
-    : ''
-}
+        profilesSampleRate: 1.0`);
+  }
+
+  return dynamicParts;
+};
+
+const getSdkSetupSnippet = (params: Params) => {
+  const config = buildSdkConfig({
+    params,
+    staticParts: [`dsn: "${params.dsn.public}"`],
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  return `
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  ${config}
 });
 `;
+};
 
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
@@ -341,10 +359,10 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 <script>
   Sentry.onLoad(function() {
     Sentry.init({${
-      !(params.isPerformanceSelected || params.isReplaySelected)
-        ? `
+      params.isPerformanceSelected || params.isReplaySelected
+        ? ''
+        : `
         // You can add any additional configuration here`
-        : ''
     }${
       params.isPerformanceSelected
         ? `
@@ -477,6 +495,28 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
         organization: params.organization,
         platform: params.platformKey,
         project_id: params.projectId,
+      });
+    };
+  },
+  onProductSelectionChange: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
+  onProductSelectionLoad: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
       });
     };
   },

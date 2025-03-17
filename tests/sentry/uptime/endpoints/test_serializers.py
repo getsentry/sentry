@@ -83,16 +83,3 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         result = serialize(uptime_monitor)
 
         assert result["traceSampling"] is True
-
-    def test_header_translation(self):
-        """
-        TODO(epurkhiser): This may be removed once we clean up the object-style
-        headers from the database.
-        """
-        subscription = self.create_uptime_subscription(headers={"legacy": "format"})
-        uptime_monitor = self.create_project_uptime_subscription(
-            owner=self.user,
-            uptime_subscription=subscription,
-        )
-        result = serialize(uptime_monitor)
-        assert result["headers"] == [["legacy", "format"]]

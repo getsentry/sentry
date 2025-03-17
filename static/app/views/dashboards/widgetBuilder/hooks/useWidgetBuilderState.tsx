@@ -173,7 +173,7 @@ function useWidgetBuilderState(): {
       // if it hasn't been explicitly set
       selectedAggregate:
         displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
-          ? selectedAggregate ?? fields.length - 1
+          ? (selectedAggregate ?? fields.length - 1)
           : undefined,
     }),
     [
@@ -406,18 +406,7 @@ function useWidgetBuilderState(): {
                           TAG_SORT_DENY_LIST.includes(generateFieldAsString(field))))
                   )
               );
-              if (changedFieldIndex !== -1) {
-                // At this point, we can assume the fields are the same length so
-                // using the changedFieldIndex in action.payload is safe.
-                setSort([
-                  {
-                    kind: sort?.[0]?.kind ?? 'desc',
-                    field: generateFieldAsString(
-                      action.payload[changedFieldIndex] as QueryFieldValue
-                    ),
-                  },
-                ]);
-              } else {
+              if (changedFieldIndex === -1) {
                 setSort(
                   validSortOptions.length > 0
                     ? [
@@ -430,6 +419,17 @@ function useWidgetBuilderState(): {
                       ]
                     : []
                 );
+              } else {
+                // At this point, we can assume the fields are the same length so
+                // using the changedFieldIndex in action.payload is safe.
+                setSort([
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(
+                      action.payload[changedFieldIndex] as QueryFieldValue
+                    ),
+                  },
+                ]);
               }
             }
           }

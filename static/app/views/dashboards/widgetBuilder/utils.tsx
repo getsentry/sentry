@@ -208,7 +208,7 @@ export function normalizeQueries({
     const orderBy =
       (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
       (widgetType === WidgetType.ISSUE
-        ? queryOrderBy ?? IssueSortOptions.DATE
+        ? (queryOrderBy ?? IssueSortOptions.DATE)
         : generateOrderOptions({
             widgetType: widgetType ?? WidgetType.DISCOVER,
             columns: queries[0]!.columns,

@@ -6,9 +6,9 @@ import {
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

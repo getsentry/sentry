@@ -2,16 +2,34 @@ import uuid
 from hashlib import md5
 from unittest import mock
 
+import pytest
+
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.models.environment import Environment
+from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from tests.sentry.spans.consumers.process.test_factory import build_mock_span
+from tests.sentry.spans.consumers.process import build_mock_span
 
 
 class TestSpansTask(TestCase):
     def setUp(self):
         self.project = self.create_project()
+
+    def generate_basic_spans(self):
+        segment_span = build_mock_span(project_id=self.project.id)
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            description="mock_test",
+            is_segment=False,
+            parent_span_id=segment_span["span_id"],
+            span_id="940ce942561548b5",
+            start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
+        )
+
+        return [child_span, segment_span]
 
     def generate_n_plus_one_spans(self):
         segment_span = build_mock_span(project_id=self.project.id)
@@ -22,6 +40,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -31,6 +50,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -43,12 +63,42 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
+                start_timestamp_precise=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
         return spans
+
+    def test_create_models(self):
+        spans = self.generate_basic_spans()
+        assert process_segment(spans)
+
+        Environment.objects.get(
+            organization_id=self.organization.id,
+            name="development",
+        )
+
+        release = Release.objects.get(
+            organization_id=self.organization.id,
+            version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+        )
+        assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
+
+    def test_empty_defaults(self):
+        spans = self.generate_basic_spans()
+        for span in spans:
+            del span["sentry_tags"]
+
+        processed_spans = process_segment(spans)
+        assert len(processed_spans) == len(spans)
+        assert processed_spans[0]["span_id"] == spans[0]["span_id"]
+        assert processed_spans[1]["span_id"] == spans[1]["span_id"]
+
+        # double-check that we actually ran through processing. The "op"
+        # attribute does not exist in the original spans.
+        assert processed_spans[0]["op"]
 
     @override_options(
         {
@@ -63,7 +113,7 @@ class TestSpansTask(TestCase):
             "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
         ) as mock_released:
             mock_released.return_value = True
-            process_segment(spans)[0]
+            process_segment(spans)
 
         mock_eventstream.assert_called_once()
 
@@ -82,6 +132,7 @@ class TestSpansTask(TestCase):
         }
     )
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
+    @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(self, mock_eventstream):
         segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
         child_span = build_mock_span(
@@ -91,6 +142,7 @@ class TestSpansTask(TestCase):
             parent_span_id="b35b839c02985f33",
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         cause_span = build_mock_span(
             project_id=self.project.id,
@@ -100,6 +152,7 @@ class TestSpansTask(TestCase):
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
@@ -112,6 +165,7 @@ class TestSpansTask(TestCase):
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
+                start_timestamp_precise=1707953018.869,
             )
 
         repeating_spans = [repeating_span() for _ in range(7)]
@@ -121,7 +175,7 @@ class TestSpansTask(TestCase):
             "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
         ) as mock_released:
             mock_released.return_value = True
-            process_segment(spans)[0]
+            process_segment(spans)
 
         performance_problem = mock_eventstream.call_args[0][1]
         assert performance_problem.fingerprint == [

@@ -77,7 +77,7 @@ function VitalDetailContent(props: Props) {
     const {location} = props;
 
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 

@@ -60,8 +60,8 @@ type PropType = ScrollbarManagerChildrenProps & {
   spans: EnhancedProcessedSpanType[];
   traceHasMultipleRoots: boolean;
   traceInfo: TraceInfo;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
   measurements?: Map<number, VerticalMark>;
@@ -70,7 +70,10 @@ type PropType = ScrollbarManagerChildrenProps & {
 
 type StateType = {
   headerPos: number;
-  spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
+  spanRows: Record<
+    string,
+    {spanRow: React.RefObject<HTMLDivElement | null>; treeDepth: number}
+  >;
 };
 
 const listRef = createRef<ReactVirtualizedList>();
@@ -292,7 +295,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): JSX.Element | null {
+  }): React.JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
@@ -717,7 +720,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
 
   addSpanRowToState = (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => {
     this.setState((prevState: StateType) => {
@@ -736,7 +739,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     });
   };
 
-  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
+  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement | null>) => {
     const {traceViewHeaderRef} = this.props;
 
     if (!spanRow.current || !traceViewHeaderRef.current) {
@@ -834,7 +837,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
 type SpanRowProps = ListRowProps & {
   addSpanRowToState: (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => void;
   cache: CellMeasurerCache;
@@ -886,7 +889,7 @@ function SpanRow(props: SpanRowProps) {
     node: SpanTreeNode,
     extraProps: {
       cellMeasurerCache: CellMeasurerCache;
-      listRef: React.RefObject<ReactVirtualizedList>;
+      listRef: React.RefObject<ReactVirtualizedList | null>;
       measure: () => void;
     } & SpanContext.SpanContextProps
   ) => {

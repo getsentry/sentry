@@ -3,11 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {
-  act,
   cleanup,
-  fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -126,14 +125,8 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(error).toBeInTheDocument();
 
     // Submit the form anyways
-    const postalCode = screen.getByRole('textbox', {name: 'Postal Code'});
-    act(() => {
-      fireEvent.change(postalCode, {target: {value: '90210'}});
-    });
     const button = screen.getByRole('button', {name: 'Pay Now'});
-    act(() => {
-      fireEvent.click(button);
-    });
+    await userEvent.click(button);
 
     // Should show an error as our intent never loaded.
     error = screen.getByText(/Cannot complete your payment/);
@@ -162,14 +155,8 @@ describe('InvoiceDetails > Payment Form', function () {
 
     expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
 
-    const postalCode = screen.getByRole('textbox', {name: 'Postal Code'});
-    act(() => {
-      fireEvent.change(postalCode, {target: {value: '90210'}});
-    });
     const button = screen.getByRole('button', {name: 'Pay Now'});
-    act(() => {
-      fireEvent.click(button);
-    });
+    await userEvent.click(button);
     await waitFor(() => expect(reloadInvoice).toHaveBeenCalled());
     expect(reloadInvoice).toHaveBeenCalled();
   });

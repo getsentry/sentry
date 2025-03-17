@@ -12,10 +12,8 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -82,7 +80,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
     meta: {
       fields: {
         [`${status}_session_${type}`]:
-          type === 'count' ? ('number' as const) : ('percentage' as const),
+          type === 'count' ? ('integer' as const) : ('percentage' as const),
         time: 'date' as const,
       },
       units: {},

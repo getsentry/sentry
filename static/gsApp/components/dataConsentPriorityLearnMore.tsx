@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

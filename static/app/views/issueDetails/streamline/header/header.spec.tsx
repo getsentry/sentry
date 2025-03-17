@@ -8,10 +8,16 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
@@ -89,7 +95,7 @@ describe('StreamlinedGroupHeader', () => {
       ).toBeInTheDocument();
 
       expect(
-        screen.queryByRole('button', {name: 'Switch to the old issue experience'})
+        screen.queryByRole('button', {name: 'Manage issue experience'})
       ).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
@@ -112,7 +118,7 @@ describe('StreamlinedGroupHeader', () => {
         }
       );
       expect(
-        await screen.findByRole('button', {name: 'Switch to the old issue experience'})
+        await screen.findByRole('button', {name: 'Manage issue experience'})
       ).toBeInTheDocument();
     });
 

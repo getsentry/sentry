@@ -27,6 +27,10 @@ type TourSetStepAction<T extends TourEnumType> = {
 type TourEndAction = {
   type: 'END_TOUR';
 };
+type TourSetAvailabilityAction = {
+  isAvailable: boolean;
+  type: 'SET_AVAILABILITY';
+};
 type TourSetRegistrationAction = {
   isRegistered: boolean;
   type: 'SET_REGISTRATION';
@@ -42,6 +46,7 @@ export type TourAction<T extends TourEnumType> =
   | TourPreviousStepAction
   | TourSetStepAction<T>
   | TourEndAction
+  | TourSetAvailabilityAction
   | TourSetRegistrationAction
   | TourSetCompletionAction;
 
@@ -66,6 +71,11 @@ export interface TourState<T extends TourEnumType> {
    * The ordered step IDs. Declared once when the provider is initialized.
    */
   orderedStepIds: readonly T[];
+  /**
+   * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
+   * Optional, only used if the tour viewing is saved to the database.
+   */
+  tourKey?: string;
 }
 
 // XXX: TourSteps are currently just IDs, so we could use a set here instead, but we're using a
@@ -147,6 +157,8 @@ function tourReducer<T extends TourEnumType>(
       return {...state, isCompleted: action.isCompleted};
     case 'SET_REGISTRATION':
       return {...state, isRegistered: action.isRegistered};
+    case 'SET_AVAILABILITY':
+      return {...state, isAvailable: action.isAvailable};
     default:
       return state;
   }
@@ -179,6 +191,7 @@ export function useTourReducer<T extends TourEnumType>(
 
   return useMemo<TourContextType<T>>(
     () => ({
+      tourKey: initialState.tourKey,
       dispatch,
       handleStepRegistration,
       currentStepId: state.currentStepId,
@@ -190,6 +203,7 @@ export function useTourReducer<T extends TourEnumType>(
     [
       dispatch,
       handleStepRegistration,
+      initialState.tourKey,
       state.currentStepId,
       state.isAvailable,
       state.isRegistered,

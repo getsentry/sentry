@@ -1,9 +1,9 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -75,6 +75,7 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
+  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -101,6 +102,7 @@ interface BaseStep {
   title: string;
   type: AutofixStepType;
   active_comment_thread?: CommentThread | null;
+  agent_comment_thread?: CommentThread | null;
   completedMessage?: string;
   key?: string;
   output_stream?: string | null;
@@ -189,11 +191,12 @@ export type AutofixTimelineEvent = {
 };
 
 export type AutofixSolutionTimelineEvent = {
-  code_snippet_and_analysis: string;
-  relevant_code_file: AutofixRelevantCodeFile;
-  timeline_item_type: 'internal_code';
+  timeline_item_type: 'internal_code' | 'human_instruction';
   title: string;
+  code_snippet_and_analysis?: string;
+  is_active?: boolean;
   is_most_important_event?: boolean;
+  relevant_code_file?: AutofixRelevantCodeFile;
 };
 
 export type AutofixRootCauseData = {
@@ -208,6 +211,11 @@ export type EventMetadataWithAutofix = EventMetadata & {
 
 export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
+};
+
+export type AutofixFeedback = {
+  root_cause_thumbs_down?: boolean;
+  root_cause_thumbs_up?: boolean;
 };
 
 export type FilePatch = {

@@ -11,12 +11,12 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.relocation.models.relocation import Relocation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationDetailsEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,

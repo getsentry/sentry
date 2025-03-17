@@ -21,13 +21,20 @@ from sentry.utils import json, metrics
 logger = logging.getLogger()
 
 
+@sentry_sdk.trace
 def emit_click_events(
     click_events: list[ClickEvent],
     project_id: int,
     replay_id: str,
     retention_days: int,
     start_time: float,
+    event_cap: int = 20,
+    environment: str | None = None,
 ) -> None:
+    # Skip event emission if no clicks specified.
+    if len(click_events) == 0:
+        return None
+
     clicks: list[ReplayActionsEventPayloadClick] = [
         {
             "alt": click.alt,
@@ -46,10 +53,11 @@ def emit_click_events(
             "timestamp": click.timestamp,
             "title": click.title,
         }
-        for click in click_events
+        for click in click_events[:event_cap]
     ]
 
     payload: ReplayActionsEventPayload = {
+        "environment": environment or "",
         "replay_id": replay_id,
         "type": "replay_actions",
         "clicks": clicks,

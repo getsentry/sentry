@@ -13,12 +13,12 @@ from sentry.backup.crypto import GCPKMSEncryptor, get_default_crypto_key_version
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.utils.env import log_gcp_credentials_details
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationPublicKeyEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,

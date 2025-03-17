@@ -130,7 +130,7 @@ export function formatReservedWithUnits(
   // convert reservedQuantity to BYTES to check for unlimited
   const usageGb = reservedQuantity ? reservedQuantity * GIGABYTE : reservedQuantity;
   if (isUnlimitedReserved(usageGb)) {
-    return !options.isGifted ? UNLIMITED : '0 GB';
+    return options.isGifted ? '0 GB' : UNLIMITED;
   }
   if (!options.useUnitScaling) {
     const formatted = formatReservedNumberToString(reservedQuantity, options);
@@ -279,15 +279,9 @@ export const hasActiveVCFeature = (organization: Organization) =>
 
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
-export const isBizPlanFamily = (plan?: Plan) =>
-  plan?.name === PlanName.BUSINESS ||
-  plan?.name === PlanName.BUSINESS_BUNDLE ||
-  plan?.name === PlanName.BUSINESS_SPONSORED;
+export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
 
-export const isTeamPlanFamily = (plan?: Plan) =>
-  plan?.name === PlanName.TEAM ||
-  plan?.name === PlanName.TEAM_BUNDLE ||
-  plan?.name === PlanName.TEAM_SPONSORED;
+export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
 export const isBusinessTrial = (subscription: Subscription) => {
   return (
@@ -329,7 +323,7 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 }
 
 export const displayPlanName = (plan?: Plan | null) => {
-  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : plan?.name ?? '[unavailable]';
+  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
 export const getAmPlanTier = (plan: string) => {

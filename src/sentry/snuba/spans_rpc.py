@@ -13,10 +13,15 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
+from sentry.search.eap.columns import (
+    ResolvedAggregate,
+    ResolvedAttribute,
+    ResolvedConditionalAggregate,
+    ResolvedFormula,
+)
 from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_columns import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
@@ -76,7 +81,11 @@ def get_timeseries_query(
     config: SearchResolverConfig,
     granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
-) -> tuple[TimeSeriesRequest, list[ResolvedFormula | ResolvedAggregate], list[ResolvedColumn]]:
+) -> tuple[
+    TimeSeriesRequest,
+    list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+    list[ResolvedAttribute],
+]:
     resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
@@ -415,7 +424,6 @@ def run_trace_query(
         "transaction",
         "precise.start_ts",
         "precise.finish_ts",
-        "project.slug",
         "project.id",
         "span.duration",
     ]
@@ -448,5 +456,9 @@ def run_trace_query(
                     span[resolved_column.public_alias] = attribute.value.val_int == 1
                 elif resolved_column.proto_definition.type == INT:
                     span[resolved_column.public_alias] = attribute.value.val_int
+                    if resolved_column.public_alias == "project.id":
+                        span["project.slug"] = resolver.params.project_id_map.get(
+                            span[resolved_column.public_alias], "Unknown"
+                        )
             spans.append(span)
     return spans

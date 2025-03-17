@@ -26,12 +26,12 @@ ERR_COULD_NOT_CANCEL_RELOCATION_AT_STEP = Template(
     started."""
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationCancelEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,

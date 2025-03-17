@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
 import {sampleDurationTimeSeries} from '../timeSeriesWidget/fixtures/sampleDurationTimeSeries';
+import {Line} from '../timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {Widget} from './widget';
@@ -42,8 +43,7 @@ export default storyBook('Widget', (story, APIReference) => {
             }
             Visualization={
               <TimeSeriesWidgetVisualization
-                visualizationType="line"
-                timeSeries={[sampleDurationTimeSeries]}
+                plottables={[new Line(sampleDurationTimeSeries)]}
               />
             }
             Footer={<span>This data is incomplete!</span>}

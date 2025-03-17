@@ -100,7 +100,13 @@ function EventOrGroupExtraDetails({
     ) : null,
     hasNewLayout && subtitle ? <Location>{subtitle}</Location> : null,
     numComments > 0 ? (
-      <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+      <CommentsLink
+        to={{
+          pathname: `${issuesPath}${id}/activity/`,
+          // Filter activity to only show comments
+          query: {filter: 'comments'},
+        }}
+      >
         <IconChat
           size="xs"
           color={subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined}
@@ -230,12 +236,14 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
   position: relative;
+  min-width: 10px;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Location = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  min-width: 0;
+  min-width: 10px;
   ${p => p.theme.overflowEllipsis};
 `;
 

@@ -3,12 +3,14 @@ import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
+import {Button} from 'sentry/components/core/button';
+import Hook from 'sentry/components/hook';
 import {useNavContext} from 'sentry/components/nav/context';
+import {OrgDropdown} from 'sentry/components/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
-import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
+import {TOPBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
+import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -44,22 +46,21 @@ function MobileTopbar() {
     isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
 
   return (
-    <Topbar>
-      <HomeLink
-        to={`/organizations/${organization.slug}/issues/`}
-        aria-label={t('Sentry Home')}
-        showSuperuserWarning={showSuperuserWarning}
-      >
-        <IconSentry />
-      </HomeLink>
-      <MenuButton
+    <Topbar showSuperuserWarning={showSuperuserWarning}>
+      <Left>
+        <OrgDropdown />
+        {showSuperuserWarning && (
+          <Hook name="component:superuser-warning" organization={organization} />
+        )}
+      </Left>
+      <Button
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
         size="sm"
         borderless
       />
-      {view !== 'closed' ? (
+      {view === 'closed' ? null : (
         <NavigationOverlayPortal
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
         >
@@ -68,7 +69,7 @@ function MobileTopbar() {
             <SecondaryMobile handleClickBack={() => setView('primary')} />
           ) : null}
         </NavigationOverlayPortal>
-      ) : null}
+      )}
     </Topbar>
   );
 }
@@ -84,12 +85,12 @@ function updateNavStyleAttributes(view: ActiveView) {
     );
   }
 
-  if (view !== 'closed') {
-    mainContent.setAttribute('inert', '');
-    document.body.style.setProperty('overflow', 'hidden');
-  } else {
+  if (view === 'closed') {
     mainContent.removeAttribute('inert');
     document.body.style.removeProperty('overflow');
+  } else {
+    mainContent.setAttribute('inert', '');
+    document.body.style.setProperty('overflow', 'hidden');
   }
 }
 
@@ -106,9 +107,10 @@ function NavigationOverlayPortal({
   );
 }
 
-const Topbar = styled('header')`
-  height: 40px;
+const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
+  height: ${TOPBAR_MOBILE_HEIGHT};
   width: 100vw;
+  padding-left: ${space(1.5)};
   padding-right: ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.translucentGray200};
   background: ${p => p.theme.surface300};
@@ -119,47 +121,18 @@ const Topbar = styled('header')`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.sidebar};
-`;
-
-const HomeLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'showSuperuserWarning',
-})<{showSuperuserWarning: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 ${space(2)};
-  height: 100%;
-  position: relative;
-
-  svg {
-    color: ${p => p.theme.white};
-    width: ${space(3)};
-    height: ${space(3)};
-  }
 
   ${p =>
     p.showSuperuserWarning &&
     css`
-      &:before {
-        content: '';
-        position: absolute;
-        height: 34px;
-        width: 42px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        border-radius: ${p.theme.borderRadius};
-        background: ${p.theme.sidebar.superuser};
-      }
+      background: ${p.theme.sidebar.superuser};
     `}
 `;
 
-const MenuButton = styled(Button)`
-  color: ${p => p.theme.white};
-
-  &:hover {
-    color: ${p => p.theme.white};
-  }
+const Left = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const NavigationOverlay = styled('nav')`

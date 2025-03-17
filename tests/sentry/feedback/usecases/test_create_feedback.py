@@ -839,6 +839,36 @@ def test_create_feedback_filters_large_message(
     assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
+@django_db_all
+def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    create_feedback_issue(event, default_project.id, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["source"] == source.value
+
+
+@django_db_all
+def test_create_feedback_evidence_has_spam(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch
+):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
+    default_project.update_option("sentry:feedback_ai_spam_detection", True)
+
+    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+        event = mock_feedback_event(default_project.id, datetime.now(UTC))
+        source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        create_feedback_issue(event, default_project.id, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["is_spam"] is True
+
+
 """
 Unit tests for shim_to_feedback error cases. The typical behavior of this function is tested in
 test_project_user_reports, test_post_process, and test_update_user_reports.

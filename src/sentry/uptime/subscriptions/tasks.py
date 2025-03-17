@@ -11,16 +11,21 @@ from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
     UptimeRegionScheduleMode,
+    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
+BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
 
 
 @instrumented_task(
@@ -129,18 +134,13 @@ def uptime_subscription_to_check_config(
     subscription_id: str,
     region_mode: UptimeSubscriptionRegion.RegionMode,
 ) -> CheckConfig:
-    headers = subscription.headers
-    # XXX: Temporary translation code. We want to support headers with the same keys, so convert to a list
-    if isinstance(headers, dict):
-        headers = [[key, val] for key, val in headers.items()]
-
     config: CheckConfig = {
         "subscription_id": subscription_id,
         "url": subscription.url,
         "interval_seconds": subscription.interval_seconds,
         "timeout_ms": subscription.timeout_ms,
         "request_method": subscription.method,
-        "request_headers": headers,
+        "request_headers": subscription.headers,
         "trace_sampling": subscription.trace_sampling,
         "active_regions": [r.region_slug for r in subscription.regions.filter(mode=region_mode)],
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
@@ -182,3 +182,27 @@ def subscription_checker(**kwargs):
             delete_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
 
     metrics.incr("uptime.subscriptions.repair", amount=count, sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.broken_monitor_checker",
+    queue="uptime",
+)
+def broken_monitor_checker(**kwargs):
+    """
+    This checks for auto created uptime monitors that have been broken for a long time and disables them.
+    """
+    from sentry.uptime.subscriptions.subscriptions import disable_project_uptime_subscription
+
+    count = 0
+    for uptime_monitor in RangeQuerySetWrapper(
+        ProjectUptimeSubscription.objects.filter(
+            uptime_status=UptimeStatus.FAILED,
+            uptime_status_update_date__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        )
+    ):
+        disable_project_uptime_subscription(uptime_monitor)
+        count += 1
+
+    metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)

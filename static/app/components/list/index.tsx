@@ -41,7 +41,7 @@ const List = styled(
         {!symbol || typeof symbol === 'string'
           ? children
           : Children.map(children, child =>
-              !isValidElement(child) ? child : cloneElement(child, {symbol})
+              isValidElement(child) ? cloneElement(child, {symbol}) : child
             )}
       </Wrapper>
     );

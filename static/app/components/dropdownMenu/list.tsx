@@ -60,11 +60,11 @@ export interface DropdownMenuListProps
   /**
    * To be displayed below the menu items
    */
-  menuFooter?: React.ReactChild;
+  menuFooter?: React.ReactNode;
   /**
    * Title to display on top of the menu
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Minimum menu width
    */

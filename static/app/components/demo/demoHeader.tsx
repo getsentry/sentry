@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
-  isDemoModeEnabled,
+  isDemoModeActive,
   openDemoEmailModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
@@ -22,7 +22,7 @@ export default function DemoHeader() {
     openDemoEmailModal();
   }, []);
 
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return null;
   }
 
