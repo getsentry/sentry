@@ -3,25 +3,29 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import Input from 'sentry/components/deprecatedforms/input';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
-  onSubmit?: (email: string) => void;
+  onSubmit?: (email: string) => Promise<void>;
 };
 
 export default function EmailForm({onSubmit}: Props) {
   const [disabledButton, setDisabledButton] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <StyledForm
-      onSubmit={event => {
+      onSubmit={async event => {
+        setIsSubmitting(true);
         event.preventDefault();
         const email = (event.target as HTMLFormElement).email.value;
         if (onSubmit) {
-          onSubmit(email);
+          await onSubmit(email);
         }
+        setIsSubmitting(false);
       }}
     >
       <Input
@@ -38,8 +42,15 @@ export default function EmailForm({onSubmit}: Props) {
         <Button
           type="submit"
           disabled={disabledButton}
+          busy={isSubmitting}
           priority="primary"
-          icon={<IconArrow direction="right" size="md" />}
+          icon={
+            isSubmitting ? (
+              <LoadingIndicator mini />
+            ) : (
+              <IconArrow direction="right" size="md" />
+            )
+          }
         >
           {t('Enter Sandbox')}
         </Button>
