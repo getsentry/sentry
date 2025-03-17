@@ -54,7 +54,7 @@ class MemberPermission(OrganizationPermission):
 
 class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
     visibility = serializers.MultipleChoiceField(
-        choices=[v[0] for v in GroupSearchViewVisibility.as_choices()],
+        choices=GroupSearchViewVisibility.as_choices(),
         required=False,
     )
 
