@@ -33,23 +33,18 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
       setPosition({left, top});
     };
 
-    // Initial position
     updatePosition();
 
-    // Track scroll events on window and all scrollable parents
     const scrollElements = [window, ...getScrollParents(targetElement)];
     scrollElements.forEach(element => {
       element.addEventListener('scroll', updatePosition, {passive: true});
     });
 
-    // Update on resize
     window.addEventListener('resize', updatePosition, {passive: true});
 
-    // Create a ResizeObserver to track DOM changes
     const resizeObserver = new ResizeObserver(updatePosition);
     resizeObserver.observe(targetElement);
 
-    // For extra responsiveness, set up a small polling interval to catch any missed updates
     const pollInterval = window.setInterval(updatePosition, 100);
 
     return () => {
