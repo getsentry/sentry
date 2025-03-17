@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {IconSearch} from 'sentry/icons';
@@ -23,6 +25,8 @@ type SchemaHintsDrawerProps = {
 function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
+
+  const theme = useTheme();
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(exploreQuery);
@@ -65,7 +69,18 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       <DrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
-          <IconSearch size="md" />
+          <InputGroup
+            css={css`
+              @media (max-width: ${theme.breakpoints.medium}) {
+                max-width: 175px;
+              }
+            `}
+          >
+            <SearchInput size="sm" value={''} onChange={() => {}} />
+            <InputGroup.TrailingItems disablePointerEvents>
+              <IconSearch size="md" />
+            </InputGroup.TrailingItems>
+          </InputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
           {sortedHints.map(hint => {
@@ -150,4 +165,10 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     width: 100%;
     ${p => p.theme.overflowEllipsis};
   }
+`;
+
+export const SearchInput = styled(InputGroup.Input)`
+  border: 0;
+  box-shadow: unset;
+  color: inherit;
 `;
