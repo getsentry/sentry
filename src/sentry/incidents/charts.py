@@ -12,11 +12,12 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.models.incident import Incident
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
@@ -39,7 +40,9 @@ API_INTERVAL_POINTS_MIN = 150
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
-def incident_date_range(alert_time_window: int, incident: Incident) -> Mapping[str, str]:
+def incident_date_range(
+    alert_time_window: int, date_started: datetime, date_closed: datetime | None
+) -> Mapping[str, str]:
     """
     Retrieve the start/end for graphing an incident.
     Will show at least 150 and no more than 10,000 data points.
@@ -49,8 +52,8 @@ def incident_date_range(alert_time_window: int, incident: Incident) -> Mapping[s
     min_range = time_window_milliseconds * API_INTERVAL_POINTS_MIN
     max_range = time_window_milliseconds * API_INTERVAL_POINTS_LIMIT
     now = timezone.now()
-    start_date: datetime = incident.date_started
-    end_date: datetime = incident.date_closed if incident.date_closed else now
+    start_date: datetime = date_started
+    end_date: datetime = date_closed if date_closed else now
     incident_range = max(
         (end_date - start_date).total_seconds() * 1000, 3 * time_window_milliseconds
     )
@@ -126,9 +129,9 @@ def fetch_metric_alert_events_timeseries(
         raise
 
 
-def fetch_metric_alert_incidents(
+def fetch_metric_issue_open_periods(
     organization: Organization,
-    alert_rule: AlertRule,
+    open_period_identifier: int,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> list[Any]:
@@ -137,8 +140,9 @@ def fetch_metric_alert_incidents(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/incidents/",
+            # TODO(iamrajjoshi): Use the correct endpoint and update the params
             params={
-                "alertRule": alert_rule.id,
+                "alertRule": open_period_identifier,
                 "expand": "activities",
                 "includeSnapshots": True,
                 "project": -1,
@@ -155,17 +159,18 @@ def fetch_metric_alert_incidents(
         return []
 
 
-def fetch_metric_alert_anomalies(
+def fetch_metric_anomalies(
     organization: Organization,
-    alert_rule: AlertRule,
+    identifier_id: int,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> list[Any]:
     try:
+        # TODO(iamrajjoshi): Use the correct endpoint and update the path
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
-            path=f"/organizations/{organization.slug}/alert-rules/{alert_rule.id}/anomalies/",
+            path=f"/organizations/{organization.slug}/alert-rules/{identifier_id}/anomalies/",
             params={
                 **time_period,
             },
@@ -182,7 +187,9 @@ def fetch_metric_alert_anomalies(
 
 def build_metric_alert_chart(
     organization: Organization,
-    alert_rule: AlertRule,
+    alert_rule_serialized_response: AlertRuleSerializerResponse,
+    snuba_query: SnubaQuery,
+    alert_context: AlertContext,
     selected_incident: Incident | None = None,
     period: str | None = None,
     start: str | None = None,
@@ -194,7 +201,6 @@ def build_metric_alert_chart(
     """
     Builds the dataset required for metric alert chart the same way the frontend would
     """
-    snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
@@ -205,7 +211,9 @@ def build_metric_alert_chart(
     )
 
     if selected_incident:
-        time_period = incident_date_range(snuba_query.time_window, selected_incident)
+        time_period = incident_date_range(
+            snuba_query.time_window, selected_incident.date_started, selected_incident.date_closed
+        )
     elif start and end:
         time_period = {"start": start, "end": end}
     else:
@@ -216,11 +224,11 @@ def build_metric_alert_chart(
         }
 
     chart_data = {
-        "rule": serialize(alert_rule, user, AlertRuleSerializer()),
+        "rule": alert_rule_serialized_response,
         "selectedIncident": serialize(selected_incident, user, DetailedIncidentSerializer()),
-        "incidents": fetch_metric_alert_incidents(
+        "incidents": fetch_metric_issue_open_periods(
             organization,
-            alert_rule,
+            alert_context.action_identifier_id,
             time_period,
             user,
         ),
@@ -232,11 +240,11 @@ def build_metric_alert_chart(
             "organizations:anomaly-detection-alerts-charts",
             organization,
         )
-        and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        and alert_context.detection_type == AlertRuleDetectionType.DYNAMIC
     ):
-        chart_data["anomalies"] = fetch_metric_alert_anomalies(
+        chart_data["anomalies"] = fetch_metric_anomalies(
             organization,
-            alert_rule,
+            alert_context.action_identifier_id,
             time_period,
             user,
         )

@@ -371,15 +371,14 @@ class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")
         return value == SearchBoolean.BOOLEAN_AND or SearchBoolean.is_or_operator(value)
 
 
-class ParenExpression(namedtuple("ParenExpression", "children")):
-    def to_query_string(self):
-        children = ""
-        for child in self.children:
-            if isinstance(child, str):
-                children += f" {child}"
-            else:
-                children += f" {child.to_query_string()}"
-        return f"({children})"
+class ParenExpression(NamedTuple):
+    children: Sequence[QueryToken]
+
+    def to_query_string(self) -> str:
+        inner = " ".join(
+            child if isinstance(child, str) else child.to_query_string() for child in self.children
+        )
+        return f"({inner})"
 
 
 class SearchKey(NamedTuple):
@@ -516,7 +515,7 @@ class SearchFilter(NamedTuple):
     def __str__(self):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
-    def to_query_string(self):
+    def to_query_string(self) -> str:
         if self.operator == "IN":
             return f"{self.key.name}:{self.value.to_query_string()}"
         elif self.operator == "NOT IN":
@@ -558,12 +557,18 @@ if TYPE_CHECKING:
         value: SearchValue
         DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
 
+        def to_query_string(self) -> str:
+            return ""
+
 else:  # real implementation here!
 
     class AggregateFilter(NamedTuple):
         key: AggregateKey
         operator: str
         value: SearchValue
+
+        def to_query_string(self) -> str:
+            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
         def __str__(self) -> str:
             return f"{self.key.name}{self.operator}{self.value.raw_value}"
@@ -1324,15 +1329,14 @@ default_config = SearchConfig(
 )
 
 QueryOp = Literal["AND", "OR"]
-QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+QueryToken = Union[SearchFilter, AggregateFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query,
+    query: str,
     *,
     config: SearchConfig | None = None,
     params=None,
-    config_overrides=None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> list[
@@ -1353,9 +1357,6 @@ def parse_search_query(
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-
-    if config_overrides:
-        config = SearchConfig.create_from(config, **config_overrides)
 
     return SearchVisitor(
         config,
