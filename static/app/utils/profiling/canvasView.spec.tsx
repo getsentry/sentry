@@ -8,9 +8,12 @@ import {
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {lightTheme} from 'sentry/utils/theme';
+
+const theme = makeLightFlamegraphTheme(lightTheme);
 
 const makeCanvasAndView = (
   canvas: HTMLCanvasElement,

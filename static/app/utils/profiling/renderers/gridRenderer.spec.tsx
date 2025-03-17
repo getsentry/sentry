@@ -1,10 +1,13 @@
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {
   getIntervalTimeAtX,
   GridRenderer,
 } from 'sentry/utils/profiling/renderers/gridRenderer';
 import {computeInterval, Rect} from 'sentry/utils/profiling/speedscope';
+import {lightTheme} from 'sentry/utils/theme';
+
+const theme = makeLightFlamegraphTheme(lightTheme);
 
 describe('getIntervalTimeAtX', () => {
   beforeEach(() => {
@@ -164,7 +167,7 @@ describe('gridRenderer', () => {
 
     const renderer = new GridRenderer(
       canvas as HTMLCanvasElement,
-      LightFlamegraphTheme,
+      theme,
       jest.fn().mockImplementation(n => n + 'ms')
     );
 
@@ -198,7 +201,7 @@ describe('gridRenderer', () => {
       expect(context.fillText.mock.calls[i][0]).toEqual(i + 'ms');
       // @ts-expect-error this is a mock
       expect(context.fillText.mock.calls[i][1]).toEqual(
-        i * 100 - LightFlamegraphTheme.SIZES.LABEL_FONT_PADDING - WIDTH
+        i * 100 - theme.SIZES.LABEL_FONT_PADDING - WIDTH
       );
       // @ts-expect-error this is a mock
       // First 3 draw calls are for the horizontal line, the rest are verticals
