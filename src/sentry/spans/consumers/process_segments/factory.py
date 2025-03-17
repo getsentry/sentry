@@ -90,7 +90,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
 
         produce_step: ProcessingStrategy[FilteredPayload | KafkaPayload]
 
-        if self.skip_produce:
+        if not self.skip_produce:
             produce_step = Produce(
                 producer=self.producer,
                 topic=self.output_topic,
