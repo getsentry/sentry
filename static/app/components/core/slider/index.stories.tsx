@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Slider} from 'sentry/components/core/slider';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
@@ -19,16 +19,45 @@ export default storyBook('Slider', (story, APIReference) => {
           The <JSXNode name="Slider" /> component is a simple slider that can be used to
           select a value from a range.
         </p>
-        <SideBySide>
-          <Label>
-            Basic slider
-            <Slider />
-          </Label>
-          <Label>
-            Disabled slider
-            <Slider disabled />
-          </Label>
-        </SideBySide>
+        <Label>
+          Basic slider
+          <Slider />
+        </Label>
+      </Fragment>
+    );
+  });
+
+  story('Disabled', () => {
+    return (
+      <Fragment>
+        <p>
+          Use the <JSXProperty name="disabled" value /> prop to disable the slider.
+        </p>
+        <Label>
+          Disabled slider
+          <Slider disabled />
+        </Label>
+      </Fragment>
+    );
+  });
+
+  story('Label Formatting', () => {
+    return (
+      <Fragment>
+        <p>
+          The label display can be controlled using the{' '}
+          <JSXProperty name="formatLabel" value={(n: number) => n} /> callback prop.
+        </p>
+        <Label>
+          Disabled slider
+          <Slider
+            formatLabel={(v: number | '') => `${v}%`}
+            min={0}
+            max={100}
+            step={10}
+            defaultValue={10}
+          />
+        </Label>
       </Fragment>
     );
   });
