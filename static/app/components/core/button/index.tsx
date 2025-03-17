@@ -216,7 +216,7 @@ function BaseButton({
   borderless,
   translucentBorder,
   priority,
-  disabled = false,
+  disabled,
   tooltipProps,
   onClick,
   analyticsEventName,
