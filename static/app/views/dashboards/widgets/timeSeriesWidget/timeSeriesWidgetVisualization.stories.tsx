@@ -14,7 +14,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
-import type {LegendSelection, Release, TimeSeries} from '../common/types';
+import type {LegendSelection, Meta, Release, TimeSeries} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -248,6 +248,47 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               ]}
             />
           </MediumWidget>
+        </SideBySide>
+
+        <p>
+          In rare cases, none of the data will have a known type. In these cases we drop
+          down to a generic "number" axis. This also accounts for combinations of unknown
+          types and the generic "number" type.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  meta: NULL_META,
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  meta: NULL_META,
+                }),
+              ]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  meta: {
+                    type: 'number',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  meta: NULL_META,
+                }),
+              ]}
+            />
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -592,3 +633,8 @@ function toTimeSeriesSelection(
 function hasTimestamp(release: Partial<Release>): release is Release {
   return Boolean(release?.timestamp);
 }
+
+const NULL_META: Meta = {
+  type: null,
+  unit: null,
+};
