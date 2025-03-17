@@ -47,8 +47,6 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
 
   const handleSubmit = useCallback(
     async (email: string) => {
-      closeModal();
-
       const utmState = getUTMState();
 
       if (onAddedEmail) {
@@ -63,6 +61,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
             email,
           },
         });
+        closeModal();
 
         updateTouches(utmState);
       } catch (error) {
