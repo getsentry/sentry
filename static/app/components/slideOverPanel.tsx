@@ -1,7 +1,7 @@
 import type {ForwardedRef} from 'react';
 import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, type Interpolation, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AnimationProps, motion} from 'framer-motion';
 
@@ -30,7 +30,7 @@ type SlideOverPanelProps = {
   className?: string;
   'data-test-id'?: string;
   onOpen?: () => void;
-  panelCss?: Interpolation<Theme>;
+  panelWidth?: string;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
@@ -47,7 +47,7 @@ function SlideOverPanel(
     onOpen,
     slidePosition,
     transitionProps = {},
-    panelCss,
+    panelWidth,
   }: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
@@ -81,7 +81,7 @@ function SlideOverPanel(
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
       data-test-id={testId}
-      css={panelCss}
+      panelWidth={panelWidth}
     >
       {children}
     </_SlideOverPanel>
@@ -93,6 +93,7 @@ const _SlideOverPanel = styled(motion.div, {
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
+  panelWidth?: string;
   slidePosition?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
@@ -131,7 +132,7 @@ const _SlideOverPanel = styled(motion.div, {
           ? css`
               position: fixed;
 
-              width: ${PANEL_WIDTH};
+              width: ${p.panelWidth ?? PANEL_WIDTH};
               height: 100%;
 
               top: 0;
@@ -142,7 +143,7 @@ const _SlideOverPanel = styled(motion.div, {
           : css`
               position: relative;
 
-              width: ${LEFT_SIDE_PANEL_WIDTH};
+              width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
               min-width: 450px;
               height: 100%;
 

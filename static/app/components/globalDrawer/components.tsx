@@ -28,12 +28,12 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
-  drawerCss?: DrawerOptions['drawerCss'];
+  drawerWidth?: DrawerOptions['drawerWidth'];
   transitionProps?: AnimationProps['transition'];
 }
 
 export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {ariaLabel, children, transitionProps, onClose, drawerCss}: DrawerPanelProps,
+  {ariaLabel, children, transitionProps, onClose, drawerWidth}: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   return (
@@ -44,7 +44,7 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
         collapsed={false}
         ref={ref}
         transitionProps={transitionProps}
-        panelCss={drawerCss}
+        panelWidth={drawerWidth}
       >
         {/*
           This provider allows data passed to openDrawer to be accessed by drawer components.

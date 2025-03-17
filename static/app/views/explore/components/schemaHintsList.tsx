@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -58,7 +57,6 @@ function SchemaHintsList({
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
-  const theme = useTheme();
 
   const {openDrawer, isDrawerOpen} = useDrawer();
 
@@ -167,14 +165,7 @@ function SchemaHintsList({
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
-              drawerCss: css`
-                @media (min-width: ${theme.breakpoints.small}) {
-                  width: 50vw;
-                }
-                @media (min-width: ${theme.breakpoints.medium}) {
-                  width: 35vw;
-                }
-              `,
+              drawerWidth: '35vw',
               shouldCloseOnLocationChange: newLocation => {
                 return (
                   location.pathname !== newLocation.pathname ||
@@ -201,15 +192,7 @@ function SchemaHintsList({
       );
       setExploreQuery(newSearchQuery.formatString());
     },
-    [
-      exploreQuery,
-      setExploreQuery,
-      isDrawerOpen,
-      openDrawer,
-      theme.breakpoints,
-      filterTagsSorted,
-      location,
-    ]
+    [exploreQuery, setExploreQuery, isDrawerOpen, openDrawer, filterTagsSorted, location]
   );
 
   const getHintText = (hint: Tag) => {
