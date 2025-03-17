@@ -291,8 +291,7 @@ class IssueAlertMigratorTest(TestCase):
         assert Workflow.objects.all().count() == 0
 
     def test_run__no_triggers(self):
-        conditions = []
-        self.issue_alert.data["conditions"] = conditions
+        self.issue_alert.data["conditions"] = []
         self.issue_alert.save()
 
         IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
@@ -301,8 +300,9 @@ class IssueAlertMigratorTest(TestCase):
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
 
         assert workflow.when_condition_group
-        conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
-        assert conditions.count() == 0
+        assert (
+            DataCondition.objects.filter(condition_group=workflow.when_condition_group).count() == 0
+        )
 
     def test_run__no_double_migrate(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
