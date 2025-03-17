@@ -83,6 +83,7 @@ function getHeaderTitle(
 }
 
 function DrawerContent({
+  data,
   tagKey,
   tab,
   group,
@@ -94,6 +95,7 @@ function DrawerContent({
   refetch,
   displayTags,
 }: {
+  data: GroupTag[];
   displayTags: GroupTag[];
   environments: string[];
   group: Group;
@@ -133,6 +135,16 @@ function DrawerContent({
         message={t('There was an error loading issue tags.')}
         onRetry={refetch}
       />
+    );
+  }
+
+  if (displayTags.length === 0) {
+    return (
+      <StyledEmptyStateWarning withIcon>
+        {data.length === 0
+          ? t('No tags were found for this issue')
+          : t('No tags were found for this search')}
+      </StyledEmptyStateWarning>
     );
   }
 
@@ -352,6 +364,7 @@ export function GroupTagsDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <DrawerContent
+          data={data}
           tagKey={tagKey}
           tab={tab as DrawerTab}
           group={group}
