@@ -48,9 +48,9 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
 @region_silo_endpoint
 class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization, request):
@@ -151,10 +151,6 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         query.delete()
 
         return Response(status=204)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 @region_silo_endpoint
