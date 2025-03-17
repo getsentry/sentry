@@ -1,18 +1,17 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import BaseTag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
-import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,10 +58,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
-    emphasis: <em />,
-  }),
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {emphasis: <em />}),
   value: NONE,
   trailingItems: null,
 };
@@ -73,33 +70,56 @@ function formatColumnOptions(
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
-  ) => boolean
+  ) => boolean,
+  field: QueryFieldValue
 ) {
   return options
     .filter(option => {
-      // Don't show any aggregates under the columns, and if
-      // there isn't a filter method, just show the option
-      return (
-        option.value.kind !== FieldValueKind.FUNCTION &&
-        (columnFilterMethod?.(option) ?? true)
-      );
+      // Don't show any aggregates under the columns
+      return option.value.kind !== FieldValueKind.FUNCTION;
     })
-    .map(option => ({
-      value: option.value.meta.name,
-      label:
-        dataset === WidgetType.SPANS
-          ? prettifyTagKey(option.value.meta.name)
-          : option.value.meta.name,
+    .map(option => {
+      const supported = columnFilterMethod ? columnFilterMethod(option, field) : false;
+      return {
+        value: option.value.meta.name,
+        label:
+          dataset === WidgetType.SPANS
+            ? prettifyTagKey(option.value.meta.name)
+            : option.value.meta.name,
 
-      trailingItems: renderTag(
-        option.value.kind,
-        option.value.meta.name,
-        option.value.kind !== FieldValueKind.FUNCTION &&
-          option.value.kind !== FieldValueKind.EQUATION
-          ? option.value.meta.dataType!
-          : undefined
-      ),
-    }));
+        trailingItems: renderTag(
+          option.value.kind,
+          option.value.meta.name,
+          option.value.kind !== FieldValueKind.FUNCTION &&
+            option.value.kind !== FieldValueKind.EQUATION
+            ? option.value.meta.dataType!
+            : undefined
+        ),
+        disabled: !supported,
+        tooltip:
+          !supported && field.kind === FieldValueKind.FUNCTION
+            ? tct('This field is not available for the [aggregate] function', {
+                aggregate: <strong>{field.function[0]}</strong>,
+              })
+            : undefined,
+      };
+    });
+}
+
+function _sortFn(
+  a: SelectValue<string> & {value: string; label?: string | ReactNode},
+  b: SelectValue<string> & {value: string; label?: string | ReactNode}
+) {
+  // The labels should always be strings in this component, but we'll
+  // handle the cases where they are not.
+  if (typeof a.label !== 'string' || typeof b.label !== 'string') {
+    return 0;
+  }
+  if (!defined(a.label) || !defined(b.label)) {
+    return 0;
+  }
+
+  return a.label.localeCompare(b.label);
 }
 
 export function getColumnOptions(
@@ -113,20 +133,25 @@ export function getColumnOptions(
 ) {
   const fieldValues = Object.values(fieldOptions);
   if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+    return formatColumnOptions(
+      dataset,
+      fieldValues,
+      columnFilterMethod,
+      selectedField
+    ).sort(_sortFn);
   }
 
-  const field = fieldValues.find(
+  const fieldData = fieldValues.find(
     option => option.value.meta.name === selectedField.function[0]
   )?.value;
 
   if (
-    field &&
-    field.kind === FieldValueKind.FUNCTION &&
-    field.meta.parameters.length > 0 &&
-    field.meta.parameters[0]
+    fieldData &&
+    fieldData.kind === FieldValueKind.FUNCTION &&
+    fieldData.meta.parameters.length > 0 &&
+    fieldData.meta.parameters[0]
   ) {
-    const parameter = field.meta.parameters[0];
+    const parameter = fieldData.meta.parameters[0];
     if (parameter && parameter.kind === 'dropdown') {
       // Parameters for dropdowns are already formatted in the correct manner
       // for select fields
@@ -134,26 +159,43 @@ export function getColumnOptions(
     }
 
     if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
+      // Release Health widgets are the only widgets that actually have different
+      // columns than the aggregates accept. e.g. project will never be a valid
+      // parameter for any of the aggregates.
+      const allowedColumns =
+        dataset === WidgetType.RELEASE
+          ? fieldValues.filter(
+              option =>
+                option.value.kind === FieldValueKind.METRICS &&
+                validateColumnTypes(
+                  parameter.columnTypes as ValidateColumnTypes,
+                  option.value
+                )
+            )
+          : fieldValues;
       return formatColumnOptions(
         dataset,
-        fieldValues.filter(({value}) =>
-          dataset === WidgetType.RELEASE
-            ? value.kind === FieldValueKind.METRICS &&
-              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
-            : (value.kind === FieldValueKind.FIELD ||
-                value.kind === FieldValueKind.TAG ||
-                value.kind === FieldValueKind.MEASUREMENT ||
-                value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
-                value.kind === FieldValueKind.METRICS ||
-                value.kind === FieldValueKind.BREAKDOWN) &&
-              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
-        ),
-        columnFilterMethod
-      );
+        allowedColumns,
+        (option, field) =>
+          columnFilterMethod(option, field) &&
+          (option.value.kind === FieldValueKind.FIELD ||
+            option.value.kind === FieldValueKind.TAG ||
+            option.value.kind === FieldValueKind.MEASUREMENT ||
+            option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+            option.value.kind === FieldValueKind.METRICS ||
+            option.value.kind === FieldValueKind.BREAKDOWN) &&
+          validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, option.value),
+        selectedField
+      ).sort(_sortFn);
     }
   }
 
-  return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+  return formatColumnOptions(
+    dataset,
+    fieldValues,
+    columnFilterMethod,
+    selectedField
+  ).sort(_sortFn);
 }
 
 function canDeleteField(
@@ -204,9 +246,7 @@ function Visualize({error, setError}: VisualizeProps) {
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
-    fields: {
-      selectedAggregate: decodeScalar,
-    },
+    fields: {selectedAggregate: decodeScalar},
   });
   const [selectedAggregateSet, setSelectedAggregateSet] = useState(
     defined(queryParamSelectedAggregate)
@@ -218,8 +258,8 @@ function Visualize({error, setError}: VisualizeProps) {
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -268,17 +308,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    spanColumnOptions.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
+    spanColumnOptions.sort(_sortFn);
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -440,7 +470,8 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.kind,
                             option.value.meta.name
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   } else {
                     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
@@ -463,7 +494,8 @@ function Visualize({error, setError}: VisualizeProps) {
                               ? option.value.meta.dataType!
                               : undefined
                           ),
-                        })),
+                        }))
+                        .sort(_sortFn),
                     ];
                   }
                 }
@@ -641,10 +673,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                         return;
                                       }
                                       newFields[index]!.function[1] = value;
-                                      dispatch({
-                                        type: updateAction,
-                                        payload: newFields,
-                                      });
+                                      dispatch({type: updateAction, payload: newFields});
                                       setError?.({...error, queries: []});
                                     }}
                                   />
@@ -662,10 +691,7 @@ function Visualize({error, setError}: VisualizeProps) {
                               onChange={e => {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
-                                dispatch({
-                                  type: updateAction,
-                                  payload: newFields,
-                                });
+                                dispatch({type: updateAction, payload: newFields});
                               }}
                               onBlur={() => {
                                 trackAnalytics('dashboards_views.widget_builder.change', {
@@ -816,48 +842,49 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
       case 'boolean':
       case 'date':
       case 'string':
-        return <BaseTag type="highlight">{t('string')}</BaseTag>;
+        return <Tag type="highlight">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
       case 'number':
-        return <BaseTag type="success">{t('number')}</BaseTag>;
+        return <Tag type="success">{t('number')}</Tag>;
       default:
-        return <BaseTag>{dataType}</BaseTag>;
+        return <Tag>{dataType}</Tag>;
     }
   }
-  let text, tagType;
+  let text: string | undefined, tagType: TagProps['type'] | undefined;
+
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     case FieldValueKind.TAG:
       text = kind;
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     default:
       text = kind;
   }
 
-  return <BaseTag type={tagType}>{text}</BaseTag>;
+  return <Tag type={tagType}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{

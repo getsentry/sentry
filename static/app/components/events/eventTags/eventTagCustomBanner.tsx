@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import onboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

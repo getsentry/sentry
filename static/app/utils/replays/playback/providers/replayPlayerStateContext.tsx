@@ -1,11 +1,7 @@
 import type {Dispatch, ReactNode} from 'react';
 import {createContext, useCallback, useContext, useReducer} from 'react';
-import type {Replayer} from '@sentry-internal/rrweb';
+import type {PlayerState, Replayer, SpeedState} from '@sentry-internal/rrweb';
 import {ReplayerEvents} from '@sentry-internal/rrweb';
-import type {
-  PlayerState,
-  SpeedState,
-} from '@sentry-internal/rrweb/typings/replay/machine';
 
 import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -157,7 +153,7 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};
     default:
       // @ts-expect-error TS(2339): Property 'type' does not exist on type 'never'.
-      throw Error('Unknown action: ' + replayerAction.type);
+      throw new Error('Unknown action: ' + replayerAction.type);
   }
 }
 
@@ -201,7 +197,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       return;
     }
     default:
-      throw Error('Unknown action: ' + (userAction as any).type);
+      throw new Error('Unknown action: ' + (userAction as any).type);
   }
 }
 

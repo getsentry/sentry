@@ -1703,6 +1703,32 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
 
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    @patch("sentry.api.endpoints.project_rule_details.delete_migrated_issue_alert")
+    def test_dual_delete_workflow_engine__fail(self, mock_delete):
+        rule = self.create_project_rule(
+            self.project,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                    "name": "The event occurs",
+                },
+            ],
+        )
+        IssueAlertMigrator(rule, user_id=self.user.id).run()
+
+        mock_delete.side_effect = Exception("oh no")
+
+        # failed workflow engine deletion should stop the rule from being deleted
+        self.get_error_response(self.organization.slug, rule.project.slug, rule.id, status_code=500)
+
+        rule.refresh_from_db()
+        assert rule
+
     def test_dual_delete_workflow_engine_no_migrated_models(self):
         rule = self.create_project_rule(self.project)
         self.get_success_response(

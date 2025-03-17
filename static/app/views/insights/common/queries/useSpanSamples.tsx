@@ -1,9 +1,7 @@
 import moment from 'moment-timezone';
-import * as qs from 'query-string';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -44,8 +42,6 @@ export type SpanSample = Pick<
 
 export const useSpanSamples = (options: Options) => {
   const organization = useOrganization();
-  const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
-  const api = useApi();
   const pageFilter = usePageFilters();
   const {
     groupId,
@@ -58,7 +54,7 @@ export const useSpanSamples = (options: Options) => {
   } = options;
   const location = useLocation();
 
-  const query = spanSearch !== undefined ? spanSearch.copy() : new MutableSearch([]);
+  const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
   query.addFilterValue('transaction', transactionName);
 
@@ -101,45 +97,37 @@ export const useSpanSamples = (options: Options) => {
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  const queryString = query.formatString();
+  const queryParams = {
+    ...dateCondtions,
+    ...{utc: location.query.utc},
+    lowerBound: 0,
+    firstBound: maxYValue * (1 / 3),
+    secondBound: maxYValue * (2 / 3),
+    upperBound: maxYValue,
+    project: pageFilter.selection.projects,
+    environment: pageFilter.selection.environments,
+    query: query.formatString(),
+    ...(additionalFields?.length ? {additionalFields} : {}),
+  };
+  const {data, ...result} = useApiQuery<{data: SpanSample[]}>(
+    [`/api/0/organizations/${organization.slug}/spans-samples/`, {query: queryParams}],
+    {
+      refetchOnWindowFocus: false,
+      enabled,
+      staleTime: 0,
+    }
+  );
 
-  const result = useQuery<SpanSample[]>({
-    queryKey: [
-      'span-samples',
-      groupId,
-      transactionName,
-      dateCondtions.statsPeriod,
-      dateCondtions.start,
-      dateCondtions.end,
-      queryString,
-      subregions?.join(','),
-      additionalFields?.join(','),
-    ],
-    queryFn: async () => {
-      const {data} = await api.requestPromise(
-        `${url}?${qs.stringify({
-          ...dateCondtions,
-          ...{utc: location.query.utc},
-          lowerBound: 0,
-          firstBound: maxYValue * (1 / 3),
-          secondBound: maxYValue * (2 / 3),
-          upperBound: maxYValue,
-          project: pageFilter.selection.projects,
-          query: queryString,
-          ...(additionalFields?.length ? {additionalFields} : {}),
-        })}`
-      );
-      return data
-        ?.map((d: SpanSample) => ({
+  return {
+    ...result,
+    isEnabled: enabled,
+    data:
+      data?.data
+        .map((d: SpanSample) => ({
           ...d,
           timestamp: moment(d.timestamp).format(DATE_FORMAT),
         }))
-        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]);
-    },
-    refetchOnWindowFocus: false,
-    enabled,
-    initialData: [],
-  });
-
-  return {...result, isEnabled: enabled};
+        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]) ??
+      [],
+  };
 };

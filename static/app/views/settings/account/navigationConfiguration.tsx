@@ -1,3 +1,4 @@
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
@@ -11,9 +12,7 @@ type ConfigParams = {
 };
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
-  if (organization && hasNavigationV2) {
+  if (organization && prefersStackedNav()) {
     return getUserOrgNavigationConfiguration({organization});
   }
 

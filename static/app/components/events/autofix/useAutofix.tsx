@@ -85,6 +85,13 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
     return true;
   }
 
+  // Check if there's any active comment thread that hasn't been completed
+  const hasActiveCommentThread = autofixData.steps.some(
+    step =>
+      (step.active_comment_thread && !step.active_comment_thread.is_completed) ||
+      (step.agent_comment_thread && !step.agent_comment_thread.is_completed)
+  );
+
   const hasSolutionStep = autofixData.steps.some(
     step => step.type === AutofixStepType.SOLUTION
   );
@@ -97,6 +104,12 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
     // we need this explicit check in case we get a state for a fraction of a second where the root cause is complete and there is no step after it started
     return true;
   }
+
+  // Continue polling if there's an active comment thread, even if the run is completed
+  if (hasActiveCommentThread) {
+    return true;
+  }
+
   return (
     !autofixData ||
     ![
@@ -109,13 +122,13 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
 };
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
-  const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
+  const {data, isPending} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
     staleTime: Infinity,
     enabled: false,
     notifyOnChangeProps: ['data'],
   });
 
-  return data?.autofix ?? null;
+  return {data: data?.autofix ?? null, isPending};
 };
 
 export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
@@ -164,6 +177,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
         setCurrentRunId(response.run_id ?? null);
         queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(group.id)});
       } catch (e) {
+        setWaitingForNextRun(false);
         setApiQueryData<AutofixResponse>(
           queryClient,
           makeAutofixQueryKey(group.id),

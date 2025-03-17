@@ -1,5 +1,3 @@
-import type {Organization} from 'sentry/types/organization';
-
 import type {TraceResult} from '../../hooks/useTraces';
 import type {SpanResult} from '../../hooks/useTraceSpans';
 
@@ -44,10 +42,6 @@ export function areQueriesEmpty(queries: string[]): boolean {
 
 export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
   return span['sdk.name'];
-}
-
-export function generateTracesRoute({orgSlug}: {orgSlug: Organization['slug']}): string {
-  return `/organizations/${orgSlug}/traces/`;
 }
 
 export function getShortenedSdkName(sdkName: string | null) {

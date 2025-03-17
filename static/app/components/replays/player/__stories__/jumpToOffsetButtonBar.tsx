@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useReplayUserAction} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';

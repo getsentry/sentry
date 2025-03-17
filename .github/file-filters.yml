@@ -31,8 +31,8 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.{less,json,yml,md}'
-  - added|modified: '{.volta,vercel}.json'
+  - added|modified: 'static/**/*.{less,json,yml,md}'
+  - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
 
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies

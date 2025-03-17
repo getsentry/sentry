@@ -14,7 +14,7 @@ class TestLevelCondition(ConditionTestCase):
     payload = {
         "id": LevelCondition.id,
         "match": MatchType.EQUAL,
-        "level": 20,
+        "level": "20",
     }
 
     def setup_group_event_and_job(self):

@@ -1,10 +1,18 @@
+"""
+IMPORTANT:
+
+If you make changes here that affect what's stored, increment GROUPHASH_METADATA_SCHEMA_VERSION in
+the `GroupHash` model file, so that existing records will get updated with the new data.
+"""
+
 from __future__ import annotations
 
 import logging
 import random
+from datetime import datetime
 from typing import Any, TypeIs, cast
 
-from sentry import features, options
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
@@ -29,7 +37,11 @@ from sentry.grouping.variants import (
     VariantsByDescriptor,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
+from sentry.models.grouphashmetadata import (
+    GROUPHASH_METADATA_SCHEMA_VERSION,
+    GroupHashMetadata,
+    HashBasis,
+)
 from sentry.models.project import Project
 from sentry.types.grouphash_metadata import (
     ChecksumHashingMetadata,
@@ -98,9 +110,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 
 def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
     # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled") or not features.has(
-        "organizations:grouphash-metadata-creation", project.organization
-    ):
+    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
         return False
 
     # While we're backfilling metadata for existing grouphash records, if the load is too high, we
@@ -123,8 +133,44 @@ def create_or_update_grouphash_metadata_if_needed(
     db_hit_metadata: dict[str, Any] = {}
 
     if not grouphash.metadata:
-        new_data: dict[str, Any] = {"grouphash": grouphash}
-        new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
+        # Use `get_or_create` rather than just `create` (even though the fact that we landed in this
+        # branch implies no record exists) in order to guard against race coditions without the need
+        # for a lock
+        grouphash_metadata, created = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+
+        new_data = get_grouphash_metadata_data(event, project, variants, grouping_config)
+
+        if not created:
+            logger.info(
+                "grouphash_metadata.creation_race_condition.record_exists",
+                extra={
+                    "grouphash_id": grouphash.id,
+                    "grouphash_is_new": grouphash_is_new,
+                    "grouphash_has_group": bool(grouphash.group_id),
+                    "event_id": event.event_id,
+                    "hash": grouphash.hash,
+                },
+            )
+            # If we've lost the race (to some other event with the same grouphash), our
+            # `grouphash.metadata` pointer may not point to a real record in the database, in which
+            # case we won't be able to store Seer results (if any). However, the fact that we lost
+            # implies that some other event won, and will be able to store the results. Given that,
+            # it's best to not call Seer at all with this event, both to avoid problems storing the
+            # results and to reduce load and preserve the project's Seer rate limit.
+            event.should_skip_seer = True
+            return
+
+        # TODO: Temporary log to investigate race condition.
+        logger.info(
+            "grouphash_metadata.creation_race_condition.new_record",
+            extra={
+                "grouphash_id": grouphash.id,
+                "grouphash_is_new": grouphash_is_new,
+                "grouphash_has_group": bool(grouphash.group_id),
+                "event_id": event.event_id,
+                "hash": grouphash.hash,
+            },
+        )
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 
@@ -133,20 +179,45 @@ def create_or_update_grouphash_metadata_if_needed(
             # doesn't default to now
             new_data["date_added"] = None
 
-        GroupHashMetadata.objects.create(**new_data)
+        grouphash_metadata.update(**new_data)
 
+    # Update data in existing metadata record if needed
     else:
         updated_data: dict[str, Any] = {}
 
         # Keep track of the most recent config which computed this hash, so that once a config is
         # deprecated, we can clear out the GroupHash records which are no longer being produced
-        if grouphash.metadata.latest_grouping_config != grouping_config:
+        current_latest_config = grouphash.metadata.latest_grouping_config
+        if _is_incoming_config_newer_than_current_latest(grouping_config, current_latest_config):
             updated_data = {"latest_grouping_config": grouping_config}
             db_hit_metadata = {
                 "reason": "old_grouping_config",
-                "current_config": grouphash.metadata.latest_grouping_config,
+                "current_config": current_latest_config,
                 "new_config": grouping_config,
             }
+
+        # If the metadata was gathered under an old schema, get new data and bump the schema version
+        if grouphash.metadata.schema_version != GROUPHASH_METADATA_SCHEMA_VERSION:
+            updated_data.update(
+                # This includes `schema_version`
+                get_grouphash_metadata_data(event, project, variants, grouping_config)
+            )
+
+            db_hit_metadata.update(
+                {
+                    "reason": (
+                        "outdated_schema"
+                        if not db_hit_metadata.get("reason")
+                        else "config_and_schema"
+                    ),
+                    # TODO: Any time during or after May 2025, confirm that all metadata records
+                    # have been backfilled with a schema version (or deleted because their groups
+                    # aged out). If so, we can get rid of the best-guess logic here.
+                    "current_version": grouphash.metadata.schema_version
+                    or grouphash.metadata.get_best_guess_schema_version(),
+                    "new_version": GROUPHASH_METADATA_SCHEMA_VERSION,
+                }
+            )
 
         # Only hit the DB if there's something to change
         if updated_data:
@@ -156,14 +227,15 @@ def create_or_update_grouphash_metadata_if_needed(
     if db_hit_metadata:
         metrics.incr("grouping.grouphash_metadata.db_hit", tags=db_hit_metadata)
 
-        if db_hit_metadata["reason"] != "new_grouphash":
+        if db_hit_metadata["reason"] not in ["new_grouphash", "missing_metadata"]:
             # Temporary log to get a sense of how often we're encountering a race condition and
             # backfilling the same grouphash more than once. Note that this data won't be reliable
             # until we increase the sample rate to 100%.
             logger.info(
                 "grouping.grouphash_metadata.handle_existing_grouphash",
                 extra={
-                    "grouphash": grouphash.id,
+                    "grouphash_id": grouphash.id,
+                    "hash": grouphash.hash,
                     "group_id": grouphash.group_id,
                     "reason": db_hit_metadata["reason"],
                 },
@@ -180,10 +252,20 @@ def get_grouphash_metadata_data(
         "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
         base_data = {
+            "schema_version": GROUPHASH_METADATA_SCHEMA_VERSION,
             "latest_grouping_config": grouping_config,
             "platform": event.platform or "unknown",
         }
         hashing_metadata: HashingMetadata = {}
+
+        # If we've landed here as the result of secondary grouping, we won't actually have any
+        # variants data from which to derive hash basis or hashing metadata, but we still want to
+        # collect grouping config (so we know it's an outdated hash), schema version (to forestall
+        # any race-condition-y attempts to update the data), and platform (to make whatever
+        # querying we do more complete).
+        if not variants:
+            return base_data
+
         # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
         # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
         # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
@@ -501,3 +583,28 @@ def check_grouphashes_for_positive_fingerprint_match(
         return False
 
     return fingerprint1 == fingerprint2
+
+
+def _is_incoming_config_newer_than_current_latest(
+    incoming_config: str | None, latest_config: str | None
+) -> bool:
+    # Handle records created before we were storing config
+    if latest_config is None:
+        return True
+    # This shouldn't happen, but just in case
+    if incoming_config is None:
+        return False
+
+    def _extract_date(config_id: str) -> datetime:
+        date_str = config_id.split(":")[1]
+        return datetime.fromisoformat(date_str)
+
+    try:
+        return _extract_date(incoming_config) > _extract_date(latest_config)
+    except Exception:
+        logger.exception(
+            "Unable to compare grouping config dates from configs '%s' and '%s'",
+            incoming_config,
+            latest_config,
+        )
+        return False

@@ -89,7 +89,7 @@ export function SamplingBreakdown({
             margin: 0;
           `}
         />
-      ) : (
+      ) : sampleCounts.length > 0 ? (
         <Fragment>
           <Breakdown>
             {topItems.map((item: any, index: any) => {
@@ -162,6 +162,8 @@ export function SamplingBreakdown({
             </Total>
           </Footer>
         </Fragment>
+      ) : (
+        <EmptyStateText>{t('No spans found in the selected period.')}</EmptyStateText>
       )}
     </StyledPanel>
   );
@@ -218,4 +220,10 @@ const LegendItem = styled('div')`
 const SubText = styled('span')`
   color: ${p => p.theme.gray300};
   white-space: nowrap;
+`;
+
+const EmptyStateText = styled('div')`
+  text-align: center;
+  padding: ${space(0.5)} 0 ${space(3)};
+  color: ${p => p.theme.subText};
 `;

@@ -9,6 +9,7 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
+import {OptInBanner} from 'sentry/components/nav/optInBanner';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -26,7 +27,6 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconLightning,
   IconMegaphone,
   IconProject,
   IconReleases,
@@ -46,15 +46,13 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
@@ -77,10 +75,6 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import {
-  getPerformanceBaseUrl,
-  platformToDomainView,
-} from 'sentry/views/performance/utils';
 
 import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -107,25 +101,16 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const {selection} = usePageFilters();
-  const {projects: projectList} = useProjects();
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const collapsed = hasNewNav ? true : !!preferences.collapsed;
+  const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   // Panel determines whether to highlight
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-    hasNewNav,
-  };
+  const sidebarItemProps = {orientation, collapsed, hasPanel, organization};
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -176,20 +161,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  // Add sidebar hasNewNav classname to body
-  useEffect(() => {
-    const bcl = document.body.classList;
-
-    if (hasNewNav) {
-      bcl.add('hasNewNav');
-    } else {
-      bcl.remove('hasNewNav');
-    }
-
-    return () => bcl.remove('hasNewNav');
-  }, [hasNewNav]);
-
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -216,7 +188,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
-      hasNewNav={hasNewNav}
     />
   );
 
@@ -264,29 +235,6 @@ function Sidebar() {
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'
   );
-  const view = hasPerfLandingRemovalFlag
-    ? platformToDomainView(projectList, selection.projects)
-    : undefined;
-  const performance = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:performance-sidebar-item"
-      features="performance-view"
-      organization={organization}
-    >
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconLightning />}
-        label={
-          <GuideAnchor target="performance">
-            {hasNewNav ? 'Perf.' : t('Performance')}
-          </GuideAnchor>
-        }
-        active={hasPerfLandingRemovalFlag ? false : undefined}
-        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
-        id="performance"
-      />
-    </Feature>
-  );
 
   const releases = hasOrganization && (
     <SidebarItem
@@ -328,10 +276,7 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      })}
+      to={makeAlertsPathname({path: '/rules/', organization})}
       id="alerts"
     />
   );
@@ -374,7 +319,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={hasNewNav ? 'Dash.' : t('Dashboards')}
+        label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -485,43 +430,36 @@ function Sidebar() {
   );
 
   return (
-    <SidebarWrapper
-      aria-label={t('Primary Navigation')}
-      collapsed={collapsed}
-      hasNewNav={hasNewNav}
-    >
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
-            hasNewNav={hasNewNav}
           >
-            <SidebarDropdown
-              orientation={orientation}
-              collapsed={hasNewNav || collapsed}
-            />
+            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
+              <SuperuserBadgeContainer>
+                <Hook name="component:superuser-warning" organization={organization} />
+              </SuperuserBadgeContainer>
             )}
           </DropdownSidebarSection>
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
-                <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarSection>
                   {issues}
                   {projects}
                 </SidebarSection>
 
                 {!isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {explore}
                       {performanceDomains}
                     </SidebarSection>
 
-                    <SidebarSection hasNewNav={hasNewNav}>
-                      {performance}
+                    <SidebarSection>
                       {feedback}
                       {monitors}
                       {alerts}
@@ -533,7 +471,7 @@ function Sidebar() {
 
                 {isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarSection>
                       {alerts}
                       {discover}
                       {dashboards}
@@ -543,7 +481,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarSection>
                   {stats}
                   {settings}
                 </SidebarSection>
@@ -553,7 +491,7 @@ function Sidebar() {
         </SidebarSectionGroupPrimary>
 
         {hasOrganization && (
-          <SidebarSectionGroup hasNewNav={hasNewNav}>
+          <SidebarSectionGroup>
             {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
@@ -586,7 +524,7 @@ function Sidebar() {
               {...sidebarItemProps}
             />
 
-            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
+            <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
@@ -595,7 +533,11 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
+            <SidebarSection centeredItems={horizontal}>
+              <OptInBanner
+                collapsed={collapsed || horizontal}
+                organization={organization}
+              />
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]!({
                   orientation,
@@ -625,8 +567,8 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            {!horizontal && !hasNewNav && (
-              <SidebarSection hasNewNav={hasNewNav}>
+            {!horizontal && (
+              <SidebarSection>
                 <SidebarCollapseItem
                   id="collapse"
                   data-test-id="sidebar-collapse"
@@ -813,6 +755,17 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -5px;
+  right: 5px;
+
+  /* Hiding on smaller screens because it looks misplaced */
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

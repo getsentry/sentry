@@ -1,9 +1,10 @@
 import {type CSSProperties, forwardRef, Fragment} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
@@ -71,13 +72,11 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       true
     );
 
-    const {data: actionableItems} = useActionableItems({
-      eventId: event.id,
-      orgSlug: organization.slug,
-      projectSlug: group.project.slug,
+    const actionableItems = useActionableItemsWithProguardErrors({
+      event,
+      project: group.project,
+      isShare: false,
     });
-
-    const hasEventError = actionableItems?.errors && actionableItems.errors.length > 0;
 
     const grayText = css`
       color: ${theme.subText};
@@ -136,7 +135,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                 {t('JSON')}
               </JsonLink>
             </JsonLinkWrapper>
-            {hasEventError && (
+            {actionableItems && actionableItems.length > 0 && (
               <Fragment>
                 <Divider />
                 <ProcessingErrorButton
@@ -196,7 +195,11 @@ function EventNavigationLink({
         hash: `#${config.key}`,
       }}
       onClick={event => {
-        event.preventDefault();
+        // If command click do nothing, assume user wants to open in new tab
+        if (event.metaKey || event.ctrlKey) {
+          return;
+        }
+
         setIsCollapsed(false);
         document
           .getElementById(config.key)
@@ -274,10 +277,12 @@ const JsonLinkWrapper = styled('div')`
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.gray300};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.translucentGray200};
+  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
 
   :hover {
     color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.gray300};
   }
 `;
 

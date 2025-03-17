@@ -37,16 +37,26 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive: boolean, activeColor?: Color): ColorConfig {
+function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? activeColor ?? 'pink400' : 'gray400',
-    iconBorder: isActive ? activeColor ?? 'pink400' : 'gray400',
+    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
   };
 }
 
 export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  const [expandedItems, setExpandedItems] = useState<number[]>(() => {
+    if (!events?.length || events.length > 3) {
+      return [];
+    }
+
+    // For 3 or fewer items, find the first highlighted item or default to first item
+    const firstHighlightedIndex = events.findIndex(
+      event => event.is_most_important_event
+    );
+    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
+  });
 
   if (!events?.length) {
     return null;
@@ -150,4 +160,5 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.gray300};
   flex-shrink: 0;
+  margin-right: ${space(0.25)};
 `;

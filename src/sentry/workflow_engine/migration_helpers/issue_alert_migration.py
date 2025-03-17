@@ -1,9 +1,12 @@
 import logging
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
+from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.processing.processor import split_conditions_and_filters
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     create_event_unique_user_frequency_condition_with_conditions,
@@ -49,23 +52,27 @@ class IssueAlertMigrator:
         self.project = rule.project
         self.organization = self.project.organization
 
-    def run(self) -> None:
+    def run(self) -> Workflow:
         error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
+        action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
-            action_match=self.data["action_match"],
+            action_match=action_match,
             detector=error_detector,
         )
+        filter_match = self.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         if_dcg = self._create_if_dcg(
-            filter_match=self.data.get("filter_match", "all"),
+            filter_match=filter_match,
             workflow=workflow,
             conditions=conditions,
             filters=filters,
         )
         if self.should_create_actions:
             self._create_workflow_actions(if_dcg=if_dcg, actions=self.data["actions"])
+
+        return workflow
 
     def _create_detector_lookup(self) -> Detector:
         if self.is_dry_run:
@@ -104,16 +111,26 @@ class IssueAlertMigrator:
         dcg_conditions: list[DataCondition] = []
 
         for condition in conditions:
-            if (
-                condition["id"] == EventUniqueUserFrequencyConditionWithConditions.id
-            ):  # special case
-                dcg_conditions.append(
-                    create_event_unique_user_frequency_condition_with_conditions(
-                        dict(condition), dcg, filters
+            try:
+                if (
+                    condition["id"] == EventUniqueUserFrequencyConditionWithConditions.id
+                ):  # special case: this condition uses filters, so the migration needs to combine the filters into the condition
+                    dcg_conditions.append(
+                        create_event_unique_user_frequency_condition_with_conditions(
+                            dict(condition), dcg, filters
+                        )
                     )
+                else:
+                    dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
+            except Exception as e:
+                logger.exception(
+                    "workflow_engine.issue_alert_migration.error",
+                    extra={"rule_id": self.rule.id, "error": str(e)},
                 )
-            else:
-                dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
+                if self.is_dry_run:
+                    raise
+                else:
+                    continue
 
         filtered_data_conditions = [
             dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS
@@ -125,8 +142,21 @@ class IssueAlertMigrator:
                     exclude=["condition_group"]
                 )  # condition_group will be null, which is not allowed
                 enforce_data_condition_json_schema(dc)
-        else:
-            DataCondition.objects.bulk_create(filtered_data_conditions)
+            return filtered_data_conditions
+
+        data_conditions: list[DataCondition] = []
+        # try one by one, ignoring errors
+        for dc in filtered_data_conditions:
+            try:
+                dc.save()
+                data_conditions.append(dc)
+            except Exception as e:
+                logger.exception(
+                    "workflow_engine.issue_alert_migration.error",
+                    extra={"rule_id": self.rule.id, "error": str(e)},
+                )
+
+        return data_conditions
 
     def _create_when_dcg(
         self,
@@ -155,7 +185,26 @@ class IssueAlertMigrator:
         detector: Detector,
     ) -> Workflow:
         when_dcg = self._create_when_dcg(action_match=action_match)
-        self._bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=when_dcg)
+        data_conditions = self._bulk_create_data_conditions(
+            conditions=conditions, filters=filters, dcg=when_dcg
+        )
+
+        # the only time the data_conditions list will be empty is if somebody only has EveryEventCondition in their conditions list.
+        # if it's empty and this is not the case, we should not migrate
+        no_conditions = len(data_conditions) == 0
+        only_has_every_event_cond = (
+            len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
+        )
+
+        if not self.is_dry_run and no_conditions and not only_has_every_event_cond:
+            raise Exception("No valid conditions, skipping migration")
+
+        enabled = True
+        rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
+        if rule_snooze and rule_snooze.until is None:
+            enabled = False
+        if self.rule.status == ObjectStatus.DISABLED:
+            enabled = False
 
         config = {"frequency": self.rule.data.get("frequency") or Workflow.DEFAULT_FREQUENCY}
         kwargs = {
@@ -167,6 +216,7 @@ class IssueAlertMigrator:
             "owner_user_id": self.rule.owner_user_id,
             "owner_team": self.rule.owner_team,
             "config": config,
+            "enabled": enabled,
         }
 
         if self.is_dry_run:
@@ -175,6 +225,7 @@ class IssueAlertMigrator:
             workflow.validate_config(workflow.config_schema)
         else:
             workflow = Workflow.objects.create(**kwargs)
+            workflow.update(date_added=self.rule.date_added)
             DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
             AlertRuleWorkflow.objects.create(rule=self.rule, workflow=workflow)
 

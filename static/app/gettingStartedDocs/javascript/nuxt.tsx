@@ -32,7 +32,7 @@ import {t, tct, tctCode} from 'sentry/locale';
 type Params = DocsParams;
 
 const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '--saas' : '--saas';
+  const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
     {
@@ -144,7 +144,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: t(
-        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
+        'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
       ),
     },
   ],

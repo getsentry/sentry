@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
@@ -10,7 +11,6 @@ import {
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   FlagControlOptions,
   OrderBy,
@@ -20,13 +20,15 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconMegaphone, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
@@ -77,8 +79,36 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+  const location = useLocation();
 
-  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
+  // issue list params we want to preserve in the search
+  const queryParams = useMemo(
+    () => ({
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      project: eventView.project,
+      environment: eventView.environment,
+      sort: location.query.sort,
+    }),
+    [location.query, eventView]
+  );
+
+  const generateAction = useCallback(
+    ({key, value}: {key: string; value: string}) => {
+      const search = new MutableSearch('');
+      const modifiedQuery = search.setFilterValues(key, [value]);
+
+      return {
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {
+          ...queryParams,
+          query: modifiedQuery.formatString(),
+        },
+      };
+    },
+    [organization, queryParams]
+  );
 
   const {
     suspectFlags,
@@ -114,12 +144,6 @@ export function EventFeatureFlagList({
 
   const hasFlags = eventFlags.length > 0;
 
-  const showCTA =
-    !project.hasFlags &&
-    !hasFlagContext &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta');
-
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
@@ -136,11 +160,14 @@ export function EventFeatureFlagList({
           ) : (
             f.result.toString()
           ),
+          action: {
+            link: generateAction({key: `flags["${f.flag}"]`, value: f.result.toString()}),
+          },
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [suspectFlagNames, eventFlags]);
+  }, [suspectFlagNames, eventFlags, generateAction]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -170,7 +197,6 @@ export function EventFeatureFlagList({
             }
             return true;
           },
-          transitionProps: {stiffness: 1000},
         }
       );
     },
@@ -192,45 +218,49 @@ export function EventFeatureFlagList({
     return null;
   }
 
-  if (showCTA) {
-    return <FeatureFlagInlineCTA projectId={event.projectID} />;
-  }
-
-  // if contexts.flags is not set and project has not set up flags, hide the section
+  // contexts.flags is not set and project has not ingested flags
   if (!hasFlagContext && !project.hasFlags) {
-    return null;
+    const showCTA =
+      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+      organization.features.includes('feature-flag-cta');
+    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
   }
 
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
       <Fragment>
-        <Button
-          aria-label={t('Set Up Integration')}
-          size="xs"
-          onClick={mouseEvent => {
-            activateSidebarSkipConfigure(mouseEvent, project.id);
+        <DropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            showChevron: false,
+            icon: <IconSettings />,
+            'aria-label': t('Feature Flag Settings'),
           }}
-        >
-          {t('Set Up Integration')}
-        </Button>
+          size="xs"
+          items={[
+            {
+              key: 'settings',
+              label: t('Set Up Change Tracking'),
+              details: (
+                <ChangeTrackingDetails>
+                  {t(
+                    'Listen for additions, removals, and modifications to your feature flags.'
+                  )}
+                </ChangeTrackingDetails>
+              ),
+              to: `/settings/${organization.slug}/feature-flags/change-tracking/`,
+            },
+            {
+              key: 'docs',
+              label: t('Read the Docs'),
+              externalHref:
+                'https://docs.sentry.io/product/issues/issue-details/feature-flags/',
+            },
+          ]}
+        />
         {hasFlags && (
           <Fragment>
-            <Button
-              size="xs"
-              aria-label={t('View All')}
-              ref={viewAllButtonRef}
-              title={t('View All Flags')}
-              onClick={() => {
-                if (isDrawerOpen) {
-                  closeDrawer();
-                } else {
-                  onViewAllFlags();
-                }
-              }}
-            >
-              {t('View All')}
-            </Button>
             <Button
               aria-label={t('Open Feature Flag Search')}
               icon={<IconSearch size="xs" />}
@@ -250,13 +280,21 @@ export function EventFeatureFlagList({
     </ButtonBar>
   );
 
+  const NUM_PREVIEW_FLAGS = 20;
+
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(0, 20);
-  const columnOne = truncatedItems.slice(0, 10);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(
+    0,
+    NUM_PREVIEW_FLAGS
+  );
+  const columnOne = truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2);
   let columnTwo: typeof truncatedItems = [];
-  if (truncatedItems.length > 10) {
-    columnTwo = truncatedItems.slice(10, 20);
+  if (truncatedItems.length > NUM_PREVIEW_FLAGS / 2) {
+    columnTwo = truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS);
   }
+
+  const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
+  const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
 
   return (
     <InterimSection
@@ -278,17 +316,25 @@ export function EventFeatureFlagList({
           {t('No feature flags were found for this event')}
         </StyledEmptyStateWarning>
       )}
+      {extraFlags > 0 && (
+        <Button
+          size="sm"
+          // Since we've disabled the button as an 'outside click' for the drawer we can change
+          // the operation based on the drawer state.
+          onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
+          aria-label={label}
+          ref={viewAllButtonRef}
+        >
+          {label}
+        </Button>
+      )}
     </InterimSection>
   );
 }
 
-const SuspectLabel = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const ValueWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const ChangeTrackingDetails = styled('div')`
+  max-width: 200px;
+  white-space: normal;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
@@ -297,4 +343,13 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   display: flex;
   flex-direction: column;
   align-items: center;
+`;
+
+const SuspectLabel = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const ValueWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;

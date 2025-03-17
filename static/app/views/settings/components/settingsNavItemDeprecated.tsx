@@ -4,8 +4,8 @@ import {NavLink as RouterNavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -38,11 +38,11 @@ function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Prop
   } else if (badge === 'warning') {
     renderedBadge = (
       <Tooltip title={t('This setting needs review')} position="right">
-        <StyledBadge text={badge} type="warning" />
+        <StyledBadge type="warning">{badge}</StyledBadge>
       </Tooltip>
     );
   } else if (typeof badge === 'string' || typeof badge === 'number') {
-    renderedBadge = <StyledBadge text={badge} />;
+    renderedBadge = <StyledBadge type="default">{badge}</StyledBadge>;
   } else {
     renderedBadge = badge;
   }

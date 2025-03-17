@@ -18,10 +18,12 @@ interface UseMultiQueryTimeseriesOptions {
   index: number;
 }
 
-interface UseMultiQueryTimeseriesResults {
+export interface UseMultiQueryTimeseriesResults {
   canUsePreviousResults: boolean;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
+
+export const DEFAULT_TOP_EVENTS = 5;
 
 export function useMultiQueryTimeseries({
   enabled,
@@ -67,7 +69,7 @@ export function useMultiQueryTimeseries({
       fields,
       orderby,
       interval,
-      topEvents: mode === Mode.SAMPLES ? undefined : 5,
+      topEvents: mode === Mode.SAMPLES ? undefined : DEFAULT_TOP_EVENTS,
       enabled,
     };
   }, [query, yAxes, fields, orderby, interval, mode, enabled]);

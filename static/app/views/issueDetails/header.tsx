@@ -4,9 +4,9 @@ import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -107,7 +107,7 @@ export function GroupHeaderTabs({
         to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
-        <IconBadge>
+        <IconBadge type="default">
           {group.numComments}
           <IconChat size="xs" />
         </IconBadge>
@@ -119,7 +119,7 @@ export function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
-        {t('User Feedback')} <Badge text={group.userReportCount} />
+        {t('User Feedback')} <Badge type="default">{group.userReportCount}</Badge>
       </TabList.Item>
       <TabList.Item
         key={Tab.ATTACHMENTS}
@@ -251,7 +251,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
               data={group}
               message={message}
               level={group.level}
-              levelIndicatorSize="11px"
+              levelIndicatorSize={11}
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
@@ -269,15 +269,15 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                 </GuideAnchor>
                 <div className="count">
                   <h6 className="nav-header">{t('Users')}</h6>
-                  {userCount !== 0 ? (
+                  {userCount === 0 ? (
+                    <span>0</span>
+                  ) : (
                     <Link
                       disabled={disableActions}
                       to={`${baseUrl}tags/user/${location.search}`}
                     >
                       <Count className="count" value={userCount} />
                     </Link>
-                  ) : (
-                    <span>0</span>
                   )}
                 </div>
               </Fragment>

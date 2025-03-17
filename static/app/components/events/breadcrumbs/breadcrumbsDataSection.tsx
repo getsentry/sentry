@@ -2,8 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -34,16 +34,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-interface BreadcrumbsDataSectionProps {
+export interface BreadcrumbsDataSectionProps {
   event: Event;
   group: Group;
   project: Project;
+  initialCollapse?: boolean;
 }
 
 export default function BreadcrumbsDataSection({
   event,
   group,
   project,
+  initialCollapse,
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -99,7 +101,6 @@ export default function BreadcrumbsDataSection({
             }
             return true;
           },
-          transitionProps: {stiffness: 1000},
         }
       );
     },
@@ -161,6 +162,7 @@ export default function BreadcrumbsDataSection({
       }
       data-test-id="breadcrumbs-data-section"
       actions={actions}
+      initialCollapse={initialCollapse}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         <div ref={setContainer}>

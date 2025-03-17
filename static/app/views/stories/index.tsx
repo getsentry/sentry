@@ -1,10 +1,10 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
-import {InputGroup} from 'sentry/components/inputGroup';
+import {Button} from 'sentry/components/core/button';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
@@ -42,7 +42,7 @@ export default function Stories() {
   const story = useStoriesLoader({files: storyFiles});
   const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
     'category' | 'filesystem'
-  >('story-representation', 'filesystem');
+  >('story-representation', 'category');
 
   const nodes = useStoryTree(files, {
     query: location.query.query ?? '',
@@ -178,6 +178,7 @@ const SidebarContainer = styled('div')`
   gap: ${space(2)};
   min-height: 0;
   position: relative;
+  z-index: 10;
 `;
 
 const StoryTreeContainer = styled('div')`

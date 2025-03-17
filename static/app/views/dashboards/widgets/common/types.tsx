@@ -1,10 +1,12 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
+import type {DataUnit} from 'sentry/utils/discover/fields';
 
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type Meta = {
-  fields: Record<string, string | null>;
-  units: Record<string, string | null>;
+  type: string | null; // TODO: This can probably be `AggregationOutputType`
+  unit: DataUnit | null;
+  isOther?: boolean;
 };
 
 type TableRow = Record<string, number | string | undefined>;
@@ -20,7 +22,6 @@ export type TimeSeries = {
   data: TimeSeriesItem[];
   field: string;
   meta: Meta;
-  color?: string;
   confidence?: Confidence;
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
@@ -43,4 +44,4 @@ export type Release = {
 
 export type Aliases = Record<string, string>;
 
-export type TimeseriesSelection = {[key: string]: boolean};
+export type LegendSelection = {[key: string]: boolean};

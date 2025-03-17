@@ -183,15 +183,15 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? t('Open in GitHub is not supported for this platform')
-                  : sourceCodeLink.isPending
+                isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? sourceCodeLink.isPending
                     ? 'Resolving link'
                     : sourceCodeLink.isSuccess &&
                         (!sourceCodeLink.data.sourceUrl ||
                           sourceCodeLink.data.config?.provider?.key !== 'github')
                       ? t('Could not find source code location in GitHub')
                       : undefined
+                  : t('Open in GitHub is not supported for this platform')
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
@@ -258,7 +258,12 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -503,7 +508,12 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -562,7 +572,7 @@ function ProfileIdsSubMenu(props: {
     [popper]
   );
 
-  const currentTarget = useRef<Node | null>();
+  const currentTarget = useRef<Node | null>(null);
   useEffect(() => {
     const listener = (e: MouseEvent) => {
       currentTarget.current = e.target as Node;
@@ -617,7 +627,8 @@ function ProfileIdsSubMenu(props: {
               {props.profileIds.map((profileId, i) => {
                 const projectSlug =
                   typeof profileId !== 'string' && 'project_id' in profileId
-                    ? projectLookupTable[profileId.project_id]?.slug ?? props.projectSlug
+                    ? (projectLookupTable[profileId.project_id]?.slug ??
+                      props.projectSlug)
                     : props.projectSlug;
 
                 if (!projectSlug) {

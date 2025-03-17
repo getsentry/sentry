@@ -8,6 +8,10 @@ from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.metric_alert_detector import (
+    MetricAlertComparisonConditionValidator,
+    MetricAlertsDetectorValidator,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
@@ -28,10 +32,6 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
     DataSourceCreator,
     NumericComparisonConditionValidator,
-)
-from sentry.workflow_engine.endpoints.validators.metric_alert_detector import (
-    MetricAlertComparisonConditionValidator,
-    MetricAlertsDetectorValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
@@ -262,7 +262,7 @@ class DetectorValidatorTest(BaseValidatorTest):
             request=self.context["request"],
             organization=self.project.organization,
             target_object=detector.id,
-            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+            event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
 
@@ -381,7 +381,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             request=self.context["request"],
             organization=self.project.organization,
             target_object=detector.id,
-            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+            event=audit_log.get_event_id("DETECTOR_ADD"),
             data=detector.get_audit_log_data(),
         )
 

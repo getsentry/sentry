@@ -16,8 +16,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import Badge from 'sentry/components/badge/badge';
-import {Button} from 'sentry/components/button';
+import {Badge} from 'sentry/components/core/badge';
+import {Button} from 'sentry/components/core/button';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -148,7 +148,9 @@ export interface ControlProps
   /**
    * Optional content to display below the menu's header and above the options.
    */
-  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => JSX.Element);
+  menuBody?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.JSX.Element);
   /**
    * Footer to be rendered at the bottom of the menu.
    */
@@ -468,7 +470,9 @@ export function Control({
     return (
       <Fragment>
         <TriggerLabel>{options[0]?.label}</TriggerLabel>
-        {options.length > 1 && <StyledBadge text={`+${options.length - 1}`} />}
+        {options.length > 1 && (
+          <StyledBadge type="default">{`+${options.length - 1}`}</StyledBadge>
+        )}
       </Fragment>
     );
   }, [triggerLabelProp, selectedOptions]);
@@ -620,7 +624,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   z-index: 2;
 
   font-size: ${p =>
-    p.size !== 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeExtraSmall};
+    p.size === 'xs' ? p.theme.fontSizeExtraSmall : p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
 `;
 
@@ -665,7 +669,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundSecondary};
   font-size: ${p =>
-    p.visualSize !== 'xs' ? p.theme.fontSizeMedium : p.theme.fontSizeSmall};
+    p.visualSize === 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 
   /* Subtract 1px to account for border width */
   padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);

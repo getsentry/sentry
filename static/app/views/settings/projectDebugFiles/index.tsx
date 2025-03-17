@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -103,7 +103,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     (value: string) => {
       navigate({
         ...location,
-        query: {...location.query, cursor: undefined, query: !value ? undefined : value},
+        query: {...location.query, cursor: undefined, query: value ? value : undefined},
       });
     },
     [navigate, location]
@@ -231,9 +231,8 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
             isEmpty={debugFiles?.length === 0}
             isLoading={isLoadingDebugFiles}
           >
-            {!debugFiles?.length
-              ? null
-              : debugFiles.map(debugFile => {
+            {debugFiles?.length
+              ? debugFiles.map(debugFile => {
                   const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
 
                   return (
@@ -247,7 +246,8 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
                       project={project}
                     />
                   );
-                })}
+                })
+              : null}
           </StyledPanelTable>
           <Pagination pageLinks={getDebugFilesResponseHeader?.('Link')} />
         </Fragment>

@@ -1,8 +1,12 @@
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {PlatformKey} from 'sentry/types/project';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
+  'compare_queries.add_query': {
+    num_queries: number;
+  };
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
@@ -12,6 +16,7 @@ export type TracingEventParameters = {
     confidences: string[];
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
+    page_source: 'explore' | 'compare';
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
@@ -19,7 +24,7 @@ export type TracingEventParameters = {
     title: string;
     user_queries: string;
     user_queries_count: number;
-    visualizes: Visualize[];
+    visualizes: BaseVisualize[];
     visualizes_count: number;
   };
   'trace.load.empty_state': {
@@ -103,7 +108,19 @@ export type TracingEventParameters = {
   'trace.trace_warning_type': {
     type: string;
   };
+  'trace.tracing_onboarding': {
+    platform: PlatformKey;
+    supports_onboarding_checklist: boolean;
+    supports_performance: boolean;
+  };
+  'trace.tracing_onboarding_performance_docs_viewed': {
+    platform: string;
+  };
+  'trace.tracing_onboarding_platform_docs_viewed': {
+    platform: string;
+  };
   'trace_explorer.add_span_condition': Record<string, unknown>;
+  'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -114,7 +131,7 @@ export type TracingEventParameters = {
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard';
-    ui_source: 'toolbar' | 'chart';
+    ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
     error: string;
@@ -139,6 +156,7 @@ export type TracingEventParameters = {
 export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
+  'compare_queries.add_query': 'Compare Queries: Add Query',
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
@@ -146,6 +164,11 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.tracing_onboarding': 'Tracing Onboarding UI',
+  'trace.tracing_onboarding_platform_docs_viewed':
+    'Viewed Platform Docs for Onboarding UI',
+  'trace.tracing_onboarding_performance_docs_viewed':
+    'Viewed Performance Setup Docs from Onboarding UI',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
   'trace.trace_layout.view_event_json': 'Clicked View Event JSON Action',
   'trace.trace_layout.tab_pin': 'Pinned Trace Tab',
@@ -188,4 +211,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
+  'trace_explorer.compare_queries': 'Trace Explorer: Compare',
 };

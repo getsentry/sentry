@@ -160,6 +160,12 @@ class EventDatastore:
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
 
+    def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
+        return getattr(self, "_get_" + match_type)()
+
     def _get_messages(self) -> list[_MessageInfo]:
         if self._messages is None:
             self._messages = []
@@ -242,12 +248,6 @@ class EventDatastore:
     def _get_release(self) -> list[_ReleaseInfo]:
         self._release = self._release or [{"release": self.event.get("release")}]
         return self._release
-
-    def get_values(self, match_type: str) -> list[dict[str, Any]]:
-        """
-        Pull values from all the spots in the event appropriate to the given match type.
-        """
-        return getattr(self, "_get_" + match_type)()
 
 
 class FingerprintingRules:
@@ -416,11 +416,9 @@ class FingerprintMatcher:
             return "release"
         return "frames"
 
-    def matches(self, values: dict[str, Any]) -> bool:
-        rv = self._positive_match(values)
-        if self.negated:
-            rv = not rv
-        return rv
+    def matches(self, event_values: dict[str, Any]) -> bool:
+        match_found = self._positive_match(event_values)
+        return not match_found if self.negated else match_found
 
     def _positive_path_match(self, value: str | None) -> bool:
         if value is None:
@@ -433,43 +431,42 @@ class FingerprintMatcher:
             return True
         return False
 
-    def _positive_match(self, values: dict[str, Any]) -> bool:
-        # `path` is special in that it tests against two values (`abs_path` and `filename`)
+    def _positive_match(self, event_values: dict[str, Any]) -> bool:
+        # Handle cases where `self.key` isn't 1-to-1 with the corresponding key in `event_values`
         if self.key == "path":
-            value = values.get("abs_path")
-            if self._positive_path_match(value):
-                return True
-            alt_value = values.get("filename")
-            if alt_value != value:
-                if self._positive_path_match(alt_value):
-                    return True
-            return False
+            return any(
+                self._positive_path_match(value)
+                # Use a set so that if the values match, we don't needlessly check both
+                for value in {event_values.get("abs_path"), event_values.get("filename")}
+            )
 
-        # message tests against exception value also, as this is what users expect
         if self.key == "message":
-            for key in ("message", "value"):
-                value = values.get(key)
-                if value is not None and glob_match(value, self.pattern, ignorecase=True):
-                    return True
-            return False
+            return any(
+                value is not None and glob_match(value, self.pattern, ignorecase=True)
+                # message tests against exception value also, as this is what users expect
+                for value in [event_values.get("message"), event_values.get("value")]
+            )
 
-        value = values.get(self.key)
+        # For the rest, `self.key` matches the key in `event_values`
+        value = event_values.get(self.key)
+
         if value is None:
             return False
-        elif self.key in ["package", "release"]:
-            if self._positive_path_match(value):
-                return True
-        elif self.key in ["family", "sdk"]:
+
+        if self.key in ["package", "release"]:
+            return self._positive_path_match(value)
+
+        if self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "app":
-            ref_val = bool_from_string(self.pattern)
-            if ref_val is not None and ref_val == value:
-                return True
-        elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
-            return True
-        return False
+            return "all" in flags or value in flags
+
+        if self.key == "app":
+            return value == bool_from_string(self.pattern)
+
+        if self.key in ["level", "value"]:
+            return glob_match(value, self.pattern, ignorecase=True)
+
+        return glob_match(value, self.pattern, ignorecase=False)
 
     def _to_config_structure(self) -> list[str]:
         key = self.key
@@ -479,18 +476,17 @@ class FingerprintMatcher:
 
     @classmethod
     def _from_config_structure(cls, matcher: list[str]) -> Self:
-        key = matcher[0]
-        if key.startswith("!"):
-            key = key[1:]
-            negated = True
-        else:
-            negated = False
-        return cls(key, matcher[1], negated)
+        key, pattern = matcher
+
+        negated = key.startswith("!")
+        key = key.lstrip("!")
+
+        return cls(key, pattern, negated)
 
     @property
     def text(self) -> str:
         return '{}{}:"{}"'.format(
-            self.negated and "!" or "",
+            "!" if self.negated else "",
             self.key,
             self.pattern,
         )
@@ -517,8 +513,8 @@ class FingerprintRule:
             matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
         for match_type, matchers in matchers_by_match_type.items():
-            for values in event_datastore.get_values(match_type):
-                if all(x.matches(values) for x in matchers):
+            for event_values in event_datastore.get_values(match_type):
+                if all(matcher.matches(event_values) for matcher in matchers):
                     break
             else:
                 return None
@@ -586,6 +582,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         changelog = []
         rules = []
         in_header = True
+
         for child in children:
             if isinstance(child, str):
                 if in_header and child.startswith("##"):
@@ -595,6 +592,7 @@ class FingerprintingVisitor(NodeVisitorBase):
             elif child is not None:
                 rules.append(child)
                 in_header = False
+
         return FingerprintingRules(
             rules=rules,
             changelog=inspect.cleandoc("\n".join(changelog)).rstrip() or None,

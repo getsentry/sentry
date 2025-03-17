@@ -6,8 +6,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import Checkbox from 'sentry/components/checkbox';
-import MenuListItem from 'sentry/components/menuListItem';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {MenuListItem} from 'sentry/components/core/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -121,7 +121,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       isSelected={isSelected}
       isPressed={isPressed}
       isFocused={isFocusWithin}
-      priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
+      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       innerWrapProps={gridCellPropsMemo}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}

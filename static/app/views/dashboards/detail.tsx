@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -159,7 +160,9 @@ export function handleUpdateDashboardSplit({
   // because the backend has evaluated the query and stored that value
   const updatedDashboard = cloneDashboard(dashboard);
   const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget => widget.id === widgetId
+    widget =>
+      (defined(widget.id) && widget.id === widgetId) ||
+      (defined(widget.tempId) && widget.tempId === widgetId)
   );
 
   if (widgetIndex >= 0) {
@@ -303,18 +306,12 @@ class DashboardDetail extends Component<Props, State> {
       totalIssuesCount,
       seriesResultsType,
       confidence,
+      sampleCount,
+      isSampled,
+      modifiedDashboard,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
-      const widget =
-        defined(widgetId) &&
-        (dashboard.widgets.find(({id}) => {
-          // This ternary exists because widgetId is in some places typed as string, while
-          // in other cases it is typed as number. Instead of changing the type everywhere,
-          // we check for both cases at runtime as I am not sure which is the correct type.
-          return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
-        }) ??
-          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-          dashboard.widgets[widgetId]);
+      const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
           organization,
@@ -348,7 +345,20 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
-            const widgetIndex = dashboard.widgets.indexOf(widget);
+            const widgetIndex = dashboard.widgets.findIndex(
+              w =>
+                (defined(widget.id) && w.id === widget.id) ||
+                (defined(widget.tempId) && w.tempId === widget.tempId)
+            );
+            if (widgetIndex === -1) {
+              Sentry.setTag('edit_source', 'modal');
+              Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+                level: 'error',
+                extra: {widget, dashboard},
+              });
+              return;
+            }
+
             if (organization.features.includes('dashboards-widget-builder-redesign')) {
               this.onEditWidget(widget);
               return;
@@ -369,6 +379,8 @@ class DashboardDetail extends Component<Props, State> {
             }
           },
           confidence,
+          sampleCount,
+          isSampled,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -731,11 +743,11 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                ...(!openWidgetTemplates
-                  ? convertWidgetToBuilderStateParams(
+                ...(openWidgetTemplates
+                  ? {}
+                  : convertWidgetToBuilderStateParams(
                       getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
-                    )
-                  : {}),
+                    )),
               },
             })
           );
@@ -753,7 +765,23 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
-    const widgetIndex = currentDashboard.widgets.indexOf(widget);
+
+    const widgetIndex = currentDashboard.widgets.findIndex(
+      w =>
+        (defined(widget.id) && w.id === widget.id) ||
+        (defined(widget.tempId) && w.tempId === widget.tempId)
+    );
+    if (widgetIndex === -1) {
+      Sentry.setTag('edit_source', 'context-menu');
+      Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+        level: 'error',
+        extra: {
+          widget,
+          currentDashboard,
+        },
+      });
+    }
+
     this.setState({
       isWidgetBuilderOpen: true,
       openWidgetTemplates: false,
@@ -794,13 +822,13 @@ class DashboardDetail extends Component<Props, State> {
       : [...currentDashboard.widgets, mergedWidget];
 
     try {
-      if (!this.isEditingDashboard) {
+      if (this.isEditingDashboard) {
+        // If we're in edit mode, update the edit state
+        this.onUpdateWidget(newWidgets);
+      } else {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
-      } else {
-        // If we're in edit mode, update the edit state
-        this.onUpdateWidget(newWidgets);
       }
 
       this.handleCloseWidgetBuilder();

@@ -65,6 +65,7 @@ export interface DropdownMenuProps
       | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'shouldApplyMinWidth'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -83,11 +84,11 @@ export interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Reference to the container element that the portal should be rendered into.
    */
-  portalContainerRef?: React.RefObject<HTMLElement>;
+  portalContainerRef?: React.RefObject<HTMLElement | null>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -155,6 +156,7 @@ function DropdownMenu({
   preventOverflowOptions,
   flipOptions,
   portalContainerRef,
+  shouldApplyMinWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -179,6 +181,7 @@ function DropdownMenu({
     preventOverflowOptions,
     flipOptions,
     onOpenChange,
+    shouldApplyMinWidth,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(

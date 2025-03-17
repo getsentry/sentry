@@ -4,8 +4,8 @@ import {useOption} from '@react-aria/listbox';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import Checkbox from 'sentry/components/checkbox';
-import MenuListItem from 'sentry/components/menuListItem';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {MenuListItem} from 'sentry/components/core/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -100,7 +100,7 @@ export function ListBoxOption({
       isPressed={isPressed}
       isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
-      priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
+      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}

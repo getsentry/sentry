@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -154,7 +154,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                 </PageFilterBar>
                 <SegmentedControl
                   aria-label={t('Issue Status')}
-                  value={!Array.isArray(status) ? status || '' : ''}
+                  value={Array.isArray(status) ? '' : status || ''}
                   onChange={key =>
                     router.replace({
                       pathname,

@@ -209,25 +209,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('hides the banner when save is complete.', async () => {
-      mount(location, organization, router, errorsView, undefined, yAxis);
-
-      // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-
-      // Fill in the Input
-      await userEvent.type(
-        screen.getByPlaceholderText('Display name'),
-        'My New Query Name'
-      );
-
-      // Click on Save in the Dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
-
-      // The banner should not render
-      expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
-    });
-
     it('saves a well-formed query', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 

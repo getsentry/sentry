@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import JumpcloudSAML2Provider
 
-        register("jumpcloud", JumpcloudSAML2Provider)
+        register(JumpcloudSAML2Provider)

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -7,9 +7,7 @@ import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
-import {useChonkTheme} from 'sentry/utils/theme/useChonkTheme';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
 
 type Props = {
   children: React.ReactNode;
@@ -34,28 +32,7 @@ export function ThemeAndStyleProvider({children}: Props) {
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const [chonkTheme] = useChonkTheme();
-
-  // Theme toggle global shortcut
-  const themeToggleHotkeys = useMemo(() => {
-    return [
-      {
-        match: ['command+shift+1', 'ctrl+shift+1'],
-        includeInputs: true,
-        callback: () => {
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-        },
-      },
-    ];
-  }, [config.theme]);
-
-  useHotkeys(themeToggleHotkeys);
-
-  // Use default theme or chonk theme if set.
-  let theme = config.theme === 'dark' ? darkTheme : lightTheme;
-  if (chonkTheme) {
-    theme = chonkTheme;
-  }
+  const theme = useThemeSwitcher();
 
   return (
     <ThemeProvider theme={theme}>

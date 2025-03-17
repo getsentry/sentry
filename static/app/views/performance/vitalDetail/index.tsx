@@ -47,19 +47,13 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(
-      this.props.location,
-      this.props.organization
-    ),
+    eventView: generatePerformanceVitalDetailView(this.props.location),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(
-        nextProps.location,
-        nextProps.organization
-      ),
+      eventView: generatePerformanceVitalDetailView(nextProps.location),
     };
   }
 
@@ -114,9 +108,9 @@ class VitalDetail extends Component<Props, State> {
     }
 
     const vitalNameQuery = decodeScalar(location.query.vitalName);
-    const vitalName = !Object.values(WebVital).includes(vitalNameQuery as WebVital)
-      ? undefined
-      : (vitalNameQuery as WebVital);
+    const vitalName = Object.values(WebVital).includes(vitalNameQuery as WebVital)
+      ? (vitalNameQuery as WebVital)
+      : undefined;
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>

@@ -440,7 +440,7 @@ export class NewTraceDetailsSpanBar extends Component<
       );
     }
 
-    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
+    const chevronElement = isRoot ? null : <div>{chevron}</div>;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -618,6 +618,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     return (
       <DividerLine
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -882,6 +883,7 @@ export class NewTraceDetailsSpanBar extends Component<
             }}
           >
             <DividerLine
+              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,

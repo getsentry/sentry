@@ -70,14 +70,13 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       return;
     }
 
-    setApiQueryData(queryClient, monitorDetailsQueryKey, (oldMonitorDetails: Monitor) => {
-      const newEnvList = oldMonitorDetails.environments.filter(e => e.name !== env);
-      const newMonitorDetails = {
-        ...oldMonitorDetails,
-        environments: newEnvList,
-      };
-
-      return newMonitorDetails;
+    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
+      return oldMonitorDetails
+        ? {
+            ...oldMonitorDetails,
+            environments: oldMonitorDetails.environments.filter(e => e.name !== env),
+          }
+        : undefined;
     });
   };
 
@@ -94,19 +93,20 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       return;
     }
 
-    setApiQueryData(queryClient, monitorDetailsQueryKey, (oldMonitorDetails: Monitor) => {
-      const oldMonitorEnvIdx = oldMonitorDetails.environments.findIndex(
-        monitorEnv => monitorEnv.name === env
-      );
-      if (oldMonitorEnvIdx < 0) {
-        return oldMonitorDetails;
-      }
-
-      oldMonitorDetails.environments[oldMonitorEnvIdx] = {
-        ...oldMonitorDetails.environments[oldMonitorEnvIdx]!,
-        isMuted,
-      };
-      return oldMonitorDetails;
+    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
+      return oldMonitorDetails
+        ? {
+            ...oldMonitorDetails,
+            environments: oldMonitorDetails.environments.map(monitorEnv =>
+              monitorEnv.name === env
+                ? {
+                    ...monitorEnv,
+                    isMuted,
+                  }
+                : monitorEnv
+            ),
+          }
+        : undefined;
     });
   };
 
@@ -145,6 +145,10 @@ const Header = styled('div')`
   grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: 1;
+
+  > :last-child {
+    box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+  }
 `;
 
 const TimelineWidthTracker = styled('div')`

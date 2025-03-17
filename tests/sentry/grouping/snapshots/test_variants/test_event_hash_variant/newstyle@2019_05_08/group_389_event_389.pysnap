@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:51.581742+00:00'
+created: '2025-02-26T00:33:27.274412+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -55,13 +55,13 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "thread_start"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_pthread_start"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_pthread_body"
           frame*
@@ -79,7 +79,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_pthread_testcancel"
         type (ignored because exception is synthetic)

@@ -63,7 +63,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         if "latest_id" in result:
             credentials.latest_fetched_item_id = result["latest_id"]
             credentials.message = ""
-            credentials.save(update_fields=["message", "latest_fetched_item_id"])
+            credentials.message_type = MessageType.SUCCESS
+            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
             return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
@@ -151,7 +152,11 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
 
         result = response.json()
         credentials.latest_fetched_item_id = result["latest_id"]
-        credentials.save(update_fields=["latest_fetched_item_id"])
+        # Make sure that once existing customers pull crashes the message is set to SUCCESS,
+        # since due to legacy reasons they might still have an empty ERROR message.
+        credentials.message = ""
+        credentials.message_type = MessageType.SUCCESS
+        credentials.save(update_fields=["latest_fetched_item_id", "message", "message_type"])
     except Exception as e:
         logger.exception(
             "Fetching the crashes failed.",

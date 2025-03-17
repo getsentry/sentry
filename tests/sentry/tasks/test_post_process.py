@@ -21,7 +21,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.auto_source_code_config.constants import SUPPORTED_LANGUAGES
+from sentry.issues.auto_source_code_config.utils import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -242,7 +242,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
-        for platform in SUPPORTED_LANGUAGES:
+        for platform in get_supported_platforms():
             event = self._create_event(self._generate_node_data("foo"))
             self._call_post_process_group(event)
 
@@ -823,6 +823,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
+            "assigneeName": self.user.name,
             "assigneeType": "user",
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
@@ -2816,7 +2817,7 @@ class PostProcessGroupFeedbackTest(
 
         evidence_data = {
             "Test": 123,
-            "source": feedback_type.value,
+            "source": feedback_type.value if feedback_type else None,
         }
         evidence_display = [
             {"name": "hi", "value": "bye", "important": True},
@@ -3017,6 +3018,34 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    def test_logs_if_source_missing(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=None,
+        )
+        mock_process_func = Mock()
+        mock_logger = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            with patch("sentry.tasks.post_process.logger", mock_logger):
+                self.call_post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    event=event,
+                    cache_key="total_rubbish",
+                )
+
+        assert mock_process_func.call_count == 0
+        assert mock_logger.error.call_count == 1
+
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
@@ -3032,4 +3061,24 @@ class PostProcessGroupFeedbackTest(
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
     def test_processing_cache_cleared_with_commits(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_invalidates_snooze_with_buffers(self):
+        pass
+
+    @pytest.mark.skip(reason="auto resolve is disabled for feedback issues")
+    def test_group_inbox_regression(self):
+        pass
+
+    @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
+    def test_forecast_in_activity(self):
+        pass
+
+    @pytest.mark.skip(reason="regression is disabled for feedback issues")
+    def test_group_last_seen_buffer(self):
         pass

@@ -181,7 +181,7 @@ class _Table extends Component<Props, State> {
   }
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, location, organization, projects} = this.props;
 
       trackAnalytics('performance_views.overview.cellaction', {
@@ -393,6 +393,11 @@ class _Table extends Component<Props, State> {
       );
     }
 
+    // Display a placeholder for empty http.method values instead of the default `(empty string)`, which is confusing
+    if (field === 'http.method' && (dataRow[field] === '' || dataRow[field] === null)) {
+      return <span>{'\u2014'}</span>;
+    }
+
     return (
       <CellAction
         column={column}
@@ -474,6 +479,7 @@ class _Table extends Component<Props, State> {
         onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
+
     if (field.field.startsWith('user_misery')) {
       if (title.tooltip) {
         return (
@@ -512,7 +518,7 @@ class _Table extends Component<Props, State> {
 
     const teamKeyTransactionColumn = eventView
       .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
+      .find((col: TableColumn<string | number>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
@@ -572,12 +578,12 @@ class _Table extends Component<Props, State> {
       // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
-        (col: TableColumn<React.ReactText>) =>
+        (col: TableColumn<string | number>) =>
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config'
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }
@@ -590,8 +596,12 @@ class _Table extends Component<Props, State> {
     const prependColumnWidths = ['max-content'];
 
     return (
-      <GuideAnchor target="performance_table" position="top-start">
-        <div data-test-id="performance-table">
+      <div data-test-id="performance-table">
+        <GuideAnchor
+          target="performance_table"
+          position="top-start"
+          wrapperComponent={TableWrapper}
+        >
           <MEPConsumer>
             {value => {
               return (
@@ -643,8 +653,8 @@ class _Table extends Component<Props, State> {
               );
             }}
           </MEPConsumer>
-        </div>
-      </GuideAnchor>
+        </GuideAnchor>
+      </div>
     );
   }
 }
@@ -674,6 +684,10 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 export default Table;

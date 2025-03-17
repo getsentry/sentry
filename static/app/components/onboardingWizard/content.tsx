@@ -4,13 +4,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
-import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
-
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
@@ -31,7 +29,7 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -273,7 +271,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
 
       e.stopPropagation();
 
-      if (isDemoModeEnabled()) {
+      if (isDemoModeActive()) {
         DemoWalkthroughStore.activateGuideAnchor(task.task);
       }
 
@@ -581,7 +579,8 @@ interface OnboardingSidebarContentProps {
 }
 
 export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProps) {
-  const {gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks();
+  const {gettingStartedTasks, beyondBasicsTasks, allTasks, doneTasks} =
+    useOnboardingTasks();
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -601,38 +600,46 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
 
   return (
-    <Fragment>
-      <Content>
+    <Content data-test-id="quick-start-content">
+      <TaskGroup
+        title={t('Getting Started')}
+        tasks={sortedGettingStartedTasks}
+        hidePanel={onClose}
+        expanded={
+          groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
+        }
+        toggleable={sortedBeyondBasicsTasks.length > 0}
+        taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+        group="getting_started"
+      />
+      {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
-          title={t('Getting Started')}
-          tasks={sortedGettingStartedTasks}
+          title={t('Beyond the Basics')}
+          tasks={sortedBeyondBasicsTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length ===
+              0 &&
+            groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
-          toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
-          group="getting_started"
+          group="beyond_basics"
         />
-        {sortedBeyondBasicsTasks.length > 0 && (
-          <TaskGroup
-            title={t('Beyond the Basics')}
-            tasks={sortedBeyondBasicsTasks}
-            hidePanel={onClose}
-            expanded={
-              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
-                .length === 0 &&
-              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
-            }
-            taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
-            group="beyond_basics"
-          />
-        )}
-      </Content>
-      <BottomLeft src={HighlightTopRight} />
-    </Fragment>
+      )}
+      {allTasks.length === doneTasks.length && (
+        <CompletionCelebrationText>
+          <div>{t('Good job, you’re all done here!')}</div>
+          {t('Now get out of here and write some broken code.')}
+        </CompletionCelebrationText>
+      )}
+    </Content>
   );
 }
+
+const CompletionCelebrationText = styled('div')`
+  margin-top: ${space(1.5)};
+  text-align: center;
+`;
 
 const Content = styled('div')`
   padding: ${space(3)};
@@ -650,6 +657,8 @@ const TaskGroupWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
+
+  background-color: ${p => p.theme.background};
 
   hr {
     border-color: ${p => p.theme.translucentBorder};
@@ -672,7 +681,6 @@ const TaskGroupBody = styled('ul')`
 
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
-  background-color: ${p => p.theme.background};
 `;
 
 const TaskActions = styled('div')`
@@ -680,12 +688,6 @@ const TaskActions = styled('div')`
   flex-direction: column;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const BottomLeft = styled('img')`
-  width: 60%;
-  transform: rotate(180deg);
-  margin-top: ${space(3)};
 `;
 
 const TaskCardWrapper = styled('div')`

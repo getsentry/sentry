@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/detect_performance_issues/factory.py",
+    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -83,6 +83,11 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
+}
+
+SAMPLED_ROUTES = {
+    "/_warmup/": 0.0,
+    "/api/0/auth/validate/": 0.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -174,9 +179,9 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    # dont sample warmup requests
-    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
-        return 0.0
+    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+        return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")

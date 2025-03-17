@@ -435,6 +435,11 @@ const appConfig: webpack.Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
+      getsentry: path.join(staticPrefix, 'gsApp'),
+      'getsentry-images': path.join(staticPrefix, 'images'),
+      'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+      admin: path.join(staticPrefix, 'gsAdmin'),
+
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),
@@ -670,12 +675,12 @@ if (IS_UI_DEV_ONLY) {
 
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? {}
-    : {
+  const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
-      };
+      }
+    : {};
 
   appConfig.devServer = {
     ...appConfig.devServer,

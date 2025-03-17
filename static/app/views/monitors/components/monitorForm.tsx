@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import AlertLink from 'sentry/components/alertLink';
 import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -494,12 +494,11 @@ function MonitorForm({
         <InputGroup>
           {monitor?.config.alert_rule_id && (
             <AlertLink
-              priority="muted"
+              type="muted"
               to={makeAlertsPathname({
                 path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
                 organization,
               })}
-              withoutMarginBottom
             >
               {t('Customize this monitors notification configuration in Alerts')}
             </AlertLink>

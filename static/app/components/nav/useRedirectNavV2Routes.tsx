@@ -1,7 +1,13 @@
-import {useLocation} from 'react-router-dom';
+import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
 type Props = {
   newPathPrefix: `/${string}`;
@@ -11,6 +17,11 @@ type Props = {
 function useShouldRedirect(oldPathPrefix: `/${string}`) {
   const organization = useOrganization();
   const location = useLocation();
+  const prefersStackedNav = usePrefersStackedNav();
+
+  if (!prefersStackedNav) {
+    return false;
+  }
 
   if (USING_CUSTOMER_DOMAIN) {
     return location.pathname.startsWith(oldPathPrefix);
@@ -19,6 +30,28 @@ function useShouldRedirect(oldPathPrefix: `/${string}`) {
   return location.pathname.startsWith(
     `/organizations/${organization.slug}${oldPathPrefix}`
   );
+}
+
+/**
+ * All links should use the new paths (e.g. /profiling -> /explore/profiling).
+ * This creates a Sentry issue if we detect any links that haven't been updated.
+ */
+function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: boolean}) {
+  const lastKnownRoute = useLastKnownRoute();
+  const route = useRoutes();
+  const routeString = getRouteStringFromRoutes(route);
+
+  useEffect(() => {
+    if (shouldRedirect && lastKnownRoute !== routeString) {
+      Sentry.captureMessage('Unexpected navigation redirect', {
+        level: 'warning',
+        tags: {
+          last_known_route: lastKnownRoute,
+          route: routeString,
+        },
+      });
+    }
+  }, [lastKnownRoute, shouldRedirect, routeString]);
 }
 
 /**
@@ -38,10 +71,11 @@ export function useRedirectNavV2Routes({
 }: Props): string | null {
   const location = useLocation();
   const organization = useOrganization();
-  const hasNavigationV2 = organization.features.includes('navigation-sidebar-v2');
   const shouldRedirect = useShouldRedirect(oldPathPrefix);
 
-  if (!hasNavigationV2 || !shouldRedirect) {
+  useLogUnexpectedNavigationRedirect({shouldRedirect});
+
+  if (!shouldRedirect) {
     return null;
   }
 

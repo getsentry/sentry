@@ -1,12 +1,10 @@
+import {DurationUnit} from 'sentry/utils/discover/fields';
+
 export const sampleDurationTimeSeries = {
   field: 'p99(span.duration)',
   meta: {
-    fields: {
-      'p99(span.duration)': 'duration',
-    },
-    units: {
-      'p99(span.duration)': 'millisecond',
-    },
+    type: 'duration',
+    unit: DurationUnit.MILLISECOND,
   },
   data: [
     {

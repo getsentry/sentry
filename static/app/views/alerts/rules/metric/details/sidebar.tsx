@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -114,9 +114,13 @@ function TriggerDescription({
             {thresholdText}
             {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
               <FeatureBadge
-                type="alpha"
-                title="Anomaly detection is in alpha and may produce inaccurate results"
-                tooltipProps={{isHoverable: true}}
+                type="beta"
+                tooltipProps={{
+                  title: t(
+                    'Anomaly detection is in beta and may produce unexpected results'
+                  ),
+                  isHoverable: true,
+                }}
               />
             ) : null}
           </TriggerText>

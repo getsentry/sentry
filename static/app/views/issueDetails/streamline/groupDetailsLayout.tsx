@@ -1,13 +1,18 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
+import {TourElement} from 'sentry/components/tours/components';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useMedia from 'sentry/utils/useMedia';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import {
   IssueDetailsContext,
   useIssueDetailsReducer,
@@ -38,7 +43,6 @@ export function GroupDetailsLayout({
   const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
-
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
 
   return (
@@ -54,15 +58,35 @@ export function GroupDetailsLayout({
         sidebarOpen={issueDetails.isSidebarOpen}
       >
         <div>
-          <EventDetailsHeader event={event} group={group} project={project} />
-          <GroupContent>
-            <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-              <IssueEventNavigation event={event} group={group} />
-              {/* Since the event details header is disabled, display the sidebar toggle here */}
-              {!hasFilterBar && <ToggleSidebar size="sm" />}
-            </NavigationSidebarWrapper>
-            <ContentPadding>{children}</ContentPadding>
-          </GroupContent>
+          <TourElement<IssueDetailsTour>
+            tourContext={IssueDetailsTourContext}
+            id={IssueDetailsTour.AGGREGATES}
+            title={t('View data in aggregate')}
+            description={t(
+              'The top section of the page always displays data in aggregate, including trends over time or tag value distributions.'
+            )}
+            position="bottom"
+          >
+            <EventDetailsHeader event={event} group={group} project={project} />
+          </TourElement>
+          <TourElement<IssueDetailsTour>
+            tourContext={IssueDetailsTourContext}
+            id={IssueDetailsTour.EVENT_DETAILS}
+            title={t('Explore details')}
+            description={t(
+              'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
+            )}
+            position="top"
+          >
+            <GroupContent>
+              <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                <IssueEventNavigation event={event} group={group} />
+                {/* Since the event details header is disabled, display the sidebar toggle here */}
+                {!hasFilterBar && <ToggleSidebar size="sm" />}
+              </NavigationSidebarWrapper>
+              <ContentPadding>{children}</ContentPadding>
+            </GroupContent>
+          </TourElement>
         </div>
         {shouldDisplaySidebar ? (
           <StreamlinedSidebar group={group} event={event} project={project} />
@@ -72,14 +96,17 @@ export function GroupDetailsLayout({
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)<{
+const StyledLayoutBody = styled('div')<{
   sidebarOpen: boolean;
 }>`
-  padding: 0 !important;
-  gap: 0 !important;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    align-content: stretch;
-    grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
+  display: grid;
+  background-color: ${p => p.theme.background};
+  grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, auto) 325px' : '1fr')};
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
   }
 `;
 

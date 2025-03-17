@@ -9,30 +9,33 @@ import pytest
 import responses
 from django.forms import ChoiceField
 from django.http import HttpRequest
+from django.urls import reverse
 
-from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
+from sentry.identity.vsts.provider import (
+    VSTSIdentityProvider,
+    VSTSNewOAuth2CallbackView,
+    VSTSOAuth2CallbackView,
+)
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
+from sentry.utils.http import absolute_uri
 
 
 @control_silo_test
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
-        def redirect_url():
-            return "https://app.vssps.visualstudio.com/oauth2/authorize"
-
         view = VSTSOAuth2CallbackView(
             access_token_url="https://app.vssps.visualstudio.com/oauth2/token",
             client_id="vsts-client-id",
             client_secret="vsts-client-secret",
         )
         request = Mock()
-        pipeline = Mock()
-
-        pipeline.redirect_url = redirect_url
+        pipeline = Mock(
+            config={"redirect_url": "https://app.vssps.visualstudio.com/oauth2/authorize"}
+        )
 
         responses.add(
             responses.POST,
@@ -60,6 +63,58 @@ class TestVSTSOAuthCallbackView(TestCase):
         assert result["access_token"] == "xxxxxxxxx"
         assert result["token_type"] == "jwt-bearer"
         assert result["expires_in"] == "3599"
+        assert result["refresh_token"] == "zzzzzzzzzz"
+
+
+@control_silo_test
+class TestVSTSNewOAuth2CallbackView(TestCase):
+    @responses.activate
+    def test_exchange_token(self):
+        view = VSTSNewOAuth2CallbackView(
+            access_token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            client_id="vsts-new-client-id",
+            client_secret="vsts-new-client-secret",
+        )
+        request = Mock()
+        pipeline = Mock(
+            config={
+                "redirect_url": reverse(
+                    "sentry-extension-setup", kwargs={"provider_id": "vsts_new"}
+                )
+            },
+            provider=Mock(key="vsts_new"),
+        )
+
+        responses.add(
+            responses.POST,
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            json={
+                "access_token": "xxxxxxxxx",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+                "refresh_token": "zzzzzzzzzz",
+            },
+        )
+
+        result = view.exchange_token(request, pipeline, "oauth-code")
+        mock_request = responses.calls[0].request
+        req_params = parse_qs(mock_request.body)
+
+        # Verify the correct parameters are sent
+        assert req_params["grant_type"] == ["authorization_code"]
+        assert req_params["client_id"] == ["vsts-new-client-id"]
+        assert req_params["client_secret"] == ["vsts-new-client-secret"]
+        assert req_params["code"] == ["oauth-code"]
+
+        # Verify the redirect URI is correctly constructed with absolute_uri
+        assert req_params["redirect_uri"][0] == absolute_uri(
+            reverse("sentry-extension-setup", kwargs={"provider_id": "vsts_new"})
+        )
+
+        # Verify the response is correctly parsed
+        assert result["access_token"] == "xxxxxxxxx"
+        assert result["token_type"] == "Bearer"
+        assert result["expires_in"] == 3600
         assert result["refresh_token"] == "zzzzzzzzzz"
 
 

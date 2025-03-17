@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -49,6 +50,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
@@ -69,12 +71,16 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user(
-            "admin@localhost",
-            is_superuser=True,
-            is_staff=True,
-            is_sentry_app=False,
-        )
+        try:
+            return self.create_user(
+                "admin@localhost",
+                is_superuser=True,
+                is_staff=True,
+                is_sentry_app=False,
+            )
+        except IntegrityError:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
@@ -712,9 +718,17 @@ class Fixtures:
             trace_sampling=trace_sampling,
         )
         for region_slug in region_slugs:
-            Factories.create_uptime_subscription_region(subscription, region_slug)
+            self.create_uptime_subscription_region(subscription, region_slug)
 
         return subscription
+
+    def create_uptime_subscription_region(
+        self,
+        subscription: UptimeSubscription,
+        region_slug: str,
+        mode: UptimeSubscriptionRegion.RegionMode = UptimeSubscriptionRegion.RegionMode.ACTIVE,
+    ):
+        Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
     def create_project_uptime_subscription(
         self,
@@ -726,11 +740,15 @@ class Fixtures:
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
+        id: int | None = None,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
         if env is None:
             env = self.environment
+        if uptime_status_update_date is None:
+            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
@@ -743,6 +761,8 @@ class Fixtures:
             name,
             Actor.from_object(owner) if owner else None,
             uptime_status,
+            uptime_status_update_date,
+            id,
         )
 
     @pytest.fixture(autouse=True)

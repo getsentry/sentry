@@ -1,7 +1,7 @@
 import {ClassNames} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ButtonContainer, Resource} from 'sentry/components/replays/configureReplayCard';
 import {IconQuestion} from 'sentry/icons';
@@ -15,11 +15,14 @@ function getPath(sdkName: string | null | undefined) {
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
     case 'sentry.java.android':
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/
+    case 'sentry.cocoa.flutter':
     case 'sentry.dart.flutter':
+    case 'sentry.java.android.flutter':
       return 'flutter'; // https://docs.sentry.io/platforms/flutter/session-replay/
     case 'npm:@sentry/react-native':
     case 'sentry.cocoa.react-native':
     case 'sentry.javascript.react-native':
+    case 'sentry.java.android.react-native':
       return 'react-native'; // https://docs.sentry.io/platforms/react-native/session-replay/
     default:
       Sentry.captureMessage(`Unknown mobile platform in configure card: ${sdkName}`);

@@ -56,6 +56,7 @@ import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboar
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {
   getExpandedResults,
@@ -563,7 +564,7 @@ function TableView(props: TableViewProps) {
     dataRow: TableDataRow,
     column: TableColumn<keyof TableDataRow>
   ) {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, organization, location, tableData, isHomepage, queryDataset} =
         props;
 
@@ -583,9 +584,10 @@ function TableView(props: TableViewProps) {
 
           browserHistory.push(
             normalizeUrl({
-              pathname: `/organizations/${
-                organization.slug
-              }/releases/${encodeURIComponent(value)}/`,
+              pathname: makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(value)}/`,
+              }),
               query: {
                 ...nextView.getPageFiltersQuery(),
 

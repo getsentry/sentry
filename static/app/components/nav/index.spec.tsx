@@ -6,7 +6,13 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
@@ -174,10 +180,12 @@ describe('Nav', function () {
         await userEvent.unhover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'false'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'false'
+          );
+        });
       });
     });
   });
@@ -215,7 +223,9 @@ describe('Nav', function () {
       renderNav();
 
       // Should have a top-level header element with a home link and menu button
-      expect(screen.getByRole('link', {name: 'Sentry Home'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Open main menu'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));

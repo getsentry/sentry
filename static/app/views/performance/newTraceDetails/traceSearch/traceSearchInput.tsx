@@ -2,7 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
@@ -239,9 +239,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             traceState.search.query && !traceState.search.results?.length
               ? t('no results')
               : traceState.search.query
-                ? (traceState.search.resultIteratorIndex !== null
-                    ? traceState.search.resultIteratorIndex + 1
-                    : '-') + `/${traceState.search.results?.length ?? 0}`
+                ? (traceState.search.resultIteratorIndex === null
+                    ? '-'
+                    : traceState.search.resultIteratorIndex + 1) +
+                  `/${traceState.search.results?.length ?? 0}`
                 : ''
           }`}
         </StyledTrailingText>

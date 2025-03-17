@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -167,6 +167,11 @@ export function ToolbarSaveAs() {
         {organization.features.includes('explore-multi-query') && (
           <LinkButton
             aria-label={t('Compare')}
+            onClick={() =>
+              trackAnalytics('trace_explorer.compare', {
+                organization,
+              })
+            }
             to={generateExploreCompareRoute({
               organization,
               mode,
@@ -177,7 +182,7 @@ export function ToolbarSaveAs() {
               fields,
               sortBys,
             })}
-          >{`${t('Compare')}`}</LinkButton>
+          >{`${t('Compare Queries')}`}</LinkButton>
         )}
       </ButtonBar>
     </ToolbarSection>

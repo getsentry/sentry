@@ -147,6 +147,7 @@ export const desktop: PlatformKey[] = [
   'dotnet',
   'electron',
   'flutter',
+  'godot',
   'java',
   'javascript-electron',
   'kotlin',

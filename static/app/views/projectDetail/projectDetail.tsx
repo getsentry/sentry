@@ -7,8 +7,8 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -16,6 +16,7 @@ import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingA
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
@@ -74,6 +75,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
+  const prefersStackedNav = usePrefersStackedNav();
 
   const visibleCharts = useMemo(() => {
     if (hasTransactions || hasSessions) {
@@ -83,7 +85,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId!, true, false);
+    fetchOrganizationDetails(api, params.orgId!);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
@@ -151,8 +153,8 @@ export default function ProjectDetail({router, location, organization}: Props) {
       >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
+            <Layout.Header unified={prefersStackedNav}>
+              <Layout.HeaderContent unified={prefersStackedNav}>
                 <Breadcrumbs
                   crumbs={[
                     {

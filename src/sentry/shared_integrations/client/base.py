@@ -39,7 +39,7 @@ class SessionSettings(TypedDict):
 
 
 class BaseApiClient:
-    base_url: str | None = None
+    base_url: str = ""
 
     allow_redirects: bool | None = None
 

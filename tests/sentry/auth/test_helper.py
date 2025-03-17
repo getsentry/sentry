@@ -71,7 +71,7 @@ class AuthIdentityHandlerTest(TestCase):
             rpc_organization = serialize_rpc_organization(self.organization)
         return AuthIdentityHandler(
             self.auth_provider_inst,
-            DummyProvider(self.provider),
+            DummyProvider(),
             rpc_organization,
             self.request,
             identity,
