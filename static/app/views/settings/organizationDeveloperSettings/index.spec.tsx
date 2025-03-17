@@ -106,7 +106,7 @@ describe('Organization Developer Settings', function () {
       });
 
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+      expect(deleteButton).toBeEnabled();
 
       await userEvent.click(deleteButton);
       renderGlobalModal();
@@ -137,7 +137,7 @@ describe('Organization Developer Settings', function () {
 
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
 
-      expect(publishButton).toHaveAttribute('aria-disabled', 'false');
+      expect(publishButton).toBeEnabled();
       await userEvent.click(publishButton);
 
       renderGlobalModal();
@@ -252,7 +252,7 @@ describe('Organization Developer Settings', function () {
         router,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+      expect(deleteButton).toBeDisabled();
     });
 
     it('publish button is disabled', async () => {
@@ -263,7 +263,7 @@ describe('Organization Developer Settings', function () {
         router,
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
-      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+      expect(publishButton).toBeDisabled();
     });
   });
 
@@ -280,7 +280,7 @@ describe('Organization Developer Settings', function () {
     it('allows deleting', async () => {
       render(<OrganizationDeveloperSettings />);
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+      expect(deleteButton).toBeEnabled();
     });
 
     it('publish button does not exist', () => {
@@ -306,7 +306,7 @@ describe('Organization Developer Settings', function () {
         organization: newOrg,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+      expect(deleteButton).toBeDisabled();
     });
 
     it('publish button is disabled', async () => {
@@ -318,7 +318,7 @@ describe('Organization Developer Settings', function () {
         router,
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
-      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+      expect(publishButton).toBeDisabled();
     });
   });
 });
