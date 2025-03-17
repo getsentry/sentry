@@ -526,6 +526,7 @@ export const StyledButton = styled(
             {...props}
             ref={ref}
             href={href}
+            // This is a bad UX pattern as the link is not actually disabled.
             aria-disabled={disabled}
             target="_blank"
             rel="noreferrer noopener"
@@ -534,7 +535,7 @@ export const StyledButton = styled(
       }
 
       if (href) {
-        return <a {...props} ref={ref} href={href} />;
+        return <a {...props} ref={ref} href={href} aria-disabled={disabled} />;
       }
 
       // The default `type` of a native button element is `submit` when inside
