@@ -9,13 +9,11 @@ describe('ProjectDetail Utils', function () {
 
     it('returns true for apple projects when the feature flag is enabled', function () {
       expect(
-        isPlatformANRCompatible('apple', ['projects:project-detail-apple-app-hang-rate'])
+        isPlatformANRCompatible('apple', ['project-detail-apple-app-hang-rate'])
       ).toBe(true);
 
       expect(
-        isPlatformANRCompatible('apple-ios', [
-          'projects:project-detail-apple-app-hang-rate',
-        ])
+        isPlatformANRCompatible('apple-ios', ['project-detail-apple-app-hang-rate'])
       ).toBe(true);
     });
 
