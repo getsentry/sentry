@@ -54,6 +54,15 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization, members=[self.user])
+        self.project = self.create_project(
+            organization=self.organization, teams=[self.team], name="foo"
+        )
+
     def assert_expected_versions(self, response, expected):
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
@@ -772,6 +781,18 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         response = self.get_success_response(org.slug, project=[-1])
         self.assert_expected_versions(response, [release2, release1])
+
+    def test_project_from_other_org(self):
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        self.create_release(project=other_project)
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        response = self.get_response(self.organization.slug, project=[other_project.id])
+        assert response.status_code == 403, response.content
 
     def test_new_org(self):
         user = self.create_user(is_staff=False, is_superuser=False)
