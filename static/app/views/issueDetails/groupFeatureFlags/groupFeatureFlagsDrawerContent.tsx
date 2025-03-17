@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
+import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -69,7 +70,9 @@ export default function GroupFeatureFlagsDrawerContent({
     <Wrapper>
       <Container>
         {displayTags.map((tag, tagIdx) => (
-          <TagDistribution tag={tag} key={tagIdx} />
+          <TagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
+            <TagDistribution tag={tag} key={tagIdx} />
+          </TagDetailsLink>
         ))}
       </Container>
     </Wrapper>

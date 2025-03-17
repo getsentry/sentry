@@ -1,3 +1,5 @@
+import {Tag} from 'sentry/components/core/badge/tag';
+
 export type RawFlag = {
   action: string;
   createdAt: string;
@@ -37,4 +39,17 @@ export function hydrateToFlagSeries(
     };
   });
   return flagData;
+}
+
+export function getFlagActionLabel(action: string) {
+  const labelType =
+    action === 'created' ? 'info' : action === 'deleted' ? 'error' : undefined;
+
+  const capitalized = action.toUpperCase();
+
+  return (
+    <div style={{alignSelf: 'flex-start'}}>
+      <Tag type={labelType}>{capitalized}</Tag>
+    </div>
+  );
 }

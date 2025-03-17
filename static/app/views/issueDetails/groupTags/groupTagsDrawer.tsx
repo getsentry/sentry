@@ -31,11 +31,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import GroupFeatureFlagsDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/groupFeatureFlagsDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {
+  type GroupTag,
+  useGroupTags,
+} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -61,6 +65,89 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
     return {tab: TAGS_TAB, setTab: (_tab: string) => {}};
   }
   return {tab, setTab};
+}
+
+function getHeaderTitle(
+  tagKey: string | undefined,
+  tab: DrawerTab,
+  includeFeatureFlagsTab: boolean
+) {
+  if (tagKey) {
+    return tab === TAGS_TAB
+      ? tct('Tag Details - [tagKey]', {tagKey})
+      : tct('Feature Flag Details - [tagKey]', {tagKey});
+  }
+
+  return includeFeatureFlagsTab ? t('Tags & Feature Flags') : t('All Tags');
+}
+
+function DrawerContent({
+  tagKey,
+  tab,
+  group,
+  environments,
+  search,
+  isPending,
+  isHighlightsPending,
+  isError,
+  refetch,
+  displayTags,
+}: {
+  displayTags: GroupTag[];
+  environments: string[];
+  group: Group;
+  isError: boolean;
+  isHighlightsPending: boolean;
+  isPending: boolean;
+  refetch: () => void;
+  search: string;
+  tab: DrawerTab;
+  tagKey: string | undefined;
+}) {
+  if (tagKey) {
+    return tab === TAGS_TAB ? (
+      <TagDetailsDrawerContent group={group} />
+    ) : (
+      <FlagDetailsDrawerContent />
+    );
+  }
+
+  if (tab === FEATURE_FLAGS_TAB) {
+    return (
+      <GroupFeatureFlagsDrawerContent
+        group={group}
+        environments={environments}
+        search={search}
+      />
+    );
+  }
+
+  if (isPending || isHighlightsPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t('There was an error loading issue tags.')}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  return (
+    <Wrapper>
+      <Container>
+        {displayTags.map(tag => (
+          <div key={tag.name}>
+            <TagDetailsLink tag={tag} groupId={group.id}>
+              <TagDistribution tag={tag} />
+            </TagDetailsLink>
+          </div>
+        ))}
+      </Container>
+    </Wrapper>
+  );
 }
 
 export function GroupTagsDrawer({
@@ -243,7 +330,14 @@ export function GroupTagsDrawer({
                 ? [
                     {
                       label: t('All Feature Flags'),
+                      to: tagKey
+                        ? {
+                            pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                            query: {tab: FEATURE_FLAGS_TAB, ...location.query},
+                          }
+                        : undefined,
                     },
+                    ...(tagKey ? [{label: tagKey}] : []),
                   ]
                 : []),
           ]}
@@ -251,43 +345,23 @@ export function GroupTagsDrawer({
       </EventDrawerHeader>
       <EventNavigator>
         <Header>
-          {tagKey
-            ? tct('Tag Details - [tagKey]', {tagKey})
-            : includeFeatureFlagsTab
-              ? t('Tags & Feature Flags')
-              : t('All Tags')}
+          {getHeaderTitle(tagKey, tab as DrawerTab, includeFeatureFlagsTab)}
         </Header>
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
-        {tagKey ? (
-          <TagDetailsDrawerContent group={group} />
-        ) : tab === FEATURE_FLAGS_TAB ? (
-          <GroupFeatureFlagsDrawerContent
-            group={group}
-            environments={environments}
-            search={search}
-          />
-        ) : isPending || isHighlightsPending ? (
-          <LoadingIndicator />
-        ) : isError ? (
-          <LoadingError
-            message={t('There was an error loading issue tags.')}
-            onRetry={refetch}
-          />
-        ) : (
-          <Wrapper>
-            <Container>
-              {displayTags.map(tag => (
-                <div key={tag.name}>
-                  <TagDetailsLink tag={tag} groupId={group.id}>
-                    <TagDistribution tag={tag} />
-                  </TagDetailsLink>
-                </div>
-              ))}
-            </Container>
-          </Wrapper>
-        )}
+        <DrawerContent
+          tagKey={tagKey}
+          tab={tab as DrawerTab}
+          group={group}
+          environments={environments}
+          search={search}
+          isPending={isPending}
+          isHighlightsPending={isHighlightsPending}
+          isError={isError}
+          refetch={refetch}
+          displayTags={displayTags}
+        />
       </EventDrawerBody>
     </EventDrawerContainer>
   );
