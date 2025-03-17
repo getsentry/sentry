@@ -28,6 +28,7 @@ import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -257,7 +258,7 @@ function RootCauseDescription({
   );
 }
 
-function formatRootCauseText(
+export function formatRootCauseText(
   cause: AutofixRootCauseData | undefined,
   customRootCause?: string
 ) {
@@ -338,6 +339,7 @@ function ThumbsUpDownButtons({
     groupId,
     runId,
   });
+  const openForm = useFeedbackForm();
 
   return (
     <ButtonBar>
@@ -345,6 +347,7 @@ function ThumbsUpDownButtons({
         size="sm"
         borderless
         onClick={() => handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_up'})}
+        title={t('This root cause analysis is helpful')}
       >
         {
           <IconThumb
@@ -358,7 +361,17 @@ function ThumbsUpDownButtons({
       <Button
         size="sm"
         borderless
-        onClick={() => handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_down'})}
+        onClick={() => {
+          handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_down'});
+          openForm?.({
+            messagePlaceholder: t('How can we make Autofix better for you?'),
+            tags: {
+              ['feedback.source']: 'issue_details_ai_autofix_root_cause',
+              ['feedback.owner']: 'ml-ai',
+            },
+          });
+        }}
+        title={t('This root cause is incorrect or not helpful')}
       >
         {
           <IconThumb
@@ -429,7 +442,9 @@ function AutofixRootCauseDisplay({
           </HeaderText>
           <ButtonBar>
             <ThumbsUpDownButtons feedback={feedback} groupId={groupId} runId={runId} />
-            <Divider />
+            <DividerWrapper>
+              <Divider />
+            </DividerWrapper>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -614,4 +629,8 @@ const TextArea = styled('textarea')`
 
 const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const DividerWrapper = styled('div')`
+  margin: 0 ${space(1)};
 `;
