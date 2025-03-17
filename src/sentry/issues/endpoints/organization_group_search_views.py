@@ -137,8 +137,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             ).prefetch_related("projects")
 
             param_query_map = {
-                "organization": org_query,
-                "owner": owner_query,
+                GroupSearchViewVisibility.ORGANIZATION: org_query,
+                GroupSearchViewVisibility.OWNER: owner_query,
             }
 
             query_list = [param_query_map[v] for v in visibility]
