@@ -7,6 +7,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   useExploreDataset,
   useExploreFields,
@@ -95,6 +96,7 @@ export function useTrackAnalytics({
       })),
       visualizes_count: visualizes.length,
       title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
@@ -162,6 +164,7 @@ export function useTrackAnalytics({
       visualizes,
       visualizes_count: visualizes.length,
       title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
@@ -240,6 +243,7 @@ export function useTrackAnalytics({
       visualizes,
       visualizes_count: visualizes.length,
       title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
@@ -346,5 +350,28 @@ function computeConfidence(
     const dedupedYAxes = dedupeArray(visualize.yAxes);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     return String(combineConfidenceForSeries(series));
+  });
+}
+
+export function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
+  let emptyBucketsForSeries = 0;
+  for (const item of series.data) {
+    if (item.value === 0 || item.value === null) {
+      emptyBucketsForSeries += 1;
+    }
+  }
+  return emptyBucketsForSeries;
+}
+
+function computeEmptyBuckets(
+  visualizes: Visualize[],
+  data: ReturnType<typeof useSortedTimeSeries>['data']
+) {
+  return visualizes.flatMap(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    return dedupedYAxes
+      .flatMap(yAxis => data[yAxis])
+      .filter(defined)
+      .map(computeEmptyBucketsForSeries);
   });
 }

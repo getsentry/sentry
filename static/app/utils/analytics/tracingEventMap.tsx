@@ -26,6 +26,7 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
+    empty_buckets_percentage?: number[];
   };
   'trace.load.empty_state': {
     source: TraceWaterFallSource;
