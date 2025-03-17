@@ -11,7 +11,6 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     TimeSeries,
     TimeSeriesRequest,
 )
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
@@ -41,7 +40,7 @@ logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 def categorize_aggregate(
     column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
-) -> Column:
+) -> Expression:
     if isinstance(column, ResolvedFormula):
         return Expression(
             formula=transform_binary_formula_to_expression(column.proto_definition),
