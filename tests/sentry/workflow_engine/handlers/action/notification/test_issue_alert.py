@@ -21,7 +21,6 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     OpsgenieIssueAlertHandler,
     PagerDutyIssueAlertHandler,
     PluginIssueAlertHandler,
-    SentryAppIdentifier,
     SentryAppIssueAlertHandler,
     SlackIssueAlertHandler,
     TicketingIssueAlertHandler,
@@ -35,6 +34,7 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     EmailActionHelper,
+    SentryAppIdentifier,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
