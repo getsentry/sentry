@@ -58,9 +58,6 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
         required=False,
     )
 
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        return data
-
 
 @region_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
