@@ -11,8 +11,6 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
-# from sentry.utils.registry import NoRegistrationExistsError
-
 T = TypeVar("T", bound=Model)
 ActionData = dict[str, Any]
 ActionConfig = dict[str, Any]
