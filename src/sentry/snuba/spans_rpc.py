@@ -43,7 +43,9 @@ def categorize_aggregate(
 ) -> Expression:
     if isinstance(column, ResolvedFormula):
         return Expression(
-            formula=transform_binary_formula_to_expression(column.proto_definition),
+            formula=transform_binary_formula_to_expression(
+                column.proto_definition
+            ),  # Remove transformation when https://github.com/getsentry/eap-planning/issues/206 is merged
             label=column.public_alias,
         )
     if isinstance(column, ResolvedAggregate):
