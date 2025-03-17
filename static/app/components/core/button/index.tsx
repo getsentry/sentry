@@ -317,6 +317,10 @@ function BaseButton({
     </StyledButton>
   );
 
+  if (!title) {
+    return button;
+  }
+
   return (
     <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
       {button}
