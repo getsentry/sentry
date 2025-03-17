@@ -1,12 +1,39 @@
 from collections import defaultdict
+from datetime import datetime
+from typing import TypedDict
 
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
 from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentProject
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
+
+
+class IncidentSerializerResponse(TypedDict):
+    id: str
+    identifier: str
+    organizationId: str
+    projects: list[str]
+    alertRule: AlertRuleSerializerResponse
+    activities: list[IncidentActivitySerializerResponse] | None
+    status: int
+    statusMethod: int
+    type: int
+    title: str
+    dateStarted: datetime
+    dateDetected: datetime
+    dateCreated: datetime
+    dateClosed: datetime | None
+
+
+class DetailedIncidentSerializerResponse(IncidentSerializerResponse):
+    discoverQuery: str
 
 
 @register(Incident)
@@ -48,7 +75,7 @@ class IncidentSerializer(Serializer):
 
         return results
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> IncidentSerializerResponse:
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
             "id": str(obj.id),
@@ -76,14 +103,16 @@ class DetailedIncidentSerializer(IncidentSerializer):
             expand.append("original_alert_rule")
         super().__init__(expand=expand)
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        context = super().serialize(obj, attrs, user)
+    def serialize(self, obj, attrs, user, **kwargs) -> DetailedIncidentSerializerResponse:
+        base_context = super().serialize(obj, attrs, user)
         # The query we should use to get accurate results in Discover.
-        context["discoverQuery"] = self._build_discover_query(obj)
+        context = DetailedIncidentSerializerResponse(
+            **base_context, discoverQuery=self._build_discover_query(obj)
+        )
 
         return context
 
-    def _build_discover_query(self, incident):
+    def _build_discover_query(self, incident) -> str:
         return apply_dataset_query_conditions(
             SnubaQuery.Type(incident.alert_rule.snuba_query.type),
             incident.alert_rule.snuba_query.query,
