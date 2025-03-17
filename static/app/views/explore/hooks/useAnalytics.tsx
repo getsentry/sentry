@@ -38,10 +38,12 @@ export function useTrackAnalytics({
   fields,
   visualizes,
   page_source,
+  interval,
 }: {
   aggregatesTableResult: AggregatesTableResult;
   dataset: DiscoverDatasets;
   fields: string[];
+  interval: string;
   page_source: 'explore' | 'compare';
   query: string;
   queryType: 'aggregate' | 'samples' | 'traces';
@@ -100,6 +102,7 @@ export function useTrackAnalytics({
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      interval,
     });
 
     info(
@@ -137,6 +140,7 @@ export function useTrackAnalytics({
     isLoadingSubscriptionDetails,
     query_status,
     page_source,
+    interval,
   ]);
 
   useEffect(() => {
@@ -168,6 +172,7 @@ export function useTrackAnalytics({
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      interval,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -201,6 +206,7 @@ export function useTrackAnalytics({
     isLoadingSubscriptionDetails,
     query_status,
     page_source,
+    interval,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -247,6 +253,7 @@ export function useTrackAnalytics({
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
+      interval,
     });
   }, [
     organization,
@@ -266,6 +273,7 @@ export function useTrackAnalytics({
     query_status,
     page_source,
     tracesTableResultDefined,
+    interval,
   ]);
 }
 
@@ -275,8 +283,10 @@ export function useAnalytics({
   spansTableResult,
   tracesTableResult,
   timeseriesResult,
+  interval,
 }: {
   aggregatesTableResult: AggregatesTableResult;
+  interval: string;
   queryType: 'aggregate' | 'samples' | 'traces';
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -299,6 +309,7 @@ export function useAnalytics({
     query,
     fields,
     visualizes,
+    interval,
     page_source: 'explore',
   });
 }
@@ -310,9 +321,11 @@ export function useCompareAnalytics({
   aggregatesTableResult,
   spansTableResult,
   timeseriesResult,
+  interval,
 }: {
   aggregatesTableResult: AggregatesTableResult;
   index: number;
+  interval: string;
   query: ReadableExploreQueryParts;
   queryType: 'aggregate' | 'samples' | 'traces';
   spansTableResult: SpansTableResult;
@@ -338,6 +351,7 @@ export function useCompareAnalytics({
     query,
     fields,
     visualizes,
+    interval,
     page_source: 'compare',
   });
 }
