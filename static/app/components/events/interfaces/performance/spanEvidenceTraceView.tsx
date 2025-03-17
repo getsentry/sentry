@@ -4,7 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -65,21 +65,20 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-interface EventTraceViewInnerProps {
+interface SpanEvidenceTraceViewProps {
   event: Event;
   organization: Organization;
   traceId: string;
-  traceTarget: LocationDescriptor;
 }
 
-function EventTraceViewInner({
+export function SpanEvidenceTraceView({
   event,
   organization,
   traceId,
-  traceTarget,
-}: EventTraceViewInnerProps) {
+}: SpanEvidenceTraceViewProps) {
   const timestamp = new Date(event.dateReceived).getTime() / 1e3;
 
+  const location = useLocation();
   const trace = useTrace({
     timestamp,
     traceSlug: traceId,
@@ -106,6 +105,19 @@ function EventTraceViewInner({
   if (!traceId) {
     return null;
   }
+
+  const traceTarget = generateTraceTarget(
+    event,
+    organization,
+    {
+      ...location,
+      query: {
+        ...location.query,
+        groupId: event.groupID,
+      },
+    },
+    TraceViewSources.ISSUE_DETAILS
+  );
 
   return (
     <TraceStateProvider
@@ -137,42 +149,6 @@ function EventTraceViewInner({
         />
       </IssuesTraceContainer>
     </TraceStateProvider>
-  );
-}
-
-export function NewTraceViewContent({
-  event,
-  organization,
-  traceId,
-}: {
-  event: EventTransaction;
-  organization: Organization;
-  traceId: string;
-}) {
-  const location = useLocation();
-
-  const traceTarget = generateTraceTarget(
-    event,
-    organization,
-    {
-      ...location,
-      query: {
-        ...location.query,
-        groupId: event.groupID,
-      },
-    },
-    TraceViewSources.ISSUE_DETAILS
-  );
-
-  // TODO: use affectedSpanIds to display more of the trace
-  // For example, the transaction has additional spans that should be highlighted are currently collapsed
-  return (
-    <EventTraceViewInner
-      event={event}
-      organization={organization}
-      traceId={traceId}
-      traceTarget={traceTarget}
-    />
   );
 }
 
