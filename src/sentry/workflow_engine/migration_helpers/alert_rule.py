@@ -450,13 +450,14 @@ def create_workflow(
 
 def get_detector_field_values(
     alert_rule: AlertRule,
+    data_condition_group: DataConditionGroup,
     project_id: int | None = None,
-    data_condition_group: DataConditionGroup | None = None,
     user: RpcUser | None = None,
-) -> dict[str:Any]:
+) -> dict[str, Any]:
     detector_field_values = {
         "name": alert_rule.name,
         "description": alert_rule.description,
+        "workflow_condition_group": data_condition_group,
         "owner_user_id": alert_rule.user_id,
         "owner_team": alert_rule.team,
         "config": {
@@ -477,14 +478,6 @@ def get_detector_field_values(
                 "type": MetricAlertFire.slug,
             }
         )
-    if data_condition_group is not None:
-        # this field is only set on create and not update
-        # the separate check is for typing purposes
-        detector_field_values.update(
-            {
-                "workflow_condition_group": data_condition_group,
-            }
-        )
     return detector_field_values
 
 
@@ -495,7 +488,7 @@ def create_detector(
     user: RpcUser | None = None,
 ) -> Detector:
     detector_field_values = get_detector_field_values(
-        alert_rule, project_id, data_condition_group, user
+        alert_rule, data_condition_group, project_id, user
     )
     return Detector.objects.create(**detector_field_values)
 
@@ -504,7 +497,9 @@ def update_detector(
     alert_rule: AlertRule,
     detector: Detector,
 ):
-    detector_field_values = get_detector_field_values(alert_rule)
+    if detector.workflow_condition_group is None:
+        raise MissingDataConditionGroup
+    detector_field_values = get_detector_field_values(alert_rule, detector.workflow_condition_group)
     detector.update(**detector_field_values)
     return detector
 
@@ -733,6 +728,10 @@ def dual_update_migrated_alert_rule_trigger(
 ) -> tuple[DataCondition, DataCondition] | None:
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        # we will have already verified that that alert rule was dual written, so
+        # we won't reach this path
+        return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
 
     updated_detector_trigger_fields: dict[str, Any] = {}
@@ -773,12 +772,12 @@ def dual_update_migrated_alert_rule_trigger_action(
         target_identifier,
         trigger_action.target_type,
     )
-    updated_action_fields = {
-        "type": Action.Type(action_type),
-        "data": data,
-        "integration_id": trigger_action.integration_id,
-        "config": action_config,
-    }
+    updated_action_fields: dict[str, Any] = {}
+    updated_action_fields["type"] = Action.Type(action_type)
+    updated_action_fields["data"] = data
+    updated_action_fields["integration_id"] = trigger_action.integration_id
+    updated_action_fields["config"] = action_config
+
     action.update(**updated_action_fields)
     return action
 
