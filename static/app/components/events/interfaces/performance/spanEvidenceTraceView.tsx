@@ -84,9 +84,6 @@ export function SpanEvidenceTraceView({
     traceSlug: traceId,
     limit: 10000,
   });
-  const params = useTraceQueryParams({
-    timestamp,
-  });
   const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
   const tree = useIssuesTraceTree({trace, meta, replay: null});
 
@@ -100,6 +97,7 @@ export function SpanEvidenceTraceView({
     []
   );
 
+  const params = useTraceQueryParams({timestamp});
   const traceEventView = useTraceEventView(traceId, params);
 
   if (!traceId) {

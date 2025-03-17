@@ -81,7 +81,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
     return null;
   }
 
-  const hasNewTraceView = !organization.features.includes(
+  const hasNewTraceView = organization.features.includes(
     'issue-details-new-performance-trace-view'
   );
   const traceId = event.contexts.trace?.trace_id;
