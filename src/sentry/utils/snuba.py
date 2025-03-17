@@ -1983,6 +1983,8 @@ def is_duration_measurement(key):
         "measurements.time_to_initial_display",
         "measurements.inp",
         "measurements.messaging.message.receive.latency",
+        "measurements.stall_longest_time",
+        "measurements.stall_total_time",
     ]
 
 
