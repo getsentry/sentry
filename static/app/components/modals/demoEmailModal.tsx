@@ -49,7 +49,6 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
     async (email: string) => {
       const utmState = getUTMState();
 
-      // always save the email before the API call
       if (onAddedEmail) {
         onAddedEmail(email);
       }

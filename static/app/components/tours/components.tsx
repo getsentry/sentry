@@ -1,6 +1,6 @@
 import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
-import {useTheme} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -300,39 +300,44 @@ export function TourGuide({
       {isOpen
         ? createPortal(
             <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-              <TourOverlay
-                animated
-                arrowProps={{
-                  ...arrowProps,
-                  style: {
-                    ...arrowProps.style,
-                    fill: darkTheme.backgroundElevated,
-                  },
-                }}
-              >
-                <TourBody ref={scrollToElement}>
-                  {isTopRowVisible && (
-                    <TopRow>
-                      <div>{countText}</div>
-                      {isDismissVisible && (
-                        <TourCloseButton
-                          onClick={e => {
-                            trackAnalytics('tour-guide.close', {organization, id});
-                            handleDismiss(e);
-                          }}
-                          icon={<IconClose style={{color: darkTheme.textColor}} />}
-                          aria-label={t('Close')}
-                          borderless
-                          size="sm"
-                        />
+              <ClassNames>
+                {({css}) => (
+                  <TourOverlay
+                    animated
+                    arrowProps={{
+                      ...arrowProps,
+                      className: css`
+                        path.fill {
+                          fill: ${darkTheme.backgroundElevated} !important;
+                        }
+                      `,
+                    }}
+                  >
+                    <TourBody ref={scrollToElement}>
+                      {isTopRowVisible && (
+                        <TopRow>
+                          <div>{countText}</div>
+                          {isDismissVisible && (
+                            <TourCloseButton
+                              onClick={e => {
+                                trackAnalytics('tour-guide.close', {organization, id});
+                                handleDismiss(e);
+                              }}
+                              icon={<IconClose style={{color: darkTheme.textColor}} />}
+                              aria-label={t('Close')}
+                              borderless
+                              size="sm"
+                            />
+                          )}
+                        </TopRow>
                       )}
-                    </TopRow>
-                  )}
-                  {title && <TitleRow>{title}</TitleRow>}
-                  {description && <DescriptionRow>{description}</DescriptionRow>}
-                  {actions && <Flex justify="flex-end">{actions}</Flex>}
-                </TourBody>
-              </TourOverlay>
+                      {title && <TitleRow>{title}</TitleRow>}
+                      {description && <DescriptionRow>{description}</DescriptionRow>}
+                      {actions && <Flex justify="flex-end">{actions}</Flex>}
+                    </TourBody>
+                  </TourOverlay>
+                )}
+              </ClassNames>
             </PositionWrapper>,
             document.body
           )

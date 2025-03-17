@@ -14,7 +14,7 @@ export function isPlatformANRCompatible(platform?: PlatformKey, features?: strin
     return true;
   }
   if (platform === 'apple' || platform === 'apple-ios') {
-    if (features?.includes('projects:project-detail-apple-app-hang-rate')) {
+    if (features?.includes('project-detail-apple-app-hang-rate')) {
       return true;
     }
   }

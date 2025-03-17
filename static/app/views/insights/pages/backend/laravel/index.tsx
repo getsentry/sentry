@@ -109,7 +109,7 @@ export function LaravelOverviewPage() {
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
+                  <ProjectPageFilter resetParamsOnChange={['starred']} />
                   <EnvironmentPageFilter />
                   <DatePageFilter
                     maxPickableDays={maxPickableDays}

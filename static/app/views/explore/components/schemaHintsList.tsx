@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -12,9 +14,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
-import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
+import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
   PageParamsProvider,
   useExploreQuery,
@@ -35,6 +44,10 @@ const seeFullListTag: Tag = {
   kind: undefined,
 };
 
+function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
+  return keys.map(key => tags[key]).filter(tag => !!tag);
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
@@ -44,6 +57,7 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
+  const location = useLocation();
   const theme = useTheme();
 
   const {openDrawer, isDrawerOpen} = useDrawer();
@@ -57,13 +71,22 @@ function SchemaHintsList({
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
     filterTags.has = getHasTag({...stringTags});
 
-    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children);
-    const sectionSortedTags = sectionKeys
-      .map(key => filterTags[key])
-      .filter(tag => !!tag);
-    const otherKeys = Object.keys(filterTags).filter(key => !sectionKeys.includes(key));
-    const otherTags = otherKeys.map(key => filterTags[key]).filter(tag => !!tag);
-    return [...sectionSortedTags, ...otherTags];
+    const schemaHintsPresetTags = getTagsFromKeys(
+      SCHEMA_HINTS_LIST_ORDER_KEYS,
+      filterTags
+    );
+
+    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
+      section => section.children
+    ).filter(key => !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key));
+    const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
+
+    const otherKeys = Object.keys(filterTags).filter(
+      key => !sectionKeys.includes(key) && !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key)
+    );
+    const otherTags = getTagsFromKeys(otherKeys, filterTags);
+
+    return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
   }, [numberTags, stringTags, functionTags]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
@@ -152,6 +175,16 @@ function SchemaHintsList({
                   width: 35vw;
                 }
               `,
+              shouldCloseOnLocationChange: newLocation => {
+                return (
+                  location.pathname !== newLocation.pathname ||
+                  // will close if anything but the filter query has changed
+                  !isEqual(
+                    omit(location.query, ['query']),
+                    omit(newLocation.query, ['query'])
+                  )
+                );
+              },
             }
           );
         }
@@ -159,9 +192,12 @@ function SchemaHintsList({
       }
 
       const newSearchQuery = new MutableSearch(exploreQuery);
+      const isBoolean =
+        getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
+        FieldValueType.BOOLEAN;
       newSearchQuery.addFilterValue(
         hint.key,
-        hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
       );
       setExploreQuery(newSearchQuery.formatString());
     },
@@ -172,6 +208,7 @@ function SchemaHintsList({
       openDrawer,
       theme.breakpoints,
       filterTagsSorted,
+      location,
     ]
   );
 
