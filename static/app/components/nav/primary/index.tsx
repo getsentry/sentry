@@ -89,7 +89,7 @@ export function PrimaryNavigationItems() {
             analyticsKey="insights-domains"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
           >
-            <IconGraph />
+            <IconGraph type="area" />
           </SidebarLink>
         </Feature>
 
