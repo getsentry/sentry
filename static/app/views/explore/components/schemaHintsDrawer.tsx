@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -28,6 +28,8 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
 
   const theme = useTheme();
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(exploreQuery);
     return filterQuery.getFilterKeys();
@@ -41,6 +43,26 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       return aWithoutPrefix.localeCompare(bWithoutPrefix);
     });
   }, [hints]);
+
+  const sortedAndFilteredHints = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return sortedHints;
+    }
+
+    const searchFor = JSON.stringify(searchQuery)
+      // it replaces double backslash generate by JSON.stringify with single backslash
+      .replace(/((^")|("$))/g, '')
+      .toLocaleLowerCase()
+      .trim();
+
+    return sortedHints.filter(hint =>
+      JSON.stringify(hint.key)
+        .replace(/((^")|("$))/g, '')
+        .toLocaleLowerCase()
+        .trim()
+        .includes(searchFor)
+    );
+  }, [sortedHints, searchQuery]);
 
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
@@ -76,14 +98,19 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
               }
             `}
           >
-            <SearchInput size="sm" value={''} onChange={() => {}} />
+            <SearchInput
+              size="sm"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              aria-label={t('Search attributes')}
+            />
             <InputGroup.TrailingItems disablePointerEvents>
               <IconSearch size="md" />
             </InputGroup.TrailingItems>
           </InputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
-          {sortedHints.map(hint => {
+          {sortedAndFilteredHints.map(hint => {
             const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
             const hintType =
               hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
