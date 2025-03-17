@@ -148,9 +148,19 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 if span_id:
                     span_to_transaction[span_id] = event_node
         else:
+            title = event.title
+            message = event.message if event.message != event.title else None
+            transaction_name = event.transaction
+
+            error_title = message or ""
+            if title:
+                error_title += f"{' - ' if error_title else ''}{title}"
+            if transaction_name:
+                error_title += f"{' - ' if error_title else ''}occurred in {transaction_name}"
+
             event_node.update(
                 {
-                    "title": event.title,
+                    "title": error_title,
                     "platform": event.platform,
                     "is_current_project": event.project_id == project.id,
                 }
