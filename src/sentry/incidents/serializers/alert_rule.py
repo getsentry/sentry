@@ -281,7 +281,6 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
             if should_dual_write:
                 try:
-                    # This is where the dual write helpers are being called on create
                     dual_write_alert_rule(alert_rule, user)
                 except Exception:
                     sentry_sdk.capture_exception()
@@ -313,10 +312,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                     extra={"details": str(e)},
                 )
                 raise BadRequest
-            # if we see new trigger data, we enter this path
             self._handle_triggers(alert_rule, triggers)
-            # call new dual_update_alert_rule function here
-            dual_update_alert_rule(alert_rule)
+            try:
+                dual_update_alert_rule(alert_rule)
+            except Exception:
+                sentry_sdk.capture_exception()
+                raise BadRequest(message="Error when updating alert rule")
             return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
