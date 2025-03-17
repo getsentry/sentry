@@ -417,26 +417,13 @@ const getColors = ({
     }
   };
 
-  const getBackgroundColor = () => {
-    switch (priority) {
-      case 'primary':
-      case 'danger':
-        return `background-color: ${background};`;
-      default:
-        if (borderless) {
-          return css`
-            background-color: transparent;
-          `;
-        }
-        return css`
-          background-color: ${background};
-        `;
-    }
-  };
-
   return css`
     color: ${color};
-    ${getBackgroundColor()}
+    background-color: ${priority === 'primary' || priority === 'danger'
+      ? background
+      : borderless
+        ? 'transparent'
+        : background};
 
     border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
 
