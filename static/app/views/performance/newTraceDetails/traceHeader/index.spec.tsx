@@ -137,7 +137,7 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsLinks[1]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[1]).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/summary?source=performance_transaction_summary&transaction=transaction-name'
+        '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
       );
       expect(breadcrumbsItems).toHaveLength(1);
       expect(breadcrumbsItems[0]).toHaveTextContent('Trace View');

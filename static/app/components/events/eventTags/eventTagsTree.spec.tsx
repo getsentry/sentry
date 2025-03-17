@@ -14,7 +14,7 @@ import {
 
 import {EventTags} from 'sentry/components/events/eventTags';
 
-describe('EventTagsTree', function () {
+describe('EventTagsTree', () => {
   const {organization, project} = initializeOrg();
   const tags = [
     {key: 'app', value: 'Sentry'},
@@ -65,7 +65,7 @@ describe('EventTagsTree', function () {
   const referrer = 'event-tags-table';
   let mockDetailedProject: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -73,7 +73,7 @@ describe('EventTagsTree', function () {
     });
   });
 
-  it('renders tag tree', async function () {
+  it('renders tag tree', async () => {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
     });
@@ -117,7 +117,7 @@ describe('EventTagsTree', function () {
     }
   });
 
-  it('renders release tag differently', async function () {
+  it('renders release tag differently', async () => {
     const releaseVersion = 'v1.0';
 
     const reposRequest = MockApiClient.addMockResponse({
@@ -164,9 +164,7 @@ describe('EventTagsTree', function () {
       validateLink: () => {
         const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
-        expect(href?.value).toContain(
-          `/organizations/${organization.slug}/performance/summary/`
-        );
+        expect(href?.value).toContain(`/organizations/org-slug/insights/summary/`);
         expect(href?.value).toContain(`project=${project.id}`);
         expect(href?.value).toContain('transaction=abc123');
         expect(href?.value).toContain(`referrer=${referrer}`);
@@ -210,7 +208,7 @@ describe('EventTagsTree', function () {
     }
   );
 
-  it('renders error message tooltips instead of dropdowns', async function () {
+  it('renders error message tooltips instead of dropdowns', async () => {
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
@@ -258,7 +256,7 @@ describe('EventTagsTree', function () {
     expect(errorRows).toHaveLength(2);
   });
 
-  it('avoids rendering nullish tags', async function () {
+  it('avoids rendering nullish tags', async () => {
     const uniqueTagsEvent = EventFixture({
       tags: [
         {key: null, value: 'null tag'},
@@ -278,7 +276,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on highlights", async function () {
+  it("renders 'Add to event highlights' option based on highlights", async () => {
     const highlightsEvent = EventFixture({
       tags: [
         {key: 'useless-tag', value: 'not so much'},
@@ -313,7 +311,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on permissions", async function () {
+  it("renders 'Add to event highlights' option based on permissions", async () => {
     const readAccessOrganization = OrganizationFixture({
       access: ['org:read'],
     });
@@ -344,7 +342,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it('renders tag details link when on issue details route', async function () {
+  it('renders tag details link when on issue details route', async () => {
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
     });

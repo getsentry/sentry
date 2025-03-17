@@ -162,9 +162,9 @@ function initializeTrendsData(
   return initialData;
 }
 
-describe('Performance > Trends', function () {
+describe('Performance > Trends', () => {
   let trendsStatsMock: jest.Mock;
-  beforeEach(function () {
+  beforeEach(() => {
     mockUseLocation.mockReturnValue({
       pathname: '/organizations/org-slug/performance/trends/',
       action: 'PUSH',
@@ -271,12 +271,12 @@ describe('Performance > Trends', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', async () => {
     const data = _initializeData({});
 
     render(
@@ -292,7 +292,7 @@ describe('Performance > Trends', function () {
     expect(screen.getAllByTestId('changed-transactions')).toHaveLength(2);
   });
 
-  it('transaction list items are rendered', async function () {
+  it('transaction list items are rendered', async () => {
     const data = _initializeData({});
 
     render(
@@ -307,7 +307,7 @@ describe('Performance > Trends', function () {
     expect(await screen.findAllByTestId('trends-list-item-improved')).toHaveLength(2);
   });
 
-  it('view summary menu action links to the correct view', async function () {
+  it('view summary menu action links to the correct view', async () => {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -327,11 +327,11 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p95&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+      '/organizations/org-slug/insights/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p95&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
     );
   });
 
-  it('hide from list menu action modifies query', async function () {
+  it('hide from list menu action modifies query', async () => {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -367,7 +367,7 @@ describe('Performance > Trends', function () {
     });
   });
 
-  it('Changing search causes cursors to be reset', async function () {
+  it('Changing search causes cursors to be reset', async () => {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -395,7 +395,7 @@ describe('Performance > Trends', function () {
     );
   });
 
-  it('exclude greater than list menu action modifies query', async function () {
+  it('exclude greater than list menu action modifies query', async () => {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -431,7 +431,7 @@ describe('Performance > Trends', function () {
     });
   });
 
-  it('exclude less than list menu action modifies query', async function () {
+  it('exclude less than list menu action modifies query', async () => {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -467,7 +467,7 @@ describe('Performance > Trends', function () {
     });
   });
 
-  it('choosing a trend function changes location', async function () {
+  it('choosing a trend function changes location', async () => {
     const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -499,7 +499,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
+  it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async () => {
     const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
@@ -515,7 +515,7 @@ describe('Performance > Trends', function () {
     expect(trendDropdownButton).toHaveTextContent('Percentilep95');
   });
 
-  it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
+  it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async () => {
     const projects = [ProjectFixture({id: '1', platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
@@ -531,7 +531,7 @@ describe('Performance > Trends', function () {
     expect(parameterDropdownButton).toHaveTextContent('ParameterDuration');
   });
 
-  it('sets trend parameter from query and ignores default trend parameter', async function () {
+  it('sets trend parameter from query and ignores default trend parameter', async () => {
     const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
 
@@ -547,7 +547,7 @@ describe('Performance > Trends', function () {
     expect(parameterDropdownButton).toHaveTextContent('ParameterFCP');
   });
 
-  it('choosing a parameter changes location', async function () {
+  it('choosing a parameter changes location', async () => {
     const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -577,7 +577,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('choosing a web vitals parameter adds it as an additional condition to the query', async function () {
+  it('choosing a web vitals parameter adds it as an additional condition to the query', async () => {
     const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -632,7 +632,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('trend functions in location make api calls', async function () {
+  it('trend functions in location make api calls', async () => {
     const projects = [ProjectFixture(), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -705,7 +705,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async function () {
+  it('Visiting trends with trends feature will update filters if none are set', async () => {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(
@@ -728,7 +728,7 @@ describe('Performance > Trends', function () {
     );
   });
 
-  it('Navigating away from trends will remove extra tags from query', async function () {
+  it('Navigating away from trends will remove extra tags from query', async () => {
     const data = initializeTrendsData(
       undefined,
       {
@@ -751,7 +751,7 @@ describe('Performance > Trends', function () {
 
     expect(byTransactionLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/?query=device.family%3AMac'
+      '/organizations/org-slug/insights/backend/?query=device.family%3AMac'
     );
   });
 });

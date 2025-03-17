@@ -105,11 +105,11 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
   return eventView;
 }
 
-describe('Performance > Table', function () {
+describe('Performance > Table', () => {
   let eventsMock: jest.Mock;
-  beforeEach(function () {
+  beforeEach(() => {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -189,12 +189,12 @@ describe('Performance > Table', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('with events', function () {
-    it('renders correct cell actions without feature', async function () {
+  describe('with events', () => {
+    it('renders correct cell actions without feature', async () => {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -218,7 +218,7 @@ describe('Performance > Table', function () {
       const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
       expect(link).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+        '/organizations/org-slug/insights/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
@@ -252,7 +252,7 @@ describe('Performance > Table', function () {
       });
     });
 
-    it('hides cell actions when withStaticFilters is true', async function () {
+    it('hides cell actions when withStaticFilters is true', async () => {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -273,7 +273,7 @@ describe('Performance > Table', function () {
       expect(cellActionContainers).not.toBeInTheDocument();
     });
 
-    it('shows unparameterized tooltip when project only recently sent events', async function () {
+    it('shows unparameterized tooltip when project only recently sent events', async () => {
       const projects = [
         ProjectFixture({id: '1', slug: '1'}),
         ProjectFixture({id: '2', slug: '2'}),
@@ -300,7 +300,7 @@ describe('Performance > Table', function () {
       expect(indicatorContainer).toBeInTheDocument();
     });
 
-    it('does not show unparameterized tooltip when project only recently sent events', async function () {
+    it('does not show unparameterized tooltip when project only recently sent events', async () => {
       const projects = [
         ProjectFixture({id: '1', slug: '1'}),
         ProjectFixture({id: '2', slug: '2'}),
@@ -332,7 +332,7 @@ describe('Performance > Table', function () {
       expect(indicatorContainer).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', async function () {
+    it('sends MEP param when setting enabled', async () => {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',

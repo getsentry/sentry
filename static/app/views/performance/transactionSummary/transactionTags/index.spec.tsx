@@ -38,7 +38,7 @@ function initializeData({query} = {query: {}}) {
   });
 
   mockUseLocation.mockReturnValue({
-    pathname: '/organizations/org-slug/performance/summary/tags/',
+    pathname: '/organizations/org-slug/insights/summary/tags/',
     query: newQuery,
   } as any); // TODO - type this correctly
 
@@ -47,12 +47,12 @@ function initializeData({query} = {query: {}}) {
   return initialData;
 }
 
-describe('Performance > Transaction Tags', function () {
+describe('Performance > Transaction Tags', () => {
   let histogramMock: Record<string, any>;
 
-  beforeEach(function () {
+  beforeEach(() => {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary/tags/'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary/tags/'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -156,13 +156,13 @@ describe('Performance > Transaction Tags', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     histogramMock.mockReset();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', async () => {
     const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
@@ -196,7 +196,7 @@ describe('Performance > Transaction Tags', function () {
     expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
   });
 
-  it('Default tagKey is set when loading the page without one', async function () {
+  it('Default tagKey is set when loading the page without one', async () => {
     const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
@@ -233,7 +233,7 @@ describe('Performance > Transaction Tags', function () {
     );
   });
 
-  it('Passed tagKey gets used when calling queries', async function () {
+  it('Passed tagKey gets used when calling queries', async () => {
     const {organization, router} = initializeData({
       query: {tagKey: 'effectiveConnectionType'},
     });
@@ -295,7 +295,7 @@ describe('Performance > Transaction Tags', function () {
     );
   });
 
-  it('clears tableCursor when selecting a new tag', async function () {
+  it('clears tableCursor when selecting a new tag', async () => {
     const {organization, router} = initializeData({
       query: {
         statsPeriod: '14d',
@@ -332,7 +332,7 @@ describe('Performance > Transaction Tags', function () {
 
     await waitFor(() =>
       expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/performance/summary/tags/',
+        pathname: '/organizations/org-slug/insights/summary/tags/',
         query: {
           project: '1',
           statsPeriod: '14d',
@@ -358,7 +358,7 @@ describe('Performance > Transaction Tags', function () {
     });
   });
 
-  it('changes the aggregate column when a new x-axis is selected', async function () {
+  it('changes the aggregate column when a new x-axis is selected', async () => {
     const {organization, router} = initializeData({
       query: {tagKey: 'os'},
     });

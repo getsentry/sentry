@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/traces/fieldRenderers';
 import type {SpanResult} from 'sentry/views/traces/hooks/useTraceSpans';
 
-describe('Renderers', function () {
+describe('Renderers', () => {
   let context: ReturnType<typeof initializeOrg>;
 
   const organization = OrganizationFixture({
@@ -65,7 +65,7 @@ describe('Renderers', function () {
     };
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     context = initializeOrg({organization, projects});
     act(() => ProjectsStore.loadInitialData(projects));
 
@@ -75,8 +75,8 @@ describe('Renderers', function () {
     });
   });
 
-  describe('SpanDescriptionRenderer', function () {
-    it('renders op then description', function () {
+  describe('SpanDescriptionRenderer', () => {
+    it('renders op then description', () => {
       const span = makeSpan(projects[0]!);
 
       render(<SpanDescriptionRenderer span={span} />);
@@ -86,20 +86,17 @@ describe('Renderers', function () {
       expect(description).toHaveTextContent('op\u2014descriptioninternal_error');
     });
 
-    it.each(['unknown', 'foobar'])(
-      'does not render span status %s',
-      function (spanStatus) {
-        const span = makeSpan(projects[0]!, {'span.status': spanStatus});
+    it.each(['unknown', 'foobar'])('does not render span status %s', spanStatus => {
+      const span = makeSpan(projects[0]!, {'span.status': spanStatus});
 
-        render(<SpanDescriptionRenderer span={span} />);
+      render(<SpanDescriptionRenderer span={span} />);
 
-        const description = screen.getByTestId('span-description');
-        expect(description).toBeInTheDocument();
-        expect(description).toHaveTextContent('op\u2014description');
-      }
-    );
+      const description = screen.getByTestId('span-description');
+      expect(description).toBeInTheDocument();
+      expect(description).toHaveTextContent('op\u2014description');
+    });
 
-    it.each(['ok', 'internal_error'])('renders span status %s', function (spanStatus) {
+    it.each(['ok', 'internal_error'])('renders span status %s', spanStatus => {
       const span = makeSpan(projects[0]!, {'span.status': spanStatus});
 
       render(<SpanDescriptionRenderer span={span} />);
@@ -110,13 +107,13 @@ describe('Renderers', function () {
     });
   });
 
-  describe('ProjectsRenderer', function () {
-    it('renders one project', function () {
+  describe('ProjectsRenderer', () => {
+    it('renders one project', () => {
       render(<ProjectsRenderer projectSlugs={[projects[0]!.slug]} />, context);
       expect(screen.getAllByRole('img')).toHaveLength(1);
     });
 
-    it('renders two projects', function () {
+    it('renders two projects', () => {
       render(
         <ProjectsRenderer projectSlugs={[projects[0]!.slug, projects[1]!.slug]} />,
         context
@@ -124,7 +121,7 @@ describe('Renderers', function () {
       expect(screen.getAllByRole('img')).toHaveLength(2);
     });
 
-    it('renders three projects', function () {
+    it('renders three projects', () => {
       render(<ProjectsRenderer projectSlugs={projects.map(p => p.slug)} />, context);
       expect(screen.getAllByRole('img')).toHaveLength(1);
       const collapsed = screen.getByTestId('collapsed-projects-badge');
@@ -133,16 +130,16 @@ describe('Renderers', function () {
     });
   });
 
-  describe('ProjectRenderer', function () {
-    it('renders project badge with name', function () {
+  describe('ProjectRenderer', () => {
+    it('renders project badge with name', () => {
       render(<ProjectRenderer projectSlug={projects[0]!.slug} />);
       expect(screen.getByRole('img')).toBeInTheDocument();
       expect(screen.getByText(projects[0]!.slug)).toBeInTheDocument();
     });
   });
 
-  describe('SpanIdRenderer', function () {
-    it('renders span id with link', function () {
+  describe('SpanIdRenderer', () => {
+    it('renders span id with link', () => {
       const onClickHandler = jest.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -173,8 +170,8 @@ describe('Renderers', function () {
     });
   });
 
-  describe('TraceIdRenderer', function () {
-    it('renders trace id with link', function () {
+  describe('TraceIdRenderer', () => {
+    it('renders trace id with link', () => {
       const onClickHandler = jest.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -202,8 +199,8 @@ describe('Renderers', function () {
     });
   });
 
-  describe('TransactionRenderer', function () {
-    it('renders transaction with link', function () {
+  describe('TransactionRenderer', () => {
+    it('renders transaction with link', () => {
       render(
         <TransactionRenderer projectSlug={projects[0]!.slug} transaction="foobar" />
       );
@@ -212,13 +209,13 @@ describe('Renderers', function () {
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/summary/?project=${projects[0]!.id}&referrer=performance-transaction-summary&transaction=foobar&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        `/organizations/${organization.slug}/insights/summary/?project=${projects[0]!.id}&referrer=performance-transaction-summary&transaction=foobar&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
       );
     });
   });
 
-  describe('TraceIssuesRenderer', function () {
-    it('renders 0 issues', function () {
+  describe('TraceIssuesRenderer', () => {
+    it('renders 0 issues', () => {
       render(
         <TraceIssuesRenderer
           trace={{
@@ -244,7 +241,7 @@ describe('Renderers', function () {
       expect(link).toBeDisabled();
     });
 
-    it('renders 99+ issues', function () {
+    it('renders 99+ issues', () => {
       render(
         <TraceIssuesRenderer
           trace={{
@@ -270,7 +267,7 @@ describe('Renderers', function () {
       expect(link).toBeEnabled();
     });
 
-    it('renders N issues', function () {
+    it('renders N issues', () => {
       render(
         <TraceIssuesRenderer
           trace={{

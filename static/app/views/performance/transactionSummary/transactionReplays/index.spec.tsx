@@ -42,7 +42,7 @@ const renderComponent = ({
     router: {
       routes: [
         {path: '/'},
-        {path: '/organizations/:orgId/performance/summary/'},
+        {path: '/organizations/:orgId/insights/summary/'},
         {path: 'replays/'},
       ],
       location: {

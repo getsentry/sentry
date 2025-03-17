@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
 
-describe('ProjectDetail > ProjectQuickLinks', function () {
+describe('ProjectDetail > ProjectQuickLinks', () => {
   const {organization, router} = initializeOrg({
     organization: {features: ['performance-view']},
   });
@@ -14,7 +14,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     jest.clearAllMocks();
   });
 
-  it('renders a list', async function () {
+  it('renders a list', async () => {
     render(
       <ProjectQuickLinks
         organization={organization}
@@ -41,13 +41,13 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
 
     await userEvent.click(keyTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/',
+      pathname: '/organizations/org-slug/insights/backend/',
       query: {project: '2'},
     });
 
     await userEvent.click(mostChangedTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/trends/',
+      pathname: '/organizations/org-slug/insights/backend/trends/',
       query: {
         cursor: undefined,
         project: '2',
@@ -56,7 +56,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     });
   });
 
-  it('disables link if feature is missing', async function () {
+  it('disables link if feature is missing', async () => {
     render(
       <ProjectQuickLinks
         organization={{...organization, features: []}}
