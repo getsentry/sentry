@@ -111,7 +111,7 @@ function getPerformanceBreadCrumbs(
 
   if (view) {
     crumbs.push({
-      label: view && DOMAIN_VIEW_TITLES[view],
+      label: DOMAIN_VIEW_TITLES[view],
       to: getBreadCrumbTarget(performanceUrl, location.query, organization),
     });
   } else {
