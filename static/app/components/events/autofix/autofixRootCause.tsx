@@ -21,13 +21,14 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconEdit, IconFocus, IconThumb} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconFocus, IconInput, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -314,7 +315,14 @@ function CopyRootCauseButton({
     return null;
   }
   const text = formatRootCauseText(cause, customRootCause);
-  return <CopyToClipboardButton size="sm" text={text} borderless />;
+  return (
+    <CopyToClipboardButton
+      size="sm"
+      text={text}
+      borderless
+      title="Copy root cause as Markdown"
+    />
+  );
 }
 
 function ThumbsUpDownButtons({
@@ -421,6 +429,7 @@ function AutofixRootCauseDisplay({
           </HeaderText>
           <ButtonBar>
             <ThumbsUpDownButtons feedback={feedback} groupId={groupId} runId={runId} />
+            <Divider />
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -436,7 +445,7 @@ function AutofixRootCauseDisplay({
                 }
               }}
             >
-              {isEditing ? <IconClose size="sm" /> : <IconEdit size="sm" />}
+              {isEditing ? <IconClose size="sm" /> : <IconInput size="sm" />}
             </EditButton>
             {isEditing && (
               <Button
