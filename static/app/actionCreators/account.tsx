@@ -3,7 +3,7 @@ import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {User} from 'sentry/types/user';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(
@@ -55,7 +55,7 @@ export async function logout(api: Client, redirectUrl?: string) {
 }
 
 function getRedirectUrl(redirectUrl = '/auth/login/') {
-  return isDemoModeEnabled() ? 'https://sentry.io' : redirectUrl;
+  return isDemoModeActive() ? 'https://sentry.io' : redirectUrl;
 }
 
 export function removeAuthenticator(api: Client, userId: string, authId: string) {
