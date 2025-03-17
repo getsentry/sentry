@@ -114,7 +114,8 @@ const CheckboxLabelContainer = styled('div')`
   justify-content: space-between;
   width: 100%;
   gap: ${space(1)};
-  padding-right: ${space(0.5)};
+  cursor: pointer;
+  padding-right: ${space(0.25)};
 `;
 
 const CheckboxLabel = styled('span')`
@@ -129,11 +130,19 @@ const StyledMultipleCheckbox = styled(MultipleCheckbox)`
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   width: 100%;
-  padding: ${space(1)} 0;
+  padding: ${space(1)} ${space(0.5)};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
+  }
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:active {
+    background-color: ${p => p.theme.gray100};
   }
 
   &:last-child {
