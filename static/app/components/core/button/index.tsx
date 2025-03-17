@@ -374,12 +374,12 @@ const getBoxShadow = ({
     : '';
   const dropShadow = size === 'xs' ? theme.dropShadowLight : theme.dropShadowMedium;
 
-  return `
-      box-shadow: ${translucentBorderString} ${dropShadow};
-      &:active {
-        box-shadow: ${translucentBorderString} inset ${dropShadow};
-      }
-    `;
+  return css`
+    box-shadow: ${translucentBorderString} ${dropShadow};
+    &:active {
+      box-shadow: ${translucentBorderString} inset ${dropShadow};
+    }
+  `;
 };
 
 const getColors = ({
@@ -398,18 +398,22 @@ const getColors = ({
     switch (priority) {
       case 'primary':
       case 'danger':
-        return `
+        return css`
           border-color: ${focusBorder};
-          box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;`;
+          box-shadow:
+            ${focusBorder} 0 0 0 1px,
+            ${focusShadow} 0 0 0 4px;
+        `;
       default:
         if (translucentBorder) {
           return `
             border-color: ${focusBorder};
             box-shadow: ${focusBorder} 0 0 0 2px;`;
         }
-        return `
+        return css`
           border-color: ${focusBorder};
-          box-shadow: ${focusBorder} 0 0 0 1px;`;
+          box-shadow: ${focusBorder} 0 0 0 1px;
+        `;
     }
   };
 
@@ -420,9 +424,13 @@ const getColors = ({
         return `background-color: ${background};`;
       default:
         if (borderless) {
-          return `background-color: transparent;`;
+          return css`
+            background-color: transparent;
+          `;
         }
-        return `background-color: ${background};`;
+        return css`
+          background-color: ${background};
+        `;
     }
   };
 
@@ -432,17 +440,20 @@ const getColors = ({
 
     border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
 
-    ${translucentBorder && `border-width: 0;`}
+    ${translucentBorder &&
+    css`
+      border-width: 0;
+    `}
 
     &:hover {
       color: ${color};
     }
 
     ${size !== 'zero' &&
-    `
+    css`
       &:hover,
       &:active,
-      &[aria-expanded="true"] {
+      &[aria-expanded='true'] {
         color: ${colorActive || color};
         border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
       }
@@ -547,9 +558,6 @@ export const StyledButton = styled(
   border-radius: ${p => p.theme.borderRadius};
   text-transform: none;
   font-weight: ${p => p.theme.fontWeightBold};
-  ${getColors};
-  ${getSizeStyles};
-  ${getBoxShadow};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
   transition:
@@ -559,12 +567,28 @@ export const StyledButton = styled(
 
   ${p =>
     p.priority === 'link' &&
-    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
-  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+    css`
+      font-size: inherit;
+      font-weight: inherit;
+      padding: 0;
+      height: auto;
+      min-height: auto;
+    `}
+  ${p =>
+    p.size === 'zero' &&
+    css`
+      height: auto;
+      min-height: auto;
+      padding: ${space(0.25)};
+    `}
 
-  &:focus {
+    &:focus {
     outline: none;
   }
+
+  ${getColors};
+  ${getSizeStyles};
+  ${getBoxShadow};
 `;
 
 const buttonLabelPropKeys = ['size', 'borderless'];
