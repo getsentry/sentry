@@ -250,12 +250,12 @@ type AlertColors = {
 
 export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
-    textDecoration: `underline dotted ${
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      colors[underlineColor] ?? aliases[underlineColor]
-    }`,
+    textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
     display: block;
