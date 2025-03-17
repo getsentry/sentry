@@ -125,7 +125,7 @@ describe('BillingPlans Component', () => {
       expect(screen.getByText('Table of Contents')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('link', {name: /AM9000\s+Plans/})).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: /AM9000\s+Plans/})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /Business/})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /Pricing/})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /Errors/})).toBeInTheDocument();
@@ -140,7 +140,9 @@ describe('BillingPlans Component', () => {
     });
 
     // Check that pricing information is displayed
-    expect(screen.getByRole('columnheader', {name: /Platform/})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('columnheader', {name: /Platform/})
+    ).toBeInTheDocument();
     expect(screen.getByText('$89')).toBeInTheDocument(); // Monthly price
     expect(screen.getByText('$960')).toBeInTheDocument(); // Annual price
   });
@@ -154,7 +156,7 @@ describe('BillingPlans Component', () => {
     });
 
     // Check that price tier information is displayed
-    expect(screen.getByText('Tier')).toBeInTheDocument();
+    expect(await screen.findByText('Tier')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('100,000')).toBeInTheDocument();
     expect(screen.getByText('$0.00')).toBeInTheDocument(); // od_ppe

@@ -343,6 +343,58 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         )
         assert project_ids[0][0] == self.project.id
 
+    def test_skips_enqueuing_any(self):
+        # skips slow conditions if the condition group evaluates to True without evaluating them
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
+
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert triggered_workflows == {self.workflow}
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        assert len(project_ids) == 0
+
+    def test_skips_enqueuing_all(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.conditions.all().delete()
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
+
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.REGRESSION_EVENT,  # fast condition, does not pass
+            comparison=True,
+            condition_result=True,
+        )
+
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert not triggered_workflows
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        assert len(project_ids) == 0
+
 
 class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def setUp(self):

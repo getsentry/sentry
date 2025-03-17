@@ -3,13 +3,13 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
 
 export default function getGuidesContent(
   organization: Organization | null
 ): GuidesContent {
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     return getDemoModeGuides();
   }
   return [

@@ -5,8 +5,11 @@ import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
+import {lightTheme} from 'sentry/utils/theme';
 
-import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
+
+const theme = makeLightFlamegraphTheme(lightTheme);
 
 describe('UIFramesRenderer', () => {
   const canvas = makeCanvasMock({
@@ -48,7 +51,7 @@ describe('UIFramesRenderer', () => {
     {unit: 'nanoseconds'},
     new Rect(0, 0, 10, 1)
   );
-  const renderer = new UIFramesRendererWebGL(canvas, uiFrames, LightFlamegraphTheme);
+  const renderer = new UIFramesRendererWebGL(canvas, uiFrames, theme);
 
   it.each([
     [vec2.fromValues(-1, 0), null],

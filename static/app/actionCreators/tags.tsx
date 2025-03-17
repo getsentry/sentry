@@ -277,7 +277,7 @@ export function fetchFeatureFlagValues({
   });
 }
 
-type FetchOrganizationTagsParams = {
+export type FetchOrganizationTagsParams = {
   orgSlug: string;
   dataset?: Dataset;
   enabled?: boolean;
