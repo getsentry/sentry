@@ -6,11 +6,16 @@ from requests import HTTPError
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
-from sentry.sentry_apps.metrics import SentryAppEventType, SentryAppExternalRequestHaltReason
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppExternalRequestFailureReason,
+    SentryAppExternalRequestHaltReason,
+)
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.asserts import (
     assert_count_of_metric,
+    assert_failure_metric,
     assert_halt_metric,
     assert_many_halt_metrics,
     assert_success_metric,
@@ -245,4 +250,90 @@ class TestSelectRequester(TestCase):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+
+    @responses.activate
+    @patch("sentry.sentry_apps.external_requests.select_requester.SelectRequester._build_url")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_url_fail_error(self, mock_record, mock_build_url):
+        mock_build_url.side_effect = Exception()
+
+        uri = "asdhbaljkdnaklskand"
+        with pytest.raises(SentryAppSentryError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri=uri,
+            ).run()
+
+        assert (
+            exception_info.value.message
+            == "Something went wrong while preparing to get Select FormField options"
+        )
+        assert exception_info.value.webhook_context == {
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.MISSING_URL}",
+            "sentry_app_slug": self.sentry_app.slug,
+            "install_uuid": self.install.uuid,
+            "project_slug": self.project.slug,
+            "uri": uri,
+            "dependent_data": None,
+            "webhook_url": self.sentry_app.webhook_url,
+        }
+
+        # SLO assertions
+        assert_failure_metric(
+            mock_record,
+            SentryAppSentryError(
+                message="Something went wrong while preparing to get Select FormField options"
+            ),
+        )
+
+        # EXTERNAL_REQUEST (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+    @responses.activate
+    @patch("sentry.sentry_apps.external_requests.select_requester.send_and_save_sentry_app_request")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unexpected_exception(self, mock_record, mock_send_request):
+        mock_send_request.side_effect = Exception()
+
+        uri = "asdhbaljkdnaklskand"
+        with pytest.raises(SentryAppSentryError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri=uri,
+            ).run()
+
+        assert (
+            exception_info.value.message
+            == "Something went wrong while preparing to get Select FormField options"
+        )
+        assert exception_info.value.webhook_context == {
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR}",
+            "sentry_app_slug": self.sentry_app.slug,
+            "install_uuid": self.install.uuid,
+            "project_slug": self.project.slug,
+            "url": f"https://example.com/{uri}?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+        }
+
+        # SLO assertions
+        assert_failure_metric(
+            mock_record,
+            SentryAppSentryError(
+                message="Something went wrong while preparing to get Select FormField options"
+            ),
+        )
+
+        # EXTERNAL_REQUEST (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
