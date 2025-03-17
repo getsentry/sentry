@@ -51,19 +51,10 @@ interface CommonButtonProps {
    */
   busy?: boolean;
   /**
-   * Disables the button, assigning appropriate aria attributes and disallows
-   * interactions with the button.
-   */
-  disabled?: boolean;
-  /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
    */
   icon?: React.ReactNode;
-  /**
-   * Used when the button is part of a form.
-   */
-  name?: string;
   /**
    * The semantic "priority" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
