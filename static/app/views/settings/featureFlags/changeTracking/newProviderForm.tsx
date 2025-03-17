@@ -154,7 +154,7 @@ export default function NewProviderForm({
         inline
         flexibleControlStateSize
       >
-        <TextCopyInput aria-label={t('Webhook URL')}>
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!selectedProvider.length}>
           {selectedProvider.length
             ? `https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
             : ''}
