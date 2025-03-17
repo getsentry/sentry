@@ -490,22 +490,16 @@ export const StyledButton = styled(
         );
       }
 
-      if (href && external) {
+      if (href) {
         return (
           <a
             {...props}
             ref={ref}
             href={href}
-            // This is a bad UX pattern as the link is not actually disabled.
             aria-disabled={disabled}
-            target="_blank"
-            rel="noreferrer noopener"
+            {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
           />
         );
-      }
-
-      if (href) {
-        return <a {...props} ref={ref} href={href} aria-disabled={disabled} />;
       }
 
       return <button {...props} type={type} ref={ref} disabled={disabled} />;
