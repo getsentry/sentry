@@ -7,7 +7,11 @@ from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
 
 from sentry.http import safe_urlopen
-from sentry.sentry_apps.metrics import SentryAppInteractionEvent, SentryAppInteractionType
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -66,7 +70,7 @@ def send_and_save_sentry_app_request(
 
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
-        event_type=event,
+        event_type=SentryAppEventType(event),
     ).capture() as lifecycle:
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
         slug = sentry_app.slug_for_metrics

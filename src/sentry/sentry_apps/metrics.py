@@ -92,6 +92,7 @@ class SentryAppEventType(StrEnum):
     EXTERNAL_ISSUE_CREATED = "external_issue.created"
     EXTERNAL_ISSUE_LINKED = "external_issue.linked"
     SELECT_OPTIONS_REQUESTED = "select_options.requested"
+    ALERT_RULE_ACTION_REQUESTED = "alert_rule_action.requested"
 
     # metric alert webhooks
     METRIC_ALERT_OPEN = "metric_alert.open"
