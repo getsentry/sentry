@@ -2,7 +2,11 @@
 /* eslint import/no-nodejs-modules:0 */
 
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
-import rspack from '@rspack/core';
+import rspack, {
+  type Configuration,
+  type OptimizationSplitChunksCacheGroup,
+  type RspackPluginInstance,
+} from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
@@ -36,9 +40,7 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: rspack.Configuration['mode'] = IS_PRODUCTION
-  ? 'production'
-  : 'development';
+const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Environment variables that are used by other tooling and should
@@ -60,6 +62,9 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK;
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
+
+// Storybook related flag configuration
+const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -127,7 +132,7 @@ const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 // A mapping of chunk groups used for locale code splitting
-const localeChunkGroups: Record<string, rspack.OptimizationSplitChunksCacheGroup> = {};
+const localeChunkGroups: Record<string, OptimizationSplitChunksCacheGroup> = {};
 
 for (const locale of supportedLocales) {
   // No need to split the english locale out as it will be completely empty and
@@ -158,7 +163,7 @@ for (const locale of supportedLocales) {
  * Main Webpack config for Sentry React SPA.
  */
 
-const appConfig: rspack.Configuration = {
+const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -172,6 +177,9 @@ const appConfig: rspack.Configuration = {
      * Pipeline View for integrations
      */
     pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
+
+    // admin interface
+    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -347,12 +355,25 @@ const appConfig: rspack.Configuration = {
     }),
   ],
 
+  resolveLoader: {
+    alias: {
+      'type-loader': STORYBOOK_TYPES
+        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
+        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
+    },
+  },
+
   resolve: {
     alias: {
       sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      getsentry: path.join(staticPrefix, 'gsApp'),
+      'getsentry-images': path.join(staticPrefix, 'images'),
+      'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+      admin: path.join(staticPrefix, 'gsAdmin'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
@@ -525,7 +546,7 @@ if (
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer!.static as object),
+        ...(appConfig.devServer!.static as Record<PropertyKey, unknown>),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
@@ -581,12 +602,12 @@ if (IS_UI_DEV_ONLY) {
 
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? {}
-    : {
+  const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
-      };
+      }
+    : {};
 
   appConfig.devServer = {
     ...appConfig.devServer,
@@ -679,18 +700,18 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       window: {
         __SENTRY_DEV_UI: true,
       },
-    }) as unknown as rspack.RspackPluginInstance
+    }) as unknown as RspackPluginInstance
   );
 }
 
-const minificationPlugins: rspack.RspackPluginInstance[] = [
+const minificationPlugins: RspackPluginInstance[] = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
   new CompressionPlugin({
     algorithm: 'gzip',
     test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as unknown as rspack.RspackPluginInstance,
+  }) as unknown as RspackPluginInstance,
 ];
 
 if (IS_PRODUCTION) {
