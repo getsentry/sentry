@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -19,6 +20,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -51,6 +53,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const eventView = useIssueDetailsEventView({group});
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&
@@ -63,9 +67,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({
@@ -110,10 +112,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.DETAILS],
-              to: {
-                ...location,
-                pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-              },
+              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`},
             },
             {
               key: Tab.REPLAYS,
@@ -128,10 +127,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.REPLAYS],
-              to: {
-                ...location,
-                pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-              },
+              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`},
               hidden: !issueTypeConfig.pages.replays.enabled,
             },
             {
@@ -145,10 +141,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.ATTACHMENTS],
-              to: {
-                ...location,
-                pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
-              },
+              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`},
               hidden: !issueTypeConfig.pages.attachments.enabled,
             },
             {
@@ -159,10 +152,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.USER_FEEDBACK],
-              to: {
-                ...location,
-                pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
-              },
+              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`},
               hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },
           ]}
@@ -213,7 +203,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_events_clicked"
                   analyticsEventName="Issue Details: All Events Clicked"
                 >
-                  {t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                  {isSmallScreen
+                    ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                    : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
                 </LinkButton>
               )}
               {issueTypeConfig.pages.openPeriods.enabled && (
@@ -226,7 +218,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_open_periods_clicked"
                   analyticsEventName="Issue Details: All Open Periods Clicked"
                 >
-                  {t('View More Open Periods')}
+                  {isSmallScreen ? t('More Open Periods') : t('View More Open Periods')}
                 </LinkButton>
               )}
               {issueTypeConfig.pages.checkIns.enabled && (
@@ -239,7 +231,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_checks_ins_clicked"
                   analyticsEventName="Issue Details: All Checks-Ins Clicked"
                 >
-                  {t('View More Check-Ins')}
+                  {isSmallScreen ? t('More Check-Ins') : t('View More Check-Ins')}
                 </LinkButton>
               )}
               {issueTypeConfig.pages.uptimeChecks.enabled && (
@@ -252,7 +244,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventKey="issue_details.all_uptime_checks_clicked"
                   analyticsEventName="Issue Details: All Uptime Checks Clicked"
                 >
-                  {t('View More Uptime Checks')}
+                  {isSmallScreen ? t('More Uptime Checks') : t('View More Uptime Checks')}
                 </LinkButton>
               )}
             </Fragment>
