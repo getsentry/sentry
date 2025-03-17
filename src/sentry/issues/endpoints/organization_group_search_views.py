@@ -112,7 +112,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        visibility = request.GET.getlist("visibility", [])
+        visibility = request.GET.getlist("visibility")
         valid_visibility_options = [v[0] for v in GroupSearchViewVisibility.as_choices()]
         if visibility:
             if any(v not in valid_visibility_options for v in visibility):
