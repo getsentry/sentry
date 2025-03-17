@@ -1,12 +1,15 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
+import {
+  Container,
+  StyledEmptyStateWarning,
+  Wrapper,
+} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -65,6 +68,12 @@ export default function GroupFeatureFlagsDrawerContent({
       message={t('There was an error loading feature flags.')}
       onRetry={refetch}
     />
+  ) : displayTags.length === 0 ? (
+    <StyledEmptyStateWarning withIcon>
+      {data.length === 0
+        ? t('No feature flags were found for this issue')
+        : t('No feature flags were found for this search')}
+    </StyledEmptyStateWarning>
   ) : (
     <Wrapper>
       <Container>
@@ -75,16 +84,3 @@ export default function GroupFeatureFlagsDrawerContent({
     </Wrapper>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
