@@ -65,7 +65,6 @@ class Row(TypedDict):
 
 class SeriesMeta(TypedDict):
     order: NotRequired[int]
-    groupBy: NotRequired[list[str]]
     isOther: NotRequired[str]
     valueUnit: NotRequired[str]
     valueType: str
@@ -75,6 +74,7 @@ class SeriesMeta(TypedDict):
 class TimeSeries(TypedDict):
     values: list[Row]
     axis: str
+    groupBy: NotRequired[list[str]]
     meta: SeriesMeta
 
 
@@ -357,9 +357,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                                     for row in value.data["data"]
                                 ],
                                 axis=axis,
+                                groupBy=value.data.get("groupby", {}),
                                 meta=SeriesMeta(
                                     order=value.data["order"],
-                                    groupBy=value.data.get("groupby", []),
                                     isOther=value.data.get("is_other", False),
                                     valueUnit=unit,
                                     valueType=field_type,

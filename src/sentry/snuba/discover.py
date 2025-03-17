@@ -394,8 +394,8 @@ def create_result_key(
     result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
 ) -> str:
     """Create the string key to be used in the top events result dictionary"""
-    values = create_result_values(result_row, fields, issues)
-    result = ",".join(values)
+    groupby = create_groupby_dict(result_row, fields, issues)
+    result = ",".join(groupby.values())
     # If the result would be identical to the other key, include the field name
     # only need the first field since this would only happen with a single field
     if result == OTHER_KEY:
@@ -403,18 +403,18 @@ def create_result_key(
     return result
 
 
-def create_result_values(
+def create_groupby_dict(
     result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
-) -> list[str]:
-    values = []
+) -> dict[str, str]:
+    values = {}
     for field in fields:
         if field == "issue.id":
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values.append(issue_id)
+            values[field] = issue_id
         elif field == "transaction.status":
-            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
+            values[field] = SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -422,7 +422,7 @@ def create_result_values(
                     value = value[-1]
                 else:
                     value = ""
-            values.append(str(value))
+            values[field] = str(value)
     return values
 
 
@@ -577,7 +577,7 @@ def top_events_timeseries(
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
                 results[result_key]["data"].append(row)
-                results[result_key]["groupby"] = create_result_values(
+                results[result_key]["groupby"] = create_groupby_dict(
                     row, translated_groupby, issues
                 )
             else:

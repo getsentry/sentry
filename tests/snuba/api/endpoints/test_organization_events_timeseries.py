@@ -212,9 +212,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "count()"
+        assert timeseries["groupBy"] == {"message": "very bad"}
         assert timeseries["meta"] == {
             "order": 0,
-            "groupBy": ["very bad"],
             "isOther": False,
             "valueUnit": None,
             "valueType": "integer",
@@ -238,9 +238,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "p95()"
+        assert timeseries["groupBy"] == {"message": "very bad"}
         assert timeseries["meta"] == {
             "order": 0,
-            "groupBy": ["very bad"],
             "isOther": False,
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -264,9 +264,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "count()"
+        assert timeseries["groupBy"] == {"message": "oh my"}
         assert timeseries["meta"] == {
             "order": 1,
-            "groupBy": ["oh my"],
             "isOther": False,
             "valueUnit": None,
             "valueType": "integer",
@@ -290,9 +290,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         timeseries = response.data["timeseries"][3]
         assert len(timeseries["values"]) == 3
         assert timeseries["axis"] == "p95()"
+        assert timeseries["groupBy"] == {"message": "oh my"}
         assert timeseries["meta"] == {
             "order": 1,
-            "groupBy": ["oh my"],
             "isOther": False,
             "valueUnit": "millisecond",
             "valueType": "duration",
