@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
@@ -69,8 +71,12 @@ export function TraceSpanRow(
           <SpanProjectIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
-          <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
-          <strong className="TraceEmDash"> — </strong>
+          {props.node.value.op && props.node.value.op !== 'default' && (
+            <React.Fragment>
+              <span className="TraceOperation">{props.node.value.op}</span>
+              <strong className="TraceEmDash"> — </strong>
+            </React.Fragment>
+          )}
           <span className="TraceDescription" title={props.node.value.description}>
             {props.node.value.description
               ? props.node.value.description.length > 100

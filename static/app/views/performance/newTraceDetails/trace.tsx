@@ -1698,10 +1698,10 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceEmDash {
     margin-left: 4px;
-    margin-right: 4px;
   }
 
   .TraceDescription {
+    margin-left: 4px;
     white-space: nowrap;
   }
 `;
