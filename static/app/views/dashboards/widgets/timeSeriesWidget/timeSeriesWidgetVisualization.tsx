@@ -31,9 +31,8 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, LegendSelection, Release} from '../common/types';
+import type {LegendSelection, Release} from '../common/types';
 
-import {formatSeriesName} from './formatters/formatSeriesName';
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
@@ -50,9 +49,11 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   plottables: Plottable[];
   /**
-   * A mapping of time series fields to their user-friendly labels, if needed
+  /**
+   * Disables navigating to release details when clicked
+   * TODO(billy): temporary until we implement route based nav
    */
-  aliases?: Aliases;
+  disableReleaseNavigation?: boolean;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -116,6 +117,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       return (
         <TimeSeriesWidgetVisualization
           {...props}
+          disableReleaseNavigation
           plottables={props.plottables.map(plottable =>
             plottable.constrain(trimStart, trimEnd)
           )}
@@ -137,6 +139,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           theme,
           props.releases,
           function onReleaseClick(release: Release) {
+            if (props.disableReleaseNavigation) {
+              return;
+            }
             navigate(
               makeReleasesPathname({
                 organization,
@@ -341,9 +346,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
       },
-      nameFormatter: seriesName => {
-        return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
-      },
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -450,7 +452,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  props.aliases?.[seriesName] ?? formatSeriesName(seriesName),
+                  seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.

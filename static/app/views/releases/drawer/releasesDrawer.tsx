@@ -12,6 +12,7 @@ import {
 import {PlatformList} from 'sentry/components/platformList';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
@@ -47,8 +48,22 @@ export function ReleasesDrawer({
     {enabled: !!releaseOrSelected}
   );
   const crumbs = [
-    {label: t('Releases'), to: '#'},
-    ...(releaseOrSelected ? [{label: releaseOrSelected, to: '#'}] : []),
+    {
+      // This is just temporary until we move to URL based nav for this drawer
+      label: (
+        <div
+          style={{cursor: selectedRelease?.release ? 'pointer' : 'default'}}
+          onClick={() => {
+            if (selectedRelease?.release) {
+              setSelectedRelease(null);
+            }
+          }}
+        >
+          {t('Releases')}
+        </div>
+      ),
+    },
+    ...(releaseOrSelected ? [{label: formatVersion(releaseOrSelected)}] : []),
   ];
   const title =
     releaseOrSelected && releaseDetailsQuery.data ? (
@@ -56,7 +71,7 @@ export function ReleasesDrawer({
         <PlatformList
           platforms={releaseDetailsQuery.data.projects.map(({platform}) => platform)}
         />
-        {releaseOrSelected}
+        {formatVersion(releaseOrSelected)}
       </ReleaseWithPlatform>
     ) : (
       tn('%s Release', '%s Releases', releases.length ?? 0)

@@ -6,9 +6,9 @@ from typing import Any
 
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from pydantic import BaseModel
 from rest_framework.response import Response
 
 from sentry import eventstore, features
@@ -22,6 +22,8 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.seer.autofix import trigger_autofix
+from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -31,20 +33,6 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
-
-
-class SummarizeIssueScores(BaseModel):
-    possible_cause_confidence: float
-    possible_cause_novelty: float
-
-
-class SummarizeIssueResponse(BaseModel):
-    group_id: str
-    headline: str
-    whats_wrong: str | None = None
-    trace: str | None = None
-    possible_cause: str | None = None
-    scores: SummarizeIssueScores | None = None
 
 
 @region_silo_endpoint
@@ -148,6 +136,28 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
 
         return SummarizeIssueResponse.validate(response.json())
 
+    def _generate_fixability_score(self, group_id: int):
+        path = "/v1/automation/summarize/fixability"
+        body = orjson.dumps(
+            {
+                "group_id": group_id,
+            },
+            option=orjson.OPT_NON_STR_KEYS,
+        )
+
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+
+        response.raise_for_status()
+
+        return SummarizeIssueResponse.validate(response.json())
+
     def _get_trace_connected_issues(self, event: GroupEvent) -> list[Group]:
         trace_id = event.trace_id
         if not trace_id:
@@ -219,6 +229,26 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         issue_summary = self._call_seer(
             group, serialized_event, connected_issues, serialized_events_for_connected_issues
         )
+
+        if features.has(
+            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=request.user
+        ):
+            # This is a temporary feature flag to allow us to trigger autofix on issue summary
+            # It adds ~1.5s to the latency, but this is acceptable for the time being, later we will run this async.
+            # Timing this to see how long it actually takes to run in prod.
+            with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+                issue_summary = self._generate_fixability_score(group.id)
+
+            if issue_summary.scores.is_fixable:
+                with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+                    response = trigger_autofix(
+                        group=group, event_id=event.event_id, user=request.user
+                    )
+
+            if response.status_code != 202:
+                # If autofix trigger fails, we don't cache to let it error and we can run again, this is only temporary for when we're testing this internally.
+                return response
+
         summary_dict = issue_summary.dict()
         summary_dict["event_id"] = event.event_id
 

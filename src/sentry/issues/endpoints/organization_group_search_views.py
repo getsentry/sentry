@@ -110,34 +110,18 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        if features.has("organizations:issue-view-sharing", organization):
-            starred_views = GroupSearchViewStarred.objects.filter(
-                organization=organization, user_id=request.user.id
-            )
-
-            return self.paginate(
-                request=request,
-                queryset=starred_views,
-                order_by="position",
-                on_results=lambda x: serialize(
-                    x,
-                    request.user,
-                    serializer=GroupSearchViewStarredSerializer(
-                        has_global_views=has_global_views,
-                        default_project=default_project,
-                        organization=organization,
-                    ),
-                ),
-            )
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=organization, user_id=request.user.id
+        )
 
         return self.paginate(
             request=request,
-            queryset=query,
+            queryset=starred_views,
             order_by="position",
             on_results=lambda x: serialize(
                 x,
                 request.user,
-                serializer=GroupSearchViewSerializer(
+                serializer=GroupSearchViewStarredSerializer(
                     has_global_views=has_global_views,
                     default_project=default_project,
                     organization=organization,
