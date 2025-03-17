@@ -4,8 +4,13 @@ import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import type {TimeSeries} from '../../common/types';
+import {formatSeriesName} from '../formatters/formatSeriesName';
 
 export type ContinuousTimeSeriesConfig = {
+  /**
+   * Optional alias. If not provided, the series name from the legend will be computed from the `TimeSeries`.
+   */
+  alias?: string;
   /**
    * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
    */
@@ -46,6 +51,10 @@ export abstract class ContinuousTimeSeries<
     this.timeSeries = timeSeries;
     this.#timestamps = timeSeries.data.map(datum => datum.timestamp).toSorted();
     this.config = config;
+  }
+
+  get label(): string {
+    return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
   }
 
   get isEmpty(): boolean {

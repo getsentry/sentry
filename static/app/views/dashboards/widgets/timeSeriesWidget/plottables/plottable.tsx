@@ -35,10 +35,13 @@ export interface Plottable {
    * Start timestamp of the plottable, if applicable
    */
   start: string | null;
-
   /**
    *
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.
    */
   toSeries(plottingOptions: unknown): SeriesOption[];
+  /**
+   * Optional label for this plottable, if it appears in the legend and in tooltips.
+   */
+  label?: string;
 }
