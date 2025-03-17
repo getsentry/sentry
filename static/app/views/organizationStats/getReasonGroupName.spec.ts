@@ -49,7 +49,7 @@ describe('getReasonGroupName', function () {
 
   it('handles other existing reason types', function () {
     expect(getReasonGroupName(Outcome.INVALID, 'duplicate')).toBe('duplicate');
-    expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
+    expect(getReasonGroupName(Outcome.INVALID, 'duplicate_item')).toBe('invalid_request');
     expect(getReasonGroupName(Outcome.INVALID, 'project_id')).toBe('project_missing');
     expect(getReasonGroupName(Outcome.INVALID, 'invalid_transaction')).toBe(
       'invalid_data'
