@@ -287,8 +287,8 @@ function BaseButton({
   );
 
   const hasChildren = Array.isArray(children)
-    ? children.some(child => !isEmptyChild(child))
-    : !isEmptyChild(children);
+    ? children.some(child => !!child && String(child) !== '0')
+    : !!children && String(children) !== '0';
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
@@ -606,20 +606,6 @@ export const ButtonLabel = styled('span', {
   justify-content: center;
   white-space: nowrap;
 `;
-
-function isEmptyChild(child: React.ReactNode) {
-  // truthy values are non empty
-  if (child) {
-    return false;
-  }
-
-  // out of the falsey values, 0 is the only one that takes space
-  if (child === 0) {
-    return false;
-  }
-
-  return true;
-}
 
 interface IconProps extends Omit<StyledButtonProps, 'theme'> {
   hasChildren?: boolean;
