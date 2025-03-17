@@ -50,7 +50,7 @@ def debug_output(msg: str) -> None:
     click.echo(msg)
 
 
-def multiprocess_worker(task_queue: _WorkQueue) -> None:
+def multiprocess_worker(task_queue: _WorkQueue, silent: bool) -> None:
     # Configure within each Process
     import logging
 
@@ -93,7 +93,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             )
 
             while True:
-                if not task.chunk():
+                if not task.chunk(silent=silent):
                     break
         except Exception as e:
             logger.exception(e)
@@ -155,7 +155,7 @@ def cleanup(
     pool = []
     task_queue: _WorkQueue = Queue(1000)
     for _ in range(concurrency):
-        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p = Process(target=multiprocess_worker, args=(task_queue, silent))
         p.daemon = True
         p.start()
         pool.append(p)
