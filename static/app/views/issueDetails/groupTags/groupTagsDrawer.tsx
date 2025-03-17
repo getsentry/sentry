@@ -313,7 +313,7 @@ export const Container = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export const Header = styled('h3')`
+const Header = styled('h3')`
   ${p => p.theme.overflowEllipsis};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
