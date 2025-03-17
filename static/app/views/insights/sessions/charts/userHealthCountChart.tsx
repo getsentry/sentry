@@ -10,8 +10,8 @@ export default function UserHealthCountChart({view}: {view: string}) {
 
   const aliases = {
     healthy_user_count: t('Healthy'),
-    crashed_user_count: frontendPath ? t('Unhandled error') : t('Crashed'),
-    errored_user_count: frontendPath ? t('Handled error') : t('Errored'),
+    crashed_user_count: frontendPath ? t('Unhandled errors') : t('Crashed'),
+    errored_user_count: frontendPath ? t('Handled errors') : t('Errored'),
     abnormal_user_count: t('Abnormal'),
   };
 

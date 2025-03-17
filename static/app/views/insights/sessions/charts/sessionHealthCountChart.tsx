@@ -10,8 +10,8 @@ export default function SessionHealthCountChart({view}: {view: string}) {
 
   const aliases = {
     healthy_session_count: t('Healthy'),
-    crashed_session_count: frontendPath ? t('Unhandled error') : t('Crashed'),
-    errored_session_count: frontendPath ? t('Handled error') : t('Errored'),
+    crashed_session_count: frontendPath ? t('Unhandled errors') : t('Crashed'),
+    errored_session_count: frontendPath ? t('Handled errors') : t('Errored'),
     abnormal_session_count: t('Abnormal'),
   };
 

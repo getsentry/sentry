@@ -10,8 +10,8 @@ export default function UserHealthRateChart({view}: {view: string}) {
 
   const aliases = {
     healthy_user_rate: t('Healthy'),
-    crashed_user_rate: frontendPath ? t('Unhandled error') : t('Crashed'),
-    errored_user_rate: frontendPath ? t('Handled error') : t('Errored'),
+    crashed_user_rate: frontendPath ? t('Unhandled errors') : t('Crashed'),
+    errored_user_rate: frontendPath ? t('Handled errors') : t('Errored'),
     abnormal_user_rate: t('Abnormal'),
   };
 
