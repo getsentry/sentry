@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -52,6 +52,25 @@ class MemberPermission(OrganizationPermission):
     }
 
 
+class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
+    visibility = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=[v[0] for v in GroupSearchViewVisibility.as_choices()]
+        ),
+        required=False,
+    )
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if "visibility" in data:
+            valid_visibility_options = [v[0] for v in GroupSearchViewVisibility.as_choices()]
+            if any(v not in valid_visibility_options for v in data["visibility"]):
+                raise serializers.ValidationError(
+                    f"Unsupported visibility query parameter: {data['visibility']}"
+                )
+
+        return data
+
+
 @region_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -74,6 +93,10 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         has_global_views = features.has("organizations:global-views", organization)
+
+        serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
         query = GroupSearchView.objects.filter(
             organization=organization, user_id=request.user.id
@@ -112,39 +135,26 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        visibility = request.GET.getlist("visibility")
-        valid_visibility_options = [v[0] for v in GroupSearchViewVisibility.as_choices()]
+        visibility = serializer.validated_data.get("visibility")
         if visibility:
-            if any(v not in valid_visibility_options for v in visibility):
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={"detail": "Invalid visibility query parameter."},
-                )
+            org_query = GroupSearchView.objects.filter(
+                organization=organization,
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
+            ).prefetch_related("projects")
 
-            if len(visibility) > 1:
-                org_query = GroupSearchView.objects.filter(
-                    organization=organization,
-                    visibility=GroupSearchViewVisibility.ORGANIZATION,
-                ).prefetch_related("projects")
+            owner_query = GroupSearchView.objects.filter(
+                organization=organization,
+                user_id=request.user.id,
+                visibility=GroupSearchViewVisibility.OWNER,
+            ).prefetch_related("projects")
 
-                owner_query = GroupSearchView.objects.filter(
-                    organization=organization,
-                    user_id=request.user.id,
-                    visibility=GroupSearchViewVisibility.OWNER,
-                ).prefetch_related("projects")
+            param_query_map = {
+                "organization": org_query,
+                "owner": owner_query,
+            }
 
-                query = org_query.union(owner_query)
-            elif visibility[0] == GroupSearchViewVisibility.ORGANIZATION:
-                query = GroupSearchView.objects.filter(
-                    organization=organization,
-                    visibility=GroupSearchViewVisibility.ORGANIZATION,
-                ).prefetch_related("projects")
-            else:
-                query = GroupSearchView.objects.filter(
-                    organization=organization,
-                    user_id=request.user.id,
-                    visibility=GroupSearchViewVisibility.OWNER,
-                ).prefetch_related("projects")
+            query_list = [param_query_map[v] for v in visibility]
+            query = reduce(or_, query_list)
 
             return self.paginate(
                 request=request,

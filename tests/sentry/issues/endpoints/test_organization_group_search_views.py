@@ -1074,11 +1074,12 @@ class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
         assert response.data[2]["name"] == self.organization_view.name
 
     @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
     def test_get_views_with_invalid_visibility(self) -> None:
         self.login_as(user=self.user_1)
         response = self.client.get(self.url, {"visibility": ["random"]})
         assert response.status_code == 400
-        assert response.data == {"detail": "Invalid visibility query parameter."}
+        assert str(response.data["visibility"][0]) == '"random" is not a valid choice.'
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
