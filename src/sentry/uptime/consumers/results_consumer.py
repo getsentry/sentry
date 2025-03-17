@@ -63,8 +63,12 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
-# The TTL of the redis key used to track consecutive statuses
-ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
+# The TTL of the redis key used to track consecutive statuses. We need this to be longer than the longest interval we
+# support, so that the key doesn't expire between checks. We add an extra hour to account for any backlogs in
+# processing.
+ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSeconds)) + timedelta(
+    minutes=60
+)
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
