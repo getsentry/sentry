@@ -350,7 +350,7 @@ describe('Performance > Trends', function () {
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
     );
-    await waitFor(function () {
+    await waitFor(() => {
       const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
       expect(menuActions).toHaveLength(3);
     });
@@ -414,7 +414,7 @@ describe('Performance > Trends', function () {
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
     );
-    await waitFor(function () {
+    await waitFor(() => {
       const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
       expect(menuActions).toHaveLength(3);
     });
@@ -450,7 +450,7 @@ describe('Performance > Trends', function () {
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
     );
-    await waitFor(function () {
+    await waitFor(() => {
       const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
       expect(menuActions).toHaveLength(3);
     });

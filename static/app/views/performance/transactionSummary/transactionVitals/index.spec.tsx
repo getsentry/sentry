@@ -184,7 +184,7 @@ describe('Performance > Web Vitals', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -233,7 +233,7 @@ describe('Performance > Web Vitals', function () {
   describe('renders all vitals cards correctly', function () {
     const {organization, router} = initialize();
 
-    it.each(vitals)('Renders %s', async vital => {
+    it.each(vitals)('Renders %s', async function (vital) {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
         {router, organization}

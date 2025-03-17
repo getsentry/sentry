@@ -47,7 +47,7 @@ function initializeData({query} = {query: {}}) {
   return initialData;
 }
 
-describe('Performance > Transaction Tags', () => {
+describe('Performance > Transaction Tags', function () {
   let histogramMock: Record<string, any>;
 
   beforeEach(() => {
@@ -156,7 +156,7 @@ describe('Performance > Transaction Tags', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     histogramMock.mockReset();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
@@ -196,7 +196,7 @@ describe('Performance > Transaction Tags', () => {
     expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
   });
 
-  it('Default tagKey is set when loading the page without one', async () => {
+  it('Default tagKey is set when loading the page without one', async function () {
     const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
@@ -233,7 +233,7 @@ describe('Performance > Transaction Tags', () => {
     );
   });
 
-  it('Passed tagKey gets used when calling queries', async () => {
+  it('Passed tagKey gets used when calling queries', async function () {
     const {organization, router} = initializeData({
       query: {tagKey: 'effectiveConnectionType'},
     });
@@ -295,7 +295,7 @@ describe('Performance > Transaction Tags', () => {
     );
   });
 
-  it('clears tableCursor when selecting a new tag', async () => {
+  it('clears tableCursor when selecting a new tag', async function () {
     const {organization, router} = initializeData({
       query: {
         statsPeriod: '14d',
@@ -358,7 +358,7 @@ describe('Performance > Transaction Tags', () => {
     });
   });
 
-  it('changes the aggregate column when a new x-axis is selected', async () => {
+  it('changes the aggregate column when a new x-axis is selected', async function () {
     const {organization, router} = initializeData({
       query: {tagKey: 'os'},
     });

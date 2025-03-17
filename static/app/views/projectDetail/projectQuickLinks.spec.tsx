@@ -10,7 +10,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     organization: {features: ['performance-view']},
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

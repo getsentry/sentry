@@ -161,7 +161,7 @@ describe('EventTagsTree', function () {
     {
       tag: {key: 'transaction', value: 'abc123'},
       labelText: 'View this transaction',
-      validateLink: function () {
+      validateLink: () => {
         const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
         expect(href?.value).toContain(`/organizations/org-slug/insights/summary/`);
@@ -173,7 +173,7 @@ describe('EventTagsTree', function () {
     {
       tag: {key: 'replay_id', value: 'def456'},
       labelText: 'View this replay',
-      validateLink: function () {
+      validateLink: () => {
         const linkElement = screen.getByRole('link', {name: 'def456'});
         expect(linkElement).toHaveAttribute(
           'href',
@@ -184,7 +184,7 @@ describe('EventTagsTree', function () {
     {
       tag: {key: 'external-link', value: 'https://example.com'},
       labelText: 'Visit this external link',
-      validateLink: async function () {
+      validateLink: async () => {
         renderGlobalModal();
         const linkElement = screen.getByText('https://example.com');
         await userEvent.click(linkElement);

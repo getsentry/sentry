@@ -43,8 +43,8 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   });
 }
 
-describe('Performance > TransactionSummary', () => {
-  beforeEach(() => {
+describe('Performance > TransactionSummary', function () {
+  beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
@@ -166,12 +166,12 @@ describe('Performance > TransactionSummary', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async () => {
+  it('renders basic UI elements', async function () {
     const {organization, projects, router} = initializeData();
 
     ProjectsStore.loadInitialData(projects);
@@ -205,7 +205,7 @@ describe('Performance > TransactionSummary', () => {
     ProjectsStore.reset();
   });
 
-  it('renders relative span breakdown header when no filter selected', async () => {
+  it('renders relative span breakdown header when no filter selected', async function () {
     const {organization, projects, router} = initializeData();
 
     ProjectsStore.loadInitialData(projects);
@@ -220,7 +220,7 @@ describe('Performance > TransactionSummary', () => {
     ProjectsStore.reset();
   });
 
-  it('renders event column results correctly', async () => {
+  it('renders event column results correctly', async function () {
     const {organization, projects, router} = initializeData();
 
     ProjectsStore.loadInitialData(projects);
@@ -249,7 +249,7 @@ describe('Performance > TransactionSummary', () => {
     ProjectsStore.reset();
   });
 
-  it('renders additional Web Vital column', async () => {
+  it('renders additional Web Vital column', async function () {
     const {organization, projects, router} = initializeData({
       query: {webVital: WebVital.LCP},
     });

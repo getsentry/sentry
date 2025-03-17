@@ -79,7 +79,7 @@ describe('TableView > CellActions', function () {
       organization,
       router: {location},
     });
-    act(function () {
+    act(() => {
       ProjectsStore.loadInitialData(initialData.projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
@@ -120,7 +120,7 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ProjectsStore.reset();
   });
 

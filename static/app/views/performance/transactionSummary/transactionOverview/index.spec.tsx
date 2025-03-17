@@ -632,7 +632,7 @@ describe('Performance > TransactionSummary', function () {
       // It renders the web vitals widget
       await screen.findByRole('heading', {name: 'Web Vitals'});
 
-      await waitFor(function () {
+      await waitFor(() => {
         expect(screen.getAllByTestId('vital-status')).toHaveLength(3);
       });
 
@@ -832,7 +832,7 @@ describe('Performance > TransactionSummary', function () {
       await userEvent.paste('user.email:uhoh*');
       await userEvent.keyboard('{enter}');
 
-      await waitFor(function () {
+      await waitFor(() => {
         expect(router.push).toHaveBeenCalledTimes(1);
       });
 
@@ -897,7 +897,7 @@ describe('Performance > TransactionSummary', function () {
       );
 
       await screen.findByText('Transaction Summary');
-      await waitFor(function () {
+      await waitFor(() => {
         expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       });
 

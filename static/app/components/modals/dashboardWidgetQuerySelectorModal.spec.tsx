@@ -22,7 +22,7 @@ function renderModal({
       Footer={stubEl}
       Body={stubEl}
       CloseButton={stubEl}
-      closeModal={function () {}}
+      closeModal={() => {}}
       organization={initialData.organization}
       widget={widget}
       api={api}
@@ -82,7 +82,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 

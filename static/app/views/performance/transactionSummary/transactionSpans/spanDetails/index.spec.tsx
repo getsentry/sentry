@@ -604,7 +604,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        await waitFor(function () {
+        await waitFor(() => {
           expect(mock).toHaveBeenLastCalledWith(
             '/organizations/org-slug/events-spans/',
             expect.objectContaining({
@@ -632,7 +632,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        await waitFor(function () {
+        await waitFor(() => {
           expect(mock).toHaveBeenLastCalledWith(
             '/organizations/org-slug/events-spans-performance/',
             expect.objectContaining({

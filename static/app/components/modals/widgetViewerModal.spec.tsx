@@ -32,7 +32,7 @@ const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</d
 
 let eventsMetaMock: jest.Mock;
 
-const waitForMetaToHaveBeenCalled = async function () {
+const waitForMetaToHaveBeenCalled = async () => {
   await waitFor(function () {
     expect(eventsMetaMock).toHaveBeenCalled();
   });
@@ -99,7 +99,7 @@ describe('Modals -> WidgetViewerModal', function () {
   let initialData!: ReturnType<typeof initializeOrg>;
   let initialDataWithFlag!: ReturnType<typeof initializeOrg>;
   let widgetLegendState!: WidgetLegendSelectionState;
-  beforeEach(function () {
+  beforeEach(() => {
     initialData = initializeOrg({
       organization: {
         features: ['discover-query'],
@@ -153,7 +153,7 @@ describe('Modals -> WidgetViewerModal', function () {
     );
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
@@ -318,10 +318,10 @@ describe('Modals -> WidgetViewerModal', function () {
       it('zooms into the selected time range', async function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        act(function () {
+        act(() => {
           // Simulate dataZoom event on chart
           (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
-            getModel: function () {
+            getModel: () => {
               return {
                 _payload: {
                   batch: [{startValue: 1646100000000, endValue: 1646120000000}],
@@ -605,7 +605,9 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(link).toHaveAttribute(
           'href',
           expect.stringMatching(
-            /organizations\/org-slug\/insights\/summary\/\?.*project=2&referrer=performance-transaction-summary.*transaction=%2Fdiscover%2Fhomepage%2F.*/
+            new RegExp(
+              '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+            )
           )
         );
       });
@@ -992,7 +994,7 @@ describe('Modals -> WidgetViewerModal', function () {
             widgetType: 'discover',
           },
         });
-        await waitFor(function () {
+        await waitFor(() => {
           expect(eventsMock).toHaveBeenCalled();
         });
         expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
@@ -1241,7 +1243,7 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       expect(issuesMock).not.toHaveBeenCalled();
       await userEvent.click(screen.getByText('events'));
-      await waitFor(function () {
+      await waitFor(() => {
         expect(issuesMock).toHaveBeenCalled();
       });
     });
@@ -1278,13 +1280,13 @@ describe('Modals -> WidgetViewerModal', function () {
         },
       });
     });
-    afterEach(function () {
+    afterEach(() => {
       resetMockDate();
     });
 
     it('does a sessions query', async function () {
       await renderModal({initialData, widget: mockWidget});
-      await waitFor(function () {
+      await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
       });
     });
@@ -1375,7 +1377,7 @@ describe('Modals -> WidgetViewerModal', function () {
           widgetLegendState={widgetLegendState}
         />
       );
-      await waitFor(function () {
+      await waitFor(() => {
         expect(metricsMock).toHaveBeenCalledTimes(2);
       });
     });

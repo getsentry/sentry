@@ -266,7 +266,7 @@ describe('Performance > VitalDetail', function () {
     await userEvent.keyboard('{enter}');
 
     // Check the navigation.
-    await waitFor(function () {
+    await waitFor(() => {
       expect(router.push).toHaveBeenCalledTimes(1);
     });
 

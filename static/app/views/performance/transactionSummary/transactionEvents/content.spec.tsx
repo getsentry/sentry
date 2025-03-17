@@ -200,10 +200,10 @@ describe('Performance Transaction Events Content', function () {
           location={initialData.router.location}
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
-          onChangeSpanOperationBreakdownFilter={function () {}}
+          onChangeSpanOperationBreakdownFilter={() => {}}
           eventsDisplayFilterName={EventsDisplayFilterName.P100}
-          onChangeEventsDisplayFilter={function () {}}
-          setError={function () {}}
+          onChangeEventsDisplayFilter={() => {}}
+          setError={() => {}}
           projectId="123"
           projects={[]}
         />
@@ -240,11 +240,11 @@ describe('Performance Transaction Events Content', function () {
           location={initialData.router.location}
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
-          onChangeSpanOperationBreakdownFilter={function () {}}
+          onChangeSpanOperationBreakdownFilter={() => {}}
           eventsDisplayFilterName={EventsDisplayFilterName.P100}
-          onChangeEventsDisplayFilter={function () {}}
+          onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
-          setError={function () {}}
+          setError={() => {}}
           projectId="123"
           projects={[]}
         />
@@ -286,11 +286,11 @@ describe('Performance Transaction Events Content', function () {
           location={initialData.router.location}
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
-          onChangeSpanOperationBreakdownFilter={function () {}}
+          onChangeSpanOperationBreakdownFilter={() => {}}
           eventsDisplayFilterName={EventsDisplayFilterName.P100}
-          onChangeEventsDisplayFilter={function () {}}
+          onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
-          setError={function () {}}
+          setError={() => {}}
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
