@@ -13,7 +13,7 @@ from sentry.hybridcloud.services.region_organization_provisioning import (
     RegionOrganizationProvisioningRpcService,
 )
 from sentry.issues.streamline import apply_streamline_rollout_group
-from sentry.models.organization import Organization
+from sentry.models.organization import ORGANIZATION_NAME_MAX_LENGTH, Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
@@ -52,8 +52,9 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
+        truncated_name = organization_name[:ORGANIZATION_NAME_MAX_LENGTH]
         org = Organization.objects.create(
-            id=organization_id, name=organization_name, slug=slug, is_test=is_test
+            id=organization_id, name=truncated_name, slug=slug, is_test=is_test
         )
 
         apply_streamline_rollout_group(organization=org)
