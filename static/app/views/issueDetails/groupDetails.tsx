@@ -639,7 +639,13 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const {openTagsDrawer} = useGroupTagsDrawer({group});
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
+  const {openTagsDrawer} = useGroupTagsDrawer({
+    group,
+    includeFeatureFlagsTab: hasFlagsDistributions,
+  });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
@@ -741,6 +747,15 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     );
     return issueDetailsTourData?.seen ?? false;
   }, [assistantData]);
+  const isIssueDetailsTourAvailable = useMemo(() => {
+    if (!hasStreamlinedUI) {
+      return false;
+    }
+    return (
+      location.hash === '#tour' ||
+      organization.features.includes('issue-details-streamline-tour')
+    );
+  }, [hasStreamlinedUI, location.hash, organization.features]);
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
@@ -811,7 +826,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   return (
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isAvailable={hasStreamlinedUI && location.hash === '#tour'}
+      isAvailable={isIssueDetailsTourAvailable}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}

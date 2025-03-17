@@ -16,7 +16,7 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
-const DEFAULT_HOVER_TIMEOUT = 300;
+const DEFAULT_HOVER_TIMEOUT = 200;
 
 /**
  * ProjectTraceItemDetailsEndpoint currently only supports ourlogs dataset

@@ -3,7 +3,12 @@ from __future__ import annotations
 import sentry_sdk
 
 from sentry import features
+from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext
@@ -33,9 +38,14 @@ def send_incident_alert_notification(
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
+            alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+                incident.alert_rule, None, AlertRuleSerializer()
+            )
             chart_url = build_metric_alert_chart(
                 organization=incident.organization,
-                alert_rule=incident.alert_rule,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                snuba_query=incident.alert_rule.snuba_query,
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
                 selected_incident=incident,
                 subscription=incident.subscription,
             )

@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
-  isDemoModeEnabled,
+  isDemoModeActive,
   openDemoEmailModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
@@ -22,7 +22,7 @@ export default function DemoHeader() {
     openDemoEmailModal();
   }, []);
 
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return null;
   }
 
