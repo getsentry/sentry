@@ -90,7 +90,6 @@ describe('TraceMetaDataHeader', () => {
         })
       );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      organization.features.push('insights-performance-landing-removal');
       render(<TraceMetaDataHeader {...props} organization={organization} />);
 
       const breadcrumbs = screen.getByTestId('breadcrumb-list');
