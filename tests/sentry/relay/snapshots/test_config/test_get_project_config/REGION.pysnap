@@ -92,7 +92,7 @@ config:
                 op: glob
                 value:
                 - Loading chunk *
-                op: and
+              op: and
             - inner:
               - name: ty
                 op: glob
@@ -102,7 +102,7 @@ config:
                 op: glob
                 value:
                 - 'ChunkLoadError: Loading chunk *'
-                op: and
+              op: and
             - inner:
               - name: ty
                 op: glob
