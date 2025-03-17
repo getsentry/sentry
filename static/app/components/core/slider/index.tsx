@@ -5,7 +5,12 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {Slider as ChonkSlider} from './index.chonk';
 
 export interface SliderProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {}
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> {
+  defaultValue?: number;
+  /** Optional callback to format the label */
+  formatLabel?: (value: number | '') => number | string;
+  value?: number;
+}
 
 export function LegacySlider({
   ref,
