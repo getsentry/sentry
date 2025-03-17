@@ -146,6 +146,9 @@ function SchemaHintsList({
               ariaLabel: t('Schema Hints Drawer'),
               drawerCss: css`
                 @media (min-width: ${theme.breakpoints.small}) {
+                  width: 50vw;
+                }
+                @media (min-width: ${theme.breakpoints.medium}) {
                   width: 35vw;
                 }
               `,
@@ -167,7 +170,7 @@ function SchemaHintsList({
       setExploreQuery,
       isDrawerOpen,
       openDrawer,
-      theme.breakpoints.small,
+      theme.breakpoints,
       filterTagsSorted,
     ]
   );
