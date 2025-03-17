@@ -39,7 +39,7 @@ def add_start_end_conditions(
     return in_msg
 
 
-# Remove with https://github.com/getsentry/eap-planning/issues/206 is merged
+# Remove when https://github.com/getsentry/eap-planning/issues/206 is merged
 def transform_binary_formula_to_expression(
     column: Column.BinaryFormula,
 ) -> Expression.BinaryFormula:
@@ -50,6 +50,7 @@ def transform_binary_formula_to_expression(
     )
 
 
+# Remove when https://github.com/getsentry/eap-planning/issues/206 is merged
 def transform_column_to_expression(column: Column) -> Expression:
     if column.formula.op != Column.BinaryFormula.OP_UNSPECIFIED:
         return Expression(
