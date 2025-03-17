@@ -27,7 +27,9 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
 
     """
     @deprecated This endpoint is not actively maintained
-    and its usages should be replaced with queries to /events-stats/
+    and its usages should be replaced with queries to a
+    span-based system backed by `eap_spans`
+
 
     Get the time series data for one or more metrics.
 
