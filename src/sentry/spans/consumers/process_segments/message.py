@@ -64,6 +64,7 @@ def _find_segment_span(spans: list[Span]) -> Span | None:
 DEFAULT_SPAN_OP = "default"
 
 
+@metrics.wraps("spans.consumers.process_segments.enrich_spans")
 def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     for span in spans:
         span["op"] = span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
@@ -76,6 +77,7 @@ def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     groupings.write_to_spans(spans)
 
 
+@metrics.wraps("spans.consumers.process_segments.create_models")
 def _create_models(segment: Span, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
@@ -121,6 +123,7 @@ def _create_models(segment: Span, project: Project) -> None:
     record_release_received(project, release.version)
 
 
+@metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
 def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
     if not options.get("standalone-spans.detect-performance-problems.enable"):
         return
@@ -215,6 +218,7 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
     return event
 
 
+@metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
     # TODO: Make transaction name clustering work again
     # record_transaction_name_for_clustering(project, event.data)
@@ -242,7 +246,7 @@ def process_segment(spans: list[Span]) -> list[Span]:
         # functions are refactored to a span interface.
         return spans
 
-    with metrics.timer("tasks.spans.project.get_from_cache"):
+    with metrics.timer("spans.consumers.process_segments.get_project"):
         project = Project.objects.get_from_cache(id=segment_span["project_id"])
 
     _enrich_spans(segment_span, spans)
