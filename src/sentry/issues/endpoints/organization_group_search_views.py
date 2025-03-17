@@ -16,7 +16,11 @@ from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
+from sentry.models.groupsearchview import (
+    DEFAULT_TIME_FILTER,
+    GroupSearchView,
+    GroupSearchViewVisibility,
+)
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -76,6 +80,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         ).prefetch_related("projects")
 
         # Return only the default view(s) if user has no custom views yet
+        # TODO(msun): Delete this logic once left-nav views have been fully rolled out.
         if not query.exists():
             return self.paginate(
                 request=request,
@@ -106,6 +111,55 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                     data={"detail": "You do not have access to any projects."},
                 )
+
+        visibility = request.GET.getlist("visibility", [])
+        valid_visibility_options = [v[0] for v in GroupSearchViewVisibility.as_choices()]
+        if visibility:
+            if any(v not in valid_visibility_options for v in visibility):
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "Invalid visibility query parameter."},
+                )
+
+            if len(visibility) > 1:
+                org_query = GroupSearchView.objects.filter(
+                    organization=organization,
+                    visibility=GroupSearchViewVisibility.ORGANIZATION,
+                ).prefetch_related("projects")
+
+                owner_query = GroupSearchView.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    visibility=GroupSearchViewVisibility.OWNER,
+                ).prefetch_related("projects")
+
+                query = org_query.union(owner_query)
+            elif visibility[0] == GroupSearchViewVisibility.ORGANIZATION:
+                query = GroupSearchView.objects.filter(
+                    organization=organization,
+                    visibility=GroupSearchViewVisibility.ORGANIZATION,
+                ).prefetch_related("projects")
+            else:
+                query = GroupSearchView.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    visibility=GroupSearchViewVisibility.OWNER,
+                ).prefetch_related("projects")
+
+            return self.paginate(
+                request=request,
+                queryset=query,
+                order_by="id",
+                on_results=lambda x: serialize(
+                    x,
+                    request.user,
+                    serializer=GroupSearchViewSerializer(
+                        has_global_views=has_global_views,
+                        default_project=default_project,
+                        organization=organization,
+                    ),
+                ),
+            )
 
         starred_views = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
