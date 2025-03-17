@@ -1,3 +1,58 @@
+25.3.0
+------
+
+### Automate Code Mappings & In-App Stack Trace Rules for Java projects (ongoing)
+
+Currently, we ask developers to set up their Java code mappings manually (because the SDK cannot determine it):
+https://docs.sentry.io/platforms/java/source-context/&#35;setting-up-code-mappings
+
+Unfortunately, many stack traces do not contain in-app frames, thus, many Sentry features are not available (e.g. SCM linking, suspect commit).
+
+This tracks using the code mappings derivation system to automatically add the code mappings and stack trace rules to mark in-app frames as such.
+
+This will automatically enable the following Sentry features :
+- Suspect Commits
+- GitHub pull request comments
+- Auto-assignments (if Codeowners imported)
+- Stack trace linking
+- Code coverage (if the customer also has an account)
+
+This will only be available to customers with the GitHub integration installed.
+
+You can read more about the system here:
+https://blog.sentry.io/code-mappings-and-why-they-matter/
+
+By: @armenzg (#86283, #86327, #86280, #86196, #86188, #86189, #86109, #86026, #85981, #85976, #85931, #85742)
+
+### Various fixes & improvements
+
+- Revert "chore(sentry apps): add SLO context manager for send alert event (issue alerts) (#86356)" (fa6491f2) by @getsentry-bot
+- fix(autofix): Fix running autofix after all issue summaries (#87134) by @jennmueng
+- fix(data-consent): Fix non touch customers seeing msa prompt (#87133) by @jennmueng
+- fix(eap-spans): count_op should use `score.total` (#87132) by @DominikB2014
+- chore(sentry apps): Add context manager for comment webhook SLOs (#86739) by @Christinarlong
+- feat(devenv): Skip `devenv sync` call when we have FE changes and env var is set (#87112) by @wedamija
+- feat(insights): make score easier to query (#87129) by @DominikB2014
+- chore(issue-details): Fix a few things about issue guide (#87122) by @leeandher
+- feat(issue-views): Improve drag handle and safari interactions (#87119) by @MichaelSun48
+- :recycle: ref(aci): remove alert rule from metric alert chart building logic (#87103) by @iamrajjoshi
+- fix(jira): Add a 'key_id' block list for JIRA installed webhook endpoint (#87086) by @Christinarlong
+- fix(event_manager): Resolve TypeError while recording first insight span (#87123) by @jan-auer
+- chore(sentry apps): add SLO context manager for send alert event (issue alerts) (#86356) by @Christinarlong
+- ref(feedback): add evidence test coverage and send alerts if source is none (#87121) by @aliu39
+- feat(releases): Change "version" to "release" in table (#87088) by @billyvg
+- feat(releases): Change release bubbles series color to match bubbles (#87109) by @billyvg
+- test(react19): Wait for text in billingPlans.spec.tex (#87120) by @scttcper
+- ref(tsc): convert projectPlugins details to FC (#87035) by @michellewzhang
+- chore(issues): Opt more modules into stronger typing (#87117) by @mrduncan
+- feat(ui): Move checkInTimeline underscan to the left (#87096) by @evanpurkhiser
+- fix(aci): ANY_SHORT_CIRCUIT early exit (#87114) by @cathteng
+- test(react19): Adjust widgetViewerModal for react 19 (#87110) by @scttcper
+- chore(uptime): Commit test helpers for getsentry (#87115) by @wedamija
+- feat(insights): add most related issues to backend (#87033) by @DominikB2014
+
+_Plus 1390 more_
+
 25.2.0
 ------
 
