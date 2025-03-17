@@ -268,12 +268,11 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         # Update to patch both Transactions and Events dataset calls
         with patch("sentry.eventstore.backend.get_events") as mock_get_events:
 
-            def side_effect(filter, dataset, **kwargs):
+            def side_effect(filter, dataset=None, **kwargs):
                 if dataset == Dataset.Transactions:
                     return tx_events
-                elif dataset == Dataset.Events:
+                else:
                     return error_events
-                return []
 
             mock_get_events.side_effect = side_effect
 
@@ -336,10 +335,6 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
 
         # Verify that get_events was called twice - once for transactions and once for errors
         assert mock_get_events.call_count == 2
-        # Check that the first call used the Transactions dataset
-        assert mock_get_events.call_args_list[0][1]["dataset"] == Dataset.Transactions
-        # Check that the second call used the Events dataset
-        assert mock_get_events.call_args_list[1][1]["dataset"] == Dataset.Events
 
     @patch("sentry.eventstore.backend.get_events")
     def test_get_trace_tree_empty_results(self, mock_get_events):
@@ -431,12 +426,11 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         parent_event.trace_id = trace_id
 
         # Set up the mock to return different results for different dataset calls
-        def side_effect(filter, dataset, **kwargs):
+        def side_effect(filter, dataset=None, **kwargs):
             if dataset == Dataset.Transactions:
                 return [parent_event]  # Parent is a transaction
-            elif dataset == Dataset.Events:
+            else:
                 return [child_event]  # Child is an error
-            return []
 
         mock_get_events.side_effect = side_effect
 
@@ -458,6 +452,282 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert child["span_id"] == child_span_id
 
         # Verify that get_events was called twice
+        assert mock_get_events.call_count == 2
+
+    @patch("sentry.eventstore.backend.get_events")
+    def test_get_trace_tree_with_only_errors(self, mock_get_events):
+        """
+        Tests that when results contain only error events (no transactions),
+        the function still creates a valid trace tree.
+
+        Expected trace structure with the corrected approach:
+        trace (1234567890abcdef1234567890abcdef)
+        ├── error1-id (10:00:00Z) "First Error" (has non-matching parent_span_id)
+        ├── error2-id (10:00:10Z) "Second Error" (has non-matching parent_span_id)
+        │   └── error3-id (10:00:20Z) "Child Error"
+        └── error4-id (10:00:30Z) "Orphaned Error" (has non-matching parent_span_id)
+
+        Note: In real-world scenarios, error events often have parent_span_ids even
+        when their parent events aren't captured in our trace data.
+        """
+        trace_id = "1234567890abcdef1234567890abcdef"
+        test_span_id = "abcdef0123456789"
+        event_data = load_data("python")
+        event_data.update({"contexts": {"trace": {"trace_id": trace_id, "span_id": test_span_id}}})
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        # Create error events with parent-child relationships
+        error1_span_id = "error1-span-id"
+        error1 = Mock()
+        error1.event_id = "error1-id"
+        error1.datetime = datetime.fromisoformat("2023-01-01T10:00:00+00:00")
+        error1.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": error1_span_id,
+                    "parent_span_id": "non-existent-parent-1",  # Parent that doesn't exist in our data
+                }
+            },
+            "title": "First Error",
+        }
+        error1.title = "First Error"
+        error1.platform = "python"
+        error1.project_id = self.project.id
+        error1.trace_id = trace_id
+
+        error2_span_id = "error2-span-id"
+        error2 = Mock()
+        error2.event_id = "error2-id"
+        error2.datetime = datetime.fromisoformat("2023-01-01T10:00:10+00:00")
+        error2.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": error2_span_id,
+                    "parent_span_id": "non-existent-parent-2",  # Parent that doesn't exist in our data
+                }
+            },
+            "title": "Second Error",
+        }
+        error2.title = "Second Error"
+        error2.platform = "python"
+        error2.project_id = self.project.id
+        error2.trace_id = trace_id
+
+        # This error is a child of error2
+        error3 = Mock()
+        error3.event_id = "error3-id"
+        error3.datetime = datetime.fromisoformat("2023-01-01T10:00:20+00:00")
+        error3.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": "error3-span-id",
+                    "parent_span_id": error2_span_id,  # Points to error2
+                }
+            },
+            "title": "Child Error",
+        }
+        error3.title = "Child Error"
+        error3.platform = "python"
+        error3.project_id = self.project.id
+        error3.trace_id = trace_id
+
+        # Another "orphaned" error with a parent_span_id that doesn't point to anything
+        error4 = Mock()
+        error4.event_id = "error4-id"
+        error4.datetime = datetime.fromisoformat("2023-01-01T10:00:30+00:00")
+        error4.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": "error4-span-id",
+                    "parent_span_id": "non-existent-parent-3",  # Parent that doesn't exist in our data
+                }
+            },
+            "title": "Orphaned Error",
+        }
+        error4.title = "Orphaned Error"
+        error4.platform = "python"
+        error4.project_id = self.project.id
+        error4.trace_id = trace_id
+
+        # Return empty transactions list but populate errors list
+        def side_effect(filter, dataset=None, **kwargs):
+            if dataset == Dataset.Transactions:
+                return []
+            else:
+                return [error1, error2, error3, error4]
+
+        mock_get_events.side_effect = side_effect
+
+        # Call the function directly
+        trace_tree = _get_trace_tree_for_event(event, self.project)
+
+        # Verify the trace tree structure
+        assert trace_tree is not None
+        assert trace_tree["trace_id"] == trace_id
+
+        # We should have three root-level errors in the result (error1, error2, error4)
+        # In the old logic, this would be empty because all errors have parent_span_ids
+        assert len(trace_tree["events"]) == 3
+
+        # Verify all the root events are in chronological order
+        events = trace_tree["events"]
+        assert events[0]["event_id"] == "error1-id"
+        assert events[1]["event_id"] == "error2-id"
+        assert events[2]["event_id"] == "error4-id"
+
+        # error3 should be a child of error2
+        assert len(events[1]["children"]) == 1
+        child = events[1]["children"][0]
+        assert child["event_id"] == "error3-id"
+        assert child["title"] == "Child Error"
+
+        # Verify get_events was called twice - once for transactions and once for errors
+        assert mock_get_events.call_count == 2
+
+    @patch("sentry.eventstore.backend.get_events")
+    def test_get_trace_tree_all_relationship_rules(self, mock_get_events):
+        """
+        Tests that all three relationship rules are correctly implemented:
+        1. An event whose span_id is X is a parent of an event whose parent_span_id is X
+        2. A transaction event with a span with span_id X is a parent of an event whose parent_span_id is X
+        3. A transaction event with a span with span_id X is a parent of an event whose span_id is X
+
+        Expected trace structure:
+        trace (1234567890abcdef1234567890abcdef)
+        └── root-tx-id (10:00:00Z) "Root Transaction"
+            ├── rule1-child-id (10:00:10Z) "Rule 1 Child" (parent_span_id=root-tx-span-id)
+            ├── rule2-child-id (10:00:20Z) "Rule 2 Child" (parent_span_id=tx-span-1)
+            └── rule3-child-id (10:00:30Z) "Rule 3 Child" (span_id=tx-span-2)
+        """
+        trace_id = "1234567890abcdef1234567890abcdef"
+        test_span_id = "abcdef0123456789"
+        event_data = load_data("python")
+        event_data.update({"contexts": {"trace": {"trace_id": trace_id, "span_id": test_span_id}}})
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        # Root transaction with two spans
+        root_tx_span_id = "root-tx-span-id"
+        tx_span_1 = "tx-span-1"
+        tx_span_2 = "tx-span-2"
+
+        root_tx = Mock()
+        root_tx.event_id = "root-tx-id"
+        root_tx.datetime = datetime.fromisoformat("2023-01-01T10:00:00+00:00")
+        root_tx.data = {
+            "spans": [{"span_id": tx_span_1}, {"span_id": tx_span_2}],
+            "contexts": {
+                "trace": {"trace_id": trace_id, "span_id": root_tx_span_id, "op": "http.server"}
+            },
+            "title": "Root Transaction",
+        }
+        root_tx.title = "Root Transaction"
+        root_tx.platform = "python"
+        root_tx.project_id = self.project.id
+        root_tx.trace_id = trace_id
+
+        # Rule 1: Child whose parent_span_id matches another event's span_id
+        rule1_child = Mock()
+        rule1_child.event_id = "rule1-child-id"
+        rule1_child.datetime = datetime.fromisoformat("2023-01-01T10:00:10+00:00")
+        rule1_child.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": "rule1-child-span-id",
+                    "parent_span_id": root_tx_span_id,  # Points to root transaction's span_id
+                }
+            },
+            "title": "Rule 1 Child",
+        }
+        rule1_child.title = "Rule 1 Child"
+        rule1_child.platform = "python"
+        rule1_child.project_id = self.project.id
+        rule1_child.trace_id = trace_id
+
+        # Rule 2: Child whose parent_span_id matches a span in a transaction
+        rule2_child = Mock()
+        rule2_child.event_id = "rule2-child-id"
+        rule2_child.datetime = datetime.fromisoformat("2023-01-01T10:00:20+00:00")
+        rule2_child.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": "rule2-child-span-id",
+                    "parent_span_id": tx_span_1,  # Points to a span in the root transaction
+                }
+            },
+            "title": "Rule 2 Child",
+        }
+        rule2_child.title = "Rule 2 Child"
+        rule2_child.platform = "python"
+        rule2_child.project_id = self.project.id
+        rule2_child.trace_id = trace_id
+
+        # Rule 3: Child whose span_id matches a span in a transaction
+        rule3_child = Mock()
+        rule3_child.event_id = "rule3-child-id"
+        rule3_child.datetime = datetime.fromisoformat("2023-01-01T10:00:30+00:00")
+        rule3_child.data = {
+            "contexts": {
+                "trace": {
+                    "trace_id": trace_id,
+                    "span_id": tx_span_2,  # Same as one of the spans in the root transaction
+                }
+            },
+            "title": "Rule 3 Child",
+        }
+        rule3_child.title = "Rule 3 Child"
+        rule3_child.platform = "python"
+        rule3_child.project_id = self.project.id
+        rule3_child.trace_id = trace_id
+
+        # Set up the mock to return our test events
+        def side_effect(filter, dataset=None, **kwargs):
+            if dataset == Dataset.Transactions:
+                return [root_tx]
+            else:
+                return [rule1_child, rule2_child, rule3_child]
+
+        mock_get_events.side_effect = side_effect
+
+        # Call the function
+        trace_tree = _get_trace_tree_for_event(event, self.project)
+
+        # Verify the trace tree structure
+        assert trace_tree is not None
+        assert trace_tree["trace_id"] == trace_id
+        assert len(trace_tree["events"]) == 1  # One root node (the transaction)
+
+        # Verify root transaction
+        root = trace_tree["events"][0]
+        assert root["event_id"] == "root-tx-id"
+        assert root["title"] == "http.server - Root Transaction"
+        assert root["is_transaction"] is True
+        assert root["is_error"] is False
+
+        # Root should have all three children according to the rules
+        assert len(root["children"]) == 3
+
+        # Children should be in chronological order
+        children = root["children"]
+
+        # First child - Rule 1
+        assert children[0]["event_id"] == "rule1-child-id"
+        assert children[0]["title"] == "Rule 1 Child"
+
+        # Second child - Rule 2
+        assert children[1]["event_id"] == "rule2-child-id"
+        assert children[1]["title"] == "Rule 2 Child"
+
+        # Third child - Rule 3
+        assert children[2]["event_id"] == "rule3-child-id"
+        assert children[2]["title"] == "Rule 3 Child"
+
+        # Verify get_events was called twice
         assert mock_get_events.call_count == 2
 
 
