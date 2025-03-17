@@ -1,10 +1,14 @@
-import {useLayoutEffect, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement | null}) {
   const [position, setPosition] = useState({left: 0, top: 0});
+  const portalContainerRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number>();
+  const lastUpdateRef = useRef<number>(0);
+  const THROTTLE_MS = 16;
 
   useLayoutEffect(() => {
     if (!targetElement) {
@@ -27,13 +31,27 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
     }
 
     const updatePosition = () => {
+      const now = Date.now();
+      if (now - lastUpdateRef.current < THROTTLE_MS) {
+        rafRef.current = requestAnimationFrame(updatePosition);
+        return;
+      }
+
       const rect = targetElement.getBoundingClientRect();
       const left = rect.left + rect.width / 2;
       const top = rect.top + rect.height / 2;
       setPosition({left, top});
+      lastUpdateRef.current = now;
+      rafRef.current = requestAnimationFrame(updatePosition);
     };
 
-    updatePosition();
+    // Create portal container if it doesn't exist
+    if (!portalContainerRef.current) {
+      portalContainerRef.current = document.createElement('div');
+      document.body.appendChild(portalContainerRef.current);
+    }
+
+    rafRef.current = requestAnimationFrame(updatePosition);
 
     const scrollElements = [window, ...getScrollParents(targetElement)];
     scrollElements.forEach(element => {
@@ -45,19 +63,25 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
     const resizeObserver = new ResizeObserver(updatePosition);
     resizeObserver.observe(targetElement);
 
-    const pollInterval = window.setInterval(updatePosition, 100);
-
     return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
       scrollElements.forEach(element => {
         element.removeEventListener('scroll', updatePosition);
       });
       window.removeEventListener('resize', updatePosition);
       resizeObserver.disconnect();
-      window.clearInterval(pollInterval);
+
+      // Clean up portal container
+      if (portalContainerRef.current) {
+        document.body.removeChild(portalContainerRef.current);
+        portalContainerRef.current = null;
+      }
     };
   }, [targetElement]);
 
-  if (!targetElement) {
+  if (!targetElement || !portalContainerRef.current) {
     return null;
   }
 
@@ -67,7 +91,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
       <AdditionalLine delay={-0.8} rotation={45} variant="rightColored" />
       <AdditionalLine delay={-1.0} rotation={-30} variant="leftColored" />
     </FlyingLinesContainer>,
-    document.body
+    portalContainerRef.current
   );
 }
 
