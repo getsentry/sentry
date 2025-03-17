@@ -18,6 +18,7 @@ import FormModel from 'sentry/components/forms/model';
 import {tct} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
@@ -89,8 +90,9 @@ export default class AbstractExternalIssueForm<
   ): {[key: string]: FieldValue | null} => {
     return getDynamicFields({
       action: this.state.action,
-      paramConfig: integrationDetailsParam,
-      stateConfig: this.state.integrationDetails,
+      integrationDetails: defined(integrationDetailsParam)
+        ? integrationDetailsParam
+        : this.state.integrationDetails,
     });
   };
 
