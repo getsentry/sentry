@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -13,6 +15,7 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {
   PageParamsProvider,
@@ -43,7 +46,7 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
-
+  const location = useLocation();
   const {openDrawer, isDrawerOpen} = useDrawer();
 
   const functionTags = useMemo(() => {
@@ -142,6 +145,16 @@ function SchemaHintsList({
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
+              shouldCloseOnLocationChange: newLocation => {
+                return (
+                  location.pathname !== newLocation.pathname ||
+                  // will close if anything but the filter query has changed
+                  !isEqual(
+                    omit(location.query, ['query']),
+                    omit(newLocation.query, ['query'])
+                  )
+                );
+              },
             }
           );
         }
@@ -155,7 +168,7 @@ function SchemaHintsList({
       );
       setExploreQuery(newSearchQuery.formatString());
     },
-    [exploreQuery, setExploreQuery, isDrawerOpen, openDrawer, filterTagsSorted]
+    [exploreQuery, setExploreQuery, isDrawerOpen, openDrawer, filterTagsSorted, location]
   );
 
   const getHintText = (hint: Tag) => {
