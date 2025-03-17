@@ -276,8 +276,8 @@ function BaseButton({
   );
 
   const hasChildren = Array.isArray(children)
-    ? children.some(child => !!child && String(child) !== '0')
-    : !!children && String(children) !== '0';
+    ? children.some(child => !!child || String(child) === '0')
+    : !!children || String(children) === '0';
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
