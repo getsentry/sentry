@@ -67,8 +67,8 @@ class SeriesMeta(TypedDict):
     order: NotRequired[int]
     groupBy: NotRequired[list[str]]
     isOther: NotRequired[str]
-    unit: NotRequired[str]
-    type: str
+    valueUnit: NotRequired[str]
+    valueType: str
     interval: float
 
 
@@ -336,8 +336,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                             ],
                             axis=axis,
                             meta=SeriesMeta(
-                                unit=unit,
-                                type=field_type,
+                                valueUnit=unit,
+                                valueType=field_type,
                                 interval=rollup * 1000,
                             ),
                         )
@@ -361,8 +361,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                                     order=value.data["order"],
                                     groupBy=value.data.get("groupby", []),
                                     isOther=value.data.get("is_other", False),
-                                    unit=unit,
-                                    type=field_type,
+                                    valueUnit=unit,
+                                    valueType=field_type,
                                     interval=rollup * 1000,
                                 ),
                             )

@@ -119,8 +119,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
         assert timeseries["meta"] == {
-            "unit": None,
-            "type": "integer",
+            "valueUnit": None,
+            "valueType": "integer",
             "interval": 3_600_000,
         }
 
@@ -160,8 +160,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
         assert timeseries["meta"] == {
-            "unit": None,
-            "type": "integer",
+            "valueUnit": None,
+            "valueType": "integer",
             "interval": 3_600_000,
         }
 
@@ -183,8 +183,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
         assert timeseries["meta"] == {
-            "unit": None,
-            "type": "integer",
+            "valueUnit": None,
+            "valueType": "integer",
             "interval": 3_600_000,
         }
 
@@ -216,8 +216,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "order": 0,
             "groupBy": ["very bad"],
             "isOther": False,
-            "unit": None,
-            "type": "integer",
+            "valueUnit": None,
+            "valueType": "integer",
             "interval": 3_600_000,
         }
         assert timeseries["values"] == [
@@ -242,8 +242,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "order": 0,
             "groupBy": ["very bad"],
             "isOther": False,
-            "unit": "millisecond",
-            "type": "duration",
+            "valueUnit": "millisecond",
+            "valueType": "duration",
             "interval": 3_600_000,
         }
         assert timeseries["values"] == [
@@ -268,8 +268,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "order": 1,
             "groupBy": ["oh my"],
             "isOther": False,
-            "unit": None,
-            "type": "integer",
+            "valueUnit": None,
+            "valueType": "integer",
             "interval": 3_600_000,
         }
         assert timeseries["values"] == [
@@ -294,8 +294,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "order": 1,
             "groupBy": ["oh my"],
             "isOther": False,
-            "unit": "millisecond",
-            "type": "duration",
+            "valueUnit": "millisecond",
+            "valueType": "duration",
             "interval": 3_600_000,
         }
         assert timeseries["values"] == [
