@@ -134,6 +134,7 @@ class JiraIntegration(IssueSyncIntegration):
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
+    comment_key = "sync_comments"
 
     @classproperty
     def use_email_scope(cls):
