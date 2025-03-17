@@ -825,6 +825,9 @@ export type FormTheme = {
       borderRadius: string;
     };
   };
+  formSpacing: {
+    [key in FormSize]: string;
+  };
 };
 
 const formTheme: FormTheme = {
@@ -887,6 +890,11 @@ const formTheme: FormTheme = {
     xs: {
       borderRadius: '6px',
     },
+  },
+  formSpacing: {
+    md: '8px',
+    sm: '6px',
+    xs: '4px',
   },
 };
 

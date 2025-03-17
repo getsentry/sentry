@@ -1,9 +1,7 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import Matrix from 'sentry/components/stories/matrix';
 import {Grid} from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -31,6 +29,7 @@ export default storyBook('Select', (story, APIReference) => {
           <Select
             size="sm"
             placeholder="small"
+            defaultValue={{value: 'item1', label: 'Item 1'}}
             options={[
               {value: 'item1', label: 'Item 1'},
               {value: 'item2', label: 'Item 2'},
@@ -49,56 +48,147 @@ export default storyBook('Select', (story, APIReference) => {
     );
   });
 
-  story('Clearable', () => (
-    <Fragment>
-      <Matrix
-        render={props => (
-          <Item>
-            <Select
-              {...props}
-              defaultValue={{value: 'item2', label: 'Item 2'}}
-              options={[
-                {value: 'item1', label: 'Item 1'},
-                {value: 'item2', label: 'Item 2'},
-              ]}
-            />
-          </Item>
-        )}
-        propMatrix={{
-          size: ['md', 'sm', 'xs'],
-          isClearable: [true, false],
-        }}
-        selectedProps={['size', 'isClearable']}
-      />
-    </Fragment>
-  ));
+  story('Disabled', () => {
+    return (
+      <Fragment>
+        <Grid columns={3}>
+          <Select
+            isDisabled
+            size="md"
+            placeholder="medium"
+            options={[
+              {value: 'item1', label: 'Item 1'},
+              {value: 'item2', label: 'Item 2'},
+            ]}
+          />
+          <Select
+            isDisabled
+            size="sm"
+            placeholder="small"
+            defaultValue={{value: 'item1', label: 'Item 1'}}
+            options={[
+              {value: 'item1', label: 'Item 1'},
+              {value: 'item2', label: 'Item 2'},
+            ]}
+          />
+          <Select
+            isDisabled
+            size="xs"
+            placeholder="x-small"
+            options={[
+              {value: 'item1', label: 'Item 1'},
+              {value: 'item2', label: 'Item 2'},
+            ]}
+          />
+        </Grid>
+      </Fragment>
+    );
+  });
 
-  story('Searchable', () => (
-    <Fragment>
-      <Matrix
-        render={props => (
-          <Item>
-            <Select
-              {...props}
-              defaultValue={{value: 'item2', label: 'Item 2'}}
-              options={[
-                {value: 'item1', label: 'Item 1'},
-                {value: 'item2', label: 'Item 2'},
-              ]}
-            />
-          </Item>
-        )}
-        propMatrix={{
-          size: ['md', 'sm', 'xs'],
-          isSearchable: [true, false],
-        }}
-        selectedProps={['size', 'isSearchable']}
-      />
-    </Fragment>
-  ));
+  story('With inFieldLabel', () => {
+    return (
+      <Grid columns={3}>
+        <Select
+          inFieldLabel="Hello world"
+          size="md"
+          placeholder="medium"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+        <Select
+          size="sm"
+          placeholder="small"
+          inFieldLabel="Hello world"
+          defaultValue={{value: 'item1', label: 'Item 1'}}
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+        <Select
+          size="xs"
+          placeholder="x-small"
+          inFieldLabel="Hello world"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+      </Grid>
+    );
+  });
+
+  story('Clearable', () => {
+    return (
+      <Grid columns={3}>
+        <Select
+          isClearable
+          defaultValue={{value: 'item1', label: 'Item 1'}}
+          size="md"
+          placeholder="medium"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+        <Select
+          isClearable
+          size="sm"
+          placeholder="small"
+          defaultValue={{value: 'item1', label: 'Item 1'}}
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+        <Select
+          isClearable
+          defaultValue={{value: 'item1', label: 'Item 1'}}
+          size="xs"
+          placeholder="x-small"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+      </Grid>
+    );
+  });
+
+  story('Searchable', () => {
+    return (
+      <Grid columns={3}>
+        <Select
+          isSearchable
+          size="md"
+          placeholder="medium"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+        <Select
+          isSearchable
+          size="sm"
+          placeholder="small"
+          defaultValue={{value: 'item1', label: 'Item 1'}}
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+        <Select
+          isSearchable
+          size="xs"
+          placeholder="x-small"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+        />
+      </Grid>
+    );
+  });
 });
-
-const Item = styled('div')`
-  width: 300px;
-  height: 100px;
-`;
