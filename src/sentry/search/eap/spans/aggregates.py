@@ -67,7 +67,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 # TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     score_attribute = cast(AttributeKey, args[0])
-    ratio_attribute = transform_vital_score_to_ratio(score_attribute)
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
 
     return (ratio_attribute, filter)
