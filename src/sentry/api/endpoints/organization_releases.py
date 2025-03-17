@@ -63,6 +63,7 @@ def add_environment_to_queryset(queryset, filter_params):
     if "environment" in filter_params:
         return queryset.filter(
             releaseprojectenvironment__environment__name__in=filter_params["environment"],
+            releaseprojectenvironment__project_id__in=filter_params["project_id"],
         )
     return queryset
 
