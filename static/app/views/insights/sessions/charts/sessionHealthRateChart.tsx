@@ -9,14 +9,10 @@ export default function SessionHealthRateChart({view}: {view: string}) {
   const frontendPath = view === FRONTEND_LANDING_SUB_PATH;
 
   const aliases = {
-    healthy_session_rate: t('Healthy session rate'),
-    crashed_session_rate: frontendPath
-      ? t('Unhandled error session rate')
-      : t('Crashed session rate'),
-    errored_session_rate: frontendPath
-      ? t('Handled error session rate')
-      : t('Errored session rate'),
-    abnormal_session_rate: t('Abnormal session rate'),
+    healthy_session_rate: t('Healthy'),
+    crashed_session_rate: frontendPath ? t('Unhandled errors') : t('Crashed'),
+    errored_session_rate: frontendPath ? t('Handled errors') : t('Errored'),
+    abnormal_session_rate: t('Abnormal'),
   };
 
   return (
@@ -34,6 +30,9 @@ export default function SessionHealthRateChart({view}: {view: string}) {
       series={series}
       isLoading={isPending}
       error={error}
+      legendSelection={{
+        [aliases.healthy_session_rate]: false,
+      }}
     />
   );
 }

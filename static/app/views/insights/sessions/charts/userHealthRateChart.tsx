@@ -5,20 +5,14 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
 
 export default function UserHealthRateChart({view}: {view: string}) {
-  const {series, isPending, error} = useUserHealthBreakdown({
-    type: 'rate',
-  });
+  const {series, isPending, error} = useUserHealthBreakdown({type: 'rate'});
   const frontendPath = view === FRONTEND_LANDING_SUB_PATH;
 
   const aliases = {
-    healthy_user_rate: t('Healthy user rate'),
-    crashed_user_rate: frontendPath
-      ? t('Unhandled error user rate')
-      : t('Crashed user rate'),
-    errored_user_rate: frontendPath
-      ? t('Handled error user rate')
-      : t('Errored user rate'),
-    abnormal_user_rate: t('Abnormal user rate'),
+    healthy_user_rate: t('Healthy'),
+    crashed_user_rate: frontendPath ? t('Unhandled error') : t('Crashed'),
+    errored_user_rate: frontendPath ? t('Handled error') : t('Errored'),
+    abnormal_user_rate: t('Abnormal'),
   };
 
   return (
@@ -39,6 +33,9 @@ export default function UserHealthRateChart({view}: {view: string}) {
       series={series}
       isLoading={isPending}
       error={error}
+      legendSelection={{
+        [aliases.healthy_user_rate]: false,
+      }}
     />
   );
 }
