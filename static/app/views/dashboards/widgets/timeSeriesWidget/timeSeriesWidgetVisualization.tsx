@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -81,6 +81,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
+  // Add state to track axis assignment errors
+  const [hasAxisAssignmentError, setHasAxisAssignmentError] = useState(false);
+  
   // TODO: It would be polite to also scan for gaps (i.e., the items don't all
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
@@ -181,6 +184,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     saveOnZoom: true,
   });
 
+  // Validate plottables to ensure they have valid data types
+  const validPlottables = props.plottables.filter(
+    plottable => defined(plottable.dataType) && plottable.dataType !== null
+  );
+
+  if (validPlottables.length === 0) {
+    throw new Error('No plottables with valid data types');
+  }
   const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
 
   // Count up the field types of all the plottables
@@ -358,6 +369,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     visibleSeriesCount += 1;
   }
 
+  // Render error message if there's an assignment error
+  if (hasAxisAssignmentError) {
+    return (
+      <ErrorPanel>
+        <ErrorMessage>
+          Unable to assign data series to chart axes. The data types are incompatible.
+        </ErrorMessage>
+      </ErrorPanel>
+    );
+  }
   const showLegend = visibleSeriesCount > 1;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
@@ -403,6 +424,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           rightAxisType: rightYAxisType,
         });
       });
+
+      // Set error state instead of attempting to proceed with an invalid axis assignment
+      setHasAxisAssignmentError(true);
+      return []; // Return empty series for this plottable
+    }
 
       yAxisPosition = leftYAxisType === FALLBACK_TYPE ? 'left' : 'right';
     }
@@ -503,6 +529,23 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
+
+// Add styled components for the error message
+const ErrorPanel = styled('div')`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: ${Y_GUTTER} ${X_GUTTER};
+  background: ${p => p.theme.background};
+`;
+
+const ErrorMessage = styled('div')`
+  color: ${p => p.theme.error};
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 function LoadingPanel() {
   return (
