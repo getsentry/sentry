@@ -263,7 +263,6 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
         .sort((a, b) => a.reservedMinimum - b.reservedMinimum)
         .filter(
           p =>
-            !p.adminSelectable &&
             p.price &&
             p.contractInterval === contractInterval &&
             p.billingInterval === billingInterval &&
