@@ -521,20 +521,24 @@ export const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  position: relative;
-  display: inline-block;
-  border-radius: ${p => p.theme.borderRadius};
-  text-transform: none;
-  font-weight: ${p => p.theme.fontWeightBold};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition:
-    background 0.1s,
-    border 0.1s,
-    box-shadow 0.1s;
+  ${p => buttonStyles(p)}
+`;
 
-  ${p =>
-    p.priority === 'link' &&
+function buttonStyles(p: ButtonProps & {theme: Theme}) {
+  return css`
+    position: relative;
+    display: inline-block;
+    border-radius: ${p.theme.borderRadius};
+    text-transform: none;
+    font-weight: ${p.theme.fontWeightBold};
+    cursor: ${p.disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${(p.busy || p.disabled) && '0.65'};
+    transition:
+      background 0.1s,
+      border 0.1s,
+      box-shadow 0.1s;
+
+    ${p.priority === 'link' &&
     css`
       font-size: inherit;
       font-weight: inherit;
@@ -542,8 +546,7 @@ export const StyledButton = styled(
       height: auto;
       min-height: auto;
     `}
-  ${p =>
-    p.size === 'zero' &&
+    ${p.size === 'zero' &&
     css`
       height: auto;
       min-height: auto;
@@ -551,13 +554,14 @@ export const StyledButton = styled(
     `}
 
     &:focus {
-    outline: none;
-  }
+      outline: none;
+    }
 
-  ${getColors};
-  ${getSizeStyles};
-  ${getBoxShadow};
-`;
+    ${getColors(p)};
+    ${getSizeStyles(p)};
+    ${getBoxShadow(p)};
+  `;
+}
 
 type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
 
