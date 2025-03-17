@@ -67,6 +67,8 @@ APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 # The rewriting itself is performed by Symbolicator. We can't do it before
 # because we only gain access to the modules contained in the minidump
 # during stackwalking.
+#
+# NOTE: These regexes and replacement strings are written in the syntax the Rust regex crate accepts!
 ELECTRON_FIRST_MODULE_REWRITE_RULES = [
     {"from": "[^/\\\\]+ (?<suffix>Framework|Helper( \\(.+\\))?)$", "to": "Electron $suffix"},
     {"from": "[^/\\\\]+\\.exe\\.pdb$", "to": "electron.exe.pdb"},
