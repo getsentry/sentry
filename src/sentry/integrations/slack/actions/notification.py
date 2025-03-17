@@ -6,6 +6,7 @@ from logging import Logger, getLogger
 from typing import Any
 
 import orjson
+import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
 from sentry import features
@@ -132,6 +133,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             ts = response.get("ts")
             message_identifier = str(ts) if ts is not None else None
+            if message_identifier is not None:
+                sentry_sdk.capture_message(
+                    f"Slack message sent with ts: {message_identifier}",
+                    level="info",
+                )
+
             new_notification_message_object.message_identifier = message_identifier
             return message_identifier
         except SlackApiError as e:
@@ -147,7 +154,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "error": str(e),
                 "project_id": event.project_id,
                 "event_id": event.event_id,
-                "payload": json_blocks or "",
             }
 
             lifecycle.add_extras(log_params)
@@ -300,26 +306,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
         ),
-        get_thread_ts_method: Callable,
         save_notification_method: Callable | None,
-        thread_ts_args: dict,
+        thread_ts: str | None,
     ) -> None:
         """Common logic for sending Slack notifications."""
         rules = [f.rule for f in futures]
         blocks, json_blocks = self._build_notification_blocks(
             event, rules, tags, integration, notification_uuid
         )
-
-        # Get thread timestamp using the provided method and args
-        with MessagingInteractionEvent(
-            MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
-        ).capture() as lifecycle:
-            thread_ts = get_thread_ts_method(
-                lifecycle=lifecycle,
-                event=event,
-                new_notification_message_object=notification_message_object,
-                **thread_ts_args,
-            )
 
         # If this flow is triggered again for the same issue, we want it to be seen in the main channel
         reply_broadcast = thread_ts is not None
@@ -384,12 +378,19 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
-        thread_ts_args = {
-            "organization": self.project.organization,
-            "rule_id": rule_id,
-            "rule_action_uuid": rule_action_uuid,
-            "open_period_start": open_period_start,
-        }
+        # Get thread timestamp using the provided method and args
+        with MessagingInteractionEvent(
+            MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
+        ).capture() as lifecycle:
+            thread_ts = SlackNotifyServiceAction._get_issue_alert_thread_ts(
+                lifecycle=lifecycle,
+                event=event,
+                new_notification_message_object=new_notification_message_object,
+                organization=self.project.organization,
+                rule_id=rule_id,
+                rule_action_uuid=rule_action_uuid,
+                open_period_start=open_period_start,
+            )
 
         save_method = None
         if rule_action_uuid and rule_id:
@@ -403,9 +404,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             channel=channel,
             notification_uuid=notification_uuid,
             notification_message_object=new_notification_message_object,
-            get_thread_ts_method=SlackNotifyServiceAction._get_issue_alert_thread_ts,
             save_notification_method=save_method,
-            thread_ts_args=thread_ts_args,
+            thread_ts=thread_ts,
         )
         self.record_notification_sent(event, channel, rule, notification_uuid)
 
@@ -457,11 +457,17 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
-        thread_ts_args = {
-            "organization": self.project.organization,
-            "action": action,
-            "open_period_start": open_period_start,
-        }
+        with MessagingInteractionEvent(
+            MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
+        ).capture() as lifecycle:
+            thread_ts = SlackNotifyServiceAction._get_notification_action_thread_ts(
+                lifecycle=lifecycle,
+                event=event,
+                new_notification_message_object=new_notification_message_object,
+                organization=self.project.organization,
+                action=action,
+                open_period_start=open_period_start,
+            )
 
         self._send_notification(
             event=event,
@@ -471,9 +477,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             channel=channel,
             notification_uuid=notification_uuid,
             notification_message_object=new_notification_message_object,
-            get_thread_ts_method=SlackNotifyServiceAction._get_notification_action_thread_ts,
             save_notification_method=SlackNotifyServiceAction._save_notification_action_message,
-            thread_ts_args=thread_ts_args,
+            thread_ts=thread_ts,
         )
         self.record_notification_sent(event, channel, rule, notification_uuid)
 
