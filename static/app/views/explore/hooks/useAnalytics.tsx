@@ -360,7 +360,7 @@ export function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): 
       emptyBucketsForSeries += 1;
     }
   }
-  return emptyBucketsForSeries;
+  return Math.floor((emptyBucketsForSeries / series.data.length) * 100);
 }
 
 function computeEmptyBuckets(
