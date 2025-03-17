@@ -51,7 +51,7 @@ export default function NewProviderForm({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [selectedProvider, setSelectedProvider] = useState('<provider_name>');
+  const [selectedProvider, setSelectedProvider] = useState('');
 
   const handleGoBack = useCallback(() => {
     navigate(
@@ -154,9 +154,11 @@ export default function NewProviderForm({
         inline
         flexibleControlStateSize
       >
-        <TextCopyInput
-          aria-label={t('Webhook URL')}
-        >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!selectedProvider.length}>
+          {selectedProvider.length
+            ? `https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
+            : ''}
+        </TextCopyInput>
       </StyledFieldGroup>
       <TextField
         name="secret"
