@@ -10,7 +10,7 @@ export interface SliderProps
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => number | string;
-  value?: number;
+  value?: number | '';
 }
 
 const LegacySlider = forwardRef<HTMLInputElement, SliderProps>((props, ref) => {
