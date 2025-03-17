@@ -44,7 +44,7 @@ function initializeData() {
   return initialData;
 }
 
-describe('Performance Transaction Events Content', () => {
+describe('Performance Transaction Events Content', function () {
   let fields: string[];
   let data: any[];
   let transactionName: string;
@@ -52,7 +52,7 @@ describe('Performance Transaction Events Content', () => {
   let initialData: ReturnType<typeof initializeData>;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
-  beforeEach(() => {
+  beforeEach(function () {
     transactionName = 'transactionName';
     fields = [
       'id',
@@ -185,13 +185,13 @@ describe('Performance Transaction Events Content', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
   });
 
-  it('basic rendering', async () => {
+  it('basic rendering', async function () {
     render(
       <OrganizationContext.Provider value={initialData.organization}>
         <EventsPageContent
@@ -200,10 +200,10 @@ describe('Performance Transaction Events Content', () => {
           location={initialData.router.location}
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
-          onChangeSpanOperationBreakdownFilter={() => {}}
+          onChangeSpanOperationBreakdownFilter={function () {}}
           eventsDisplayFilterName={EventsDisplayFilterName.P100}
-          onChangeEventsDisplayFilter={() => {}}
-          setError={() => {}}
+          onChangeEventsDisplayFilter={function () {}}
+          setError={function () {}}
           projectId="123"
           projects={[]}
         />
@@ -231,7 +231,7 @@ describe('Performance Transaction Events Content', () => {
     ]);
   });
 
-  it('rendering with webvital selected', async () => {
+  it('rendering with webvital selected', async function () {
     render(
       <OrganizationContext.Provider value={initialData.organization}>
         <EventsPageContent
@@ -240,11 +240,11 @@ describe('Performance Transaction Events Content', () => {
           location={initialData.router.location}
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
-          onChangeSpanOperationBreakdownFilter={() => {}}
+          onChangeSpanOperationBreakdownFilter={function () {}}
           eventsDisplayFilterName={EventsDisplayFilterName.P100}
-          onChangeEventsDisplayFilter={() => {}}
+          onChangeEventsDisplayFilter={function () {}}
           webVital={WebVital.LCP}
-          setError={() => {}}
+          setError={function () {}}
           projectId="123"
           projects={[]}
         />
@@ -265,7 +265,7 @@ describe('Performance Transaction Events Content', () => {
     expect(columnTitles).toStrictEqual(expect.arrayContaining(['measurements.lcp']));
   });
 
-  it('rendering with http.method', async () => {
+  it('rendering with http.method', async function () {
     const _eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -286,11 +286,11 @@ describe('Performance Transaction Events Content', () => {
           location={initialData.router.location}
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
-          onChangeSpanOperationBreakdownFilter={() => {}}
+          onChangeSpanOperationBreakdownFilter={function () {}}
           eventsDisplayFilterName={EventsDisplayFilterName.P100}
-          onChangeEventsDisplayFilter={() => {}}
+          onChangeEventsDisplayFilter={function () {}}
           webVital={WebVital.LCP}
-          setError={() => {}}
+          setError={function () {}}
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />

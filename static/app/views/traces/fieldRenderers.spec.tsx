@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/traces/fieldRenderers';
 import type {SpanResult} from 'sentry/views/traces/hooks/useTraceSpans';
 
-describe('Renderers', () => {
+describe('Renderers', function () {
   let context: ReturnType<typeof initializeOrg>;
 
   const organization = OrganizationFixture({
@@ -65,7 +65,7 @@ describe('Renderers', () => {
     };
   }
 
-  beforeEach(() => {
+  beforeEach(function () {
     context = initializeOrg({organization, projects});
     act(() => ProjectsStore.loadInitialData(projects));
 
@@ -75,8 +75,8 @@ describe('Renderers', () => {
     });
   });
 
-  describe('SpanDescriptionRenderer', () => {
-    it('renders op then description', () => {
+  describe('SpanDescriptionRenderer', function () {
+    it('renders op then description', function () {
       const span = makeSpan(projects[0]!);
 
       render(<SpanDescriptionRenderer span={span} />);
@@ -107,13 +107,13 @@ describe('Renderers', () => {
     });
   });
 
-  describe('ProjectsRenderer', () => {
-    it('renders one project', () => {
+  describe('ProjectsRenderer', function () {
+    it('renders one project', function () {
       render(<ProjectsRenderer projectSlugs={[projects[0]!.slug]} />, context);
       expect(screen.getAllByRole('img')).toHaveLength(1);
     });
 
-    it('renders two projects', () => {
+    it('renders two projects', function () {
       render(
         <ProjectsRenderer projectSlugs={[projects[0]!.slug, projects[1]!.slug]} />,
         context
@@ -121,7 +121,7 @@ describe('Renderers', () => {
       expect(screen.getAllByRole('img')).toHaveLength(2);
     });
 
-    it('renders three projects', () => {
+    it('renders three projects', function () {
       render(<ProjectsRenderer projectSlugs={projects.map(p => p.slug)} />, context);
       expect(screen.getAllByRole('img')).toHaveLength(1);
       const collapsed = screen.getByTestId('collapsed-projects-badge');
@@ -130,16 +130,16 @@ describe('Renderers', () => {
     });
   });
 
-  describe('ProjectRenderer', () => {
-    it('renders project badge with name', () => {
+  describe('ProjectRenderer', function () {
+    it('renders project badge with name', function () {
       render(<ProjectRenderer projectSlug={projects[0]!.slug} />);
       expect(screen.getByRole('img')).toBeInTheDocument();
       expect(screen.getByText(projects[0]!.slug)).toBeInTheDocument();
     });
   });
 
-  describe('SpanIdRenderer', () => {
-    it('renders span id with link', () => {
+  describe('SpanIdRenderer', function () {
+    it('renders span id with link', function () {
       const onClickHandler = jest.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -170,8 +170,8 @@ describe('Renderers', () => {
     });
   });
 
-  describe('TraceIdRenderer', () => {
-    it('renders trace id with link', () => {
+  describe('TraceIdRenderer', function () {
+    it('renders trace id with link', function () {
       const onClickHandler = jest.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -199,8 +199,8 @@ describe('Renderers', () => {
     });
   });
 
-  describe('TransactionRenderer', () => {
-    it('renders transaction with link', () => {
+  describe('TransactionRenderer', function () {
+    it('renders transaction with link', function () {
       render(
         <TransactionRenderer projectSlug={projects[0]!.slug} transaction="foobar" />
       );
@@ -214,8 +214,8 @@ describe('Renderers', () => {
     });
   });
 
-  describe('TraceIssuesRenderer', () => {
-    it('renders 0 issues', () => {
+  describe('TraceIssuesRenderer', function () {
+    it('renders 0 issues', function () {
       render(
         <TraceIssuesRenderer
           trace={{
@@ -241,7 +241,7 @@ describe('Renderers', () => {
       expect(link).toBeDisabled();
     });
 
-    it('renders 99+ issues', () => {
+    it('renders 99+ issues', function () {
       render(
         <TraceIssuesRenderer
           trace={{
@@ -267,7 +267,7 @@ describe('Renderers', () => {
       expect(link).toBeEnabled();
     });
 
-    it('renders N issues', () => {
+    it('renders N issues', function () {
       render(
         <TraceIssuesRenderer
           trace={{

@@ -87,9 +87,9 @@ function TestComponent({
   );
 }
 
-describe('Performance > TransactionSummary', () => {
+describe('Performance > TransactionSummary', function () {
   let eventStatsMock: jest.Mock;
-  beforeEach(() => {
+  beforeEach(function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     // Small screen size will hide search bar trailing items like warning icon
@@ -525,7 +525,7 @@ describe('Performance > TransactionSummary', () => {
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
@@ -534,8 +534,8 @@ describe('Performance > TransactionSummary', () => {
     delete HTMLElement.prototype.clientWidth;
   });
 
-  describe('with events', () => {
-    it('renders basic UI elements', async () => {
+  describe('with events', function () {
+    it('renders basic UI elements', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -587,7 +587,7 @@ describe('Performance > TransactionSummary', () => {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', () => {
+    it('renders feature flagged UI elements', function () {
       const {organization, router} = initializeData({
         features: ['incidents'],
       });
@@ -608,7 +608,7 @@ describe('Performance > TransactionSummary', () => {
       expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
     });
 
-    it('renders Web Vitals widget', async () => {
+    it('renders Web Vitals widget', async function () {
       const {organization, router} = initializeData({
         project: ProjectFixture({teams, platform: 'javascript'}),
         query: {
@@ -632,7 +632,7 @@ describe('Performance > TransactionSummary', () => {
       // It renders the web vitals widget
       await screen.findByRole('heading', {name: 'Web Vitals'});
 
-      await waitFor(() => {
+      await waitFor(function () {
         expect(screen.getAllByTestId('vital-status')).toHaveLength(3);
       });
 
@@ -642,7 +642,7 @@ describe('Performance > TransactionSummary', () => {
       expect(vitalStatues[2]).toHaveTextContent('3%');
     });
 
-    it('renders sidebar widgets', async () => {
+    it('renders sidebar widgets', async function () {
       const {organization, router} = initializeData({});
 
       render(
@@ -666,7 +666,7 @@ describe('Performance > TransactionSummary', () => {
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
     });
 
-    it('renders project picker modal when no url does not have project id', async () => {
+    it('renders project picker modal when no url does not have project id', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         body: {
@@ -737,7 +737,7 @@ describe('Performance > TransactionSummary', () => {
       );
     });
 
-    it('fetches transaction threshold', () => {
+    it('fetches transaction threshold', function () {
       const {organization, router} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -774,7 +774,7 @@ describe('Performance > TransactionSummary', () => {
       expect(getProjectThresholdMock).not.toHaveBeenCalled();
     });
 
-    it('fetches project transaction threshdold', async () => {
+    it('fetches project transaction threshdold', async function () {
       const {organization, router} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -810,7 +810,7 @@ describe('Performance > TransactionSummary', () => {
       expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     });
 
-    it('triggers a navigation on search', async () => {
+    it('triggers a navigation on search', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -832,7 +832,7 @@ describe('Performance > TransactionSummary', () => {
       await userEvent.paste('user.email:uhoh*');
       await userEvent.keyboard('{enter}');
 
-      await waitFor(() => {
+      await waitFor(function () {
         expect(router.push).toHaveBeenCalledTimes(1);
       });
 
@@ -849,7 +849,7 @@ describe('Performance > TransactionSummary', () => {
       });
     });
 
-    it('can mark a transaction as key', async () => {
+    it('can mark a transaction as key', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -881,7 +881,7 @@ describe('Performance > TransactionSummary', () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
-    it('triggers a navigation on transaction filter', async () => {
+    it('triggers a navigation on transaction filter', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -897,7 +897,7 @@ describe('Performance > TransactionSummary', () => {
       );
 
       await screen.findByText('Transaction Summary');
-      await waitFor(() => {
+      await waitFor(function () {
         expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       });
 
@@ -920,7 +920,7 @@ describe('Performance > TransactionSummary', () => {
       });
     });
 
-    it('renders pagination buttons', async () => {
+    it('renders pagination buttons', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -955,7 +955,7 @@ describe('Performance > TransactionSummary', () => {
       });
     });
 
-    it('forwards conditions to related issues', async () => {
+    it('forwards conditions to related issues', async function () {
       const issueGet = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
         body: [],
@@ -982,7 +982,7 @@ describe('Performance > TransactionSummary', () => {
       expect(issueGet).toHaveBeenCalled();
     });
 
-    it('does not forward event type to related issues', async () => {
+    it('does not forward event type to related issues', async function () {
       const issueGet = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
         body: [],
@@ -1015,7 +1015,7 @@ describe('Performance > TransactionSummary', () => {
       expect(issueGet).toHaveBeenCalled();
     });
 
-    it('renders the suspect spans table if the feature is enabled', async () => {
+    it('renders the suspect spans table if the feature is enabled', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
@@ -1038,7 +1038,7 @@ describe('Performance > TransactionSummary', () => {
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
     });
 
-    it('adds search condition on transaction status when clicking on status breakdown', async () => {
+    it('adds search condition on transaction status when clicking on status breakdown', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -1067,7 +1067,7 @@ describe('Performance > TransactionSummary', () => {
       );
     });
 
-    it('appends tag value to existing query when clicked', async () => {
+    it('appends tag value to existing query when clicked', async function () {
       const {organization, router} = initializeData();
 
       render(
@@ -1125,7 +1125,7 @@ describe('Performance > TransactionSummary', () => {
       });
     });
 
-    it('does not use MEP dataset for stats query without features', async () => {
+    it('does not use MEP dataset for stats query without features', async function () {
       const {organization, router} = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: [''], // No 'dynamic-sampling' feature to indicate it can use metrics dataset or metrics enhanced.
@@ -1174,7 +1174,7 @@ describe('Performance > TransactionSummary', () => {
       );
     });
 
-    it('uses MEP dataset for stats query', async () => {
+    it('uses MEP dataset for stats query', async function () {
       const {organization, router} = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: ['dynamic-sampling', 'mep-rollout-flag'],
@@ -1219,7 +1219,7 @@ describe('Performance > TransactionSummary', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('does not use MEP dataset for stats query if cardinality fallback fails', async () => {
+    it('does not use MEP dataset for stats query if cardinality fallback fails', async function () {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics-compatibility-sums/`,
@@ -1266,7 +1266,7 @@ describe('Performance > TransactionSummary', () => {
       );
     });
 
-    it('uses MEP dataset for stats query and shows fallback warning', async () => {
+    it('uses MEP dataset for stats query and shows fallback warning', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/?limit=5&project=2&query=has%3Anot-compatible%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
         body: [],

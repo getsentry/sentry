@@ -22,7 +22,7 @@ function renderModal({
       Footer={stubEl}
       Body={stubEl}
       CloseButton={stubEl}
-      closeModal={() => {}}
+      closeModal={function () {}}
       organization={initialData.organization}
       widget={widget}
       api={api}
@@ -31,7 +31,7 @@ function renderModal({
   );
 }
 
-describe('Modals -> AddDashboardWidgetModal', () => {
+describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view', 'discover-query'],
@@ -42,7 +42,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
   let mockQuery!: Widget['queries'][number];
   let mockWidget!: Widget;
 
-  beforeEach(() => {
+  beforeEach(function () {
     mockQuery = {
       conditions: 'title:/organizations/:orgId/insights/summary/',
       fields: ['count()', 'failure_count()'],
@@ -82,11 +82,11 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a single query selection when the widget only has one query', () => {
+  it('renders a single query selection when the widget only has one query', function () {
     renderModal({initialData, widget: mockWidget});
 
     expect(
@@ -95,7 +95,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
 
-  it('renders a multiple query selections when the widget only has multiple queries', () => {
+  it('renders a multiple query selections when the widget only has multiple queries', function () {
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
@@ -117,7 +117,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     expect(screen.getByDisplayValue('title:/organizations/:orgId/')).toBeInTheDocument();
   });
 
-  it('links user to the query in discover when a query is selected from the modal', () => {
+  it('links user to the query in discover when a query is selected from the modal', function () {
     renderModal({initialData, widget: mockWidget});
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',

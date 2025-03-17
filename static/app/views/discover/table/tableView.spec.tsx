@@ -11,7 +11,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import TableView from 'sentry/views/discover/table/tableView';
 
-describe('TableView > CellActions', () => {
+describe('TableView > CellActions', function () {
   let initialData: ReturnType<typeof initializeOrg>;
   let rows: any;
   let onChangeShowTags: jest.Mock;
@@ -70,7 +70,7 @@ describe('TableView > CellActions', () => {
     await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
   }
 
-  beforeEach(() => {
+  beforeEach(function () {
     const organization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -79,7 +79,7 @@ describe('TableView > CellActions', () => {
       organization,
       router: {location},
     });
-    act(() => {
+    act(function () {
       ProjectsStore.loadInitialData(initialData.projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
@@ -120,11 +120,11 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     ProjectsStore.reset();
   });
 
-  it('updates sort order on equation fields', () => {
+  it('updates sort order on equation fields', function () {
     const view = eventView.clone();
     renderComponent(initialData, rows, view);
 
@@ -137,7 +137,7 @@ describe('TableView > CellActions', () => {
     );
   });
 
-  it('updates sort order on non-equation fields', () => {
+  it('updates sort order on non-equation fields', function () {
     const view = eventView.clone();
     renderComponent(initialData, rows, view);
 
@@ -150,7 +150,7 @@ describe('TableView > CellActions', () => {
     );
   });
 
-  it('handles add cell action on null value', async () => {
+  it('handles add cell action on null value', async function () {
     rows.data[0].title = null;
 
     renderComponent(initialData, rows, eventView);
@@ -165,7 +165,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles add cell action on null value replace has condition', async () => {
+  it('handles add cell action on null value replace has condition', async function () {
     rows.data[0].title = null;
     const view = eventView.clone();
     view.query = 'tag:value has:title';
@@ -182,7 +182,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles add cell action on string value replace negation', async () => {
+  it('handles add cell action on string value replace negation', async function () {
     const view = eventView.clone();
     view.query = 'tag:value !title:nope';
 
@@ -198,7 +198,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles add cell action with multiple y axis', async () => {
+  it('handles add cell action with multiple y axis', async function () {
     location.query.yAxis = ['count()', 'failure_count()'];
 
     renderComponent(initialData, rows, eventView);
@@ -214,7 +214,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles exclude cell action on string value', async () => {
+  it('handles exclude cell action on string value', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(1);
     await userEvent.click(
@@ -229,7 +229,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles exclude cell action on string value replace inclusion', async () => {
+  it('handles exclude cell action on string value replace inclusion', async function () {
     const view = eventView.clone();
     view.query = 'tag:value title:nope';
 
@@ -247,7 +247,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles exclude cell action on null value', async () => {
+  it('handles exclude cell action on null value', async function () {
     rows.data[0].title = null;
 
     renderComponent(initialData, rows, eventView);
@@ -264,7 +264,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles exclude cell action on null value replace condition', async () => {
+  it('handles exclude cell action on null value replace condition', async function () {
     const view = eventView.clone();
     view.query = 'tag:value !has:title';
     rows.data[0].title = null;
@@ -283,7 +283,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles greater than cell action on number value', async () => {
+  it('handles greater than cell action on number value', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(3);
     await userEvent.click(
@@ -298,7 +298,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('handles less than cell action on number value', async () => {
+  it('handles less than cell action on number value', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(3);
     await userEvent.click(
@@ -313,7 +313,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('renders transaction summary link', () => {
+  it('renders transaction summary link', function () {
     rows.data[0].project = 'project-slug';
 
     renderComponent(initialData, rows, eventView);
@@ -331,7 +331,7 @@ describe('TableView > CellActions', () => {
     );
   });
 
-  it('renders trace view link', () => {
+  it('renders trace view link', function () {
     const org = OrganizationFixture({
       features: [
         'discover-basic',
@@ -395,7 +395,7 @@ describe('TableView > CellActions', () => {
     );
   });
 
-  it('handles go to release', async () => {
+  it('handles go to release', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(5);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
@@ -408,7 +408,7 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  it('has title on integer value greater than 999', () => {
+  it('has title on integer value greater than 999', function () {
     rows.data[0]['count()'] = 1000;
     renderComponent(initialData, rows, eventView);
 
@@ -418,7 +418,7 @@ describe('TableView > CellActions', () => {
     expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
 
-  it('renders size columns correctly', () => {
+  it('renders size columns correctly', function () {
     const orgWithFeature = OrganizationFixture();
 
     render(
@@ -468,7 +468,7 @@ describe('TableView > CellActions', () => {
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
   });
 
-  it('shows events with value less than selected custom performance metric', async () => {
+  it('shows events with value less than selected custom performance metric', async function () {
     const orgWithFeature = OrganizationFixture();
 
     render(

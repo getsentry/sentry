@@ -14,7 +14,7 @@ import {
 
 import {EventTags} from 'sentry/components/events/eventTags';
 
-describe('EventTagsTree', () => {
+describe('EventTagsTree', function () {
   const {organization, project} = initializeOrg();
   const tags = [
     {key: 'app', value: 'Sentry'},
@@ -65,7 +65,7 @@ describe('EventTagsTree', () => {
   const referrer = 'event-tags-table';
   let mockDetailedProject: jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -73,7 +73,7 @@ describe('EventTagsTree', () => {
     });
   });
 
-  it('renders tag tree', async () => {
+  it('renders tag tree', async function () {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
     });
@@ -117,7 +117,7 @@ describe('EventTagsTree', () => {
     }
   });
 
-  it('renders release tag differently', async () => {
+  it('renders release tag differently', async function () {
     const releaseVersion = 'v1.0';
 
     const reposRequest = MockApiClient.addMockResponse({
@@ -161,7 +161,7 @@ describe('EventTagsTree', () => {
     {
       tag: {key: 'transaction', value: 'abc123'},
       labelText: 'View this transaction',
-      validateLink: () => {
+      validateLink: function () {
         const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
         expect(href?.value).toContain(`/organizations/org-slug/insights/summary/`);
@@ -173,7 +173,7 @@ describe('EventTagsTree', () => {
     {
       tag: {key: 'replay_id', value: 'def456'},
       labelText: 'View this replay',
-      validateLink: () => {
+      validateLink: function () {
         const linkElement = screen.getByRole('link', {name: 'def456'});
         expect(linkElement).toHaveAttribute(
           'href',
@@ -184,7 +184,7 @@ describe('EventTagsTree', () => {
     {
       tag: {key: 'external-link', value: 'https://example.com'},
       labelText: 'Visit this external link',
-      validateLink: async () => {
+      validateLink: async function () {
         renderGlobalModal();
         const linkElement = screen.getByText('https://example.com');
         await userEvent.click(linkElement);
@@ -208,7 +208,7 @@ describe('EventTagsTree', () => {
     }
   );
 
-  it('renders error message tooltips instead of dropdowns', async () => {
+  it('renders error message tooltips instead of dropdowns', async function () {
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
@@ -256,7 +256,7 @@ describe('EventTagsTree', () => {
     expect(errorRows).toHaveLength(2);
   });
 
-  it('avoids rendering nullish tags', async () => {
+  it('avoids rendering nullish tags', async function () {
     const uniqueTagsEvent = EventFixture({
       tags: [
         {key: null, value: 'null tag'},
@@ -276,7 +276,7 @@ describe('EventTagsTree', () => {
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on highlights", async () => {
+  it("renders 'Add to event highlights' option based on highlights", async function () {
     const highlightsEvent = EventFixture({
       tags: [
         {key: 'useless-tag', value: 'not so much'},
@@ -311,7 +311,7 @@ describe('EventTagsTree', () => {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on permissions", async () => {
+  it("renders 'Add to event highlights' option based on permissions", async function () {
     const readAccessOrganization = OrganizationFixture({
       access: ['org:read'],
     });
@@ -342,7 +342,7 @@ describe('EventTagsTree', () => {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it('renders tag details link when on issue details route', async () => {
+  it('renders tag details link when on issue details route', async function () {
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
     });

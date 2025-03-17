@@ -56,10 +56,10 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
   };
 }
 
-describe('WrapperComponent', () => {
+describe('WrapperComponent', function () {
   const facetUrl = '/organizations/org-slug/events-facets-performance/';
   let facetApiMock: jest.Mock;
-  beforeEach(() => {
+  beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
@@ -99,12 +99,12 @@ describe('WrapperComponent', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async () => {
+  it('renders basic UI elements', async function () {
     const projects = [ProjectFixture()];
     const {
       organization,
@@ -131,7 +131,7 @@ describe('WrapperComponent', () => {
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('Tag explorer uses LCP if projects are frontend', async () => {
+  it('Tag explorer uses LCP if projects are frontend', async function () {
     const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -168,7 +168,7 @@ describe('WrapperComponent', () => {
     );
   });
 
-  it('Tag explorer view all tags button links to tags page', async () => {
+  it('Tag explorer view all tags button links to tags page', async function () {
     const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -204,7 +204,7 @@ describe('WrapperComponent', () => {
     );
   });
 
-  it('Tag explorer uses the operation breakdown as a column', async () => {
+  it('Tag explorer uses the operation breakdown as a column', async function () {
     const projects = [ProjectFixture({platform: 'javascript-react'})];
     const {organization, location, eventView, transactionName} = initialize({});
 
@@ -233,7 +233,7 @@ describe('WrapperComponent', () => {
     );
   });
 
-  it('renders the table headers in the correct order', async () => {
+  it('renders the table headers in the correct order', async function () {
     const projects = [ProjectFixture()];
     const {
       organization,

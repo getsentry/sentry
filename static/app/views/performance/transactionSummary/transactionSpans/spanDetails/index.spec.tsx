@@ -23,8 +23,8 @@ function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   return data;
 }
 
-describe('Performance > Transaction Spans > Span Summary', () => {
-  beforeEach(() => {
+describe('Performance > Transaction Spans > Span Summary', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -36,13 +36,13 @@ describe('Performance > Transaction Spans > Span Summary', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  describe('Without Span Data', () => {
-    beforeEach(() => {
+  describe('Without Span Data', function () {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
@@ -96,7 +96,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       });
     });
 
-    it('renders empty when missing project param', () => {
+    it('renders empty when missing project param', function () {
       const data = initializeData({query: {transaction: 'transaction'}});
 
       const {container} = render(
@@ -107,7 +107,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders empty when missing transaction param', () => {
+    it('renders empty when missing transaction param', function () {
       const data = initializeData({query: {project: '1'}});
 
       const {container} = render(
@@ -118,7 +118,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders no data when empty response', async () => {
+    it('renders no data when empty response', async function () {
       const data = initializeData({
         features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
@@ -137,8 +137,8 @@ describe('Performance > Transaction Spans > Span Summary', () => {
     });
   });
 
-  describe('With Bad Span Data', () => {
-    it('filters examples missing spans', async () => {
+  describe('With Bad Span Data', function () {
+    it('filters examples missing spans', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: generateSuspectSpansResponse(),
@@ -216,8 +216,8 @@ describe('Performance > Transaction Spans > Span Summary', () => {
     });
   });
 
-  describe('With Span Data', () => {
-    beforeEach(() => {
+  describe('With Span Data', function () {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: generateSuspectSpansResponse(),
@@ -271,7 +271,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       });
     });
 
-    it('renders header elements', async () => {
+    it('renders header elements', async function () {
       const data = initializeData({
         features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
@@ -337,7 +337,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders timeseries chart', async () => {
+    it('renders timeseries chart', async function () {
       const data = initializeData({
         features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
@@ -351,7 +351,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       expect(await screen.findByText('Self Time Breakdown')).toBeInTheDocument();
     });
 
-    it('renders table headers', async () => {
+    it('renders table headers', async function () {
       const data = initializeData({
         features: ['performance-view'],
         query: {project: '1', transaction: 'transaction'},
@@ -369,10 +369,10 @@ describe('Performance > Transaction Spans > Span Summary', () => {
       expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
     });
 
-    describe('With histogram view feature flag enabled', () => {
+    describe('With histogram view feature flag enabled', function () {
       const FEATURES = ['performance-view', 'performance-span-histogram-view'];
 
-      beforeEach(() => {
+      beforeEach(function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
           method: 'GET',
@@ -380,7 +380,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         });
       });
 
-      it('renders a search bar', async () => {
+      it('renders a search bar', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -395,7 +395,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(searchBarNode).toBeInTheDocument();
       });
 
-      it('disables reset button when no min or max query parameters were set', async () => {
+      it('disables reset button when no min or max query parameters were set', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -413,7 +413,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(resetButton).toBeDisabled();
       });
 
-      it('enables reset button when min and max are set', async () => {
+      it('enables reset button when min and max are set', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
@@ -430,7 +430,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(resetButton).toBeEnabled();
       });
 
-      it('clears min and max query parameters when reset button is clicked', async () => {
+      it('clears min and max query parameters when reset button is clicked', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
@@ -450,7 +450,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         );
       });
 
-      it('does not add aggregate filters to the query', async () => {
+      it('does not add aggregate filters to the query', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -468,7 +468,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(data.router.push).not.toHaveBeenCalled();
       });
 
-      it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async () => {
+      it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-histogram/',
           body: [
@@ -517,7 +517,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         );
       });
 
-      it('renders a histogram when display is set to histogram', async () => {
+      it('renders a histogram when display is set to histogram', async function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-histogram/',
           body: [
@@ -546,7 +546,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(nodes[0]).toBeInTheDocument();
       });
 
-      it('gracefully handles error response', async () => {
+      it('gracefully handles error response', async function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-histogram/',
           statusCode: 400,
@@ -565,7 +565,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(await screen.findByTestId('histogram-error-panel')).toBeInTheDocument();
       });
 
-      it('gracefully renders empty histogram when empty buckets are received', async () => {
+      it('gracefully renders empty histogram when empty buckets are received', async function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-histogram/',
           body: [
@@ -589,7 +589,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         expect(nodes[0]).toBeInTheDocument();
       });
 
-      it('sends min and max to span example query', async () => {
+      it('sends min and max to span example query', async function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans/',
           body: {},
@@ -604,7 +604,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
           organization: data.organization,
         });
 
-        await waitFor(() => {
+        await waitFor(function () {
           expect(mock).toHaveBeenLastCalledWith(
             '/organizations/org-slug/events-spans/',
             expect.objectContaining({
@@ -617,7 +617,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
         });
       });
 
-      it('sends min and max to suspect spans query', async () => {
+      it('sends min and max to suspect spans query', async function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-performance/',
           body: {},
@@ -632,7 +632,7 @@ describe('Performance > Transaction Spans > Span Summary', () => {
           organization: data.organization,
         });
 
-        await waitFor(() => {
+        await waitFor(function () {
           expect(mock).toHaveBeenLastCalledWith(
             '/organizations/org-slug/events-spans-performance/',
             expect.objectContaining({
@@ -648,8 +648,8 @@ describe('Performance > Transaction Spans > Span Summary', () => {
   });
 });
 
-describe('spanDetailsRouteWithQuery', () => {
-  it('should encode slashes in span op', () => {
+describe('spanDetailsRouteWithQuery', function () {
+  it('should encode slashes in span op', function () {
     const organization = OrganizationFixture();
     const target = spanDetailsRouteWithQuery({
       organization,

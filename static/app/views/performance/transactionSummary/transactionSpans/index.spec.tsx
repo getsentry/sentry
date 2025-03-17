@@ -50,11 +50,11 @@ function initializeData(options: {
   return initialData;
 }
 
-describe('Performance > Transaction Spans', () => {
+describe('Performance > Transaction Spans', function () {
   let eventsMock: jest.Mock;
   let eventsSpanOpsMock: jest.Mock;
   let eventsSpansPerformanceMock: jest.Mock;
-  beforeEach(() => {
+  beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
@@ -96,20 +96,20 @@ describe('Performance > Transaction Spans', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  describe('Without Span Data', () => {
-    beforeEach(() => {
+  describe('Without Span Data', function () {
+    beforeEach(function () {
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
       });
     });
 
-    it('renders empty state', async () => {
+    it('renders empty state', async function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
@@ -124,15 +124,15 @@ describe('Performance > Transaction Spans', () => {
     });
   });
 
-  describe('With Span Data', () => {
-    beforeEach(() => {
+  describe('With Span Data', function () {
+    beforeEach(function () {
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: generateSuspectSpansResponse({examples: 0}),
       });
     });
 
-    it('renders basic UI elements', async () => {
+    it('renders basic UI elements', async function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
@@ -164,7 +164,7 @@ describe('Performance > Transaction Spans', () => {
       {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'P95 Self Time'},
       {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'P99 Self Time'},
     ].forEach(({sort, label}) => {
-      it('renders the right percentile header', async () => {
+      it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
         render(<TransactionSpans location={initialData.router.location} />, {
           router: initialData.router,
@@ -180,7 +180,7 @@ describe('Performance > Transaction Spans', () => {
       });
     });
 
-    it('renders the right avg occurrence header', async () => {
+    it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
       render(<TransactionSpans location={initialData.router.location} />, {
         router: initialData.router,
@@ -197,8 +197,8 @@ describe('Performance > Transaction Spans', () => {
     });
   });
 
-  describe('Spans Tab V2', () => {
-    it('does not propagate transaction search query and properly tokenizes span query', async () => {
+  describe('Spans Tab V2', function () {
+    it('does not propagate transaction search query and properly tokenizes span query', async function () {
       const initialData = initializeData({
         query: {query: 'http.method:POST', spansQuery: 'span.op:db span.action:SELECT'},
         additionalFeatures: [

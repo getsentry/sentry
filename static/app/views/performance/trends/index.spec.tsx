@@ -34,7 +34,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('moment-timezone', () => {
+jest.mock('moment-timezone', function () {
   const moment = jest.requireActual('moment-timezone');
   moment.now = jest.fn().mockReturnValue(1601251200000);
   return moment;
@@ -53,7 +53,7 @@ async function getParameterDropdown() {
 }
 
 async function waitForMockCall(mock: any) {
-  await waitFor(() => {
+  await waitFor(function () {
     expect(mock).toHaveBeenCalled();
   });
 }
@@ -162,9 +162,9 @@ function initializeTrendsData(
   return initialData;
 }
 
-describe('Performance > Trends', () => {
+describe('Performance > Trends', function () {
   let trendsStatsMock: jest.Mock;
-  beforeEach(() => {
+  beforeEach(function () {
     mockUseLocation.mockReturnValue({
       pathname: '/organizations/org-slug/performance/trends/',
       action: 'PUSH',
@@ -271,12 +271,12 @@ describe('Performance > Trends', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
   });
 
-  it('renders basic UI elements', async () => {
+  it('renders basic UI elements', async function () {
     const data = _initializeData({});
 
     render(
@@ -292,7 +292,7 @@ describe('Performance > Trends', () => {
     expect(screen.getAllByTestId('changed-transactions')).toHaveLength(2);
   });
 
-  it('transaction list items are rendered', async () => {
+  it('transaction list items are rendered', async function () {
     const data = _initializeData({});
 
     render(
@@ -307,7 +307,7 @@ describe('Performance > Trends', () => {
     expect(await screen.findAllByTestId('trends-list-item-improved')).toHaveLength(2);
   });
 
-  it('view summary menu action links to the correct view', async () => {
+  it('view summary menu action links to the correct view', async function () {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -331,7 +331,7 @@ describe('Performance > Trends', () => {
     );
   });
 
-  it('hide from list menu action modifies query', async () => {
+  it('hide from list menu action modifies query', async function () {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -350,7 +350,7 @@ describe('Performance > Trends', () => {
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
     );
-    await waitFor(() => {
+    await waitFor(function () {
       const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
       expect(menuActions).toHaveLength(3);
     });
@@ -367,7 +367,7 @@ describe('Performance > Trends', () => {
     });
   });
 
-  it('Changing search causes cursors to be reset', async () => {
+  it('Changing search causes cursors to be reset', async function () {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -395,7 +395,7 @@ describe('Performance > Trends', () => {
     );
   });
 
-  it('exclude greater than list menu action modifies query', async () => {
+  it('exclude greater than list menu action modifies query', async function () {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -414,7 +414,7 @@ describe('Performance > Trends', () => {
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
     );
-    await waitFor(() => {
+    await waitFor(function () {
       const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
       expect(menuActions).toHaveLength(3);
     });
@@ -431,7 +431,7 @@ describe('Performance > Trends', () => {
     });
   });
 
-  it('exclude less than list menu action modifies query', async () => {
+  it('exclude less than list menu action modifies query', async function () {
     const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
@@ -450,7 +450,7 @@ describe('Performance > Trends', () => {
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
     );
-    await waitFor(() => {
+    await waitFor(function () {
       const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
       expect(menuActions).toHaveLength(3);
     });
@@ -467,7 +467,7 @@ describe('Performance > Trends', () => {
     });
   });
 
-  it('choosing a trend function changes location', async () => {
+  it('choosing a trend function changes location', async function () {
     const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -499,7 +499,7 @@ describe('Performance > Trends', () => {
     }
   });
 
-  it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async () => {
+  it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
     const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
@@ -515,7 +515,7 @@ describe('Performance > Trends', () => {
     expect(trendDropdownButton).toHaveTextContent('Percentilep95');
   });
 
-  it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async () => {
+  it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
     const projects = [ProjectFixture({id: '1', platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
@@ -531,7 +531,7 @@ describe('Performance > Trends', () => {
     expect(parameterDropdownButton).toHaveTextContent('ParameterDuration');
   });
 
-  it('sets trend parameter from query and ignores default trend parameter', async () => {
+  it('sets trend parameter from query and ignores default trend parameter', async function () {
     const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
 
@@ -547,7 +547,7 @@ describe('Performance > Trends', () => {
     expect(parameterDropdownButton).toHaveTextContent('ParameterFCP');
   });
 
-  it('choosing a parameter changes location', async () => {
+  it('choosing a parameter changes location', async function () {
     const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -577,7 +577,7 @@ describe('Performance > Trends', () => {
     }
   });
 
-  it('choosing a web vitals parameter adds it as an additional condition to the query', async () => {
+  it('choosing a web vitals parameter adds it as an additional condition to the query', async function () {
     const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -632,7 +632,7 @@ describe('Performance > Trends', () => {
     }
   });
 
-  it('trend functions in location make api calls', async () => {
+  it('trend functions in location make api calls', async function () {
     const projects = [ProjectFixture(), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
@@ -705,7 +705,7 @@ describe('Performance > Trends', () => {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async () => {
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(
@@ -728,7 +728,7 @@ describe('Performance > Trends', () => {
     );
   });
 
-  it('Navigating away from trends will remove extra tags from query', async () => {
+  it('Navigating away from trends will remove extra tags from query', async function () {
     const data = initializeTrendsData(
       undefined,
       {
