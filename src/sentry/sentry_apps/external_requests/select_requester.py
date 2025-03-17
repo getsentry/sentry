@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Annotated, Any, TypedDict
@@ -22,7 +21,7 @@ from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.utils import json
 
-logger = logging.getLogger("sentry.sentry_apps.external_requests")
+FAILURE_REASON_BASE = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.%s"
 
 
 class SelectRequesterResult(TypedDict, total=False):
@@ -81,7 +80,9 @@ class SelectRequester:
                 response = json.loads(body)
                 extras.update({"response": response})
             except RequestException as e:
-                halt_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.BAD_RESPONSE}"
+                halt_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
+                )
                 lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
 
                 raise SentryAppIntegratorError(
@@ -91,9 +92,14 @@ class SelectRequester:
                 ) from e
 
             except Exception as e:
-                failure_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR}"
+                failure_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR
+                )
+
                 if not url:
-                    failure_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.MISSING_URL}"
+                    failure_reason = FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    )
                     extras.update(
                         {
                             "uri": self.uri,
@@ -108,7 +114,9 @@ class SelectRequester:
                 ) from e
 
             if not self._validate_response(response):
-                halt_reason = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}"
+                halt_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestHaltReason.MISSING_FIELDS
+                )
                 lifecycle.record_halt(halt_reason=halt_reason, extra=extras)
 
                 raise SentryAppIntegratorError(
@@ -120,12 +128,10 @@ class SelectRequester:
                 )
 
             try:
-                formatted_response = self._format_response(response)
+                return self._format_response(response)
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
                 raise
-
-        return formatted_response
 
     def _build_url(self) -> str:
         urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
@@ -162,7 +168,9 @@ class SelectRequester:
                 raise SentryAppIntegratorError(
                     message="Missing `value` or `label` in option data for Select FormField",
                     webhook_context={
-                        "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestHaltReason.MISSING_FIELDS}",
+                        "error_type": FAILURE_REASON_BASE.format(
+                            SentryAppExternalRequestHaltReason.MISSING_FIELDS
+                        ),
                         "response": resp,
                     },
                     status_code=500,
