@@ -47,11 +47,11 @@ const InteractionWrapper = styled('div')`
   transition: transform 1s ease;
 
   &:hover {
-    animation: ${rockLeft} 1.5s ease-in-out infinite;
+    animation: ${rockLeft} 2s ease-in-out infinite;
   }
 
   &:hover:active {
-    animation: ${rockRight} 1.5s ease-in-out infinite;
+    animation: ${rockRight} 2s ease-in-out infinite;
   }
 `;
 
