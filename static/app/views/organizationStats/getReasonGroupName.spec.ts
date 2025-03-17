@@ -1,6 +1,6 @@
 import {Outcome} from 'sentry/types/core';
 
-import {getReasonGroupName} from './getReasonGroupName';
+import {ClientDiscardReason, getReasonGroupName} from './getReasonGroupName';
 
 describe('getReasonGroupName', function () {
   it('handles legacy too_large reason', function () {
@@ -63,7 +63,7 @@ describe('getReasonGroupName', function () {
     );
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
-      'queue_overflow'
+      ClientDiscardReason.QUEUE_OVERFLOW
     );
   });
 });

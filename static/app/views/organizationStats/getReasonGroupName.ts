@@ -71,7 +71,7 @@ enum DiscardReason {
 }
 
 // List of Client Discard Reason according to the Client Report's doc - https://develop.sentry.dev/sdk/client-reports/#envelope-item-payload
-enum ClientDiscardReason {
+export enum ClientDiscardReason {
   QUEUE_OVERFLOW = 'queue_overflow',
   CACHE_OVERFLOW = 'cache_overflow',
   RATELIMIT_BACKOFF = 'ratelimit_backoff',
