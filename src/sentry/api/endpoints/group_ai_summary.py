@@ -245,9 +245,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                         group=group, event_id=event.event_id, user=request.user
                     )
 
-            if response.status_code != 202:
-                # If autofix trigger fails, we don't cache to let it error and we can run again, this is only temporary for when we're testing this internally.
-                return response
+                if response.status_code != 202:
+                    # If autofix trigger fails, we don't cache to let it error and we can run again, this is only temporary for when we're testing this internally.
+                    return response
 
         summary_dict = issue_summary.dict()
         summary_dict["event_id"] = event.event_id
