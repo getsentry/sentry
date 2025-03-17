@@ -591,12 +591,13 @@ export const StyledButton = styled(
   ${getBoxShadow};
 `;
 
-const buttonLabelPropKeys = ['size', 'borderless'];
 type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
 
 export const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
+    typeof prop === 'string' &&
+    isPropValid(prop) &&
+    !['size', 'borderless'].includes(prop),
 })<ButtonLabelProps>`
   height: 100%;
   display: flex;
@@ -604,26 +605,6 @@ export const ButtonLabel = styled('span', {
   justify-content: center;
   white-space: nowrap;
 `;
-
-type ChildrenIconProps = {
-  hasChildren?: boolean;
-  size?: ButtonProps['size'];
-};
-
-const getIconMargin = ({size, hasChildren}: ChildrenIconProps) => {
-  // If button is only an icon, then it shouldn't have margin
-  if (!hasChildren) {
-    return '0';
-  }
-
-  switch (size) {
-    case 'xs':
-    case 'zero':
-      return space(0.75);
-    default:
-      return space(1);
-  }
-};
 
 function isEmptyChild(child: React.ReactNode) {
   // truthy values are non empty
@@ -639,11 +620,20 @@ function isEmptyChild(child: React.ReactNode) {
   return true;
 }
 
-interface IconProps extends ChildrenIconProps, Omit<StyledButtonProps, 'theme'> {}
+interface IconProps extends Omit<StyledButtonProps, 'theme'> {
+  hasChildren?: boolean;
+  size?: ButtonProps['size'];
+}
+
 const Icon = styled('span')<IconProps>`
   display: flex;
   align-items: center;
-  margin-right: ${getIconMargin};
+  margin-right: ${p =>
+    p.hasChildren
+      ? p.size === 'xs' || p.size === 'zero'
+        ? space(0.75)
+        : space(1)
+      : '0'};
   flex-shrink: 0;
 `;
 
