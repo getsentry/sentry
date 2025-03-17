@@ -57,6 +57,7 @@ function SchemaHintsList({
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
+
   const {openDrawer, isDrawerOpen} = useDrawer();
 
   const functionTags = useMemo(() => {
@@ -164,6 +165,7 @@ function SchemaHintsList({
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
+              drawerWidth: '35vw',
               shouldCloseOnLocationChange: newLocation => {
                 return (
                   location.pathname !== newLocation.pathname ||
