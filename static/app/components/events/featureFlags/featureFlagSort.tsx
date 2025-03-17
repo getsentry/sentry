@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import {Button} from 'sentry/components/core/button';
 import {
   getDefaultOrderBy,
   getSelectionType,
@@ -62,7 +62,7 @@ export default function FeatureFlagSort({sortBy, orderBy, setOrderBy, setSortBy}
         }}
         options={ORDER_BY_OPTIONS.map(o => {
           const selectionType = getSelectionType(o.value);
-          return selectionType !== sortBy ? {...o, disabled: true} : o;
+          return selectionType === sortBy ? o : {...o, disabled: true};
         })}
       />
     </CompositeSelect>

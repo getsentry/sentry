@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
@@ -20,9 +20,8 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconEllipsis, IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -295,8 +294,7 @@ export function EventFeatureFlagList({
   }
 
   const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
-  const label =
-    extraFlags === 1 ? t('View 1 More Flag') : t('View %d More Flags', extraFlags);
+  const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
 
   return (
     <InterimSection
@@ -319,21 +317,16 @@ export function EventFeatureFlagList({
         </StyledEmptyStateWarning>
       )}
       {extraFlags > 0 && (
-        <ViewAllContainer>
-          <VerticalEllipsis />
-          <div>
-            <ViewAllButton
-              size="sm"
-              // Since we've disabled the button as an 'outside click' for the drawer we can change
-              // the operation based on the drawer state.
-              onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
-              aria-label={label}
-              ref={viewAllButtonRef}
-            >
-              {label}
-            </ViewAllButton>
-          </div>
-        </ViewAllContainer>
+        <Button
+          size="sm"
+          // Since we've disabled the button as an 'outside click' for the drawer we can change
+          // the operation based on the drawer state.
+          onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
+          aria-label={label}
+          ref={viewAllButtonRef}
+        >
+          {label}
+        </Button>
       )}
     </InterimSection>
   );
@@ -359,30 +352,4 @@ const SuspectLabel = styled('div')`
 const ValueWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-`;
-
-const VerticalEllipsis = styled(IconEllipsis)`
-  height: 22px;
-  color: ${p => p.theme.subText};
-  margin: ${space(0.5)};
-  transform: rotate(90deg);
-`;
-
-const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
-`;
-
-const ViewAllContainer = styled('div')`
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  &::after {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    width: 1px;
-    top: -${space(1)};
-    height: ${space(1)};
-    background: ${p => p.theme.border};
-  }
 `;

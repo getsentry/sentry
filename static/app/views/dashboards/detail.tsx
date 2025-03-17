@@ -308,18 +308,10 @@ class DashboardDetail extends Component<Props, State> {
       confidence,
       sampleCount,
       isSampled,
+      modifiedDashboard,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
-      const widget =
-        defined(widgetId) &&
-        (dashboard.widgets.find(({id}) => {
-          // This ternary exists because widgetId is in some places typed as string, while
-          // in other cases it is typed as number. Instead of changing the type everywhere,
-          // we check for both cases at runtime as I am not sure which is the correct type.
-          return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
-        }) ??
-          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-          dashboard.widgets[widgetId]);
+      const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
           organization,
@@ -751,11 +743,11 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                ...(!openWidgetTemplates
-                  ? convertWidgetToBuilderStateParams(
+                ...(openWidgetTemplates
+                  ? {}
+                  : convertWidgetToBuilderStateParams(
                       getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
-                    )
-                  : {}),
+                    )),
               },
             })
           );
@@ -830,13 +822,13 @@ class DashboardDetail extends Component<Props, State> {
       : [...currentDashboard.widgets, mergedWidget];
 
     try {
-      if (!this.isEditingDashboard) {
+      if (this.isEditingDashboard) {
+        // If we're in edit mode, update the edit state
+        this.onUpdateWidget(newWidgets);
+      } else {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
-      } else {
-        // If we're in edit mode, update the edit state
-        this.onUpdateWidget(newWidgets);
       }
 
       this.handleCloseWidgetBuilder();

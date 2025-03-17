@@ -9,10 +9,10 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
+import {OrgDropdown} from 'sentry/components/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
 import {useCollapsedNav} from 'sentry/components/nav/useCollapsedNav';
-import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
@@ -35,9 +35,11 @@ export function Sidebar() {
     <Fragment>
       <SidebarWrapper role="navigation" aria-label="Primary Navigation">
         <SidebarHeader isSuperuser={showSuperuserWarning}>
-          <SidebarDropdown orientation="left" collapsed />
+          <OrgDropdown />
           {showSuperuserWarning && (
-            <Hook name="component:superuser-warning" organization={organization} />
+            <SuperuserBadgeContainer>
+              <Hook name="component:superuser-warning" organization={organization} />
+            </SuperuserBadgeContainer>
           )}
         </SidebarHeader>
         <PrimaryNavigationItems />
@@ -65,7 +67,7 @@ export function Sidebar() {
 
 const SidebarWrapper = styled('div')`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${space(2)} 0 ${space(1)} 0;
+  padding: ${space(1.5)} 0 ${space(1)} 0;
   border-right: 1px solid ${p => p.theme.translucentGray200};
   background: ${p => p.theme.surface300};
   display: flex;
@@ -85,7 +87,7 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   position: relative;
   display: flex;
   justify-content: center;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${space(0.5)};
 
   ${p =>
     p.isSuperuser &&
@@ -93,9 +95,18 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
       &:before {
         content: '';
         position: absolute;
-        inset: -${space(1)} ${space(1)};
+        inset: 0 ${space(1)} -${space(0.5)} ${space(1)};
         border-radius: ${p.theme.borderRadius};
         background: ${p.theme.sidebar.superuser};
       }
     `}
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -8px;
+  left: 2px;
+  right: 2px;
+  font-size: 12px;
+  margin: 0;
 `;

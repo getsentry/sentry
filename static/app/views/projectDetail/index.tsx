@@ -36,7 +36,7 @@ function ProjectDetailContainer(
   ) {
     return (
       <Redirect
-        to={`/organizations/${organization.slug}/insights/backend?project=${project.id}`}
+        to={`/insights/backend/?project=${project.id}${project.isBookmarked ? '&starred=1' : ''}`}
       />
     );
   }

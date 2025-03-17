@@ -937,8 +937,12 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
-    # If the flag is enabled, use the code below
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if not features.has(
+        "organizations:workflow-engine-process-workflows", job["event"].project.organization
+    ):
+        return
+
     from sentry.workflow_engine.processors.workflow import process_workflows
 
     # PostProcessJob event is optional, WorkflowJob event is required
@@ -983,19 +987,11 @@ def process_rules(job: PostProcessJob) -> None:
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
+
+        # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
         for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
-
-        if features.has(
-            "organizations:workflow-engine-issue-alert-metrics",
-            group_event.project.organization,
-        ):
-            metrics.incr(
-                "post_process.process_rules.triggered_actions",
-                amount=len(callback_and_futures),
-                tags={"event_type": group_event.group.type},
-            )
 
     job["has_alert"] = has_alert
     return
@@ -1291,6 +1287,9 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return False
 
     feedback_source = event.occurrence.evidence_data.get("source")
+    if feedback_source is None:
+        logger.error("Feedback source is missing, skipped alert processing")
+        return False
 
     if feedback_source in FeedbackCreationSource.new_feedback_category_values():
         return True
@@ -1518,6 +1517,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_owner_assignment,
         handle_auto_assignment,
         process_rules,
+        process_workflow_engine,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,

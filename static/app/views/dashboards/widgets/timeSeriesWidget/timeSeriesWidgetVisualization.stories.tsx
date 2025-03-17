@@ -9,6 +9,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -34,14 +35,6 @@ const sampleDurationTimeSeries2 = {
       value: datum.value * 0.3 + 30 * Math.random(),
     };
   }),
-  meta: {
-    fields: {
-      'p50(span.duration)': 'duration',
-    },
-    units: {
-      'p50(span.duration)': 'millisecond',
-    },
-  },
 };
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
@@ -81,7 +74,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <SmallWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(sampleDurationTimeSeries2),
+                new Line(sampleThroughputTimeSeries),
                 new Bars(sampleDurationTimeSeries),
               ]}
             />
@@ -210,6 +203,56 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Y Axes', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> will automatically set up
+          correct Y axes for the plottables. The logic goes like this:
+        </p>
+        <ul>
+          <li>
+            look through all the plottables in order, and determine which types they have
+          </li>
+          <li>
+            place a left-side Y axis, using the most common data type among the plottables
+          </li>
+          <li>
+            if there are two total data types, place a second Y axis on the right side
+          </li>
+          <li>
+            if there are more than 2 total data types, set the second Y axis to "number"
+          </li>
+        </ul>
+
+        <p>
+          The charts below should have one throughput axis, and one duration axis. In both
+          cases, the duration should be on the left.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleThroughputTimeSeries),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries2), {delay: 90}),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
   story('Unit Alignment', () => {
     const millisecondsSeries = sampleDurationTimeSeries;
 
@@ -223,12 +266,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         };
       }),
       meta: {
-        fields: {
-          'p99(span.self_time)': 'duration',
-        },
-        units: {
-          'p99(span.self_time)': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -340,12 +379,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
-        fields: {
-          'error_rate()': 'rate',
-        },
-        units: {
-          'error_rate()': '1/second',
-        },
+        type: 'rate',
+        unit: RateUnit.PER_SECOND,
       },
     };
 
@@ -455,21 +490,18 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
-          You can also provide aliases for legends to give them a friendlier name. In this
-          example, verbose names like "p99(span.duration)" are truncated, and the p99
-          series is hidden by default.
+          You can also provide aliases for plottables like <code>Line</code> This will
+          give the legends and tooltips a friendlier name. In this example, verbose names
+          like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default.
         </p>
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
             plottables={[
-              new Area(sampleDurationTimeSeries, {}),
-              new Area(sampleDurationTimeSeries2, {}),
+              new Area(sampleDurationTimeSeries, {alias: 'p50'}),
+              new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
             ]}
-            aliases={{
-              'p99(span.duration)': 'p99',
-              'p50(span.duration)': 'p50',
-            }}
             legendSelection={legendSelection}
             onLegendSelectionChange={setLegendSelection}
           />
@@ -504,14 +536,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               new Line({
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
-                meta: {
-                  fields: {
-                    'error_rate()': 'rate',
-                  },
-                  units: {
-                    'error_rate()': '1/second',
-                  },
-                },
               }),
             ]}
             releases={releases}

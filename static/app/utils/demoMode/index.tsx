@@ -8,6 +8,8 @@ import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
 const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
+const INACTIVITY_TIMEOUT_MS = 10 * 1000;
+
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
 export function extraQueryParameter(): URLSearchParams {
@@ -33,12 +35,12 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
   return url;
 }
 
-export function isDemoModeEnabled(): boolean {
+export function isDemoModeActive(): boolean {
   return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }
 
 export function openDemoSignupModal() {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return;
   }
   setTimeout(() => {
@@ -47,7 +49,7 @@ export function openDemoSignupModal() {
 }
 
 export function openDemoEmailModal() {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return;
   }
 
@@ -70,8 +72,19 @@ function onAddedEmail(email: string) {
   openDemoSignupModal();
 }
 
+let inactivityTimeout: number | undefined;
+
 window.addEventListener('blur', () => {
-  if (isDemoModeEnabled()) {
-    logout(new Client());
+  if (isDemoModeActive()) {
+    inactivityTimeout = window.setTimeout(() => {
+      logout(new Client());
+    }, INACTIVITY_TIMEOUT_MS);
+  }
+});
+
+window.addEventListener('focus', () => {
+  if (inactivityTimeout) {
+    window.clearTimeout(inactivityTimeout);
+    inactivityTimeout = undefined;
   }
 });

@@ -2,18 +2,17 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -23,8 +22,11 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/backend/laravel/styles';
+import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 interface QueriesDiscoverQueryResponse {
   data: Array<{
@@ -48,6 +50,8 @@ export function QueriesWidget({query}: {query?: string}) {
     granularity: 'spans',
   });
 
+  const fullQuery = `has:db.system ${query}`;
+
   const queriesRequest = useApiQuery<QueriesDiscoverQueryResponse>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -63,7 +67,7 @@ export function QueriesWidget({query}: {query?: string}) {
             'avg(span.duration)',
             'transaction',
           ],
-          query: `has:db.system !transaction.span_id:00 ${query}`,
+          query: fullQuery,
           sort: '-avg(span.duration)',
           per_page: 3,
           useRpc: 1,
@@ -93,7 +97,11 @@ export function QueriesWidget({query}: {query?: string}) {
   );
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data) {
+    if (
+      !timeSeriesRequest.data ||
+      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
+      'data' in timeSeriesRequest.data
+    ) {
       return [];
     }
 
@@ -127,23 +135,29 @@ export function QueriesWidget({query}: {query?: string}) {
 
   const colorPalette = getChartColorPalette(timeSeries.length - 2);
 
-  const visualization = isLoading ? (
-    <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-  ) : error ? (
-    <Widget.WidgetError error={error} />
-  ) : !hasData ? (
-    <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
-  ) : (
-    <TimeSeriesWidgetVisualization
-      aliases={Object.fromEntries(
-        queriesRequest.data?.data.map(item => [
-          getSeriesName(item),
-          item['sentry.normalized_description'],
-        ]) ?? []
-      )}
-      plottables={timeSeries
-        .map(convertSeriesToTimeseries)
-        .map((ts, index) => new Line(ts, {color: colorPalette[index]}))}
+  const aliases = Object.fromEntries(
+    queriesRequest.data?.data.map(item => [
+      getSeriesName(item),
+      item['sentry.normalized_description'],
+    ]) ?? []
+  );
+
+  const visualization = (
+    <WidgetVisualizationStates
+      isEmpty={!hasData}
+      isLoading={isLoading}
+      error={error}
+      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
+      VisualizationType={TimeSeriesWidgetVisualization}
+      visualizationProps={{
+        plottables: timeSeries.map(
+          (ts, index) =>
+            new Line(convertSeriesToTimeseries(ts), {
+              color: colorPalette[index],
+              alias: aliases[ts.seriesName],
+            })
+        ),
+      }}
     />
   );
 
@@ -179,25 +193,31 @@ export function QueriesWidget({query}: {query?: string}) {
       Visualization={visualization}
       Actions={
         hasData && (
-          <Widget.WidgetToolbar>
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: t('Slow Queries'),
-                  children: (
-                    <Fragment>
-                      <ModalChartContainer>{visualization}</ModalChartContainer>
-                      <ModalTableWrapper>{footer}</ModalTableWrapper>
-                    </Fragment>
-                  ),
-                });
-              }}
-            />
-          </Widget.WidgetToolbar>
+          <Toolbar
+            exploreParams={{
+              mode: Mode.AGGREGATE,
+              visualize: [
+                {
+                  chartType: ChartType.LINE,
+                  yAxes: ['avg(span.duration)'],
+                },
+              ],
+              groupBy: ['sentry.normalized_description'],
+              query: fullQuery,
+              interval: pageFilterChartParams.interval,
+            }}
+            onOpenFullScreen={() => {
+              openInsightChartModal({
+                title: t('Slow Queries'),
+                children: (
+                  <Fragment>
+                    <ModalChartContainer>{visualization}</ModalChartContainer>
+                    <ModalTableWrapper>{footer}</ModalTableWrapper>
+                  </Fragment>
+                ),
+              });
+            }}
+          />
         )
       }
       noFooterPadding

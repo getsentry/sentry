@@ -433,6 +433,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
+    "sentry.explore",
 )
 
 # Silence internal hints from Django's system checks
@@ -1570,10 +1571,6 @@ SENTRY_DEFAULT_TIME_ZONE = "UTC"
 
 SENTRY_DEFAULT_LANGUAGE = "en"
 
-# Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = None
-
-
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
 
@@ -2577,7 +2574,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.2.0"
+SELF_HOSTED_STABLE_VERSION = "25.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2866,7 +2863,7 @@ SENTRY_BUILTIN_SOURCES = {
             "filetypes": ["pdb", "breakpad", "sourcebundle"],
             # These file paths were empirically determined by examining
             # logs of successful downloads from the Electron symbol server.
-            "file_paths": [
+            "path_patterns": [
                 "*electron*",
                 "*ffmpeg*",
                 "*libEGL*",
@@ -3053,6 +3050,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "uptime",
     "workflow_engine",
     "tempest",
+    "explore",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

@@ -29,7 +29,7 @@ from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 class DBBackedRelocationExportService(RegionRelocationExportService):

@@ -1,21 +1,29 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {useParams} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {Button} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {User} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -80,132 +88,128 @@ type RemoveModalProps = ModalRenderProps & {
   user: User;
 };
 
-type RemoveModalState = {
-  deleteType: DeleteType;
-};
+function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
+  const [deleteType, setDeleteType] = useState<DeleteType>('disable');
 
-class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
-  state: RemoveModalState = {
-    deleteType: 'disable',
+  const handleRemove = () => {
+    onRemove(deleteType);
+    closeModal();
   };
 
-  onRemove = () => {
-    this.props.onRemove(this.state.deleteType);
-    this.props.closeModal();
-  };
-
-  render() {
-    const {user} = this.props;
-    const {deleteType} = this.state;
-
-    return (
-      <Fragment>
-        <RadioGroup
-          value={deleteType}
-          label={t('Remove user %s', user.email)}
-          onChange={type => this.setState({deleteType: type})}
-          choices={[
-            ['disable', t('Disable the account.')],
-            ['delete', t('Permanently remove the user and their data.')],
-          ]}
-        />
-        <ModalFooter>
-          <Button priority="danger" onClick={this.onRemove}>
-            {REMOVE_BUTTON_LABEL[deleteType]}
-          </Button>
-          <Button onClick={this.props.closeModal}>{t('Cancel')}</Button>
-        </ModalFooter>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <RadioGroup
+        value={deleteType}
+        label={t('Remove user %s', user.email)}
+        onChange={type => setDeleteType(type)}
+        choices={[
+          ['disable', t('Disable the account.')],
+          ['delete', t('Permanently remove the user and their data.')],
+        ]}
+      />
+      <ModalFooter>
+        <Button priority="danger" onClick={handleRemove}>
+          {REMOVE_BUTTON_LABEL[deleteType]}
+        </Button>
+        <Button onClick={closeModal}>{t('Cancel')}</Button>
+      </ModalFooter>
+    </Fragment>
+  );
 }
 
-type Props = DeprecatedAsyncComponent['props'] & RouteComponentProps<{id: string}>;
+function AdminUserEdit() {
+  const {id} = useParams<{id: string}>();
+  const userEndpoint = `/users/${id}/`;
+  const formModel = new FormModel();
+  const api = useApi({persistInFlight: true});
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-type State = DeprecatedAsyncComponent['state'] & {
-  user: User | null;
-};
+  const {
+    data: user,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<User>([userEndpoint], {
+    staleTime: 0,
+  });
 
-class AdminUserEdit extends DeprecatedAsyncComponent<Props, State> {
-  get userEndpoint() {
-    const {params} = this.props;
-    return `/users/${params.id}/`;
+  const deleteMutation = useMutation({
+    mutationFn: () => {
+      return api.requestPromise(userEndpoint, {
+        method: 'DELETE',
+        data: {hardDelete: true, organizations: []},
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t("%s's account has been deleted.", user?.email));
+      navigate('/manage/users/', {replace: true});
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: () => {
+      return api.requestPromise(userEndpoint, {
+        method: 'PUT',
+        data: {isActive: false},
+      });
+    },
+    onSuccess: response => {
+      setApiQueryData(queryClient, [userEndpoint], response);
+      formModel.setInitialData(response);
+      addSuccessMessage(t("%s's account has been deactivated.", response.email));
+    },
+  });
+
+  const removeUser = (actionType: DeleteType) =>
+    actionType === 'delete' ? deleteMutation.mutate() : deactivateMutation.mutate();
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['user', this.userEndpoint]];
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  async deleteUser() {
-    await this.api.requestPromise(this.userEndpoint, {
-      method: 'DELETE',
-      data: {hardDelete: true, organizations: []},
-    });
-
-    addSuccessMessage(t("%s's account has been deleted.", this.state.user?.email));
-    browserHistory.replace('/manage/users/');
+  if (!user) {
+    return null;
   }
 
-  async deactivateUser() {
-    const response = await this.api.requestPromise(this.userEndpoint, {
-      method: 'PUT',
-      data: {isActive: false},
-    });
+  const openDeleteModal = () =>
+    openModal(opts => <RemoveUserModal user={user} onRemove={removeUser} {...opts} />);
 
-    this.setState({user: response});
-    this.formModel.setInitialData(response);
-    addSuccessMessage(t("%s's account has been deactivated.", response.email));
-  }
-
-  removeUser = (actionTypes: DeleteType) =>
-    actionTypes === 'delete' ? this.deleteUser() : this.deactivateUser();
-
-  formModel = new FormModel();
-
-  renderBody() {
-    const {user} = this.state;
-
-    if (user === null) {
-      return null;
-    }
-
-    const openDeleteModal = () =>
-      openModal(opts => (
-        <RemoveUserModal user={user} onRemove={this.removeUser} {...opts} />
-      ));
-
-    return (
-      <Fragment>
-        <h3>{t('Users')}</h3>
-        <p>{t('Editing user: %s', user.email)}</p>
-        <Form
-          model={this.formModel}
-          initialData={user}
-          apiMethod="PUT"
-          apiEndpoint={this.userEndpoint}
-          requireChanges
-          onSubmitError={err => {
-            addErrorMessage(err?.responseJSON?.detail);
-          }}
-          onSubmitSuccess={data => {
-            this.setState({user: data});
-            addSuccessMessage(t('User account updated.'));
-          }}
-          extraButton={
-            <Button
-              onClick={openDeleteModal}
-              style={{marginLeft: space(1)}}
-              priority="danger"
-            >
-              {t('Remove User')}
-            </Button>
-          }
-        >
-          <JsonForm forms={[userEditForm]} />
-        </Form>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <h3>{t('Users')}</h3>
+      <p>{t('Editing user: %s', user.email)}</p>
+      <Form
+        model={formModel}
+        initialData={user}
+        apiMethod="PUT"
+        apiEndpoint={userEndpoint}
+        requireChanges
+        onSubmitError={err => {
+          addErrorMessage(err?.responseJSON?.detail);
+        }}
+        onSubmitSuccess={response => {
+          setApiQueryData(queryClient, [userEndpoint], response);
+          addSuccessMessage(t('User account updated.'));
+        }}
+        extraButton={
+          <Button
+            onClick={openDeleteModal}
+            style={{marginLeft: space(1)}}
+            priority="danger"
+          >
+            {t('Remove User')}
+          </Button>
+        }
+      >
+        <JsonForm forms={[userEditForm]} />
+      </Form>
+    </Fragment>
+  );
 }
 
 const ModalFooter = styled('div')`

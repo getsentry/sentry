@@ -5,8 +5,8 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -201,9 +201,9 @@ function Dashboard() {
               priority="primary"
               disabled={!canUserCreateProject}
               title={
-                !canUserCreateProject
-                  ? t('You do not have permission to create projects')
-                  : undefined
+                canUserCreateProject
+                  ? undefined
+                  : t('You do not have permission to create projects')
               }
               to={`/organizations/${organization.slug}/projects/new/`}
               icon={<IconAdd isCircled />}

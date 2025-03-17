@@ -23,7 +23,10 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  useExploreLogsTableRow,
+  usePrefetchLogTableRowOnHover,
+} from 'sentry/views/explore/logs/useLogsQuery';
 
 import {
   DetailsFooter,
@@ -43,14 +46,20 @@ type LogsRowProps = {
   dataRow: OurLogsResponseItem;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
+  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 };
 
-export function LogRowContent({dataRow, highlightTerms, meta}: LogsRowProps) {
+export function LogRowContent({
+  dataRow,
+  highlightTerms,
+  meta,
+  sharedHoverTimeoutRef,
+}: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
   const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+  const onClickExpand = useCallback(() => setExpanded(e => !e), []);
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -61,10 +70,15 @@ export function LogRowContent({dataRow, highlightTerms, meta}: LogsRowProps) {
     typeof severityText === 'string' ? severityText : null
   );
   const logColors = getLogColors(level, theme);
+  const hoverProps = usePrefetchLogTableRowOnHover({
+    logId: String(dataRow[OurLogKnownFieldKey.ID]),
+    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+    sharedHoverTimeoutRef,
+  });
 
   return (
     <Fragment>
-      <LogTableRow onClick={onClickExpand}>
+      <LogTableRow onClick={onClickExpand} {...hoverProps}>
         {fields.map((field, index) => {
           const value = dataRow[field];
           const isFirstColumn = index === 0;

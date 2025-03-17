@@ -84,6 +84,32 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow}
 
+    def test_same_environment_only(self):
+        # only processes workflows with the same env or no env specified
+        self.error_workflow.update(environment=None)
+
+        dcg = self.create_data_condition_group()
+        non_matching_env_workflow = self.create_workflow(
+            when_condition_group=dcg, environment=self.create_environment()
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=non_matching_env_workflow,
+        )
+
+        dcg = self.create_data_condition_group()
+        matching_env_workflow = self.create_workflow(
+            when_condition_group=dcg,
+            environment=self.group_event.get_environment(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=matching_env_workflow,
+        )
+
+        triggered_workflows = process_workflows(self.job)
+        assert triggered_workflows == {self.error_workflow, matching_env_workflow}
+
     def test_issue_occurrence_event(self):
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
@@ -153,7 +179,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
-    @with_feature("organizations:workflow-engine-issue-alert-metrics")
+    @with_feature("organizations:workflow-engine-process-workflows")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow
@@ -316,6 +342,58 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_ids[0][0] == self.project.id
+
+    def test_skips_enqueuing_any(self):
+        # skips slow conditions if the condition group evaluates to True without evaluating them
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
+
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert triggered_workflows == {self.workflow}
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        assert len(project_ids) == 0
+
+    def test_skips_enqueuing_all(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.conditions.all().delete()
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
+
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.REGRESSION_EVENT,  # fast condition, does not pass
+            comparison=True,
+            condition_result=True,
+        )
+
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert not triggered_workflows
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        assert len(project_ids) == 0
 
 
 class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):

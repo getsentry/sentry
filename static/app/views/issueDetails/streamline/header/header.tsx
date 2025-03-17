@@ -4,9 +4,9 @@ import Color from 'color';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';

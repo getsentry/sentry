@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
@@ -524,14 +524,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 })}
               </Row>
               <Row title={t('Origin')}>
-                {span.origin !== undefined ? String(span.origin) : null}
+                {span.origin === undefined ? null : String(span.origin)}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
               <Row title={t('Same Process as Parent')}>
-                {span.same_process_as_parent !== undefined
-                  ? String(span.same_process_as_parent)
-                  : null}
+                {span.same_process_as_parent === undefined
+                  ? null
+                  : String(span.same_process_as_parent)}
               </Row>
               <Row title={t('Span Group')}>
                 {defined(span.hash) ? String(span.hash) : null}
@@ -565,11 +565,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
-                !isHiddenDataKey(key) ? (
+                isHiddenDataKey(key) ? null : (
                   <Row title={key} key={key}>
                     <GeneralSpanDetailsValue value={value} />
                   </Row>
-                ) : null
+                )
               )}
               {unknownKeys.map(key => {
                 if (key === 'event' || key === 'childTransactions') {

@@ -8,12 +8,12 @@ import type {
   CustomSeriesRenderItemReturn,
 } from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
+import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
-import {ReleasesDrawer} from 'sentry/components/releases/releasesDrawer';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartMouseOutHandler,
@@ -22,19 +22,17 @@ import type {
 } from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import {getFormat} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
-  DEFAULT_BUBBLE_SIZE,
-  RELEASE_BUBBLE_X_HALF_PADDING,
-  RELEASE_BUBBLE_X_PADDING,
-  RELEASE_BUBBLE_Y_HALF_PADDING,
-  RELEASE_BUBBLE_Y_PADDING,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
 import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
+import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
@@ -85,6 +83,7 @@ function createReleaseBubbleMouseListeners({
           />
         ),
         {
+          shouldCloseOnLocationChange: () => false,
           ariaLabel: t('Releases drawer'),
           transitionProps: {stiffness: 1000},
         }
@@ -144,11 +143,15 @@ function createReleaseBubbleMouseListeners({
 }
 
 interface ReleaseBubbleSeriesProps {
+  bubblePadding: number;
+  bubbleSize: number;
   buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
+  dateFormatOptions: {
+    timezone: string;
+  };
   releases: ReleaseMetaBasic[];
   theme: Theme;
-  bubbleSize?: number;
 }
 
 /**
@@ -158,7 +161,9 @@ function ReleaseBubbleSeries({
   buckets,
   chartRef,
   theme,
-  bubbleSize = DEFAULT_BUBBLE_SIZE,
+  bubbleSize,
+  bubblePadding,
+  dateFormatOptions,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -169,14 +174,26 @@ function ReleaseBubbleSeries({
     releases,
   }));
 
+  const formatBucketTimestamp = (timestamp: number) => {
+    // TODO: we might want to be smarter about formatting when the buckets are
+    // both in the same day, or if time difference is very small (e.g. hours)
+    const format = getFormat({
+      dateOnly: false,
+      timeOnly: false,
+      year: moment().year() !== moment(timestamp).year(),
+    });
+
+    return moment.tz(timestamp, dateFormatOptions.timezone).format(format);
+  };
+
   /**
    * Renders release bubbles underneath the main chart
    */
   const renderReleaseBubble: CustomSeriesRenderItem = (
-    _params: CustomSeriesRenderItemParams,
+    params: CustomSeriesRenderItemParams,
     api: CustomSeriesRenderItemAPI
   ) => {
-    const dataItem = data[_params.dataIndex];
+    const dataItem = data[params.dataIndex];
 
     if (!dataItem) {
       return null;
@@ -202,17 +219,39 @@ function ReleaseBubbleSeries({
     // Width between two timestamps for timeSeries
     const width = bubbleEndX - bubbleStartX;
 
-    //
     const shape = {
-      x: bubbleStartX + RELEASE_BUBBLE_X_HALF_PADDING,
-      y: bubbleStartY + RELEASE_BUBBLE_Y_HALF_PADDING,
-      width: width - RELEASE_BUBBLE_X_PADDING,
-      // currently we have a static height, but this may need to change since
-      // we have charts of different dimensions
-      height: bubbleSize - RELEASE_BUBBLE_Y_PADDING,
+      // Padding is on both left/right sides to try to center the bubble
+      //
+      //  bubbleStartX   bubbleEndX
+      //  |              |
+      //  v              v
+      //  ----------------  ----------------
+      //  |              |  |              |
+      //  ----------------  ----------------
+      //                 ^  ^
+      //                 |--|
+      //                 bubblePadding
+
+      x: bubbleStartX + bubblePadding / 2,
+      width: width - bubblePadding,
+      // We configure base chart's grid and xAxis to create a gap size of
+      // `bubbleSize`. We then have to configure `y` and `height` to fit within this
+      //
+      // ----------------- grid bottom
+      //   | bubblePadding
+      //   | bubbleSize
+      //   | bubblePadding
+      // ----------------- = xAxis offset
+
+      // idk exactly what's happening but we need a 1 pixel buffer to make it
+      // properly centered. I want to guess because we are drawing below the
+      // xAxis, and we have to account for the pixel being drawn in the other
+      // direction. You can see this if you set the x-axis offset to 0 and compare.
+      y: bubbleStartY + bubblePadding,
+      height: bubbleSize,
 
       // border radius
-      r: 4,
+      r: 0,
     };
 
     return {
@@ -220,13 +259,19 @@ function ReleaseBubbleSeries({
       transition: ['shape'],
       shape,
       style: {
+        // Use lineWidth to "fake" padding so that mouse events are triggered
+        // in the "padding" areas (i.e. so tooltips open)
+        lineWidth: bubblePadding,
+        stroke: 'transparent',
         fill: theme.blue400,
         // TODO: figure out correct opacity calculations
         opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
       emphasis: {
         style: {
-          stroke: theme.blue300,
+          opacity: 1,
+          stroke: 'transparent',
+          fill: theme.blue400,
         },
       },
     } satisfies CustomSeriesRenderItemReturn;
@@ -236,7 +281,9 @@ function ReleaseBubbleSeries({
     id: BUBBLE_SERIES_ID,
     type: 'custom',
     renderItem: renderReleaseBubble,
+    name: t('Releases'),
     data,
+    color: theme.blue300,
     tooltip: {
       trigger: 'item',
       position: 'bottom',
@@ -250,16 +297,19 @@ function ReleaseBubbleSeries({
         const bucket = params.data as Bucket;
         const numberReleases = bucket.releases.length;
         return `
-<div class="tooltip-series">
+<div class="tooltip-series tooltip-release">
 <div>
-${numberReleases} Releases
+${tn('%s Release', '%s Releases', numberReleases)}
+</div>
+<div class="tooltip-release-timerange">
+${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.end)}
 </div>
 </div>
 
 ${
   numberReleases > 0
-    ? `<div class="tooltip-footer">
-Tap to view
+    ? `<div class="tooltip-footer tooltip-release">
+${t('Click to expand')}
 </div>`
     : ''
 }
@@ -271,7 +321,8 @@ Tap to view
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef>;
+  chartRef: React.RefObject<ReactEchartsRef | null>;
+  bubblePadding?: number;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;
@@ -288,11 +339,13 @@ export function useReleaseBubbles({
   releases,
   minTime,
   maxTime,
-  bubbleSize,
+  bubbleSize = 4,
+  bubblePadding = 2,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
   const theme = useTheme();
+  const {options} = useUser();
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const buckets =
     (hasReleaseBubbles &&
@@ -311,6 +364,8 @@ export function useReleaseBubbles({
       releaseBubbleGrid: {},
     };
   }
+
+  const totalBubblePaddingY = bubblePadding * 2;
 
   return {
     createReleaseBubbleHighlighter,
@@ -331,9 +386,13 @@ export function useReleaseBubbles({
     releaseBubbleSeries: ReleaseBubbleSeries({
       buckets,
       bubbleSize,
+      bubblePadding,
       chartRef,
       theme,
       releases,
+      dateFormatOptions: {
+        timezone: options.timezone,
+      },
     }),
 
     /**
@@ -343,7 +402,7 @@ export function useReleaseBubbles({
       // configure `axisLine` and `offset` to move axis line below 0 so that
       // bubbles sit between bottom of the main chart and the axis line
       axisLine: {onZero: false},
-      offset: bubbleSize,
+      offset: bubbleSize + totalBubblePaddingY - 1,
     },
 
     /**
@@ -352,7 +411,7 @@ export function useReleaseBubbles({
     releaseBubbleGrid: {
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
       // drawn below grid (but above x axis label)
-      bottom: bubbleSize,
+      bottom: bubbleSize + totalBubblePaddingY + 1,
     },
   };
 }

@@ -190,13 +190,14 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
+    const showAllBudgetTotals = subscription.hadCustomDynamicSampling ? true : false;
     if (
       !subscription.hadCustomDynamicSampling &&
       isAm3DsPlan(subscription.plan) &&
       !subscription.isEnterpriseTrial
     ) {
-      // if the customer has not yet used custom DS in the current period, just show
-      // one spans card
+      // if the customer has not yet stated using custom DS in the current period,
+      // just show one spans UsageTotalsTable
       reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
         reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
     }
@@ -205,10 +206,8 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
       <TotalsWrapper>
         {sortCategories(subscription.categories).map(categoryHistory => {
           const category = categoryHistory.category;
-          if (
-            category === DATA_CATEGORY_INFO.spanIndexed.plural &&
-            !subscription.hadCustomDynamicSampling
-          ) {
+          // Stored spans are combined into the accepted spans category's table
+          if (category === DATA_CATEGORY_INFO.spanIndexed.plural) {
             return null;
           }
 
@@ -269,6 +268,9 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
               prepaidBudget={reservedBudgetCategoryInfo[category]?.prepaidBudget}
               reservedSpend={reservedBudgetCategoryInfo[category]?.reservedSpend}
               freeBudget={reservedBudgetCategoryInfo[category]?.freeBudget}
+              // If there are reserved budgets and all the budgets should have separate breakdowns
+              // we need to be able to access other categories' usageData.totals
+              allTotalsByCategory={showAllBudgetTotals ? usageData.totals : undefined}
             />
           );
         })}

@@ -11,6 +11,7 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+import pluginQuery from '@tanstack/eslint-plugin-query';
 import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
@@ -317,6 +318,16 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/tanstack/query',
+    plugins: {
+      '@tanstack/query': pluginQuery,
+    },
+    rules: {
+      ...pluginQuery.configs.recommended.rules,
+      '@tanstack/query/no-rest-destructuring': 'error',
+    },
+  },
+  {
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     plugins: {
@@ -558,7 +569,7 @@ export default typescript.config([
       'unicorn/no-await-in-promise-methods': 'error',
       'unicorn/no-instanceof-array': 'error',
       'unicorn/no-invalid-remove-event-listener': 'error',
-      'unicorn/no-negated-condition': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-negated-condition': 'error',
       'unicorn/no-negation-in-equality-check': 'error',
       'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule

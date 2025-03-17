@@ -304,7 +304,7 @@ function Content({
         hideIcon={hideIcon}
       >
         <StyledList data-test-id="frames">
-          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+          {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
         </StyledList>
       </StackTraceContentPanel>
     </Wrapper>

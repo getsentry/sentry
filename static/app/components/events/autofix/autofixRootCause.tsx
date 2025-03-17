@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {
   type AutofixRepository,
   type AutofixRootCauseData,
@@ -356,7 +356,7 @@ function AutofixRootCauseDisplay({
         <AnimatePresence>
           {agentCommentThread && iconFocusRef.current && (
             <AutofixHighlightPopup
-              selectedText="Root Cause"
+              selectedText=""
               referenceElement={iconFocusRef.current}
               groupId={groupId}
               runId={runId}
