@@ -150,6 +150,7 @@ export default function BreadcrumbsDataSection({
   );
 
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
+  const numHiddenCrumbs = enhancedCrumbs.length - summaryCrumbs.length;
 
   return (
     <InterimSection
@@ -187,7 +188,7 @@ export default function BreadcrumbsDataSection({
                 aria-label={t('View All Breadcrumbs')}
                 ref={viewAllButtonRef}
               >
-                {t('View All')}
+                {t('View %s more', numHiddenCrumbs)}
               </ViewAllButton>
             </div>
           </ViewAllContainer>
