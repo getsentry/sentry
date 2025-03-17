@@ -66,12 +66,14 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         num_processes: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        skip_produce: bool,
     ):
         super().__init__()
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
+        self.skip_produce = skip_produce
         self.pool = MultiprocessingPool(num_processes)
 
         topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
@@ -84,11 +86,16 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        produce_step = Produce(
-            producer=self.producer,
-            topic=self.output_topic,
-            next_step=CommitOffsets(commit),
-        )
+        commit_step = CommitOffsets(commit)
+
+        if self.skip_produce:
+            produce_step = Produce(
+                producer=self.producer,
+                topic=self.output_topic,
+                next_step=commit_step,
+            )
+        else:
+            produce_step = commit_step
 
         # XXX: Remove after https://github.com/getsentry/arroyo/pull/427: Unfold
         # does not pass through the commit and there is no way to access it from
