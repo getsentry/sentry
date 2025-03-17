@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,7 +45,7 @@ export default function TagDetailsLink({
   }, []);
 
   return (
-    <Link
+    <StyledLink
       to={{
         pathname: `${location.pathname}${tag.key}/`,
         query: location.query,
@@ -53,6 +54,15 @@ export default function TagDetailsLink({
       onMouseLeave={handleMouseLeave}
     >
       {children}
-    </Link>
+    </StyledLink>
   );
 }
+
+const StyledLink = styled(Link)`
+  border-radius: ${p => p.theme.borderRadius};
+  display: block;
+
+  &:hover h5 {
+    text-decoration: underline;
+  }
+`;
