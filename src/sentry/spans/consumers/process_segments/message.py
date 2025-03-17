@@ -58,10 +58,15 @@ def _find_segment_span(spans: list[Span]) -> Span | None:
     return None
 
 
+# The default span.op to assume if it is missing on the span. This should be
+# normalized by Relay, but we defensively apply the same fallback as the op is
+# not guaranteed in typing.
+DEFAULT_SPAN_OP = "default"
+
+
 def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     for span in spans:
-        if (op := span.get("sentry_tags", {}).get("op")) is not None:
-            span["op"] = op
+        span["op"] = span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
 
         # TODO: Add Relay's enrichment here.
 
@@ -85,6 +90,9 @@ def _create_models(segment: Span, project: Project) -> None:
     date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
+
+    if not release_name:
+        return
 
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
