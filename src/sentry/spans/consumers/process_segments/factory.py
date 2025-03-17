@@ -11,7 +11,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import Commit, Message, Partition, Value
+from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
@@ -87,6 +87,8 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         commit_step = CommitOffsets(commit)
+
+        produce_step: ProcessingStrategy[FilteredPayload | KafkaPayload]
 
         if self.skip_produce:
             produce_step = Produce(
