@@ -42,6 +42,4 @@ export type Release = {
   version: string;
 };
 
-export type Aliases = Record<string, string>;
-
 export type LegendSelection = {[key: string]: boolean};

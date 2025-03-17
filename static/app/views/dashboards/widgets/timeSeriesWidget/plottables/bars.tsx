@@ -26,7 +26,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
   toSeries(
     plottingOptions: ContinuousTimeSeriesPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
-    const {timeSeries, config = {}} = this;
+    const {config = {}} = this;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
     const scaledTimeSeries = this.scaleToUnit(plottingOptions.unit);
@@ -35,7 +35,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
 
     return [
       BarSeries({
-        name: timeSeries.field,
+        name: this.label,
         stack: config.stack,
         yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
         color,
