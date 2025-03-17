@@ -59,13 +59,6 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
     )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        if "visibility" in data:
-            valid_visibility_options = [v[0] for v in GroupSearchViewVisibility.as_choices()]
-            if any(v not in valid_visibility_options for v in data["visibility"]):
-                raise serializers.ValidationError(
-                    f"Unsupported visibility query parameter: {data['visibility']}"
-                )
-
         return data
 
 
