@@ -45,7 +45,11 @@ function TraceEmpty() {
 
   return (
     <LoadingContainer animate>
-      <div>{t('This trace does not contain any data?!')}</div>
+      <div>
+        {t(
+          'We could still be ingesting this trace. Please wait a few seconds and refresh.'
+        )}
+      </div>
       <div>
         {t('Seeing this often? Send us ')}
         {feedback ? (
