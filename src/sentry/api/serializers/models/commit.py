@@ -50,7 +50,10 @@ class CommitSerializer(Serializer):
             )
         )
 
-        pull_request_by_commit = {pr.merge_commit_sha: serialize(pr) for pr in pull_requests}
+        pull_request_by_commit = {
+            pr.merge_commit_sha: serialized_pr
+            for (pr, serialized_pr) in zip(pull_requests, serialize(pull_requests))
+        }
 
         result = {}
         for item in item_list:
