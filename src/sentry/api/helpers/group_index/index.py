@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -104,11 +105,12 @@ def build_query_params_from_request(
             if selected_view_id:
                 default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
             else:
-                default_view = GroupSearchView.objects.filter(
+                first_starred_view = GroupSearchViewStarred.objects.filter(
                     organization=organization,
                     user_id=request.user.id,
                     position=0,
                 ).first()
+                default_view = first_starred_view.group_search_view if first_starred_view else None
 
             if default_view:
                 query_kwargs["sort_by"] = default_view.query_sort
