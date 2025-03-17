@@ -2020,6 +2020,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.skip(reason="sampling rate column no longer exists in the new eap_items table")
     def test_average_sampling_rate(self):
         spans = []
         spans.append(
