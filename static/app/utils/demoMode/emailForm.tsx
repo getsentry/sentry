@@ -18,7 +18,6 @@ export default function EmailForm({onSubmit}: Props) {
     <StyledForm
       onSubmit={event => {
         event.preventDefault();
-
         const email = (event.target as HTMLFormElement).email.value;
         if (onSubmit) {
           onSubmit(email);
