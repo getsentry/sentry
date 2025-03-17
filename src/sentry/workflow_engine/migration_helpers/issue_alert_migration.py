@@ -202,7 +202,7 @@ class IssueAlertMigrator:
                 # originally no conditions and we expect no data conditions
                 pass
             elif no_data_conditions and not only_has_every_event_cond:
-                raise Exception("No valid conditions, skipping migration")
+                raise Exception("No valid trigger conditions, skipping migration")
 
         enabled = True
         rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
