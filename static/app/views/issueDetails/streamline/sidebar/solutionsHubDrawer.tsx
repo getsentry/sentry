@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -79,7 +79,10 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 transform: 'rotate(30deg)',
               }}
             />
-            Need help digging deeper?
+            <StartTextRow>
+              <StyledSeerWaitingIcon size="lg" />
+              <Fragment>Need help digging deeper?</Fragment>
+            </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
             <StyledInput
@@ -352,12 +355,23 @@ const Container = styled('div')`
 
 const AutofixStartText = styled('div')`
   margin: 0;
-  padding: ${space(2)};
-  padding-bottom: ${space(1)};
+  padding: ${space(1)};
   white-space: pre-wrap;
   word-break: break-word;
   font-size: ${p => p.theme.fontSizeLarge};
   position: relative;
+`;
+
+const StartTextRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
+  color: ${p => p.theme.purple400};
+  opacity: 0.9;
+  filter: brightness(0.6);
 `;
 
 const BackgroundStar = styled('img')`
