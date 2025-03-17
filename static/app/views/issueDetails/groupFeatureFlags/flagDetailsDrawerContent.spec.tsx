@@ -66,9 +66,11 @@ describe('FlagDetailsDrawerContent', () => {
     // Displays dropdown menu
     await userEvent.hover(screen.getByText('test-flag-key'));
     expect(
-      screen.getByRole('button', {name: 'Tag Value Actions Menu'})
+      screen.getByRole('button', {name: 'Flag Audit Log Actions Menu'})
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Tag Value Actions Menu'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Flag Audit Log Actions Menu'})
+    );
     expect(
       screen.getByRole('menuitemradio', {
         name: 'Search issues where this flag value is FALSE',
@@ -80,7 +82,7 @@ describe('FlagDetailsDrawerContent', () => {
       })
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Copy tag value to clipboard'})
+      await screen.findByRole('menuitemradio', {name: 'Copy flag value to clipboard'})
     ).toBeInTheDocument();
   });
 

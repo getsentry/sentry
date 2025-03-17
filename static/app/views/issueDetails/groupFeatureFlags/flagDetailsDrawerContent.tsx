@@ -144,7 +144,7 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
       className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
       triggerProps={{
-        'aria-label': t('Tag Value Actions Menu'),
+        'aria-label': t('Flag Audit Log Actions Menu'),
         icon: <IconEllipsis />,
         showChevron: false,
         size: 'xs',
@@ -168,7 +168,7 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
         },
         {
           key: 'copy-value',
-          label: t('Copy tag value to clipboard'),
+          label: t('Copy flag value to clipboard'),
           onAction: handleCopy,
         },
       ]}
