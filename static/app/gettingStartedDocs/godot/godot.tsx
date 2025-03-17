@@ -1,10 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 const getVerifySnippet = () => `
 extends Node
@@ -48,7 +49,7 @@ const onboarding: OnboardingConfig = {
       configurations: [{language: 'url', code: params.dsn.public}],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: tct(
@@ -65,6 +66,15 @@ const onboarding: OnboardingConfig = {
             <ExternalLink href="https://docs.sentry.io/platforms/godot/" />
           ),
         }
+      ),
+    },
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.projectSlug}
+        />
       ),
     },
   ],
