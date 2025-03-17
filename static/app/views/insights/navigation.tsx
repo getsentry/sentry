@@ -6,14 +6,18 @@ import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
+import {isLinkActive} from 'sentry/components/nav/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey, Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/ai/settings';
+import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
@@ -35,11 +39,34 @@ type InsightsNavigationProps = {
   children: React.ReactNode;
 };
 
+const platformsUsingOverviewAsProjectDetails: PlatformKey[] = ['php-laravel'];
+
 function InsightsSecondaryNav({children}: InsightsNavigationProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
 
   const {projects} = useProjects();
+
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+
+  const isSingleProjectSelected =
+    typeof location.query.project === 'string' && location.query.project !== '-1';
+
+  function isProjectSelectedExclusively(project: Project) {
+    return isSingleProjectSelected && location.query.project === project.id;
+  }
+
+  function isUsingOverviewAsProjectDetails(project: Project) {
+    return (
+      project.platform &&
+      platformsUsingOverviewAsProjectDetails.includes(project.platform) &&
+      isLaravelInsightsEnabled
+    );
+  }
+
+  const isStarredProjectSelected =
+    location.query.starred === '1' && isSingleProjectSelected;
 
   return (
     <Fragment>
@@ -52,7 +79,17 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
             <SecondaryNav.Item to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}>
               {FRONTEND_SIDEBAR_LABEL}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}>
+            <SecondaryNav.Item
+              isActive={
+                isLinkActive(
+                  `${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`,
+                  location.pathname
+                ) &&
+                // The starred param indicates that the overview is being accessed via the starred projects nav item
+                (!isStarredProjectSelected || !isLaravelInsightsEnabled)
+              }
+              to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}
+            >
               {BACKEND_SIDEBAR_LABEL}
             </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}>
@@ -70,7 +107,21 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
               .map(project => (
                 <SecondaryNav.Item
                   key={project.id}
-                  to={`${baseUrl}/projects/${project.slug}/`}
+                  to={
+                    isUsingOverviewAsProjectDetails(project)
+                      ? {
+                          pathname: `${baseUrl}/backend/`,
+                          search: `?project=${project.id}&starred=1`,
+                        }
+                      : `${baseUrl}/projects/${project.slug}/`
+                  }
+                  isActive={
+                    isUsingOverviewAsProjectDetails(project)
+                      ? isLinkActive(`${baseUrl}/backend/`, location.pathname) &&
+                        isProjectSelectedExclusively(project) &&
+                        isStarredProjectSelected
+                      : undefined
+                  }
                   leadingItems={
                     <StyledProjectIcon
                       projectPlatforms={project.platform ? [project.platform] : []}
