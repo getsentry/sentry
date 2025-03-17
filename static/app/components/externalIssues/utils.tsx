@@ -141,7 +141,7 @@ export function getDynamicFields({
   integrationDetails,
 }: {
   action: ExternalIssueAction;
-  integrationDetails: IntegrationIssueConfig | null;
+  integrationDetails?: IntegrationIssueConfig | null;
 }): {
   [key: string]: FieldValue | null;
 } {
