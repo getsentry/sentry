@@ -233,7 +233,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           groupId={groupId}
           runId={runId}
           responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-          isProcessing={lastStep!.status === 'PROCESSING'}
         />
       )}
     </StepsContainer>
