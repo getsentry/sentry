@@ -133,7 +133,7 @@ export function getDefaultOptions({
 
 /**
  * Convert IntegrationIssueConfig to an object that maps field names to the
- * values of fields where `updatesFrom` is true.
+ * values of fields where `updatesForm` is true.
  * @returns Object of field names to values.
  */
 export function getDynamicFields({
