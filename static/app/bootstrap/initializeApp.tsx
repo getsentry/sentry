@@ -3,6 +3,7 @@ import './exportGlobals';
 
 import type {Config} from 'sentry/types/system';
 import {metric} from 'sentry/utils/analytics';
+import {installPolyfills} from 'sentry/utils/polyfills';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';
@@ -11,6 +12,7 @@ import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
 export function initializeApp(config: Config) {
+  installPolyfills();
   commonInitialization(config);
   initializeSdk(config);
 
