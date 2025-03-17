@@ -131,9 +131,7 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
 
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
-export interface BaseLinkButtonProps
-  extends CommonButtonProps,
-    ElementProps<ButtonElement> {
+interface BaseLinkButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
   /**
    * @internal Used in the Button forwardRef
    */
