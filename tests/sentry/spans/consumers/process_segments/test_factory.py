@@ -44,6 +44,7 @@ def test_segment_deserialized_correctly(mock_process_segment):
         max_batch_size=2,
         max_batch_time=1,
         output_block_size=1,
+        skip_produce=False,
     )
 
     with mock.patch.object(factory, "producer", new=mock.Mock()) as mock_producer:

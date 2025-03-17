@@ -8,16 +8,14 @@ from django.utils import timezone
 from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
-from sentry.api.serializers import serialize
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.incidents.models.incident import Incident
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
@@ -190,7 +188,8 @@ def build_metric_alert_chart(
     alert_rule_serialized_response: AlertRuleSerializerResponse,
     snuba_query: SnubaQuery,
     alert_context: AlertContext,
-    selected_incident: Incident | None = None,
+    open_period_context: OpenPeriodContext | None = None,
+    selected_incident_serialized: DetailedIncidentSerializerResponse | None = None,
     period: str | None = None,
     start: str | None = None,
     end: str | None = None,
@@ -210,9 +209,11 @@ def build_metric_alert_chart(
         else ChartType.SLACK_METRIC_ALERT_EVENTS
     )
 
-    if selected_incident:
+    if open_period_context:
         time_period = incident_date_range(
-            snuba_query.time_window, selected_incident.date_started, selected_incident.date_closed
+            snuba_query.time_window,
+            open_period_context.date_started,
+            open_period_context.date_closed,
         )
     elif start and end:
         time_period = {"start": start, "end": end}
@@ -225,7 +226,7 @@ def build_metric_alert_chart(
 
     chart_data = {
         "rule": alert_rule_serialized_response,
-        "selectedIncident": serialize(selected_incident, user, DetailedIncidentSerializer()),
+        "selectedIncident": selected_incident_serialized,
         "incidents": fetch_metric_issue_open_periods(
             organization,
             alert_context.action_identifier_id,
