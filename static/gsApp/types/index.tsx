@@ -76,7 +76,6 @@ export enum CheckoutType {
 export type DataCategories = (typeof DATA_CATEGORY_INFO)[DataCategoryExact]['plural'];
 
 export type Plan = {
-  adminSelectable: boolean;
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
   /**
@@ -97,6 +96,7 @@ export type Plan = {
   hasOnDemandModes: boolean;
 
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
@@ -826,6 +826,10 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

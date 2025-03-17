@@ -2,7 +2,6 @@ import type {Plan} from 'getsentry/types';
 
 export function PlanFixture(fields: Partial<Plan>): Plan {
   return {
-    adminSelectable: true,
     allowAdditionalReservedEvents: false,
     allowOnDemand: false,
     availableCategories: [],
@@ -15,6 +14,7 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     features: [],
     hasOnDemandModes: false,
     id: 'am2_f',
+    isTestPlan: true,
     maxMembers: 1,
     name: 'Developer',
     onDemandCategories: [],

@@ -6,6 +6,7 @@ const MM1_CATEGORY_DISPLAY_NAMES = {
 
 const MM1_PLANS: Record<string, Plan> = {
   e1_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -48,6 +49,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   e1_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -89,6 +91,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   f1: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -122,6 +125,7 @@ const MM1_PLANS: Record<string, Plan> = {
     features: [],
   },
   l1: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -165,6 +169,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   l1_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -208,6 +213,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   l1_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -251,6 +257,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   m1: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -291,6 +298,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   m1_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -331,6 +339,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   m1_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -371,6 +380,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   s1: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -409,6 +419,7 @@ const MM1_PLANS: Record<string, Plan> = {
     ],
   },
   s1_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
