@@ -97,11 +97,6 @@ describe('useTraces', function () {
           statsPeriod: '3d',
           per_page: 10,
           breakdownSlices: 40,
-          mri: 'd:transactions/duration@millisecond',
-          metricsMax: '456',
-          metricsMin: '123',
-          metricsOp: 'sum',
-          metricsQuery: 'foo:bar',
         }),
       ],
     });
@@ -118,11 +113,6 @@ describe('useTraces', function () {
         },
         limit: 10,
         query: 'foo:bar',
-        mri: 'd:transactions/duration@millisecond',
-        metricsMax: '456',
-        metricsMin: '123',
-        metricsOp: 'sum',
-        metricsQuery: 'foo:bar',
       },
     });
 

@@ -28,7 +28,7 @@ describe('ApiTokenRow', () => {
         token={ApiTokenFixture({id: '1', name: 'token1'})}
       />
     );
-    screen.getByRole('heading', {name: /token1/i});
+    screen.getByText(/token1/);
   });
 
   it('calls onRemove callback when trash can is clicked', async () => {
@@ -47,6 +47,6 @@ describe('ApiTokenRow', () => {
 
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={token} canEdit />);
-    expect(screen.queryByLabelText('Token preview')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token preview')).toBeInTheDocument();
   });
 });

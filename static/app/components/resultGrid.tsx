@@ -52,6 +52,7 @@ class Filter extends Component<FilterProps> {
         onChange={({value}) => {
           if (value === 'any') {
             const query = {...this.props.location.query, cursor: undefined};
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             delete query[this.props.queryKey];
             browserHistory.push({pathname: this.props.path, query});
           } else {
@@ -204,7 +205,7 @@ class ResultGrid extends Component<Props, State> {
     this.setState(
       {
         query: queryParams.query ?? '',
-        sortBy: queryParams.sortBy ?? this.props.defaultSort,
+        sortBy: queryParams.sortBy ?? this.props.defaultSort!,
         filters: {...queryParams},
         pageLinks: null,
         loading: true,
@@ -271,7 +272,7 @@ class ResultGrid extends Component<Props, State> {
   onSearch = (e: React.FormEvent<HTMLFormElement>) => {
     const location = this.props.location ?? {};
     const {query} = this.state;
-    const targetQueryParams = {...(location.query ?? {}), query, cursor: ''};
+    const targetQueryParams = {...location.query, query, cursor: ''};
 
     e.preventDefault();
 
@@ -358,7 +359,7 @@ class ResultGrid extends Component<Props, State> {
             <Filter
               key={filterKey}
               queryKey={filterKey}
-              value={this.state.filters[filterKey]}
+              value={this.state.filters[filterKey]!}
               path={path ?? ''}
               location={location}
               {...(filters?.[filterKey] as FilterConfig)}

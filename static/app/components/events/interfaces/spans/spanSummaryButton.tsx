@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -23,6 +23,7 @@ interface Props {
 function SpanSummaryButton(props: Props) {
   const location = useLocation();
   const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
+  const queryBaseUrl = useModuleURL(ModuleName.DB);
 
   const {event, organization, span} = props;
 
@@ -41,7 +42,7 @@ function SpanSummaryButton(props: Props) {
       <LinkButton
         size="xs"
         to={querySummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          base: queryBaseUrl,
           query: location.query,
           group: sentryTags.group,
           projectID: event.projectID,
@@ -53,7 +54,7 @@ function SpanSummaryButton(props: Props) {
           });
         }}
       >
-        {t('View Query Summary')}
+        {t('View Summary')}
       </LinkButton>
     );
   }
@@ -87,7 +88,7 @@ function SpanSummaryButton(props: Props) {
   return null;
 }
 
-const resourceSummaryAvailable = (op: string = '') =>
+const resourceSummaryAvailable = (op = '') =>
   ['resource.script', 'resource.css'].includes(op);
 
 export default SpanSummaryButton;

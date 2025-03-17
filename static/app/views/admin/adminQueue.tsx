@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -103,9 +103,9 @@ export default function AdminQueue() {
       <div>
         <div className="m-b-1">
           <label>t{'Show details for task:'}</label>
-          <SelectControl
+          <Select
             name="task"
-            onChange={({value}) => changeTask(value)}
+            onChange={({value}: any) => changeTask(value)}
             value={activeTask}
             clearable
             options={taskList.map(value => ({value, label: value}))}

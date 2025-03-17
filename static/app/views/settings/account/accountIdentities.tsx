@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import {Alert} from 'sentry/components/alert';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -25,7 +25,7 @@ import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-const EMPTY_ARRAY = [];
+const EMPTY_ARRAY: any = [];
 const IDENTITIES_ENDPOINT = '/users/me/user-identities/';
 
 function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
@@ -83,11 +83,13 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             confirmText={t('Disconnect')}
             message={
               <Fragment>
-                <Alert type="error" showIcon>
-                  {tct('Disconnect Your [provider] Identity?', {
-                    provider: identity.provider.name,
-                  })}
-                </Alert>
+                <Alert.Container>
+                  <Alert type="error" showIcon>
+                    {tct('Disconnect Your [provider] Identity?', {
+                      provider: identity.provider.name,
+                    })}
+                  </Alert>
+                </Alert.Container>
                 <TextBlock>
                   {identity.isLogin
                     ? t(
@@ -136,6 +138,7 @@ function AccountIdentities() {
   const appIdentities = useMemo(
     () =>
       identities
+        // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
         .filter(identity => identity.category !== UserIdentityCategory.ORG_IDENTITY)
         .sort(itemOrder),
     [identities]
@@ -144,6 +147,7 @@ function AccountIdentities() {
   const orgIdentities = useMemo(
     () =>
       identities
+        // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
         .filter(identity => identity.category === UserIdentityCategory.ORG_IDENTITY)
         .sort(itemOrder),
     [identities]
@@ -180,13 +184,8 @@ function AccountIdentities() {
       <Panel>
         <PanelHeader>{t('Application Identities')}</PanelHeader>
         <PanelBody>
-          {!appIdentities.length ? (
-            <EmptyMessage>
-              {t(
-                'There are no application identities associated with your Sentry account'
-              )}
-            </EmptyMessage>
-          ) : (
+          {appIdentities.length ? (
+            // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
             appIdentities.map(identity => (
               <IdentityItem
                 key={identity.id}
@@ -194,6 +193,12 @@ function AccountIdentities() {
                 onDisconnect={handleDisconnect}
               />
             ))
+          ) : (
+            <EmptyMessage>
+              {t(
+                'There are no application identities associated with your Sentry account'
+              )}
+            </EmptyMessage>
           )}
         </PanelBody>
       </Panel>
@@ -201,13 +206,8 @@ function AccountIdentities() {
       <Panel>
         <PanelHeader>{t('Organization Identities')}</PanelHeader>
         <PanelBody>
-          {!orgIdentities.length ? (
-            <EmptyMessage>
-              {t(
-                'There are no organization identities associated with your Sentry account'
-              )}
-            </EmptyMessage>
-          ) : (
+          {orgIdentities.length ? (
+            // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
             orgIdentities.map(identity => (
               <IdentityItem
                 key={identity.id}
@@ -215,6 +215,12 @@ function AccountIdentities() {
                 onDisconnect={handleDisconnect}
               />
             ))
+          ) : (
+            <EmptyMessage>
+              {t(
+                'There are no organization identities associated with your Sentry account'
+              )}
+            </EmptyMessage>
           )}
         </PanelBody>
       </Panel>

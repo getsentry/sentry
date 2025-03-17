@@ -1,4 +1,4 @@
-import {Children, isValidElement} from 'react';
+import {Children, isValidElement, useEffect} from 'react';
 import {
   Navigate,
   type NavigateProps,
@@ -6,6 +6,7 @@ import {
   type RouteObject,
   useOutletContext,
 } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
@@ -17,7 +18,7 @@ import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 
 function isValidComponent(
-  element: JSX.Element
+  element: React.JSX.Element
 ): element is React.ReactElement<any, React.NamedExoticComponent<any>> {
   return typeof element.type !== 'string';
 }
@@ -41,7 +42,7 @@ function withReactRouter3Props(Component: React.ComponentType<any>) {
     const router = useRouter();
     const routes = useRoutes();
     const location = useLocation();
-    const outletContext = useOutletContext<{}>();
+    const outletContext = useOutletContext<Record<string, unknown>>();
 
     return (
       <Component
@@ -59,7 +60,7 @@ function withReactRouter3Props(Component: React.ComponentType<any>) {
   return WithReactRouter3Props;
 }
 
-function NoOp({children}: {children: JSX.Element}) {
+function NoOp({children}: {children: React.JSX.Element}) {
   return children;
 }
 
@@ -75,6 +76,21 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
  */
 function Redirect({to, ...rest}: RedirectProps) {
   const params = useParams();
+  const routes = useRoutes();
+
+  // Capture sentry error for this redirect. This will help us understand if we
+  // have redirects that are unused or used too much.
+  useEffect(() => {
+    const routePath = routes
+      .map(route => route.path ?? '')
+      .filter(path => path !== '')
+      .join('/');
+
+    Sentry.captureMessage('Redirect route used', {
+      level: 'info',
+      tags: {routePath},
+    });
+  }, [routes]);
 
   return <Navigate to={replaceRouterParams(to, params)} {...rest} />;
 }
@@ -94,7 +110,7 @@ function getElement(Component: React.ComponentType<any> | undefined) {
  * Transforms a react-router 3 style route tree into a valid react-router 6
  * router tree.
  */
-export function buildReactRouter6Routes(tree: JSX.Element) {
+export function buildReactRouter6Routes(tree: React.JSX.Element) {
   const routes: RouteObject[] = [];
 
   Children.forEach(tree, routeNode => {

@@ -23,7 +23,7 @@ describe('ScreensOverview', () => {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
     query: {
       project: project.id,
     },
@@ -49,7 +49,7 @@ describe('ScreensOverview', () => {
   });
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
-    project: project,
+    project,
     isProjectCrossPlatform: true,
     selectedPlatform: 'Android',
   });
@@ -164,6 +164,8 @@ describe('ScreensOverview', () => {
     render(<ScreensOverview />, {organization});
     await waitFor(() => {
       expect(transactionMetricsMock).toHaveBeenCalled();
+    });
+    await waitFor(() => {
       expect(spanMetricsMock).toHaveBeenCalled();
     });
   });

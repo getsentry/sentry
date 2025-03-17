@@ -1,10 +1,8 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -23,12 +21,16 @@ describe('EventGraph', () => {
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
   const persistantQuery = `issue:${group.shortId}`;
-  const defaultProps = {group, event};
+  const defaultProps = {group, event, project};
 
   let mockEventStats: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
@@ -37,6 +39,10 @@ describe('EventGraph', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
     });
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -60,7 +66,16 @@ describe('EventGraph', () => {
   });
 
   it('displays allows toggling data sets', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     const eventsToggle = screen.getByRole('button', {
@@ -92,7 +107,16 @@ describe('EventGraph', () => {
   });
 
   it('renders the graph using a discover event stats query', async function () {
-    render(<EventGraph {...defaultProps} />, {organization});
+    render(<EventGraph {...defaultProps} />, {
+      organization,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(mockEventStats).toHaveBeenCalledWith(
@@ -115,8 +139,17 @@ describe('EventGraph', () => {
     );
   });
 
-  it('allows filtering by environment', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+  it('allows filtering by environment, and shows unfiltered stats', async function () {
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
@@ -130,34 +163,63 @@ describe('EventGraph', () => {
         }),
       })
     );
+    // Also makes request without environment filter
+    expect(mockEventStats).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+        }),
+      })
+    );
   });
 
   it('updates query from location param change', async function () {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-    const locationQuery = {
-      query: {
-        query: `${tagKey}:${tagValue}`,
-      },
-    };
-    const router = RouterFixture({
-      location: LocationFixture(locationQuery),
-    });
+    const query = `${tagKey}:${tagValue}`;
 
-    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d', query},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: [persistantQuery, locationQuery.query.query].join(' '),
+          query: [persistantQuery, query].join(' '),
+        }),
+      })
+    );
+    // Also makes request without tag filter
+    expect(mockEventStats).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: persistantQuery,
         }),
       })
     );
   });
 
   it('allows filtering by date', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
@@ -182,11 +244,20 @@ describe('EventGraph', () => {
       statusCode: 400,
     });
 
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     await screen.findByRole('button', {name: '14D'});
 
     expect(mockStats).toHaveBeenCalled();
-    expect(screen.getByText(RegExp(errorMessage))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(errorMessage))).toBeInTheDocument();
     // Omit the graph
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });

@@ -11,7 +11,7 @@ export function formatQueryString(query: string): string {
 
 export function addQueryParamsToExistingUrl(
   origUrl: string,
-  queryParams: object
+  queryParams: Record<PropertyKey, unknown>
 ): string {
   const url = safeURL(origUrl);
 
@@ -28,7 +28,7 @@ export function addQueryParamsToExistingUrl(
   return `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
 }
 
-type QueryValue = string | string[] | undefined | null;
+export type QueryValue = string | string[] | undefined | null;
 
 /**
  * Append a tag key:value to a query string.

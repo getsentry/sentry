@@ -7,7 +7,8 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -34,7 +35,7 @@ class PagerDutyClientTest(APITestCase):
 
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -121,17 +122,15 @@ class PagerDutyClientTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "pagerduty"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "pagerduty", "status": 200},
-            )
+            ),
         ]
         assert self.metrics.incr.mock_calls == calls
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_send_trigger_custom_severity(self):
@@ -178,10 +177,11 @@ class PagerDutyClientTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "pagerduty"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "pagerduty", "status": 200},
-            )
+            ),
         ]
         assert self.metrics.incr.mock_calls == calls

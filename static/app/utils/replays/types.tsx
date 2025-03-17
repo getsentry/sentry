@@ -1,4 +1,11 @@
-import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {
+  EventType,
+  type eventWithTime as TEventWithTime,
+  IncrementalSource,
+  MouseInteractions,
+} from '@sentry-internal/rrweb';
+
+import type {Event} from 'sentry/types/event';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
@@ -69,6 +76,20 @@ type MobileBreadcrumbTypes =
       type: string;
     }
   | {
+      category: 'ui.swipe';
+      data: any;
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'ui.scroll';
+      data: any;
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
       category: 'device.battery';
       data: {charging: boolean; level: number};
       timestamp: number;
@@ -132,6 +153,33 @@ export function isRecordingFrame(
   return 'type' in attachment && 'timestamp' in attachment;
 }
 
+export function isRRWebChangeFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.FullSnapshot ||
+    (frame.type === EventType.IncrementalSnapshot &&
+      frame.data.source === IncrementalSource.Mutation)
+  );
+}
+export function isTouchStartFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === MouseInteractions.TouchStart
+  );
+}
+
+export function isTouchEndFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === MouseInteractions.TouchEnd
+  );
+}
+
+export function isMetaFrame(frame: RecordingFrame) {
+  return frame.type === EventType.Meta;
+}
+
 export function isBreadcrumbFrameEvent(
   attachment: Record<string, any>
 ): attachment is BreadcrumbFrameEvent {
@@ -164,6 +212,10 @@ export function isBreadcrumbFrame(
 
 export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'feedback');
+}
+
+export function isHydrateCrumb(item: BreadcrumbFrame | Event): item is BreadcrumbFrame {
+  return 'category' in item && item.category === 'replay.hydrate-error';
 }
 
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
@@ -320,6 +372,8 @@ export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
+export type SwipeFrame = HydratedBreadcrumb<'ui.swipe'>;
+export type ScrollFrame = HydratedBreadcrumb<'ui.scroll'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -356,6 +410,8 @@ export const BreadcrumbCategories = [
   'ui.blur',
   'ui.click',
   'ui.tap',
+  'ui.swipe',
+  'ui.scroll',
   'ui.focus',
   'ui.input',
   'ui.keyDown',

@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -20,7 +20,7 @@ import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrat
 export type CreateNewIntegrationModalOptions = {organization: Organization};
 type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;
 
-const analyticsView = 'new_integration_modal' as const;
+const analyticsView = 'new_integration_modal';
 
 function CreateNewIntegrationModal({
   Body,
@@ -83,7 +83,7 @@ function CreateNewIntegrationModal({
         )}
       </RadioChoiceDescription>,
     ],
-  ] as [string, ReactNode, ReactNode][];
+  ] as Array<[string, ReactNode, ReactNode]>;
 
   return (
     <Fragment>

@@ -1,18 +1,22 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
-import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {
   type ProjectionSamplePeriod,
@@ -22,13 +26,16 @@ import {
   useGetSamplingProjectRates,
   useUpdateSamplingProjectRates,
 } from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = projectSamplingForm;
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 
 export function ProjectSampling() {
-  const {hasAccess} = useAccess({access: ['org:write']});
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
+  const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
 
   const sampleRatesQuery = useGetSamplingProjectRates();
   const sampleCountsQuery = useProjectSampleCounts({period});
@@ -49,28 +56,53 @@ export function ProjectSampling() {
   const initialValues = useMemo(() => ({projectRates}), [projectRates]);
 
   const formState = useFormState({
-    initialValues: initialValues,
+    initialValues,
     enableReInitialize: true,
   });
+
+  const handleReset = () => {
+    formState.reset();
+    setEditMode('single');
+  };
 
   const handleSubmit = () => {
     const ratesArray = Object.entries(formState.fields.projectRates.value).map(
       ([id, rate]) => ({
         id: Number(id),
-        sampleRate: Number(rate) / 100,
+        sampleRate: parsePercent(rate),
       })
     );
     addLoadingMessage(t('Saving changes...'));
     updateSamplingProjectRates.mutate(ratesArray, {
       onSuccess: () => {
         formState.save();
+        setEditMode('single');
         addSuccessMessage(t('Changes applied'));
       },
       onError: () => {
-        addLoadingMessage(t('Unable to save changes. Please try again.'));
+        addErrorMessage(t('Unable to save changes. Please try again.'));
       },
     });
   };
+
+  const initialTargetRate = useMemo(() => {
+    const sampleRates = sampleRatesQuery.data ?? [];
+    const spanCounts = sampleCountsQuery.data ?? [];
+    const totalSpanCount = spanCounts.reduce((acc, item) => acc + item.count, 0);
+
+    const spanCountsById = mapArrayToObject({
+      array: spanCounts,
+      keySelector: item => item.project.id,
+      valueSelector: item => item.count,
+    });
+
+    return (
+      sampleRates.reduce((acc, item) => {
+        const count = spanCountsById[item.id] ?? 0;
+        return acc + count * item.sampleRate;
+      }, 0) / totalSpanCount
+    );
+  }, [sampleRatesQuery.data, sampleCountsQuery.data]);
 
   const isFormActionDisabled =
     !hasAccess ||
@@ -80,56 +112,52 @@ export function ProjectSampling() {
 
   return (
     <FormProvider formState={formState}>
-      <form onSubmit={event => event.preventDefault()}>
-        <Panel>
-          <PanelHeader>{t('Manual Sampling')}</PanelHeader>
-          <PanelBody>
-            <SamplingModeField />
-          </PanelBody>
-        </Panel>
-        <HeadingRow>
-          <h4>{t('Customize Projects')}</h4>
-          <Tooltip
-            title={t(
-              'The time period for which the projected sample rates are calculated.'
-            )}
-          >
-            <SegmentedControl
-              label={t('Stats period')}
-              value={period}
-              onChange={setPeriod}
-              size="xs"
-            >
-              <SegmentedControl.Item key="24h">{t('24h')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="30d">{t('30d')}</SegmentedControl.Item>
-            </SegmentedControl>
-          </Tooltip>
-        </HeadingRow>
-        <p>{t('Set custom rates for traces starting at each of your projects.')}</p>
-        {sampleCountsQuery.isError ? (
-          <LoadingError onRetry={sampleCountsQuery.refetch} />
-        ) : (
-          <ProjectsEditTable
-            isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-            sampleCounts={sampleCountsQuery.data}
-          />
-        )}
-        <FormActions>
-          <Button disabled={isFormActionDisabled} onClick={formState.reset}>
-            {t('Reset')}
-          </Button>
-          <Button
-            priority="primary"
-            disabled={isFormActionDisabled}
-            onClick={handleSubmit}
-          >
-            {t('Apply Changes')}
-          </Button>
-        </FormActions>
-      </form>
+      <OnRouteLeave
+        message={UNSAVED_CHANGES_MESSAGE}
+        when={locationChange =>
+          locationChange.currentLocation.pathname !==
+            locationChange.nextLocation.pathname && formState.hasChanged
+        }
+      />
+      <MainControlBar>
+        <ProjectionPeriodControl period={period} onChange={setPeriod} />
+        <SamplingModeSwitch initialTargetRate={initialTargetRate} />
+      </MainControlBar>
+      {sampleCountsQuery.isError ? (
+        <LoadingError onRetry={sampleCountsQuery.refetch} />
+      ) : (
+        <ProjectsEditTable
+          period={period}
+          editMode={editMode}
+          onEditModeChange={setEditMode}
+          isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+          sampleCounts={sampleCountsQuery.data}
+          actions={
+            <Fragment>
+              <Button disabled={isFormActionDisabled} onClick={handleReset}>
+                {t('Reset')}
+              </Button>
+              <Button
+                priority="primary"
+                disabled={isFormActionDisabled || !formState.isValid}
+                onClick={handleSubmit}
+              >
+                {t('Apply Changes')}
+              </Button>
+            </Fragment>
+          }
+        />
+      )}
+      <FormActions />
     </FormProvider>
   );
 }
+
+const MainControlBar = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1.5)};
+`;
 
 const FormActions = styled('div')`
   display: grid;
@@ -137,16 +165,4 @@ const FormActions = styled('div')`
   gap: ${space(1)};
   justify-content: flex-end;
   padding-bottom: ${space(4)};
-`;
-
-const HeadingRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: ${space(3)};
-  padding-bottom: ${space(1.5)};
-
-  & > * {
-    margin: 0;
-  }
 `;

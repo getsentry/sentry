@@ -2,39 +2,6 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 
-class ReleaseOptional(TypedDict, total=False):
-    status: int | None
-    project_id: int | None
-    ref: str | None
-    url: str | None
-    date_started: datetime | None
-    date_released: datetime | None
-    owner_id: int | None
-    commit_count: int | None
-    last_commit_id: int | None
-    authors: list[int] | None
-    total_deploys: int | None
-    last_deploy_id: int | None
-    package: str | None
-    major: int | None
-    minor: int | None
-    patch: int | None
-    revision: int | None
-    prerelease: str | None
-    build_code: str | None
-    build_number: int | None
-    user_agent: str | None
-
-
-class ReleaseTypedDict(ReleaseOptional):
-    organization: int
-    projects: list[int]
-    version: str
-    date_added: datetime
-    data: dict[str, Any]
-    new_groups: int
-
-
 class VersionInfoOptional(TypedDict, total=False):
     description: str
 

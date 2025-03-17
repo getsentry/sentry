@@ -8,9 +8,9 @@ import {PlatformIcon} from 'platformicons';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
@@ -18,7 +18,6 @@ import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -32,6 +31,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -44,6 +44,7 @@ import IssueAlertOptions, {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
@@ -75,7 +76,7 @@ function CreateProject() {
   );
   const [team, setTeam] = useState(
     autoFill
-      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      ? (gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug)
       : accessTeams?.[0]?.slug
   );
 
@@ -121,6 +122,7 @@ function CreateProject() {
             name: projectName,
             platform: selectedPlatform.key,
             default_rules: defaultRules ?? true,
+            origin: 'ui',
           },
         });
 
@@ -162,42 +164,34 @@ function CreateProject() {
           project_id: projectData.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
-          has_onboarding_feature_flag: organization.features.includes(
-            'messaging-integration-onboarding-project-creation'
-          ),
-          created_integration_notification: shouldCreateRule ?? false,
         });
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
-          addSuccessMessage(
-            tct('Created project [project]', {
-              project: `${projectData.slug}`,
-            })
-          );
+          addSuccessMessage(t('Created project %s', `${projectData.slug}`));
         } else {
           addSuccessMessage(
-            tct('Created [project] under new team [team]', {
-              project: `${projectData.slug}`,
-              team: `#${projectData.team_slug}`,
-            })
+            t(
+              'Created %s under new team %s',
+              `${projectData.slug}`,
+              `#${projectData.team_slug}`
+            )
           );
         }
 
         browserHistory.push(
           normalizeUrl(
-            `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
+            makeProjectsPathname({
+              orgSlug: organization.slug,
+              path: `/${projectData.slug}/getting-started/`,
+            })
           )
         );
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
-        addErrorMessage(
-          tct('Failed to create project [project]', {
-            project: `${projectName}`,
-          })
-        );
+        addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -286,7 +280,7 @@ function CreateProject() {
   }
 
   const {shouldCreateRule, shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -296,7 +290,6 @@ function CreateProject() {
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
-    organization.features.includes('messaging-integration-onboarding-project-creation') &&
     shouldCreateRule &&
     notificationProps.actions?.some(
       action => action === MultipleCheckboxOptions.INTEGRATION
@@ -325,7 +318,7 @@ function CreateProject() {
     );
   }
 
-  const keyToErrorText = {
+  const keyToErrorText: Record<string, string> = {
     actions: t('Notify via integration'),
     conditions: t('Alert conditions'),
     name: t('Alert name'),
@@ -346,14 +339,14 @@ function CreateProject() {
     }
 
     if (
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
     ) {
       return {
         alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
-        interval: String(alertRules?.[0].conditions?.[0].interval),
-        threshold: String(alertRules?.[0].conditions?.[0].value),
-        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+        interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
+        threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
+        metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
           ? MetricValues.ERRORS
           : MetricValues.USERS,
       };
@@ -429,7 +422,7 @@ function CreateProject() {
                     clearable={false}
                     value={team}
                     placeholder={t('Select a Team')}
-                    onChange={choice => setTeam(choice.value)}
+                    onChange={(choice: any) => setTeam(choice.value)}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
                   />
                 </TeamSelectInput>
@@ -450,13 +443,16 @@ function CreateProject() {
           </CreateProjectForm>
 
           {errors && (
-            <Alert type="error">
-              {Object.keys(errors).map(key => (
-                <div key={key}>
-                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>: {errors[key]}
-                </div>
-              ))}
-            </Alert>
+            <Alert.Container>
+              <Alert type="error">
+                {Object.keys(errors).map(key => (
+                  <div key={key}>
+                    <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
+                    {(errors as any)[key]}
+                  </div>
+                ))}
+              </Alert>
+            </Alert.Container>
           )}
         </List>
       </div>

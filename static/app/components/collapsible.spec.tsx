@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Button} from 'sentry/components/core/button';
 
 const items = [1, 2, 3, 4, 5, 6, 7].map(i => <div key={i}>Item {i}</div>);
 
@@ -10,7 +10,7 @@ describe('Collapsible', function () {
     render(<Collapsible>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
-    expect(screen.getAllByText(/Item/)[2].innerHTML).toBe('Item 3');
+    expect(screen.getAllByText(/Item/)[2]!.innerHTML).toBe('Item 3');
 
     expect(screen.getByLabelText('Show 2 hidden items')).toBeInTheDocument();
     expect(screen.queryByLabelText('Collapse')).not.toBeInTheDocument();

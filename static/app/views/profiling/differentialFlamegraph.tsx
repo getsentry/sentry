@@ -81,7 +81,6 @@ function DifferentialFlamegraphView() {
     breakpoint: location.query.breakpoint as unknown as number,
     environments: selection.selection.environments,
     fingerprint: location.query.fingerprint as unknown as string,
-    transaction: location.query.transaction as unknown as string,
   });
 
   const differentialFlamegraph = useDifferentialFlamegraphModel({
@@ -131,7 +130,7 @@ function DifferentialFlamegraphView() {
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [differentialFlamegraph.differentialFlamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
@@ -299,6 +298,7 @@ function DifferentialFlamegraphView() {
           }
           flamegraph={
             <FlamegraphZoomView
+              scheduler={scheduler}
               profileGroup={
                 differentialFlamegraph.afterProfileGroup ?? LOADING_PROFILE_GROUP
               }

@@ -83,11 +83,11 @@ describe('ProjectPageFilter', function () {
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
     // Deselect project-1 & project-2 by clicking on their checkboxes
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
 
     // Select project-3 by clicking on its checkbox
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -147,14 +147,12 @@ describe('ProjectPageFilter', function () {
 
     // Move focus to "Bookmark Project" button
     await userEvent.keyboard('{ArrowRight}');
-    expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
-    ).toHaveFocus();
+    expect(within(optionOne).getByRole('button', {name: 'Bookmark'})).toHaveFocus();
 
     // Activate the button
     await userEvent.keyboard('{Enter}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
+      within(optionOne).getByRole('button', {name: 'Remove Bookmark'})
     ).toHaveAttribute('aria-pressed', 'true');
     expect(mockApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project-1/`,

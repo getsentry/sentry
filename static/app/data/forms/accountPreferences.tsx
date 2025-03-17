@@ -2,13 +2,14 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';
 
 // Called before sending API request, these fields need to be sent as an
 // `options` object
-const transformOptions = (data: object) => ({options: data});
+const transformOptions = (data: Record<PropertyKey, unknown>) => ({options: data});
 
 const formGroups: JsonFormObject[] = [
   {
@@ -28,6 +29,9 @@ const formGroups: JsonFormObject[] = [
           {value: 'system', label: t('Default to system')},
         ],
         getData: transformOptions,
+        onChange: () => {
+          removeBodyTheme();
+        },
       },
       {
         name: 'language',

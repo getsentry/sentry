@@ -82,12 +82,12 @@ describe('OrganizationTeamProjects', function () {
       organization,
     });
 
-    const stars = await screen.findAllByRole('button', {name: 'Bookmark Project'});
+    const stars = await screen.findAllByRole('button', {name: 'Bookmark'});
     expect(stars).toHaveLength(2);
 
-    await userEvent.click(stars[0]);
+    await userEvent.click(stars[0]!);
     expect(
-      screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
+      screen.getByRole('button', {name: 'Remove Bookmark', pressed: true})
     ).toBeInTheDocument();
 
     expect(putMock).toHaveBeenCalledTimes(1);
@@ -114,7 +114,7 @@ describe('OrganizationTeamProjects', function () {
 
     // find second project's remove button
     const removeButtons = await screen.findAllByRole('button', {name: 'Remove'});
-    await userEvent.click(removeButtons[1]);
+    await userEvent.click(removeButtons[1]!);
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });

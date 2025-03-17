@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -187,37 +187,39 @@ export function TimeRangeSelector({
   });
 
   const getOptions = useCallback(
-    (items: Item[]): SelectOption<string>[] => {
-      // Return the default options if there's nothing in search
-      if (!search) {
-        return items.map(item => {
-          if (item.value === 'absolute') {
-            return {
-              value: item.value,
-              // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
-              // TODO: Remove SelectorItemLabel & OptionLabel
-              label: <OptionLabel>{item.label}</OptionLabel>,
-              details:
-                start && end ? (
-                  <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
-                ) : null,
-              trailingItems: ({isFocused, isSelected}) => (
-                <IconArrow
-                  direction="right"
-                  size="xs"
-                  color={isFocused || isSelected ? undefined : 'subText'}
-                />
-              ),
-              textValue: item.searchKey,
-            };
-          }
-
+    (items: Item[]): Array<SelectOption<string>> => {
+      const makeOption = (item: Item): SelectOption<string> => {
+        if (item.value === 'absolute') {
           return {
             value: item.value,
+            // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
+            // TODO: Remove SelectorItemLabel & OptionLabel
             label: <OptionLabel>{item.label}</OptionLabel>,
+            details:
+              start && end ? (
+                <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
+              ) : null,
+            trailingItems: ({isFocused, isSelected}) => (
+              <IconArrow
+                direction="right"
+                size="xs"
+                color={isFocused || isSelected ? undefined : 'subText'}
+              />
+            ),
             textValue: item.searchKey,
           };
-        });
+        }
+
+        return {
+          value: item.value,
+          label: <OptionLabel>{item.label}</OptionLabel>,
+          textValue: item.searchKey,
+        };
+      };
+
+      // Return the default options if there's nothing in search
+      if (!search) {
+        return items.map(makeOption);
       }
 
       const filteredItems = disallowArbitraryRelativeRanges
@@ -229,11 +231,7 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map<SelectOption<string>>(item => ({
-        value: item.value,
-        label: item.label,
-        textValue: item.searchKey,
-      }));
+      return filteredItems.map(makeOption);
     },
     [
       start,
@@ -247,7 +245,9 @@ export function TimeRangeSelector({
   );
 
   const commitChanges = useCallback(() => {
-    showRelative && setShowAbsoluteSelector(false);
+    if (showRelative) {
+      setShowAbsoluteSelector(false);
+    }
     setSearch('');
 
     if (!hasChanges) {
@@ -310,7 +310,7 @@ export function TimeRangeSelector({
               defaultOptions: DEFAULT_RELATIVE_PERIODS,
               arbitraryOptions: arbitraryRelativePeriods,
             })
-          : relativeOptions ?? defaultRelativePeriods
+          : (relativeOptions ?? defaultRelativePeriods)
       )}
       handleSelectRelative={value => handleChange({value})}
     >
@@ -324,13 +324,13 @@ export function TimeRangeSelector({
             setSearch(s);
           }}
           searchPlaceholder={
-            searchPlaceholder ?? disallowArbitraryRelativeRanges
+            (searchPlaceholder ?? disallowArbitraryRelativeRanges)
               ? t('Search…')
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
-          value={start && end ? ABSOLUTE_OPTION_VALUE : relative ?? ''}
+          value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
           onChange={handleChange}
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
@@ -369,7 +369,7 @@ export function TimeRangeSelector({
               );
             })
           }
-          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
+          menuWidth={showAbsoluteSelector ? undefined : (menuWidth ?? '16rem')}
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>

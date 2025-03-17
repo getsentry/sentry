@@ -4,8 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
@@ -27,12 +27,12 @@ function SamplingModal(props: Props) {
 
   const project = projects.find(p => `${eventView.project[0]}` === p.id);
 
-  const choices: [string, ReactNode][] = [
+  const choices: Array<[string, ReactNode]> = [
     ['true', t('Automatically switch to sampled data when required')],
     ['false', t('Always show sampled data')],
   ];
 
-  const [choice, setChoice] = useState(choices[isMEPEnabled ? 0 : 1][0]);
+  const [choice, setChoice] = useState(choices[isMEPEnabled ? 0 : 1]![0]);
 
   return (
     <Fragment>

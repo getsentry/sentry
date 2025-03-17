@@ -5,7 +5,7 @@ import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/ta
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -66,7 +66,7 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
         .map(key => [
           key,
           {
-            ...supportedTags[key],
+            ...supportedTags[key]!,
             kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
           },
         ])
@@ -79,7 +79,7 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
   // To guarantee ordering, we need to implement filterKeySections.
   const keys = Object.keys(allTags);
   keys.sort();
-  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
+  return Object.fromEntries(keys.map(key => [key, allTags[key]!]));
 }
 
 const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
@@ -132,9 +132,9 @@ export default function FeedbackSearch() {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: start,
-      end: end,
-      statsPeriod: statsPeriod,
+      start,
+      end,
+      statsPeriod,
     },
     {}
   );
@@ -164,9 +164,9 @@ export default function FeedbackSearch() {
       }
 
       const endpointParams = {
-        start: start,
-        end: end,
-        statsPeriod: statsPeriod,
+        start,
+        end,
+        statsPeriod,
       };
 
       return fetchTagValues({
@@ -177,7 +177,8 @@ export default function FeedbackSearch() {
         projectIds: projectIds?.map(String),
         endpointParams,
       }).then(
-        tagValues => (tagValues as TagValue[]).map(({value}) => value),
+        tagValues =>
+          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }
@@ -189,7 +190,7 @@ export default function FeedbackSearch() {
   const navigate = useNavigate();
 
   const onSearch = useCallback(
-    searchQuery => {
+    (searchQuery: any) => {
       navigate({
         pathname,
         query: {

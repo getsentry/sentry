@@ -319,7 +319,7 @@ export function initializeUrlState({
     if (projects && projects.length > 0) {
       // If there is a list of projects from URL params, select first project
       // from that list
-      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
+      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]!];
     } else {
       // When we have finished loading the organization into the props,  i.e.
       // the organization slug is consistent with the URL param--Sentry will
@@ -361,7 +361,7 @@ export function initializeUrlState({
 
   const pinnedFilters = organization.features.includes('new-page-filter')
     ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
-    : storedPageFilters?.pinnedFilters ?? new Set();
+    : (storedPageFilters?.pinnedFilters ?? new Set());
 
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
   if (shouldUpdateLocalStorage) {
@@ -532,7 +532,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
     return;
   }
 
-  const targetFilter = filter !== null ? [filter] : [];
+  const targetFilter = filter === null ? [] : [filter];
   setPageFiltersStorage(
     orgSlug,
     new Set<PinnedPageFilter>(targetFilter),
@@ -663,7 +663,7 @@ function getNewQueryParams(
   });
 
   // Extract non page filter parameters.
-  const cursorParam = !keepCursor ? 'cursor' : null;
+  const cursorParam = keepCursor ? null : 'cursor';
   const omittedParameters = [...Object.values(URL_PARAM), cursorParam].filter(defined);
 
   const extraParams = omit(cleanCurrentQuery, omittedParameters);

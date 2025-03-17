@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -72,7 +72,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
 
-  featureTags(features: Pick<IntegrationFeature, 'featureGate'>[]) {
+  featureTags(features: Array<Pick<IntegrationFeature, 'featureGate'>>) {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
@@ -97,6 +97,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
   renderPermissions() {
     const permissions = this.permissions;
     if (
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
     ) {
       return null;
@@ -162,7 +163,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
     return (
       <Fragment>
         <Heading>
-          <SentryAppIcon sentryApp={sentryApp} size={50} />
+          <SentryAppAvatar sentryApp={sentryApp} size={50} />
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}
@@ -276,7 +277,7 @@ const Title = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
+const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
 `;

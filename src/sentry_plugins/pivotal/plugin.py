@@ -179,14 +179,6 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     def get_issue_url(self, group, issue_id: str) -> str:
         return "https://www.pivotaltracker.com/story/show/%s" % issue_id
 
-    def get_issue_title_by_id(self, request: Request, group, issue_id):
-        _url = "{}/{}".format(self.build_api_url(group, "stories"), issue_id)
-        req = self.make_api_request(group.project, _url)
-
-        body = safe_urlread(req)
-        json_resp = json.loads(body)
-        return json_resp["name"]
-
     def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = (

@@ -4,9 +4,14 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {
+  ItemType,
+  type SearchGroup,
+  type SearchItem,
+} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   type CustomComboboxMenu,
@@ -44,11 +49,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import {
-  ItemType,
-  type SearchGroup,
-  type SearchItem,
-} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -56,7 +56,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -65,7 +65,7 @@ type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
-  wrapperRef: React.RefObject<HTMLDivElement>;
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
 function isStringFilterValues(
@@ -107,7 +107,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
     parsed.items
       .map(item =>
         item.value?.quoted
-          ? item.value?.text ?? ''
+          ? (item.value?.text ?? '')
           : cleanFilterValue({valueType, value: item.value?.text ?? ''})
       )
       .filter(text => text?.length) ?? [];
@@ -116,7 +116,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
 
   return uniqueValues.length > 1
     ? `[${uniqueValues.join(',')}]`
-    : uniqueValues[0] ?? '""';
+    : (uniqueValues[0] ?? '""');
 }
 
 function getSelectedValuesFromText(
@@ -230,7 +230,7 @@ function tokenSupportsMultipleValues(
   fieldDefinition: FieldDefinition | null
 ): boolean {
   switch (token.filter) {
-    case FilterType.TEXT:
+    case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
       const key = keys[getKeyName(token.key)];
@@ -240,6 +240,7 @@ function tokenSupportsMultipleValues(
 
       const valueType = getFilterValueType(token, fieldDefinition);
       return valueType === FieldValueType.STRING;
+    }
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -267,7 +268,7 @@ function useSelectionIndex({
   canSelectMultipleValues,
 }: {
   canSelectMultipleValues: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   inputValue: string;
 }) {
   const [selectionIndex, setSelectionIndex] = useState<number | null>(
@@ -281,10 +282,10 @@ function useSelectionIndex({
   }, [canSelectMultipleValues, inputValue]);
 
   const updateSelectionIndex = useCallback(() => {
-    if (inputRef.current?.selectionStart !== inputRef.current?.selectionEnd) {
-      setSelectionIndex(null);
-    } else {
+    if (inputRef.current?.selectionStart === inputRef.current?.selectionEnd) {
       setSelectionIndex(inputRef.current?.selectionStart ?? null);
+    } else {
+      setSelectionIndex(null);
     }
   }, [inputRef]);
 
@@ -326,17 +327,17 @@ function useFilterSuggestions({
     fieldDefinition
   );
 
-  const queryKey = useMemo<QueryKey>(
-    () => ['search-query-builder-tag-values', keyName, filterValue],
-    [filterValue, keyName]
+  const queryParams = useMemo(
+    () => [key ? key : {key: keyName, name: keyName}, filterValue] as const,
+    [filterValue, key, keyName]
   );
-
-  const debouncedQueryKey = useDebouncedValue(queryKey);
 
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: debouncedQueryKey,
-    queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
+    queryKey: useDebouncedValue(
+      useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
+    ),
+    queryFn: () => getTagValues(...queryParams),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
@@ -350,7 +351,7 @@ function useFilterSuggestions({
         textValue: suggestion.value,
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
-        trailingItems: ({isFocused, disabled}) => {
+        trailingItems: ({isFocused, disabled}: any) => {
           if (!canSelectMultipleValues) {
             return null;
           }
@@ -374,7 +375,7 @@ function useFilterSuggestions({
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
     return shouldFetchValues
       ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : predefinedValues ?? [];
+      : (predefinedValues ?? []);
   }, [data, predefinedValues, shouldFetchValues]);
 
   // Grouped sections for rendering purposes
@@ -447,7 +448,7 @@ function ItemCheckbox({
           onChange={() => {
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
-              token: token,
+              token,
               value: escapeTagValue(value),
             });
           }}
@@ -596,7 +597,7 @@ export function SearchQueryBuilderValueCombobox({
 
           dispatch({
             type: 'UPDATE_TOKEN_VALUE',
-            token: token,
+            token,
             value: newValue,
           });
 
@@ -609,7 +610,7 @@ export function SearchQueryBuilderValueCombobox({
 
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token,
+          token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
             replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
@@ -622,7 +623,7 @@ export function SearchQueryBuilderValueCombobox({
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token,
+          token,
           value: cleanedValue,
         });
         onCommit();
@@ -681,7 +682,7 @@ export function SearchQueryBuilderValueCombobox({
       if (!value && !token.value.text) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token,
+          token,
           value: getDefaultFilterValue({fieldDefinition}),
         });
         onCommit();
@@ -797,7 +798,7 @@ export function SearchQueryBuilderValueCombobox({
             handleSave={newDateTimeValue => {
               dispatch({
                 type: 'UPDATE_TOKEN_VALUE',
-                token: token,
+                token,
                 value: newDateTimeValue,
               });
               onCommit();

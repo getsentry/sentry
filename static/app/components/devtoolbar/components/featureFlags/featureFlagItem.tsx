@@ -1,11 +1,12 @@
 import {Fragment, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 
+import {Switch} from 'sentry/components/core/switch';
 import AnalyticsProvider, {
   AnalyticsContext,
 } from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import Switch from 'sentry/components/switchButton';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import {inlineLinkCss} from '../../styles/link';
@@ -26,7 +27,10 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
       <Cell
         css={[
           verticalPaddingCss,
-          {alignItems: 'flex-start', marginLeft: 'var(--space200)'},
+          css`
+            align-items: flex-start;
+            margin-left: var(--space200);
+          `,
         ]}
       >
         {featureFlags?.urlTemplate?.(flag.name) ? (
@@ -46,7 +50,12 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
           <span>{flag.name}</span>
         )}
       </Cell>
-      <Cell css={{marginRight: 'var(--space200)', justifyContent: 'center'}}>
+      <Cell
+        css={css`
+          margin-right: var(--space200);
+          justify-content: center;
+        `}
+      >
         <FlagValueInput flag={flag} />
       </Cell>
     </Fragment>
@@ -68,7 +77,7 @@ function FlagValueInput({flag}: {flag: FeatureFlag}) {
 
   return (
     <code>
-      {flag.override !== undefined ? String(flag.override) : String(flag.value)}
+      {flag.override === undefined ? String(flag.value) : String(flag.override)}
     </code>
   );
 }
@@ -79,24 +88,24 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
   const {setOverride} = useFeatureFlagsContext();
 
   const [isActive, setIsActive] = useState(
-    flag.override !== undefined ? Boolean(flag.override) : Boolean(flag.value)
+    flag.override === undefined ? Boolean(flag.value) : Boolean(flag.override)
   );
 
   return (
     <label
       htmlFor={`toggle-${flag.name}`}
-      css={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        alignSelf: 'flex-end',
-        gap: 'var(--space100)',
-      }}
+      css={css`
+        display: flex;
+        align-items: flex-end;
+        align-self: flex-end;
+        gap: var(--space100);
+      `}
     >
       <code>{String(isActive)}</code>
       <Switch
         id={`toggle-${flag.name}`}
-        isActive={isActive}
-        toggle={() => {
+        checked={isActive}
+        onChange={() => {
           setOverride(flag.name, !isActive);
           setIsActive(!isActive);
           trackAnalytics?.({

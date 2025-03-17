@@ -208,7 +208,9 @@ class UniversalImportExportService(ImportExportService):
                 min_inserted_pk: int | None = None
                 max_inserted_pk: int | None = None
                 last_seen_ordinal = min_ordinal - 1
-                for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
+                for deserialized_object in deserialize(
+                    "json", json_data, use_natural_keys=False, ignorenonexistent=True
+                ):
                     model_instance = deserialized_object.object
                     inst_model_name = get_model_name(model_instance)
 
@@ -365,12 +367,16 @@ class UniversalImportExportService(ImportExportService):
                     max_inserted_pk=max_inserted_pk,
                 )
 
-        except DeserializationError:
+        except DeserializationError as err:
             sentry_sdk.capture_exception()
+            reason = str(err) or "No additional information"
+            if err.__cause__:
+                reason += f", {err.__cause__}"
+
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
                 on=InstanceID(import_model_name),
-                reason="The submitted JSON could not be deserialized into Django model instances",
+                reason=f"The submitted JSON could not be deserialized into Django model instances. {reason}",
             )
 
         except DatabaseError as e:
@@ -524,12 +530,12 @@ class UniversalImportExportService(ImportExportService):
                                 # well.
                                 break
                         else:
-                            # For models that may have circular references to themselves (unlikely),
-                            # keep track of the new pk in the input map as well.
                             nonlocal max_pk
                             if item.pk > max_pk:
                                 max_pk = item.pk
 
+                            # For models that may have circular references to themselves (unlikely),
+                            # keep track of the new pk in the input map as well.
                             in_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             out_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             yield item

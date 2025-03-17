@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -13,7 +13,6 @@ import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -24,10 +23,12 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -62,12 +63,13 @@ export function EventSamplesTable({
   sort,
   footerAlignedPagination = false,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const {view} = useDomainViewFilters();
   const eventViewColumns = eventView.getColumns();
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
     }
@@ -82,6 +84,7 @@ export function EventSamplesTable({
             timestamp: row.timestamp,
             organization,
             location,
+            view,
             source: TraceViewSources.SCREEN_LOADS_MODULE,
           })}
         >
@@ -94,7 +97,7 @@ export function EventSamplesTable({
       const profileTarget =
         defined(row['project.name']) && defined(row[profileIdKey])
           ? generateProfileFlamechartRoute({
-              orgSlug: organization.slug,
+              organization,
               projectSlug: row['project.name'],
               profileId: String(row[profileIdKey]),
             })
@@ -172,7 +175,7 @@ export function EventSamplesTable({
   const columnSortBy = eventView.getSorts();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [cursorName]: newCursor},
     });
@@ -197,11 +200,11 @@ export function EventSamplesTable({
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
-            .filter((col: TableColumn<React.ReactText>) =>
+            .filter((col: TableColumn<string | number>) =>
               Object.keys(columnNameMap).includes(col.name)
             )
-            .map((col: TableColumn<React.ReactText>) => {
-              return {...col, name: columnNameMap[col.key]};
+            .map((col: TableColumn<string | number>) => {
+              return {...col, name: columnNameMap[col.key]!};
             })}
           columnSortBy={columnSortBy}
           grid={{

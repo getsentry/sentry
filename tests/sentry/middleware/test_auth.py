@@ -23,13 +23,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
     def assert_user_equals(self, request):
         assert request.user == user_service.get_user(user_id=self.user.id)
 
-    def setUp(self):
-        from django.core.cache import cache
-
-        cache.clear()
-        yield
-        cache.clear()
-
     @cached_property
     def request(self):
         rv = RequestFactory().get("/")
@@ -39,6 +32,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
     def test_process_request_anon(self):
         self.middleware.process_request(self.request)
         assert self.request.user.is_anonymous
+        assert self.request.auth is None
 
     def test_process_request_user(self):
         request = self.request

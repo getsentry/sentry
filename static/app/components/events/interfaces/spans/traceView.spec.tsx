@@ -16,19 +16,18 @@ import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/sp
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
-function initializeData(settings) {
+function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
   ProjectsStore.loadInitialData(data.projects);
   return data;
 }
 
 describe('TraceView', () => {
-  let data;
+  let data!: ReturnType<typeof initializeData>;
 
   beforeEach(() => {
     data = initializeData({});
@@ -203,7 +202,7 @@ describe('TraceView', () => {
 
       expect(screen.queryAllByText('group me')).toHaveLength(2);
 
-      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0]!;
       await userEvent.click(firstGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
@@ -211,7 +210,7 @@ describe('TraceView', () => {
       await userEvent.click(secondGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(10);
 
-      const firstRegroup = screen.queryAllByText('Regroup')[0];
+      const firstRegroup = screen.queryAllByText('Regroup')[0]!;
       await userEvent.click(firstRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
@@ -534,11 +533,9 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
-        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
-          <AnchorLinkManager.Provider>
-            <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-          </AnchorLinkManager.Provider>
-        </TransactionProfileIdProvider>
+        <AnchorLinkManager.Provider>
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        </AnchorLinkManager.Provider>
       );
 
       expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
@@ -562,11 +559,9 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
-        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
-          <AnchorLinkManager.Provider>
-            <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-          </AnchorLinkManager.Provider>
-        </TransactionProfileIdProvider>
+        <AnchorLinkManager.Provider>
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        </AnchorLinkManager.Provider>
       );
 
       expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -35,13 +36,13 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert response.data == []
 
-    def test_tags_list(self):
+    def test_tags_list_str(self):
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
@@ -72,8 +73,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
 
-        features.append("organizations:visibility-explore-dataset")
-
         if query is None:
             query = {}
         query["dataset"] = "spans"
@@ -88,13 +87,13 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 **kwargs,
             )
 
-    def test_tags_list(self):
+    def test_tags_list_str(self):
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
@@ -110,26 +109,34 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "string"}
+                features=features, query={"dataset": "spans", "type": "string", "process": 1}
             )
             assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            # Skipping for now
-            # assert response.data == [
-            #     {"key": "span.description", "name": "Span.Description"},
-            #     {"key": "transaction", "name": "Transaction"},
-            #     {"key": "project", "name": "Project"},
-            # ]
+            assert response.data == [
+                {"key": "bar", "name": "bar"},
+                {"key": "baz", "name": "baz"},
+                {"key": "foo", "name": "foo"},
+                {"key": "span.description", "name": "span.description"},
+                {"key": "transaction", "name": "transaction"},
+                {"key": "project", "name": "project"},
+            ]
 
     def test_tags_list_nums(self):
-        for tag in ["foo", "bar", "baz"]:
+        for tag in [
+            "foo",
+            "bar",
+            "baz",
+            "lcp",
+            "fcp",
+            "http.decoded_response_content_length",
+            "http.response_content_length",
+            "http.response_transfer_size",
+        ]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
@@ -145,12 +152,29 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "number"}
+                features=features, query={"dataset": "spans", "type": "number", "process": 1}
             )
             assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
+            assert response.data == [
+                {"key": "tags[bar,number]", "name": "bar"},
+                {"key": "tags[baz,number]", "name": "baz"},
+                {"key": "measurements.fcp", "name": "measurements.fcp"},
+                {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                },
+                {"key": "measurements.lcp", "name": "measurements.lcp"},
+                {"key": "span.duration", "name": "span.duration"},
+            ]
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
@@ -191,7 +215,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -238,7 +262,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -286,7 +310,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -326,7 +350,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -366,7 +390,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -415,7 +439,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -456,7 +480,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -497,7 +521,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -652,7 +676,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
-                span_id=uuid4().hex[:15],
+                span_id=uuid4().hex[:16],
                 organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
@@ -711,6 +735,82 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
+    def test_measurements_autocomplete(self):
+        keys = [
+            "measurements.app_start_cold",
+            "measurements.app_start_warm",
+            "measurements.frames_frozen",
+            "measurements.frames_frozen_rate",
+            "measurements.frames_slow",
+            "measurements.frames_slow_rate",
+            "measurements.frames_total",
+            "measurements.time_to_initial_display",
+            "measurements.time_to_full_display",
+            "measurements.stall_count",
+            "measurements.stall_percentage",
+            "measurements.stall_stall_longest_time",
+            "measurements.stall_stall_total_time",
+            "measurements.cls",
+            "measurements.fcp",
+            "measurements.fid",
+            "measurements.fp",
+            "measurements.inp",
+            "measurements.lcp",
+            "measurements.ttfb",
+            "measurements.ttfb.requesttime",
+            "measurements.score.cls",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.inp",
+            "measurements.score.lcp",
+            "measurements.score.ttfb",
+            "measurements.score.total",
+            "measurements.score.weight.cls",
+            "measurements.score.weight.fcp",
+            "measurements.score.weight.fid",
+            "measurements.score.weight.inp",
+            "measurements.score.weight.lcp",
+            "measurements.score.weight.ttfb",
+            "measurements.cache.item_size",
+            "measurements.messaging.message.body.size",
+            "measurements.messaging.message.receive.latency",
+            "measurements.messaging.message.retry.count",
+            "measurements.http.response_content_length",
+        ]
+        self.project
+        for key in keys:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == []
+
+    @mock.patch(
+        "sentry.api.endpoints.organization_spans_fields.EAPSpanFieldValuesAutocompletionExecutor.execute",
+        side_effect=InvalidSearchQuery,
+    )
+    @mock.patch(
+        "sentry.api.endpoints.organization_spans_fields.SpanFieldValuesAutocompletionExecutor.execute",
+        side_effect=InvalidSearchQuery,
+    )
+    def test_invalid_query(self, mock_executor_1, mock_executor_2):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=timestamp,
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"tag": "foo"},
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request("tag")
+        assert response.status_code == 400, response.data
+
 
 class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
     is_eap = True
@@ -718,8 +818,6 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
-
-        features.append("organizations:visibility-explore-dataset")
 
         if query is None:
             query = {}
@@ -736,3 +834,28 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
                 format="json",
                 **kwargs,
             )
+
+    def test_boolean_autocomplete(self):
+        keys = ["is_transaction"]
+        self.project
+        for key in keys:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "false",
+                    "name": "false",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "true",
+                    "name": "true",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+            ]

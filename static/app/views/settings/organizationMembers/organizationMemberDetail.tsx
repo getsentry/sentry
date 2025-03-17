@@ -10,8 +10,8 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -199,7 +199,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       return;
     }
 
-    newTeamRoles[i] = {...newTeamRoles[i], role};
+    newTeamRoles[i] = {...newTeamRoles[i]!, role};
     setTeamRoles(newTeamRoles);
   };
 

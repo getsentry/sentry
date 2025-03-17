@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -111,7 +111,7 @@ export function OrganizationAuthTokensIndex({
   );
 
   const {mutate: handleRevokeToken, isPending: isRevoking} = useMutation<
-    {},
+    unknown,
     RequestError,
     RevokeTokenQueryVariables
   >({
@@ -160,7 +160,7 @@ export function OrganizationAuthTokensIndex({
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Fragment>
-          <SentryDocumentTitle title={t('Auth Tokens')} />
+          <SentryDocumentTitle title={t('Auth Tokens')} orgSlug={organization.slug} />
           <SettingsPageHeader title={t('Auth Tokens')} action={createNewToken} />
 
           <TextBlock>
@@ -217,7 +217,7 @@ const ResponsivePanelTable = styled(PanelTable)`
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),
-    *:nth-child(4n + 3) {
+    > *:nth-child(4n + 3) {
       display: none;
     }
   }

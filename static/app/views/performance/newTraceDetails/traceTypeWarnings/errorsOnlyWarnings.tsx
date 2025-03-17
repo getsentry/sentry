@@ -2,16 +2,16 @@ import {useEffect, useMemo} from 'react';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -21,6 +21,7 @@ import type {TraceTree} from '../traceModels/traceTree';
 import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
+import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
 type ErrorOnlyWarningsProps = {
@@ -34,7 +35,8 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    if (Array.from(tree.projects).some(p => Number(project.id) === p.id)) {
+    const hasProject = tree.projects.has(Number(project.id));
+    if (hasProject) {
       if (!project.firstTransactionEvent) {
         projectsWithNoPerformance.push(project);
         if (project.platform && withPerformanceOnboarding.has(project.platform)) {
@@ -80,18 +82,20 @@ function PerformanceSetupBanner({
 
   if (projectsWithOnboardingChecklist.length === 0) {
     return (
-      <Alert type="info" showIcon>
-        {tct(
-          "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
-          {
-            documentationLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
-                {t('documentation')}
-              </ExternalLink>
-            ),
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          {tct(
+            "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
+            {
+              documentationLink: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
+                  {t('documentation')}
+                </ExternalLink>
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -125,59 +129,23 @@ function PerformanceSetupBanner({
   );
 }
 
-type Subscription = {
-  categories:
-    | {
-        transactions: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        spans: {
-          usageExceeded: boolean;
-        };
-      };
-  planDetails: {
-    billingInterval: 'monthly' | 'annual';
-  };
-  planTier: string;
-  onDemandBudgets?: {
-    enabled: boolean;
-  };
-};
-
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
     tree: props.tree,
   });
 
-  const {data: subscription} = useApiQuery<Subscription>(
-    [`/subscriptions/${props.organization.slug}/`],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {
+    data: {hasExceededPerformanceUsageLimit, subscription},
+  } = usePerformanceSubscriptionDetails();
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
-  // Check if the organization still has transaction quota maxed out.
-  const dataCategories = subscription?.categories;
-  let hasExceededTransactionLimit = false;
-
-  if (dataCategories) {
-    if ('transactions' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.transactions.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.spans.usageExceeded || false;
-    }
-  }
-
   const hideBanner =
     droppedTransactionsCount === 0 ||
     !props.organization.features.includes('trace-view-quota-exceeded-banner') ||
-    !hasExceededTransactionLimit;
+    !hasExceededPerformanceUsageLimit;
 
   useEffect(() => {
     if (hideBanner) {
@@ -234,7 +202,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
         });
       }}
       docsRoute={getDocsLinkForEventType(
-        dataCategories && 'spans' in dataCategories ? 'span' : 'transaction'
+        subscription?.categories && 'spans' in subscription.categories
+          ? DataCategoryExact.SPAN
+          : DataCategoryExact.TRANSACTION
       )}
       primaryButtonText={ctaText}
     />

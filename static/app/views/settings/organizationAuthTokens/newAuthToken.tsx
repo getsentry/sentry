@@ -17,13 +17,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -49,12 +48,14 @@ function AuthTokenCreateForm({
     name: '',
   };
 
+  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const handleGoBack = useCallback(() => {
-    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/auth-tokens/`));
-  }, [organization.slug]);
+  const handleGoBack = useCallback(
+    () => navigate(`/settings/${organization.slug}/auth-tokens/`),
+    [navigate, organization.slug]
+  );
 
   const {mutate: submitToken} = useMutation<
     CreateOrgAuthTokensResponse,
@@ -134,11 +135,13 @@ export function OrganizationAuthTokensNewAuthToken({
 }: {
   organization: Organization;
 }) {
+  const navigate = useNavigate();
   const [newToken, setNewToken] = useState<OrgAuthTokenWithToken | null>(null);
 
-  const handleGoBack = useCallback(() => {
-    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/auth-tokens/`));
-  }, [organization.slug]);
+  const handleGoBack = useCallback(
+    () => navigate(`/settings/${organization.slug}/auth-tokens/`),
+    [navigate, organization.slug]
+  );
 
   return (
     <div>

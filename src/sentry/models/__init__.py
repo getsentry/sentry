@@ -53,6 +53,8 @@ from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
+from .groupsearchviewlastvisited import *  # NOQA
+from .groupsearchviewstarred import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
@@ -60,14 +62,13 @@ from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .importchunk import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
-from .notificationmessage import *  # NOQA
-from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
+from .organizationmemberinvite import OrganizationMemberInvite  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationmemberteamreplica import *  # NOQA
@@ -97,7 +98,6 @@ from .releasefile import *  # NOQA
 from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
-from .relocation import *  # NOQA
 from .repository import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA

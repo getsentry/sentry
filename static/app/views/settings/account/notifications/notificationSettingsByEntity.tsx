@@ -2,8 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -59,7 +59,7 @@ function NotificationSettingsByEntity({
     router.location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
   let organization = organizations.find(({id}) => id === orgId);
   if (!organization) {
-    organization = organizations[0];
+    organization = organizations[0]!;
   }
   const orgSlug = organization.slug;
 
@@ -112,7 +112,7 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType].choices;
+  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType]!.choices;
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -140,7 +140,7 @@ function NotificationSettingsByEntity({
               disableLink
             />
           </div>
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
@@ -167,7 +167,7 @@ function NotificationSettingsByEntity({
   };
 
   const entityOptions = entities
-    .filter(({id}) => {
+    .filter(({id}: any) => {
       const match = notificationOptions.find(
         option =>
           option.scopeType === entityType &&
@@ -176,7 +176,7 @@ function NotificationSettingsByEntity({
       );
       return !match;
     })
-    .map(obj => {
+    .map((obj: any) => {
       const entity = entityById[obj.id];
       const idBadgeProps =
         entityType === 'project'
@@ -197,7 +197,7 @@ function NotificationSettingsByEntity({
         ),
       };
     })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a: any, b: any) => a.label.localeCompare(b.label));
 
   // Group options when displaying projects
   const groupedEntityOptions =
@@ -206,13 +206,13 @@ function NotificationSettingsByEntity({
           {
             label: t('My Projects'),
             options: entityOptions.filter(
-              project => (entityById[project.value] as Project).isMember
+              (project: any) => (entityById[project.value] as Project).isMember
             ),
           },
           {
             label: t('All Projects'),
             options: entityOptions.filter(
-              project => !(entityById[project.value] as Project).isMember
+              (project: any) => !(entityById[project.value] as Project).isMember
             ),
           },
         ]
@@ -234,7 +234,7 @@ function NotificationSettingsByEntity({
         </StyledPanelHeader>
         <ControlItem>
           {/* TODO: enable search for sentry projects */}
-          <SelectControl
+          <Select
             placeholder={
               entityType === 'project'
                 ? t('Project\u2026')
@@ -247,7 +247,7 @@ function NotificationSettingsByEntity({
             }}
             value={selectedEntityId}
           />
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={selectedValue}
             name="value"

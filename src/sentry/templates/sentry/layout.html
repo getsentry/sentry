@@ -3,7 +3,6 @@
 {% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
-{% load sentry_react %}
 {% load sentry_status %}
 {% get_sentry_version %}
 <!DOCTYPE html>
@@ -41,7 +40,7 @@
   {% block initial_data %}
     {% script %}
     <script>
-      window.__initialData = {% get_react_config %};
+      window.__initialData = {{ react_config|to_json }};
     </script>
     {% endscript %}
   {% endblock %}
@@ -77,7 +76,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.is_superuser %}
+    {% if request.superuser.is_active %}
         {% show_system_status %}
     {% endif %}
 

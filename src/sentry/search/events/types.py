@@ -29,13 +29,13 @@ WhereType = Union[Condition, BooleanCondition]
 
 # Replaced by SnubaParams
 class ParamsType(TypedDict, total=False):
-    project_id: list[int]
+    project_id: Sequence[int]
     projects: list[Project]
     project_objects: list[Project]
     start: datetime
     end: datetime
     environment: NotRequired[str | list[str]]
-    organization_id: NotRequired[int]
+    organization_id: NotRequired[int | None]
     use_case_id: NotRequired[str]
     team_id: NotRequired[list[int]]
     environment_objects: NotRequired[list[Environment]]
@@ -65,9 +65,12 @@ SnubaData = list[SnubaRow]
 
 
 class EventsMeta(TypedDict):
+    datasetReason: NotRequired[str]
     fields: dict[str, str]
     tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[str]
 
 
 class EventsResponse(TypedDict):
@@ -99,6 +102,9 @@ class SnubaParams:
 
         # Only used in the trend query builder
         self.aliases: dict[str, Alias] | None = {}
+
+    def __repr__(self) -> str:
+        return f"<SnubaParams: start={self.start},end={self.end},environments={self.environment_ids},projects={self.project_ids}>"
 
     def parse_stats_period(self) -> None:
         if self.stats_period is not None:
@@ -218,7 +224,7 @@ class QueryBuilderConfig:
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False
-    parser_config_overrides: Mapping[str, Any] | None = None
+    parser_config_overrides: Mapping[str, Any] = field(default_factory=dict)
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
     use_metrics_layer: bool = False
@@ -231,6 +237,8 @@ class QueryBuilderConfig:
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
     insights_metrics_override_metric_layer: bool = False
+    # Allow the errors query builder to use the entity prefix for fields
+    use_entity_prefix_for_fields: bool = False
 
 
 @dataclass(frozen=True)

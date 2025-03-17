@@ -7,11 +7,12 @@ import {allOperators, Token} from './parser';
  * Used internally within treeResultLocator to stop recursion once we've
  * located a matched result.
  */
-class TokenResultFound extends Error {
+class TokenResultFoundError extends Error {
   result: any;
 
   constructor(result: any) {
     super();
+    this.name = 'TokenResultFoundError';
     this.result = result;
   }
 }
@@ -25,7 +26,7 @@ type VisitorFn = (opts: {
   /**
    * Call this to return the provided value as the result of treeResultLocator
    */
-  returnResult: (result: any) => TokenResultFound;
+  returnResult: (result: any) => TokenResultFoundError;
   /**
    * Return this to skip visiting any inner tokens
    */
@@ -34,7 +35,7 @@ type VisitorFn = (opts: {
    * The token being visited
    */
   token: TokenResult<Token>;
-}) => null | TokenResultFound | typeof skipTokenMarker;
+}) => null | TokenResultFoundError | typeof skipTokenMarker;
 
 type TreeResultLocatorOpts = {
   /**
@@ -45,7 +46,7 @@ type TreeResultLocatorOpts = {
   /**
    * The tree to visit
    */
-  tree: TokenResult<Token>[];
+  tree: Array<TokenResult<Token>>;
   /**
    * A function used to check if we've found the result in the node we're
    * visiting. May also indicate that we want to skip any further traversal of
@@ -68,7 +69,7 @@ export function treeResultLocator<T>({
   visitorTest,
   noResultValue,
 }: TreeResultLocatorOpts): T {
-  const returnResult = (result: any) => new TokenResultFound(result);
+  const returnResult = (result: any) => new TokenResultFoundError(result);
 
   const nodeVisitor = (token: TokenResult<Token> | null) => {
     if (token === null) {
@@ -81,7 +82,7 @@ export function treeResultLocator<T>({
     //
     // XXX: Using a throw here is a bit easier than threading the return value
     // back up through the recursive call tree.
-    if (result instanceof TokenResultFound) {
+    if (result instanceof TokenResultFoundError) {
       throw result;
     }
 
@@ -98,11 +99,28 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_FLAG:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
-        token.args && nodeVisitor(token.args);
+        if (token.args) {
+          nodeVisitor(token.args);
+        }
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
+        break;
+      case Token.KEY_EXPLICIT_NUMBER_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_STRING_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_NUMBER_FLAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_STRING_FLAG:
+        nodeVisitor(token.key);
         break;
       case Token.LOGIC_GROUP:
         token.inner.forEach(nodeVisitor);
@@ -121,7 +139,7 @@ export function treeResultLocator<T>({
   try {
     tree.forEach(nodeVisitor);
   } catch (error) {
-    if (error instanceof TokenResultFound) {
+    if (error instanceof TokenResultFoundError) {
       return error.result;
     }
 
@@ -139,7 +157,7 @@ type TreeTransformerOpts = {
   /**
    * The tree to transform
    */
-  tree: TokenResult<Token>[];
+  tree: Array<TokenResult<Token>>;
 };
 
 /**
@@ -147,7 +165,7 @@ type TreeTransformerOpts = {
  * a transform to those nodes.
  */
 export function treeTransformer({tree, transform}: TreeTransformerOpts) {
-  const nodeVisitor = (token: TokenResult<Token> | null) => {
+  const nodeVisitor = (token: TokenResult<Token> | null): any => {
     if (token === null) {
       return null;
     }
@@ -172,6 +190,16 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
+      case Token.KEY_EXPLICIT_NUMBER_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
+      case Token.KEY_EXPLICIT_STRING_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
       case Token.LOGIC_GROUP:
         return transform({
           ...token,
@@ -186,8 +214,7 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
       case Token.VALUE_TEXT_LIST:
         return transform({
           ...token,
-          // TODO(ts): Not sure why `v` cannot be inferred here
-          items: token.items.map((v: any) => ({...v, value: nodeVisitor(v.value)})),
+          items: token.items.map(v => ({...v, value: nodeVisitor(v.value)})),
         });
 
       default:
@@ -213,7 +240,16 @@ type GetKeyNameOpts = {
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
-  key: TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG | Token.KEY_AGGREGATE>,
+  key: TokenResult<
+    | Token.KEY_SIMPLE
+    | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_NUMBER_TAG
+    | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
+  >,
   options: GetKeyNameOpts = {}
 ) => {
   const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
@@ -229,6 +265,21 @@ export const getKeyName = (
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
+    case Token.KEY_EXPLICIT_NUMBER_TAG:
+      // number tags always need to be expressed with the
+      // explicit tag prefix + type
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_TAG:
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
+      return key.key.value;
+    case Token.KEY_EXPLICIT_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return key.text;
     default:
       return '';
   }
@@ -264,7 +315,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   return stringifiedToken;
 }
 
-export function stringifyToken(token: TokenResult<Token>) {
+export function stringifyToken(token: TokenResult<Token>): string {
   switch (token.type) {
     case Token.FREE_TEXT:
     case Token.SPACES:
@@ -275,16 +326,18 @@ export function stringifyToken(token: TokenResult<Token>) {
       return `(${token.inner.map(innerToken => stringifyToken(innerToken)).join(' ')})`;
     case Token.LOGIC_BOOLEAN:
       return token.value;
-    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_TEXT_LIST: {
       const textListItems = token.items
         .map(item => item.value?.text ?? '')
         .filter(text => text.length > 0);
       return `[${textListItems.join(',')}]`;
-    case Token.VALUE_NUMBER_LIST:
+    }
+    case Token.VALUE_NUMBER_LIST: {
       const numberListItems = token.items
         .map(item => (item.value ? item.value.value + (item.value.unit ?? '') : ''))
         .filter(str => str.length > 0);
       return `[${numberListItems.join(',')}]`;
+    }
     case Token.KEY_SIMPLE:
       return token.value;
     case Token.KEY_AGGREGATE:
@@ -295,6 +348,16 @@ export function stringifyToken(token: TokenResult<Token>) {
       return token.text;
     case Token.KEY_EXPLICIT_TAG:
       return `${token.prefix}[${token.key.value}]`;
+    case Token.KEY_EXPLICIT_NUMBER_TAG:
+      return `${token.prefix}[${token.key.value},number]`;
+    case Token.KEY_EXPLICIT_STRING_TAG:
+      return `${token.prefix}[${token.key.value},string]`;
+    case Token.KEY_EXPLICIT_FLAG:
+      return `flags[${token.key.value}]`;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return `flags[${token.key.value},number]`;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return `flags[${token.key.value},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
     case Token.VALUE_RELATIVE_DATE:

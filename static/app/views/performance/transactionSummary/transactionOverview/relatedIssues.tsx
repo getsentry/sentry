@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
@@ -65,6 +65,7 @@ class RelatedIssues extends Component<Props> {
   renderEmptyMessage = () => {
     const {statsPeriod} = this.props;
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
@@ -109,7 +110,6 @@ class RelatedIssues extends Component<Props> {
 
         <TableWrapper>
           <GroupList
-            orgSlug={organization.slug}
             queryParams={queryParams}
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}

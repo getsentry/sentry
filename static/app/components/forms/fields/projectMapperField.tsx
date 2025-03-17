@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import difference from 'lodash/difference';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
@@ -67,7 +67,7 @@ export class RenderField extends Component<RenderProps, State> {
 
     if (newProjects.length === 1) {
       this.setState({
-        selectedSentryProjectId: newProjects[0],
+        selectedSentryProjectId: newProjects[0]!,
       });
     }
   }
@@ -223,12 +223,12 @@ export class RenderField extends Component<RenderProps, State> {
       <Fragment>
         {existingValues.map(renderItem)}
         <Item>
-          <SelectControl
+          <Select
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
             options={mappedItemOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     <MappedValueContainer>
@@ -243,12 +243,12 @@ export class RenderField extends Component<RenderProps, State> {
             value={selectedMappedValue}
           />
           <RightArrow size="xs" direction="right" />
-          <SelectControl
+          <Select
             placeholder={t('Sentry project\u2026')}
             name="project"
             options={projectOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     {renderIdBadge({id: selectedSentryProjectId, hideName: false})}

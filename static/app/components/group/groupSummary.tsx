@@ -1,316 +1,363 @@
-import {Fragment, useState} from 'react';
+import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import Panel from 'sentry/components/panels/panel';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
-import {
-  IconChevron,
-  IconFatal,
-  IconFocus,
-  IconLightning,
-  IconMegaphone,
-  IconSpan,
-} from 'sentry/icons';
+import {IconDocs, IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types/group';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import marked from 'sentry/utils/marked';
+import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-interface GroupSummaryProps {
-  groupCategory: IssueCategory;
-  groupId: string;
-}
+const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
+const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
+// These thresholds were used when embedding the cause and computing simliarities.
 
 interface GroupSummaryData {
   groupId: string;
   headline: string;
+  eventId?: string | null;
   possibleCause?: string | null;
+  scores?: {
+    fixabilityScore?: number | null;
+    fixabilityScoreVersion?: number | null;
+    isFixable?: boolean | null;
+    possibleCauseConfidence?: number | null;
+    possibleCauseNovelty?: number | null;
+  } | null;
   trace?: string | null;
   whatsWrong?: string | null;
 }
 
-const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
-  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
-};
-
 export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
-  groupId: string
+  groupId: string,
+  eventId?: string
 ): ApiQueryKey => [
   `/organizations/${organizationSlug}/issues/${groupId}/summarize/`,
-  {method: 'POST'},
+  {
+    method: 'POST',
+    data: eventId ? {event_id: eventId} : undefined,
+  },
 ];
 
-export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
+export function useGroupSummary(
+  group: Group,
+  event: Event | null | undefined,
+  project: Project,
+  forceEvent = false
+) {
   const organization = useOrganization();
-  // We piggyback and use autofix's genai consent check for now.
-  const {
-    data: autofixSetupData,
-    isPending: isAutofixSetupLoading,
-    isError: isAutofixSetupError,
-  } = useAutofixSetup({groupId});
+  const aiConfig = useAiConfig(group, event, project);
+  const enabled = aiConfig.hasSummary;
+  const queryClient = useQueryClient();
+  const queryKey = makeGroupSummaryQueryKey(
+    organization.slug,
+    group.id,
+    forceEvent ? event?.id : undefined
+  );
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
-
-  const queryData = useApiQuery<GroupSummaryData>(
-    makeGroupSummaryQueryKey(organization.slug, groupId),
+  const {data, isLoading, isFetching, isError, refetch} = useApiQuery<GroupSummaryData>(
+    queryKey,
     {
-      staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory),
+      staleTime: Infinity,
+      enabled,
     }
   );
+
+  const refresh = () => {
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/issues/${group.id}/summarize/`],
+      exact: false,
+    });
+    refetch();
+  };
+
   return {
-    ...queryData,
-    isPending: isAutofixSetupLoading || queryData.isPending,
-    isError: queryData.isError || isAutofixSetupError,
-    hasGenAIConsent,
+    data,
+    isPending: aiConfig.isAutofixSetupLoading || isLoading || isFetching,
+    isError,
+    refresh,
   };
 }
 
-function GroupSummaryFeatureBadge() {
-  return (
-    <StyledFeatureBadge
-      type="experimental"
-      title={t(
-        'This feature is experimental and may produce inaccurate results. Please share feedback to help us improve the experience.'
-      )}
-    />
+export function GroupSummary({
+  group,
+  event,
+  project,
+  preview = false,
+}: {
+  event: Event | null | undefined;
+  group: Group;
+  project: Project;
+  preview?: boolean;
+}) {
+  const config = getConfigForIssueType(group, project);
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const [forceEvent, setForceEvent] = useState(false);
+  const openFeedbackForm = useFeedbackForm();
+  const aiConfig = useAiConfig(group, event, project);
+  const {data, isPending, isError, refresh} = useGroupSummary(
+    group,
+    event,
+    project,
+    forceEvent
   );
-}
 
-export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
-    groupId,
-    groupCategory
-  );
+  useEffect(() => {
+    if (forceEvent && !isPending) {
+      refresh();
+      setForceEvent(false);
+    }
+  }, [forceEvent, isPending, refresh]);
 
-  const [expanded, setExpanded] = useState(false);
+  const isFixable = data?.scores?.isFixable ?? false;
 
-  const openForm = useFeedbackForm();
+  useEffect(() => {
+    if (isFixable && !isPending && aiConfig.hasAutofix) {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(group.id),
+      });
+    }
+  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
 
-  if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
-    return null;
-  }
+  const eventDetailsItems = [
+    {
+      key: 'event-info',
+      label:
+        event?.id === data?.eventId ? (
+          t('Based on this event')
+        ) : (
+          <span>{t('See original event (%s)', data?.eventId?.substring(0, 8))}</span>
+        ),
+      to:
+        event?.id === data?.eventId
+          ? undefined
+          : window.location.origin +
+            normalizeUrl(
+              `/organizations/${organization.slug}/issues/${data?.groupId}/events/${data?.eventId}/`
+            ),
+      disabled: event?.id === data?.eventId,
+    },
+    ...(event?.id === data?.eventId
+      ? []
+      : [
+          {
+            key: 'refresh',
+            label: t('Summarize this event instead'),
+            onAction: () => setForceEvent(true),
+            disabled: isPending,
+          },
+        ]),
+    ...(openFeedbackForm
+      ? [
+          {
+            key: 'feedback',
+            label: t('Give feedback'),
+            onAction: () => {
+              openFeedbackForm({
+                messagePlaceholder: t('How can we make Issue Summary better for you?'),
+                tags: {
+                  ['feedback.source']: 'issue_details_ai_autofix',
+                  ['feedback.owner']: 'ml-ai',
+                },
+              });
+            },
+          },
+        ]
+      : []),
+  ];
+
+  const shouldShowPossibleCause =
+    !data?.scores ||
+    (data.scores.possibleCauseConfidence &&
+      data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
+      data.scores.possibleCauseNovelty &&
+      data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
+  const shouldShowResources = config.resources && !preview;
 
   const insightCards = [
     {
       id: 'whats_wrong',
-      title: t("What's wrong?"),
+      title: t("What's Wrong"),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
+      showWhenLoading: true,
     },
     {
       id: 'trace',
-      title: t('Trace'),
+      title: t('In the Trace'),
       insight: data?.trace,
       icon: <IconSpan size="sm" />,
+      showWhenLoading: false,
     },
-    {
-      id: 'possible_cause',
-      title: t('Possible cause'),
-      insight: data?.possibleCause,
-      icon: <IconLightning size="sm" />,
-    },
-  ].filter(card => card.insight);
+    ...(shouldShowPossibleCause
+      ? [
+          {
+            id: 'possible_cause',
+            title: t('Possible Cause'),
+            insight: data?.possibleCause,
+            icon: <IconFocus size="sm" />,
+            showWhenLoading: true,
+          },
+        ]
+      : []),
+    ...(shouldShowResources
+      ? [
+          {
+            id: 'resources',
+            title: t('Resources'),
+            insight: `${isValidElement(config.resources?.description) ? '' : (config.resources?.description ?? '')}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insightElement: isValidElement(config.resources?.description)
+              ? config.resources?.description
+              : null,
+            icon: <IconDocs size="sm" />,
+            showWhenLoading: true,
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <Wrapper>
-      <StyledTitleRow onClick={() => setExpanded(!data ? false : !expanded)}>
-        <CollapsedRow>
-          <IconContainer>
-            <IconFocus />
-          </IconContainer>
-          {isPending && <Placeholder height="19px" width="95%" />}
-          {isError ? <div>{t('Error loading summary')}</div> : null}
-          {data && !expanded && (
-            <Fragment>
-              <HeadlinePreview
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(`TL;DR: ${data.headline ?? ''}`),
-                }}
-              />
-              <SummaryPreview
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(
-                    `Details: ${[data.whatsWrong, data.trace, data.possibleCause].filter(Boolean).join(' ').replaceAll('\n', ' ').replaceAll('-', '')}`
-                  ),
-                }}
-              />
-            </Fragment>
-          )}
-          {data && expanded && (
-            <HeadlineContent
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(`TL;DR: ${data.headline ?? ''}`),
+    <div data-testid="group-summary">
+      {isError ? <div>{t('Error loading summary')}</div> : null}
+      <Content>
+        {data?.eventId && !isPending && !preview && (
+          <TooltipWrapper id="group-summary-tooltip-wrapper">
+            <DropdownMenu
+              items={eventDetailsItems}
+              triggerProps={{
+                icon: <StyledIconEllipsis size="xs" />,
+                'aria-label': t('Event details'),
+                size: 'xs',
+                borderless: true,
+                showChevron: false,
               }}
+              isDisabled={isPending}
+              position="bottom-end"
+              offset={4}
             />
-          )}
-        </CollapsedRow>
-        <IconContainerRight>
-          <IconChevron direction={expanded ? 'up' : 'down'} />
-        </IconContainerRight>
-      </StyledTitleRow>
-      {expanded && (
-        <Body>
-          {isError ? <div>{t('Error loading summary')}</div> : null}
-          {data && (
-            <Content>
-              <InsightGrid>
-                {insightCards.map(card => (
-                  <InsightCard key={card.id}>
-                    <CardTitle>
-                      <CardTitleWrapper>
-                        <CardTitleIcon>{card.icon}</CardTitleIcon>
-                        <CardTitleText>{card.title}</CardTitleText>
-                      </CardTitleWrapper>
-                    </CardTitle>
-                    <CardContent
-                      dangerouslySetInnerHTML={{
-                        __html: marked(card.insight ?? ''),
-                      }}
-                    />
-                  </InsightCard>
-                ))}
-              </InsightGrid>
-            </Content>
-          )}
-          {openForm && !isPending && (
-            <ButtonContainer>
-              <Button
-                onClick={() => {
-                  openForm({
-                    messagePlaceholder: t(
-                      'How can we make this issue summary more useful?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'issue_details_ai_issue_summary',
-                      ['feedback.owner']: 'ml-ai',
-                    },
-                  });
-                }}
-                size="xs"
-                icon={<IconMegaphone />}
-              >
-                Give Feedback
-              </Button>
-              <GroupSummaryFeatureBadge />
-            </ButtonContainer>
-          )}
-        </Body>
-      )}
-    </Wrapper>
+          </TooltipWrapper>
+        )}
+        <InsightGrid>
+          {insightCards.map(card => {
+            if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
+              return null;
+            }
+
+            return (
+              <InsightCard key={card.id}>
+                <CardTitle preview={preview}>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                  <CardTitleText>{card.title}</CardTitleText>
+                </CardTitle>
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  {isPending ? (
+                    <CardContent>
+                      <Placeholder height="1.5rem" />
+                    </CardContent>
+                  ) : (
+                    <CardContent>
+                      {card.insightElement}
+                      {card.insight && (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                            ),
+                          }}
+                        />
+                      )}
+                    </CardContent>
+                  )}
+                </CardContentContainer>
+              </InsightCard>
+            );
+          })}
+        </InsightGrid>
+      </Content>
+    </div>
   );
 }
-
-const Body = styled('div')`
-  padding: 0 ${space(2)} ${space(1.5)} ${space(2)};
-`;
-
-const HeadlinePreview = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: ${space(0.5)};
-  flex-shrink: 0;
-  max-width: 92%;
-`;
-
-const Wrapper = styled(Panel)`
-  margin-bottom: ${space(1)};
-  padding: ${space(0.5)};
-`;
-
-const StyledTitleRow = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-
-  &:hover {
-    cursor: pointer;
-    background: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const CollapsedRow = styled('div')`
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-  overflow: hidden;
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)``;
-
-const HeadlineContent = styled('span')`
-  overflow-wrap: break-word;
-  p {
-    margin: 0;
-  }
-  code {
-    word-break: break-all;
-  }
-  width: 100%;
-`;
 
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  position: relative;
 `;
 
-const ButtonContainer = styled('div')`
-  align-items: center;
+const InsightGrid = styled('div')`
   display: flex;
-  margin-top: ${space(1)};
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
-const IconContainer = styled('div')`
-  flex-shrink: 0;
-  margin-right: ${space(1)};
-  margin-top: ${space(0.25)};
-  max-height: ${space(2)};
-`;
-
-const IconContainerRight = styled('div')`
-  flex-shrink: 0;
-  margin-left: ${space(1)};
-  margin-top: ${space(0.25)};
-  max-height: ${space(2)};
-`;
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
   width: 100%;
+  min-height: 0;
 `;
 
-const CardTitle = styled('div')`
+const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: ${space(1)};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  padding-bottom: ${space(0.5)};
 `;
 
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 1px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
 `;
 
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  margin-top: ${space(1)};
   p {
     margin: 0;
     white-space: pre-wrap;
@@ -318,39 +365,15 @@ const CardContent = styled('div')`
   code {
     word-break: break-all;
   }
+  flex: 1;
 `;
 
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
-
-  /* Make cards take full width in narrow containers, creating a column layout */
-  ${InsightCard} {
-    flex: 1 1 15rem;
-    /* Remove height: 100% since we're using flex to control height */
-    min-height: 0;
-  }
+const TooltipWrapper = styled('div')`
+  position: absolute;
+  top: -${space(0.5)};
+  right: 0;
 `;
 
-const SummaryPreview = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-grow: 1;
-  color: ${p => p.theme.subText};
-`;
-
-const CardTitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const CardTitleIcon = styled('div')`
-  display: flex;
-  align-items: center;
+const StyledIconEllipsis = styled(IconEllipsis)`
   color: ${p => p.theme.subText};
 `;

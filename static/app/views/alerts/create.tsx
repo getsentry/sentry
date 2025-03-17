@@ -12,8 +12,10 @@ import {uniqueId} from 'sentry/utils/guid';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
@@ -28,13 +30,15 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import MonitorForm from 'sentry/views/monitors/components/monitorForm';
+import type {Monitor} from 'sentry/views/monitors/types';
 
 type RouteParams = {
   alertType?: AlertRuleType;
   projectId?: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
@@ -57,6 +61,7 @@ function Create(props: Props) {
   const alertType = params.alertType || AlertRuleType.METRIC;
 
   const sessionId = useRef(uniqueId());
+  const navigate = useNavigate();
 
   const isDuplicateRule = createFromDuplicate === 'true' && duplicateRuleId;
 
@@ -70,7 +75,10 @@ function Create(props: Props) {
       router.replace(
         normalizeUrl({
           ...location,
-          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
+          pathname: makeAlertsPathname({
+            path: `/new/${alertType}/`,
+            organization,
+          }),
           query: {
             ...location.query,
             ...DEFAULT_WIZARD_TEMPLATE,
@@ -89,6 +97,7 @@ function Create(props: Props) {
     location,
     organization.slug,
     project.slug,
+    organization,
   ]);
 
   const {teams, isLoading} = useUserTeams();
@@ -144,6 +153,20 @@ function Create(props: Props) {
           <Fragment>
             {alertType === AlertRuleType.UPTIME ? (
               <UptimeAlertForm {...props} />
+            ) : alertType === AlertRuleType.CRONS ? (
+              <MonitorForm
+                apiMethod="POST"
+                apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+                onSubmitSuccess={(data: Monitor) =>
+                  navigate(
+                    makeAlertsPathname({
+                      path: `/rules/crons/${data.project.slug}/${data.slug}/details/`,
+                      organization,
+                    })
+                  )
+                }
+                submitLabel={t('Create')}
+              />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}

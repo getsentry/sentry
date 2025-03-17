@@ -1,6 +1,9 @@
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
+
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
+import {CollapsedNode} from './traceModels/traceCollapsedNode';
 import type {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 
@@ -20,10 +23,30 @@ export function isSpanNode(
   );
 }
 
+export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value && value.is_transaction);
+}
+
+export function isEAPTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPTransaction(node.value);
+}
+
+export function isEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return !!(node.value && 'is_transaction' in node.value);
+}
+
 export function isTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Transaction> {
-  return !!(node.value && 'transaction' in node.value) && !isAutogroupedNode(node);
+  return (
+    !!(node.value && 'transaction' in node.value) &&
+    !isAutogroupedNode(node) &&
+    !isEAPSpanNode(node)
+  );
 }
 
 export function isParentAutogroupedNode(
@@ -44,6 +67,12 @@ export function isAutogroupedNode(
   return node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode;
 }
 
+export function isCollapsedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is CollapsedNode {
+  return node instanceof CollapsedNode;
+}
+
 export function isTraceErrorNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.TraceError> {
@@ -58,11 +87,17 @@ export function isRootNode(
 
 export function isTraceNode(
   node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.Trace> {
+): node is TraceTreeNode<TraceSplitResults<TraceTree.Transaction>> {
   return !!(
     node.value &&
     ('orphan_errors' in node.value || 'transactions' in node.value)
   );
+}
+
+export function isEAPTraceNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPTrace> {
+  return !!node.value && Array.isArray(node.value) && !isTraceNode(node);
 }
 
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
@@ -82,6 +117,7 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     case 'sentry.javascript.angular':
     case 'sentry.javascript.angular-ivy':
     case 'sentry.javascript.nextjs':
+    case 'sentry.javascript.nuxt':
     case 'sentry.javascript.electron':
     case 'sentry.javascript.remix':
     case 'sentry.javascript.svelte':
@@ -96,9 +132,13 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
   }
 }
 
-export function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
-  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
-    transaction.sdk_name
+export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
+  return (
+    !!value &&
+    'sdk_name' in value &&
+    /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+      value.sdk_name
+    )
   );
 }
 
@@ -135,4 +175,10 @@ export function getPageloadTransactionChildCount(
     }
   }
   return count;
+}
+
+export function isTracePerformanceIssue(
+  issue: TraceTree.TraceError | TraceTree.TracePerformanceIssue
+): issue is TraceTree.TracePerformanceIssue {
+  return 'suspect_spans' in issue;
 }

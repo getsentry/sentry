@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,10 +19,10 @@ import type {StepProps} from './types';
 type UploadWellProps = {
   centered: boolean;
   draggedOver: boolean;
-  onDragEnter: Function;
-  onDragLeave: Function;
-  onDragOver: Function;
-  onDrop: Function;
+  onDragEnter: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDragOver: (e: React.DragEvent | DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
 };
 
 const DEFAULT_ERROR_MSG = t(
@@ -45,7 +45,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const user = useUser();
 
-  const handleDragEnter = event => {
+  const handleDragEnter = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(dragCounter + 1);
   };
@@ -54,14 +54,14 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
     setDragCounter(dragCounter - 1);
   };
 
-  const handleDrop = event => {
+  const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDragCounter(0);
 
     setFile(event.dataTransfer.files[0]);
   };
 
-  const handleFileChange = event => {
+  const handleFileChange = (event: any) => {
     const newFile = event.target.files?.[0];
 
     // No file selected (e.g. user clicked "cancel")

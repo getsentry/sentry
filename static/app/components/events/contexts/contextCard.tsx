@@ -7,6 +7,7 @@ import {
   getContextIcon,
   getContextMeta,
   getContextTitle,
+  getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import KeyValueData, {
@@ -89,7 +90,7 @@ export default function ContextCard({
   const contextItems = getFormattedContextData({
     event,
     contextValue: value,
-    contextType: type,
+    contextType: getContextType({alias, type}),
     organization,
     project,
     location,
@@ -111,7 +112,7 @@ export default function ContextCard({
       title={
         <Title>
           <div>{getContextTitle({alias, type, value})}</div>
-          <div>
+          <div style={{minWidth: 14}}>
             <ErrorBoundary customComponent={null}>
               {getContextIcon({
                 alias,

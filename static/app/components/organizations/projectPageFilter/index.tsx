@@ -7,8 +7,8 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {LinkButton} from 'sentry/components/button';
 import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
@@ -26,6 +26,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
@@ -171,10 +172,10 @@ export function ProjectPageFilter({
       if (!val.length) {
         return allowMultiple
           ? memberProjects.map(p => parseInt(p.id, 10))
-          : [parseInt(memberProjects[0]?.id, 10)];
+          : [parseInt(memberProjects[0]?.id!, 10)];
       }
 
-      return allowMultiple ? val : [val[0]];
+      return allowMultiple ? val : [val[0]!];
     },
     [memberProjects, allowMultiple]
   );
@@ -226,7 +227,7 @@ export function ProjectPageFilter({
   );
 
   const onToggle = useCallback(
-    newValue => {
+    (newValue: any) => {
       trackAnalytics('projectselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
@@ -251,7 +252,7 @@ export function ProjectPageFilter({
     });
   }, [onReset, routes, organization]);
 
-  const options = useMemo<SelectOptionOrSection<number>[]>(() => {
+  const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
     if (!hasProjects) {
       return [];
@@ -264,14 +265,19 @@ export function ProjectPageFilter({
         leadingItems: (
           <ProjectBadge project={project} avatarSize={16} hideName disableLink />
         ),
-        trailingItems: ({isFocused}) => (
+        trailingItems: ({isFocused}: any) => (
           <Fragment>
             <TrailingButton
               borderless
               size="zero"
               icon={<IconOpen />}
               aria-label={t('Project Details')}
-              to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+              to={
+                makeProjectsPathname({
+                  path: `/${project.slug}/`,
+                  orgSlug: organization.slug,
+                }) + `?project=${project.id}`
+              }
               visible={isFocused}
             />
             <TrailingButton
@@ -332,7 +338,7 @@ export function ProjectPageFilter({
 
   const desynced = desyncedFilters.has('projects');
   const defaultMenuWidth = useMemo(() => {
-    const flatOptions: SelectOption<number>[] = options.flatMap(item =>
+    const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
       'options' in item ? item.options : [item]
     );
 
@@ -361,7 +367,7 @@ export function ProjectPageFilter({
 
   const menuFooterMessage = useMemo(() => {
     if (selectionLimitExceeded) {
-      return hasStagedChanges =>
+      return (hasStagedChanges: any) =>
         hasStagedChanges
           ? tct(
               'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',

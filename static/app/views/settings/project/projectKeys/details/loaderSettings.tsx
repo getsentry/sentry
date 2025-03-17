@@ -162,7 +162,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               label,
             }))}
             value={values.browserSdkVersion}
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({browserSdkVersion: value});
             }}
             disabledReason={
@@ -185,7 +185,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? values.hasPerformance
                 : false
             }
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({hasPerformance: value});
             }}
             disabled={
@@ -194,9 +194,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
             }
             help={
-              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
-                ? t('Only available in SDK version 7.x and above')
-                : data.dynamicSdkLoaderOptions.hasPerformance
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? data.dynamicSdkLoaderOptions.hasPerformance
                   ? tct(
                       'The default config is [codeTracesSampleRate:tracesSampleRate: 1.0] and distributed tracing to same-origin requests. [configDocs:Read the docs] to learn how to configure this.',
                       {
@@ -207,11 +206,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                       }
                     )
                   : undefined
+                : t('Only available in SDK version 7.x and above')
             }
             disabledReason={
-              !hasAccess
-                ? t('You do not have permission to edit this setting')
-                : undefined
+              hasAccess ? undefined : t('You do not have permission to edit this setting')
             }
           />
 
@@ -223,7 +221,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? values.hasReplay
                 : false
             }
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({hasReplay: value});
             }}
             disabled={
@@ -232,9 +230,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
             }
             help={
-              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
-                ? t('Only available in SDK version 7.x and above')
-                : data.dynamicSdkLoaderOptions.hasReplay
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? data.dynamicSdkLoaderOptions.hasReplay
                   ? tct(
                       `[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.`,
                       {
@@ -254,11 +251,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                       }
                     )
                   : undefined
+                : t('Only available in SDK version 7.x and above')
             }
             disabledReason={
-              !hasAccess
-                ? t('You do not have permission to edit this setting')
-                : undefined
+              hasAccess ? undefined : t('You do not have permission to edit this setting')
             }
           />
 
@@ -266,14 +262,12 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             label={t('Enable Debug Bundles & Logging')}
             name={`${keyId}-has-logging`}
             value={values.hasDebug}
-            onChange={value => {
+            onChange={(value: any) => {
               updateLoaderOption({hasDebug: value});
             }}
             disabled={!hasAccess || requestPending}
             disabledReason={
-              !hasAccess
-                ? t('You do not have permission to edit this setting')
-                : undefined
+              hasAccess ? undefined : t('You do not have permission to edit this setting')
             }
           />
         </Fragment>
@@ -283,5 +277,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 }
 
 function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
-  return sdkVersion === 'latest' || sdkVersion === '7.x' || sdkVersion === '8.x';
+  return (
+    sdkVersion === 'latest' ||
+    sdkVersion === '7.x' ||
+    sdkVersion === '8.x' ||
+    sdkVersion === '9.x'
+  );
 }

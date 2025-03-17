@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
+import type {ReplayRecordingMode} from '@sentry/core';
 import type {replayIntegration} from '@sentry/react';
-import type {ReplayRecordingMode} from '@sentry/types';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -26,7 +26,7 @@ function getReplayInternal(
   replay: ReturnType<typeof replayIntegration>
 ): ReplayInternalAPI {
   // While the toolbar is internal, we can use the private API for added functionality and reduced dependence on SDK release versions
-  // @ts-ignore:next-line
+  // @ts-expect-error TS(2341): Property '_replay' is private and only accessible ... Remove this comment to see the full error message
   return replay._replay;
 }
 
@@ -47,13 +47,13 @@ export default function useReplayRecorder(): ReplayRecorderState {
   );
 
   const isDisabled = replay === undefined;
-  const disabledReason = !SentrySDK
-    ? 'Failed to load the Sentry SDK.'
-    : !('getReplay' in SentrySDK)
-      ? 'Your SDK version is too old to support Replays.'
-      : !replay
-        ? 'You need to install the SDK Replay integration.'
-        : undefined;
+  const disabledReason = SentrySDK
+    ? 'getReplay' in SentrySDK
+      ? replay
+        ? undefined
+        : 'You need to install the SDK Replay integration.'
+      : 'Your SDK version is too old to support Replays.'
+    : 'Failed to load the Sentry SDK.';
 
   const [isRecording, setIsRecording] = useState<boolean>(
     () => replayInternal?.isEnabled() ?? false

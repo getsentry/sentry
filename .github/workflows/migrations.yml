@@ -53,7 +53,7 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
-          pg-version: ${{ matrix.pg-version }}
+          mode: migrations
 
       - name: Apply migrations
         run: |

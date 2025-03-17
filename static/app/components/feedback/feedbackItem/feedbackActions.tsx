@@ -1,8 +1,8 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
@@ -30,13 +30,16 @@ export default function FeedbackActions({
   size,
   style,
 }: Props) {
+  if (!eventData) {
+    return null;
+  }
+
   return (
-    <Flex gap={space(1)} align="center" className={className} style={style}>
+    <Flex gap={space(1)} align="flex-end" className={className} style={style}>
       <ErrorBoundary mini>
         <FeedbackAssignedTo
           feedbackIssue={feedbackItem as any as Group}
           feedbackEvent={eventData}
-          showActorName={['medium', 'large'].includes(size)}
         />
       </ErrorBoundary>
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+from collections.abc import Container
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -102,7 +103,7 @@ def get_superuser_scopes(
 
 
 def superuser_has_permission(
-    request: HttpRequest | Request, permissions: frozenset[str] | None = None
+    request: HttpRequest | Request, permissions: Container[str] | None = None
 ) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
@@ -153,12 +154,6 @@ class SuperuserAccessFormInvalidJson(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "invalid-superuser-access-json"
     message = "The request contains invalid json"
-
-
-class EmptySuperuserAccessForm(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "empty-superuser-access-form"
-    message = "The request contains an empty superuser access form data"
 
 
 class Superuser(ElevatedMode):
@@ -456,13 +451,6 @@ class Superuser(ElevatedMode):
                     tags={"reason": SuperuserAccessFormInvalidJson.code},
                 )
                 raise SuperuserAccessFormInvalidJson()
-            except AttributeError:
-                metrics.incr(
-                    "superuser.failure",
-                    sample_rate=1.0,
-                    tags={"reason": EmptySuperuserAccessForm.code},
-                )
-                raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 

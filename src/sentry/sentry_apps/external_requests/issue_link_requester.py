@@ -5,12 +5,14 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from requests import RequestException
 
-from sentry.coreapi import APIError
 from sentry.http import safe_urlread
 from sentry.models.group import Group
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
@@ -53,7 +55,7 @@ class IssueLinkRequester:
     uri: str
     group: Group
     fields: dict[str, Any]
-    user: RpcUser
+    user: RpcUser | User
     action: str
 
     def run(self) -> dict[str, Any]:
@@ -71,23 +73,44 @@ class IssueLinkRequester:
             )
             body = safe_urlread(request)
             response = json.loads(body)
-
-        except Exception as e:
-            logger.info(
-                "issue-link-requester.error",
-                extra={
-                    "sentry_app": self.sentry_app.slug,
-                    "install": self.install.uuid,
-                    "project": self.group.project.slug,
-                    "group": self.group.id,
+        except (json.JSONDecodeError, TypeError):
+            raise SentryAppIntegratorError(
+                message=f"Unable to parse response from {self.sentry_app.slug}",
+                webhook_context={
+                    "error_type": "issue-link-requester.invalid-json",
                     "uri": self.uri,
-                    "error_message": str(e),
+                    "response": body,
+                    "installation_uuid": self.install.uuid,
                 },
+                status_code=500,
+            )
+        except RequestException as e:
+            error_type = "issue-link-requester.error"
+            extras = {
+                "sentry_app": self.sentry_app.slug,
+                "installation_uuid": self.install.uuid,
+                "project": self.group.project.slug,
+                "group": self.group.id,
+                "uri": self.uri,
+                "error_message": str(e),
+            }
+            logger.info(error_type, extra=extras)
+            raise SentryAppIntegratorError(
+                message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
+                webhook_context={"error_type": error_type, **extras},
+                status_code=500,
             )
 
         if not self._validate_response(response):
-            raise APIError(
-                f"Invalid response format from sentry app {self.sentry_app} when linking issue"
+            raise SentryAppIntegratorError(
+                message=f"Invalid response format from sentry app {self.sentry_app} when linking issue",
+                webhook_context={
+                    "error_type": "issue-link-requester.invalid-response",
+                    "response": response,
+                    "installation_uuid": self.install.uuid,
+                    "uri": self.uri,
+                },
+                status_code=500,
             )
 
         return response

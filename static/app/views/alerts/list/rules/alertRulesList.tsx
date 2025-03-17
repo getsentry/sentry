@@ -32,7 +32,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {MetricsRemovedAlertsWidgetsAlert} from '../../../metrics/metricsRemovedAlertsWidgetsAlert';
 import FilterBar from '../../filterBar';
 import type {CombinedAlerts} from '../../types';
 import {AlertRuleType, CombinedAlertType} from '../../types';
@@ -111,6 +110,17 @@ function AlertRulesList() {
     });
   };
 
+  const handleChangeType = (alertType: CombinedAlertType[]) => {
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        alertType,
+      },
+    });
+  };
+
   const handleOwnerChange = (
     projectId: string,
     rule: CombinedAlerts,
@@ -140,10 +150,11 @@ function AlertRulesList() {
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
-    const deleteEndpoints = {
+    const deleteEndpoints: Record<CombinedAlertType, string> = {
       [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
       [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
+      [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${rule.id}/`,
     };
 
     try {
@@ -165,7 +176,11 @@ function AlertRulesList() {
   const ruleList = ruleListResponse.filter(defined);
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
-      rule.type === CombinedAlertType.UPTIME ? [rule.projectSlug] : rule.projects
+      rule.type === CombinedAlertType.UPTIME
+        ? [rule.projectSlug]
+        : rule.type === CombinedAlertType.CRONS
+          ? [rule.project.slug]
+          : rule.projects
     )
   );
   const ruleListPageLinks = getResponseHeader?.('Link');
@@ -186,15 +201,16 @@ function AlertRulesList() {
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="rules" />
+        <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricsRemovedAlertsWidgetsAlert organization={organization} />
             <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
+              onChangeAlertType={handleChangeType}
+              hasTypeFilter
             />
             <StyledPanelTable
               isLoading={isPending}
@@ -205,7 +221,11 @@ function AlertRulesList() {
                   key="name"
                   role="columnheader"
                   aria-sort={
-                    sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    sort.field === 'name'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -223,7 +243,7 @@ function AlertRulesList() {
                   key="status"
                   role="columnheader"
                   aria-sort={
-                    !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    isAlertRuleSort ? (sort.asc ? 'ascending' : 'descending') : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -268,7 +288,7 @@ function AlertRulesList() {
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
-                          orgId={organization.slug}
+                          organization={organization}
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}

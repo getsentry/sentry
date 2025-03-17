@@ -62,6 +62,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     meta: event._meta?.context,
     onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
   });
+
   const formattedDataItems: SectionCardKeyValueList = raw
     ? knownData
     : knownData.map(data => {

@@ -1,8 +1,9 @@
 import {useContext, useState} from 'react';
+import {css} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
-import Switch from 'sentry/components/switchButton';
+import {Input} from 'sentry/components/core/input';
+import {Switch} from 'sentry/components/core/switch';
+import {resetButtonCss} from 'sentry/components/devtoolbar/styles/reset';
 import {IconAdd} from 'sentry/icons';
 
 import useConfiguration from '../../hooks/useConfiguration';
@@ -24,15 +25,13 @@ export default function CustomOverride({
 
   return (
     <form
-      css={[
-        {
-          display: 'grid',
-          gridTemplateColumns: 'auto max-content max-content',
-          alignItems: 'center',
-          justifyItems: 'space-between',
-          gap: 'var(--space100)',
-        },
-      ]}
+      css={css`
+        display: grid;
+        grid-template-columns: auto max-content max-content;
+        align-items: center;
+        justify-items: space-between;
+        gap: var(--space100);
+      `}
       onSubmit={e => {
         e.preventDefault();
         setOverride(name, isActive);
@@ -53,15 +52,26 @@ export default function CustomOverride({
       />
       <Switch
         size="lg"
-        isActive={isActive}
-        toggle={() => {
+        checked={isActive}
+        onChange={() => {
           setIsActive(!isActive);
         }}
-        css={{background: 'white'}}
+        css={css`
+          background: white;
+        `}
       />
-      <Button size="xs" type="submit" css={{width: '28px'}} disabled={!name.length}>
+      <button
+        type="submit"
+        css={[
+          resetButtonCss,
+          css`
+            width: 28px;
+          `,
+        ]}
+        disabled={!name.length}
+      >
         <IconAdd />
-      </Button>
+      </button>
     </form>
   );
 }

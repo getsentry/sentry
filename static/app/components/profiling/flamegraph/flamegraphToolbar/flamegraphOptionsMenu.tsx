@@ -1,8 +1,8 @@
 import {Fragment, useCallback} from 'react';
 
-import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -52,7 +52,7 @@ function FlamegraphOptionsMenu({
   );
 }
 
-const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
+const colorCodingOptions: Array<SelectOption<FlamegraphPreferences['colorCoding']>> = [
   {value: 'by system vs application frame', label: t('By System vs Application Frame')},
   {value: 'by symbol name', label: t('By Symbol Name')},
   {value: 'by library', label: t('By Package')},

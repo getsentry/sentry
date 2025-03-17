@@ -150,7 +150,7 @@ function useFilterKeySections({
   const previousNumSections = usePrevious(numSections);
   useEffect(() => {
     if (previousNumSections !== numSections) {
-      setSelectedSection(sections[0].value);
+      setSelectedSection(sections[0]!.value);
     }
   }, [numSections, previousNumSections, sections]);
 
@@ -162,7 +162,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
-    recentSearches: recentSearches,
+    recentSearches,
   });
 
   const filterKeyMenuItems = useMemo(() => {
@@ -304,7 +304,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         0,
         sectionKeyOrder.length - 1
       );
-      const newSectionKey = sectionKeyOrder[newIndex];
+      const newSectionKey = sectionKeyOrder[newIndex]!;
       setSelectedSection(newSectionKey);
     },
     [sections, selectedSection, setSelectedSection]

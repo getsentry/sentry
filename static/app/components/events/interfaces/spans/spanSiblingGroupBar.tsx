@@ -25,7 +25,7 @@ import {
 
 export type SpanSiblingGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  continuingTreeDepths: Array<TreeDepthType>;
+  continuingTreeDepths: TreeDepthType[];
   didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -72,8 +72,8 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       return '';
     }
 
-    const operation = spanGrouping[0].span.op;
-    const description = spanGrouping[0].span.description;
+    const operation = spanGrouping[0]!.span.op;
+    const description = spanGrouping[0]!.span.description;
 
     if (!description || !operation) {
       if (description) {
@@ -98,7 +98,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
   function renderSpanTreeConnector() {
     const {treeDepth: spanTreeDepth} = props;
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: React.ReactNode[] = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {
@@ -132,7 +132,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
           <SpanRectangle
             key={index}
             spanGrouping={spanGrouping}
-            bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
+            bounds={getSpanGroupBounds([spanGrouping[index]!], generateBounds)}
             spanBarType={spanBarType}
           />
         ))}
@@ -155,11 +155,12 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       spanNumber={spanNumber}
       generateBounds={generateBounds}
       toggleSpanGroup={() => {
-        toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence);
-        isEmbeddedSpanTree &&
+        toggleSiblingSpanGroup?.(spanGrouping[0]!.span, occurrence);
+        if (isEmbeddedSpanTree) {
           trackAnalytics('issue_details.performance.autogrouped_siblings_toggle', {
             organization,
           });
+        }
       }}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}

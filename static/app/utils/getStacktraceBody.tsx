@@ -3,7 +3,7 @@ import type {Event} from 'sentry/types/event';
 
 export default function getStacktraceBody(
   event: Event,
-  hasSimilarityEmbeddingsFeature: boolean = false
+  hasSimilarityEmbeddingsFeature = false
 ) {
   if (!event || !event.entries) {
     return [];
@@ -34,8 +34,8 @@ export default function getStacktraceBody(
 
   // TODO(ts): This should be verified when EntryData has the correct type
   return exc.data.values
-    .filter(value => !!value.stacktrace)
-    .map(value =>
+    .filter((value: any) => !!value.stacktrace)
+    .map((value: any) =>
       rawStacktraceContent(
         value.stacktrace,
         event.platform,
@@ -43,5 +43,5 @@ export default function getStacktraceBody(
         hasSimilarityEmbeddingsFeature
       )
     )
-    .reduce((acc, value) => acc.concat(value), []);
+    .reduce((acc: any, value: any) => acc.concat(value), []);
 }

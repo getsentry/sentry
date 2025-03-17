@@ -155,6 +155,6 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
             (
                 "sentry.integrations.utils.codecov",
                 logging.ERROR,
-                "Codecov HTTP error: 500. Continuing execution.",
+                "Codecov HTTP error: 500",
             )
         ]

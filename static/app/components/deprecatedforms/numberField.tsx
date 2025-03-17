@@ -11,7 +11,7 @@ type Props = {
  * @deprecated Do not use this
  */
 export default class NumberField extends InputField<Props> {
-  coerceValue(value) {
+  coerceValue(value: any) {
     const intValue = parseInt(value, 10);
 
     // return previous value if new value is NaN, otherwise, will get recursive error

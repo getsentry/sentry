@@ -1,5 +1,5 @@
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import type {SelectValue} from 'sentry/types/core';
@@ -22,7 +22,7 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.OPSGENIE:
       return 'team';
     default:
-      throw Error('Not implemented');
+      throw new Error('Not implemented');
   }
 };
 
@@ -52,7 +52,7 @@ export default function ActionTargetSelector(props: Props) {
 
   switch (action.targetType) {
     case TargetType.TEAM:
-    case TargetType.USER:
+    case TargetType.USER: {
       const isTeam = action.targetType === TargetType.TEAM;
 
       return isTeam ? (
@@ -73,10 +73,10 @@ export default function ActionTargetSelector(props: Props) {
           onChange={handleChangeTargetIdentifier}
         />
       );
-
+    }
     case TargetType.SPECIFIC:
       return availableAction?.options ? (
-        <SelectControl
+        <Select
           isDisabled={disabled || loading}
           value={action.targetIdentifier}
           options={availableAction.options}

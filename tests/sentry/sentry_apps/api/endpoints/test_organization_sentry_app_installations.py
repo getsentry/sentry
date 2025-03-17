@@ -50,7 +50,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.data == [
             {
                 "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
-                "organization": {"slug": self.org.slug},
+                "organization": {"slug": self.org.slug, "id": self.org.id},
                 "uuid": self.installation2.uuid,
                 "code": self.installation2.api_grant.code,
                 "status": "installed",
@@ -62,7 +62,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.data == [
             {
                 "app": {"slug": self.published_app.slug, "uuid": self.published_app.uuid},
-                "organization": {"slug": self.super_org.slug},
+                "organization": {"slug": self.super_org.slug, "id": self.super_org.id},
                 "uuid": self.installation.uuid,
                 "code": self.installation.api_grant.code,
                 "status": "installed",
@@ -94,7 +94,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.data == [
             {
                 "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
-                "organization": {"slug": self.org.slug},
+                "organization": {"slug": self.org.slug, "id": self.org.id},
                 "uuid": self.installation2.uuid,
                 "code": self.installation2.api_grant.code,
                 "status": "installed",
@@ -115,7 +115,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert installation.api_grant is not None
         return {
             "app": {"slug": app.slug, "uuid": app.uuid},
-            "organization": {"slug": org.slug},
+            "organization": {"slug": org.slug, "id": org.id},
             "code": installation.api_grant.code,
         }
 
@@ -170,7 +170,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.login_as(user=self.superuser, superuser=True)
 
         app = self.create_sentry_app(name="Sample", organization=self.org)
-        self.get_error_response(self.org.slug, slug=app.slug, status_code=404)
+        self.get_error_response(self.org.slug, slug=app.slug, status_code=403)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})

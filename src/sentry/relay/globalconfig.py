@@ -15,16 +15,18 @@ RELAY_OPTIONS: list[str] = [
     "profiling.profile_metrics.unsampled_profiles.platforms",
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
     "profiling.profile_metrics.unsampled_profiles.enabled",
-    "profiling.generic_metrics.functions_ingestion.enabled",
     "relay.span-usage-metric",
     "relay.cardinality-limiter.mode",
     "relay.cardinality-limiter.error-sample-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.metric-stats.rollout-rate",
+    "relay.ourlogs-ingestion.sample-rate",
+    "relay.ourlogs-breadcrumb-extraction.sample-rate",
+    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
     "relay.span-extraction.sample-rate",
-    "relay.compute-metrics-summaries.sample-rate",
     "relay.span-normalization.allowed_hosts",
+    "relay.drop-transaction-attachments",
 ]
 
 

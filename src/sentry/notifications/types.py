@@ -27,6 +27,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_ATTACHMENTS = "quotaAttachments"
     QUOTA_REPLAYS = "quotaReplays"
     QUOTA_MONITOR_SEATS = "quotaMonitorSeats"
+    QUTOA_UPTIME = "quotaUptime"
     QUOTA_SPANS = "quotaSpans"
     QUOTA_PROFILE_DURATION = "quotaProfileDuration"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
@@ -111,6 +112,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_MONITOR_SEATS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUTOA_UPTIME: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
@@ -218,7 +223,7 @@ FALLTHROUGH_CHOICES = [
 ]
 
 
-class AssigneeTargetType(Enum):
+class AssigneeTargetType(StrEnum):
     UNASSIGNED = "Unassigned"
     TEAM = "Team"
     MEMBER = "Member"

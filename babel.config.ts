@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 import type {TransformOptions} from '@babel/core';
 
 const config: TransformOptions = {
@@ -15,7 +13,7 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.37',
+        corejs: '3.41',
       },
     ],
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8
@@ -24,13 +22,10 @@ const config: TransformOptions = {
   overrides: [],
   plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
-    production: {
-      plugins: [['babel-plugin-add-react-displayname']],
-    },
+    production: {},
     development: {
       plugins: [
         '@emotion/babel-plugin',
-        '@babel/plugin-transform-react-jsx-source',
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },

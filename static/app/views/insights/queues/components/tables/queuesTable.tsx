@@ -13,12 +13,12 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -95,7 +95,7 @@ type ValidSort = Sort & {
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as ReadonlyArray<string>).includes(sort.field);
+  return (SORTABLE_FIELDS as readonly string[]).includes(sort.field);
 }
 
 interface Props {
@@ -106,6 +106,7 @@ interface Props {
 }
 
 export function QueuesTable({error, destination, sort}: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -116,7 +117,7 @@ export function QueuesTable({error, destination, sort}: Props) {
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.DESTINATIONS_CURSOR]: newCursor},
     });
@@ -172,6 +173,7 @@ function renderBodyCell(
   organization: Organization
 ) {
   const key = column.key;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (row[key] === undefined) {
     return (
       <AlignRight>
@@ -185,6 +187,7 @@ function renderBodyCell(
   }
 
   if (key.startsWith('count')) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
   }
 
@@ -198,12 +201,14 @@ function renderBodyCell(
     const formatter = FIELD_FORMATTERS.percentage.renderFunc;
     return (
       <AlignRight>
+        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
         {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
       </AlignRight>
     );
   }
 
   if (!meta?.fields) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return row[column.key];
   }
 

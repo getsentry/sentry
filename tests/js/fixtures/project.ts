@@ -34,6 +34,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasMinifiedStackTrace: false,
     hasProfiles: false,
     hasReplays: false,
+    hasFlags: false,
     hasSessions: false,
     hasMonitors: false,
     hasInsightsHttp: false,
@@ -58,6 +59,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     sensitiveFields: [],
     subjectTemplate: '',
     verifySSL: false,
+    storeCrashReports: null,
     ...params,
   };
 }

@@ -9,6 +9,7 @@ from sentry_sdk import Scope
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
     print_and_capture_handler_exception,
@@ -196,3 +197,36 @@ class HandleQueryErrorsTest:
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+
+class ClampDateRangeTest(unittest.TestCase):
+    def test_no_clamp_if_range_under_max(self):
+        start = datetime.datetime(2024, 1, 1)
+        end = datetime.datetime(2024, 1, 2)
+        max_timedelta = datetime.timedelta(days=7)
+
+        assert clamp_date_range((start, end), max_timedelta) == (start, end)
+
+    def test_no_clamp_for_negative_range(self):
+        start = datetime.datetime(2024, 1, 1)
+        end = datetime.datetime(2023, 1, 2)
+        max_timedelta = datetime.timedelta(hours=1)
+
+        assert clamp_date_range((start, end), max_timedelta) == (start, end)
+
+    def test_clamps_even_to_zero(self):
+        start = datetime.datetime(2024, 1, 1)
+        end = datetime.datetime(2024, 1, 2)
+        max_timedelta = datetime.timedelta(0)
+
+        assert clamp_date_range((start, end), max_timedelta) == (end, end)
+
+    def test_clamps_to_end(self):
+        start = datetime.datetime(2024, 1, 1)
+        end = datetime.datetime(2024, 1, 14)
+        max_timedelta = datetime.timedelta(days=1)
+
+        assert clamp_date_range((start, end), max_timedelta) == (
+            datetime.datetime(2024, 1, 13),
+            end,
+        )

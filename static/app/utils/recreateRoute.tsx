@@ -39,11 +39,13 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
   let routeIndex: number | undefined;
 
   // TODO(ts): typescript things
-  if (typeof to !== 'string') {
-    routeIndex = routes.indexOf(to) + 1;
-    lastRootIndex = paths.slice(0, routeIndex).findLastIndex(path => path[0] === '/');
+  if (typeof to === 'string') {
+    lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
   } else {
-    lastRootIndex = paths.findLastIndex(path => path[0] === '/');
+    routeIndex = routes.indexOf(to) + 1;
+    lastRootIndex = paths
+      .slice(0, routeIndex)
+      .findLastIndex((path: any) => path[0] === '/');
   }
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
@@ -56,7 +58,7 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
   const hash = location?.hash ?? '';
 
   const fullRoute = `${baseRoute.join('')}${
-    typeof to !== 'string' ? '' : to
+    typeof to === 'string' ? to : ''
   }${search}${hash}`;
 
   return replaceRouterParams(fullRoute, params);

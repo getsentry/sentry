@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -43,6 +43,14 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
       onClick={handleClick}
       data-test-id={type ? `toast-${type}` : 'toast'}
       className={classNames(className, 'ref-toast', `ref-${type}`)}
+      initial={{opacity: 0, y: 70}}
+      animate={{opacity: 1, y: 0}}
+      exit={{opacity: 0, y: 70}}
+      transition={testableTransition({
+        type: 'spring',
+        stiffness: 450,
+        damping: 25,
+      })}
       {...props}
     >
       {type === 'loading' ? (
@@ -73,26 +81,6 @@ const Toast = styled(motion.div)`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   position: relative;
 `;
-
-Toast.defaultProps = {
-  initial: {
-    opacity: 0,
-    y: 70,
-  },
-  animate: {
-    opacity: 1,
-    y: 0,
-  },
-  exit: {
-    opacity: 0,
-    y: 70,
-  },
-  transition: testableTransition({
-    type: 'spring',
-    stiffness: 450,
-    damping: 25,
-  }),
-};
 
 const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string}>`
   margin-right: ${space(0.75)};

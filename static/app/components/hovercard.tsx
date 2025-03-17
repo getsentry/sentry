@@ -177,6 +177,7 @@ const Header = styled('div')`
 const Body = styled('div')`
   padding: ${space(2)};
   min-height: 30px;
+  word-wrap: break-word;
 `;
 
 const Divider = styled('div')`

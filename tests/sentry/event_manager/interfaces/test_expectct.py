@@ -18,7 +18,7 @@ def make_expectct_snapshot(insta_snapshot):
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
-        evt = eventstore.backend.create_event(data=data)
+        evt = eventstore.backend.create_event(project_id=1, data=data)
 
         interface = evt.interfaces.get("expectct")
 

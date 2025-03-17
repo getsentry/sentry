@@ -6,10 +6,10 @@ import pytest
 
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
-from sentry.snuba import errors, metrics_performance
+from sentry.snuba import errors, metrics_performance, spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
@@ -31,7 +31,9 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
 
 
 @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase):
+class AnomalyDetectionStoreDataTest(
+    AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
+):
     def setUp(self):
         super().setUp()
 
@@ -140,6 +142,40 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
+
+    def test_anomaly_detection_fetch_historical_data_eap_spans(self):
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            dataset=Dataset.EventsAnalyticsPlatform,
+            query="",
+            time_window=30,
+        )
+        snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
+
+        self.store_spans(
+            [
+                self.create_span({"description": "foo"}, start_ts=dt)
+                for dt in [self.time_1_dt, self.time_2_dt]
+            ],
+            is_eap=True,
+        )
+
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
+        assert result
+        assert {"time": int(self.time_1_ts), "count()": 1} in result.data.get("data")
+        assert {"time": int(self.time_2_ts), "count()": 1} in result.data.get("data")
+
+        formatted_result = format_historical_data(
+            data=result,
+            query_columns=["count()"],
+            dataset=spans_rpc,
+            organization=self.organization,
+        )
+
+        for row in formatted_result:
+            if row["timestamp"] == int(self.time_1_ts) or row["timestamp"] == int(self.time_2_ts):
+                assert row["value"] == 1
 
     def test_anomaly_detection_fetch_historical_data_is_unresolved_query(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])

@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -93,14 +92,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   assignee: {
     sortField: null,
-    renderFunc: data => {
-      const memberList = MemberListStore.getAll();
-      return (
-        <ActorContainer>
-          <DeprecatedAssigneeSelector id={data.id} memberList={memberList} noDropdown />
-        </ActorContainer>
-      );
-    },
+    renderFunc: data => <IssueAssignee groupId={data.id} />,
   },
   lifetimeEvents: {
     sortField: null,
@@ -146,7 +138,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: ({links}) => (
       <LinksContainer>
-        {links.map((link, index) => (
+        {links.map((link: any, index: any) => (
           <ExternalLink key={index} href={link.url}>
             {link.displayName}
           </ExternalLink>
@@ -236,7 +228,7 @@ const getDiscoverUrl = (
     version: 2,
   });
   return discoverView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
@@ -284,7 +276,7 @@ const SecondaryCount = styled(Count)`
   }
 `;
 
-const WrappedCount = styled(({value, ...p}) => (
+const WrappedCount = styled(({value, ...p}: any) => (
   <div {...p}>
     <Count value={value} />
   </div>
@@ -302,17 +294,6 @@ const Divider = styled('div')`
   background-color: ${p => p.theme.innerBorder};
 `;
 
-const ActorContainer = styled('div')`
-  display: flex;
-  justify-content: left;
-  margin-left: 18px;
-  /* IconUser is the only one with 20px. We are setting 24px here to make the height consistent */
-  height: 24px;
-  :hover {
-    cursor: default;
-  }
-`;
-
 const LinksContainer = styled('span')`
   white-space: nowrap;
 `;
@@ -328,6 +309,7 @@ export function getIssueFieldRenderer(
   field: string
 ): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 

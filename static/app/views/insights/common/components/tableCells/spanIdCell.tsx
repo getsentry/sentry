@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/insights/http/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
+import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 interface Props {
   location: Location;
@@ -17,7 +18,7 @@ interface Props {
   timestamp: string;
   traceId: string;
   transactionId: string;
-  source?: string;
+  source?: TraceViewSources;
 }
 
 export function SpanIdCell({

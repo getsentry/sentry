@@ -9,7 +9,6 @@ from arroyo.processing.processor import StreamProcessor
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test.utils import override_settings
 from django.utils import timezone
-from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.consumers.clock_tasks_consumer import MonitorClockTasksStrategyFactory
@@ -26,8 +25,9 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.types import TickVolumeAnomolyResult
+from sentry.monitors.system_incidents import DecisionResult, TickAnomalyDecision
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 partition = Partition(Topic("test"), 0)
 
@@ -40,60 +40,80 @@ def create_consumer():
 
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_missing")
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_timeout")
-def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.process_clock_tick_for_system_incidents")
+@override_options({"crons.system_incidents.use_decisions": True})
+def test_simple(
+    mock_process_clock_tick_for_system_incidents,
+    mock_dispatch_check_timeout,
+    mock_dispatch_check_missing,
+):
     consumer = create_consumer()
 
     ts = timezone.now().replace(second=0, microsecond=0)
 
-    message: ClockTick = {
-        "ts": ts.timestamp(),
-        "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
-    }
+    # System incident reports a normal clock tick
+    mock_process_clock_tick_for_system_incidents.return_value = DecisionResult(
+        ts, TickAnomalyDecision.NORMAL, None
+    )
+
     value = BrokerValue(
-        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode(message), []),
+        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode({"ts": ts.timestamp()}), []),
         partition,
         1,
         ts,
     )
     consumer.submit(Message(value))
+
+    assert mock_process_clock_tick_for_system_incidents.call_count == 1
+    assert mock_process_clock_tick_for_system_incidents.mock_calls[0] == mock.call(ts)
+
+    assert mock_dispatch_check_missing.call_count == 1
+    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_timeout.call_count == 1
     assert mock_dispatch_check_timeout.mock_calls[0] == mock.call(ts)
 
-    assert mock_dispatch_check_missing.call_count == 1
-    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(
-        ts,
-        TickVolumeAnomolyResult.NORMAL,
-    )
 
-
-@mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_missing")
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_mark_unknown")
-def test_simple_abnormal(mock_dispatch_mark_unknown, mock_dispatch_check_missing):
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_missing")
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_timeout")
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.process_clock_tick_for_system_incidents")
+@override_options({"crons.system_incidents.use_decisions": True})
+def test_incident_mark_unknown(
+    mock_process_clock_tick_for_system_incidents,
+    mock_dispatch_check_timeout,
+    mock_dispatch_check_missing,
+    mock_dispatch_mark_unknown,
+):
+    """
+    Test that during an incident we mark in-progress check-ins as unknown and
+    do NOT dispatch mark timeouts.
+    """
     consumer = create_consumer()
 
     ts = timezone.now().replace(second=0, microsecond=0)
 
-    message: ClockTick = {
-        "ts": ts.timestamp(),
-        "volume_anomaly_result": TickVolumeAnomolyResult.ABNORMAL.value,
-    }
+    mock_process_clock_tick_for_system_incidents.return_value = DecisionResult(
+        ts, TickAnomalyDecision.INCIDENT, None
+    )
     value = BrokerValue(
-        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode(message), []),
+        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode({"ts": ts.timestamp()}), []),
         partition,
         1,
         ts,
     )
     consumer.submit(Message(value))
 
-    assert mock_dispatch_mark_unknown.call_count == 1
-    assert mock_dispatch_mark_unknown.mock_calls[0] == mock.call(ts)
+    assert mock_process_clock_tick_for_system_incidents.call_count == 1
+    assert mock_process_clock_tick_for_system_incidents.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_missing.call_count == 1
-    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(
-        ts,
-        TickVolumeAnomolyResult.ABNORMAL,
-    )
+    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
+
+    assert mock_dispatch_check_timeout.call_count == 0
+
+    assert mock_dispatch_mark_unknown.call_count == 1
+    assert mock_dispatch_mark_unknown.mock_calls[0] == mock.call(ts)
 
 
 class MonitorsClockTickEndToEndTest(TestCase):

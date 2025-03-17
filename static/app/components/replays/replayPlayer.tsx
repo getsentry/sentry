@@ -166,6 +166,7 @@ function BasePlayerRoot({
         1.5
       );
       if (scale) {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;
@@ -217,6 +218,14 @@ const SentryPlayerRoot = styled(BasePlayerRoot)`
   ${baseReplayerCss}
   /* Sentry-specific styles for the player */
   ${p => sentryReplayerCss(p.theme)}
+
+  .video-replayer-wrapper + .replayer-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
 `;
 
 const Overlay = styled('div')`

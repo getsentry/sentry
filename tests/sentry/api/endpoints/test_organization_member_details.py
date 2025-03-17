@@ -5,6 +5,7 @@ from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authprovider import AuthProvider
@@ -13,6 +14,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -140,6 +142,22 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         role_ids = [role["id"] for role in response.data["teamRoleList"]]
         assert role_ids == ["contributor", "admin"]
 
+    def test_does_not_include_secondary_emails(self):
+        # Create a user with multiple email addresses
+        user = self.create_user("primary@example.com", username="multi_email_user")
+        self.create_useremail(user, "secondary1@example.com")
+        self.create_useremail(user, "secondary2@example.com")
+
+        # Add user to organization
+        member = self.create_member(organization=self.organization, user=user, role="member")
+
+        response = self.get_success_response(self.organization.slug, member.id)
+
+        # Check that only primary email is present and no other email addresses are exposed
+        assert response.data["email"] == "primary@example.com"
+        assert "emails" not in response.data["user"]
+        assert "emails" not in response.data.get("serializedUser", {})
+
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
@@ -184,7 +202,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         mock_send_invite_email.assert_called_once_with()
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_reinvite_pending_member(self, mock_send_invite_email):
         self.login_as(self.curr_user)
 
@@ -202,9 +219,15 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_success_response(self.organization.slug, self.curr_invite.id, reinvite=1)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.curr_invite.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_REINVITE"),
+        )
         mock_send_invite_email.reset_mock()
+
         response = self.get_error_response(
             self.organization.slug, self.other_invite.id, reinvite=1, status_code=403
         )
@@ -212,7 +235,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_can_only_reinvite(self, mock_send_invite_email):
         foo = self.create_team(organization=self.organization, name="Team Foo")
         self.login_as(self.curr_user)
@@ -222,7 +244,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
-            reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
@@ -234,19 +255,14 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
-            reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
-        assert (
-            response.data.get("detail")
-            == "You can only reinvite members; you cannot modify other member details."
-        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
-    def test_member_cannot_reinvite_members(self, mock_send_invite_email):
+    def test_member_cannot_reinvite_non_pending_members(self, mock_send_invite_email):
         self.login_as(self.curr_user)
 
         self.organization.flags.disable_member_invite = True
@@ -263,6 +279,60 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
         assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_cannot_reinvite_and_modify_member(self, mock_send_invite_email):
+        member_om = self.create_member(
+            organization=self.organization, email="foo@example.com", role="member"
+        )
+
+        response = self.get_error_response(
+            self.organization.slug, member_om.id, reinvite=1, role="manager", status_code=403
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot modify member details when resending an invitation. Separate requests are required."
+        )
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_member_details_not_modified_after_reinviting(self, mock_send_invite_email):
+        team = self.create_team(organization=self.organization, name="Moo Deng's Team")
+
+        member_om = self.create_member(
+            organization=self.organization,
+            email="foo@example.com",
+            role="member",
+            teams=[team],
+        )
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        roles = [t for t in member_om.get_team_roles()]
+        assert member_om.role == "member"
+        assert team.slug in teams
+        assert roles == [
+            {
+                "team": team.id,
+                "role": None,
+            }
+        ]
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_REINVITE"),
+        )
+
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        roles = [t for t in member_om.get_team_roles()]
+        assert member_om.role == "member"
+        assert team.slug in teams
+        assert roles == [
+            {
+                "team": team.id,
+                "role": None,
+            }
+        ]
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
@@ -278,7 +348,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_cannot_regenerate_pending_invite(self, mock_send_invite_email):
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
@@ -663,7 +732,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
             {"role": "manager"},
-            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
         # The app token has no associated OrganizationMember and therefore no role.
@@ -786,6 +855,45 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             teamRoles=[{"teamSlug": team.slug, "role": None}],
             orgRole="manager",
         )
+
+    @patch("sentry.quotas.base.Quota.on_role_change")
+    def test_on_role_change_called_when_role_updated(self, mock_on_role_change):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="manager")
+
+        mock_on_role_change.assert_called_once_with(
+            organization=self.organization,
+            organization_member=member_om,
+            previous_role="member",
+            new_role="manager",
+        )
+
+    @patch("sentry.quotas.base.Quota.on_role_change")
+    def test_on_role_change_not_called_when_role_unchanged(self, mock_on_role_change):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        # Update something else but keep role the same
+        self.get_success_response(self.organization.slug, member_om.id, teams=[])
+
+        mock_on_role_change.assert_not_called()
+
+    @patch("sentry.quotas.base.Quota.on_role_change")
+    def test_on_role_change_not_called_when_reinviting(self, mock_on_role_change):
+        member_om = self.create_member(
+            organization=self.organization, email="foo@example.com", role="member"
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
+
+        mock_on_role_change.assert_not_called()
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
@@ -961,7 +1069,6 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
-    @with_feature("organizations:members-invite-teammates")
     def test_member_delete_pending_invite(self):
         curr_invite = self.create_member(
             organization=self.organization,
@@ -990,7 +1097,6 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, curr_invite.id)
         self.get_error_response(self.organization.slug, other_invite.id, status_code=400)
 
-    @with_feature("organizations:members-invite-teammates")
     def test_member_cannot_delete_members(self):
         self.login_as(self.curr_user)
 

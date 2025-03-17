@@ -15,7 +15,7 @@ class ProjectFiltersTest(APITestCase):
         for spec in response_data:
             if spec["id"] == spec_id:
                 return spec
-        return None
+        raise AssertionError(f"spec not found: {spec_id}")
 
     def test_get(self):
         org = self.create_organization(name="baz", slug="1", owner=self.user)
@@ -38,11 +38,9 @@ class ProjectFiltersTest(APITestCase):
         project.update_option("filters:filtered-transaction", "0")
         response = self.get_success_response(org.slug, project.slug)
         health_check = self.get_filter_spec(response.data, "filtered-transaction")
-        assert health_check is not None
         assert health_check["active"] is False
 
         project.update_option("filters:filtered-transaction", "1")
         response = self.get_success_response(org.slug, project.slug)
         health_check = self.get_filter_spec(response.data, "filtered-transaction")
-        assert health_check is not None
         assert health_check["active"] is True

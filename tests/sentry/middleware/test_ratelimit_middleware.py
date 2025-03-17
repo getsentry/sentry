@@ -33,13 +33,13 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         enforce_rate_limit = True
 
         def get(self):
-            return Response({"ok": True})
+            raise NotImplementedError
 
     class TestEndpointNoRateLimits(Endpoint):
         enforce_rate_limit = False
 
         def get(self):
-            return Response({"ok": True})
+            raise NotImplementedError
 
     _test_endpoint = TestEndpoint.as_view()
     _test_endpoint_no_rate_limits = TestEndpointNoRateLimits.as_view()

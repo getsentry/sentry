@@ -2,19 +2,11 @@ import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
+import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
 import {DataSection} from 'sentry/components/events/styles';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import EventTagsDataSection from './tags';
-
-const SCREENSHOT_NAMES = [
-  'screenshot.jpg',
-  'screenshot.png',
-  'screenshot-1.jpg',
-  'screenshot-1.png',
-  'screenshot-2.jpg',
-  'screenshot-2.png',
-];
 
 type Props = React.ComponentProps<typeof EventTagsDataSection> & {
   isShare?: boolean;

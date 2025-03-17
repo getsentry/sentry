@@ -22,11 +22,15 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Column = GridColumnHeader<
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.USER
@@ -34,7 +38,7 @@ type Column = GridColumnHeader<
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -56,14 +60,14 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_ID,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.TIMESTAMP,
 ];
 
 type ValidSort = Sort & {
   field:
-    | SpanIndexedField.ID
+    | SpanIndexedField.SPAN_ID
     | SpanIndexedField.SPAN_DURATION
     | SpanIndexedField.TIMESTAMP;
 };
@@ -80,6 +84,7 @@ interface Props {
 export function PipelineSpansTable({groupId, useEAP}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
@@ -98,7 +103,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
       limit: 30,
       sorts: [sort],
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRACE,
         SpanIndexedField.SPAN_DURATION,
         SpanIndexedField.TRANSACTION_ID,
@@ -122,7 +127,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
       limit: 30,
       sorts: [sort],
       fields: [
-        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRACE,
         SpanIndexedField.SPAN_DURATION,
         SpanIndexedField.TRANSACTION_ID,
@@ -164,7 +169,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, groupId),
+            renderBodyCell(column, row, meta, location, organization, groupId, view),
         }}
       />
     </VisuallyCompleteWithData>
@@ -177,14 +182,15 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
-  groupId: string
+  groupId: string,
+  view: DomainView | undefined
 ) {
-  if (column.key === SpanIndexedField.ID) {
-    if (!row[SpanIndexedField.ID]) {
+  if (column.key === SpanIndexedField.SPAN_ID) {
+    if (!row[SpanIndexedField.SPAN_ID]) {
       return <span>(unknown)</span>;
     }
     if (!row[SpanIndexedField.TRACE]) {
-      return <span>{row[SpanIndexedField.ID]}</span>;
+      return <span>{row[SpanIndexedField.SPAN_ID]}</span>;
     }
     return (
       <Link
@@ -202,11 +208,12 @@ function renderBodyCell(
             },
           },
           eventView: EventView.fromLocation(location),
-          spanId: row[SpanIndexedField.ID],
+          spanId: row[SpanIndexedField.SPAN_ID],
           source: TraceViewSources.LLM_MODULE,
+          view,
         })}
       >
-        {row[SpanIndexedField.ID]}
+        {row[SpanIndexedField.SPAN_ID]}
       </Link>
     );
   }

@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +20,7 @@ from sentry.utils.auth import (
     is_valid_redirect,
 )
 from sentry.web.frontend.auth_login import additional_context
-from sentry.web.frontend.base import OrganizationMixin
+from sentry.web.frontend.base import OrganizationMixin, determine_active_organization
 
 
 @control_silo_endpoint
@@ -30,8 +32,8 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        self.determine_active_organization(request)
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+        self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request: Request, *args, **kwargs) -> Response:
@@ -73,10 +75,8 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return Response({"nextUri": next_uri})
 
-    def get_next_uri(self, request: Request):
-        next_uri_fallback = None
-        if request.session.get("_next") is not None:
-            next_uri_fallback = request.session.pop("_next")
+    def get_next_uri(self, request: HttpRequest) -> str:
+        next_uri_fallback = request.session.pop("_next", None)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def prepare_login_context(self, request: Request, *args, **kwargs):
@@ -85,7 +85,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         context = {
             "serverHostname": get_server_hostname(),
             "canRegister": can_register,
-            "hasNewsletter": newsletter.is_enabled(),
+            "hasNewsletter": newsletter.backend.is_enabled(),
         }
 
         if "session_expired" in request.COOKIES:

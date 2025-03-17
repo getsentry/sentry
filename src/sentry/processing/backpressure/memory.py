@@ -13,12 +13,20 @@ class ServiceMemory:
     used: int
     available: int
     percentage: float
+    host: str | None = None
+    port: int | None = None
 
     def __init__(self, name: str, used: int, available: int):
         self.name = name
         self.used = used
         self.available = available
         self.percentage = used / available
+
+
+@dataclass
+class NodeInfo:
+    host: str | None
+    port: int | None
 
 
 def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
@@ -51,7 +59,24 @@ def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     return ServiceMemory(node_id, memory_used, memory_available)
 
 
-def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None, None]:
+def get_host_port_info(node_id: str, cluster: Cluster) -> NodeInfo:
+    """
+    Extract the host and port of the redis node in the cluster.
+    """
+    try:
+        if isinstance(cluster, RedisCluster):
+            # RedisCluster node mapping
+            node = cluster.connection_pool.nodes.nodes.get(node_id)
+            return NodeInfo(node["host"], node["port"])
+        else:
+            # rb.Cluster node mapping
+            node = cluster.hosts[node_id]
+            return NodeInfo(node.host, node.port)
+    except Exception:
+        return NodeInfo(None, None)
+
+
+def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory]:
     """
     A generator that yields redis `INFO` results for each of the nodes in the `cluster`.
     """
@@ -65,4 +90,11 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
         cluster_info = promise.value
 
     for node_id, info in cluster_info.items():
-        yield get_memory_usage(node_id, info)
+        # we only care about the memory level of leader nodes, not followers
+        if info.get("role") != "master":
+            continue
+        node_info = get_host_port_info(node_id, cluster)
+        memory_usage = get_memory_usage(node_id, info)
+        memory_usage.host = node_info.host
+        memory_usage.port = node_info.port
+        yield memory_usage

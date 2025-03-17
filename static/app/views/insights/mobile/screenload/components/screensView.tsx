@@ -1,23 +1,23 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/performance/searchBar';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -54,10 +54,10 @@ type Props = {
 };
 
 export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
-  const location = useLocation();
-  const theme = useTheme();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const {query: locationQuery} = location;
@@ -197,11 +197,13 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
-      <Alert type="warning" showIcon>
-        {t(
-          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -209,7 +211,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     yAxes,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: getChartColorPalette(TOP_SCREENS - 2),
     releaseEvents,
     topTransactions,
   });
@@ -219,7 +221,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
 
   const handleCursor: CursorHandler = (newCursor, pathname, query_) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query_, [MobileCursors.SCREENS_TABLE]: newCursor},
     });
@@ -233,11 +235,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             <ScreensBarChart
               chartOptions={[
                 {
-                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]]),
-                  yAxis: YAXIS_COLUMNS[yAxes[0]],
+                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]!]),
+                  yAxis: YAXIS_COLUMNS[yAxes[0]!],
                   xAxisLabel: topTransactions,
                   series: Object.values(
-                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
+                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]!]]!
                   ),
                   subtitle: primaryRelease
                     ? t(
@@ -265,11 +267,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
               <ScreensBarChart
                 chartOptions={[
                   {
-                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]]),
-                    yAxis: YAXIS_COLUMNS[yAxes[1]],
+                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]!]),
+                    yAxis: YAXIS_COLUMNS[yAxes[1]!],
                     xAxisLabel: topTransactions,
                     series: Object.values(
-                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
+                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]!]]!
                     ),
                     subtitle: primaryRelease
                       ? t(
@@ -306,7 +308,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screens')}
         additionalConditions={
           new MutableSearch(

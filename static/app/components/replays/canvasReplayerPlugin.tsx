@@ -26,7 +26,12 @@ function isCanvasMutationEvent(e: eventWithTime): e is CanvasEventWithTime {
   );
 }
 
-class InvalidCanvasNodeError extends Error {}
+class InvalidCanvasNodeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCanvasNodeError';
+  }
+}
 
 /**
  * Find the lowest matching index for event
@@ -51,7 +56,7 @@ function findIndex(
   const mid = Math.floor((start + end) / 2);
 
   // Search lower half
-  if (event.timestamp <= arr[mid].timestamp) {
+  if (event.timestamp <= arr[mid]!.timestamp) {
     return findIndex(arr, event, start, mid - 1);
   }
 
@@ -106,7 +111,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     while (eventsToPrune.length) {
       // Peek top of queue and see if event should be pruned, otherwise we can break out of the loop
       if (
-        Math.abs(event.timestamp - eventsToPrune[0].timestamp) <= BUFFER_TIME &&
+        Math.abs(event.timestamp - eventsToPrune[0]!.timestamp) <= BUFFER_TIME &&
         eventsToPrune.length <= PRELOAD_SIZE
       ) {
         break;
@@ -275,8 +280,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       errorHandler: (err: unknown) => {
         if (err instanceof Error) {
           Sentry.captureException(err);
-        } else {
-          Sentry.metrics.increment('replay.canvas_player.error_canvas_mutation');
         }
       },
     });
@@ -358,7 +361,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 function handleProcessEventError(err: unknown) {
   if (err instanceof InvalidCanvasNodeError) {
     // This can throw if mirror DOM is not ready
-    Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
     return;
   }
 

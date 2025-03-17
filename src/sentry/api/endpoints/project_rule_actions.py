@@ -5,7 +5,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,7 +14,6 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.shared_integrations.exceptions import IntegrationFormError
-from sentry.utils.safe import safe_execute
 from sentry.utils.samples import create_sample_event
 
 
@@ -66,15 +64,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             project, platform=project.platform, default="javascript", tagged=True
         )
 
-        if features.has(
-            "projects:verbose-test-alert-reporting", project=project, actor=request.user
-        ):
-            return self.execute_future_on_test_event(test_event, rule)
-        else:
-            # Old existing behavior to wrap this in a handler which buries exceptions
-            for callback, futures in activate_downstream_actions(rule, test_event).values():
-                safe_execute(callback, test_event, futures)
-            return Response()
+        return self.execute_future_on_test_event(test_event, rule)
 
     def execute_future_on_test_event(
         self,

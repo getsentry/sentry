@@ -18,6 +18,7 @@ class LoginSuccessView(OrganizationView):
             TEMPLATE,
             status=200,
             context={
+                "organization_slug": organization.slug,
                 "delay_sec": int(delay_ms / 1000),
                 "delay_ms": delay_ms,
                 "cookie": f"{session_cookie_name}={request.COOKIES.get(session_cookie_name)}",

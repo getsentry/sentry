@@ -7,11 +7,11 @@ import set from 'lodash/set';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ type Props = {
   transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
-  onApply?: (threshold, metric) => void;
+  onApply?: (threshold: any, metric: any) => void;
   project?: string;
 } & ModalRenderProps;
 
@@ -189,7 +189,7 @@ class TransactionThresholdModal extends Component<Props, State> {
           stacked
           required
         >
-          <SelectControl
+          <Select
             required
             options={METRIC_CHOICES.slice()}
             name="responseMetric"
@@ -237,7 +237,7 @@ class TransactionThresholdModal extends Component<Props, State> {
     const summaryView = eventView.clone();
     summaryView.query = summaryView.getQueryWithAdditionalConditions();
     const target = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transactionName,
       query: summaryView.generateQueryStringObject(),
       projectID: project?.id,

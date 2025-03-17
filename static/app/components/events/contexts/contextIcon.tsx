@@ -12,6 +12,7 @@ import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
 import logoArm from 'sentry-logos/logo-arm.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
+import logoCloudflareWorker from 'sentry-logos/logo-cloudflare-worker.svg';
 import logoCrystal from 'sentry-logos/logo-crystal.svg';
 import logoDeno from 'sentry-logos/logo-deno.svg';
 import logoDotnet from 'sentry-logos/logo-dotnet.svg';
@@ -41,7 +42,9 @@ import logoSamsung from 'sentry-logos/logo-samsung.svg';
 import logoUbuntu from 'sentry-logos/logo-ubuntu.svg';
 import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
+import logoVercel from 'sentry-logos/logo-vercel.svg';
 import logoWindows from 'sentry-logos/logo-windows.svg';
+import logoXbox from 'sentry-logos/logo-xbox.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -70,6 +73,7 @@ const LOGO_MAPPING = {
   arm: logoArm,
   chrome: logoChrome,
   chromium: logoChromium,
+  cloudflare: logoCloudflareWorker,
   cpython: logoPython,
   crystal: logoCrystal,
   darwin: logoApple,
@@ -100,9 +104,11 @@ const LOGO_MAPPING = {
   samsung: logoSamsung,
   tvos: logoApple,
   ubuntu: logoUbuntu,
+  vercel: logoVercel,
   watch: logoAppleWatch,
   watchos: logoApple,
   windows: logoWindows,
+  xbox: logoXbox,
 };
 
 export const NAMES = Object.keys(LOGO_MAPPING);
@@ -117,6 +123,7 @@ const INVERT_IN_DARKMODE = [
   'mac',
   'apple',
   'watchos',
+  'vercel',
 ];
 
 const darkCss = css`
@@ -133,6 +140,7 @@ export function getLogoImage(name: string) {
     return logoNvidia;
   }
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return LOGO_MAPPING[name] ?? logoUnknown;
 }
 

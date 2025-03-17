@@ -1,6 +1,6 @@
+import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -40,6 +40,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         }
         const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
         const isLast = i === lastRouteIndex;
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const createMenu = MENUS[route.name];
         const Menu = typeof createMenu === 'function' && createMenu;
         const hasMenu = !!Menu;
@@ -68,7 +69,11 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
   );
 }
 
-const CrumbLink = styled(Link)`
+// Uses Link directly from react-router-dom to avoid the URL normalization
+// that happens in the internal Link component. It is unncessary because we
+// get routes from the router, and will actually cause issues because the
+// routes do not have organization information.
+const CrumbLink = styled(RouterLink)`
   display: block;
 
   color: ${p => p.theme.subText};

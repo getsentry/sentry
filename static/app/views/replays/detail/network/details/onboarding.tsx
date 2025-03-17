@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -74,7 +74,20 @@ export function Setup({
 
   const url = item.description || 'http://example.com';
 
-  return isVideoReplay ? null : (
+  return isVideoReplay ? (
+    visibleTab === 'request' || visibleTab === 'response' ? (
+      <StyledAlert type="info" showIcon>
+        {tct(
+          'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
+          {
+            link: (
+              <ExternalLink href="https://github.com/getsentry/sentry-react-native/issues/4106" />
+            ),
+          }
+        )}
+      </StyledAlert>
+    ) : null
+  ) : (
     <SetupInstructions
       minVersion="7.53.1"
       sdkNeedsUpdate={sdkNeedsUpdate}
@@ -168,11 +181,13 @@ function SetupInstructions({
           )}
       </NetworkUrlWrapper>
       {showSnippet === Output.BODY_SKIPPED && (
-        <Alert type="warning">
-          {tct('Enable [field] to capture both Request and Response bodies.', {
-            field: <code>networkCaptureBodies: true</code>,
-          })}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning">
+            {tct('Enable [field] to capture both Request and Response bodies.', {
+              field: <code>networkCaptureBodies: true</code>,
+            })}
+          </Alert>
+        </Alert.Container>
       )}
       <h1>{t('Prerequisites')}</h1>
       <ol>
@@ -204,7 +219,6 @@ const NetworkUrlWrapper = styled('div')`
 `;
 
 const NoMarginAlert = styled(Alert)`
-  margin: 0;
   border-width: 1px 0 0 0;
 `;
 
@@ -230,4 +244,8 @@ const StyledInstructions = styled('div')`
   p:last-child {
     margin-bottom: 0;
   }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)};
 `;

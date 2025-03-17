@@ -26,7 +26,7 @@ function PackageLink({
   onClick,
   packagePath,
   withLeadHint,
-}) {
+}: any) {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (isClickable) {
       onClick(event);

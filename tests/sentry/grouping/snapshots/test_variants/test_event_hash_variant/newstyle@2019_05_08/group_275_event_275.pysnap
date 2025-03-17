@@ -1,10 +1,11 @@
 ---
-created: '2024-10-24T14:22:49.435066+00:00'
+created: '2025-02-26T00:33:26.248394+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -104,26 +105,27 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "07fb068d9b0e76878c72b462ea20cab3"
+  contributing component: exception
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_root_queues_init_once"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "start_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_pthread_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_worker_thread2"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_root_queue_drain"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_dispatch_client_callout"
           frame*

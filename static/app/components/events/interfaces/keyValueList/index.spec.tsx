@@ -14,11 +14,11 @@ describe('KeyValueList', function () {
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(2);
 
-    const firstColumn = within(rows[0]).getAllByRole('cell');
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
     expect(firstColumn[1]).toHaveTextContent('x');
 
-    const secondColumn = within(rows[1]).getAllByRole('cell');
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
     expect(secondColumn[1]).toHaveTextContent('y');
   });
@@ -33,11 +33,11 @@ describe('KeyValueList', function () {
 
     const rows = screen.getAllByRole('row');
 
-    const firstColumn = within(rows[0]).getAllByRole('cell');
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
     expect(firstColumn[1]).toHaveTextContent('x');
 
-    const secondColumn = within(rows[1]).getAllByRole('cell');
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
     expect(secondColumn[1]).toHaveTextContent('y');
   });
@@ -52,11 +52,11 @@ describe('KeyValueList', function () {
 
     const rows = screen.getAllByRole('row');
 
-    const firstColumn = within(rows[0]).getAllByRole('cell');
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
     expect(firstColumn[1]).toHaveTextContent(''); // empty string
 
-    const secondColumn = within(rows[1]).getAllByRole('cell');
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
     expect(secondColumn[1]).toHaveTextContent('y');
   });
@@ -72,10 +72,10 @@ describe('KeyValueList', function () {
     const rows = screen.getAllByRole('row');
 
     // Ignore values, more interested in if keys rendered + are sorted
-    const firstColumn = within(rows[0]).getAllByRole('cell');
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
 
-    const secondColumn = within(rows[1]).getAllByRole('cell');
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
   });
 

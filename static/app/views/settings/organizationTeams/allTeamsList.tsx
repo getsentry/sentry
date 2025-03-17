@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {t, tct} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -14,7 +14,7 @@ type Props = {
   access: Record<string, any>;
   openMembership: boolean;
   organization: Organization;
-  teamList: Array<Team>;
+  teamList: Team[];
 };
 
 function AllTeamsList({organization, openMembership, teamList, access}: Props) {

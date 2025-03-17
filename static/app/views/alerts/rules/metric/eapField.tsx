@@ -1,20 +1,17 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {parseFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {
-  DEFAULT_EAP_FIELD,
-  DEFAULT_EAP_METRICS_ALERT_FIELD,
-} from 'sentry/utils/metrics/mri';
-import {
-  SpanTagsProvider,
-  useSpanTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+
+export const DEFAULT_EAP_FIELD = 'span.duration';
+export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -30,11 +27,7 @@ const OPERATIONS = [
 ];
 
 function EAPFieldWrapper({aggregate, onChange}: Props) {
-  return (
-    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-      <EAPField aggregate={aggregate} onChange={onChange} />
-    </SpanTagsProvider>
-  );
+  return <EAPField aggregate={aggregate} onChange={onChange} />;
 }
 
 function EAPField({aggregate, onChange}: Props) {
@@ -45,12 +38,20 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const numberTags = useSpanTags('number');
+  const {tags: storedTags} = useSpanTags('number');
+  const numberTags: TagCollection = useMemo(() => {
+    const availableTags: TagCollection = storedTags;
+    if (field && !defined(storedTags[field])) {
+      availableTags[field] = {key: field, name: prettifyTagKey(field)};
+    }
+    return availableTags;
+  }, [field, storedTags]);
+
   const fieldsArray = Object.values(numberTags);
 
   useEffect(() => {
     const selectedMeta = field ? numberTags[field] : undefined;
-    if (field && !selectedMeta) {
+    if (!field || !selectedMeta) {
       const newSelection = fieldsArray[0];
       if (newSelection) {
         onChange(`count(${newSelection.name})`, {});
@@ -61,7 +62,7 @@ function EAPField({aggregate, onChange}: Props) {
   }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
-    option => {
+    (option: any) => {
       const selectedMeta = numberTags[option.value];
       if (!selectedMeta) {
         return;
@@ -72,7 +73,7 @@ function EAPField({aggregate, onChange}: Props) {
   );
 
   const handleOperationChange = useCallback(
-    option => {
+    (option: any) => {
       if (field) {
         onChange(`${option.value}(${field})`, {});
       } else {
@@ -92,21 +93,17 @@ function EAPField({aggregate, onChange}: Props) {
       );
 
       const options = filteredMeta.map(metric => {
-        return {
-          label: metric.name,
-          value: metric.key,
-        };
+        return {label: metric.name, value: metric.key};
       });
       return options;
     },
     [fieldsArray]
   );
 
+  const fieldName = fieldsArray.find(f => f.key === field)?.name;
+
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = field && {
-    label: field,
-    value: field,
-  };
+  const selectedOption = field && {label: fieldName, value: field};
 
   return (
     <Wrapper>
@@ -125,8 +122,7 @@ function EAPField({aggregate, onChange}: Props) {
         }
         async
         defaultOptions={getFieldOptions('')}
-        loadOptions={searchText => Promise.resolve(getFieldOptions(searchText))}
-        filterOption={() => true}
+        loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
         value={selectedOption}
         onChange={handleFieldChange}
       />
@@ -141,6 +137,6 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   width: 200px;
 `;

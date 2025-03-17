@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconBroadcast} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(PageBanner, story => {
+export default storyBook('PageBanner', story => {
   const storiesButton = (
     <LinkButton
       external

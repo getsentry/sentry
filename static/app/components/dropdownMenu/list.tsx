@@ -60,11 +60,11 @@ export interface DropdownMenuListProps
   /**
    * To be displayed below the menu items
    */
-  menuFooter?: React.ReactChild;
+  menuFooter?: React.ReactNode;
   /**
    * Title to display on top of the menu
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Minimum menu width
    */
@@ -161,7 +161,7 @@ function DropdownMenuList({
       return null;
     }
 
-    const trigger = triggerProps => (
+    const trigger = (triggerProps: any) => (
       <DropdownMenuItem
         renderAs="div"
         node={node}
@@ -201,7 +201,7 @@ function DropdownMenuList({
   };
 
   // Render a collection of menu items
-  const renderCollection = (collection: Node<MenuItemProps>[]) =>
+  const renderCollection = (collection: Array<Node<MenuItemProps>>) =>
     collection.map((node, i) => {
       const isLastNode = collection.length - 1 === i;
       const showSeparator =

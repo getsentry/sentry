@@ -23,7 +23,6 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
-  MetricsBadge,
   ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
@@ -54,7 +53,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -74,7 +72,7 @@ import {withScrollbarManager} from './scrollbarManager';
 import type {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import type {AggregateSpanType, GapSpanType, ProcessedSpanType} from './types';
+import type {AggregateSpanType, GapSpanType} from './types';
 import {GroupType} from './types';
 import type {SpanGeneratedBoundsType, SpanViewBoundsType, VerticalMark} from './utils';
 import {
@@ -206,10 +204,10 @@ export class NewTraceDetailsSpanBar extends Component<
 
   spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
-  zoomLevel: number = 1; // assume initial zoomLevel is 100%
-  _mounted: boolean = false;
+  zoomLevel = 1; // assume initial zoomLevel is 100%
+  _mounted = false;
   hashSpanId: string | undefined = undefined;
-  isHighlighted: boolean = false;
+  isHighlighted = false;
 
   updateHighlightedState = () => {
     const hashValues = parseTraceDetailsURLHash(this.props.location.hash);
@@ -331,7 +329,7 @@ export class NewTraceDetailsSpanBar extends Component<
     return (
       <Fragment>
         {Array.from(spanMeasurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -381,7 +379,7 @@ export class NewTraceDetailsSpanBar extends Component<
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: React.ReactNode[] = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {
@@ -442,7 +440,7 @@ export class NewTraceDetailsSpanBar extends Component<
       );
     }
 
-    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
+    const chevronElement = isRoot ? null : <div>{chevron}</div>;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -575,7 +573,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
-      this.setState({isIntersecting: entry.isIntersecting}, () => {
+      this.setState({isIntersecting: entry!.isIntersecting}, () => {
         // Scrolls the next(invisible) bar from the virtualized list,
         // by its height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
@@ -620,6 +618,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     return (
       <DividerLine
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -692,15 +691,6 @@ export class NewTraceDetailsSpanBar extends Component<
 
   renderErrorBadge(errors: TraceErrorOrIssue[] | null): React.ReactNode {
     return errors?.length ? <ErrorBadge /> : null;
-  }
-
-  renderMetricsBadge(span: NewTraceDetailsSpanBarProps['span']): React.ReactNode {
-    const hasMetrics =
-      '_metrics_summary' in span && Object.keys(span._metrics_summary ?? {}).length > 0;
-
-    return hasMetrics && hasMetricsExperimentalFeature(this.props.organization) ? (
-      <MetricsBadge />
-    ) : null;
   }
 
   renderEmbeddedTransactionsBadge(
@@ -810,7 +800,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const transactions = this.getChildTransactions(quickTrace);
 
     return {
-      span: span as ProcessedSpanType,
+      span,
       organization,
       event: event as EventTransaction,
       isRoot: !!isRoot,
@@ -868,7 +858,6 @@ export class NewTraceDetailsSpanBar extends Component<
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderMetricsBadge(this.props.span)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
           {this.renderMissingInstrumentationProfileBadge()}
@@ -894,6 +883,7 @@ export class NewTraceDetailsSpanBar extends Component<
             }}
           >
             <DividerLine
+              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,

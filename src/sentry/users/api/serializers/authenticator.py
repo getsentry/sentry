@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.auth.authenticators.base import AuthenticatorInterface
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
@@ -11,6 +13,7 @@ from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrOrPromise
@@ -42,7 +45,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
         self,
         obj: AuthenticatorInterface,
         attrs: Mapping[str, Any],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> AuthenticatorInterfaceSerializerResponse:
         data: AuthenticatorInterfaceSerializerResponse = {
@@ -80,7 +83,7 @@ class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
         self,
         obj: AuthenticatorInterface,
         attrs: Mapping[str, Any],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SmsInterfaceSerializerResponse:
         data = cast(SmsInterfaceSerializerResponse, super().serialize(obj, attrs, user))

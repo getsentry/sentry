@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -15,6 +15,7 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type StaticReplayPreviewProps = {
   analyticsContext: string;
@@ -38,7 +39,10 @@ export function StaticReplayPreview({
   const organization = useOrganization();
   const routes = useRoutes();
   const fullReplayUrl = {
-    pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+    pathname: makeReplaysPathname({
+      path: `/${replayId}/`,
+      organization,
+    }),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: focusTab ?? TabKey.ERRORS,

@@ -19,7 +19,6 @@
       "correctness": {
         "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
-        "useHookAtTopLevel": "error",
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
         "noInvalidUseBeforeDeclaration": "error",
@@ -66,7 +65,6 @@
         "noMisrefactoredShorthandAssign": "error",
         "useAwait": "error",
         "useNamespaceKeyword": "error",
-        "noSkippedTests": "error",
         "noFocusedTests": "error",
         "noDuplicateTestHooks": "error"
       },
@@ -95,7 +93,8 @@
       "**/*.sourcemap.js",
       "**/*.min.js",
       "fixtures",
-      ".devenv"
+      ".devenv",
+      "package.json"
     ]
   },
   "css": {

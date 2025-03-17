@@ -16,22 +16,11 @@ if TYPE_CHECKING:
 
 class ProjectTeamManager(BaseManager["ProjectTeam"]):
     def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> QuerySet["ProjectTeam"]:
-        project_teams = (
+        return (
             self.filter(team__in=teams, project__status=ObjectStatus.ACTIVE)
             .order_by("project__name", "project__slug")
-            .select_related("project")
+            .select_related("project", "project__organization")
         )
-
-        # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {i.organization_id: i.organization for i in teams}
-
-        for project_team in project_teams:
-            if project_team.project.organization_id in orgs:
-                project_team.project.set_cached_field_value(
-                    "organization", orgs[project_team.project.organization_id]
-                )
-
-        return project_teams
 
 
 @region_silo_model

@@ -3,7 +3,7 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 export const route = '/settings/account/details/';
 
 // For fields that are
-const getUserIsManaged = ({user}) => user.isManaged;
+const getUserIsManaged = ({user}: any) => user.isManaged;
 
 const formGroups: JsonFormObject[] = [
   {

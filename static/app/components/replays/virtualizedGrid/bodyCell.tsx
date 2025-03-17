@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
@@ -48,10 +48,10 @@ export const Cell = styled('div')<CellProps>`
 
   ${p =>
     p.numeric &&
-    `
-    font-variant-numeric: tabular-nums;
-    justify-content: ${p.align ?? 'flex-end'};
-  `};
+    css`
+      font-variant-numeric: tabular-nums;
+      justify-content: ${p.align ?? 'flex-end'};
+    `};
 `;
 
 export const Text = styled('div')`

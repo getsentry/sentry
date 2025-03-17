@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+import os
+
 import click
-import docker
 from django.apps import apps
 
 from sentry.runner import configure
+from sentry.runner.commands.devservices import get_docker_client
 from sentry.silo.base import SiloMode
 
 configure()
@@ -29,59 +31,71 @@ def split_database(tables: list[str], source: str, destination: str, reset: bool
         command.extend(["-t", table])
     command.extend([">", f"/tmp/{destination}-tables.sql"])
 
-    client = docker.from_env()
-    postgres = client.containers.get("sentry_postgres")
+    with get_docker_client() as client:
+        postgres_container = (
+            "sentry-postgres-1"
+            if os.environ.get("USE_OLD_DEVSERVICES") != "1"
+            else "sentry_postgres"
+        )
+        postgres = client.containers.get(postgres_container)
 
-    if verbose:
-        click.echo(f">> Running {' '.join(command)}")
-    exec_run(postgres, command)
+        if verbose:
+            click.echo(f">> Running {' '.join(command)}")
+        exec_run(postgres, command)
 
-    if reset:
-        click.echo(f">> Dropping existing {destination} database")
-        exec_run(postgres, ["dropdb", "-U", "postgres", "--if-exists", destination])
-        exec_run(postgres, ["createdb", "-U", "postgres", destination])
+        if reset:
+            click.echo(f">> Dropping existing {destination} database")
+            exec_run(postgres, ["dropdb", "-U", "postgres", "--if-exists", destination])
+            exec_run(postgres, ["createdb", "-U", "postgres", destination])
 
-    citext_command = [
-        "psql",
-        "-U",
-        "postgres",
-        destination,
-        "-c",
-        "'CREATE EXTENSION IF NOT EXISTS citext'",
-    ]
-
-    if verbose:
-        click.echo(f">> RUNNING: {' '.join(citext_command)}")
-    exec_run(postgres, citext_command)
-
-    # Use the dump file to build control silo tables.
-    click.echo(f">> Building {destination} database from dump file")
-    import_command = ["psql", "-U", "postgres", destination, "<", f"/tmp/{destination}-tables.sql"]
-    if verbose:
-        click.echo(f">> Running {' '.join(import_command)}")
-    exec_run(postgres, import_command)
-
-    if destination == "region" and reset:
-        click.echo(">> Cloning stored procedures")
-        function_dump = [
-            "psql",
-            "-U",
-            "postgres",
-            source,
-            "-c",
-            "'\\sf sentry_increment_project_counter'",
-        ]
-        function_sql = exec_run(postgres, function_dump)
-
-        import_function = [
+        citext_command = [
             "psql",
             "-U",
             "postgres",
             destination,
             "-c",
-            "'" + function_sql.decode("utf8") + "'",
+            "'CREATE EXTENSION IF NOT EXISTS citext'",
         ]
-        exec_run(postgres, import_function)
+
+        if verbose:
+            click.echo(f">> RUNNING: {' '.join(citext_command)}")
+        exec_run(postgres, citext_command)
+
+        # Use the dump file to build control silo tables.
+        click.echo(f">> Building {destination} database from dump file")
+        import_command = [
+            "psql",
+            "-U",
+            "postgres",
+            destination,
+            "<",
+            f"/tmp/{destination}-tables.sql",
+        ]
+        if verbose:
+            click.echo(f">> Running {' '.join(import_command)}")
+        exec_run(postgres, import_command)
+
+        if destination == "region" and reset:
+            click.echo(">> Cloning stored procedures")
+            function_dump = [
+                "psql",
+                "-U",
+                "postgres",
+                source,
+                "-c",
+                "'\\sf sentry_increment_project_counter'",
+            ]
+            function_sql = exec_run(postgres, function_dump)
+
+            import_function = [
+                "psql",
+                "-U",
+                "postgres",
+                destination,
+                "-c",
+                "'" + function_sql.decode("utf8") + "'",
+            ]
+            exec_run(postgres, import_function)
 
 
 def revise_organization_mappings(legacy_region_name: str):

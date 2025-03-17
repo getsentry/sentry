@@ -5,7 +5,7 @@ import type {Location, LocationDescriptor, LocationDescriptorObject} from 'histo
 import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -19,6 +19,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -92,8 +93,9 @@ type Props = {
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
+  applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
-  customColumns?: ('attachments' | 'minidump')[];
+  customColumns?: Array<'attachments' | 'minidump'>;
   domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;
@@ -129,8 +131,9 @@ class EventsTable extends Component<Props, State> {
   replayLinkGenerator = generateReplayLink(this.props.routes);
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
-    return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization, excludedTags} = this.props;
+    return (action: Actions, value: string | number) => {
+      const {eventView, location, organization, excludedTags, applyEnvironmentFilter} =
+        this.props;
 
       trackAnalytics('performance_views.transactionEvents.cellaction', {
         organization,
@@ -146,6 +149,29 @@ class EventsTable extends Component<Props, State> {
       }
 
       updateQuery(searchConditions, action, column, value);
+
+      if (applyEnvironmentFilter && column.key === 'environment') {
+        let newEnvs = toArray(location.query.environment);
+
+        if (action === Actions.ADD) {
+          if (!newEnvs.includes(String(value))) {
+            newEnvs.push(String(value));
+          }
+        } else {
+          newEnvs = newEnvs.filter(env => env !== value);
+        }
+
+        // Updates the environment filter, instead of relying on the search query
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            cursor: undefined,
+            environment: newEnvs,
+          },
+        });
+        return;
+      }
 
       browserHistory.push({
         pathname: location.pathname,
@@ -191,7 +217,7 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'id' || field === 'trace') {
       const {issueId, isRegressionIssue} = this.props;
-      const isIssue: boolean = !!issueId;
+      const isIssue = !!issueId;
       let target: LocationDescriptor = {};
       const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
       // TODO: set referrer properly
@@ -200,13 +226,13 @@ class EventsTable extends Component<Props, State> {
       } else {
         if (field === 'id') {
           target = generateLinkToEventInTraceView({
-            traceSlug: dataRow.trace?.toString(),
-            projectSlug: dataRow['project.name']?.toString(),
+            traceSlug: dataRow.trace?.toString()!,
+            projectSlug: dataRow['project.name']?.toString()!,
             eventId: dataRow.id,
-            timestamp: dataRow.timestamp,
+            timestamp: dataRow.timestamp!,
             location: locationWithTab,
             organization,
-            transactionName: transactionName,
+            transactionName,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             view: this.props.domainViewFilters?.view,
           });
@@ -244,7 +270,7 @@ class EventsTable extends Component<Props, State> {
           allowActions={allowActions}
         >
           {target ? (
-            <ViewReplayLink replayId={dataRow.replayId} to={target}>
+            <ViewReplayLink replayId={dataRow.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           ) : (
@@ -422,16 +448,16 @@ class EventsTable extends Component<Props, State> {
     const containsSpanOpsBreakdown = !!eventView
       .getColumns()
       .find(
-        (col: TableColumn<React.ReactText>) =>
+        (col: TableColumn<string | number>) =>
           col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );
 
     const columnOrder = eventView
       .getColumns()
-      .filter((col: TableColumn<React.ReactText>) =>
+      .filter((col: TableColumn<string | number>) =>
         shouldRenderColumn(containsSpanOpsBreakdown, col.name)
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }
@@ -537,7 +563,7 @@ class EventsTable extends Component<Props, State> {
                           totalEventsCount: totalEventsCount.toLocaleString(),
                         })
                       : undefined;
-                  if (shouldFetchAttachments) {
+                  if (cursor && shouldFetchAttachments) {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);

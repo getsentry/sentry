@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -39,7 +41,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         return (project["id"], project["name"])
 
     def get_project_choices(
-        self, group: Optional["Group"] = None, **kwargs: Any
+        self, group: Group | None = None, **kwargs: Any
     ) -> tuple[str | None, Sequence[tuple[str, str]]]:
         client = self.get_client()
         try:
@@ -79,7 +81,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         return default_project, project_choices
 
     def get_work_item_choices(
-        self, project: str, group: Optional["Group"] = None
+        self, project: str, group: Group | None = None
     ) -> tuple[str | None, Sequence[tuple[str, str]]]:
         client = self.get_client()
         try:
@@ -111,7 +113,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Optional["Group"], user: RpcUser | None, **kwargs: Any
+        self, group: Group | None, user: RpcUser | None, **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -151,7 +153,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
             *fields,
         ]
 
-    def get_link_issue_config(self, group: "Group", **kwargs: Any) -> Sequence[Mapping[str, str]]:
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, str]]:
         fields: Sequence[MutableMapping[str, str]] = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
@@ -214,7 +216,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
 
     def sync_assignee_outbound(
         self,
-        external_issue: "ExternalIssue",
+        external_issue: ExternalIssue,
         user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
@@ -262,7 +264,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
             )
 
     def sync_status_outbound(
-        self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
     ) -> None:
         client = self.get_client()
         work_item = client.get_work_item(external_issue.key)
@@ -335,7 +337,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
             return set()
         return {state["name"] for state in all_states if state["category"] in self.done_categories}
 
-    def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
+    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
         return (external_issue.metadata or {}).get("display_name", "")
 
     def create_comment(self, issue_id: int, user_id: int, group_note: Activity) -> Response:

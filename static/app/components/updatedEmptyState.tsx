@@ -91,7 +91,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     };
   }
 
-  const install = loadGettingStarted.docs.onboarding.install(docParams)[0];
+  const install = loadGettingStarted.docs.onboarding.install(docParams)[0]!;
   const configure = loadGettingStarted.docs.onboarding.configure(docParams);
   const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
@@ -200,9 +200,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                           <CodeSnippetWrapper>
                             {configuration.configurations &&
                             configuration.configurations.length > 0 ? (
-                              Array.isArray(configuration.configurations[0].code) ? (
+                              Array.isArray(configuration.configurations[0]!.code) ? (
                                 <TabbedCodeSnippet
-                                  tabs={configuration.configurations[0].code}
+                                  tabs={configuration.configurations[0]!.code}
                                 />
                               ) : null
                             ) : null}

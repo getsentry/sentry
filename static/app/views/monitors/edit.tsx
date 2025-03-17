@@ -14,10 +14,10 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorForm from './components/monitorForm';
 import type {Monitor} from './types';
+import {makeMonitorDetailsQueryKey} from './utils';
 
 export default function EditMonitor() {
   const {monitorSlug, projectId} = useParams<{monitorSlug: string; projectId: string}>();
@@ -52,13 +52,6 @@ export default function EditMonitor() {
     );
   }
 
-  function getTitle() {
-    if (monitor) {
-      return `${monitor.name} - Crons - ${organization.slug}`;
-    }
-    return `Crons - ${organization.slug}`;
-  }
-
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -67,8 +60,12 @@ export default function EditMonitor() {
     return <LoadingError onRetry={refetch} message="Failed to load monitor." />;
   }
 
+  const title = monitor
+    ? t('Editing %s — Crons', monitor.name)
+    : t('Editing Monitor — Crons');
+
   return (
-    <SentryDocumentTitle title={getTitle()}>
+    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>

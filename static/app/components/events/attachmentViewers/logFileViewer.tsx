@@ -47,7 +47,7 @@ const COLOR_MAP = {
   yellow: 'yellow',
   magenta: 'pink',
   cyan: 'purple',
-};
+} as const;
 
 const SentryStyleAnsi = styled(Ansi)`
   ${p =>

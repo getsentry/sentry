@@ -338,7 +338,10 @@ def create_dif_from_id(
     return dif, True
 
 
-def _analyze_progard_filename(filename: str) -> str | None:
+def _analyze_progard_filename(filename: str | None) -> str | None:
+    if filename is None:
+        return None
+
     match = _proguard_file_re.search(filename)
     if match is None:
         return None
@@ -474,9 +477,9 @@ def detect_dif_from_path(
 
     :raises BadDif: If the file is not a valid DIF.
     """
-    # proguard files (proguard/UUID.txt) or
+    # Proguard files have a path or a name like (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
-    proguard_id = _analyze_progard_filename(path)
+    proguard_id = _analyze_progard_filename(path) or _analyze_progard_filename(name)
     if proguard_id is not None:
         data = {"features": ["mapping"]}
         return [

@@ -1,6 +1,7 @@
+import {forwardRef} from 'react';
 import type {LineSeriesOption} from 'echarts';
 
-import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import type {BaseChartProps} from './baseChart';
@@ -27,12 +28,12 @@ export function transformToAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
-        color: colors?.[i],
+        color: (colors as any)?.[i],
         opacity: 1,
         width: 0.4,
       },
       areaStyle: {
-        color: colors?.[i],
+        color: (colors as any)?.[i],
         opacity: 1.0,
       },
       // Define the z level so that the series remain stacked in the correct order
@@ -46,13 +47,16 @@ export function transformToAreaSeries({
   );
 }
 
-export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
-  return (
-    <BaseChart
-      {...props}
-      data-test-id="area-chart"
-      colors={colors}
-      series={transformToAreaSeries({series, stacked, colors})}
-    />
-  );
-}
+export const AreaChart = forwardRef<ReactEchartsRef, AreaChartProps>(
+  ({series, stacked, colors, ...props}, ref) => {
+    return (
+      <BaseChart
+        {...props}
+        ref={ref}
+        data-test-id="area-chart"
+        colors={colors}
+        series={transformToAreaSeries({series, stacked, colors})}
+      />
+    );
+  }
+);

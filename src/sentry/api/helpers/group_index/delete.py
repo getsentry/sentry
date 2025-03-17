@@ -124,7 +124,7 @@ def delete_groups(
     request: Request,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction,
+    search_fn: SearchFunction | None = None,
 ) -> Response:
     """
     `search_fn` refers to the `search.query` method with the appropriate
@@ -139,7 +139,7 @@ def delete_groups(
                 id__in=set(group_ids),
             ).exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         )
-    else:
+    elif search_fn:
         try:
             cursor_result, _ = search_fn(
                 {

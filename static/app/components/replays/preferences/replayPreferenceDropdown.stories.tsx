@@ -15,7 +15,7 @@ import {
   useReplayPrefs,
 } from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
-export default storyBook(ReplayPreferenceDropdown, story => {
+export default storyBook('ReplayPreferenceDropdown', story => {
   story('Default - LocalStorageReplayPreferences', () => {
     return (
       <Fragment>

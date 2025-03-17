@@ -29,7 +29,7 @@ export const projectSamplingForm = createForm<FormFields, FormErrors>({
         }
       });
 
-      return errors;
+      return Object.keys(errors).length === 0 ? undefined : errors;
     },
   },
 });

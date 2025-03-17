@@ -33,7 +33,7 @@ export function Entries({
 
   return (
     <Fragment>
-      {afterReplayEntries.map((entry, entryIdx) => {
+      {afterReplayEntries!.map((entry, entryIdx) => {
         // Breadcrumbs and request entries are rendered separately in the drawer.
         if (entry.type === EntryType.BREADCRUMBS || entry.type === EntryType.REQUEST) {
           return null;

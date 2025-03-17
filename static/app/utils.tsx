@@ -116,7 +116,16 @@ export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
 }
 
-export function generateOrgSlugUrl(orgSlug) {
+export function generateOrgSlugUrl(orgSlug: any) {
   const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
   return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
+}
+
+/**
+ * Encodes given object into url-friendly format
+ */
+export function urlEncode(object: {[key: string]: any}): string {
+  return Object.keys(object)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
+    .join('&');
 }

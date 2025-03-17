@@ -22,6 +22,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0714_drop_project_team_avatar"),
     ]

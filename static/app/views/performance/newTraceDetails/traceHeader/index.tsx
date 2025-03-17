@@ -1,13 +1,17 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -17,15 +21,19 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
+import {isRootEvent} from '../../traceDetails/utils';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
+import {isEAPTraceNode, isTraceNode} from '../traceGuards';
 import type {TraceTree} from '../traceModels/traceTree';
 import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
@@ -33,7 +41,7 @@ import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 
-interface TraceMetadataHeaderProps {
+export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -42,13 +50,68 @@ interface TraceMetadataHeaderProps {
   tree: TraceTree;
 }
 
+function FeedbackButton() {
+  const openForm = useFeedbackForm();
+
+  return openForm ? (
+    <Button
+      size="xs"
+      aria-label="trace-view-feedback"
+      icon={<IconMegaphone size="xs" />}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('How can we make the trace view better for you?'),
+          tags: {
+            ['feedback.source']: 'trace-view',
+            ['feedback.owner']: 'performance',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  ) : null;
+}
+
+export function SwitchToNonEAPTraceButton({
+  location,
+  organization,
+}: {
+  location: Location;
+  organization: Organization;
+}) {
+  const navigate = useNavigate();
+  const switchToNonEAPTrace = useCallback(() => {
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        trace_format: 'non-eap',
+      },
+    });
+  }, [location, navigate]);
+
+  return (
+    <Feature organization={organization} features="visibility-explore-admin">
+      <Button
+        disabled={location.query.trace_format === 'non-eap'}
+        size="xs"
+        aria-label="non-eap-trace-btn"
+        onClick={switchToNonEAPTrace}
+      >
+        {t('Switch to Non-EAP Trace')}
+      </Button>
+    </Feature>
+  );
+}
+
 function PlaceHolder({organization}: {organization: Organization}) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
 
   return (
-    <Layout.Header>
+    <HeaderLayout>
       <HeaderContent>
         <HeaderRow>
           <Breadcrumbs
@@ -59,6 +122,10 @@ function PlaceHolder({organization}: {organization: Organization}) {
               view
             )}
           />
+          <ButtonBar gap={1}>
+            <SwitchToNonEAPTraceButton location={location} organization={organization} />
+            <FeedbackButton />
+          </ButtonBar>
         </HeaderRow>
         <HeaderRow>
           <PlaceHolderTitleWrapper>
@@ -80,7 +147,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
           <StyledPlaceholder _width={50} _height={28} />
         </HeaderRow>
       </HeaderContent>
-    </Layout.Header>
+    </HeaderLayout>
   );
 }
 
@@ -101,6 +168,52 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
   height: ${p => p._height}px;
   width: ${p => p._width}px;
 `;
+
+const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
+
+export const getRepresentativeEvent = (
+  tree: TraceTree
+): TraceTree.Transaction | TraceTree.EAPSpan | null => {
+  const traceNode = tree.root.children[0];
+
+  if (!traceNode) {
+    return null;
+  }
+
+  if (!isTraceNode(traceNode) && !isEAPTraceNode(traceNode)) {
+    throw new TypeError('Not trace node');
+  }
+
+  let firstRootEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let candidateEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let firstEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+
+  const events = isTraceNode(traceNode) ? traceNode.value.transactions : traceNode.value;
+  for (const event of events) {
+    // If we find a root transaction, we can stop looking and use it for the title.
+    if (!firstRootEvent && isRootEvent(event)) {
+      firstRootEvent = event;
+      break;
+    } else if (
+      // If we haven't found a root transaction, but we found a candidate transaction
+      // with an op that we care about, we can use it for the title. We keep looking for
+      // a root.
+      !candidateEvent &&
+      CANDIDATE_TRACE_TITLE_OPS.includes(
+        'transaction.op' in event ? event['transaction.op'] : event.op
+      )
+    ) {
+      candidateEvent = event;
+      continue;
+    } else if (!firstEvent) {
+      // If we haven't found a root or candidate transaction, we can use the first transaction
+      // in the trace for the title.
+      firstEvent = event;
+    }
+  }
+
+  return firstRootEvent ?? candidateEvent ?? firstEvent;
+};
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
@@ -131,10 +244,10 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
           <DiscoverButton
             size="sm"
             to={props.traceEventView.getResultsViewUrlTarget(
-              props.organization.slug,
+              props.organization,
               false,
               hasDatasetSelector(props.organization)
-                ? SavedQueryDatasets.ERRORS
+                ? SavedQueryDatasets.TRANSACTIONS
                 : undefined
             )}
             onClick={trackOpenInDiscover}
@@ -154,7 +267,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const hasNewTraceViewUi = useHasTraceNewUi();
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
-
   const dispatch = useTraceStateDispatch();
 
   const onProjectClick = useCallback(
@@ -165,8 +277,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   );
 
   const projectSlugs = useMemo(() => {
-    return Array.from(props.tree.projects).map(p => p.slug);
-  }, [props.tree]);
+    return Array.from(props.tree.projects.values()).map(project => project.slug);
+  }, [props.tree.projects]);
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
@@ -181,6 +293,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} />;
   }
 
+  const representativeTransaction = getRepresentativeEvent(props.tree);
+
   return (
     <HeaderLayout>
       <HeaderContent>
@@ -193,14 +307,26 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view
             )}
           />
+          <ButtonBar gap={1}>
+            <SwitchToNonEAPTraceButton
+              location={location}
+              organization={props.organization}
+            />
+            <FeedbackButton />
+          </ButtonBar>
         </HeaderRow>
         <HeaderRow>
-          <Title traceSlug={props.traceSlug} tree={props.tree} />
+          <Title
+            tree={props.tree}
+            traceSlug={props.traceSlug}
+            representativeTransaction={representativeTransaction}
+          />
           <Meta
             organization={props.organization}
             rootEventResults={props.rootEventResults}
             tree={props.tree}
             meta={props.metaResults.data}
+            representativeTransaction={representativeTransaction}
           />
         </HeaderRow>
         <StyledBreak />
@@ -232,19 +358,20 @@ const ProjectsRendererWrapper = styled('div')`
   }
 `;
 
-const HeaderLayout = styled(Layout.Header)`
-  padding: ${space(2)} ${space(2)} !important;
+const HeaderLayout = styled('div')`
+  background-color: ${p => p.theme.background};
+  padding: ${space(1)} ${space(3)} ${space(1)} ${space(3)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
-
-  &:not(:first-child) {
-    margin: ${space(1)} 0;
-  }
+  gap: ${space(2)};
+  align-items: center;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
+    gap: ${space(1)};
     flex-direction: column;
   }
 `;
@@ -255,7 +382,7 @@ const HeaderContent = styled('div')`
 `;
 
 const StyledBreak = styled('hr')`
-  margin: 0;
+  margin: ${space(1)} 0;
   border-color: ${p => p.theme.border};
 `;
 

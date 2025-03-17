@@ -1,14 +1,16 @@
 import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
+import type {TimeAxisLabelFormatterOption} from 'echarts/types/src/coord/axisCommonTypes';
 import merge from 'lodash/merge';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import {truncationFormatter, useShortInterval} from 'sentry/components/charts/utils';
+import {computeShortInterval, truncationFormatter} from 'sentry/components/charts/utils';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 type HelperProps =
   | 'isGroupedByDate'
   | 'useShortDate'
+  | 'useMultilineDate'
   | 'start'
   | 'end'
   | 'period'
@@ -21,6 +23,7 @@ export type XAxisProps = BaseChartProps['xAxis'] &
 function XAxis({
   isGroupedByDate,
   useShortDate,
+  useMultilineDate,
   theme,
 
   start,
@@ -31,19 +34,25 @@ function XAxis({
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {
-  const AxisLabelFormatter = (value: string, index: number) => {
-    const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
-    const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
+  const AxisLabelFormatter = (value: string | number, index: number) => {
     const firstItem = index === 0;
-    const format =
-      useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
+    // Always show the date of the first item. Otherwise check the interval duration
+    const showDate = firstItem ? true : !computeShortInterval({start, end, period});
 
     if (isGroupedByDate) {
-      return getFormattedDate(value, format, {local: !utc});
+      const dateFormat = useShortDate ? 'MMM Do' : `MMM D`;
+      const dateString = getFormattedDate(value, dateFormat, {local: !utc});
+
+      const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
+      const timeString = getFormattedDate(value, timeFormat, {local: !utc});
+
+      const delimiter = useMultilineDate ? '\n' : ' ';
+
+      return showDate ? `${dateString}${delimiter}${timeString}` : timeString;
     }
 
     if (props.truncate) {
-      return truncationFormatter(value, props.truncate);
+      return truncationFormatter(value as string, props.truncate);
     }
 
     return undefined;
@@ -76,8 +85,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      // @ts-expect-error formatter type is missing
-      formatter: AxisLabelFormatter,
+      formatter: AxisLabelFormatter as TimeAxisLabelFormatterOption,
     },
     axisPointer: {
       show: true,

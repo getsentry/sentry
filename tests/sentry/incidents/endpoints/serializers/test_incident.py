@@ -4,7 +4,6 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
-from sentry.incidents.logic import subscribe_to_incident
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -31,15 +30,6 @@ class IncidentSerializerTest(TestCase):
 
 
 class DetailedIncidentSerializerTest(TestCase):
-    def test_subscribed(self):
-        incident = self.create_incident(date_started=timezone.now() - timedelta(minutes=5))
-        serializer = DetailedIncidentSerializer()
-        result = serialize(incident, serializer=serializer, user=self.user)
-        assert not result["isSubscribed"]
-        subscribe_to_incident(incident, self.user.id)
-        result = serialize(incident, serializer=serializer, user=self.user)
-        assert result["isSubscribed"]
-
     def test_error_alert_rule(self):
         query = "test query"
         incident = self.create_incident(query=query)

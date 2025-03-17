@@ -4,12 +4,14 @@ from functools import partial
 from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
+from django.core.signing import BadSignature, SignatureExpired
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
+from sentry import options
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
@@ -27,7 +29,9 @@ from sentry.users.web.accounts_form import (
     RelocationForm,
 )
 from sentry.utils import auth
+from sentry.utils.signing import unsign
 from sentry.web.decorators import login_required, set_referrer_policy
+from sentry.web.frontend.twofactor import reset_2fa_rate_limits
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
@@ -37,8 +41,21 @@ ERR_CONFIRMING_EMAIL = _(
     "visit your Account Settings to resend the verification email."
 )
 
+ERR_SIGNATURE_EXPIRED = _(
+    "The confirmation link has expired. Please visit your Account "
+    "Settings to resend the verification email."
+)
+
+INFO_EMAIL_ALREADY_VERIFIED = _("The email you are trying to verify has already been verified.")
+
 
 class InvalidRequest(Exception):
+    pass
+
+
+class VerifiedEmailAlreadyExists(Exception):
+    """email already exists as a verified email on the account"""
+
     pass
 
 
@@ -273,6 +290,8 @@ def recover_confirm(
                     send_email=True,
                 )
 
+                reset_2fa_rate_limits(user.id)
+
             return login_redirect(request)
     else:
         form = form_cls(user=user)
@@ -369,8 +388,90 @@ def confirm_email(request: HttpRequest, user_id: int, hash: str) -> HttpResponse
             extra={
                 "user_id": user_id,
                 "ip_address": request.META["REMOTE_ADDR"],
-                "email": email.email,
+                "useremail_id": email.id,
+                "email": email.email.lower(),
             },
         )
+    messages.add_message(request, level, msg)
+    return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+
+
+@set_referrer_policy("strict-origin-when-cross-origin")
+@login_required
+@control_silo_function
+def confirm_signed_email(
+    request: HttpRequest, signed_data: str
+) -> HttpResponseRedirect | HttpResponse:
+    EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
+
+    use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
+    if not use_signed_urls:
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+
+    msg = _("Thanks for confirming your email")
+    level = messages.SUCCESS
+
+    try:
+        data = unsign(
+            signed_data, salt=EMAIL_CONFIRMATION_SALT, max_age=2 * 24 * 60 * 60
+        )  # max age is 2 days in seconds
+
+        # is the currently logged in user the one that
+        # wants to add the email to their account
+        if request.user.id != int(data["user_id"]):
+            raise InvalidRequest
+
+        # check to see if the email has already been verified
+        try:
+            email = UserEmail.objects.get(user=request.user.id, email=data["email"])
+            if email.is_verified:
+                raise VerifiedEmailAlreadyExists()
+        except UserEmail.DoesNotExist:
+            # user email does not exist, so we can create it
+            pass
+    except VerifiedEmailAlreadyExists:
+        msg = INFO_EMAIL_ALREADY_VERIFIED
+        level = messages.INFO
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+    except SignatureExpired:
+        msg = ERR_SIGNATURE_EXPIRED
+        level = messages.ERROR
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+    except (InvalidRequest, BadSignature):
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+    except Exception:
+        logger.exception("user.email.signed-confirm.error")
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+
+    user = User.objects.get(id=request.user.id)
+    email = UserEmail.objects.create(
+        user=user,
+        email=data["email"],
+        validation_hash="",
+        is_verified=True,
+    )
+    email.save()
+
+    email_verified.send(email=email.email, sender=email)
+    logger.info(
+        "user.email.signed-confirm",
+        extra={
+            "user_id": request.user.id,
+            "ip_address": request.META["REMOTE_ADDR"],
+            "email": email.email,
+        },
+    )
+
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))

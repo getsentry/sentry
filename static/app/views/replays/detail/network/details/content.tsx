@@ -73,6 +73,13 @@ export default function NetworkDetailsContent(props: Props) {
           {output === Output.BODY_PARSE_ERROR && (
             <ParseError>{t('The SDK was unable to parse the response body.')}</ParseError>
           )}
+          {output === Output.UNPARSEABLE_BODY_TYPE && (
+            <ParseError>
+              {t(
+                'This request body contains an unsupported type and was not captured. For example, blobs are unsupported as they are not human-readable.'
+              )}
+            </ParseError>
+          )}
           {output === Output.BODY_PARSE_TIMEOUT && (
             <ParseError>
               {t(

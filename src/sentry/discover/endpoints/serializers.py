@@ -1,13 +1,12 @@
-import re
 from collections.abc import Sequence
 
+import sentry_sdk
 from django.db.models import Count, Max, QuerySet
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
-from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.utils import get_date_range_from_params
+from sentry import features
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import (
@@ -15,133 +14,14 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
     TeamKeyTransaction,
 )
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.snuba import SENTRY_SNUBA_MAP
-
-
-class DiscoverQuerySerializer(serializers.Serializer):
-    projects = ListField(child=serializers.IntegerField(), required=True, allow_null=False)
-    start = serializers.CharField(required=False, allow_null=True)
-    end = serializers.CharField(required=False, allow_null=True)
-    range = serializers.CharField(required=False, allow_null=True)
-    statsPeriod = serializers.CharField(required=False, allow_null=True)
-    statsPeriodStart = serializers.CharField(required=False, allow_null=True)
-    statsPeriodEnd = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(child=serializers.CharField(), required=False, default=[])  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
-    conditionFields = ListField(child=ListField(), required=False, allow_null=True)
-    limit = EmptyIntegerField(min_value=0, max_value=10000, required=False, allow_null=True)
-    rollup = EmptyIntegerField(required=False, allow_null=True)
-    orderby = serializers.CharField(required=False, default="", allow_blank=True)
-    conditions = ListField(child=ListField(), required=False, allow_null=True)
-    aggregations = ListField(child=ListField(), required=False, default=[])
-    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    turbo = serializers.BooleanField(required=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        data = kwargs["data"]
-
-        fields = data.get("fields") or []
-
-        match = next(
-            (
-                self.get_array_field(field).group(1)
-                for field in fields
-                if self.get_array_field(field) is not None
-            ),
-            None,
-        )
-        self.arrayjoin = match if match else None
-
-    def validate(self, data):
-        data["arrayjoin"] = self.arrayjoin
-
-        # prevent conflicting date ranges from being supplied
-        date_fields = ["start", "statsPeriod", "range", "statsPeriodStart"]
-        date_fields_provided = len([data.get(f) for f in date_fields if data.get(f) is not None])
-        if date_fields_provided == 0:
-            raise serializers.ValidationError("You must specify a date filter")
-        elif date_fields_provided > 1:
-            raise serializers.ValidationError("Conflicting date filters supplied")
-
-        if not data.get("fields") and not data.get("aggregations"):
-            raise serializers.ValidationError("Specify at least one field or aggregation")
-
-        try:
-            start, end = get_date_range_from_params(
-                {
-                    "start": data.get("start"),
-                    "end": data.get("end"),
-                    "statsPeriod": data.get("statsPeriod") or data.get("range"),
-                    "statsPeriodStart": data.get("statsPeriodStart"),
-                    "statsPeriodEnd": data.get("statsPeriodEnd"),
-                },
-                optional=True,
-            )
-        except InvalidParams as e:
-            raise serializers.ValidationError(str(e))
-
-        if start is None or end is None:
-            raise serializers.ValidationError("Either start and end dates or range is required")
-
-        data["start"] = start
-        data["end"] = end
-
-        return data
-
-    def validate_conditions(self, value):
-        # Handle error (exception_stacks), stack(exception_frames)
-        return [self.get_condition(condition) for condition in value]
-
-    def validate_aggregations(self, value):
-        valid_functions = {"count()", "uniq", "avg", "sum"}
-        requested_functions = {agg[0] for agg in value}
-
-        if not requested_functions.issubset(valid_functions):
-            invalid_functions = ", ".join(requested_functions - valid_functions)
-
-            raise serializers.ValidationError(f"Invalid aggregate function - {invalid_functions}")
-
-        return value
-
-    def get_array_field(self, field):
-        pattern = r"^(error|stack)\..+"
-        term = re.search(pattern, field)
-        if term and SENTRY_SNUBA_MAP.get(field):
-            return term
-        return None
-
-    def get_condition(self, condition):
-        array_field = self.get_array_field(condition[0])
-        has_equality_operator = condition[1] in ("=", "!=")
-
-        # Cast boolean values to 1 / 0
-        if isinstance(condition[2], bool):
-            condition[2] = int(condition[2])
-
-        # Strip double quotes on strings
-        if isinstance(condition[2], str):
-            match = re.search(r'^"(.*)"$', condition[2])
-            if match:
-                condition[2] = match.group(1)
-
-        # Apply has function to any array field if it's = / != and not part of arrayjoin
-        if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
-            value = condition[2]
-
-            if isinstance(value, str):
-                value = f"'{value}'"
-
-            bool_value = 1 if condition[1] == "=" else 0
-
-            return [["has", [array_field.group(0), value]], "=", bool_value]
-
-        return condition
 
 
 @extend_schema_serializer(
@@ -159,8 +39,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     )
     queryDataset = serializers.ChoiceField(
         choices=DiscoverSavedQueryTypes.as_text_choices(),
-        default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.DISCOVER),
-        help_text="The dataset you would like to query.",
+        default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS),
+        help_text="The dataset you would like to query. Note: `discover` is a **deprecated** value. The allowed values are: `error-events`, `transaction-like`",
     )
     start = serializers.DateTimeField(
         required=False, allow_null=True, help_text="The saved start time for this saved query."
@@ -253,10 +133,57 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
+    def get_metrics_features(
+        self, organization: Organization | None, user: User | None
+    ) -> dict[str, bool | None]:
+        if organization is None or user is None:
+            return {}
+
+        feature_names = [
+            "organizations:mep-rollout-flag",
+            "organizations:dynamic-sampling",
+            "organizations:performance-use-metrics",
+            "organizations:dashboards-mep",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=user,
+        )
+
+        return (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {
+                feature_name: features.has(feature_name, organization=organization, actor=user)
+                for feature_name in feature_names
+            }
+        )
+
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
+
+    def validate_queryDataset(self, value):
+        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(value)
+        if dataset == DiscoverSavedQueryTypes.DISCOVER or dataset is None:
+            sentry_sdk.set_context(
+                "discover",
+                {
+                    "org_slug": self.context["organization"].slug,
+                },
+            )
+            sentry_sdk.capture_message("Created or updated saved query with discover dataset.")
+            if features.has(
+                "organizations:deprecate-discover-widget-type",
+                self.context["organization"],
+                actor=self.context["user"],
+            ):
+                raise serializers.ValidationError(
+                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                )
+        return dataset
 
     def validate(self, data):
         query = {}
@@ -305,6 +232,18 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     0,
                 )
             try:
+                batch_features = self.get_metrics_features(
+                    self.context.get("organization"), self.context.get("user")
+                )
+                use_metrics = bool(
+                    (
+                        batch_features.get("organizations:mep-rollout-flag", False)
+                        and batch_features.get("organizations:dynamic-sampling", False)
+                    )
+                    or batch_features.get("organizations:performance-use-metrics", False)
+                    or batch_features.get("organizations:dashboards-mep", False)
+                )
+
                 equations, columns = categorize_columns(query["fields"])
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
@@ -313,19 +252,18 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     selected_columns=columns,
                     equations=equations,
                     orderby=query.get("orderby"),
+                    config=QueryBuilderConfig(has_metrics=use_metrics),
                 )
                 builder.get_snql_query().validate()
             except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
-
-        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(data["queryDataset"])
 
         return {
             "name": data["name"],
             "project_ids": data["projects"],
             "query": query,
             "version": version,
-            "query_dataset": dataset,
+            "query_dataset": data["queryDataset"],
         }
 
     def validate_version_fields(self, version, query):

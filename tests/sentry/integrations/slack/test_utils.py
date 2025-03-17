@@ -68,15 +68,7 @@ class GetChannelIdTest(TestCase):
             ),
         )
 
-    def patch_msg_response(self, channel_id, result_name="channel"):
-        if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
-        else:
-            bodydict = {
-                "ok": True,
-                result_name: channel_id,
-                "scheduled_message_id": "Q1298393284",
-            }
+    def patch_msg_response_not_found(self):
         return patch(
             "slack_sdk.web.client.WebClient.chat_scheduleMessage",
             return_value=SlackResponse(
@@ -84,7 +76,7 @@ class GetChannelIdTest(TestCase):
                 http_verb="POST",
                 api_url="https://slack.com/api/chat.scheduleMessage",
                 req_args={},
-                data=bodydict,
+                data={"ok": False, "error": "channel_not_found"},
                 headers={},
                 status_code=200,
             ),
@@ -142,7 +134,7 @@ class GetChannelIdTest(TestCase):
             {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
         ]
 
-        with self.patch_msg_response("channel_not_found"):
+        with self.patch_msg_response_not_found():
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
@@ -153,7 +145,7 @@ class GetChannelIdTest(TestCase):
             {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
         ]
 
-        with self.patch_msg_response("channel_not_found"):
+        with self.patch_msg_response_not_found():
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
@@ -164,13 +156,13 @@ class GetChannelIdTest(TestCase):
             {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
         ]
 
-        with self.patch_msg_response("channel_not_found"):
+        with self.patch_msg_response_not_found():
             with self.patch_mock_list("users", response_list, "members"):
                 with pytest.raises(DuplicateDisplayNameError):
                     get_channel_id(self.integration, "@Morty")
 
     def test_invalid_channel_selected_sdk_client(self):
-        with self.patch_msg_response("channel_not_found"):
+        with self.patch_msg_response_not_found():
             assert get_channel_id(self.integration, "#fake-channel").channel_id is None
             assert get_channel_id(self.integration, "@fake-user").channel_id is None
 
@@ -184,7 +176,7 @@ class GetChannelIdTest(TestCase):
             "status": 429,
         }
 
-        with self.patch_msg_response("channel_not_found"):
+        with self.patch_msg_response_not_found():
             with pytest.raises(ApiRateLimitedError):
                 get_channel_id(self.integration, "@user")
 

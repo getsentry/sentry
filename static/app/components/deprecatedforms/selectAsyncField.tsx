@@ -1,5 +1,5 @@
+import {SelectAsync} from 'sentry/components/core/select/async';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import SelectAsyncControl from 'sentry/components/forms/controls/selectAsyncControl';
 
 class SelectAsyncField extends SelectField {
   static defaultProps = {
@@ -7,22 +7,26 @@ class SelectAsyncField extends SelectField {
     placeholder: 'Start typing to search for an issue',
   };
 
-  onResults = data => {
+  onResults = (data: any) => {
     const {name} = this.props;
     const results = data?.[name];
 
-    return results?.map(({id, text}) => ({value: id, label: text})) || [];
+    return results?.map(({id, text}: any) => ({value: id, label: text})) || [];
   };
 
-  onQuery = query =>
+  onQuery = (
     // Used by legacy integrations
-    ({autocomplete_query: query, autocomplete_field: this.props.name});
+    query: any
+  ) => ({
+    autocomplete_query: query,
+    autocomplete_field: this.props.name,
+  });
 
   getField() {
     // Callers should be able to override all props except onChange
     // FormField calls props.onChange via `setValue`
     return (
-      <SelectAsyncControl
+      <SelectAsync
         id={this.getId()}
         onResults={this.onResults}
         onQuery={this.onQuery}

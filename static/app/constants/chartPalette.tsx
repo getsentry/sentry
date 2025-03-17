@@ -8,7 +8,7 @@ export const CHART_PALETTE = [
   ['#444674', '#f2b712'],
   ['#444674', '#d6567f', '#f2b712'],
   ['#444674', '#a35488', '#ef7061', '#f2b712'],
-  ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712', '#a397f7'],
+  ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
   ['#444674', '#7a5088', '#b85586', '#e9626e', '#f58c46', '#f2b712'],
   ['#444674', '#704f87', '#a35488', '#d6567f', '#ef7061', '#f59340', '#f2b712'],
   [
@@ -176,4 +176,47 @@ export const CHART_PALETTE = [
     '#f4aa27',
     '#f2b712',
   ],
-] as string[][];
+] as const;
+
+export type ChartColorPalette = typeof CHART_PALETTE;
+
+type ColorLength = (typeof CHART_PALETTE)['length'];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A
+  : TupleOf<N, [...A, A['length']]>;
+
+type ValidLengthArgument = TupleOf<ColorLength>[number];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
+  infer _First,
+  ...infer Rest,
+]
+  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
+      Rest,
+      [...A, unknown]
+    >
+  : Record<number, unknown>;
+
+type NextMap = NextTuple<TupleOf<ColorLength>>;
+type Next<R extends ValidLengthArgument> = NextMap[R];
+
+/**
+ * Returns the color palette for a given number of series.
+ * If length argument is statically analyzable, the return type will be narrowed
+ * to the specific color palette index.
+ * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
+ * return a single color, not two colors. It smells like either a bug or off by one error.
+ * @param length - The number of series to return a color palette for?
+ */
+export function getChartColorPalette<Length extends ValidLengthArgument>(
+  length: Length | number
+): Exclude<ChartColorPalette[Next<Length>], undefined> {
+  // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+  // the palette is not sparse, but we should probably add a runtime check here as well.
+  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
+  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+}

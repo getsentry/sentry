@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -41,7 +42,7 @@ type PromptCheckParams = {
    * The prompt feature name
    */
   feature: string | string[];
-  organization: OrganizationSummary;
+  organization: OrganizationSummary | null;
   /**
    * The numeric project ID as a string
    */
@@ -89,10 +90,10 @@ export async function promptsCheck(
 ): Promise<PromptData> {
   const query = {
     feature: params.feature,
-    organization_id: params.organization.id,
+    organization_id: params.organization?.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
-  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  const url = `/organizations/${params.organization?.slug}/prompts-activity/`;
   const response: PromptResponse = await api.requestPromise(url, {
     query,
   });
@@ -112,22 +113,23 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckParams): ApiQueryKey => {
-  const url = `/organizations/${organization.slug}/prompts-activity/`;
+  const url = `/organizations/${organization?.slug}/prompts-activity/`;
   return [
     url,
-    {query: {feature, organization_id: organization.id, project_id: projectId}},
+    {query: {feature, organization_id: organization?.id, project_id: projectId}},
   ];
 };
 
 export function usePromptsCheck(
   {feature, organization, projectId}: PromptCheckParams,
-  options: Partial<UseApiQueryOptions<PromptResponse>> = {}
+  {enabled = true, ...options}: Partial<UseApiQueryOptions<PromptResponse>> = {}
 ) {
   return useApiQuery<PromptResponse>(
     makePromptsCheckQueryKey({feature, organization, projectId}),
     {
       staleTime: 120000,
       retry: false,
+      enabled: defined(organization) && enabled,
       ...options,
     }
   );
@@ -141,7 +143,7 @@ export function usePrompt({
   options,
 }: {
   feature: string;
-  organization: Organization;
+  organization: Organization | null;
   daysToSnooze?: number;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
@@ -150,18 +152,20 @@ export function usePrompt({
   const prompt = usePromptsCheck({feature, organization, projectId}, options);
   const queryClient = useQueryClient();
 
-  const isPromptDismissed =
-    prompt.isSuccess && prompt.data.data
-      ? promptIsDismissed(
-          {
-            dismissedTime: prompt.data.data.dismissed_ts,
-            snoozedTime: prompt.data.data.snoozed_ts,
-          },
-          daysToSnooze
-        )
-      : undefined;
+  const isPromptDismissed = prompt.isSuccess
+    ? promptIsDismissed(
+        {
+          dismissedTime: prompt.data?.data?.dismissed_ts,
+          snoozedTime: prompt.data?.data?.snoozed_ts,
+        },
+        daysToSnooze
+      )
+    : undefined;
 
   const dismissPrompt = useCallback(() => {
+    if (!organization) {
+      return;
+    }
     promptsUpdate(api, {
       organization,
       projectId,
@@ -189,6 +193,9 @@ export function usePrompt({
   }, [api, feature, organization, projectId, queryClient]);
 
   const snoozePrompt = useCallback(() => {
+    if (!organization) {
+      return;
+    }
     promptsUpdate(api, {
       organization,
       projectId,
@@ -216,6 +223,9 @@ export function usePrompt({
   }, [api, feature, organization, projectId, queryClient]);
 
   const showPrompt = useCallback(() => {
+    if (!organization) {
+      return;
+    }
     promptsUpdate(api, {
       organization,
       projectId,
@@ -280,12 +290,12 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   for (const featureName of features) {
     const item = responseFeatures[featureName];
     if (item) {
-      result[featureName] = {
+      (result as any)[featureName] = {
         dismissedTime: item.dismissed_ts,
         snoozedTime: item.snoozed_ts,
       };
     } else {
-      result[featureName] = null;
+      (result as any)[featureName] = null;
     }
   }
   return result as {[key in T[number]]: PromptData};

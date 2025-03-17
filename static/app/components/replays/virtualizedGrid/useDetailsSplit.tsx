@@ -10,8 +10,8 @@ interface OnClickProps {
 }
 
 interface Props {
-  containerRef: RefObject<HTMLDivElement>;
-  frames: undefined | ReadonlyArray<unknown>;
+  containerRef: RefObject<HTMLDivElement | null>;
+  frames: undefined | readonly unknown[];
   handleHeight: number;
   urlParamName: string;
   onHideDetails?: () => void;

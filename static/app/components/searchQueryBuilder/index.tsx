@@ -1,8 +1,8 @@
 import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import {inputStyles} from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import {
   SearchQueryBuilderContext,
   type SearchQueryBuilderContextData,
@@ -83,6 +83,11 @@ export interface SearchQueryBuilderProps {
    */
   filterKeySections?: FilterKeySection[];
   /**
+   * A function that returns a warning message for a given filter key
+   * will only render a warning if the value is truthy
+   */
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
@@ -97,6 +102,13 @@ export interface SearchQueryBuilderProps {
    */
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
+  /**
+   * If provided, will render the combobox popovers into the given element.
+   * This is useful when the search query builder is rendered as a child of an
+   * element that has CSS styling that prevents popovers from overflowing, e.g.
+   * a scrollable container.
+   */
+  portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
   /**
    * If provided, saves and displays recent searches of the given type.
@@ -121,11 +133,7 @@ function SearchIndicator({
   initialQuery?: string;
   showUnsubmittedIndicator?: boolean;
 }) {
-  const {size, query} = useSearchQueryBuilder();
-
-  if (size === 'small') {
-    return null;
-  }
+  const {query} = useSearchQueryBuilder();
 
   const unSubmittedChanges = query !== initialQuery;
   const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;
@@ -195,6 +203,8 @@ export function SearchQueryBuilder({
   searchSource,
   showUnsubmittedIndicator,
   trailingItems,
+  getFilterTokenWarning,
+  portalTarget,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -207,6 +217,7 @@ export function SearchQueryBuilder({
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
@@ -223,6 +234,7 @@ export function SearchQueryBuilder({
       disallowWildcard,
       filterKeys,
       invalidMessages,
+      getFilterTokenWarning,
     ]
   );
 
@@ -266,6 +278,7 @@ export function SearchQueryBuilder({
       recentSearches,
       searchSource,
       size,
+      portalTarget,
     };
   }, [
     state,
@@ -284,6 +297,7 @@ export function SearchQueryBuilder({
     recentSearches,
     searchSource,
     size,
+    portalTarget,
   ]);
 
   return (
@@ -293,8 +307,9 @@ export function SearchQueryBuilder({
         onBlur={() =>
           onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
         }
-        ref={wrapperRef}
+        ref={wrapperRef as React.RefObject<HTMLInputElement>}
         aria-disabled={disabled}
+        data-test-id="search-query-builder"
       >
         <PanelProvider>
           <SearchIndicator
@@ -315,8 +330,7 @@ export function SearchQueryBuilder({
   );
 }
 
-const Wrapper = styled('div')`
-  ${inputStyles}
+const Wrapper = styled(Input.withComponent('div'))`
   min-height: 38px;
   padding: 0;
   height: auto;
@@ -324,11 +338,6 @@ const Wrapper = styled('div')`
   position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: text;
-
-  :focus-within {
-    border: 1px solid ${p => p.theme.focusBorder};
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
-  }
 `;
 
 const ButtonsWrapper = styled('div')`

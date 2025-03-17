@@ -5,11 +5,11 @@ import * as qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -83,7 +83,8 @@ export function InviteBanner({
         }
       );
       const githubMissingMembers = data?.filter(
-        integrationMissingMembers => integrationMissingMembers.integration === 'github'
+        (integrationMissingMembers: any) =>
+          integrationMissingMembers.integration === 'github'
       )[0];
       setMissingMembers(githubMissingMembers?.users || []);
     } catch (err) {

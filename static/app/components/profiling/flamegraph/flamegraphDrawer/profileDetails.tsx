@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button} from 'sentry/components/button';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -18,10 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import type {
-  ContinuousProfileGroup,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,13 +28,15 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
 function renderValue(
   key: string,
   value: number | string | undefined,
-  profileGroup?: ProfileGroup | ContinuousProfileGroup
+  profileGroup?: ProfileGroup
 ) {
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
@@ -53,7 +52,7 @@ function renderValue(
 }
 
 interface ProfileDetailsProps {
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   projectId: string;
   transaction: EventTransaction | null;
 }
@@ -188,7 +187,7 @@ function TransactionDeviceDetails({
   profileGroup,
   transaction,
 }: {
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   transaction: EventTransaction;
 }) {
   const deviceDetails = useMemo(() => {
@@ -196,11 +195,11 @@ function TransactionDeviceDetails({
     const deviceContext = transaction.contexts.device;
     const osContext = transaction.contexts.os;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'model',
         label: t('Model'),
@@ -257,7 +256,7 @@ function TransactionEventDetails({
   transaction,
 }: {
   organization: Organization;
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction;
 }) {
@@ -279,11 +278,11 @@ function TransactionEventDetails({
           })
         : null;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'transaction',
         label: t('Transaction'),
@@ -352,14 +351,11 @@ function TransactionEventDetails({
   );
 }
 
-function ProfileEnvironmentDetails({
-  profileGroup,
-}: {
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
-}) {
+function ProfileEnvironmentDetails({profileGroup}: {profileGroup: ProfileGroup}) {
   return (
     <DetailsContainer>
       {Object.entries(ENVIRONMENT_DETAILS_KEY).map(([label, key]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
         return (
           <DetailsRow key={key}>
@@ -379,7 +375,7 @@ function ProfileEventDetails({
   transaction,
 }: {
   organization: Organization;
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction | null;
 }) {
@@ -388,6 +384,7 @@ function ProfileEventDetails({
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
 
         if (key === 'organizationID') {
@@ -395,7 +392,7 @@ function ProfileEventDetails({
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
-                <Link to={`/organizations/${organization.slug}/projects/`}>
+                <Link to={makeProjectsPathname({path: '/', orgSlug: organization.slug})}>
                   <span>
                     <OrganizationAvatar size={12} organization={organization} />{' '}
                     {organization.name}
@@ -432,7 +429,12 @@ function ProfileEventDetails({
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
                 <Link
-                  to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+                  to={
+                    makeProjectsPathname({
+                      path: `/${project.slug}/`,
+                      orgSlug: organization.slug,
+                    }) + `?project=${project.id}`
+                  }
                 >
                   <FlexRow>
                     <ProjectAvatar project={project} size={12} /> {project.slug}
@@ -461,9 +463,10 @@ function ProfileEventDetails({
               <strong>{label}:</strong>
               <Link
                 to={{
-                  pathname: `/organizations/${
-                    organization.slug
-                  }/releases/${encodeURIComponent(release.version)}/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: `/${encodeURIComponent(release.version)}/`,
+                  }),
                   query: {
                     project: profileGroup.metadata.projectID,
                   },

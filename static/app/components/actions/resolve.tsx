@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -260,7 +260,7 @@ function ResolveActions({
       },
     ];
 
-    const isDisabled = !projectSlug ? disabled : disableDropdown;
+    const isDisabled = projectSlug ? disableDropdown : disabled;
 
     return (
       <StyledDropdownMenu
@@ -384,7 +384,7 @@ const ResolveButton = styled(Button)<{priority?: 'primary'}>`
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusRight};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   border-left: none;
 `;
 

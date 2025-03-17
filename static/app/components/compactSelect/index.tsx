@@ -21,7 +21,7 @@ import {getItemsWithKeys} from './utils';
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
-  options: SelectOptionOrSection<Value>[];
+  options: Array<SelectOptionOrSection<Value>>;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>
@@ -44,9 +44,15 @@ export type SelectProps<Value extends SelectKey> =
 
 // A series of TS function overloads to properly parse prop types across 2 dimensions:
 // option value types (number vs string), and selection mode (singular vs multiple)
-function CompactSelect<Value extends number>(props: SelectProps<Value>): JSX.Element;
-function CompactSelect<Value extends string>(props: SelectProps<Value>): JSX.Element;
-function CompactSelect<Value extends SelectKey>(props: SelectProps<Value>): JSX.Element;
+function CompactSelect<Value extends number>(
+  props: SelectProps<Value>
+): React.JSX.Element;
+function CompactSelect<Value extends string>(
+  props: SelectProps<Value>
+): React.JSX.Element;
+function CompactSelect<Value extends SelectKey>(
+  props: SelectProps<Value>
+): React.JSX.Element;
 
 /**
  * Flexible select component with a customizable trigger button
@@ -148,7 +154,11 @@ function CompactSelect<Value extends SelectKey>({
             );
           }
 
-          return <Item {...item}>{item.label}</Item>;
+          return (
+            <Item {...item} key={item.key}>
+              {item.label}
+            </Item>
+          );
         }}
       </List>
 

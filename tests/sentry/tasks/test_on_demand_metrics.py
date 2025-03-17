@@ -29,7 +29,7 @@ OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 
 @pytest.fixture
-def owner() -> None:
+def owner() -> User:
     return Factories.create_user()
 
 
@@ -454,7 +454,6 @@ def test_schedule_on_demand_check(
         ),  # Only 2 widgets are on-demand
     ],
 )
-@mock.patch("sentry.tasks.on_demand_metrics._set_cardinality_cache")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
 @pytest.mark.parametrize(
     "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
@@ -462,7 +461,6 @@ def test_schedule_on_demand_check(
 @django_db_all
 def test_process_widget_specs(
     raw_snql_query: Any,
-    _set_cardinality_cache: Any,
     feature_flags: dict[str, bool],
     option_enable: bool,
     widget_query_ids: Sequence[int],

@@ -1,4 +1,5 @@
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -10,20 +11,23 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 function SpansSearchBar({
   widgetQuery,
   onSearch,
-}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch'>) {
+  portalTarget,
+}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch' | 'portalTarget'>) {
   const {
     selection: {projects},
   } = usePageFilters();
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
   return (
     <EAPSpanSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       numberTags={numberTags}
       stringTags={stringTags}
+      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="dashboards"
       projects={projects}
+      portalTarget={portalTarget}
     />
   );
 }

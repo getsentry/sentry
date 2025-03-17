@@ -1,3 +1,4 @@
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -37,7 +38,7 @@ describe('InviteMissingMembersModal', function () {
   TeamStore.loadInitialData([team]);
   const missingMembers = MissingMembersFixture();
 
-  const styledWrapper = styled(c => c.children);
+  const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const modalProps: InviteMissingMembersModalProps = {
     Body: styledWrapper(),
     Header: p => <span>{p.children}</span>,
@@ -188,12 +189,12 @@ describe('InviteMissingMembersModal', function () {
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
 
     await userEvent.click(screen.getByLabelText('Select hello@sentry.io'));
-    await selectEvent.select(roleInputs[0], 'Admin', {
+    await selectEvent.select(roleInputs[0]!, 'Admin', {
       container: document.body,
     });
 
     await userEvent.click(screen.getByLabelText('Select abcd@sentry.io'));
-    await selectEvent.select(teamInputs[1], '#team-slug', {
+    await selectEvent.select(teamInputs[1]!, '#team-slug', {
       container: document.body,
     });
 

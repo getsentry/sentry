@@ -44,12 +44,72 @@ def get_frames(
 
 
 def get_crash_event(
-    sdk_frame_module="io.sentry.Hub", system_frame_module="java.lang.reflect.Method", **kwargs
+    sdk_frame_module="io.sentry.Hub",
+    system_frame_module="java.lang.reflect.Method",
+    **kwargs,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
         get_frames(sdk_frame_module, system_frame_module),
         **kwargs,
     )
+
+
+def get_apex_frames(
+    apex_frame_function: str,
+    apex_frame_package: str,
+    system_frame_package: str,
+) -> Sequence[MutableMapping[str, str]]:
+    frames = [
+        {
+            "function": "__pthread_start",
+            "raw_function": "__pthread_start(void*)",
+            "symbol": "_ZL15__pthread_startPv",
+            "package": "/apex/com.android.runtime/lib/bionic/libc.so",
+        },
+        {
+            "function": "__start_thread",
+            "symbol": "__start_thread",
+            "package": "/apex/com.android.art/lib64/bionic/libc.so",
+        },
+        {
+            "function": apex_frame_function,
+            "symbol": apex_frame_function,
+            "package": apex_frame_package,
+        },
+        {
+            "function": "invoke",
+            "package": system_frame_package,
+        },
+    ]
+    return frames
+
+
+def get_apex_crash_event(
+    apex_frame_function="__start_thread",
+    apex_frame_package="/apex/com.android.art/lib64/bionic/libc.so",
+    system_frame_package="/apex/com.android.art/lib64/libart.so",
+    **kwargs,
+) -> dict[str, object]:
+    return get_crash_event_with_frames(
+        get_apex_frames(apex_frame_function, apex_frame_package, system_frame_package),
+        **kwargs,
+    )
+
+
+def get_exception(
+    frames: Sequence[Mapping[str, str]],
+    mechanism=None,
+) -> dict[str, object]:
+    if mechanism is None:
+        # linter complains about mutable arguments otherwise
+        mechanism = {"type": "onerror", "handled": False}
+    return {
+        "type": "IllegalArgumentException",
+        "value": "SDK Crash",
+        "module": "java.lang",
+        "stacktrace": {"frames": frames},
+        "mechanism": mechanism,
+    }
 
 
 def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
@@ -59,17 +119,7 @@ def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -
         "dist": "2",
         "platform": "java",
         "environment": "debug",
-        "exception": {
-            "values": [
-                {
-                    "type": "IllegalArgumentException",
-                    "value": "SDK Crash",
-                    "module": "java.lang",
-                    "stacktrace": {"frames": frames},
-                    "mechanism": {"type": "onerror", "handled": False},
-                }
-            ]
-        },
+        "exception": {"values": [get_exception(frames)]},
         "key_id": "1336851",
         "level": "fatal",
         "contexts": {

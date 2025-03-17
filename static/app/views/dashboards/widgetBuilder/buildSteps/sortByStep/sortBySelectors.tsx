@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,8 +21,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  type SortDirection,
+  sortDirections,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 
@@ -55,6 +57,7 @@ export function SortBySelectors({
   disableSortDirection,
   widgetQuery,
   displayType,
+  tags,
 }: Props) {
   const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
@@ -81,12 +84,13 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
       >
-        <SelectControl
+        <Select
           name="sortDirection"
           aria-label={t('Sort direction')}
           menuPlacement="auto"
           disabled={disableSortDirection}
           options={Object.keys(sortDirections).map(value => ({
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: sortDirections[value],
             value,
           }))}
@@ -103,8 +107,8 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE || widgetType === WidgetType.SPANS ? (
-          <SelectControl
+        {displayType === DisplayType.TABLE ? (
+          <Select
             name="sortBy"
             aria-label={t('Sort by')}
             menuPlacement="auto"
@@ -135,7 +139,8 @@ export function SortBySelectors({
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,
-              widgetQuery
+              widgetQuery,
+              tags
             )}
             filterPrimaryOptions={
               datasetConfig.filterSeriesSortOptions
@@ -164,6 +169,9 @@ export function SortBySelectors({
                 sortDirection: values.sortDirection,
               });
             }}
+            useMenuPortal={organization.features.includes(
+              'dashboards-widget-builder-redesign'
+            )}
           />
         )}
       </Tooltip>

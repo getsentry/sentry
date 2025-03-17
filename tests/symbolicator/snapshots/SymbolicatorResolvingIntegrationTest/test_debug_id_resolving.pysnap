@@ -8,6 +8,7 @@ contexts:
   os:
     build: ''
     name: Windows
+    os: Windows 10.0.14393
     type: os
     version: 10.0.14393
 debug_meta:

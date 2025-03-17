@@ -20,6 +20,12 @@ interface Props {
 }
 
 function getPluginNames(pluginIssue: PluginIssueComponent | PluginActionComponent) {
+  if (Array.isArray(pluginIssue.props.plugin)) {
+    return {
+      name: pluginIssue.props.plugin[0],
+      icon: '',
+    };
+  }
   return {
     name: pluginIssue.props.plugin.name ?? '',
     icon: pluginIssue.props.plugin.slug ?? '',
@@ -69,12 +75,13 @@ export default function IssueTrackingSignals({group}: Props) {
     );
   }
 
-  const issue = linkedIssues[0];
+  const issue = linkedIssues[0]!;
   const {name, icon} = {
     'plugin-issue': getPluginNames,
     'plugin-actions': getPluginNames,
     'integration-issue': getIntegrationNames,
     'sentry-app-issue': getAppIntegrationNames,
+    // @ts-expect-error TS(2551): Property 'plugin-action' does not exist on type '{... Remove this comment to see the full error message
   }[issue.type](issue) ?? {name: '', icon: undefined};
 
   return (

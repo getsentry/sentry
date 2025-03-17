@@ -44,6 +44,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
@@ -687,13 +688,12 @@ class SignalingTests(ImportTestCase):
 
         assert OrganizationMember.objects.count() == 3
 
-        # The exhaustive org has 2 projects which automatically get 1 key and 3 options each.
-        assert Project.objects.count() == 2
+        # The exhaustive org has 1 project which automatically gets 1 key and 3 options.
+        assert Project.objects.count() == 1
         assert Project.objects.filter(name="project-some-org").exists()
-        assert Project.objects.filter(name="other-project-some-org").exists()
 
-        assert ProjectKey.objects.count() == 2
-        assert ProjectOption.objects.count() == 2
+        assert ProjectKey.objects.count() == 1
+        assert ProjectOption.objects.count() == 1
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1406,6 +1406,27 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
+    @expect_models(COLLISION_TESTED, OrganizationMemberInvite)
+    def test_colliding_member_invite_token(self, expected_models: list[type[Model]]):
+        org = self.create_organization(name="some-org")
+        invite = OrganizationMemberInvite.objects.create(
+            organization=org, email="user@example.com", token=generate_token()
+        )
+        assert OrganizationMemberInvite.objects.count() == 1
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+            assert OrganizationMemberInvite.objects.count() == 1
+            assert OrganizationMemberInvite.objects.filter(
+                organization__slug=org.slug, email="user@example.com", token=invite.token
+            ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
     @expect_models(COLLISION_TESTED, Monitor)
     def test_colliding_monitor(self, expected_models: list[type[Model]]):
         owner = self.create_exhaustive_user("owner")
@@ -1514,7 +1535,7 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-            assert ProjectKey.objects.count() == 4
+            assert ProjectKey.objects.count() == 3
             assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 

@@ -2,7 +2,6 @@ import {cloneElement, Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -87,7 +86,7 @@ function Content({
   function setInitialFrameMap(): {[frameIndex: number]: boolean} {
     const indexMap: Record<string, boolean> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         indexMap[frameIdx] = false;
@@ -100,7 +99,7 @@ function Content({
     let count = 0;
     const countMap: Record<string, number> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         countMap[frameIdx] = count;
@@ -119,8 +118,8 @@ function Content({
       return false;
     }
 
-    const lastFrame = frames[frames.length - 1];
-    const penultimateFrame = frames[frames.length - 2];
+    const lastFrame = frames[frames.length - 1]!;
+    const penultimateFrame = frames[frames.length - 2]!;
 
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
@@ -148,12 +147,8 @@ function Content({
   };
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
-    const props = {
-      className: 'frame frames-omitted',
-      key: 'omitted',
-    };
     return (
-      <li {...props}>
+      <li key="omitted" className="frame frames-omitted">
         {t(
           'Frames %d until %d were omitted and not available.',
           firstFrameOmitted,
@@ -206,7 +201,7 @@ function Content({
   let convertedFrames = frames
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
-      const nextFrame = frames[frameIndex + 1];
+      const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
@@ -285,7 +280,7 @@ function Content({
 
   if (convertedFrames.length > 0 && registers) {
     const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame]!, {
       registers,
     });
   }
@@ -308,11 +303,9 @@ function Content({
         data-test-id="stack-trace-content"
         hideIcon={hideIcon}
       >
-        <GuideAnchor target="stack_trace">
-          <StyledList data-test-id="frames">
-            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-          </StyledList>
-        </GuideAnchor>
+        <StyledList data-test-id="frames">
+          {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
+        </StyledList>
       </StackTraceContentPanel>
     </Wrapper>
   );

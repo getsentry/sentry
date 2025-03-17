@@ -1,13 +1,13 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -148,7 +148,6 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     };
 
     const removeRow = (itemKey: string) => {
-      // eslint-disable-next-line no-unused-vars
       saveChanges(
         Object.fromEntries(Object.entries(value).filter(([key, _]) => key !== itemKey))
       );
@@ -218,13 +217,13 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
             {mappedKeys.map((fieldKey, i) => (
               <Column key={fieldKey}>
                 <Control>
-                  <SelectControl
+                  <Select
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey][fieldKey]
+                      ? mappedSelectors[itemKey]![fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}
-                    onChange={v => setValue(itemKey, fieldKey, v ? v.value : null)}
+                    onChange={(v: any) => setValue(itemKey, fieldKey, v ? v.value : null)}
                     value={value[itemKey][fieldKey]}
                   />
                 </Control>
@@ -251,7 +250,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     return (
       <FormField
         {...this.props}
-        inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
+        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
       >
         {this.renderField}
       </FormField>

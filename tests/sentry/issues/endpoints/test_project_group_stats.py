@@ -7,7 +7,7 @@ pytestmark = [requires_snuba]
 
 class ProjectGroupStatsTest(APITestCase):
     @freeze_time(before_now(days=1).replace(minute=10))
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         group1 = self.store_event(

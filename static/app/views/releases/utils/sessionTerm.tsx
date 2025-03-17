@@ -87,7 +87,6 @@ function getTermDescriptions(platform: PlatformKey | null) {
   const technology =
     platform === 'react-native' ||
     platform === 'java-spring' ||
-    platform === 'apple-ios' ||
     platform === 'dotnet-aspnetcore'
       ? platform
       : platform?.split('-')[0];
@@ -119,7 +118,6 @@ function getTermDescriptions(platform: PlatformKey | null) {
           'An unhandled exception that resulted in the application crashing'
         ),
       };
-
     case 'apple': {
       return {
         ...commonTermsDescription,
@@ -142,7 +140,6 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.UNHANDLED]:
           "An error was captured by the global 'onerror' or 'onunhandledrejection' handler.",
       };
-    case 'apple-ios':
     case 'minidump':
     case 'native':
     case 'nintendo-switch':
@@ -178,5 +175,6 @@ export function getSessionTermDescription(
   term: SessionTerm,
   platform: PlatformKey | null
 ) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return getTermDescriptions(platform)[term];
 }

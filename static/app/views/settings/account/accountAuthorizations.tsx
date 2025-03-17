@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import type {ApiApplication} from 'sentry/types/user';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -24,6 +25,7 @@ type Authorization = {
   application: ApiApplication;
   homepageUrl: string;
   id: string;
+  organization: Organization | null;
   scopes: string[];
 };
 
@@ -47,7 +49,7 @@ function AccountAuthorizations() {
   const handleRevoke = async (authorization: Authorization) => {
     const oldData = data;
     setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
-      prevData.filter(a => a.id !== authorization.id)
+      prevData?.filter(a => a.id !== authorization.id)
     );
     try {
       await api.requestPromise('/api-authorizations/', {
@@ -94,7 +96,13 @@ function AccountAuthorizations() {
                         </ExternalLink>
                       </Url>
                     )}
-                    <Scopes>{authorization.scopes.join(', ')}</Scopes>
+                    <DetailRow>{authorization.scopes.join(', ')}</DetailRow>
+                    {authorization.organization && (
+                      <DetailRow>
+                        {t('scopes are limited to ')}
+                        {authorization.organization.slug}
+                      </DetailRow>
+                    )}
                   </ApplicationDetails>
                   <Button
                     size="sm"
@@ -144,7 +152,7 @@ const Url = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
-const Scopes = styled('div')`
+const DetailRow = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

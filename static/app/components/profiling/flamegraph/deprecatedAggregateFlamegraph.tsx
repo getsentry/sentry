@@ -6,11 +6,11 @@ import * as Sentry from '@sentry/react';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
+import {Switch} from 'sentry/components/core/switch';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -148,7 +148,7 @@ export function DeprecatedAggregateFlamegraph(
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [flamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
@@ -172,7 +172,6 @@ export function DeprecatedAggregateFlamegraph(
     });
 
     // We skip `flamegraphCanvas` as it causes an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flamegraph, setFlamegraphThemeMutation, flamegraphCanvas?.logicalSpace.height]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
@@ -295,6 +294,7 @@ export function DeprecatedAggregateFlamegraph(
     <Fragment>
       {props.children ? props.children({canvasPoolManager, scheduler, flamegraph}) : null}
       <FlamegraphZoomView
+        scheduler={scheduler}
         profileGroup={profileGroup}
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
@@ -320,9 +320,9 @@ export function DeprecatedAggregateFlamegraph(
             </Button>
             <Flex align="center" gap={space(1)}>
               <span>{t('Hide System Frames')}</span>
-              <SwitchButton
-                toggle={() => props.setHideSystemFrames(!props.hideSystemFrames)}
-                isActive={props.hideSystemFrames}
+              <Switch
+                onChange={() => props.setHideSystemFrames(!props.hideSystemFrames)}
+                checked={props.hideSystemFrames}
               />
             </Flex>
           </Flex>

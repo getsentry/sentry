@@ -49,7 +49,7 @@ export function ScreensBarChart({
   const yAxis = decodeScalar(location.query[chartKey]);
   const selectedDisplay = yAxis ? chartOptions.findIndex(o => o.yAxis === yAxis) : 0;
 
-  const menuOptions: SelectOption<string>[] = [];
+  const menuOptions: Array<SelectOption<string>> = [];
 
   for (const option of chartOptions) {
     menuOptions.push({
@@ -89,8 +89,8 @@ export function ScreensBarChart({
             )}
           </ChartLabel>
         </Header>
-        {chartOptions[selectedDisplay].subtitle && (
-          <Subtitle>{chartOptions[selectedDisplay].subtitle}</Subtitle>
+        {chartOptions[selectedDisplay]!.subtitle && (
+          <Subtitle>{chartOptions[selectedDisplay]!.subtitle}</Subtitle>
         )}
       </HeaderContainer>
       <TransitionChart
@@ -108,7 +108,7 @@ export function ScreensBarChart({
             {...chartProps}
             height={chartHeight ?? 180}
             series={
-              chartOptions[selectedDisplay].series?.map(series => ({
+              chartOptions[selectedDisplay]!.series?.map(series => ({
                 ...series,
                 name: formatVersion(series.seriesName),
               })) ?? []
@@ -123,7 +123,7 @@ export function ScreensBarChart({
             xAxis={{
               type: 'category',
               axisTick: {show: true},
-              data: chartOptions[selectedDisplay].xAxisLabel,
+              data: chartOptions[selectedDisplay]!.xAxisLabel,
               truncate: 14,
               axisLabel: {
                 interval: 0,
@@ -134,9 +134,9 @@ export function ScreensBarChart({
                 formatter(value: number) {
                   return axisLabelFormatter(
                     value,
-                    aggregateOutputType(chartOptions[selectedDisplay].yAxis),
+                    aggregateOutputType(chartOptions[selectedDisplay]!.yAxis),
                     undefined,
-                    getDurationUnit(chartOptions[selectedDisplay].series ?? [])
+                    getDurationUnit(chartOptions[selectedDisplay]!.series ?? [])
                   );
                 },
               },
@@ -145,7 +145,7 @@ export function ScreensBarChart({
               valueFormatter: (value, _seriesName) => {
                 return tooltipFormatter(
                   value,
-                  aggregateOutputType(chartOptions[selectedDisplay].yAxis)
+                  aggregateOutputType(chartOptions[selectedDisplay]!.yAxis)
                 );
               },
             }}
@@ -157,7 +157,10 @@ export function ScreensBarChart({
 }
 
 const ChartLabel = styled('p')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a p */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const HeaderContainer = styled('div')`

@@ -16,7 +16,7 @@ from sentry.search.utils import tokenize_query
 class EventAttachmentsEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> Response:
@@ -47,11 +47,11 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(name__icontains=value)
+                    value_s = " ".join(value)
+                    queryset = queryset.filter(name__icontains=value_s)
                 elif key == "is":
-                    value = " ".join(value)
-                    if value in ["screenshot"]:
+                    value_s = " ".join(value)
+                    if value_s == "screenshot":
                         queryset = event_attachment_screenshot_filter(queryset)
                 else:
                     queryset = queryset.none()

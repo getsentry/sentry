@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {
   AlertRuleSensitivity,
@@ -47,7 +47,7 @@ function SensitivityFormItem({
       required
     >
       <SelectContainer>
-        <SelectControl
+        <Select
           name="sensitivity"
           inputId={'sensitivity'}
           value={sensitivity}
@@ -65,7 +65,7 @@ function SensitivityFormItem({
               label: 'High (alert more often)',
             },
           ]}
-          onChange={({value}) => {
+          onChange={({value}: any) => {
             onSensitivityChange(value);
           }}
         />
@@ -87,7 +87,7 @@ function DirectionFormItem({
       required
     >
       <SelectContainer>
-        <SelectControl
+        <Select
           name="sensitivity"
           value={thresholdType}
           options={[
@@ -104,7 +104,7 @@ function DirectionFormItem({
               label: 'Below bounds only',
             },
           ]}
-          onChange={({value}) => {
+          onChange={({value}: any) => {
             onThresholdTypeChange(value);
           }}
         />

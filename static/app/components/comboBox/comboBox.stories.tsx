@@ -16,7 +16,7 @@ const Divider = styled('hr')`
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
-const options: ComboBoxOptionOrSection<string>[] = [
+const options: Array<ComboBoxOptionOrSection<string>> = [
   {label: 'Option One', value: 'opt_one'},
   {label: 'Option Two', value: 'opt_two', details: 'This is a description'},
   {
@@ -26,7 +26,7 @@ const options: ComboBoxOptionOrSection<string>[] = [
       <Fragment>
         <strong>{'Option Three (deprecated)'}</strong>
         <Divider />
-        This is a description using JSX.
+        This is a description using React.JSX.
         <Divider />
         <KeyValueTable>
           <KeyValueTableRow keyName="Coffee" value="Black hot drink" />

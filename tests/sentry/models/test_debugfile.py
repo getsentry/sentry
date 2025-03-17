@@ -6,10 +6,16 @@ import zipfile
 from io import BytesIO
 from typing import Any
 
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models.debugfile import DifMeta, ProjectDebugFile, create_dif_from_id
+from sentry.models.debugfile import (
+    DifMeta,
+    ProjectDebugFile,
+    create_dif_from_id,
+    detect_dif_from_path,
+)
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
 
@@ -298,3 +304,67 @@ class DebugFilesClearTest(APITestCase):
 
         # But it's gone now
         assert not os.path.isfile(difs[PROGUARD_UUID])
+
+
+@pytest.mark.parametrize(
+    ("path", "name", "uuid"),
+    (
+        (
+            "/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            None,
+            "00000000-0000-0000-0000-000000000000",
+        ),
+        (
+            "/proguard/00000000-0000-0000-0000-000000000000.txt",
+            None,
+            "00000000-0000-0000-0000-000000000000",
+        ),
+        (
+            "/var/folders/x5/zw3gnf_x3ts0dwg56362ftrw0000gn/T/tmpbs2r93sr",
+            "/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            "00000000-0000-0000-0000-000000000000",
+        ),
+        (
+            "/var/folders/x5/zw3gnf_x3ts0dwg56362ftrw0000gn/T/tmpbs2r93sr",
+            "/proguard/00000000-0000-0000-0000-000000000000.txt",
+            "00000000-0000-0000-0000-000000000000",
+        ),
+    ),
+)
+def test_proguard_files_detected(path, name, uuid):
+    # ProGuard files are detected by the path/name, not the file contents.
+    # So, the ProGuard check should not depend on the file existing.
+    detected = detect_dif_from_path(path, name)
+
+    assert len(detected) == 1
+
+    (dif_meta,) = detected
+    assert dif_meta.file_format == "proguard"
+    assert dif_meta.debug_id == uuid
+    assert dif_meta.data == {"features": ["mapping"]}
+
+
+@pytest.mark.parametrize(
+    ("path", "name"),
+    (
+        ("/var/folders/x5/zw3gnf_x3ts0dwg56362ftrw0000gn/T/tmpbs2r93sr", None),
+        ("/var/folders/x5/zw3gnf_x3ts0dwg56362ftrw0000gn/T/tmpbs2r93sr", "not-a-proguard-file.txt"),
+        (
+            # Note: "/" missing from beginning of path
+            "proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            None,
+        ),
+        (
+            "/var/folders/x5/zw3gnf_x3ts0dwg56362ftrw0000gn/T/tmpbs2r93sr",
+            # Note: "/" missing from beginning of path
+            "proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+        ),
+    ),
+)
+def test_proguard_file_not_detected(path, name):
+    with pytest.raises(FileNotFoundError):
+        # If the file is not detected as a ProGuard file, detect_dif_from_path
+        # attempts to open the file, which probably doesn't exist.
+        # Note that if the path or name does exist as a file on the filesystem,
+        # this test will fail.
+        detect_dif_from_path(path, name)

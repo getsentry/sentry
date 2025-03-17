@@ -1,4 +1,4 @@
-import {uuid4} from '@sentry/utils';
+import {uuid4} from '@sentry/core';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
@@ -82,7 +82,7 @@ class SpanTree {
   root: SpanTreeNode;
   orphanedSpans: SpanType[] = [];
   transaction: EventTransaction;
-  injectMissingInstrumentationSpans: boolean = true;
+  injectMissingInstrumentationSpans = true;
 
   constructor(transaction: EventTransaction, spans: SpanType[]) {
     this.transaction = transaction;
@@ -114,14 +114,12 @@ class SpanTree {
     const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
     const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
-    for (let i = 0; i < spansSortedByStartTime.length; i++) {
-      const span = spansSortedByStartTime[i];
+    for (const span of spansSortedByStartTime) {
       let parent = this.root;
 
       while (parent.contains(span)) {
         let nextParent: SpanTreeNode | null = null;
-        for (let j = 0; j < parent.children.length; j++) {
-          const child = parent.children[j];
+        for (const child of parent.children) {
           if (child.span.op !== 'missing instrumentation' && child.contains(span)) {
             nextParent = child;
             break;
@@ -142,7 +140,7 @@ class SpanTree {
           this.injectMissingInstrumentationSpans &&
           parent.children.length > 0 &&
           span.start_timestamp -
-            parent.children[parent.children.length - 1].span.timestamp >
+            parent.children[parent.children.length - 1]!.span.timestamp >
             MISSING_INSTRUMENTATION_THRESHOLD_S
         ) {
           parent.children.push(
@@ -151,7 +149,7 @@ class SpanTree {
                 description: t('Missing span instrumentation'),
                 op: 'missing span instrumentation',
                 start_timestamp:
-                  parent.children[parent.children.length - 1].span.timestamp,
+                  parent.children[parent.children.length - 1]!.span.timestamp,
                 timestamp: span.start_timestamp,
                 span_id: uuid4(),
                 data: {},
@@ -165,7 +163,7 @@ class SpanTree {
         let foundOverlap = false;
         let start = parent.children.length - 1;
         while (start >= 0) {
-          const child = parent.children[start];
+          const child = parent.children[start]!;
           if (span.start_timestamp < child.span.timestamp) {
             foundOverlap = true;
             break;

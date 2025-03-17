@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -11,8 +11,8 @@ import {lightTheme} from 'sentry/utils/theme';
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
   const organization = OrganizationFixture();
-  let releases;
-  let releasesMock;
+  let releases: any;
+  let releasesMock: any;
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -57,6 +57,46 @@ describe('ReleaseSeries', function () {
     );
 
     expect(releasesMock).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch releases if not enabled', function () {
+    render(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    expect(releasesMock).not.toHaveBeenCalled();
+  });
+
+  it('fetches releases if becomes enabled', async function () {
+    const {rerender} = render(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    expect(releasesMock).not.toHaveBeenCalled();
+
+    rerender(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    await act(tick);
+
+    expect(releasesMock).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    await act(tick);
+
+    expect(releasesMock).toHaveBeenCalledTimes(1);
   });
 
   it('fetches releases if no releases passed through props', async function () {
@@ -237,8 +277,8 @@ describe('ReleaseSeries', function () {
       </Fragment>
     );
 
-    await waitFor(() => expect(screen.getByText('Series 1')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText('Series 2')).toBeInTheDocument());
+    await screen.findByText('Series 1');
+    await screen.findByText('Series 2');
 
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });

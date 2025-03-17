@@ -35,10 +35,10 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
     search_source: string;
     search_type: string;
   };
-  'discover_v2.add_equation': {};
-  'discover_v2.build_new_query': {};
+  'discover_v2.add_equation': Record<string, unknown>;
+  'discover_v2.build_new_query': Record<string, unknown>;
   'discover_v2.change_sort': {sort: string};
-  'discover_v2.column_editor.open': {};
+  'discover_v2.column_editor.open': Record<string, unknown>;
   'discover_v2.create_alert_clicked': {status: string};
   'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.quick_context_add_column': {column: string};
@@ -50,11 +50,11 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.quick_context_update_query': {queryKey: string};
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
   'discover_v2.results.cellaction': {action: string};
-  'discover_v2.results.download_csv': {};
-  'discover_v2.results.drilldown': {};
-  'discover_v2.results.toggle_tag_facets': {};
+  'discover_v2.results.download_csv': Record<string, unknown>;
+  'discover_v2.results.drilldown': Record<string, unknown>;
+  'discover_v2.results.toggle_tag_facets': Record<string, unknown>;
   'discover_v2.save_existing_query_failed': SaveQueryParams & {error: string};
-  'discover_v2.saved_query_click': {};
+  'discover_v2.saved_query_click': Record<string, unknown>;
   'discover_v2.set_as_default': {
     source: 'homepage' | 'prebuilt-query' | 'saved-query' | 'context-menu';
     // For breaking down context-menu events
@@ -62,9 +62,9 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   };
   'discover_v2.tour.advance': {duration: number; step: number};
   'discover_v2.tour.close': {duration: number; step: number};
-  'discover_v2.tour.start': {};
-  'discover_v2.update_columns': {};
-  'discover_v2.view_saved_queries': {};
+  'discover_v2.tour.start': Record<string, unknown>;
+  'discover_v2.update_columns': Record<string, unknown>;
+  'discover_v2.view_saved_queries': Record<string, unknown>;
   'discover_v2.y_axis_change': {y_axis_value: string[]};
 };
 

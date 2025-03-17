@@ -2,14 +2,14 @@ import type {ReactNode} from 'react';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
@@ -30,6 +30,7 @@ type Props = {
 export function ActionSelector({value = '', moduleName, spanCategory, filters}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const eventView = getEventView(location, moduleName, spanCategory);
@@ -42,14 +43,14 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<{'span.action': string}[]>({
+  const {data: actions} = useSpansQuery<Array<{'span.action': string}>>({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
     referrer: 'api.starfish.get-span-actions',
   });
 
-  const options = useHTTPActions
+  const options: Array<SelectOption<string>> = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
@@ -68,6 +69,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
               {t('(No Detected %s)', LABEL_FOR_MODULE_NAME[moduleName])}
             </EmptyContainer>
           ),
+          textValue: t('(No Detected %s)', LABEL_FOR_MODULE_NAME[moduleName]),
         },
       ];
 
@@ -88,7 +90,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
           source: moduleName,
           value: newValue.value,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
@@ -101,7 +103,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   );
 }
 
-const HTTP_ACTION_OPTIONS = [
+const HTTP_ACTION_OPTIONS: Array<SelectOption<string>> = [
   {value: '', label: 'All'},
   ...['GET', 'POST', 'PUT', 'DELETE'].map(action => ({
     value: action,
@@ -118,11 +120,14 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   screen_load: t('Action'),
   app_start: t('Action'),
   resource: t('Resource'),
+  crons: t('Action'),
+  uptime: t('Action'),
   other: t('Action'),
   'mobile-ui': t('Action'),
-  'mobile-screens': t('Action'),
+  'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
   ai: 'Action',
+  sessions: t('Action'),
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {

@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -22,7 +22,7 @@ import PreviewTable from './previewTable';
 const SENTRY_ISSUE_ALERT_DOCS_URL =
   'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
 
-function PreviewText({issueCount, previewError}) {
+function PreviewText({issueCount, previewError}: any) {
   if (previewError) {
     return (
       <Fragment>
@@ -115,7 +115,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 
           const hits = resp?.getResponseHeader('X-Hits');
           const count = typeof hits !== 'undefined' && hits ? parseInt(hits, 10) : 0;
-          setPreviewGroups(data.map(g => g.id));
+          setPreviewGroups(data.map((g: any) => g.id));
           setPreviewError(false);
           setPageLinks(resp?.getResponseHeader('Link') ?? '');
           setIssueCount(count);

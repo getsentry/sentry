@@ -72,11 +72,11 @@ class ProjectRuleEnableTestCase(APITestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project, action_data=actions, condition_data=conditions
         )
 
         rule2 = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project, action_data=actions, condition_data=conditions
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()
@@ -114,15 +114,15 @@ class ProjectRuleEnableTestCase(APITestCase):
         )
         self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
             environment_id=dev_env.id,
         )
 
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
             environment_id=prod_env.id,
         )
         rule2.status = ObjectStatus.DISABLED
@@ -154,15 +154,15 @@ class ProjectRuleEnableTestCase(APITestCase):
         dev_env = self.create_environment(self.project, name="dev", organization=self.organization)
         self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
             environment_id=dev_env.id,
         )
 
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()

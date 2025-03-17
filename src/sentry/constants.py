@@ -544,6 +544,16 @@ class SentryAppStatus:
         else:
             raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
+    @classmethod
+    def as_int_choices(cls) -> Sequence[int]:
+        return [
+            cls.UNPUBLISHED,
+            cls.PUBLISHED,
+            cls.INTERNAL,
+            cls.PUBLISH_REQUEST_INPROGRESS,
+            cls.DELETION_IN_PROGRESS,
+        ]
+
 
 class SentryAppInstallationStatus:
     PENDING = 0
@@ -617,51 +627,42 @@ class InsightModules(Enum):
 
 
 INSIGHT_MODULE_FILTERS = {
-    InsightModules.HTTP: lambda transaction: any(
+    InsightModules.HTTP: lambda spans: any(
         [
             span.get("sentry_tags", {}).get("category") == "http"
             and span.get("op") == "http.client"
-            for span in transaction["spans"]
+            for span in spans
         ]
     ),
-    InsightModules.DB: lambda transaction: any(
+    InsightModules.DB: lambda spans: any(
         [
             span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
-            for span in transaction["spans"]
+            for span in spans
         ]
     ),
-    InsightModules.ASSETS: lambda transaction: any(
+    InsightModules.ASSETS: lambda spans: any(
         [
             span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
-            for span in transaction["spans"]
+            for span in spans
         ]
     ),
-    InsightModules.APP_START: lambda transaction: any(
-        [span.get("op").startswith("app.start.") for span in transaction["spans"]]
+    InsightModules.APP_START: lambda spans: any(
+        [span.get("op").startswith("app.start.") for span in spans]
     ),
-    InsightModules.SCREEN_LOAD: lambda transaction: any(
-        [
-            span.get("sentry_tags", {}).get("transaction.op") == "ui.load"
-            for span in transaction["spans"]
-        ]
+    InsightModules.SCREEN_LOAD: lambda spans: any(
+        [span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans]
     ),
-    InsightModules.VITAL: lambda transaction: any(
-        [
-            span.get("sentry_tags", {}).get("transaction.op") == "pageload"
-            for span in transaction["spans"]
-        ]
+    InsightModules.VITAL: lambda spans: any(
+        [span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans]
     ),
-    InsightModules.CACHE: lambda transaction: any(
-        [
-            span.get("op") in ["cache.get_item", "cache.get", "cache.put"]
-            for span in transaction["spans"]
-        ]
+    InsightModules.CACHE: lambda spans: any(
+        [span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans]
     ),
-    InsightModules.QUEUE: lambda transaction: any(
-        [span.get("op") in ["queue.process", "queue.publish"] for span in transaction["spans"]]
+    InsightModules.QUEUE: lambda spans: any(
+        [span.get("op") in ["queue.process", "queue.publish"] for span in spans]
     ),
-    InsightModules.LLM_MONITORING: lambda transaction: any(
-        [span.get("op").startswith("ai.pipeline") for span in transaction["spans"]]
+    InsightModules.LLM_MONITORING: lambda spans: any(
+        [span.get("op").startswith("ai.pipeline") for span in spans]
     ),
 }
 
@@ -706,17 +707,16 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
-AI_SUGGESTED_SOLUTION = True
+HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
-METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
-METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
+STREAMLINE_UI_ONLY = None
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -778,17 +778,18 @@ DS_DENYLIST = frozenset(
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
     "*heartbeat*",
-    "*/health",
-    "*/healthy",
-    "*/healthz",
-    "*/_health",
-    r"*/\[_health\]",
-    "*/live",
-    "*/livez",
-    "*/ready",
-    "*/readyz",
-    "*/ping",
-    "*/up",
+    "*/health{/,}",
+    "*/healthy{/,}",
+    "*/healthz{/,}",
+    "*/health_check{/,}",
+    "*/_health{/,}",
+    r"*/\[_health\]{/,}",
+    "*/live{/,}",
+    "*/livez{/,}",
+    "*/ready{/,}",
+    "*/readyz{/,}",
+    "*/ping{/,}",
+    "*/up{/,}",
 ]
 
 

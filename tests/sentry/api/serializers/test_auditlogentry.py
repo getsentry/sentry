@@ -25,6 +25,52 @@ class AuditLogEntrySerializerTest(TestCase):
         assert result["event"] == "team.create"
         assert result["actor"]["username"] == self.user.username
         assert result["dateCreated"] == datetime
+        assert result["data"] == {"slug": "New Team"}
+
+    def test_data_field_filtering(self):
+        """Test that only allowed fields are present in the data field"""
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={
+                "id": "123",
+                "slug": "project-slug",
+                "old_slug": "old-slug",
+                "new_slug": "new-slug",
+                "name": "Project Name",
+                "sensitive_field": "should_not_appear",
+                "another_field": "should_not_appear",
+            },
+        )
+
+        serializer = AuditLogEntrySerializer()
+        result = serialize(log, serializer=serializer)
+
+        # Check that only allowed fields are present
+        allowed_fields = {"id", "slug", "old_slug", "new_slug", "name"}
+        assert set(result["data"].keys()) == allowed_fields
+        assert "sensitive_field" not in result["data"]
+        assert "another_field" not in result["data"]
+
+    def test_data_field_empty_when_no_required_fields(self):
+        """Test that data field is empty when none of the required fields are present"""
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={
+                "unrequired_field1": "value1",
+                "unrequired_field2": "value2",
+            },
+        )
+
+        serializer = AuditLogEntrySerializer()
+        result = serialize(log, serializer=serializer)
+
+        assert result["data"] == {}
 
     def test_scim_logname(self):
         uuid_prefix = "681d6e"

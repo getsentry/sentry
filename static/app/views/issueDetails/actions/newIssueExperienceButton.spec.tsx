@@ -4,15 +4,22 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
-const mockUseNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockUseNavigate,
-}));
 jest.mock('sentry/utils/analytics');
+
+const mockFeedbackForm = jest.fn();
+jest.mock('sentry/utils/useFeedbackForm', () => ({
+  useFeedbackForm: () => mockFeedbackForm(),
+}));
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('NewIssueExperienceButton', function () {
   const organization = OrganizationFixture({features: ['issue-details-streamline']});
@@ -22,13 +29,50 @@ describe('NewIssueExperienceButton', function () {
 
   beforeEach(() => {
     ConfigStore.init();
+    jest.clearAllMocks();
   });
 
-  it('does not appear by default', function () {
+  it('appears correctly when organization has the single interface option', function () {
+    const {unmount: unmountOptionTrue} = render(
+      <div data-test-id="test-id">
+        <NewIssueExperienceButton />
+      </div>,
+      {
+        organization: {
+          ...organization,
+          streamlineOnly: true,
+        },
+      }
+    );
+    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
+    unmountOptionTrue();
+
+    const {unmount: unmountOptionFalse} = render(
+      <div data-test-id="test-id">
+        <NewIssueExperienceButton />
+      </div>,
+      {
+        organization: {
+          ...organization,
+          streamlineOnly: false,
+        },
+      }
+    );
+    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
+    unmountOptionFalse();
+  });
+
+  it('does not appear when an organization has the enforce flag', function () {
     render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
-      </div>
+      </div>,
+      {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'issue-details-streamline-enforce'],
+        },
+      }
     );
     expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
@@ -76,10 +120,13 @@ describe('NewIssueExperienceButton', function () {
     });
 
     await userEvent.click(button);
-    // Text should change immediately
-    expect(
-      screen.getByRole('button', {name: 'Switch to the old issue experience'})
-    ).toBeInTheDocument();
+
+    const dropdownButton = screen.getByRole('button', {name: 'Manage issue experience'});
+    await userEvent.click(dropdownButton);
+    const oldExperienceButton = screen.getByRole('menuitemradio', {
+      name: 'Switch to the old issue experience',
+    });
+    expect(oldExperienceButton).toBeInTheDocument();
     // User option should be saved
     await waitFor(() => {
       expect(mockChangeUserSettings).toHaveBeenCalledWith(
@@ -93,14 +140,10 @@ describe('NewIssueExperienceButton', function () {
         })
       );
     });
-    // Location should update
-    expect(mockUseNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {streamline: '1'}})
-    );
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     // Clicking again toggles it off
-    await userEvent.click(button);
+    await userEvent.click(oldExperienceButton);
     // Old text should be back
     expect(
       screen.getByRole('button', {name: 'Switch to the new issue experience'})
@@ -118,10 +161,46 @@ describe('NewIssueExperienceButton', function () {
         })
       );
     });
-    // Location should update again
-    expect(mockUseNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {streamline: '0'}})
-    );
     expect(trackAnalytics).toHaveBeenCalledTimes(2);
+  });
+
+  it('can switch back to the old UI via dropdown', async function () {
+    const mockFormCallback = jest.fn();
+    mockFeedbackForm.mockReturnValue(mockFormCallback);
+    const mockChangeUserSettings = MockApiClient.addMockResponse({
+      url: '/users/me/',
+      method: 'PUT',
+    });
+
+    render(<NewIssueExperienceButton />, {organization});
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Switch to the new issue experience',
+      })
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Manage issue experience',
+      })
+    ).toBeInTheDocument();
+
+    const dropdownButton = screen.getByRole('button', {
+      name: 'Manage issue experience',
+    });
+    await userEvent.click(dropdownButton);
+
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Give feedback on the UI'})
+    );
+    expect(mockFeedbackForm).toHaveBeenCalled();
+
+    await userEvent.click(dropdownButton);
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {
+        name: 'Switch to the old issue experience',
+      })
+    );
+    expect(mockChangeUserSettings).toHaveBeenCalledTimes(2);
   });
 });

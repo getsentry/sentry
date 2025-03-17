@@ -77,22 +77,18 @@ class WidgetLegendSelectionState {
         return widgetLegend;
       });
 
-      !isInQuery
-        ? router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: [
-                ...location.query.unselectedSeries,
-                this.encodeLegendQueryParam(widget, selected),
-              ],
-            },
-          })
-        : router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          });
+      const unselectedSeries = isInQuery
+        ? newLegendQuery
+        : [
+            ...location.query.unselectedSeries,
+            this.encodeLegendQueryParam(widget, selected),
+          ];
+      router.replace({
+        query: {
+          ...location.query,
+          unselectedSeries,
+        },
+      });
     } else {
       if (location.query.unselectedSeries?.includes(widget.id!)) {
         router.replace({
@@ -121,8 +117,7 @@ class WidgetLegendSelectionState {
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
-      : this.widgetRequiresLegendUnselection(widget) &&
-          this.organization.features.includes('dashboards-releases-on-charts')
+      : this.widgetRequiresLegendUnselection(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
               'Releases',
@@ -148,8 +143,7 @@ class WidgetLegendSelectionState {
   }
 
   formatLegendDefaultQuery(widget: Widget) {
-    return this.organization.features.includes('dashboards-releases-on-charts') &&
-      this.widgetRequiresLegendUnselection(widget)
+    return this.widgetRequiresLegendUnselection(widget)
       ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
       : undefined;
   }
@@ -163,7 +157,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)!
           )
         )
         .join(SERIES_LIST_DELIMITER)
@@ -179,8 +173,9 @@ class WidgetLegendSelectionState {
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
-      const seriesNames = seriesNameString.split(SERIES_LIST_DELIMITER);
+      const seriesNames = seriesNameString!.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[
           decodeURIComponent(
             WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(series, widget.id)

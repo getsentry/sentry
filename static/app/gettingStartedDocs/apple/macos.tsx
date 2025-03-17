@@ -30,7 +30,11 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn.public}"
-        options.debug = true // Enabling debug when first installing is always helpful${
+        options.debug = true // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = true${
           params.isPerformanceSelected
             ? `
 
@@ -59,7 +63,7 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
     // this code will be profiled
     //
     // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-    // your application until the process exits or stopProfiling is called.
+    // your application until the process exits or stopProfiler is called.
     SentrySDK.stopProfiler()`
         : ''
     }
@@ -75,7 +79,11 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn.public}"
-            options.debug = true // Enabling debug when first installing is always helpful${
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true${
               params.isPerformanceSelected
                 ? `
 
@@ -98,7 +106,7 @@ struct SwiftUIApp: App {
           params.profilingOptions?.defaultProfilingMode === 'continuous'
             ? `
 
-        // Manually call start_profiler and stop_profiler
+        // Manually call startProfiler and stopProfiler
         // to profile the code in between
         SentrySDK.startProfiler()
         // do some work here

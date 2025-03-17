@@ -26,7 +26,7 @@ type FormFieldProps = DefaultProps & {
   label?: React.ReactNode;
   meta?: Meta;
   onChange?: (value: Value) => void;
-  style?: object;
+  style?: Record<PropertyKey, unknown>;
   value?: Value;
 };
 

@@ -401,7 +401,7 @@ export function computeChartTooltip(
 
       const chartElement: Element =
         props.appendToBody && chartId
-          ? document.getElementById(chartId) ?? parentNode
+          ? (document.getElementById(chartId) ?? parentNode)
           : parentNode;
 
       // Get the left offset of the tip container (the chart)

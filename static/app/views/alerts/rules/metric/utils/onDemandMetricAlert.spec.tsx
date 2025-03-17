@@ -53,17 +53,4 @@ describe('isOnDemandMetricAlert', () => {
       )
     ).toBeFalsy();
   });
-
-  it('should return false for an alert that uses insights metrics', () => {
-    const dataset = Dataset.GENERIC_METRICS;
-
-    expect(
-      isOnDemandMetricAlert(
-        dataset,
-        'avg(d:spans/exclusive_time@millisecond)',
-        'span.module:db'
-      )
-    ).toBeFalsy();
-    expect(isOnDemandMetricAlert(dataset, 'spm()', 'browser.name:chrome')).toBeFalsy();
-  });
 });

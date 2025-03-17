@@ -5,9 +5,10 @@ from collections.abc import Iterable
 
 from django.apps import apps
 from django.db import connections
+from django.db.models.base import Model
 from django.utils.connection import ConnectionDoesNotExist
 
-from sentry.db.models.base import Model, ModelSiloLimit
+from sentry.db.models.base import ModelSiloLimit
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -44,9 +45,6 @@ class SiloRouter:
         SiloMode.CONTROL: "control",
     }
 
-    __table_to_silo = {}
-    """Memoized results of table : silo pairings"""
-
     __is_simulated = False
     """Whether or not we're operating in a simulated silo environment"""
 
@@ -73,6 +71,9 @@ class SiloRouter:
         "sentry_projectavatar": SiloMode.REGION,
         "sentry_pagerdutyservice": SiloMode.REGION,
         "sentry_notificationsetting": SiloMode.CONTROL,
+        "authprovider_duplicate": SiloMode.CONTROL,
+        "authidentity_duplicate": SiloMode.CONTROL,
+        "sentry_alertruleactivations": SiloMode.REGION,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments
@@ -82,7 +83,8 @@ class SiloRouter:
     """
 
     def __init__(self):
-        self.__table_to_silo = {}
+        # Memoized results of table : silo pairings
+        self.__table_to_silo: dict[str, str | None] = {}
         try:
             # By accessing the connections Django will raise
             # Use `assert` to appease linters
@@ -122,14 +124,14 @@ class SiloRouter:
         else:
             return None
 
-    def _find_model(self, table: str, app_label: str) -> Model | None:
+    def _find_model(self, table: str) -> type[Model] | None:
         # Use django's model inventory to find our table and what silo it is on.
-        for model in apps.get_models(app_label):
+        for model in apps.get_models(include_auto_created=True):
             if model._meta.db_table == table:
                 return model
         return None
 
-    def _silo_limit(self, model: Model) -> SiloLimit | None:
+    def _silo_limit(self, model: type[Model]) -> SiloLimit | None:
         silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit:
             return silo_limit
@@ -140,24 +142,24 @@ class SiloRouter:
 
         # If we didn't find a silo_limit we could be working with __fake__ model
         # from django, so we need to locate the real class by table.
-        real_model = self._find_model(db_table, model._meta.app_label)
+        real_model = self._find_model(db_table)
         if real_model:
             return getattr(real_model._meta, "silo_limit", None)
 
         return None
 
-    def _db_for_model(self, model: Model):
+    def _db_for_model(self, model: type[Model]) -> str | None:
         silo_limit = self._silo_limit(model)
         if not silo_limit:
             return "default"
 
         return self._resolve_silo_connection(silo_limit.modes, table=model._meta.db_table)
 
-    def _db_for_table(self, table, app_label):
+    def _db_for_table(self, table: str, app_label: str) -> str | None:
         if table in self.__table_to_silo:
             return self.__table_to_silo[table]
 
-        model = self._find_model(table, app_label)
+        model = self._find_model(table)
         if model:
             # Incrementally build up our result cache so we don't
             # have to scan through models more than once.
@@ -171,7 +173,7 @@ class SiloRouter:
             # Default to None for sentry/getsentry app_label as models
             # in those apps must have silo assignments, and 'default'
             # for other app_labels that can't have silo assignments.
-            fallback = "default"
+            fallback: str | None = "default"
             if app_label in {"sentry", "getsentry"}:
                 fallback = None
             self.__table_to_silo[table] = fallback

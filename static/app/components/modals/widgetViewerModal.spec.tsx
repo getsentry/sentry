@@ -2,6 +2,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -95,8 +96,9 @@ async function renderModal({
 }
 
 describe('Modals -> WidgetViewerModal', function () {
-  let initialData, initialDataWithFlag;
-  let widgetLegendState: WidgetLegendSelectionState;
+  let initialData!: ReturnType<typeof initializeOrg>;
+  let initialDataWithFlag!: ReturnType<typeof initializeOrg>;
+  let widgetLegendState!: WidgetLegendSelectionState;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -127,6 +129,11 @@ describe('Modals -> WidgetViewerModal', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
 
@@ -404,15 +411,18 @@ describe('Modals -> WidgetViewerModal', function () {
           unselectedSeries: [`${mockWidget.id}:Query Name`],
         };
         await renderModal({initialData, widget: mockWidget});
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+
+        const echartsMock = jest.mocked(ReactEchartsCore);
+        const lastCall = echartsMock.mock.calls[echartsMock.mock.calls.length - 1]![0];
+        // TODO(react19): Can change this back to expect(ReactEchartsCore).toHaveBeenLastCalledWith()
+        expect(lastCall).toEqual(
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
                 selected: {[`Query Name;${mockWidget.id}`]: false},
               }),
             }),
-          }),
-          {}
+          })
         );
       });
 
@@ -433,71 +443,6 @@ describe('Modals -> WidgetViewerModal', function () {
         });
         await userEvent.click(
           await screen.findByText('/organizations/:orgId/performance/summary/')
-        );
-      });
-
-      it('renders widget chart minimap', async function () {
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        mockEvents();
-        await renderModal({
-          initialData,
-          widget: {
-            ...mockWidget,
-            queries: [{...mockQuery, name: ''}, additionalMockQuery],
-          },
-        });
-
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            option: expect.objectContaining({
-              dataZoom: expect.arrayContaining([
-                expect.objectContaining({
-                  realtime: false,
-                  showDetail: false,
-                  end: 100,
-                  start: 0,
-                }),
-              ]),
-            }),
-          }),
-          {}
-        );
-      });
-
-      it('zooming on minimap updates location query and updates echart start and end values', async function () {
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        mockEvents();
-        await renderModal({
-          initialData,
-          widget: {
-            ...mockWidget,
-            queries: [{...mockQuery, name: ''}, additionalMockQuery],
-          },
-        });
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-        act(() => {
-          // Simulate dataZoom event on chart
-          calls[calls.length - 1][0].onEvents.datazoom(
-            {seriesStart: 1646100000000, seriesEnd: 1646120000000},
-            {
-              getModel: () => {
-                return {
-                  _payload: {start: 30, end: 70},
-                };
-              },
-            }
-          );
-        });
-
-        await waitFor(() =>
-          expect(initialData.router.push).toHaveBeenCalledWith(
-            expect.objectContaining({
-              query: {
-                viewerEnd: '2022-03-01T05:53:20',
-                viewerStart: '2022-03-01T03:40:00',
-              },
-            })
-          )
         );
       });
 
@@ -560,7 +505,7 @@ describe('Modals -> WidgetViewerModal', function () {
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toEqual('123ms');
+        expect(yAxisFormatter(123)).toBe('123ms');
       });
 
       it('renders widget chart with default number y axis formatter when seriesResultType has multiple different types', async function () {
@@ -574,7 +519,7 @@ describe('Modals -> WidgetViewerModal', function () {
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toEqual('123');
+        expect(yAxisFormatter(123)).toBe('123');
       });
 
       it('does not allow sorting by transaction name when widget is using metrics', async function () {
@@ -660,7 +605,7 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(link).toHaveAttribute(
           'href',
           expect.stringMatching(
-            RegExp(
+            new RegExp(
               '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
             )
           )
@@ -669,7 +614,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     describe('TopN Chart Widget', function () {
-      let mockQuery, mockWidget;
+      let mockQuery!: Widget['queries'][number];
+      let mockWidget!: Widget;
 
       function mockEventsStats() {
         return MockApiClient.addMockResponse({
@@ -740,7 +686,6 @@ describe('Modals -> WidgetViewerModal', function () {
           fields: ['error.type', 'count()'],
           aggregates: ['count()'],
           columns: ['error.type'],
-          id: '1',
           name: 'Query Name',
           orderby: '',
         };
@@ -906,75 +851,33 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(eventsStatsMock).toHaveBeenCalledTimes(1);
       });
 
-      it('renders widget chart minimap', async function () {
-        mockEventsStats();
+      it('appends the orderby to the query if it is not already selected as an aggregate', async function () {
+        const eventsStatsMock = mockEventsStats();
         mockEvents();
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        await renderModal({initialData, widget: mockWidget});
 
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            option: expect.objectContaining({
-              dataZoom: expect.arrayContaining([
-                expect.objectContaining({
-                  realtime: false,
-                  showDetail: false,
-                  end: 100,
-                  start: 0,
-                }),
-              ]),
-            }),
-          }),
-          {}
-        );
-      });
-
-      it('zooming on minimap updates location query and updates echart start and end values', async function () {
-        mockEventsStats();
-        mockEvents();
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        await renderModal({initialData, widget: mockWidget});
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-        act(() => {
-          // Simulate dataZoom event on chart
-          calls[calls.length - 1][0].onEvents.datazoom(
-            {seriesStart: 1646100000000, seriesEnd: 1646120000000},
+        const widget = WidgetFixture({
+          widgetType: WidgetType.TRANSACTIONS,
+          queries: [
             {
-              getModel: () => {
-                return {
-                  _payload: {start: 30, end: 70},
-                };
-              },
-            }
-          );
+              orderby: '-epm()',
+              aggregates: ['count()'],
+              columns: ['country'],
+              conditions: '',
+              name: '',
+            },
+          ],
         });
 
-        expect(initialData.router.push).toHaveBeenCalledWith(
+        await renderModal({initialData, widget});
+        expect(await screen.findByText('epm()')).toBeInTheDocument();
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
           expect.objectContaining({
-            query: {
-              viewerEnd: '2022-03-01T05:53:20',
-              viewerStart: '2022-03-01T03:40:00',
-            },
+            query: expect.objectContaining({
+              field: ['country', 'count()', 'epm()'],
+            }),
           })
         );
-
-        await waitFor(() => {
-          expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-              option: expect.objectContaining({
-                dataZoom: expect.arrayContaining([
-                  expect.objectContaining({
-                    realtime: false,
-                    showDetail: false,
-                    endValue: 1646114000000,
-                    startValue: 1646106000000,
-                  }),
-                ]),
-              }),
-            }),
-            {}
-          );
-        });
       });
     });
 
@@ -1131,7 +1034,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Issue Table Widget', function () {
-    let issuesMock;
+    let issuesMock!: jest.Mock;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -1347,12 +1250,12 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Release Health Widgets', function () {
-    let metricsMock;
+    let metricsMock!: jest.Mock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(session)`],
       columns: [],
-      aggregates: [],
+      aggregates: ['sum(session)'],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -1477,6 +1380,72 @@ describe('Modals -> WidgetViewerModal', function () {
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('Span Widgets', function () {
+    beforeEach(function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {},
+      });
+    });
+
+    it('renders the Open in Explore button', async function () {
+      const mockWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            fields: ['span.description', 'avg(span.duration)'],
+            aggregates: ['avg(span.duration)'],
+            columns: ['span.description'],
+            conditions: '',
+            orderby: '',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
+    });
+
+    it('does not make an events-stats request with an arbitrary table sort as a y-axis', async function () {
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {},
+      });
+      const mockWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            fields: [],
+            aggregates: ['p90(span.duration)'],
+            columns: ['span.description'],
+            conditions: '',
+            orderby: '-count(span.duration)',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            orderby: '-count(span.duration)',
+
+            // The orderby should not appear as a yAxis
+            yAxis: ['p90(span.duration)'],
+
+            // The orderby should appear in the field array
+            field: ['span.description', 'p90(span.duration)', 'count(span.duration)'],
+          }),
+        })
+      );
     });
   });
 });

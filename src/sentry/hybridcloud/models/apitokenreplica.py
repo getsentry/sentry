@@ -24,6 +24,9 @@ class ApiTokenReplica(Model, HasApiScopes):
     expires_at = models.DateTimeField(null=True)
     allowed_origins = models.TextField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    scoping_organization_id = HybridCloudForeignKey(
+        "sentry.Organization", null=True, on_delete="CASCADE"
+    )
 
     class Meta:
         app_label = "hybridcloud"
@@ -36,7 +39,7 @@ class ApiTokenReplica(Model, HasApiScopes):
     __repr__ = sane_repr("user_id", "token", "application_id")
 
     def __str__(self) -> str:
-        return force_str(self.token)
+        return f"replica_token_id={self.id}, token_id={force_str(self.apitoken_id)}"
 
     @property
     def entity_id(self) -> int:

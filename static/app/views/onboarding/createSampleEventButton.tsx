@@ -7,8 +7,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -40,7 +40,6 @@ async function latestEventAvailable(
 ): Promise<{eventCreated: boolean; retries: number}> {
   let retries = 0;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (retries > EVENT_POLL_RETRIES) {
       return {eventCreated: false, retries: retries - 1};
@@ -82,7 +81,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   private _isMounted = true;
 
-  recordAnalytics({eventCreated, retries, duration}) {
+  recordAnalytics({eventCreated, retries, duration}: any) {
     const {organization, project, source} = this.props;
 
     if (!project) {
@@ -105,7 +104,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
     const {api, organization, project, onCreateSampleGroup} = this.props;
-    let eventData;
+    let eventData: any;
 
     if (!project) {
       return;

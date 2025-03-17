@@ -1,13 +1,36 @@
 ---
-created: '2024-10-28T14:02:34.712871+00:00'
+created: '2024-12-17T22:50:23.515776+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: stacktrace
+hashing_metadata: {
+  "client_fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint": "['{{ default }}', 'soft-timelimit-exceeded']",
+  "fingerprint_source": "server_custom_rule",
+  "is_hybrid_fingerprint": true,
+  "matched_fingerprinting_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "True"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
 ---
 contributing variants:
   app*
     hash: "19163f3ca34f5995c69d85351ce3d697"
+    contributing component: exception
     component:
       app*
         exception*
@@ -102,6 +125,7 @@ contributing variants:
     values: ["{{ default }}","soft-timelimit-exceeded"]
   system*
     hash: "847950eb44d280e6758d136c763d6ddc"
+    contributing component: exception
     component:
       system*
         exception*

@@ -24,7 +24,7 @@ type DataRowKeys =
   | SpanIndexedField.TRANSACTION_ID
   | SpanIndexedField.TRACE
   | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
   | SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY
@@ -34,7 +34,7 @@ type DataRowKeys =
   | SpanIndexedField.SPAN_DURATION;
 
 type ColumnKeys =
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.MESSAGING_MESSAGE_ID
   | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
   | SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT
@@ -47,7 +47,7 @@ type Column = GridColumnHeader<ColumnKeys>;
 
 const CONSUMER_COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
@@ -75,7 +75,7 @@ const CONSUMER_COLUMN_ORDER: Column[] = [
 
 const PRODUCER_COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
@@ -162,7 +162,7 @@ function renderBodyCell(
     );
   }
 
-  if (key === SpanIndexedField.ID) {
+  if (key === SpanIndexedField.SPAN_ID) {
     return (
       <SpanIdCell
         moduleName={ModuleName.QUEUE}
@@ -170,7 +170,7 @@ function renderBodyCell(
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
-        spanId={row[SpanIndexedField.ID]}
+        spanId={row[SpanIndexedField.SPAN_ID]}
         source={TraceViewSources.QUEUES_MODULE}
         location={location}
       />

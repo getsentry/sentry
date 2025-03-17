@@ -251,16 +251,21 @@ function RequestDataCard({
   const contentItems: KeyValueDataContentProps[] = [];
 
   if (Array.isArray(data) && data.length > 0) {
-    data.forEach(([key, value], i: number) => {
-      const valueMeta = meta?.[i] ? meta[i]?.[1] : undefined;
-      contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
-    });
+    data
+      // Remove any non-tuple values
+      .filter(x => Array.isArray(x))
+      .forEach(([key, value], i: number) => {
+        const valueMeta = meta?.[i] ? meta[i]?.[1] : undefined;
+        contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
+      });
   } else if (typeof data === 'object') {
     // Spread to flatten if it's a proxy
     Object.entries({...data}).forEach(([key, value]) => {
       const valueMeta = meta ? meta[key] : undefined;
       contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
     });
+  } else if (typeof data === 'string') {
+    contentItems.push({item: {key: 'data', subject: 'data', value: data}});
   }
 
   return (

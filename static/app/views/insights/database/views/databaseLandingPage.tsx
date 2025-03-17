@@ -1,11 +1,7 @@
 import React from 'react';
 
-import Alert from 'sentry/components/alert';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,7 +10,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
@@ -23,10 +18,7 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
-import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
 import {DatabasePageFilters} from 'sentry/views/insights/database/components/databasePageFilters';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
@@ -37,16 +29,17 @@ import {useSystemSelectorOptions} from 'sentry/views/insights/database/component
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import {
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from '../../common/views/spans/types';
+
 export function DatabaseLandingPage() {
-  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
@@ -134,6 +127,7 @@ export function DatabaseLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['spm()'],
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-landing-page-metrics-chart'
   );
@@ -146,6 +140,7 @@ export function DatabaseLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-landing-page-metrics-chart'
   );
@@ -160,47 +155,9 @@ export function DatabaseLandingPage() {
     ) ||
     throughputData['spm()'].data?.some(({value}) => value > 0);
 
-  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
-
-  const crumbs = useModuleBreadcrumbs('db');
-
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <BackendHeader
-          headerTitle={
-            <React.Fragment>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </React.Fragment>
-          }
-          module={ModuleName.DB}
-        />
-      )}
+      <BackendHeader module={ModuleName.DB} />
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -221,20 +178,20 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.DB}>
                 <ModuleLayout.Half>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('db')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
-                    filters={chartFilters}
                   />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <DurationChart
+                  <InsightsLineChartWidget
+                    title={getDurationChartTitle('db')}
                     series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
-                    filters={chartFilters}
                   />
                 </ModuleLayout.Half>
 
@@ -267,23 +224,21 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-function AlertBanner(props) {
+function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
-      <Alert {...props} type="info" showIcon />
+      <Alert.Container>
+        <Alert {...props} type="info" showIcon />
+      </Alert.Container>
     </ModuleLayout.Full>
   );
 }
 
-const LIMIT: number = 25;
+const LIMIT = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="db"
-      features="insights-initial-modules"
-      analyticEventName="insight.page_loads.db"
-    >
+    <ModulePageProviders moduleName="db" analyticEventName="insight.page_loads.db">
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

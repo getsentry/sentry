@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
-import invariant from 'invariant';
 
 import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
 import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
@@ -18,7 +17,7 @@ interface TContext {
   getItemQueryKeys: (id: string) => ItemQueryKeys;
   listHeadTime: number;
   listPrefetchQueryKey: ListQueryKey;
-  listQueryKey: NonNullable<ListQueryKey>;
+  listQueryKey: ListQueryKey;
   resetListHeadTime: () => void;
 }
 
@@ -27,8 +26,8 @@ const EMPTY_ITEM_QUERY_KEYS = {issueQueryKey: undefined, eventQueryKey: undefine
 const DEFAULT_CONTEXT: TContext = {
   getItemQueryKeys: () => EMPTY_ITEM_QUERY_KEYS,
   listHeadTime: 0,
-  listPrefetchQueryKey: [''],
-  listQueryKey: [''],
+  listPrefetchQueryKey: undefined,
+  listQueryKey: undefined,
   resetListHeadTime: () => undefined,
 };
 
@@ -63,7 +62,6 @@ export function FeedbackQueryKeys({children, organization}: Props) {
     organization,
     prefetch: false,
   });
-  invariant(listQueryKey, 'listQueryKey cannot be nullable when prefetch=false');
 
   const listPrefetchQueryKey = useFeedbackListQueryKey({
     listHeadTime,

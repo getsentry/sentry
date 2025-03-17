@@ -34,8 +34,8 @@ const mockWidgetAsQueryParams = {
 };
 
 describe('add to dashboard modal', () => {
-  let eventsStatsMock;
-  let initialData;
+  let eventsStatsMock!: jest.Mock;
+  let initialData!: ReturnType<typeof initializeOrg>;
 
   const testDashboardListItem: DashboardListItem = {
     id: '1',
@@ -95,6 +95,11 @@ describe('add to dashboard modal', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/1/',
       body: testDashboard,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({

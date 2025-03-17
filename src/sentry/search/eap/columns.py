@@ -1,39 +1,48 @@
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, TypeAlias
 
+from dateutil.tz import tz
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
+    ExtrapolationMode,
     Function,
     VirtualColumnContext,
 )
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
-from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_event_id, is_span_id
+
+ResolvedArgument: TypeAlias = AttributeKey | str | int
+ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ResolvedColumn:
     # The alias for this column
     public_alias: (
         str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
     )
-    # The internal rpc alias for this column
-    internal_name: str | Function.ValueType
     # The public type for this column
-    search_type: str
+    search_type: constants.SearchType
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Only for aggregates, we only support functions with 1 argument right now
-    argument: AttributeKey | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
     validator: Callable[[Any], bool] | None = None
+    # Indicates this attribute is a secondary alias for the attribute.
+    # It exists for compatibility or convenience reasons and should NOT be preferred.
+    secondary_alias: bool = False
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
@@ -47,27 +56,6 @@ class ResolvedColumn:
                 raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
-    def is_aggregate(self) -> bool:
-        """So that callers can easily identify if this resolved column is an aggregate or not"""
-        return isinstance(self.internal_name, Function.ValueType)
-
-    @property
-    def proto_definition(self) -> AttributeAggregation | AttributeKey:
-        """The definition of this function as needed by the RPC"""
-        # This is identical to is_aggregate, but typing gets mad if you call the property
-        if isinstance(self.internal_name, Function.ValueType):
-            return AttributeAggregation(
-                aggregate=self.internal_name,
-                key=self.argument,
-                label=self.public_alias,
-            )
-        else:
-            return AttributeKey(
-                name=self.internal_name,
-                type=self.proto_type,
-            )
-
-    @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
         """The proto's AttributeKey type for this column"""
         if self.internal_type is not None:
@@ -75,35 +63,162 @@ class ResolvedColumn:
         else:
             return constants.TYPE_MAP[self.search_type]
 
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedAttribute(ResolvedColumn):
+    # The internal rpc alias for this column
+    internal_name: str
+    is_aggregate: bool = field(default=False, init=False)
+
     @property
-    def meta_type(self) -> str:
-        """This column's type for the meta response from the API"""
-        if self.search_type == "duration":
-            return "duration"
-        elif self.search_type == "number":
-            return "integer"
-        else:
-            return self.search_type
+    def proto_definition(self) -> AttributeKey:
+        """The definition of this function as needed by the RPC"""
+        return AttributeKey(
+            name=self.internal_name,
+            type=self.proto_type,
+        )
 
 
 @dataclass
 class ArgumentDefinition:
-    argument_type: str | None = None
+    argument_types: set[constants.SearchType] | None = None
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
+    # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
+    is_attribute: bool = True
+    # Validator to check if the value is allowed for this argument
+    validator: Callable[[Any], Any] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
 
 
 @dataclass
+class VirtualColumnDefinition:
+    constructor: Callable[[SnubaParams], VirtualColumnContext]
+    # Allows additional processing to the term after its been resolved
+    term_resolver: (
+        Callable[
+            [str | list[str]],
+            int | str | list[int] | list[str],
+        ]
+        | None
+    ) = None
+    filter_column: str | None = None
+    default_value: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedFunction(ResolvedColumn):
+    """
+    A Function should be used as a non-attribute column, this means an aggregate or formula is a type of function.
+    The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
+    """
+
+    is_aggregate: bool
+
+    @property
+    def proto_definition(
+        self,
+    ) -> Column.BinaryFormula | AttributeAggregation | AttributeConditionalAggregation:
+        raise NotImplementedError()
+
+    @property
+    def proto_type(self) -> AttributeKey.Type.ValueType:
+        return constants.DOUBLE
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedFormula(ResolvedFunction):
+    """
+    A formula is a type of function that may accept a parameter, it divides an attribute, aggregate or formula by another.
+    The FormulaDefinition contains a method `resolve`, which takes in the argument passed into the function and returns the resolved formula.
+    For example if the user queries for `http_response_rate(5), the FormulaDefinition calles `resolve` with the argument `5` and returns the `ResolvedFormula`.
+    """
+
+    formula: Column.BinaryFormula
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        """The definition of this function as needed by the RPC"""
+        return self.formula
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedAggregate(ResolvedFunction):
+    """
+    An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
+    Examples of this are `sum()` and `avg()`.
+    """
+
+    # The internal rpc alias for this column
+    internal_name: Function.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
+    is_aggregate: bool = field(default=True, init=False)
+    # Only for aggregates, we only support functions with 1 argument right now
+    argument: AttributeKey | None = None
+
+    @property
+    def proto_definition(self) -> AttributeAggregation:
+        """The definition of this function as needed by the RPC"""
+        return AttributeAggregation(
+            aggregate=self.internal_name,
+            key=self.argument,
+            label=self.public_alias,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedConditionalAggregate(ResolvedFunction):
+
+    # The internal rpc alias for this column
+    internal_name: Function.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
+    # The condition to filter on
+    filter: TraceItemFilter
+    # The attribute to conditionally aggregate on
+    key: AttributeKey
+
+    is_aggregate: bool = field(default=True, init=False)
+
+    @property
+    def proto_definition(self) -> AttributeConditionalAggregation:
+        """The definition of this function as needed by the RPC"""
+        return AttributeConditionalAggregation(
+            aggregate=self.internal_name,
+            key=self.key,
+            filter=self.filter,
+            label=self.public_alias,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+        )
+
+
+@dataclass(kw_only=True)
 class FunctionDefinition:
-    internal_function: Function.ValueType
-    # the search_type the argument should be
+    """
+    The FunctionDefinition is a base class for defining a function, a function is a non-attribute column.
+    """
+
+    # The list of arguments for this function
     arguments: list[ArgumentDefinition]
-    # The public type for this column
-    search_type: str
+    # The search_type the argument should be the default type for this column
+    default_search_type: constants.SearchType
+    # Try to infer the search type from the function arguments
+    infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
+    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    extrapolation: bool = True
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
 
@@ -111,151 +226,130 @@ class FunctionDefinition:
     def required_arguments(self) -> list[ArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+    ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
+        raise NotImplementedError()
 
-def simple_sentry_field(field) -> ResolvedColumn:
+
+@dataclass(kw_only=True)
+class AggregateDefinition(FunctionDefinition):
+    internal_function: Function.ValueType
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+    ) -> ResolvedAggregate:
+        if len(resolved_arguments) > 1:
+            raise InvalidSearchQuery(
+                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
+            )
+        resolved_argument = None
+        if len(resolved_arguments) == 1:
+            if not isinstance(resolved_arguments[0], AttributeKey):
+                raise InvalidSearchQuery("Aggregates accept attribute keys only")
+            resolved_argument = resolved_arguments[0]
+
+        return ResolvedAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            extrapolation=self.extrapolation,
+            argument=resolved_argument,
+        )
+
+
+@dataclass(kw_only=True)
+class ConditionalAggregateDefinition(FunctionDefinition):
+    """
+    The definition of a conditional aggregation,
+    Conditionally aggregates the `key`, if it passes the `filter`.
+    The type of aggregation is defined by the `internal_name`.
+    The `filter` is returned by the `filter_resolver` function which takes in the args from the user and returns a `TraceItemFilter`.
+    """
+
+    # The type of aggregation (ex. sum, avg)
+    internal_function: Function.ValueType
+    # A function that takes in the resolved argument and returns the condition to filter on and the key to aggregate on
+    aggregate_resolver: Callable[[ResolvedArguments], tuple[AttributeKey, TraceItemFilter]]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+    ) -> ResolvedConditionalAggregate:
+        key, filter = self.aggregate_resolver(resolved_arguments)
+        return ResolvedConditionalAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            filter=filter,
+            key=key,
+            processor=self.processor,
+            extrapolation=self.extrapolation,
+        )
+
+
+@dataclass(kw_only=True)
+class FormulaDefinition(FunctionDefinition):
+    # A function that takes in the resolved argument and returns a Column.BinaryFormula
+    formula_resolver: Callable[..., Column.BinaryFormula]
+    is_aggregate: bool
+
+    @property
+    def required_arguments(self) -> list[ArgumentDefinition]:
+        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: list[AttributeKey | Any],
+    ) -> ResolvedFormula:
+        return ResolvedFormula(
+            public_alias=alias,
+            search_type=search_type,
+            formula=self.formula_resolver(resolved_arguments),
+            is_aggregate=self.is_aggregate,
+            internal_type=self.internal_type,
+            processor=self.processor,
+        )
+
+
+def simple_sentry_field(field) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
-    This helper functions makes defining them easier"""
-    return ResolvedColumn(field, f"sentry.{field}", "string")
+    without the `sentry.` suffix. This helper functions makes defining them easier"""
+    return ResolvedAttribute(
+        public_alias=field, internal_name=f"sentry.{field}", search_type="string"
+    )
 
 
-SPAN_COLUMN_DEFINITIONS = {
-    column.public_alias: column
-    for column in [
-        ResolvedColumn(
-            public_alias="id",
-            internal_name="sentry.span_id",
-            search_type="string",
-            validator=is_span_id,
-        ),
-        ResolvedColumn(
-            public_alias="parent_span",
-            internal_name="sentry.sentry,parent_span_id",
-            search_type="string",
-            validator=is_span_id,
-        ),
-        ResolvedColumn(
-            public_alias="organization.id",
-            internal_name="sentry.organization_id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project.id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project_id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.action",
-            internal_name="sentry.action",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.description",
-            internal_name="sentry.name",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="description",
-            internal_name="sentry.name",
-            search_type="string",
-        ),
-        # Message maps to description, this is to allow wildcard searching
-        ResolvedColumn(
-            public_alias="message",
-            internal_name="sentry.name",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.domain",
-            internal_name="sentry.domain",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.group",
-            internal_name="sentry.group",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.op",
-            internal_name="sentry.op",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.category",
-            internal_name="sentry.category",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.self_time",
-            internal_name="sentry.exclusive_time_ms",
-            search_type="duration",
-        ),
-        ResolvedColumn(
-            public_alias="span.duration",
-            internal_name="sentry.duration_ms",
-            search_type="duration",
-        ),
-        ResolvedColumn(
-            public_alias="span.status",
-            internal_name="sentry.status",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="trace",
-            internal_name="sentry.trace_id",
-            search_type="string",
-            validator=is_event_id,
-        ),
-        ResolvedColumn(
-            public_alias="transaction",
-            internal_name="sentry.segment_name",
-            search_type="string",
-            validator=is_event_id,
-        ),
-        ResolvedColumn(
-            public_alias="replay.id",
-            internal_name="sentry.replay_id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.ai.pipeline.group",
-            internal_name="sentry.ai_pipeline_group",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="ai.total_tokens.used",
-            internal_name="ai_total_tokens_used",
-            search_type="number",
-        ),
-        ResolvedColumn(
-            public_alias="ai.total_cost",
-            internal_name="ai.total_cost",
-            search_type="number",
-        ),
-        simple_sentry_field("browser.name"),
-        simple_sentry_field("messaging.destination.name"),
-        simple_sentry_field("messaging.message.id"),
-        simple_sentry_field("release"),
-        simple_sentry_field("sdk.name"),
-        simple_sentry_field("span.status_code"),
-        simple_sentry_field("span_id"),
-        simple_sentry_field("trace.status"),
-        simple_sentry_field("transaction.method"),
-        simple_sentry_field("user"),
-        simple_sentry_field("user.email"),
-        simple_sentry_field("user.geo.country_code"),
-        simple_sentry_field("user.geo.subregion"),
-        simple_sentry_field("user.id"),
-        simple_sentry_field("user.ip"),
-        simple_sentry_field("user.username"),
-    ]
-}
+def simple_measurements_field(
+    field,
+    search_type: constants.SearchType = "number",
+    secondary_alias: bool = False,
+) -> ResolvedAttribute:
+    """For a good number of fields, the public alias matches the internal alias
+    with the `measurements.` prefix. This helper functions makes defining them easier"""
+    return ResolvedAttribute(
+        public_alias=f"measurements.{field}",
+        internal_name=field,
+        search_type=search_type,
+        secondary_alias=secondary_alias,
+    )
+
+
+def datetime_processor(datetime_string: str) -> str:
+    return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
 
 
 def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
@@ -272,83 +366,20 @@ def project_context_constructor(column_name: str) -> Callable[[SnubaParams], Vir
     return context_constructor
 
 
-def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
-    # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
-    value_map = {"": "Unknown"}
-    for device_class, values in DEVICE_CLASS.items():
-        for value in values:
-            value_map[value] = device_class
-    return VirtualColumnContext(
-        from_column_name="sentry.device.class",
-        to_column_name="device.class",
-        value_map=value_map,
-    )
+def project_term_resolver(
+    raw_value: str | list[str],
+) -> list[int] | int:
+    if isinstance(raw_value, list):
+        return [int(val) for val in raw_value]
+    else:
+        return int(raw_value)
 
 
-VIRTUAL_CONTEXTS = {
-    "project": project_context_constructor("project"),
-    "project.slug": project_context_constructor("project.slug"),
-    "project.name": project_context_constructor("project.name"),
-    "device.class": device_class_context_constructor,
-}
-
-
-SPAN_FUNCTION_DEFINITIONS = {
-    "sum": FunctionDefinition(
-        internal_function=Function.FUNCTION_SUM,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "avg": FunctionDefinition(
-        internal_function=Function.FUNCTION_AVERAGE,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "count": FunctionDefinition(
-        internal_function=Function.FUNCTION_COUNT,
-        search_type="number",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "p50": FunctionDefinition(
-        internal_function=Function.FUNCTION_P50,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "p90": FunctionDefinition(
-        internal_function=Function.FUNCTION_P90,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "p95": FunctionDefinition(
-        internal_function=Function.FUNCTION_P95,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "p99": FunctionDefinition(
-        internal_function=Function.FUNCTION_P99,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "max": FunctionDefinition(
-        internal_function=Function.FUNCTION_MAX,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "min": FunctionDefinition(
-        internal_function=Function.FUNCTION_MIN,
-        search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
-    ),
-    "count_unique": FunctionDefinition(
-        internal_function=Function.FUNCTION_UNIQ,
-        search_type="number",
-        arguments=[
-            ArgumentDefinition(
-                argument_type="string",
-            )
-        ],
-    ),
-}
-
-
-Processors: dict[str, Callable[[Any], Any]] = {}
+@dataclass(frozen=True)
+class ColumnDefinitions:
+    aggregates: dict[str, AggregateDefinition]
+    conditional_aggregates: dict[str, ConditionalAggregateDefinition]
+    formulas: dict[str, FormulaDefinition]
+    columns: dict[str, ResolvedAttribute]
+    contexts: dict[str, VirtualColumnDefinition]
+    trace_item_type: TraceItemType.ValueType

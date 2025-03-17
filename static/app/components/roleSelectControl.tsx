@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {BaseRole} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,12 +25,10 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
   const organization = useOrganization();
   const isMemberInvite =
-    organization.features.includes('members-invite-teammates') &&
-    organization.allowMemberInvite &&
-    organization.access?.includes('member:invite');
+    organization.allowMemberInvite && organization.access?.includes('member:invite');
 
   return (
-    <SelectControl
+    <Select
       options={roles
         ?.filter(r => !r.isRetired)
         .map(

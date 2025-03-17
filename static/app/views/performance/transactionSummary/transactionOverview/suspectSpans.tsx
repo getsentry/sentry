@@ -2,17 +2,17 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 
 import SuspectSpansTable from '../transactionSpans/suspectSpansTable';
@@ -96,16 +96,17 @@ type HeaderProps = {
 
 function SuspectSpansHeader(props: HeaderProps) {
   const {location, organization, projectId, transactionName, pageLinks} = props;
+  const navigate = useNavigate();
 
   const viewAllTarget = spansRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: transactionName,
     projectID: projectId,
     query: location.query,
   });
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [SPANS_CURSOR_NAME]: cursor},
     });

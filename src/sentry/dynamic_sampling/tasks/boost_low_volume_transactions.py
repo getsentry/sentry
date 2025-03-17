@@ -92,8 +92,8 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=6 * 60,  # 6 minutes
+    time_limit=6 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -150,8 +150,8 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
-    time_limit=2 * 60 + 5,
+    soft_time_limit=4 * 60,  # 4 minutes
+    time_limit=4 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
@@ -207,6 +207,10 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         return
 
     if sample_rate == 1.0:
+        return
+
+    # the model fails when we are not having any transactions, thus we can simply return here
+    if len(transactions) == 0:
         return
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)

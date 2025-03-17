@@ -1,13 +1,29 @@
 ---
-created: '2024-10-28T14:02:50.651464+00:00'
+created: '2024-12-17T22:49:58.381656+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
 ---
 contributing variants:
   system*
     hash: "b4cd3ea9b8777433e90ffecbb9601091"
+    contributing component: chained-exception
     component:
       system*
         chained-exception*

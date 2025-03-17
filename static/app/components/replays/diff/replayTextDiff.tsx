@@ -1,25 +1,25 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {After, Before} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
+import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
+import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
-}
+export function ReplayTextDiff() {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
-export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
-  const {data} = useExtractPageHtml({
+  const {data, isLoading} = useExtractPageHtml({
     replay,
-    offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
+    // Add 1 to each offset so we read the HTML just after the specified time
+    // and can therefore see the results of the mutations that happened at the
+    // requested times, instead of landing on those times directly.
+    offsetMsToStopAt: [leftOffsetMs + 1, rightOffsetMs + 1],
   });
 
   const [leftBody, rightBody] = useMemo(
@@ -28,10 +28,10 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
   );
 
   return (
-    <Fragment>
+    <Container>
+      {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
       <DiffHeader>
-        <Before flex="1" align="center">
-          {t('Before')}
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs}>
           <CopyToClipboardButton
             text={leftBody ?? ''}
             size="xs"
@@ -40,8 +40,7 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
             aria-label={t('Copy Before')}
           />
         </Before>
-        <After flex="1" align="center">
-          {t('After')}
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs}>
           <CopyToClipboardButton
             text={rightBody ?? ''}
             size="xs"
@@ -54,29 +53,21 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
       <SplitDiffScrollWrapper>
         <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="words" />
       </SplitDiffScrollWrapper>
-    </Fragment>
+    </Container>
   );
 }
 
-const SplitDiffScrollWrapper = styled('div')`
-  height: 65vh;
-  overflow: auto;
+const Container = styled('div')`
+  height: 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
-const DiffHeader = styled('div')`
+const SplitDiffScrollWrapper = styled('div')`
+  overflow: auto;
+  height: 0;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.2;
-
-  div {
-    height: 28px; /* div with and without buttons inside are the same height */
-  }
-
-  div:last-child {
-    padding-left: ${space(2)};
-  }
-
-  padding: 10px 0;
+  flex-grow: 1;
 `;

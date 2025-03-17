@@ -1,0 +1,25 @@
+---
+description: Rules and guidelines for running *.spec.tsx tests and writing React tests
+globs: *.spec.tsx
+---
+
+# Running *.spec.tsx tests
+
+Please run tests with command: CI=true yarn test
+For example: CI=true yarn test path/to/file.spec.tsx
+
+NOTE: `CI=true` runs jest in non-interactive mode.
+
+# React tests
+
+When writing React tests and using react-test-library, please use exports from 'sentry-test/reactTestingLibrary'. It re-exports from '@testing-library/react'. For example:
+
+```
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+```

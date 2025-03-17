@@ -328,7 +328,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert excinfo.value.code == 401
 
     @responses.activate
-    def test_get_stacktrace_link_use_default_if_version_404(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    def test_get_stacktrace_link_use_default_if_version_404(self, mock_record_halt):
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -363,6 +364,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert (
             source_url == "https://gitlab.example.com/getsentry/example-repo/blob/master/README.md"
         )
+
+        mock_record_halt.assert_called_once()
 
     @responses.activate
     def test_get_commit_context_all_frames(self):

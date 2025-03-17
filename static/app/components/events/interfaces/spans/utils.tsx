@@ -315,7 +315,7 @@ export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   return false;
 }
 
-export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
+export function getSpanID(span: ProcessedSpanType, defaultSpanID = ''): string {
   if (isGapSpan(span)) {
     return defaultSpanID;
   }
@@ -558,7 +558,7 @@ export function parseTrace(
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
+    const spanChildren: SpanType[] = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
@@ -584,7 +584,7 @@ export function parseTrace(
       return acc;
     }
 
-    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
+    if (hasEndTimestamp && span.timestamp > acc.traceEndTimestamp) {
       acc.traceEndTimestamp = span.timestamp;
       return acc;
     }
@@ -700,7 +700,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   );
 
   return records.some(record => {
-    const {value} = marks[record.slug];
+    const {value} = marks[record.slug]!;
     if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
     }
@@ -733,7 +733,7 @@ export function getMeasurements(
   const measurements = Object.keys(event.measurements)
     .filter(name => allowedVitals.has(`measurements.${name}`))
     .map(name => {
-      const associatedMeasurement = event.measurements![name];
+      const associatedMeasurement = event.measurements![name]!;
       return {
         name,
         // Time timestamp is in seconds, but the measurement value is given in ms so convert it here
@@ -769,14 +769,15 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} =
+          VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
         verticalMark.marks = {
           ...verticalMark.marks,
           [name]: {
             value,
             timestamp: measurement.timestamp,
-            failedThreshold: value ? value >= poorThreshold : false,
+            failedThreshold: value ? value >= poorThreshold! : false,
           },
         };
 
@@ -789,13 +790,14 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} =
+      VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
     const marks = {
       [name]: {
         value,
         timestamp: measurement.timestamp,
-        failedThreshold: value ? value >= poorThreshold : false,
+        failedThreshold: value ? value >= poorThreshold! : false,
       },
     };
 
@@ -947,8 +949,8 @@ export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
       };
     },
     {
-      startTimestamp: spanGroup[0].span.start_timestamp,
-      endTimestamp: spanGroup[0].span.timestamp,
+      startTimestamp: spanGroup[0]!.span.start_timestamp,
+      endTimestamp: spanGroup[0]!.span.timestamp,
     }
   );
 }
@@ -999,7 +1001,7 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level' | 'type'>[]
+  errors?: Array<Pick<TraceError, 'level' | 'type'>>
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
     errors || [],
@@ -1065,22 +1067,22 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     start: string[];
   }>(
     (acc, startString, index) => {
-      if (startString.length > endStrings[index].length) {
+      if (startString.length > endStrings[index]!.length) {
         acc.start.push(startString);
         acc.end.push(
           index === 0
-            ? endStrings[index].padStart(startString.length, '0')
-            : endStrings[index].padEnd(startString.length, '0')
+            ? endStrings[index]!.padStart(startString.length, '0')
+            : endStrings[index]!.padEnd(startString.length, '0')
         );
         return acc;
       }
 
       acc.start.push(
         index === 0
-          ? startString.padStart(endStrings[index].length, '0')
-          : startString.padEnd(endStrings[index].length, '0')
+          ? startString.padStart(endStrings[index]!.length, '0')
+          : startString.padEnd(endStrings[index]!.length, '0')
       );
-      acc.end.push(endStrings[index]);
+      acc.end.push(endStrings[index]!);
       return acc;
     },
     {start: [], end: []}

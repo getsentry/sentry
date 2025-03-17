@@ -11,7 +11,10 @@ from sentry.backup.scopes import ExportScope, RelocationScope
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apitoken import ApiToken
-from sentry.models.notificationaction import NotificationAction, NotificationActionProject
+from sentry.notifications.models.notificationaction import (
+    NotificationAction,
+    NotificationActionProject,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import export_to_file

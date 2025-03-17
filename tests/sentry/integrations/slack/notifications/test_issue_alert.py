@@ -16,10 +16,10 @@ from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
 from sentry.ownership.grammar import Matcher, Owner
@@ -315,7 +315,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         rule = self.create_project_rule(
             project=self.project,
-            action_match=[action_data],
+            action_data=[action_data],
             name="ja rule",
             environment_id=environment.id,
         )

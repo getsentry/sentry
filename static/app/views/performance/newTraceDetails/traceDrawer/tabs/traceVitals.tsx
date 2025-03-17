@@ -26,7 +26,7 @@ export function TraceVitals(props: TraceVitalsProps) {
   const measurements = Array.from(props.trace.vitals.entries());
 
   return (
-    <TraceDrawerComponents.DetailContainer>
+    <TraceDrawerComponents.BodyContainer>
       {measurements.map(([node, vital]) => {
         const op = isTransactionNode(node) ? node.value['transaction.op'] : '';
         const transaction = isTransactionNode(node) ? node.value.transaction : '';
@@ -34,7 +34,7 @@ export function TraceVitals(props: TraceVitalsProps) {
 
         return (
           <div key="">
-            <TraceDrawerComponents.HeaderContainer>
+            <TraceDrawerComponents.LegacyHeaderContainer>
               <TraceDrawerComponents.Title>
                 <Tooltip title={node.metadata.project_slug}>
                   <ProjectBadge
@@ -56,7 +56,7 @@ export function TraceVitals(props: TraceVitalsProps) {
                   />
                 </div>
               </TraceDrawerComponents.Title>
-            </TraceDrawerComponents.HeaderContainer>
+            </TraceDrawerComponents.LegacyHeaderContainer>
 
             <VitalsContainer>
               {vital.map((v, i) => {
@@ -66,7 +66,7 @@ export function TraceVitals(props: TraceVitalsProps) {
           </div>
         );
       })}
-    </TraceDrawerComponents.DetailContainer>
+    </TraceDrawerComponents.BodyContainer>
   );
 }
 
@@ -139,7 +139,7 @@ const ValueRow = styled('div')`
   align-items: center;
 `;
 
-const FireIconContainer = styled('span')<{size: IconSize | string}>`
+const FireIconContainer = styled('span')<{size: IconSize}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};

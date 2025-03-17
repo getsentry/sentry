@@ -2,7 +2,7 @@ from datetime import timedelta
 from functools import partial
 
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +15,7 @@ from sentry.api.serializers import EventSerializer, SimpleEventSerializer, seria
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_examples import EventExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.snuba.events import Columns
@@ -44,22 +44,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             CursorQueryParam,
-            OpenApiParameter(
-                name="full",
-                description="If this is set to true, the event payload will include the full event body, including the stacktrace. Set to 1 to enable.",
-                required=False,
-                type=bool,
-                location="query",
-                default=False,
-            ),
-            OpenApiParameter(
-                name="sample",
-                description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
-                required=False,
-                type=bool,
-                location="query",
-                default=False,
-            ),
+            EventParams.FULL_PAYLOAD,
+            EventParams.SAMPLE,
         ],
         responses={
             200: inline_sentry_response_serializer(

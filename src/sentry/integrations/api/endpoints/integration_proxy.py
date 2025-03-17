@@ -221,7 +221,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         return response
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: DRFRequest,
         exc: Exception,
@@ -240,4 +240,4 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             return self.respond(status=exc.code)
 
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)

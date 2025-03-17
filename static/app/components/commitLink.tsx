@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -18,7 +18,7 @@ type CommitProvider = {
 };
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
-const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
+const SUPPORTED_PROVIDERS: readonly CommitProvider[] = [
   {
     icon: IconGithub,
     providerIds: ['github', 'integrations:github', 'integrations:github_enterprise'],
@@ -91,7 +91,12 @@ function CommitLink({
 
   const Icon = providerData.icon;
 
-  return !inline ? (
+  return inline ? (
+    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
+      {showIcon ? <Icon size="xs" /> : null}
+      {' ' + label}
+    </ExternalLink>
+  ) : (
     <LinkButton
       external
       href={commitUrl}
@@ -102,11 +107,6 @@ function CommitLink({
     >
       {label}
     </LinkButton>
-  ) : (
-    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
-      {showIcon ? <Icon size="xs" /> : null}
-      {' ' + label}
-    </ExternalLink>
   );
 }
 

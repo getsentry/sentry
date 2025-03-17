@@ -6,12 +6,12 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/compactSelect/types';
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -139,8 +139,10 @@ function useHighlightFirstOptionOnSectionChange({
   selectedSection,
   sections,
   hiddenOptions,
+  isOpen,
 }: {
   hiddenOptions: Set<SelectKey>;
+  isOpen: boolean;
   sections: Section[];
   selectedSection: Key | null;
   state: ComboBoxState<SelectOptionOrSectionWithKey<string>>;
@@ -149,13 +151,17 @@ function useHighlightFirstOptionOnSectionChange({
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [...state.collection].filter(item => !hiddenOptions.has(item.key));
     }
-    const options = state.collection.getChildren?.(selectedSection ?? sections[0].value);
+    const options = state.collection.getChildren?.(selectedSection ?? sections[0]!.value);
     return [...(options ?? [])].filter(option => !hiddenOptions.has(option.key));
   }, [state.collection, selectedSection, sections, hiddenOptions]);
 
   const previousSection = usePrevious(selectedSection);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     if (selectedSection === previousSection) {
       return;
     }
@@ -163,7 +169,35 @@ function useHighlightFirstOptionOnSectionChange({
     if (firstItem) {
       state.selectionManager.setFocusedKey(firstItem.key);
     }
-  }, [displayedListItems, previousSection, selectedSection, state.selectionManager]);
+  }, [
+    displayedListItems,
+    isOpen,
+    previousSection,
+    selectedSection,
+    state.selectionManager,
+  ]);
+}
+
+// If the selected section no longer exists, switch to the first valid section
+function useSwitchToValidSection({
+  sections,
+  selectedSection,
+  setSelectedSection,
+}: {
+  sections: Section[];
+  selectedSection: Key | null;
+  setSelectedSection: (section: string) => void;
+}) {
+  useEffect(() => {
+    if (!selectedSection || !sections.length) {
+      return;
+    }
+
+    const section = sections.find(s => s.value === selectedSection);
+    if (!section) {
+      setSelectedSection(sections[0]!.value);
+    }
+  }, [sections, selectedSection, setSelectedSection]);
 }
 
 function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
@@ -209,6 +243,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       <SectionedListBoxPane>
         <ListBox
           {...listBoxProps}
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={selectedSection === RECENT_SEARCH_CATEGORY_VALUE}
@@ -256,7 +291,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query} = useSearchQueryBuilder();
+  const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
 
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
@@ -272,7 +307,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     selectedSection,
     hiddenOptions: hiddenOptionsWithRecentsAdded,
     sections,
+    isOpen,
   });
+
+  useSwitchToValidSection({sections, selectedSection, setSelectedSection});
 
   const fullWidth = !query;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
@@ -303,7 +341,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
+        <SectionedOverlay
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+          ref={popoverRef}
+          fullWidth
+          showDetailsPane={showDetailsPane}
+        >
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -323,9 +366,13 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     );
   }
 
-  return (
+  const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
+      <SectionedOverlay
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+        ref={popoverRef}
+        width={filterKeyMenuWidth}
+      >
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
@@ -342,6 +389,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       </SectionedOverlay>
     </StyledPositionWrapper>
   );
+
+  if (portalTarget) {
+    return createPortal(filterKeyListBoxContent, portalTarget);
+  }
+
+  return filterKeyListBoxContent;
 }
 
 const SectionedOverlay = styled(Overlay, {

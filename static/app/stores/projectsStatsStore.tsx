@@ -100,7 +100,7 @@ const storeConfig: ProjectsStatsStoreDefinition = {
   },
 
   getBySlug(slug) {
-    return this.itemsBySlug[slug];
+    return this.itemsBySlug[slug]!;
   },
 };
 

@@ -1,9 +1,9 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -115,10 +115,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
     const isInviteFromCurrentUser = pending && inviterName === currentUser.name;
-    const canInvite =
-      organization.features?.includes('members-invite-teammates') &&
-      organization.allowMemberInvite &&
-      access.includes('member:invite');
+    const canInvite = organization.allowMemberInvite && access.includes('member:invite');
     // members can remove invites they sent if allowMemberInvite is true
     const canEditInvite = canInvite && isInviteFromCurrentUser;
     const canRemoveMember =

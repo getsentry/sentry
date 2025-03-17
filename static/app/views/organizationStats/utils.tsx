@@ -28,7 +28,7 @@ type FormatOptions = {
  * Note: usageQuantity for Attachments should be in BYTES
  */
 export function formatUsageWithUnits(
-  usageQuantity: number = 0,
+  usageQuantity = 0,
   dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ): string {
@@ -90,7 +90,7 @@ export function abbreviateUsageNumber(n: number) {
   }
 
   if (n >= 1000) {
-    return (n / 1000).toFixed().toLocaleString() + 'K';
+    return (n / 1000).toLocaleString(undefined, {maximumFractionDigits: 1}) + 'K';
   }
 
   // Do not show decimals

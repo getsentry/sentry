@@ -17,6 +17,8 @@ export function DatabaseSystemSelector() {
   const {selectedSystem, setSelectedSystem, options, isLoading, isError} =
     useSystemSelectorOptions();
 
+  const system = systemQueryParam ?? selectedSystem;
+
   return (
     <CompactSelect
       onChange={option => {
@@ -36,7 +38,7 @@ export function DatabaseSystemSelector() {
       triggerProps={{prefix: t('System')}}
       loading={isLoading}
       disabled={isError || isLoading || options.length <= 1}
-      value={systemQueryParam ?? selectedSystem}
+      value={system}
     />
   );
 }

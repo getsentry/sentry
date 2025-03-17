@@ -5,6 +5,8 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
 from rest_framework import status
@@ -34,10 +36,10 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     provider = "jira"
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -108,7 +110,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
         # This will log the error locally, capture the exception and send it to Sentry, and create a
         # generic 500/Internal Error response
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def get_token(self, request: Request) -> str:
         try:

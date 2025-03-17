@@ -27,7 +27,7 @@ export interface TimelineItemProps {
   timestamp?: React.ReactNode;
 }
 
-export const Item = forwardRef(function _Item(
+export const Item = forwardRef(function ItemInner(
   {
     title,
     children,
@@ -47,7 +47,7 @@ export const Item = forwardRef(function _Item(
           borderColor: isActive ? theme[colorConfig.iconBorder] : 'transparent',
           color: theme[colorConfig.icon],
         }}
-        className="icon-wrapper"
+        className="timeline-icon-wrapper"
       >
         {icon}
       </IconWrapper>

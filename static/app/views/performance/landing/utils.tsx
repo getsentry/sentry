@@ -58,7 +58,7 @@ export const LANDING_DISPLAYS = [
 ];
 
 export function excludeTransaction(
-  transaction: string | React.ReactText,
+  transaction: string | string | number,
   props: {eventView: EventView; location: Location}
 ) {
   const {eventView, location} = props;
@@ -89,7 +89,7 @@ export function getDefaultDisplayForPlatform(projects: Project[], eventView?: Ev
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
-  return defaultDisplay || LANDING_DISPLAYS[0];
+  return defaultDisplay || LANDING_DISPLAYS[0]!;
 }
 
 export function getCurrentLandingDisplay(

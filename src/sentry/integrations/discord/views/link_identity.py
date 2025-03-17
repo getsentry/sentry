@@ -26,7 +26,13 @@ class DiscordLinkIdentityView(DiscordIdentityLinkageView, LinkIdentityView):
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
-        return "sentry/integrations/discord/linked.html", {}
+        if integration is None:
+            raise ValueError(
+                'integration is required for linking (params must include "integration_id")'
+            )
+        return "sentry/integrations/discord/linked.html", {
+            "guild_id": integration.external_id,
+        }
 
     @property
     def analytics_operation_key(self) -> str | None:

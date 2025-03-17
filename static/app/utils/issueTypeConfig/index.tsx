@@ -6,6 +6,7 @@ import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
+import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
@@ -13,6 +14,7 @@ import type {
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
 import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -31,26 +33,52 @@ const BASE_CONFIG: IssueTypeConfig = {
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolve: {enabled: true},
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
-  attachments: {enabled: false},
+  defaultTimePeriod: {sinceFirstSeen: true},
+  header: {
+    filterBar: {enabled: true, fixedEnvironment: false},
+    graph: {enabled: true, type: 'discover-events'},
+    tagDistribution: {enabled: true},
+    occurrenceSummary: {enabled: false},
+  },
+  customCopy: {
+    resolution: t('Resolved'),
+    eventUnits: t('Events'),
+  },
+  pages: {
+    landingPage: Tab.DETAILS,
+    events: {enabled: true},
+    openPeriods: {enabled: false},
+    checkIns: {enabled: false},
+    uptimeChecks: {enabled: false},
+    attachments: {enabled: false},
+    userFeedback: {enabled: false},
+    replays: {enabled: false},
+    tagsTab: {enabled: true},
+  },
   autofix: false,
-  aiSuggestedSolution: false,
-  events: {enabled: true},
+  eventAndUserCounts: {enabled: true},
+  detector: {enabled: false},
+  logLevel: {enabled: false},
   mergedIssues: {enabled: false},
+  performanceDurationRegression: {enabled: false},
+  profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
-  replays: {enabled: false},
   showFeedbackWidget: false,
-  stats: {enabled: true},
   similarIssues: {enabled: false},
+  spanEvidence: {enabled: false},
+  stacktrace: {enabled: true},
+  stats: {enabled: true},
   tags: {enabled: true},
-  userFeedback: {enabled: false},
   discover: {enabled: true},
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
+  useOpenPeriodChecks: false,
 };
 
 const issueTypeConfig: Config = {
@@ -59,6 +87,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,
+  [IssueCategory.METRIC_ALERT]: metricIssueConfig,
 };
 
 /**
@@ -104,10 +133,10 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
 export const getConfigForIssueType = (
   params: GetConfigForIssueTypeParams,
   project: Project
-) => {
+): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
-      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)
+      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
   const categoryMap = issueTypeConfig[issueCategory];

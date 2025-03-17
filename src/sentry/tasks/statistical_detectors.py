@@ -237,6 +237,10 @@ class EndpointRegressionDetector(RegressionDetector):
     escalation_rel_threshold = 0.75
 
     @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.transactions")
+
+    @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
@@ -277,6 +281,10 @@ class FunctionRegressionDetector(RegressionDetector):
     buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
+
+    @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.functions")
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -587,6 +595,9 @@ def emit_function_regression_issue(
             }
         )
 
+    if not payloads:
+        return 0
+
     response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
     if response.status != 200:
         return 0
@@ -648,14 +659,14 @@ def fetch_continuous_examples(raw_examples):
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
+            "referrer": Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
             "cross_org_query": 1,
         },
     )
 
     data = raw_snql_query(
         request,
-        referrer=Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
     )["data"]
 
     for row in data:

@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 describe('SpanOpSelector', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  let mockEventsRequest;
+  let mockEventsRequest: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -94,7 +94,7 @@ describe('SpanOpSelector', function () {
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/app-startup/spans/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
+      '/organizations/org-slug/insights/mobile/app-startup/spans/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
     );
   });
 

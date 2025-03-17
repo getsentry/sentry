@@ -53,7 +53,7 @@ describe('SampleImages', function () {
       render(<SampleImages groupId="group123" projectId={2} />, {organization});
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
       expect(screen.queryByTestId('sample-image')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('enable-sample-images-button')).toBeInTheDocument();
+      expect(screen.getByTestId('enable-sample-images-button')).toBeInTheDocument();
     });
   });
 });

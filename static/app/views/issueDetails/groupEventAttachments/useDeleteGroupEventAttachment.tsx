@@ -26,6 +26,7 @@ type DeleteGroupEventAttachmentContext = {
 export function useDeleteGroupEventAttachment() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+
   return useMutation<
     unknown,
     RequestError,

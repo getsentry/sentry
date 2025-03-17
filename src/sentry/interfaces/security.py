@@ -150,7 +150,7 @@ class Csp(SecurityReport):
     """
     A CSP violation report.
 
-    See also: http://www.w3.org/TR/CSP/#violation-reports
+    See also: https://www.w3.org/TR/CSP/#violation-events
 
     >>> {
     >>>     "document_uri": "http://example.com/",

@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from collections.abc import Callable, Mapping, MutableMapping
+from abc import ABC, abstractmethod
+from collections.abc import Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
 
@@ -22,14 +23,14 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.services.integration.model import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
-)
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -70,25 +71,21 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
-class Webhook:
+class GitHubWebhook(SCMWebhook, ABC):
     """
     Base class for GitHub webhooks handled in region silos.
     """
 
-    provider = "github"
+    @property
+    def provider(self) -> str:
+        return "github"
 
-    def _handle(
-        self,
-        integration: RpcIntegration,
-        event: Mapping[str, Any],
-        organization: Organization,
-        repo: Repository,
-        host: str | None = None,
-    ) -> None:
-        raise NotImplementedError
+    @abstractmethod
+    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
+        pass
 
-    def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
-        external_id = get_github_external_id(event=event, host=host)
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+        external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
@@ -157,7 +154,12 @@ class Webhook:
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self.update_repo_data(repo, event)
-                self._handle(integration, event, orgs[repo.organization_id], repo)
+                self._handle(
+                    integration=integration,
+                    event=event,
+                    organization=orgs[repo.organization_id],
+                    repo=repo,
+                )
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
@@ -199,17 +201,28 @@ class Webhook:
                 )
                 pass
 
+    def is_anonymous_email(self, email: str) -> bool:
+        return email[-25:] == "@users.noreply.github.com"
 
-class InstallationEventWebhook:
+    def get_external_id(self, username: str) -> str:
+        return f"github:{username}"
+
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
+        return options.get("github-app.id")
+
+
+class InstallationEventWebhook(GitHubWebhook):
     """
     Unlike other GitHub webhooks, installation webhooks are handled in control silo.
 
     https://developer.github.com/v3/activity/events/types/#installationevent
     """
 
-    provider = "github"
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INSTALLATION
 
-    def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         installation = event["installation"]
 
         if not installation:
@@ -228,7 +241,7 @@ class InstallationEventWebhook:
 
         if event["action"] == "deleted":
             external_id = event["installation"]["id"]
-            if host:
+            if host := kwargs.get("host"):
                 external_id = "{}:{}".format(host, event["installation"]["id"])
             result = integration_service.organization_contexts(
                 provider=self.provider,
@@ -238,7 +251,7 @@ class InstallationEventWebhook:
             org_integrations = result.organization_integrations
 
             if integration is not None:
-                self._handle_delete(event, integration, org_integrations)
+                self._handle(integration, event, org_integrations=org_integrations)
             else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
@@ -254,13 +267,13 @@ class InstallationEventWebhook:
                 )
                 logger.error("Installation is missing.")
 
-    def _handle_delete(
+    def _handle(
         self,
-        event: Mapping[str, Any],
         integration: RpcIntegration,
-        org_integrations: list[RpcOrganizationIntegration],
+        event: Mapping[str, Any],
+        **kwargs,
     ) -> None:
-        org_ids = {oi.organization_id for oi in org_integrations}
+        org_ids = {oi.organization_id for oi in kwargs.get("org_integrations", [])}
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
@@ -281,17 +294,12 @@ class InstallationEventWebhook:
             )
 
 
-class PushEventWebhook(Webhook):
+class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
 
-    def is_anonymous_email(self, email: str) -> bool:
-        return email[-25:] == "@users.noreply.github.com"
-
-    def get_external_id(self, username: str) -> str:
-        return f"github:{username}"
-
-    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return options.get("github-app.id")
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
@@ -300,11 +308,12 @@ class PushEventWebhook(Webhook):
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        organization: Organization,
-        repo: Repository,
-        host: str | None = None,
+        **kwargs,
     ) -> None:
         authors = {}
+        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
+            raise ValueError("Missing organization and repo")
+
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
@@ -356,7 +365,7 @@ class PushEventWebhook(Webhook):
                                         "identity_ext_id": gh_user["id"],
                                         "provider_type": self.provider,
                                         "provider_ext_id": self.get_idp_external_id(
-                                            integration, host
+                                            integration, kwargs.get("host")
                                         ),
                                     }
                                 )
@@ -457,25 +466,18 @@ class PushEventWebhook(Webhook):
         repo.save()
 
 
-class PullRequestEventWebhook(Webhook):
+class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
-    def is_anonymous_email(self, email: str) -> bool:
-        return email[-25:] == "@users.noreply.github.com"
-
-    def get_external_id(self, username: str) -> str:
-        return f"github:{username}"
-
-    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return options.get("github-app.id")
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PULL_REQUEST
 
     def _handle(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        organization: Organization,
-        repo: Repository,
-        host: str | None = None,
+        **kwargs,
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
@@ -501,6 +503,10 @@ class PullRequestEventWebhook(Webhook):
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
         author_email = "{}@localhost".format(user["login"][:65])
+
+        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
+            raise ValueError("Missing organization and repo")
+
         try:
             commit_author = CommitAuthor.objects.get(
                 external_id=self.get_external_id(user["login"]), organization_id=organization.id
@@ -512,7 +518,7 @@ class PullRequestEventWebhook(Webhook):
                 filter={
                     "identity_ext_id": user["id"],
                     "provider_type": self.provider,
-                    "provider_ext_id": self.get_idp_external_id(integration, host),
+                    "provider_ext_id": self.get_idp_external_id(integration, kwargs.get("host")),
                 }
             )
             if identity is not None:
@@ -591,13 +597,13 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {
+    _handlers: dict[str, type[GitHubWebhook]] = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
+    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
@@ -673,5 +679,12 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
-        handler()(event)
+        event_handler = handler()
+
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key=event_handler.provider,
+        ).capture():
+            event_handler(event)
         return HttpResponse(status=204)

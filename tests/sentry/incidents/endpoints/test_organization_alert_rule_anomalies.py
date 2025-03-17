@@ -111,7 +111,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         assert mock_seer_store_request.call_count == 1
         assert mock_seer_request.call_count == 1
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -212,7 +212,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         mock_logger.exception.assert_called_with(
             "Timeout error when hitting anomaly detection endpoint",
             extra={
-                "subscription_id": alert_rule.snuba_query.subscriptions.first().id,
+                "subscription_id": alert_rule.snuba_query.subscriptions.get().id,
                 "dataset": alert_rule.snuba_query.dataset,
                 "organization_id": alert_rule.organization.id,
                 "project_id": self.project.id,

@@ -66,8 +66,11 @@ export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: strin
   );
 }
 
-export function useSpanFieldCustomTags(options?: {projects?: PageFilters['projects']}) {
-  const {projects} = options || {};
+export function useSpanFieldCustomTags(options?: {
+  enabled?: boolean;
+  projects?: PageFilters['projects'];
+}) {
+  const {enabled, projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -80,6 +83,7 @@ export function useSpanFieldCustomTags(options?: {projects?: PageFilters['projec
     {
       staleTime: 0,
       retry: false,
+      enabled,
     }
   );
 

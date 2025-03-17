@@ -28,6 +28,7 @@ SIMPLE_EVENT = {
     "location": "example.py:123",
     "culprit": "/books/new/",
     "projectID": "49271",
+    "metadata": None,
 }
 
 GROUP_EVENT: GroupEventDetailsResponse = {

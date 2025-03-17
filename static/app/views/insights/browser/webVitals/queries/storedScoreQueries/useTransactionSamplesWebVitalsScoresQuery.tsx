@@ -1,5 +1,3 @@
-import type {ReactText} from 'react';
-
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -96,7 +94,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query: mutableSearch.formatString(),
-      orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
+      orderby:
+        (mapWebVitalToOrderBy(orderBy) ?? withProfiles) ? '-profile.id' : undefined,
       version: 2,
     },
     pageFilters.selection
@@ -121,7 +120,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
+  const toNumber = (item: string | number) =>
+    item ? parseFloat(item.toString()) : undefined;
   const tableData: TransactionSampleRowWithScore[] =
     !isPending && data?.data.length
       ? (data.data.map(
@@ -130,27 +130,27 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             trace: row.trace?.toString(),
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
-            'measurements.lcp': toNumber(row['measurements.lcp']),
-            'measurements.fcp': toNumber(row['measurements.fcp']),
-            'measurements.cls': toNumber(row['measurements.cls']),
-            'measurements.ttfb': toNumber(row['measurements.ttfb']),
-            'transaction.duration': toNumber(row['transaction.duration']),
+            'measurements.lcp': toNumber(row['measurements.lcp']!),
+            'measurements.fcp': toNumber(row['measurements.fcp']!),
+            'measurements.cls': toNumber(row['measurements.cls']!),
+            'measurements.ttfb': toNumber(row['measurements.ttfb']!),
+            'transaction.duration': toNumber(row['transaction.duration']!),
             replayId: row.replayId?.toString(),
             'profile.id': row['profile.id']?.toString(),
             projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
             totalScore: Math.round(
-              (toNumber(row['measurements.score.total']) ?? 0) * 100
+              (toNumber(row['measurements.score.total']!) ?? 0) * 100
             ),
             ...(webVital
               ? {
                   [`${webVital}Score`]: Math.round(
-                    ((toNumber(row[`measurements.score.${webVital}`]) ?? 0) /
-                      (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0)) *
+                    ((toNumber(row[`measurements.score.${webVital}`]!) ?? 0) /
+                      (toNumber(row[`measurements.score.weight.${webVital}`]!) ?? 0)) *
                       100
                   ),
                   [`${webVital}Weight`]: Math.round(
-                    (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0) * 100
+                    (toNumber(row[`measurements.score.weight.${webVital}`]!) ?? 0) * 100
                   ),
                 }
               : {}),

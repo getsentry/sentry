@@ -20,7 +20,7 @@ export const providerDetails = {
     name: t('Slack'),
     action: IssueAlertActionType.SLACK,
     placeholder: t('channel, e.g. #critical'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] workspace to [target]',
         {
@@ -34,7 +34,7 @@ export const providerDetails = {
     name: t('Discord'),
     action: IssueAlertActionType.DISCORD,
     placeholder: t('channel ID or URL'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] server in the channel [target]',
         {
@@ -48,7 +48,7 @@ export const providerDetails = {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
     placeholder: t('channel ID'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct('Send [providerName] notification to the [integrationName] team to [target]', {
         providerName,
         integrationName,
@@ -112,8 +112,8 @@ export function useCreateNotificationAction() {
   useEffect(() => {
     if (messagingIntegrationsQuery.isSuccess) {
       const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0] ?? undefined;
-      const firstIntegration = providersToIntegrations[firstProvider]?.[0] ?? undefined;
+      const firstProvider = providerKeys[0];
+      const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
       setProvider(firstProvider);
       setIntegration(firstIntegration);
       setShouldRenderSetupButton(!firstProvider);
@@ -122,7 +122,7 @@ export function useCreateNotificationAction() {
 
   type Props = {
     actionMatch: string | undefined;
-    conditions: {id: string; interval: string; value: string}[] | undefined;
+    conditions: Array<{id: string; interval: string; value: string}> | undefined;
     frequency: number | undefined;
     name: string | undefined;
     projectSlug: string;
@@ -141,13 +141,7 @@ export function useCreateNotificationAction() {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
-      if (
-        !organization.features.includes(
-          'messaging-integration-onboarding-project-creation'
-        ) ||
-        !shouldCreateRule ||
-        !isCreatingIntegrationNotification
-      ) {
+      if (!shouldCreateRule || !isCreatingIntegrationNotification) {
         return undefined;
       }
 
@@ -157,7 +151,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.SLACK,
             workspace: integration?.id,
-            channel: channel,
+            channel,
           };
 
           break;
@@ -173,7 +167,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.MS_TEAMS,
             team: integration?.id,
-            channel: channel,
+            channel,
           };
           break;
         default:
@@ -191,15 +185,7 @@ export function useCreateNotificationAction() {
         },
       });
     },
-    [
-      actions,
-      api,
-      provider,
-      integration,
-      channel,
-      organization.features,
-      organization.slug,
-    ]
+    [actions, api, provider, integration, channel, organization.slug]
   );
 
   return {
@@ -262,9 +248,7 @@ export default function IssueAlertNotificationOptions(
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          analyticsParams={{
-            view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
-          }}
+          analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
         />
       )}
     </Fragment>

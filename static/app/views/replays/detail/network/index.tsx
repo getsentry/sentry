@@ -47,6 +47,7 @@ function NetworkList() {
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());
+  const isCaptureBodySetup = Boolean(replay?.isNetworkCaptureBodySetup());
   const networkFrames = replay?.getNetworkFrames();
   const projectId = replay?.getReplay()?.project_id;
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
@@ -82,16 +83,16 @@ function NetworkList() {
     handleHeight: RESIZEABLE_HANDLE_HEIGHT,
     urlParamName: 'n_detail_row',
     onShowDetails: useCallback(
-      ({dataIndex, rowIndex}) => {
+      ({dataIndex, rowIndex}: any) => {
         setScrollToRow(rowIndex);
 
         const item = items[dataIndex];
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
-          resource_method: getFrameMethod(item),
-          resource_status: String(getFrameStatus(item)),
-          resource_type: item.op,
+          resource_method: getFrameMethod(item!),
+          resource_status: String(getFrameStatus(item!)),
+          resource_type: item!.op,
         });
       },
       [organization, items, isNetworkDetailsSetup]
@@ -117,7 +118,7 @@ function NetworkList() {
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1];
+    const network = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer
@@ -130,7 +131,11 @@ function NetworkList() {
         {({measure: _, registerChild}) =>
           rowIndex === 0 ? (
             <NetworkHeaderCell
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               handleSort={handleSort}
               index={columnIndex}
               sortConfig={sortConfig}
@@ -146,7 +151,11 @@ function NetworkList() {
               onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
               onClickTimestamp={onClickTimestamp}
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               startTimestampMs={startTimestampMs}
@@ -166,7 +175,7 @@ function NetworkList() {
       <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
-            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+            gridTemplateRows: splitSize === undefined ? '1fr' : `1fr auto ${splitSize}px`,
           }}
         >
           {networkFrames ? (
@@ -221,6 +230,8 @@ function NetworkList() {
           <NetworkDetails
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
+            isCaptureBodySetup={isCaptureBodySetup}
+            // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
             item={selectedIndex ? items[selectedIndex] : null}
             onClose={onCloseDetailsSplit}
             projectId={projectId}

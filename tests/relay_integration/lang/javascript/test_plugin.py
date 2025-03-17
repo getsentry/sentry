@@ -32,7 +32,7 @@ from sentry.utils.safe import get_path
 # IMPORTANT:
 #
 # This test suite requires Symbolicator in order to run correctly.
-# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `devservices up --mode=symbolicator`
 #
 # If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
 # to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
@@ -140,7 +140,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
         contexts = event.interfaces["contexts"].to_json()
-        assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
+        assert contexts.get("os") == {
+            "os": "Windows 8",
+            "name": "Windows",
+            "version": "8",
+            "type": "os",
+        }
         assert contexts.get("device") is None
 
     @requires_symbolicator
@@ -165,8 +170,18 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
-        assert contexts.get("os") == {"name": "Android", "type": "os", "version": "4.3"}
-        assert contexts.get("browser") == {"name": "Android", "type": "browser", "version": "4.3"}
+        assert contexts.get("os") == {
+            "os": "Android 4.3",
+            "name": "Android",
+            "type": "os",
+            "version": "4.3",
+        }
+        assert contexts.get("browser") == {
+            "browser": "Android 4.3",
+            "name": "Android",
+            "type": "browser",
+            "version": "4.3",
+        }
         assert contexts.get("device") == {
             "family": "Samsung SCH-R530U",
             "type": "device",

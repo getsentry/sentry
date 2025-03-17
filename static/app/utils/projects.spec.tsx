@@ -10,7 +10,8 @@ describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = (props = {}) =>
-    render(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
+    // eslint-disable-next-line react/no-children-prop
+    render(<Projects orgId="org-slug" children={renderer} {...props} />);
 
   beforeEach(function () {
     renderer.mockClear();
@@ -327,7 +328,7 @@ describe('utils.projects', function () {
   });
 
   describe('with no pre-defined projects', function () {
-    let request;
+    let request: any;
 
     beforeEach(function () {
       request = MockApiClient.addMockResponse({
@@ -554,8 +555,8 @@ describe('utils.projects', function () {
   });
 
   describe('with all projects prop', function () {
-    let mockProjects;
-    let request;
+    let mockProjects: any;
+    let request: any;
 
     beforeEach(function () {
       mockProjects = [

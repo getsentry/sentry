@@ -18,7 +18,7 @@ function renderWithProvider({
   onSearch,
 }: ComponentProps<typeof SpansSearchBar>) {
   return render(
-    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
       <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} />
     </SpanTagsProvider>
   );
@@ -28,7 +28,7 @@ function mockSpanTags({
   type,
   mockedTags,
 }: {
-  mockedTags: {key: string; name: string}[];
+  mockedTags: Array<{key: string; name: string}>;
   type: 'string' | 'number';
 }) {
   MockApiClient.addMockResponse({

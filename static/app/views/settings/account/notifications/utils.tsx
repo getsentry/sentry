@@ -1,3 +1,4 @@
+import {DataCategoryExact} from 'sentry/types/core';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
@@ -22,7 +23,7 @@ export const groupByOrganization = (
   >((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {
-      acc[orgSlug].projects.push(project);
+      acc[orgSlug]!.projects.push(project);
     } else {
       acc[orgSlug] = {
         organization: project.organization,
@@ -37,30 +38,27 @@ export const groupByOrganization = (
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
 export function getDocsLinkForEventType(
-  event:
-    | 'error'
-    | 'transaction'
-    | 'attachment'
-    | 'replay'
-    | 'monitorSeat'
-    | 'span'
-    | 'profileDuration'
+  event: DataCategoryExact | string // TODO(isabella): get rid of strings after removing need for backward compatibility on gs
 ) {
   switch (event) {
-    case 'transaction':
+    case DataCategoryExact.TRANSACTION:
       // For pre-AM3 plans prior to June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/legacy-manage-transaction-quota/';
-    case 'span':
+    case DataCategoryExact.SPAN:
+    case DataCategoryExact.SPAN_INDEXED:
+    case 'span_indexed':
       // For post-AM3 plans after June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/manage-transaction-quota/';
-    case 'attachment':
+    case DataCategoryExact.ATTACHMENT:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
-    case 'replay':
+    case DataCategoryExact.REPLAY:
       return 'https://docs.sentry.io/product/session-replay/';
-    case 'monitorSeat':
+    case DataCategoryExact.MONITOR_SEAT:
       return 'https://docs.sentry.io/product/crons/';
-    case 'profileDuration':
+    case DataCategoryExact.PROFILE_DURATION:
       return 'https://docs.sentry.io/product/explore/profiling/';
+    case DataCategoryExact.UPTIME:
+      return 'https://docs.sentry.io/product/alerts/uptime-monitoring/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }

@@ -60,8 +60,8 @@ type PropType = ScrollbarManagerChildrenProps & {
   spans: EnhancedProcessedSpanType[];
   traceHasMultipleRoots: boolean;
   traceInfo: TraceInfo;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
   measurements?: Map<number, VerticalMark>;
@@ -70,7 +70,10 @@ type PropType = ScrollbarManagerChildrenProps & {
 
 type StateType = {
   headerPos: number;
-  spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
+  spanRows: Record<
+    string,
+    {spanRow: React.RefObject<HTMLDivElement | null>; treeDepth: number}
+  >;
 };
 
 const listRef = createRef<ReactVirtualizedList>();
@@ -292,7 +295,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): JSX.Element | null {
+  }): React.JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
@@ -309,7 +312,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
     if (showHiddenSpansMessage) {
-      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0]!.span);
       messages.push(
         <span key={`spans-out-of-view-${firstHiddenSpanId}`}>
           <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
@@ -322,7 +325,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
-      firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(filteredSpansAbove[0]!.span);
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
@@ -499,7 +502,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           // and it's a last child.
           const generationOffset =
             parentContinuingDepths.length === 1 &&
-            parentContinuingDepths[0].depth === 0 &&
+            parentContinuingDepths[0]!.depth === 0 &&
             parentGeneration > 2
               ? 2
               : 1;
@@ -604,7 +607,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }
 
-        let groupType;
+        let groupType: any;
         if (toggleSpanGroup) {
           groupType = GroupType.DESCENDANTS;
         } else if (toggleSiblingSpanGroup) {
@@ -717,7 +720,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
 
   addSpanRowToState = (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => {
     this.setState((prevState: StateType) => {
@@ -736,7 +739,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     });
   };
 
-  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
+  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement | null>) => {
     const {traceViewHeaderRef} = this.props;
 
     if (!spanRow.current || !traceViewHeaderRef.current) {
@@ -796,8 +799,9 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     }
 
     const limitExceededMessage = this.generateLimitExceededMessage();
-    limitExceededMessage &&
+    if (limitExceededMessage) {
       spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
+    }
 
     return (
       <TraceViewContainer>
@@ -833,7 +837,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
 type SpanRowProps = ListRowProps & {
   addSpanRowToState: (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => void;
   cache: CellMeasurerCache;
@@ -864,7 +868,7 @@ function SpanRow(props: SpanRowProps) {
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
-  const spanNode = spanTree[index];
+  const spanNode = spanTree[index]!;
 
   useEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
@@ -885,7 +889,7 @@ function SpanRow(props: SpanRowProps) {
     node: SpanTreeNode,
     extraProps: {
       cellMeasurerCache: CellMeasurerCache;
-      listRef: React.RefObject<ReactVirtualizedList>;
+      listRef: React.RefObject<ReactVirtualizedList | null>;
       measure: () => void;
     } & SpanContext.SpanContextProps
   ) => {

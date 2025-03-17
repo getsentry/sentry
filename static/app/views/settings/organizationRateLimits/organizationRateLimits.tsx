@@ -1,3 +1,5 @@
+import {css} from '@emotion/react';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
@@ -11,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export type OrganizationRateLimitProps = RouteComponentProps<{}, {}> & {
+export type OrganizationRateLimitProps = RouteComponentProps & {
   organization: Organization;
 };
 
@@ -65,7 +67,28 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
             apiEndpoint={`/organizations/${organization.slug}/`}
             initialData={initialData}
           >
-            {!maxRate ? (
+            {maxRate ? (
+              <FieldGroup
+                label={t('Account Limit')}
+                help={t(
+                  'The maximum number of events to accept across this entire organization.'
+                )}
+              >
+                <TextBlock
+                  css={css`
+                    margin-bottom: 0;
+                  `}
+                >
+                  {tct(
+                    'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
+                    {
+                      maxRate,
+                      maxRateInterval,
+                    }
+                  )}
+                </TextBlock>
+              </FieldGroup>
+            ) : (
               <RangeField
                 name="accountRateLimit"
                 label={t('Account Limit')}
@@ -77,30 +100,13 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
                 )}
                 placeholder="e.g. 500"
                 formatLabel={value =>
-                  !value
-                    ? t('No Limit')
-                    : tct('[number] per hour', {
+                  value
+                    ? tct('[number] per hour', {
                         number: value.toLocaleString(),
                       })
+                    : t('No Limit')
                 }
               />
-            ) : (
-              <FieldGroup
-                label={t('Account Limit')}
-                help={t(
-                  'The maximum number of events to accept across this entire organization.'
-                )}
-              >
-                <TextBlock css={{marginBottom: 0}}>
-                  {tct(
-                    'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
-                    {
-                      maxRate,
-                      maxRateInterval,
-                    }
-                  )}
-                </TextBlock>
-              </FieldGroup>
             )}
             <RangeField
               name="projectRateLimit"
@@ -112,7 +118,7 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
               min={50}
               max={100}
               formatLabel={value =>
-                value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
+                value === 100 ? t('No Limit \u2014 100%') : `${value}%`
               }
             />
           </Form>

@@ -16,7 +16,7 @@ from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 

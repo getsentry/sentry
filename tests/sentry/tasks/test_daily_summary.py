@@ -32,6 +32,7 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
 from sentry.utils.outcomes import Outcome
@@ -640,7 +641,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -703,7 +704,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -776,7 +777,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -824,7 +825,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -872,7 +873,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -906,7 +907,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=context.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -928,7 +929,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -954,7 +955,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -1001,7 +1002,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()

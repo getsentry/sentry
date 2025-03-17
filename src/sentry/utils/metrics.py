@@ -194,7 +194,7 @@ def timer(
     tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
-) -> Generator[MutableTags, None, None]:
+) -> Generator[MutableTags]:
     start = time.monotonic()
     current_tags: MutableTags = dict(tags or ())
     try:

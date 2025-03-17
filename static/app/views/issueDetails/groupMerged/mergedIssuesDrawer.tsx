@@ -1,4 +1,4 @@
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -39,11 +39,7 @@ export function MergedIssuesDrawer({group, project}: {group: Group; project: Pro
         <Header>{t('Merged Issues')}</Header>
       </EventNavigator>
       <EventDrawerBody>
-        <GroupMergedView
-          project={project}
-          params={{groupId: group.id}}
-          location={location}
-        />
+        <GroupMergedView project={project} groupId={group.id} location={location} />
       </EventDrawerBody>
     </EventDrawerContainer>
   );

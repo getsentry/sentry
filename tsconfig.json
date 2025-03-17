@@ -3,5 +3,13 @@
   "compilerOptions": {
     "allowJs": true
   },
-  "include": [".eslintrc.js", "static/app", "tests/js", "config", "scripts"]
+  "include": [
+    "eslint.config.mjs",
+    "static/app",
+    "static/gsApp",
+    "static/gsAdmin",
+    "tests/js",
+    "config",
+    "scripts"
+  ]
 }

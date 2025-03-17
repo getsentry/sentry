@@ -6,7 +6,7 @@ import textStyles from 'sentry/styles/text';
 
 type Props = {
   children: React.ReactNode;
-  button?: JSX.Element;
+  button?: React.JSX.Element;
   subtitle?: string;
   title?: string;
 };
@@ -31,7 +31,10 @@ export default function MiniChartPanel({title, children, button, subtitle}: Prop
 }
 
 const ChartLabel = styled('p')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a p */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const HeaderContainer = styled('div')`

@@ -37,6 +37,7 @@ const keyToDisplay = (
   }
 
   const modifierMap = isMac ? macModifiers : normalModifiers;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const keyStr = modifierMap[keyCode] ?? genericGlyphs[keyCode] ?? key.toUpperCase();
 
   const specificToOs = keyCode === getKeyCode('command') ? 'macos' : 'generic';
@@ -63,15 +64,13 @@ function HotkeysLabel({value, forcePlatform}: Props) {
 
   const isMac = forcePlatform
     ? forcePlatform === 'macos'
-    : window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false;
+    : (window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false);
 
   // If we're not using mac find the first key set that is generic.
   // Otherwise show whatever the first hotkey is.
   const finalKeySet = hotkeySets
     .map(keySet => keySet.map(key => keyToDisplay(key, isMac)))
-    .find(keySet =>
-      !isMac ? keySet.every(key => key.specificToOs === 'generic') : true
-    );
+    .find(keySet => (isMac ? true : keySet.every(key => key.specificToOs === 'generic')));
 
   // No key available for the OS. Don't show a hotkey
   if (finalKeySet === undefined) {

@@ -1,0 +1,70 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "DoOtherStuffException",
+        "value": "Can't do the other stuff",
+        "mechanism": {
+          "type": "chained",
+          "handled": true,
+          "source": "InnerExceptions[0]",
+          "exception_id": 2,
+          "parent_id": 0
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "do_other_stuff",
+              "module": "dostuff",
+              "context_line": "do_some_other_stuff()",
+              "in_app": true
+            },
+            {
+              "function": "do_other_stuff",
+              "module": "dostuff",
+              "context_line": "do_some_other_different_stuff()",
+              "in_app": true
+            }
+          ]
+        }
+      },
+      {
+        "type": "DoStuffException",
+        "value": "Can't do the stuff",
+        "mechanism": {
+          "type": "chained",
+          "handled": true,
+          "source": "InnerExceptions[0]",
+          "exception_id": 1,
+          "parent_id": 0
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "do_stuff",
+              "module": "dostuff",
+              "context_line": "do_some_stuff()",
+              "in_app": true
+            },
+            {
+              "function": "do_different_stuff",
+              "module": "dostuff",
+              "context_line": "do_some_different_stuff()",
+              "in_app": true
+            }
+          ]
+        }
+      },
+      {
+        "type": "System.AggregateException",
+        "value": "One or more errors occurred.",
+        "mechanism": {
+          "type": "AppDomain.UnhandledException",
+          "handled": false,
+          "is_exception_group": true,
+          "exception_id": 0
+        }
+      }
+    ]
+  }
+}

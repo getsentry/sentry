@@ -10,21 +10,6 @@ from typing import Any, ClassVar
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
-from sentry.issues.grouptype import (
-    GroupType,
-    PerformanceConsecutiveDBQueriesGroupType,
-    PerformanceConsecutiveHTTPQueriesGroupType,
-    PerformanceDBMainThreadGroupType,
-    PerformanceFileIOMainThreadGroupType,
-    PerformanceHTTPOverheadGroupType,
-    PerformanceLargeHTTPPayloadGroupType,
-    PerformanceMNPlusOneDBQueriesGroupType,
-    PerformanceNPlusOneAPICallsGroupType,
-    PerformanceNPlusOneGroupType,
-    PerformanceRenderBlockingAssetSpanGroupType,
-    PerformanceSlowDBQueryGroupType,
-    PerformanceUncompressedAssetsGroupType,
-)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -45,23 +30,6 @@ class DetectorType(Enum):
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
-
-
-DETECTOR_TYPE_TO_GROUP_TYPE: dict[DetectorType, type[GroupType]] = {
-    DetectorType.SLOW_DB_QUERY: PerformanceSlowDBQueryGroupType,
-    DetectorType.RENDER_BLOCKING_ASSET_SPAN: PerformanceRenderBlockingAssetSpanGroupType,
-    DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
-    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: PerformanceNPlusOneGroupType,
-    DetectorType.N_PLUS_ONE_API_CALLS: PerformanceNPlusOneAPICallsGroupType,
-    DetectorType.CONSECUTIVE_DB_OP: PerformanceConsecutiveDBQueriesGroupType,
-    DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
-    DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
-    DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
-    DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
-    DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
-    DetectorType.LARGE_HTTP_PAYLOAD: PerformanceLargeHTTPPayloadGroupType,
-    DetectorType.HTTP_OVERHEAD: PerformanceHTTPOverheadGroupType,
-}
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -271,8 +239,6 @@ def total_span_time(span_list: list[dict[str, Any]]) -> float:
     total_duration += current_max - current_min
     return total_duration * 1000
 
-
-PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
 PARAMETERIZED_URL_REGEX = re.compile(
     r"""(?x)

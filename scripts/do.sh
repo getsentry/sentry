@@ -26,6 +26,4 @@ fi
 # shellcheck disable=SC1090
 source "${HERE}/lib.sh"
 
-query-valid-python-version || exit 1
-
 "$@"

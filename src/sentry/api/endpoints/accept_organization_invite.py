@@ -16,14 +16,11 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
+from sentry.demo_mode.utils import is_demo_user
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.organizations.services.organization import (
-    RpcUserInviteContext,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
 
@@ -31,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def handle_empty_organization_id_or_slug(
-    member_id: int, user_id: int, request: HttpRequest
+    member_id: int, user_id: int, request: HttpRequest | Request
 ) -> RpcUserInviteContext | None:
     member_mapping: OrganizationMemberMapping | None = None
     member_mappings: Mapping[int, OrganizationMemberMapping] = {
@@ -74,7 +71,7 @@ def get_invite_state(
     member_id: int,
     organization_id_or_slug: int | str | None,
     user_id: int,
-    request: HttpRequest,
+    request: HttpRequest | Request,
 ) -> RpcUserInviteContext | None:
 
     if organization_id_or_slug is None:
@@ -111,7 +108,7 @@ class AcceptOrganizationInvite(Endpoint):
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
     def get_helper(
-        self, request: Request, token: str, invite_context: RpcUserOrganizationContext
+        self, request: Request, token: str, invite_context: RpcUserInviteContext
     ) -> ApiInviteHelper:
         return ApiInviteHelper(request=request, token=token, invite_context=invite_context)
 
@@ -140,6 +137,7 @@ class AcceptOrganizationInvite(Endpoint):
         if (
             not helper.member_pending
             or not helper.valid_token
+            or not organization_member
             or not organization_member.invite_approved
         ):
             return self.respond_invalid()
@@ -229,6 +227,9 @@ class AcceptOrganizationInvite(Endpoint):
         )
         if invite_context is None:
             return self.respond_invalid()
+
+        if is_demo_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         helper = self.get_helper(request, token, invite_context)
 

@@ -89,11 +89,11 @@ describe('IncidentsList', () => {
     const items = await screen.findAllByTestId('alert-title');
 
     expect(items).toHaveLength(2);
-    expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
-    expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
+    expect(within(items[0]!).getByText('First incident')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('Second incident')).toBeInTheDocument();
 
     const projectBadges = screen.getAllByTestId('badge-display-name');
-    expect(within(projectBadges[0]).getByText('a')).toBeInTheDocument();
+    expect(within(projectBadges[0]!).getByText('a')).toBeInTheDocument();
   });
 
   it('displays empty state (first time experience)', async () => {

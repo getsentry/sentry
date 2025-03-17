@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -15,7 +17,10 @@ from sentry.users.services.user import RpcUser
 @register(SentryAppInstallation)
 class SentryAppInstallationSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[SentryAppInstallation], user: User | RpcUser, **kwargs: Any
+        self,
+        item_list: Sequence[SentryAppInstallation],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ):
         result: MutableMapping[Any, Any] = super().get_attrs(item_list, user, **kwargs)
 
@@ -36,11 +41,11 @@ class SentryAppInstallationSerializer(Serializer):
             }
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user: User | RpcUser | AnonymousUser, **kwargs):
         access = kwargs.get("access")
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
-            "organization": {"slug": attrs["organization"].slug},
+            "organization": {"slug": attrs["organization"].slug, "id": attrs["organization"].id},
             "uuid": obj.uuid,
             "status": SentryAppInstallationStatus.as_str(obj.status),
         }

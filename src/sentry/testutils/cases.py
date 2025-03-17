@@ -8,14 +8,14 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zlib import compress
 
 import pytest
@@ -27,13 +27,13 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
+from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
-from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -48,6 +48,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUSREASONTYPE_TIMEOUT,
     REQUESTTYPE_HEAD,
     CheckResult,
+    CheckStatus,
+    CheckStatusReason,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -89,18 +91,12 @@ from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-)
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetDisplayTypes
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -110,6 +106,9 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.new_migrations.monkey.state import SentryProjectState
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -117,14 +116,12 @@ from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
-    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -138,11 +135,11 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
-from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -150,6 +147,7 @@ from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -168,7 +166,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
+from .helpers import Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -215,15 +213,11 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class BaseTestCase(Fixtures):
-    def assertRequiresAuthentication(self, path, method="GET"):
-        resp = getattr(self.client, method.lower())(path)
-        assert resp.status_code == 302
-        assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
-
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
-        auth.register("dummy", DummyProvider)
-        self.addCleanup(auth.unregister, "dummy", DummyProvider)
+        auth.register(DummyProvider)
+        yield
+        auth.unregister(DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -249,13 +243,6 @@ class BaseTestCase(Fixtures):
         """
         return Feature(names)
 
-    def auth_provider(self, name, cls):
-        """
-        >>> with self.auth_provider('name', Provider)
-        >>>     # ...
-        """
-        return AuthProvider(name, cls)
-
     def save_session(self):
         self.session.save()
         self.save_cookie(
@@ -276,7 +263,7 @@ class BaseTestCase(Fixtures):
         self,
         user=None,
         auth=None,
-        method=None,
+        method="get",
         is_superuser=False,
         is_staff=False,
         path="/",
@@ -285,18 +272,12 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = HttpRequest()
+        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
         if subdomain:
             setattr(request, "subdomain", subdomain)
-        if method:
-            request.method = method
-        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        if GET is not None:
-            for k, v in GET.items():
-                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
@@ -311,7 +292,6 @@ class BaseTestCase(Fixtures):
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
-        request.is_superuser = lambda: request.superuser.is_active
 
         if is_staff:
             request.staff.set_logged_in(user)
@@ -437,70 +417,12 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
-        func = kwargs.pop("func", None)
-        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
-        conn = connections[using]
-
-        context = _AssertQueriesContext(self, queries, debug, conn)
-        if func is None:
-            return context
-
-        with context:
-            func(*args, **kwargs)
-
     def get_mock_uuid(self):
         class uuid:
             hex = "abc123"
             bytes = b"\x00\x01\x02"
 
         return uuid
-
-
-class _AssertQueriesContext(CaptureQueriesContext):
-    def __init__(self, test_case, queries, debug, connection):
-        self.test_case = test_case
-        self.queries = queries
-        self.debug = debug
-        super().__init__(connection)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        super().__exit__(exc_type, exc_value, traceback)
-        if exc_type is not None:
-            return
-
-        parsed_queries = parse_queries(self.captured_queries)
-
-        if self.debug:
-            import pprint
-
-            pprint.pprint("====================== Raw Queries ======================")
-            pprint.pprint(self.captured_queries)
-            pprint.pprint("====================== Table writes ======================")
-            pprint.pprint(parsed_queries)
-
-        for table, num in parsed_queries.items():
-            expected = self.queries.get(table, 0)
-            if expected == 0:
-                import pprint
-
-                pprint.pprint(
-                    "WARNING: no query against %s emitted, add debug=True to see all the queries"
-                    % (table)
-                )
-            else:
-                self.test_case.assertTrue(
-                    num == expected,
-                    "%d write queries expected on `%s`, got %d, add debug=True to see all the queries"
-                    % (expected, table, num),
-                )
-
-        for table, num in self.queries.items():
-            executed = parsed_queries.get(table, None)
-            self.test_case.assertFalse(
-                executed is None,
-                "no query against %s emitted, add debug=True to see all the queries" % (table),
-            )
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
@@ -654,11 +576,9 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
 
         def detect_performance_problems_interceptor(
-            data: Event, project: Project, is_standalone_spans: bool = False
+            data: Event, project: Project, standalone: bool = False
         ):
-            perf_problems = detect_performance_problems(
-                data, project, is_standalone_spans=is_standalone_spans
-            )
+            perf_problems = detect_performance_problems(data, project, standalone=standalone)
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint
@@ -925,14 +845,13 @@ class TwoFactorAPITestCase(APITestCase):
 
 class AuthProviderTestCase(TestCase):
     provider: type[Provider] = DummyProvider
-    provider_name = "dummy"
 
     def setUp(self):
         super().setUp()
         # TestCase automatically sets up dummy provider
-        if self.provider_name != "dummy" or self.provider != DummyProvider:
-            auth.register(self.provider_name, self.provider)
-            self.addCleanup(auth.unregister, self.provider_name, self.provider)
+        if self.provider != DummyProvider:
+            auth.register(self.provider)
+            self.addCleanup(auth.unregister, self.provider)
 
 
 class RuleTestCase(TestCase):
@@ -957,24 +876,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("has_reappeared", True)
         kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
-
-    def get_condition_activity(self, **kwargs) -> ConditionActivity:
-        kwargs.setdefault("group_id", self.event.group.id)
-        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
-        kwargs.setdefault("timestamp", self.event.datetime)
-        return ConditionActivity(**kwargs)
-
-    def passes_activity(
-        self,
-        rule: RuleBase,
-        condition_activity: ConditionActivity | None = None,
-        event_map: dict[str, Any] | None = None,
-    ):
-        if condition_activity is None:
-            condition_activity = self.get_condition_activity()
-        if event_map is None:
-            event_map = {}
-        return rule.passes_activity(condition_activity, event_map)
 
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
@@ -1032,32 +933,8 @@ class PermissionTestCase(TestCase):
     def assert_manager_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "manager", **kwargs)
 
-    def assert_teamless_member_can_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=self.organization, role="member", teams=[])
-
-        self.assert_can_access(user, path, **kwargs)
-
     def assert_member_cannot_access(self, path, **kwargs):
         return self.assert_role_cannot_access(path, "member", **kwargs)
-
-    def assert_manager_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, "manager", **kwargs)
-
-    def assert_teamless_member_cannot_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=self.organization, role="member", teams=[])
-
-        self.assert_cannot_access(user, path, **kwargs)
-
-    def assert_team_admin_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, "admin", **kwargs)
-
-    def assert_teamless_admin_can_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=self.organization, role="admin", teams=[])
-
-        self.assert_can_access(user, path, **kwargs)
 
     def assert_team_admin_cannot_access(self, path, **kwargs):
         return self.assert_role_cannot_access(path, "admin", **kwargs)
@@ -1068,18 +945,8 @@ class PermissionTestCase(TestCase):
 
         self.assert_cannot_access(user, path, **kwargs)
 
-    def assert_team_owner_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, "owner", **kwargs)
-
     def assert_owner_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "owner", **kwargs)
-
-    def assert_owner_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, "owner", **kwargs)
-
-    def assert_non_member_cannot_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.assert_cannot_access(user, path, **kwargs)
 
     def assert_role_can_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
@@ -1136,7 +1003,7 @@ class CliTestCase(TestCase):
     def command(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    default_args = []
+    default_args: list[str] = []
 
     def invoke(self, *args, **kwargs):
         args += tuple(self.default_args)
@@ -1259,19 +1126,12 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
-    @contextmanager
-    def disable_snuba_query_cache(self):
-        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
-        yield
-        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
-
-    @classmethod
-    def snuba_get_config(cls):
-        return _snuba_pool.request("GET", "/config.json").data
-
-    @classmethod
-    def snuba_update_config(cls, config_vals):
-        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
+    def create_project(self, **kwargs) -> Project:
+        if "flags" not in kwargs:
+            # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
+            # application knows that events have been sent
+            kwargs["flags"] = Project.flags.has_transactions
+        return super().create_project(**kwargs)
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
@@ -1367,16 +1227,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_outcome(self, group):
-        data = [self.__wrap_group(group)]
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=json.dumps(data),
-            ).status_code
-            == 200
-        )
-
     def store_span(self, span, is_eap=False):
         span["ingest_in_eap"] = is_eap
         assert (
@@ -1386,6 +1236,14 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps([span]),
+                ).status_code
+                == 200
+            )
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
@@ -1397,49 +1255,29 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
+
+    def store_ourlogs(self, ourlogs):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
+                data=json.dumps(ourlogs),
+            ).status_code
+            == 200
+        )
 
     def store_issues(self, issues):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
                 data=json.dumps(issues),
-            ).status_code
-            == 200
-        )
-
-    def store_metrics_summary(self, span):
-        common_fields = {
-            "duration_ms": span["duration_ms"],
-            "end_timestamp": (span["start_timestamp_ms"] + span["duration_ms"]) / 1000,
-            "group": span["sentry_tags"].get("group", "0"),
-            "is_segment": span["is_segment"],
-            "project_id": span["project_id"],
-            "received": span["received"],
-            "retention_days": span["retention_days"],
-            "segment_id": span.get("segment_id", "0"),
-            "span_id": span["span_id"],
-            "trace_id": span["trace_id"],
-        }
-        rows = []
-        for mri, summaries in span.get("_metrics_summary", {}).items():
-            for summary in summaries:
-                rows.append(
-                    {
-                        **common_fields,
-                        **{
-                            "count": summary.get("count", 0),
-                            "max": summary.get("max", 0.0),
-                            "mri": mri,
-                            "min": summary.get("min", 0.0),
-                            "sum": summary.get("sum", 0.0),
-                            "tags": summary.get("tags", {}),
-                        },
-                    }
-                )
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=json.dumps(rows),
             ).status_code
             == 200
         )
@@ -1531,7 +1369,6 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
@@ -1570,8 +1407,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
@@ -1582,9 +1417,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["status"] = status
 
         self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1602,7 +1434,6 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
@@ -1644,8 +1475,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
@@ -1655,9 +1484,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2133,7 +1959,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "d": EntityKey.MetricsDistributions.value,
         "s": EntityKey.MetricsSets.value,
     }
-    METRIC_STRINGS = []
+    METRIC_STRINGS: list[str] = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
@@ -2148,7 +1974,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         You can pass your own features if you do not want to use the default used by the subclass.
         """
         with self.feature(features or self.features):
-            return self.client.get(self.url, data=data, format="json")
+            ret = self.client.get(self.url, data=data, format="json")
+            assert isinstance(ret, Response), ret
+            return ret
 
     def _index_metric_strings(self):
         strings = [
@@ -2247,7 +2075,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
@@ -2264,49 +2091,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if not isinstance(value, list):
             value = [value]
         for subvalue in value:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-            )
-
-    def store_profile_functions_metric(
-        self,
-        value: dict[str, int] | list[int] | int,
-        metric: str = "function.duration",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.SPANS,
-    ):
-        internal_metric = (
-            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        )
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        val_list: list[int | dict[str, int]] = []
-        if not isinstance(value, list):
-            val_list.append(value)
-        else:
-            val_list = value
-        for subvalue in val_list:
             self.store_metric(
                 org_id,
                 project,
@@ -2363,7 +2147,7 @@ class BaseIncidentsTest(SnubaTestCase):
         data = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
-            "timestamp": iso_format(timestamp),
+            "timestamp": timestamp.isoformat(),
             "type": "error",
             # This is necessary because event type error should not exist without
             # an exception being in the payload
@@ -2537,6 +2321,43 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
+    def store_span(self, span, is_eap=False):
+        span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
+            ).status_code
+            == 200
+        )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps([span]),
+                ).status_code
+                == 200
+            )
+
+    def store_spans(self, spans, is_eap=False):
+        for span in spans:
+            span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
+
 
 @pytest.mark.snuba
 @requires_snuba
@@ -2563,6 +2384,66 @@ class ReplaysSnubaTestCase(TestCase):
             project_id=project_id,
         )
         return transform_event_for_linking_payload(replay_id, event)
+
+
+@pytest.mark.snuba
+@requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
+class UptimeCheckSnubaTestCase(TestCase):
+    def store_uptime_check(self, uptime_check):
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+        )
+        assert response.status_code == 200
+
+    def store_snuba_uptime_check(
+        self,
+        subscription_id: str | None,
+        check_status: CheckStatus,
+        check_id: UUID | None = None,
+        incident_status: IncidentStatus | None = None,
+        scheduled_check_time: datetime | None = None,
+        http_status: int | None | NotSet = NOT_SET,
+    ):
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now() - timedelta(minutes=5)
+        if incident_status is None:
+            incident_status = IncidentStatus.NO_INCIDENT
+        if check_id is None:
+            check_id = uuid.uuid4()
+
+        check_status_reason: CheckStatusReason | None = None
+        if check_status == "failure":
+            check_status_reason = {"type": "failure", "description": "Mock failure"}
+
+        timestamp = scheduled_check_time + timedelta(seconds=1)
+
+        http_status = default_if_not_set(
+            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            http_status,
+        )
+
+        self.store_uptime_check(
+            {
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "retention_days": 30,
+                "region": "default",
+                "environment": "production",
+                "subscription_id": subscription_id,
+                "guid": str(check_id),
+                "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
+                "actual_check_time_ms": int(timestamp.timestamp() * 1000),
+                "duration_ms": random.randint(1, 1000),
+                "status": check_status,
+                "status_reason": check_status_reason,
+                "trace_id": str(uuid.uuid4()),
+                "incident_status": incident_status.value,
+                "request_info": {
+                    "http_status_code": http_status,
+                },
+            }
+        )
 
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
@@ -2768,32 +2649,6 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         func = getattr(self.client, method)
         return func(url, data=data)
 
-    def assert_widget_queries(self, widget_id, data):
-        result_queries = DashboardWidgetQuery.objects.filter(widget_id=widget_id).order_by("order")
-        for ds, expected_ds in zip(result_queries, data):
-            assert ds.name == expected_ds["name"]
-            assert ds.fields == expected_ds["fields"]
-            assert ds.conditions == expected_ds["conditions"]
-
-    def assert_widget(self, widget, order, title, display_type, queries=None):
-        assert widget.order == order
-        assert widget.display_type == display_type
-        assert widget.title == title
-
-        if not queries:
-            return
-
-        self.assert_widget_queries(widget.id, queries)
-
-    def assert_widget_data(self, data, title, display_type, queries=None):
-        assert data["displayType"] == display_type
-        assert data["title"] == title
-
-        if not queries:
-            return
-
-        self.assert_widget_queries(data["id"], queries)
-
     def assert_serialized_widget_query(self, data, widget_data_source):
         if "id" in data:
             assert data["id"] == str(widget_data_source.id)
@@ -2854,9 +2709,8 @@ class TestMigrations(TransactionTestCase):
     Note that when running these tests locally you will need to use the `--migrations` flag
     """
 
-    @property
-    def app(self):
-        return "sentry"
+    app = "sentry"
+    connection = "default"
 
     @property
     def migrate_from(self):
@@ -2866,9 +2720,15 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @property
-    def connection(self):
-        return "default"
+    _project_state_cache: SentryProjectState | None = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        conn = connections[cls.connection]
+        executor = MigrationExecutor(conn)
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == cls.app]
+        cls.current_migration = [max(matching_migrations)]
 
     def setUp(self):
         super().setUp()
@@ -2876,32 +2736,38 @@ class TestMigrations(TransactionTestCase):
         migrate_from = [(self.app, self.migrate_from)]
         migrate_to = [(self.app, self.migrate_to)]
 
-        connection = connections[self.connection]
+        conn = connections[self.connection]
 
         self.setup_initial_state()
 
-        executor = MigrationExecutor(connection)
-        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
-        self.current_migration = [max(matching_migrations)]
+        executor = MigrationExecutor(conn)
         old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(migrate_from)
+        # XXX: We don't pass project state here, since Django doesn't use it when rolling back migrations.
+        self._project_state_cache = executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
-        executor = MigrationExecutor(connection)
+        executor = MigrationExecutor(conn)
         executor.loader.build_graph()  # reload.
-        executor.migrate(migrate_to)
+        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
         self.apps = executor.loader.project_state(migrate_to).apps
 
     def tearDown(self):
-        super().tearDown()
-        executor = MigrationExecutor(connection)
+        super().tearDownClass()
+        executor = MigrationExecutor(connections[self.connection])
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.current_migration)
+        self._project_state_cache = executor.migrate(
+            self.current_migration, state=self._project_state_cache
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls._project_state_cache = None
 
     def setup_initial_state(self):
         # Add code here that will run before we roll back the database to the `migrate_from`
@@ -2939,10 +2805,10 @@ class SCIMTestCase(APITestCase):
 class SCIMAzureTestCase(SCIMTestCase):
     provider = ACTIVE_DIRECTORY_PROVIDER_NAME
 
-    def setUp(self):
-        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp()
-        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+    @pytest.fixture(autouse=True)
+    def _use_dummy_provider_for_ad_provider(self) -> Generator[None]:
+        with mock.patch.object(auth.manager, "get", return_value=DummyProvider()):
+            yield
 
 
 class ActivityTestCase(TestCase):
@@ -3059,50 +2925,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
         ) as self.mock_post:
             yield
 
-    def assert_performance_issue_attachments(
-        self, attachment, project_slug, referrer, alert_type="workflow"
-    ):
-        assert "N+1 Query" in attachment["text"]
-        assert (
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in attachment["blocks"][1]["text"]["text"]
-        )
-        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
-        notification_uuid = self.get_notification_uuid(title_link)
-        assert (
-            attachment["blocks"][-2]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
-        )
-
-    def assert_performance_issue_blocks(
-        self,
-        blocks,
-        org: Organization,
-        project_slug: str,
-        group,
-        referrer,
-        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
-        issue_link_extra_params=None,
-    ):
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
-        if issue_link_extra_params is not None:
-            issue_link += issue_link_extra_params
-        assert (
-            blocks[1]["text"]["text"]
-            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
-        )
-        assert (
-            blocks[2]["text"]["text"]
-            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
-        )
-        assert blocks[3]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
-        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
-        assert (
-            blocks[4]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
-        )
-
     def assert_performance_issue_blocks_with_culprit_blocks(
         self,
         blocks,
@@ -3131,17 +2953,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             blocks[5]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
-        )
-
-    def assert_generic_issue_attachments(
-        self, attachment, project_slug, referrer, alert_type="workflow"
-    ):
-        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
-        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
-        assert (
-            attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_blocks(
@@ -3425,17 +3236,25 @@ class UptimeTestCaseMixin:
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
 
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
-        status: str = CHECKSTATUS_FAILURE,
+        status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
+        uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
+        optional_fields: _OptionalCheckResult = {}
+        if uptime_region is not None:
+            optional_fields["region"] = uptime_region
         return {
             "guid": uuid.uuid4().hex,
             "subscription_id": subscription_id,
@@ -3450,6 +3269,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+            **optional_fields,
         }
 
 
@@ -3547,6 +3367,66 @@ class SpanTestCase(BaseTestCase):
         return span
 
 
+class _OptionalOurLogData(TypedDict, total=False):
+    body: str
+    trace_id: str
+    severity_text: str
+    severity_number: int
+    trace_flags: int
+    item_id: int
+
+
+class OurLogTestCase(BaseTestCase):
+    base_log: dict[str, Any] = {
+        "retention_days": 90,
+        "attributes": {},
+    }
+
+    def create_ourlog(
+        self,
+        extra_data: _OptionalOurLogData | None = None,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+        if attributes is None:
+            attributes = {}
+        if extra_data is None:
+            extra_data = {}
+
+        # Set defaults for required fields if not in extra_data
+        if "body" not in extra_data:
+            extra_data["body"] = "hello world!"
+        if "trace_id" not in extra_data:
+            extra_data["trace_id"] = uuid4().hex
+
+        log = self.base_log.copy()
+        # Required fields
+        log.update(
+            {
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "observed_timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
+                "received": int(timestamp.timestamp()),
+                "attributes": attributes,
+            }
+        )
+
+        # Add all extra data fields
+        log.update(extra_data)
+
+        return log
+
+
 class TraceTestCase(SpanTestCase):
     def setUp(self):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -3571,6 +3451,7 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
+        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3633,17 +3514,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
+                spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"event_id": event.event_id})
-                        self.store_span(
+                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
+                        spans_to_store.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                self.store_span(self.convert_event_data_to_span(event))
+                spans_to_store.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans_to_store, is_eap=is_eap)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3659,21 +3542,29 @@ class TraceTestCase(SpanTestCase):
                 "span_id": trace_context["span_id"],
                 "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
-                "segment_id": uuid4().hex[:16],
+                "segment_id": event.event_id[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),
+                "start_timestamp_precise": start_ts,
+                "end_timestamp_precise": end_ts,
                 "received": start_ts,
-                "duration_ms": int(end_ts - start_ts),
+                "duration_ms": int((end_ts - start_ts) * 1000),
             }
         )
         if "parent_span_id" in trace_context:
             span_data["parent_span_id"] = trace_context["parent_span_id"]
         else:
             del span_data["parent_span_id"]
+
+        if "sentry_tags" not in span_data:
+            span_data["sentry_tags"] = {}
+
+        span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        span_data["sentry_tags"]["transaction"] = event.data["transaction"]
 
         return span_data
 
@@ -3706,7 +3597,7 @@ class TraceTestCase(SpanTestCase):
         start, _ = self.get_start_end_from_day_ago(1000)
         return self.store_event(
             {
-                "timestamp": iso_format(start),
+                "timestamp": start.isoformat(),
                 "contexts": {
                     "trace": {
                         "type": "trace",

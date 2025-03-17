@@ -3,15 +3,19 @@ import styled from '@emotion/styled';
 import sentryLoader from 'sentry-images/sentry-loader.svg';
 
 import {space} from 'sentry/styles/space';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   children?: React.ReactNode;
 };
 
 function LoadingTriangle({children}: Props) {
+  const user = useUser();
   return (
     <LoadingTriangleWrapper data-test-id="loading-indicator">
-      <CircleBackground>
+      <CircleBackground
+        className={user?.options.theme ? `theme-${user.options.theme}` : ''}
+      >
         <img src={sentryLoader} />
       </CircleBackground>
       {children && <div>{children}</div>}
@@ -37,8 +41,19 @@ const CircleBackground = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${p => p.theme.surface300};
+  background: #fff;
   border-radius: 50%;
+
+  &.theme-dark {
+    filter: invert(100%);
+    opacity: 0.8;
+  }
+  &.theme-system {
+    @media (prefers-color-scheme: dark) {
+      filter: invert(100%);
+      opacity: 0.8;
+    }
+  }
 `;
 
 export default LoadingTriangle;

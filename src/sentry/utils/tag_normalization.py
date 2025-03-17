@@ -92,7 +92,7 @@ def normalize_sdk_tag(tag: str) -> str:
 
     # collapse tags other than JavaScript / Native to their top-level SDK
 
-    if not tag.split(".")[1] in {"javascript", "native"}:
+    if tag.split(".")[1] not in {"javascript", "native"}:
         tag = ".".join(tag.split(".", 2)[0:2])
 
     if tag.split(".")[1] == "native":
@@ -115,7 +115,7 @@ def normalized_sdk_tag_from_event(data: Mapping[str, Any]) -> str:
     Note: Some platforms may keep their framework-specific values, as needed for analytics.
 
     This is done to reduce the cardinality of the `sdk.name` tag, while keeping
-    the ones interesinting to us as granual as possible.
+    the ones interesting to us as granular as possible.
     """
     try:
         return normalize_sdk_tag((data.get("sdk") or {}).get("name") or "other")

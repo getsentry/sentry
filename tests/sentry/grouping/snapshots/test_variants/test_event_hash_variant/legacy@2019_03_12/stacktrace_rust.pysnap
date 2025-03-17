@@ -1,10 +1,11 @@
 ---
-created: '2021-04-02T10:31:43.480874Z'
+created: '2025-02-26T00:33:54.886762+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
@@ -37,6 +38,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "3e0ae2ce25cce2fca3390f3416e6a82a"
+  contributing component: exception
   component:
     system*
       exception*
@@ -56,7 +58,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "std::rt::lang_start::{{closure}}"
-          frame (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+          frame
             function (function name is not used if module or filename are available)
               "log_demo::main"
           frame

@@ -24,8 +24,8 @@ class SelectedFrameRenderer {
     context.strokeStyle = style.BORDER_COLOR;
     context.lineWidth = style.BORDER_WIDTH;
 
-    for (let i = 0; i < frames.length; i++) {
-      const frameInPhysicalSpace = frames[i].transformRect(configViewToPhysicalSpace);
+    for (const frame of frames) {
+      const frameInPhysicalSpace = frame.transformRect(configViewToPhysicalSpace);
 
       context.beginPath();
 

@@ -93,7 +93,7 @@ export enum ChartDataTransform {
   PERIODIC = 'periodic',
 }
 
-export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
+export const CHART_OPTIONS_DATA_TRANSFORM: Array<SelectValue<ChartDataTransform>> = [
   {
     label: t('Cumulative'),
     value: ChartDataTransform.CUMULATIVE,
@@ -108,6 +108,7 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
 
 export const enum SeriesTypes {
   ACCEPTED = 'Accepted',
+  ACCEPTED_STORED = 'Accepted (stored)',
   FILTERED = 'Filtered',
   RATE_LIMITED = 'Rate Limited',
   INVALID = 'Invalid',
@@ -192,7 +193,7 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
   Object.keys(stats).forEach(k => {
     let count = 0;
 
-    chartData[k] = stats[k].map((stat: any) => {
+    (chartData as any)[k] = (stats as any)[k].map((stat: any) => {
       const [x, y] = stat.value;
       count = isCumulative ? count + y : y;
 
@@ -216,6 +217,7 @@ const getUnitYaxisFormatter =
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
+  accepted_stored?: NonNullable<BarSeriesOption['data']>;
   clientDiscard?: NonNullable<BarSeriesOption['data']>;
   dropped?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
@@ -270,7 +272,7 @@ function chartMetadata({
     const isProjected = k === SeriesTypes.PROJECTED;
 
     // Map the array and destructure elements to avoid side-effects
-    chartData[k] = chartData[k]?.map((stat: any) => {
+    (chartData as any)[k] = (chartData as any)[k]?.map((stat: any) => {
       return {
         ...stat,
         tooltip: {show: false},
@@ -432,6 +434,28 @@ function UsageChartBody({
       stack: 'usage',
       legendHoverLink: false,
     }),
+    ...(chartData.accepted_stored
+      ? [
+          barSeries({
+            name: SeriesTypes.ACCEPTED,
+            data: chartData.accepted_stored,
+            barMinHeight: 1,
+            barGap: '-100%',
+            z: 3,
+            silent: true,
+            tooltip: {show: false},
+            itemStyle: {
+              decal: {
+                color: 'rgba(255, 255, 255, 0.2)',
+                dashArrayX: [1, 0],
+                dashArrayY: [3, 5],
+                rotation: -Math.PI / 4,
+              },
+            },
+            legendHoverLink: false,
+          }),
+        ]
+      : []),
     barSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
@@ -472,6 +496,13 @@ function UsageChartBody({
   return (
     <BaseChart
       colors={colors}
+      options={{
+        aria: {
+          decal: {
+            show: true,
+          },
+        },
+      }}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       xAxis={xAxis({
         show: true,
@@ -483,7 +514,7 @@ function UsageChartBody({
         },
         axisLabel: {
           interval: function (index: number) {
-            return xAxisLabelVisibility[index];
+            return xAxisLabelVisibility[index]!;
           },
           formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
         },

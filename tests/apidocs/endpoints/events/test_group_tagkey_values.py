@@ -10,7 +10,7 @@ class GroupTagKeyValuesDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-        self.url = f"/api/0/issues/{event.group_id}/tags/{key}/values/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group_id}/tags/{key}/values/"
 
     def test_get(self):
         response = self.client.get(self.url)

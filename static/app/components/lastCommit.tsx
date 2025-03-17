@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,7 +38,7 @@ function LastCommit({commit}: Props) {
       );
     }
 
-    let finalMessage = message.split(/\n/)[0];
+    let finalMessage = message.split(/\n/)[0]!;
     if (finalMessage.length > 100) {
       let truncated = finalMessage.substring(0, 90);
       const words = truncated.split(/ /);

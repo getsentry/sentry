@@ -10,9 +10,7 @@ from django.http.request import HttpRequest
 from sentry import analytics, audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
-from sentry.coreapi import APIUnauthorized
 from sentry.exceptions import ApiTokenLimitError
-from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -24,6 +22,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -60,7 +59,7 @@ class SentryAppInstallationTokenCreator:
     def _create_api_token(self) -> ApiToken:
         return ApiToken.objects.create(
             user=self.sentry_app.proxy_user,
-            application_id=self.sentry_app.application.id,
+            application_id=self.sentry_app.application_id,
             scope_list=self.sentry_app.scope_list,
             expires_at=self.expires_at,
         )
@@ -84,7 +83,7 @@ class SentryAppInstallationTokenCreator:
                 data={"sentry_app": self.sentry_app.name},
             )
 
-    def record_analytics(self, user: User) -> None:
+    def record_analytics(self, user: User | RpcUser) -> None:
         from sentry import analytics
 
         analytics.record(
@@ -140,14 +139,14 @@ class SentryAppInstallationCreator:
 
     def _create_api_grant(self) -> ApiGrant:
         return ApiGrant.objects.create(
-            user_id=self.sentry_app.proxy_user.id, application_id=self.api_application.id
+            user_id=self.sentry_app.proxy_user_id, application_id=self.sentry_app.application_id
         )
 
     def _create_service_hooks(self, install: SentryAppInstallation) -> None:
         # only make the service hook if there is a webhook url
         if self.sentry_app.webhook_url:
             hook_service.create_service_hook(
-                application_id=self.api_application.id,
+                application_id=self.sentry_app.application_id,
                 actor_id=install.id,
                 installation_id=install.id,
                 organization_id=self.organization_id,
@@ -177,10 +176,6 @@ class SentryAppInstallationCreator:
         metrics.incr("sentry_apps.installation.success")
 
     @cached_property
-    def api_application(self) -> ApiApplication:
-        return self.sentry_app.application
-
-    @cached_property
     def sentry_app(self) -> SentryApp:
         return SentryApp.objects.get(slug=self.slug)
 
@@ -193,7 +188,7 @@ class SentryAppInstallationNotifier:
 
     def run(self) -> None:
         if self.action not in VALID_ACTIONS:
-            raise APIUnauthorized(
+            raise SentryAppSentryError(
                 f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
             )
 

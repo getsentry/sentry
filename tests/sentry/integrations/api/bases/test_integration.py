@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 @patch("sys.stderr.write")
 class IntegrationEndpointTest(TestCase):
 
-    # Since both `IntegrationEndpoint.handle_exception` and `Endpoint.handle_exception` potentially
+    # Since both `IntegrationEndpoint.handle_exception_with_details` and `Endpoint.handle_exception_with_details` potentially
     # run, and they both call their own module's copy of `capture_exception`, in order to prove that
     # neither one is not called, we assert on the underlying method from the SDK
     @patch("sentry_sdk.Scope.capture_exception")
@@ -23,7 +23,7 @@ class IntegrationEndpointTest(TestCase):
         exc.status_code = 400  # not possible to set in init
         request = Request(HttpRequest())
 
-        resp = IntegrationEndpoint().handle_exception(request, exc)
+        resp = IntegrationEndpoint().handle_exception_with_details(request, exc)
 
         # `APIException`s are handled by Django REST Framework's built-in exception handler, which
         # doesn't log errors or report them to Sentry
@@ -42,7 +42,7 @@ class IntegrationEndpointTest(TestCase):
         except ApiError as exc:
             request = Request(HttpRequest())
 
-            resp = IntegrationEndpoint().handle_exception(request, exc)
+            resp = IntegrationEndpoint().handle_exception_with_details(request, exc)
 
             mock_capture_exception.assert_called_with(exc)
             (((s,), _),) = mock_stderror_write.call_args_list
@@ -63,7 +63,7 @@ class IntegrationEndpointTest(TestCase):
         except ValueError as exc:
             request = Request(HttpRequest())
 
-            resp = IntegrationEndpoint().handle_exception(request, exc)
+            resp = IntegrationEndpoint().handle_exception_with_details(request, exc)
 
             assert mock_capture_exception.call_args.args[0] == exc
             (((s,), _),) = mock_stderror_write.call_args_list

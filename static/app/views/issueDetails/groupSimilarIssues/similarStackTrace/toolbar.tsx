@@ -1,10 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -15,7 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
-  location: Location;
+  hasSimilarityEmbeddingsFeature: boolean;
   onMerge: () => void;
   groupId?: string;
   itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
@@ -37,7 +36,7 @@ class SimilarToolbar extends Component<Props, State> {
     this.listener?.();
   }
 
-  onGroupChange = ({mergeList}) => {
+  onGroupChange = ({mergeList}: any) => {
     if (!mergeList?.length) {
       this.setState({mergeCount: 0});
       return;
@@ -78,11 +77,8 @@ class SimilarToolbar extends Component<Props, State> {
   };
 
   render() {
-    const {onMerge, project, location} = this.props;
+    const {onMerge, hasSimilarityEmbeddingsFeature} = this.props;
     const {mergeCount} = this.state;
-    const hasSimilarityEmbeddingsFeature =
-      project?.features.includes('similarity-embeddings') ||
-      location.query.similarityEmbeddings === '1';
 
     return (
       <PanelHeader hasButtons>

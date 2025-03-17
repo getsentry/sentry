@@ -6,9 +6,9 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import partial
-from typing import Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -28,7 +28,7 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.monitors.clock_dispatch import try_monitor_clock_tick, update_check_in_volume
+from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -64,6 +64,7 @@ from sentry.monitors.processing_errors.errors import (
     ProcessingErrorType,
 )
 from sentry.monitors.processing_errors.manager import handle_processing_errors
+from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -89,8 +90,8 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: Mapping | None,
-):
+    config: dict[str, Any] | None,
+) -> Monitor | None:
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
@@ -160,7 +161,7 @@ def _ensure_monitor_with_config(
             },
         )
         if created:
-            signal_monitor_created(project, None, True)
+            signal_monitor_created(project, None, True, monitor, None)
 
     # Update existing monitor
     if monitor and not created:
@@ -175,9 +176,9 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: Mapping,
+    metric_kwargs: dict[str, str],
     project: Project,
-):
+) -> bool:
     """
     Enforce organization level monitor kill switch. Returns true if the
     killswitch is enforced.
@@ -193,7 +194,7 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(metric_kwargs: Mapping, item: CheckinItem):
+def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
@@ -217,12 +218,19 @@ def check_ratelimit(metric_kwargs: Mapping, item: CheckinItem):
     return is_blocked
 
 
+class _CheckinUpdateKwargs(TypedDict):
+    status: NotRequired[CheckInStatus]
+    duration: int | None
+    timeout_at: NotRequired[datetime | None]
+    date_updated: NotRequired[datetime]
+
+
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: Mapping,
+    metric_kwargs: dict[str, str],
     monitor_slug: str,
     check_in_id: str,
-):
+) -> tuple[uuid.UUID, bool] | tuple[None, Literal[False]]:
     """
     Extracts the `UUID` object from the provided check_in_id. Failures will be logged.
     Returns the UUID object and a boolean indicating if the provided GUID
@@ -264,14 +272,14 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: Mapping,
+    metric_kwargs: dict[str, str],
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
     existing_check_in: MonitorCheckIn,
     updated_status: CheckInStatus,
-    updated_duration: float,
-):
+    updated_duration: int | None,
+) -> None:
     monitor = monitor_environment.monitor
     processing_errors: list[ProcessingError] = []
 
@@ -372,7 +380,7 @@ def update_existing_check_in(
     if processing_errors:
         raise ProcessingErrorsException(processing_errors, monitor=monitor)
 
-    updated_checkin = {
+    updated_checkin: _CheckinUpdateKwargs = {
         "status": updated_status,
         "duration": updated_duration,
     }
@@ -406,10 +414,13 @@ def update_existing_check_in(
     existing_check_in.update(**updated_checkin)
 
 
-def _process_checkin(item: CheckinItem, txn: Transaction | Span):
+def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     params = item.payload
 
+    # XXX: The start_time is when relay recieved the original envelope store
+    # request sent by the SDK.
     start_time = to_datetime(float(item.message["start_time"]))
+
     project_id = int(item.message["project_id"])
     source_sdk = item.message["sdk"]
 
@@ -500,13 +511,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
 
     monitor_config = params.pop("monitor_config", None)
 
-    params["duration"] = (
+    if params.get("duration") is not None:
         # Duration is specified in seconds from the client, it is
         # stored in the checkin model as milliseconds
-        int(params["duration"] * 1000)
-        if params.get("duration") is not None
-        else None
-    )
+        params["duration"] = int(params["duration"] * 1000)
 
     validator = MonitorCheckInValidator(
         data=params,
@@ -730,7 +738,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         with transaction.atomic(router.db_for_write(Monitor)):
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-            duration = validated_params["duration"]
+            duration = validated_params.get("duration")
 
             # 03-A
             # Retrieve existing check-in for update
@@ -817,11 +825,21 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
+                # The "date_clock" is recorded as the "clock time" of when the
+                # check-in was processed. The clock time is derived from the
+                # kafka item timestamps (which are monotonic, thus why they
+                # drive our clock).
+                #
+                # XXX: They are NOT timezone aware date times, set the timezone
+                # to UTC
+                clock_time = item.ts.replace(tzinfo=UTC)
+
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
                         "duration": duration,
                         "status": status,
                         "date_added": date_added,
+                        "date_clock": clock_time,
                         "date_updated": start_time,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
@@ -877,9 +895,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 # Note: We use `start_time` for received here since it's the time that this
                 # checkin was received by relay. Potentially, `ts` should be the client
                 # timestamp. If we change that, leave `received` the same.
-                mark_failed(check_in, ts=start_time, received=start_time)
+                mark_failed(check_in, failed_at=start_time, received=start_time)
             else:
-                mark_ok(check_in, ts=start_time)
+                mark_ok(check_in, succeeded_at=start_time)
 
             # track how much time it took for the message to make it through
             # relay into kafka. This should help us understand when missed
@@ -913,7 +931,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.exception("Failed to process check-in")
 
 
-def process_checkin(item: CheckinItem):
+def process_checkin(item: CheckinItem) -> None:
     """
     Process an individual check-in
     """
@@ -931,7 +949,7 @@ def process_checkin(item: CheckinItem):
         logger.exception("Failed to process check-in")
 
 
-def process_checkin_group(items: list[CheckinItem]):
+def process_checkin_group(items: list[CheckinItem]) -> None:
     """
     Process a group of related check-ins (all part of the same monitor)
     completely serially.
@@ -940,7 +958,9 @@ def process_checkin_group(items: list[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(
+    executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
+) -> None:
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -951,8 +971,8 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
     """
     batch = message.payload
 
-    latest_partition_ts: Mapping[int, datetime] = {}
-    checkin_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
+    latest_partition_ts: dict[int, datetime] = {}
+    checkin_mapping: dict[str, list[CheckinItem]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -971,13 +991,13 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
         if wrapper["message_type"] == "clock_pulse":
             continue
 
-        item = CheckinItem(
+        checkin_item = CheckinItem(
             ts=item.timestamp,
             partition=item.partition.index,
             message=wrapper,
             payload=json.loads(wrapper["payload"]),
         )
-        checkin_mapping[item.processing_key].append(item)
+        checkin_mapping[checkin_item.processing_key].append(checkin_item)
 
     # Number of check-ins that are being processed in this batch
     metrics.gauge("monitors.checkin.parallel_batch_count", len(batch))
@@ -993,7 +1013,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
         wait(futures)
 
     # Update check in volume for the entire batch we've just processed
-    update_check_in_volume(item.timestamp for item in batch)
+    update_check_in_volume(item.timestamp for item in batch if item.timestamp is not None)
 
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
@@ -1003,7 +1023,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
             logger.exception("Failed to trigger monitor tasks")
 
 
-def process_single(message: Message[KafkaPayload | FilteredPayload]):
+def process_single(message: Message[KafkaPayload | FilteredPayload]) -> None:
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
 
@@ -1012,8 +1032,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
         ts = message.value.timestamp
         partition = message.value.partition.index
 
-        if wrapper["message_type"] != "clock_pulse":
-            update_check_in_volume([ts])
+        update_check_in_volume([ts])
 
         try:
             try_monitor_clock_tick(ts, partition)
@@ -1038,7 +1057,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     parallel_executor: ThreadPoolExecutor | None = None
 
-    parallel = False
+    batched_parallel = False
     """
     Does the consumer process unrelated check-ins in parallel?
     """
@@ -1055,13 +1074,13 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
 
     def __init__(
         self,
-        mode: Literal["parallel", "serial"] | None = None,
+        mode: Literal["batched-parallel", "serial"] | None = None,
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
     ) -> None:
-        if mode == "parallel":
-            self.parallel = True
+        if mode == "batched-parallel":
+            self.batched_parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
@@ -1096,7 +1115,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if self.parallel:
+        if self.batched_parallel:
             return self.create_parallel_worker(commit)
         else:
             return self.create_synchronous_worker(commit)

@@ -9,7 +9,6 @@ export function PluginFixture(params: Partial<Plugin> = {}): Plugin {
     name: 'Amazon SQS',
     slug: 'amazon-sqs',
     version: '8.23.0.dev0',
-    assets: [],
     hasConfiguration: true,
     canDisable: true,
     contexts: [],

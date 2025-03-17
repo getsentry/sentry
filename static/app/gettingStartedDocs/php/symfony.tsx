@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -11,7 +11,10 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportPHPInstallStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -82,16 +85,21 @@ SENTRY_DSN="${params.dsn.public}"
                 code: `when@prod:
       sentry:
           dsn: '%env(SENTRY_DSN)%'${
+            params.isPerformanceSelected || params.isProfilingSelected
+              ? `
+          options:`
+              : ''
+          }${
             params.isPerformanceSelected
               ? `
-          # Specify a fixed sample rate
-          traces_sample_rate: 1.0`
+              # Specify a fixed sample rate
+              traces_sample_rate: 1.0`
               : ''
           }${
             params.isProfilingSelected
               ? `
-          # Set a sampling rate for profiling - this is relative to traces_sample_rate
-          profiles_sample_rate: 1.0`
+              # Set a sampling rate for profiling - this is relative to traces_sample_rate
+              profiles_sample_rate: 1.0`
               : ''
           }`,
               },
@@ -99,14 +107,16 @@ SENTRY_DSN="${params.dsn.public}"
           : []),
         {
           description: (
-            <Alert type="warning">
-              {tct(
-                'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-                {
-                  code: <code />,
-                }
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {tct(
+                  'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
           ),
         },
       ],
@@ -181,6 +191,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

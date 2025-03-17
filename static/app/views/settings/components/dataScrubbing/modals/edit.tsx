@@ -20,7 +20,7 @@ function Edit({savedRules, rule, ...props}: Props) {
         return updatedRule;
       }
       return savedRule;
-    }) as Array<Rule>;
+    }) as Rule[];
 
     return newRules;
   };

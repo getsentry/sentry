@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
@@ -23,7 +23,13 @@ export default function IssueListItem({item}: {item: Group}) {
     <AnalyticsProvider keyVal="issue-list.item" nameVal="issue list item">
       <div css={listItemGridCss}>
         <TextOverflow
-          css={[badgeWithLabelCss, smallCss, 'display: block']}
+          css={[
+            badgeWithLabelCss,
+            smallCss,
+            css`
+              display: block;
+            `,
+          ]}
           style={{gridArea: 'name', fontWeight: item.hasSeen ? 'bold' : 400}}
         >
           <SentryAppLink
@@ -49,7 +55,11 @@ export default function IssueListItem({item}: {item: Group}) {
 
         <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
           <ProjectBadge
-            css={css({'&& img': {boxShadow: 'none'}})}
+            css={css`
+              && img {
+                box-shadow: none;
+              }
+            `}
             project={item.project}
             avatarSize={16}
             hideName

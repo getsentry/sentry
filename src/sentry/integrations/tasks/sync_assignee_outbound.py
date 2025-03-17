@@ -4,9 +4,14 @@ from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.users.models.user import User
@@ -26,6 +31,7 @@ from sentry.users.services.user.service import user_service
         Integration.DoesNotExist,
         User.DoesNotExist,
         Organization.DoesNotExist,
+        IntegrationError,
     )
 )
 def sync_assignee_outbound(
@@ -48,23 +54,28 @@ def sync_assignee_outbound(
         return
 
     installation = integration.get_installation(organization_id=external_issue.organization_id)
-    if not (
-        hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")
-    ):
-        return
 
-    parsed_assignment_source = (
-        AssignmentSource.from_dict(assignment_source_dict) if assignment_source_dict else None
-    )
-    if installation.should_sync("outbound_assignee", parsed_assignment_source):
-        # Assume unassign if None.
-        user = user_service.get_user(user_id) if user_id else None
-        installation.sync_assignee_outbound(
-            external_issue, user, assign=assign, assignment_source=parsed_assignment_source
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC, integration=integration
+    ).capture() as lifecycle:
+        lifecycle.add_extra("sync_task", "sync_assignee_outbound")
+        if not (
+            hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")
+        ):
+            return
+
+        parsed_assignment_source = (
+            AssignmentSource.from_dict(assignment_source_dict) if assignment_source_dict else None
         )
-        analytics.record(
-            "integration.issue.assignee.synced",
-            provider=integration.provider,
-            id=integration.id,
-            organization_id=external_issue.organization_id,
-        )
+        if installation.should_sync("outbound_assignee", parsed_assignment_source):
+            # Assume unassign if None.
+            user = user_service.get_user(user_id) if user_id else None
+            installation.sync_assignee_outbound(
+                external_issue, user, assign=assign, assignment_source=parsed_assignment_source
+            )
+            analytics.record(
+                "integration.issue.assignee.synced",
+                provider=integration.provider,
+                id=integration.id,
+                organization_id=external_issue.organization_id,
+            )

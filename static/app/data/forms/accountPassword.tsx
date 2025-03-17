@@ -1,7 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
-const getUserIsNotManaged = ({user}) => !user.isManaged;
+const getUserIsNotManaged = ({user}: any) => !user.isManaged;
 
 const formGroups: JsonFormObject[] = [
   {
@@ -26,7 +26,7 @@ const formGroups: JsonFormObject[] = [
         placeholder: '',
         required: true,
         visible: getUserIsNotManaged,
-        validate: ({id, form}) => (form[id] !== form.passwordVerify ? [[id, '']] : []),
+        validate: ({id, form}) => (form[id] === form.passwordVerify ? [] : [[id, '']]),
       },
       {
         name: 'passwordVerify',

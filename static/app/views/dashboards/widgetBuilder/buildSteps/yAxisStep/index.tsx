@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -15,10 +14,9 @@ interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
   onYAxisChange: (newFields: QueryFieldValue[], newSelectedAggregate?: number) => void;
-  organization: Organization;
   tags: TagCollection;
   widgetType: WidgetType;
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
   selectedAggregate?: number;
 }
 

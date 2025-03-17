@@ -25,7 +25,7 @@ def dispatch_mark_unknown(ts: datetime):
     Given a clock tick timestamp datetime which was processed where an anomaly
     had been detected in the volume of check-ins that have been processed,
     determine monitors that are in-progress that can no longer be known to
-    complete as data loss has likely occured.
+    complete as data loss has likely occurred.
 
     This will dispatch MarkUnknown messages into monitors-clock-tasks.
     """
@@ -33,9 +33,9 @@ def dispatch_mark_unknown(ts: datetime):
         MonitorCheckIn.objects.filter(
             status=CheckInStatus.IN_PROGRESS,
             date_added__lte=ts,
-        ).values(
-            "id", "monitor_environment_id"
-        )[:CHECKINS_LIMIT]
+        )
+        .values("id", "monitor_environment_id")
+        .order_by("-date_added")[:CHECKINS_LIMIT]
     )
 
     metrics.gauge(

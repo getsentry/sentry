@@ -1,6 +1,7 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/button';
+import {Button, ButtonLabel} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -97,10 +98,10 @@ const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
 
   ${p =>
     !p.roundCorners &&
-    `
-    @media (min-width: ${p.theme.breakpoints.small}) {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
+    css`
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
     `}
 `;

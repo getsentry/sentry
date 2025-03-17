@@ -48,9 +48,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.started_at ? {started_at: startedAt} : {}),
     ...(apiResponse.finished_at ? {finished_at: finishedAt} : {}),
-    ...(apiResponse.duration !== undefined
-      ? {duration: duration(apiResponse.duration * 1000)}
-      : {}),
+    ...(apiResponse.duration === undefined
+      ? {}
+      : {duration: duration(apiResponse.duration * 1000)}),
     tags: unorderedTags,
   };
 }
@@ -63,9 +63,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
  */
 export function replayTimestamps(
   replayRecord: ReplayRecord,
-  rrwebEvents: {timestamp: number}[],
-  rawCrumbs: {timestamp: number}[],
-  rawSpanData: {endTimestamp: number; op: string; startTimestamp: number}[]
+  rrwebEvents: Array<{timestamp: number}>,
+  rawCrumbs: Array<{timestamp: number}>,
+  rawSpanData: Array<{endTimestamp: number; op: string; startTimestamp: number}>
 ) {
   const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
   const breadcrumbTimestamps = rawCrumbs

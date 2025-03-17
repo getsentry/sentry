@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass
+from datetime import datetime
 from logging import Logger, getLogger
 
 from django.db.models import Q
@@ -11,8 +12,8 @@ from sentry.integrations.repository.base import (
     BaseNotificationMessage,
     NotificationMessageValidationError,
 )
-from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 
 _default_logger: Logger = getLogger(__name__)
 
@@ -22,6 +23,7 @@ class IssueAlertNotificationMessage(BaseNotificationMessage):
     # TODO: https://github.com/getsentry/sentry/issues/66751
     rule_fire_history: RuleFireHistory | None = None
     rule_action_uuid: str | None = None
+    open_period_start: datetime | None = None
 
     @classmethod
     def from_model(cls, instance: NotificationMessage) -> IssueAlertNotificationMessage:
@@ -37,6 +39,7 @@ class IssueAlertNotificationMessage(BaseNotificationMessage):
             ),
             rule_fire_history=instance.rule_fire_history,
             rule_action_uuid=instance.rule_action_uuid,
+            open_period_start=instance.open_period_start,
             date_added=instance.date_added,
         )
 
@@ -55,6 +58,7 @@ class RuleFireHistoryAndRuleActionUuidActionValidationError(
 class NewIssueAlertNotificationMessage(BaseNewNotificationMessage):
     rule_fire_history_id: int | None = None
     rule_action_uuid: str | None = None
+    open_period_start: datetime | None = None
 
     def get_validation_error(self) -> Exception | None:
         error = super().get_validation_error()
@@ -100,7 +104,11 @@ class IssueAlertNotificationMessageRepository:
         return Q(parent_notification_message__isnull=True, error_code__isnull=True)
 
     def get_parent_notification_message(
-        self, rule_id: int, group_id: int, rule_action_uuid: str
+        self,
+        rule_id: int,
+        group_id: int,
+        rule_action_uuid: str,
+        open_period_start: datetime | None = None,
     ) -> IssueAlertNotificationMessage | None:
         """
         Returns the parent notification message for a metric rule if it exists, otherwise returns None.
@@ -114,6 +122,7 @@ class IssueAlertNotificationMessageRepository:
                     rule_fire_history__rule__id=rule_id,
                     rule_fire_history__group__id=group_id,
                     rule_action_uuid=rule_action_uuid,
+                    open_period_start=open_period_start,
                 )
                 .latest("date_added")
             )
@@ -146,6 +155,7 @@ class IssueAlertNotificationMessageRepository:
                 parent_notification_message_id=data.parent_notification_message_id,
                 rule_fire_history_id=data.rule_fire_history_id,
                 rule_action_uuid=data.rule_action_uuid,
+                open_period_start=data.open_period_start,
             )
             return IssueAlertNotificationMessage.from_model(instance=new_instance)
         except Exception as e:
@@ -157,7 +167,10 @@ class IssueAlertNotificationMessageRepository:
             raise
 
     def get_all_parent_notification_messages_by_filters(
-        self, group_ids: list[int] | None = None, project_ids: list[int] | None = None
+        self,
+        group_ids: list[int] | None = None,
+        project_ids: list[int] | None = None,
+        open_period_start: datetime | None = None,
     ) -> Generator[IssueAlertNotificationMessage]:
         """
         If no filters are passed, then all parent notification objects are returned.
@@ -168,10 +181,13 @@ class IssueAlertNotificationMessageRepository:
         """
         group_id_filter = Q(rule_fire_history__group__id__in=group_ids) if group_ids else Q()
         project_id_filter = Q(rule_fire_history__project_id__in=project_ids) if project_ids else Q()
-
-        query = self._model.objects.filter(group_id_filter & project_id_filter).filter(
-            self._parent_notification_message_base_filter()
+        open_period_start_filter = (
+            Q(open_period_start=open_period_start) if open_period_start else Q()
         )
+
+        query = self._model.objects.filter(
+            group_id_filter & project_id_filter & open_period_start_filter
+        ).filter(self._parent_notification_message_base_filter())
 
         try:
             for instance in query:

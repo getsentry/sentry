@@ -1,10 +1,9 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -35,16 +34,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-interface BreadcrumbsDataSectionProps {
+export interface BreadcrumbsDataSectionProps {
   event: Event;
   group: Group;
   project: Project;
+  initialCollapse?: boolean;
 }
 
 export default function BreadcrumbsDataSection({
   event,
   group,
   project,
+  initialCollapse,
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -100,7 +101,6 @@ export default function BreadcrumbsDataSection({
             }
             return true;
           },
-          transitionProps: {stiffness: 1000},
         }
       );
     },
@@ -150,50 +150,51 @@ export default function BreadcrumbsDataSection({
   );
 
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
+  const numHiddenCrumbs = enhancedCrumbs.length - summaryCrumbs.length;
 
   return (
-    <FullWidthGuideAnchor target="breadcrumbs" position="top">
-      <InterimSection
-        key="breadcrumbs"
-        type={SectionKey.BREADCRUMBS}
-        title={t('Breadcrumbs')}
-        data-test-id="breadcrumbs-data-section"
-        actions={actions}
-      >
-        <ErrorBoundary
-          mini
-          message={t('There was an error loading the event breadcrumbs')}
-        >
-          <div ref={setContainer}>
-            <BreadcrumbsTimeline
-              breadcrumbs={summaryCrumbs}
-              startTimeString={startTimeString}
-              // We want the timeline to appear connected to the 'View All' button
-              showLastLine={hasViewAll}
-              fullyExpanded={false}
-              containerElement={container}
-            />
-          </div>
-          {hasViewAll && (
-            <ViewAllContainer>
-              <VerticalEllipsis />
-              <div>
-                <ViewAllButton
-                  size="sm"
-                  // Since we've disabled the button as an 'outside click' for the drawer we can change
-                  // the operation based on the drawer state.
-                  onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
-                  aria-label={t('View All Breadcrumbs')}
-                  ref={viewAllButtonRef}
-                >
-                  {t('View All')}
-                </ViewAllButton>
-              </div>
-            </ViewAllContainer>
-          )}
-        </ErrorBoundary>
-      </InterimSection>
-    </FullWidthGuideAnchor>
+    <InterimSection
+      key="breadcrumbs"
+      type={SectionKey.BREADCRUMBS}
+      title={
+        <GuideAnchor target="breadcrumbs" position="top">
+          {t('Breadcrumbs')}
+        </GuideAnchor>
+      }
+      data-test-id="breadcrumbs-data-section"
+      actions={actions}
+      initialCollapse={initialCollapse}
+    >
+      <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
+        <div ref={setContainer}>
+          <BreadcrumbsTimeline
+            breadcrumbs={summaryCrumbs}
+            startTimeString={startTimeString}
+            // We want the timeline to appear connected to the 'View All' button
+            showLastLine={hasViewAll}
+            fullyExpanded={false}
+            containerElement={container}
+          />
+        </div>
+        {hasViewAll && (
+          <ViewAllContainer>
+            <VerticalEllipsis />
+            <div>
+              <ViewAllButton
+                size="sm"
+                // Since we've disabled the button as an 'outside click' for the drawer we can change
+                // the operation based on the drawer state.
+                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
+                aria-label={t('View All Breadcrumbs')}
+                ref={viewAllButtonRef}
+              >
+                {t('View %s more', numHiddenCrumbs)}
+              </ViewAllButton>
+            </div>
+          </ViewAllContainer>
+        )}
+      </ErrorBoundary>
+    </InterimSection>
   );
 }
 
@@ -223,18 +224,3 @@ const VerticalEllipsis = styled(IconEllipsis)`
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
 `;
-
-function FullWidthGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
-  return (
-    <ClassNames>
-      {({css: classNamesCss}) => (
-        <GuideAnchor
-          {...props}
-          containerClassName={classNamesCss`
-            width: 100%;
-          `}
-        />
-      )}
-    </ClassNames>
-  );
-}

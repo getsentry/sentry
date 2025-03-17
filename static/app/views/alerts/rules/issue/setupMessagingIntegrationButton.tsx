@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
@@ -9,28 +9,25 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {
-  ALERT_RULE_CREATION = 'alert_rule_creation',
-  PROJECT_CREATION = 'project_creation',
+  ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
+  PROJECT_CREATION = 'project_creation_messaging_integration_onboarding',
 }
 
 type Props = {
-  analyticsParams?: {
-    view: MessagingIntegrationAnalyticsView;
-  };
+  analyticsView: MessagingIntegrationAnalyticsView;
   projectId?: string;
   refetchConfigs?: () => void;
 };
 
 function SetupMessagingIntegrationButton({
   refetchConfigs,
-  analyticsParams,
+  analyticsView,
   projectId,
 }: Props) {
   const providerKeys = ['slack', 'discord', 'msteams'];
@@ -66,7 +63,7 @@ function SetupMessagingIntegrationButton({
     messagingIntegrationsQuery.isError ||
     integrationProvidersQuery.some(({isPending}) => isPending) ||
     integrationProvidersQuery.some(({isError}) => isError) ||
-    integrationProvidersQuery[0].data == null
+    integrationProvidersQuery[0]!.data === undefined
   ) {
     return null;
   }
@@ -78,7 +75,7 @@ function SetupMessagingIntegrationButton({
   return (
     <IntegrationFeatures
       organization={organization}
-      features={integrationProvidersQuery[0].data.providers[0]?.metadata?.features}
+      features={integrationProvidersQuery[0]!.data.providers[0]?.metadata?.features!}
     >
       {({disabled, disabledReason}) => (
         <div>
@@ -111,17 +108,14 @@ function SetupMessagingIntegrationButton({
                           provider !== undefined
                       )}
                     onAddIntegration={onAddIntegration}
-                    {...(projectId && {modalParams: {projectId: projectId}})}
+                    {...(projectId && {modalParams: {projectId}})}
+                    analyticsView={analyticsView}
                   />
                 ),
                 {
                   closeEvents: 'escape-key',
                 }
               );
-              trackAnalytics('onboarding.messaging_integration_modal_rendered', {
-                organization,
-                ...analyticsParams,
-              });
             }}
           >
             {t('Connect to messaging')}

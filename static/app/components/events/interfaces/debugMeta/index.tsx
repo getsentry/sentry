@@ -4,8 +4,8 @@ import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualize
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import {
   DebugImageDetails,
   modalCss,
@@ -17,7 +17,7 @@ import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
-import type {Event} from 'sentry/types/event';
+import type {EntryDebugMeta, Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -37,13 +37,31 @@ import {
   getFileName,
   IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
   normalizeId,
-  shouldSkipSection,
 } from './utils';
 
+function shouldSkipSection(
+  filteredImages: Image[],
+  images: EntryDebugMeta['data']['images']
+) {
+  if (filteredImages.length) {
+    return false;
+  }
+
+  const definedImages = images?.filter(image => defined(image));
+
+  if (!definedImages?.length) {
+    return true;
+  }
+
+  if (definedImages.every(image => image.type === 'proguard')) {
+    return true;
+  }
+
+  return false;
+}
+
 interface DebugMetaProps {
-  data: {
-    images: Array<Image | null>;
-  };
+  data: EntryDebugMeta['data'];
   event: Event;
   projectSlug: Project['slug'];
   groupId?: Group['id'];
@@ -51,8 +69,8 @@ interface DebugMetaProps {
 
 interface FilterState {
   allImages: ImageWithCombinedStatus[];
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
 }
 
 const cache = new CellMeasurerCache({
@@ -62,7 +80,7 @@ const cache = new CellMeasurerCache({
 
 function applyImageFilters(
   images: ImageWithCombinedStatus[],
-  filterSelections: SelectOption<string>[],
+  filterSelections: Array<SelectOption<string>>,
   searchTerm: string
 ) {
   const selections = new Set(filterSelections.map(option => option.value));
@@ -82,8 +100,8 @@ function applyImageFilters(
       if (term.indexOf('0x') === 0) {
         const needle = parseAddress(term);
         if (needle > 0 && image.image_addr !== '0x0') {
-          const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-          return needle >= startAddress && needle < endAddress;
+          const [startAddress, endAddress] = getImageRange(image);
+          return needle >= startAddress! && needle < endAddress!;
         }
       }
 
@@ -120,13 +138,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const getRelevantImages = useCallback(() => {
-    const {images} = data;
-
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
 
-    const relevantImages = images.filter((image): image is Image => {
+    const relevantImages = data.images?.filter((image): image is Image => {
       // in particular proguard images do not have a code file, skip them
       if (image === null || image.code_file === null || image.type === 'proguard') {
         return false;
@@ -140,7 +156,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       return true;
     });
 
-    if (!relevantImages.length) {
+    if (!relevantImages?.length) {
       return;
     }
 
@@ -184,7 +200,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     ];
 
     const defaultFilterSelections = (
-      'options' in filterOptions[0] ? filterOptions[0].options : []
+      'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     setFilterState({
@@ -320,7 +336,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       >
         <DebugImage
           style={style}
-          image={images[index]}
+          image={images[index]!}
           onOpenImageDetailsModal={handleOpenImageDetailsModal}
         />
       </CellMeasurer>
@@ -338,7 +354,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
+            rowRenderer={(listRowProps: any) => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />
@@ -351,9 +367,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   const filteredImages = applyImageFilters(allImages, filterSelections, searchTerm);
 
-  const {images} = data;
-
-  if (shouldSkipSection(filteredImages, images)) {
+  if (shouldSkipSection(filteredImages, data.images)) {
     return null;
   }
 
@@ -370,13 +384,14 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     />
   );
 
+  const isJSPlatform = event.platform?.includes('javascript');
+
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
-      guideTarget="images-loaded"
-      title={t('Images Loaded')}
+      title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
       )}
       actions={actions}
       initialCollapse
@@ -384,7 +399,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
-            placeholder={t('Search images loaded')}
+            placeholder={isJSPlatform ? t('Search source maps') : t('Search images')}
             onChange={value => DebugMetaStore.updateFilter(value)}
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}

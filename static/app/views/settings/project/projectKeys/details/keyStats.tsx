@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -12,19 +13,16 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import theme from 'sentry/utils/theme';
 
 type Props = {
   api: Client;
   organization: Organization;
+  theme: Theme;
 } & Pick<
-  RouteComponentProps<
-    {
-      keyId: string;
-      projectId: string;
-    },
-    {}
-  >,
+  RouteComponentProps<{
+    keyId: string;
+    projectId: string;
+  }>,
   'params'
 >;
 
@@ -71,7 +69,7 @@ class KeyStats extends Component<Props, State> {
           let emptyStats = true;
           const dropped: Series['data'] = [];
           const accepted: Series['data'] = [];
-          data.forEach(p => {
+          data.forEach((p: any) => {
             if (p.total) {
               emptyStats = false;
             }
@@ -113,19 +111,19 @@ class KeyStats extends Component<Props, State> {
         <PanelBody withPadding>
           {this.state.loading ? (
             <Placeholder height="150px" />
-          ) : !this.state.emptyStats ? (
+          ) : this.state.emptyStats ? (
+            <EmptyMessage
+              title={t('Nothing recorded in the last 30 days.')}
+              description={t('Total events captured using these credentials.')}
+            />
+          ) : (
             <MiniBarChart
               isGroupedByDate
               series={this.state.series}
               height={150}
-              colors={[theme.gray200, theme.red300]}
+              colors={[this.props.theme.gray200, this.props.theme.red300]}
               stacked
               labelYAxisExtents
-            />
-          ) : (
-            <EmptyMessage
-              title={t('Nothing recorded in the last 30 days.')}
-              description={t('Total events captured using these credentials.')}
             />
           )}
         </PanelBody>

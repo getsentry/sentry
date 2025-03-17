@@ -1,6 +1,7 @@
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -19,7 +20,10 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
+const DebugImage = forwardRef<HTMLDivElement, Props>(function DebugImage(
+  {image, onOpenImageDetailsModal, style},
+  ref
+) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
 
   const codeFilename = getFileName(code_file);
@@ -27,7 +31,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
   const imageAddress = getImageAddress(image);
 
   return (
-    <Wrapper style={style}>
+    <Wrapper ref={ref} style={style}>
       <StatusColumn>
         <Status status={status} />
       </StatusColumn>
@@ -58,7 +62,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
       </DebugFilesColumn>
     </Wrapper>
   );
-}
+});
 
 export default DebugImage;
 

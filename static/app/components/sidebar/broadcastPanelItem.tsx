@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -53,7 +53,6 @@ export function BroadcastPanelItem({
 
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
-  background: ${p => p.theme.background};
   margin: 0 ${space(3)};
   padding: ${space(2)} 0;
 

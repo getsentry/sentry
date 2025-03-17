@@ -75,7 +75,7 @@ describe('Frame Variables', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(
@@ -147,8 +147,8 @@ describe('Frame Variables', function () {
 
     const nullValues = screen.getAllByTestId('value-null');
 
-    expect(within(nullValues[0]).getByText('null')).toBeInTheDocument();
-    expect(within(nullValues[1]).getByText('undefined')).toBeInTheDocument();
+    expect(within(nullValues[0]!).getByText('null')).toBeInTheDocument();
+    expect(within(nullValues[1]!).getByText('undefined')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('value-boolean')).getByText('true')
     ).toBeInTheDocument();

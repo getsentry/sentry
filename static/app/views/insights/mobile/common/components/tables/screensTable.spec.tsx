@@ -4,7 +4,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
 
-function getMockEventView({fields}) {
+function getMockEventView({fields}: {fields: any}) {
   return new EventView({
     id: '1',
     name: 'mock query',

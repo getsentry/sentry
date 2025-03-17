@@ -85,15 +85,15 @@ export function TraceProfiles({
         const link =
           'profiler_id' in profile
             ? generateContinuousProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 profilerId: profile.profiler_id,
                 start: new Date(node.space[0]).toISOString(),
                 end: new Date(node.space[0] + node.space[1]).toISOString(),
                 projectSlug: node.metadata.project_slug as string,
-                query: query,
+                query,
               })
             : generateProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 projectSlug: node.metadata.project_slug as string,
                 profileId: profile.profile_id,
                 query,
@@ -129,11 +129,11 @@ export function TraceProfiles({
                 <a onClick={() => onScrollToNode(node)}>
                   <span>{node.value.op ?? '<unknown>'}</span> —{' '}
                   <span className="TraceDescription" title={node.value.description}>
-                    {!node.value.description
-                      ? node.value.span_id ?? 'unknown'
-                      : node.value.description.length > 100
+                    {node.value.description
+                      ? node.value.description.length > 100
                         ? node.value.description.slice(0, 100).trim() + '\u2026'
-                        : node.value.description}
+                        : node.value.description
+                      : (node.value.span_id ?? 'unknown')}
                   </span>
                 </a>
               </div>

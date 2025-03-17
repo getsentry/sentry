@@ -10,7 +10,7 @@ from sentry.api.endpoints.organization_fork import (
 )
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -22,7 +22,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 
 @patch("sentry.analytics.record")
-@patch("sentry.tasks.relocation.uploading_start.apply_async")
+@patch("sentry.relocation.tasks.process.uploading_start.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
@@ -135,7 +135,7 @@ class OrganizationForkTest(APITestCase):
         {
             "relocation.enabled": True,
             "relocation.daily-limit.small": 1,
-            "relocation.autopause": "IMPORTING",
+            "relocation.autopause.saas-to-saas": "IMPORTING",
         }
     )
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
@@ -152,6 +152,44 @@ class OrganizationForkTest(APITestCase):
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
+
+        assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(
+            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+        )
+
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
+    @override_options(
+        {
+            "relocation.enabled": True,
+            "relocation.daily-limit.small": 1,
+            "relocation.autopause.self-hosted": "IMPORTING",
+        }
+    )
+    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    def test_good_with_untriggered_autopause_option(
+        self,
+        uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
+    ):
+        self.login_as(user=self.superuser, superuser=True)
+
+        response = self.get_success_response(self.existing_org.slug)
+
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
+        assert response.data["scheduledPauseAtStep"] is None
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(

@@ -11,6 +11,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {joinQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {
   FieldKind,
   getFieldDefinition,
@@ -22,7 +23,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {
+  type GroupTag,
+  useGroupTags,
+} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {
   mergeAndSortTagValues,
   useHasStreamlinedUI,
@@ -38,7 +42,7 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-export function useEventQuery({group}: {group: Group}): string {
+export function useEventQuery({groupId}: {groupId: string}): string {
   const {selection} = usePageFilters();
   const location = useLocation();
   const environments = selection.environments;
@@ -52,7 +56,7 @@ export function useEventQuery({group}: {group: Group}): string {
   }
 
   const {data = []} = useGroupTags({
-    groupId: group.id,
+    groupId,
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);
@@ -68,7 +72,7 @@ export function useEventQuery({group}: {group: Group}): string {
   // For example: "is:unresolved browser.name:firefox" -> "browser.name:firefox"
   // Note: This is _probably_ not accounting for MANY invalid filters which could come in from the
   // issue stream. Will likely have to refine this in the future.
-  const validQuery = parsedQuery.filter(token => {
+  const validQuery = parsedQuery.filter((token: any) => {
     if (token.type === Token.FREE_TEXT) {
       return false;
     }
@@ -81,7 +85,7 @@ export function useEventQuery({group}: {group: Group}): string {
   return joinQuery(validQuery, false, true);
 }
 
-function useEventSearchFilterKeys(data) {
+function useEventSearchFilterKeys(data: GroupTag[]): TagCollection {
   const filterKeys = useMemo<TagCollection>(() => {
     const tags = [
       ...data.map(tag => ({...tag, kind: FieldKind.TAG})),
@@ -183,6 +187,16 @@ export function EventSearch({
 
   const filterKeySections = useMemo(() => getFilterKeySections(filterKeys), [filterKeys]);
 
+  const experimentSearchSource = hasStreamlinedUI
+    ? 'new_org_issue_details_header'
+    : 'new_org_issue_events_tab';
+
+  const searchSource = defined(organization.streamlineOnly)
+    ? experimentSearchSource
+    : hasStreamlinedUI
+      ? 'issue_details_header'
+      : 'issue_events_tab';
+
   return (
     <SearchQueryBuilder
       initialQuery={query}
@@ -190,9 +204,9 @@ export function EventSearch({
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      placeholder={hasStreamlinedUI ? t('Filter events...') : t('Search events...')}
-      label={hasStreamlinedUI ? t('Filter events...') : t('Search events')}
-      searchSource="issue_events_tab"
+      placeholder={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events\u2026')}
+      label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
+      searchSource={searchSource}
       className={className}
       showUnsubmittedIndicator
       {...queryBuilderProps}

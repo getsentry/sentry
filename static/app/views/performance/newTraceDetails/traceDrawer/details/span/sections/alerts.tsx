@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {isOrphanSpan} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
 
@@ -11,11 +11,13 @@ function Alerts({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   }
 
   return (
-    <Alert type="info" showIcon system>
-      {t(
-        'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info" showIcon system>
+        {t(
+          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

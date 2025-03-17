@@ -1,9 +1,9 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -20,16 +20,14 @@ interface Props {
   handleColumnFieldChange: (newFields: QueryFieldValue[]) => void;
   isOnDemandWidget: boolean;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
-  organization: Organization;
   tags: TagCollection;
   widgetType: WidgetType;
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
 }
 
 export function ColumnsStep({
   dataSet,
   displayType,
-  organization,
   widgetType,
   handleColumnFieldChange,
   queryErrors,
@@ -37,6 +35,7 @@ export function ColumnsStep({
   tags,
   isOnDemandWidget,
 }: Props) {
+  const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const datasetConfig = getDatasetConfig(widgetType);
 

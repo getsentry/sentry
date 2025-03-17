@@ -1,19 +1,36 @@
 ---
-created: '2024-10-28T14:02:51.939165+00:00'
+created: '2024-12-17T22:50:00.074071+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "top-level",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "top-level",
+    "stacktrace_type": "system"
+  }
+}
 ---
 contributing variants:
   system*
     hash: "5fd1358271b3a3dba3287e135029688d"
+    contributing component: stacktrace
     component:
       system*
         stacktrace*
           frame*
-            module* (ignored module)
-              salt* (normalized generated module name)
-                "<module>"
+            module* (normalized generated module name)
+              "<module>"
             function*
               "call"

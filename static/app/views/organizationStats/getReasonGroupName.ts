@@ -1,3 +1,5 @@
+import startCase from 'lodash/startCase';
+
 import {Outcome} from 'sentry/types/core';
 
 // List of Relay's current invalid reasons - https://github.com/getsentry/relay/blob/89a8dd7caaad1f126e1cacced0d73bb50fcd4f5a/relay-server/src/services/outcome.rs#L333
@@ -39,21 +41,6 @@ enum DiscardReason {
   PROJECT_STATE_PII = 'project_state_pii',
   INVALID_REPLAY_PII_SCRUBBER_FAILED = 'invalid_replay_pii_scrubber_failed',
   FEATURE_DISABLED = 'feature_disabled',
-}
-
-// List of Relay's current filtered reasons - https://github.com/getsentry/relay/blob/ce5520b4a3bea022808982a52a66bfddacc70ac0/relay-filter/src/common.rs#L11
-enum FilteredReason {
-  BROWSER_EXTENSION = 'browser-extensions',
-  DENIED_NAME = 'denied-name',
-  DISABLED_NAMESPACE = 'disabled-namespace',
-  ERROR_MESSAGE = 'error-message',
-  FILTERED_TRANSACTION = 'filtered-transaction',
-  INVALID_CSP = 'invalid-csp',
-  IP_ADDRESS = 'ip-address',
-  LEGACY_BROWSER = 'legacy-browsers',
-  LOCALHOST = 'localhost',
-  RELEASE_VERSION = 'release-version',
-  WEB_CRAWLER = 'web-crawlers',
 }
 
 // List of Client Discard Reason according to the Client Report's doc - https://develop.sentry.dev/sdk/client-reports/#envelope-item-payload
@@ -108,7 +95,7 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   minidump: [DiscardReason.MISSING_MINIDUMP_UPLOAD, DiscardReason.INVALID_MINIDUMP],
   security_report: [DiscardReason.SECURITY_REPORT, DiscardReason.SECURITY_REPORT_TYPE],
   unreal: [DiscardReason.PROCESS_UNREAL],
-  cors: [DiscardReason.CORS],
+  disallowed_domain: [DiscardReason.CORS],
   empty: [
     DiscardReason.NO_EVENT_PAYLOAD,
     DiscardReason.EMPTY_ENVELOPE,
@@ -149,23 +136,6 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
   }
 }
 
-function getFilteredReasonGroupName(reason: FilteredReason): string {
-  switch (reason) {
-    case FilteredReason.BROWSER_EXTENSION:
-    case FilteredReason.ERROR_MESSAGE:
-    case FilteredReason.FILTERED_TRANSACTION:
-    case FilteredReason.INVALID_CSP:
-    case FilteredReason.IP_ADDRESS:
-    case FilteredReason.LEGACY_BROWSER:
-    case FilteredReason.LOCALHOST:
-    case FilteredReason.RELEASE_VERSION:
-    case FilteredReason.WEB_CRAWLER:
-      return reason;
-    default:
-      return 'other';
-  }
-}
-
 function getClientDiscardReasonGroupName(reason: ClientDiscardReason): string {
   switch (reason) {
     case ClientDiscardReason.QUEUE_OVERFLOW:
@@ -194,7 +164,7 @@ export function getReasonGroupName(outcome: string | number, reason: string): st
     case Outcome.ABUSE:
       return getRateLimitedReasonGroupName(reason as RateLimitedReason);
     case Outcome.FILTERED:
-      return getFilteredReasonGroupName(reason as FilteredReason);
+      return startCase(reason);
     case Outcome.CLIENT_DISCARD:
       return getClientDiscardReasonGroupName(reason as ClientDiscardReason);
     default:

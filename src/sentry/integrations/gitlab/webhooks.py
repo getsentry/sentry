@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
@@ -16,8 +17,11 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -33,11 +37,38 @@ PROVIDER_NAME = "integrations:gitlab"
 GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
 
 
-class Webhook:
-    def __call__(
-        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
-    ):
-        raise NotImplementedError
+def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
+    token = "<unknown>"
+    try:
+        # Munge the token to extract the integration external_id.
+        # gitlab hook payloads don't give us enough unique context
+        # to find data on our side so we embed one in the token.
+        token = request.META["HTTP_X_GITLAB_TOKEN"]
+        # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
+        instance, group_path, secret = token.split(":")
+        external_id = f"{instance}:{group_path}"
+        return (external_id, secret)
+    except KeyError:
+        logger.info("gitlab.webhook.missing-gitlab-token")
+        extra["reason"] = "The customer needs to set a Secret Token in their webhook."
+        logger.exception(extra["reason"])
+        return HttpResponse(status=400, reason=extra["reason"])
+    except ValueError:
+        logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
+        extra["reason"] = "The customer's Secret Token is malformed."
+        logger.exception(extra["reason"])
+        return HttpResponse(status=400, reason=extra["reason"])
+    except Exception:
+        logger.info("gitlab.webhook.invalid-token", extra=extra)
+        extra["reason"] = "Generic catch-all error."
+        logger.exception(extra["reason"])
+        return HttpResponse(status=400, reason=extra["reason"])
+
+
+class GitlabWebhook(SCMWebhook, ABC):
+    @property
+    def provider(self) -> str:
+        return "gitlab"
 
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
@@ -85,16 +116,24 @@ class Webhook:
             )
 
 
-class MergeEventWebhook(Webhook):
+class MergeEventWebhook(GitlabWebhook):
     """
     Handle Merge Request Hook
 
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
     """
 
-    def __call__(
-        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
-    ):
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PULL_REQUEST
+
+    def __call__(self, event: Mapping[str, Any], **kwargs):
+        if not (
+            (organization := kwargs.get("organization"))
+            and (integration := kwargs.get("integration"))
+        ):
+            raise ValueError("Organization and integration must be provided")
+
         repo = self.get_repo(integration, organization, event)
         if repo is None:
             return
@@ -149,16 +188,24 @@ class MergeEventWebhook(Webhook):
             pass
 
 
-class PushEventWebhook(Webhook):
+class PushEventWebhook(GitlabWebhook):
     """
     Handle push hook
 
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
     """
 
-    def __call__(
-        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
-    ):
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
+
+    def __call__(self, event: Mapping[str, Any], **kwargs):
+        if not (
+            (organization := kwargs.get("organization"))
+            and (integration := kwargs.get("integration"))
+        ):
+            raise ValueError("Organization and integration must be provided")
+
         repo = self.get_repo(integration, organization, event)
         if repo is None:
             return
@@ -205,37 +252,8 @@ class PushEventWebhook(Webhook):
                 pass
 
 
-class GitlabWebhookMixin:
-    def _get_external_id(self, request, extra) -> tuple[str, str] | HttpResponse:
-        token = "<unknown>"
-        try:
-            # Munge the token to extract the integration external_id.
-            # gitlab hook payloads don't give us enough unique context
-            # to find data on our side so we embed one in the token.
-            token = request.META["HTTP_X_GITLAB_TOKEN"]
-            # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
-            instance, group_path, secret = token.split(":")
-            external_id = f"{instance}:{group_path}"
-            return (external_id, secret)
-        except KeyError:
-            logger.info("gitlab.webhook.missing-gitlab-token")
-            extra["reason"] = "The customer needs to set a Secret Token in their webhook."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
-        except ValueError:
-            logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
-            extra["reason"] = "The customer's Secret Token is malformed."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
-        except Exception:
-            logger.info("gitlab.webhook.invalid-token", extra=extra)
-            extra["reason"] = "Generic catch-all error."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
-
-
 @region_silo_endpoint
-class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+class GitlabWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -244,7 +262,10 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
     permission_classes = ()
     provider = "gitlab"
 
-    _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
+    _handlers: dict[str, type[GitlabWebhook]] = {
+        "Push Hook": PushEventWebhook,
+        "Merge Request Hook": MergeEventWebhook,
+    }
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -262,7 +283,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             # AppPlatformEvents also hit this API
             "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
         }
-        result = self._get_external_id(request=request, extra=extra)
+        result = get_gitlab_external_id(request=request, extra=extra)
         if isinstance(result, HttpResponse):
             return result
         (external_id, secret) = result
@@ -326,5 +347,13 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             )
             if org_context:
                 organization = org_context.organization
-                handler()(integration, organization, event)
+                event_handler = handler()
+
+                with IntegrationWebhookEvent(
+                    interaction_type=event_handler.event_type,
+                    domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                    provider_key=event_handler.provider,
+                ).capture():
+                    event_handler(event, integration=integration, organization=organization)
+
         return HttpResponse(status=204)

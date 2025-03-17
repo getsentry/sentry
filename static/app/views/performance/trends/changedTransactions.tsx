@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {Radio} from 'sentry/components/core/radio';
 import Count from 'sentry/components/count';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -17,7 +18,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,7 +39,6 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
-import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
@@ -47,9 +46,7 @@ import Chart from './chart';
 import type {
   NormalizedTrendsTransaction,
   TrendFunctionField,
-  TrendParameter,
   TrendParameterColumn,
-  TrendsStats,
   TrendView,
 } from './types';
 import {TrendChangeType} from './types';
@@ -57,12 +54,12 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getTrendProjectId,
+  makeTrendToColorMapping,
   modifyTrendView,
   normalizeTrends,
   transformDeltaSpread,
   transformValueDelta,
   trendCursorNames,
-  trendToColor,
 } from './utils';
 
 type Props = {
@@ -122,12 +119,12 @@ function handleChangeSelected(
     const query = {
       ...location.query,
     };
-    if (!transaction) {
-      delete query[selectedQueryKey];
-    } else {
+    if (transaction) {
       query[selectedQueryKey] = transaction
         ? `${transaction.transaction}-${transaction.project}`
         : undefined;
+    } else {
+      delete query[selectedQueryKey];
     }
     browserHistory.push({
       pathname: location.pathname,
@@ -170,7 +167,7 @@ function handleFilterDuration(
   symbol: FilterSymbols,
   trendChangeType: TrendChangeType,
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ) {
   const durationTag = getCurrentTrendParameter(location, projects, projectIds).column;
   const queryString = decodeScalar(location.query.query);
@@ -228,6 +225,7 @@ function ChangedTransactions(props: Props) {
   modifyTrendView(trendView, location, trendChangeType, projects, canUseMetricsTrends);
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
   const paginationAnalyticsEvent = (direction: string) => {
     trackAnalytics('performance_views.trends.widget_pagination', {
@@ -323,14 +321,11 @@ function ChangedTransactions(props: Props) {
                           transactions={transactionsList}
                           location={location}
                           projects={projects}
-                          statsData={statsData}
                           handleSelectTransaction={handleChangeSelected(
                             location,
                             organization,
                             trendChangeType
                           )}
-                          isLoading={isLoading}
-                          trendParameter={trendParameter}
                         />
                       ))}
                     </Fragment>
@@ -360,15 +355,12 @@ type TrendsListItemProps = {
   currentTrendFunction: string;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
   index: number;
-  isLoading: boolean;
   location: Location;
   organization: Organization;
   projects: Project[];
-  statsData: TrendsStats;
   transaction: NormalizedTrendsTransaction;
   transactions: NormalizedTrendsTransaction[];
   trendChangeType: TrendChangeType;
-  trendParameter: TrendParameter;
   trendView: TrendView;
 };
 
@@ -385,13 +377,11 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
     trendView,
-    statsData,
-    isLoading,
-    trendParameter,
   } = props;
+  const theme = useTheme();
+  const trendToColor = makeTrendToColorMapping(theme);
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const color = trendToColor[trendChangeType].default;
-
-  const [openedTransaction, setOpenedTransaction] = useState<null | string>(null);
 
   const selectedTransaction = getSelectedTransaction(
     location,
@@ -471,7 +461,7 @@ function TrendsListItem(props: TrendsListItemProps) {
             </RadioLineItem>
           )}
         </ItemRadioContainer>
-        <TransactionSummaryLink {...props} onItemClicked={setOpenedTransaction} />
+        <TransactionSummaryLink {...props} />
         <ItemTransactionPercentage>
           <Tooltip title={percentChangeExplanation}>
             <Fragment>
@@ -540,22 +530,6 @@ function TrendsListItem(props: TrendsListItemProps) {
           <ValueDelta {...props} />
         </ItemTransactionStatus>
       </ListItemContainer>
-      <Feature features="performance-change-explorer">
-        <PerformanceChangeExplorer
-          collapsed={openedTransaction === null}
-          onClose={() => setOpenedTransaction(null)}
-          transaction={transaction}
-          trendChangeType={trendChangeType}
-          trendFunction={currentTrendFunction}
-          trendView={trendView}
-          statsData={statsData}
-          isLoading={isLoading}
-          organization={organization}
-          projects={projects}
-          trendParameter={trendParameter}
-          location={location}
-        />
-      </Feature>
     </Fragment>
   );
 }
@@ -592,9 +566,7 @@ function ValueDelta({transaction, trendChangeType}: TrendsListItemProps) {
   );
 }
 
-type TransactionSummaryLinkProps = TrendsListItemProps & {
-  onItemClicked: React.Dispatch<React.SetStateAction<null | string>>;
-};
+type TransactionSummaryLinkProps = TrendsListItemProps;
 
 function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
   const {
@@ -604,12 +576,11 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projects,
     location,
     currentTrendFunction,
-    onItemClicked: onTransactionSelection,
   } = props;
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
     projectID,
@@ -623,13 +594,12 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
   const handleClick = useCallback<React.MouseEventHandler>(
     event => {
       event.preventDefault();
-      onTransactionSelection(transaction.transaction);
       trackAnalytics('performance_views.performance_change_explorer.open', {
         organization,
         transaction: transaction.transaction,
       });
     },
-    [onTransactionSelection, transaction.transaction, organization]
+    [transaction.transaction, organization]
   );
 
   if (organization.features.includes('performance-change-explorer')) {
@@ -668,15 +638,6 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
   margin: ${space(2)} ${space(3)};
 `;
-
-const MenuAction = styled('div')<{['data-test-id']?: string}>`
-  white-space: nowrap;
-  color: ${p => p.theme.textColor};
-`;
-
-MenuAction.defaultProps = {
-  'data-test-id': 'menu-action',
-};
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   min-height: 300px;

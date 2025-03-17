@@ -14,6 +14,6 @@ export type SuggestionSection = {
 };
 
 export type SuggestionSectionItem = {
-  items: SelectOptionWithKey<string>[];
+  items: Array<SelectOptionWithKey<string>>;
   sectionText: string;
 };

@@ -14,7 +14,7 @@ const tokensToString = (tokens: ProcessedTokenResult[]): string => {
   let str = '';
 
   for (const token of tokens) {
-    let concatstr;
+    let concatstr: any;
     switch (token.type) {
       case Token.FREE_TEXT:
         concatstr = token.text;
@@ -70,8 +70,8 @@ const tokensToString = (tokens: ProcessedTokenResult[]): string => {
 };
 
 function assertTokens(
-  tokens: TokenResult<Token>[] | null
-): asserts tokens is TokenResult<Token>[] {
+  tokens: Array<TokenResult<Token>> | null
+): asserts tokens is Array<TokenResult<Token>> {
   if (tokens === null) {
     throw new Error('Expected tokens to be an array');
   }

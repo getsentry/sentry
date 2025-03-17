@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -17,10 +17,11 @@ export default function ReplayInlineCTAPanel() {
       button={
         <ButtonBar gap={1}>
           <Button
+            type="button"
             priority="primary"
             analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
             analyticsEventKey="feedback.replay-onboarding-cta-button-clicked"
-            onClick={activateSidebar}
+            onClick={() => activateSidebar()}
           >
             {t('Set Up Now')}
           </Button>

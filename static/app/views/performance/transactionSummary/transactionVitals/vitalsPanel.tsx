@@ -19,7 +19,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  results: object;
+  results: Record<PropertyKey, unknown>;
   dataFilter?: DataFilter;
 };
 
@@ -55,7 +55,9 @@ class VitalsPanel extends Component<Props> {
         {results => {
           const loading = zoomed ? results.isLoading : isLoading;
           const errored = zoomed ? results.error !== null : error;
-          const chartData = zoomed ? results.histograms?.[vital] ?? histogram : histogram;
+          const chartData = zoomed
+            ? (results.histograms?.[vital] ?? histogram)
+            : histogram;
           return (
             <VitalCard
               location={location}
@@ -79,7 +81,7 @@ class VitalsPanel extends Component<Props> {
     );
   }
 
-  renderVitalGroup(group: VitalGroup, summaryResults) {
+  renderVitalGroup(group: VitalGroup, summaryResults: any) {
     const {location, organization, eventView, dataFilter} = this.props;
     const {vitals, colors, min, max, precision} = group;
 
@@ -131,7 +133,7 @@ class VitalsPanel extends Component<Props> {
                       error,
                       data,
                       histogram,
-                      [colors[index]],
+                      [colors[index]!],
                       parseBound(start, precision),
                       parseBound(end, precision),
                       precision

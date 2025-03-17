@@ -131,7 +131,7 @@ describe('OwnershipRulesTable', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     expect(screen.getByText('filepath')).toBeInTheDocument();
-    expect(screen.queryByText('mytag')).toBeInTheDocument();
+    expect(screen.getByText('mytag')).toBeInTheDocument();
   });
 
   it('preserves selected teams when rules are updated', async () => {
@@ -170,12 +170,10 @@ describe('OwnershipRulesTable', () => {
 
   it('should paginate results', async () => {
     const owners: Actor[] = [{type: 'user', id: user1.id, name: user1.name}];
-    const rules: ParsedOwnershipRule[] = Array(100)
-      .fill(0)
-      .map((_, i) => ({
-        matcher: {pattern: `mytag${i}`, type: 'tag'},
-        owners,
-      }));
+    const rules: ParsedOwnershipRule[] = new Array(100).fill(0).map((_, i) => ({
+      matcher: {pattern: `mytag${i}`, type: 'tag'},
+      owners,
+    }));
 
     render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
 

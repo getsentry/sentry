@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -37,8 +37,8 @@ function Issue({data}: {data: Group}) {
       </IssueSummaryWrapper>
       <ChartWrapper>
         <GroupChart
-          stats={data.filtered ? data.filtered.stats?.['24h'] : data.stats?.['24h']}
-          secondaryStats={data.filtered ? data.stats?.['24h'] : []}
+          stats={data.filtered ? data.filtered.stats?.['24h']! : data.stats?.['24h']!}
+          secondaryStats={data.filtered ? data.stats?.['24h']! : []}
           showSecondaryPoints
           showMarkLine
         />
@@ -80,7 +80,7 @@ function IssueListHeader({issues}: {issues?: Group[]}) {
   );
 }
 
-function fetchIssues(
+function useInsightIssues(
   issueTypes: string[],
   message?: string
 ): {isLoading: boolean; issues?: Group[]} {
@@ -134,7 +134,7 @@ export default function InsightIssuesList({
   issueTypes: string[];
   message?: string;
 }) {
-  const {isLoading, issues} = fetchIssues(issueTypes, message);
+  const {isLoading, issues} = useInsightIssues(issueTypes, message);
 
   if (isLoading || issues?.length === 0) {
     return <Fragment />;

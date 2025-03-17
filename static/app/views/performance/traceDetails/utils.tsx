@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -17,8 +18,32 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
+import {
+  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
+  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
+  type TraceViewSources,
+} from '../newTraceDetails/traceHeader/breadcrumbs';
+
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
+
+function getBaseTraceUrl(
+  organization: Organization,
+  source?: TraceViewSources,
+  view?: DomainView
+) {
+  if (view) {
+    return getPerformanceBaseUrl(organization.slug, view);
+  }
+
+  const routesMap = prefersStackedNav()
+    ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
+    : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
+
+  const routeSuffix = source && source in routesMap ? routesMap[source] : 'traces';
+
+  return normalizeUrl(`/organizations/${organization.slug}/${routeSuffix}`);
+}
 
 export function getTraceDetailsUrl({
   organization,
@@ -34,13 +59,13 @@ export function getTraceDetailsUrl({
   view,
 }: {
   // @TODO add a type for dateSelection
-  dateSelection;
+  dateSelection: any;
   location: Location;
   organization: Organization;
   traceSlug: string;
   demo?: string;
   eventId?: string;
-  source?: string;
+  source?: TraceViewSources;
   spanId?: string;
   // targetId represents the span id of the transaction. It will replace eventId once all links
   // to trace view are updated to use spand ids of transactions instead of event ids.
@@ -48,7 +73,7 @@ export function getTraceDetailsUrl({
   timestamp?: string | number;
   view?: DomainView;
 }): LocationDescriptorObject {
-  const performanceBaseUrl = getPerformanceBaseUrl(organization.slug, view);
+  const baseUrl = getBaseTraceUrl(organization, source, view);
   const queryParams: Record<string, string | number | undefined | DateString | string[]> =
     {
       ...location.query,
@@ -59,7 +84,7 @@ export function getTraceDetailsUrl({
 
   if (shouldForceRouteToOldView(organization, timestamp)) {
     return {
-      pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+      pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: queryParams,
     };
   }
@@ -70,7 +95,7 @@ export function getTraceDetailsUrl({
       queryParams.node = path;
     }
     return {
-      pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+      pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: {
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),
@@ -87,7 +112,7 @@ export function getTraceDetailsUrl({
   }
 
   return {
-    pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+    pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
     query: queryParams,
   };
 }
@@ -200,10 +225,10 @@ export function getTraceInfo(
 }
 
 export function shortenErrorTitle(title: string): string {
-  return title.split(':')[0];
+  return title.split(':')[0]!;
 }
 
-export function isRootTransaction(trace: TraceFullDetailed): boolean {
-  // Root transactions has no parent_span_id
-  return trace.parent_span_id === null;
+export function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }

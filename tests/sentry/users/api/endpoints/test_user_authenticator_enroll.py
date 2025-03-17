@@ -84,6 +84,47 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert interface.secret == "secret56"
         assert interface.config == {"secret": "secret56"}
 
+    @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
+    def test_totp_no_verified_primary_email(self, validate_otp):
+        from urllib.parse import quote
+
+        user = self.create_user()
+        UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
+        self.login_as(user)
+
+        # XXX: Pretend an unbound function exists.
+        validate_otp.__func__ = None
+
+        with mock.patch(
+            "sentry.auth.authenticators.base.generate_secret_key", return_value="Z" * 32
+        ):
+            resp = self.get_success_response("me", "totp")
+
+        assert resp.data["secret"] == "Z" * 32
+        assert (
+            resp.data["qrcode"]
+            == f"otpauth://totp/{quote(user.email)}?issuer=Sentry&secret=ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+        )
+        assert resp.data["form"]
+        assert resp.data["secret"]
+
+        # try to enroll
+        with self.tasks():
+            resp = self.get_error_response(
+                "me",
+                "totp",
+                method="post",
+                status_code=401,
+                **{"secret": "secret12", "otp": "1234"},
+            )
+            assert resp.data == {
+                "detail": {
+                    "code": "primary-email-verification-required",
+                    "message": "Primary email verification required.",
+                    "extra": {"username": user.email},
+                }
+            }
+
     @override_options({"totp.disallow-new-enrollment": True})
     def test_totp_disallow_new_enrollment(self):
         self.get_error_response(
@@ -188,8 +229,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
         assert resp.data == {
             "detail": {
-                "code": "email-verification-required",
-                "message": "Email verification required.",
+                "code": "primary-email-verification-required",
+                "message": "Primary email verification required.",
                 "extra": {"username": user.email},
             }
         }

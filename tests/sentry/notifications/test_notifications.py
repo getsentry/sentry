@@ -18,8 +18,8 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.rule import Rule
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.silo.base import SiloMode
@@ -57,35 +57,6 @@ def get_attachment():
 
     assert len(attachments) == 1
     return attachments[0], data["text"][0]
-
-
-def get_blocks():
-    assert len(responses.calls) >= 1
-    data = parse_qs(responses.calls[0].request.body)
-    assert "text" in data
-    assert "blocks" in data
-
-    blocks = json.loads(data["blocks"][0])
-
-    # title with link, text, footer
-    if blocks[1]["type"] == "context":
-        title_block = blocks[1]["elements"][0]["text"]
-    else:
-        title_block = blocks[1]["text"]["text"]
-
-    url_block = blocks[-1].get("elements")
-    if url_block:
-        url_block = url_block[0].get("url")
-
-    # assume the divider is the last element
-    footer = blocks[-2].get("elements")
-    if footer:
-        footer = footer[0].get("text")
-    # otherwise try to get footer from the last element
-    if not footer:
-        footer = blocks[-1]["elements"][0]["text"]
-
-    return title_block, data["text"][0], footer, url_block
 
 
 def get_notification_uuid(url: str):

@@ -38,7 +38,7 @@ export function filterFlamegraphTree(
 
       // enqueue children
       for (let i = 0; i < node.children.length; i++) {
-        stack.push(node.children[node.children.length - i - 1]);
+        stack.push(node.children[node.children.length - i - 1]!);
       }
     }
   }

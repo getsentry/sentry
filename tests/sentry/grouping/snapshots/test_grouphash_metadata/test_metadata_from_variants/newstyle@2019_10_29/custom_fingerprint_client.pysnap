@@ -1,12 +1,28 @@
 ---
-created: '2024-10-28T14:02:30.046770+00:00'
+created: '2024-11-20T21:26:31.893367+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: fingerprint
+hashing_metadata: {
+  "client_fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint_source": "client",
+  "is_hybrid_fingerprint": false
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "fingerprint",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.fingerprint": {
+    "fingerprint_source": "client"
+  }
+}
 ---
 contributing variants:
-  custom-fingerprint*
+  custom_fingerprint*
     hash: "f30afa00b85f5cac5ee0bce01b31f08d"
     info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]}
     values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]

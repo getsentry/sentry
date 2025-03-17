@@ -33,23 +33,24 @@ SPAN_ID_FIELDS = {
     "segment_id",
 }
 
+DURATION_FIELDS = {
+    "span.duration",
+    "span.self_time",
+}
 
-class SpansIndexedQueryBuilderMixin:
-    meta_resolver_map: dict[str, str]
-
-    def get_field_type(self, field: str) -> str | None:
-        if field in self.meta_resolver_map:
-            return self.meta_resolver_map[field]
-        if field in ["span.duration", "span.self_time"]:
-            return "duration"
-
-        return None
+SIZE_FIELDS = {
+    "http.decoded_response_content_length": "byte",
+    "http.response_content_length": "byte",
+    "http.response_transfer_size": "byte",
+}
 
 
-class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
+class SpansIndexedQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = False
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
     config_class = SpansIndexedDatasetConfig
 
     def __init__(self, *args, **kwargs):
@@ -59,14 +60,20 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         )
 
 
-class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
+class SpansEAPQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
     config_class = SpansEAPDatasetConfig
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def get_field_type(self, field: str) -> str | None:
+        tag_match = constants.TYPED_TAG_KEY_RE.search(field)
+        field_type = tag_match.group("type") if tag_match else None
+        if field_type == "number":
+            return "number"
+        return super().get_field_type(field)
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         # try the typed regex first
@@ -106,10 +113,12 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         return field_col
 
 
-class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):
+class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
     config_class = SpansIndexedDatasetConfig
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
 
     @property
     def time_column(self) -> SelectType:
@@ -122,10 +131,12 @@ class TimeseriesSpanEAPIndexedQueryBuilder(SpansEAPQueryBuilder, TimeseriesQuery
     pass
 
 
-class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
+class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
     config_class = SpansIndexedDatasetConfig
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
 
     @property
     def time_column(self) -> SelectType:

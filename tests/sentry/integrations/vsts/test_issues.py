@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cached_property
 from time import time
 from typing import Any
 from unittest.mock import patch
@@ -8,7 +7,7 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
-from django.test import RequestFactory, override_settings
+from django.test import override_settings
 from responses import matchers
 
 from fixtures.vsts import (
@@ -71,10 +70,6 @@ def assert_response_calls(expected_region_response, expected_non_region_response
 
 
 class VstsIssueBase(TestCase):
-    @cached_property
-    def request(self):
-        return RequestFactory()
-
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
@@ -197,6 +192,16 @@ class VstsIssueSyncTest(VstsIssueBase):
             {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
             {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
         ]
+
+    @responses.activate
+    def test_create_issue_failure(self):
+        form_data = {
+            "title": "rip",
+            "description": "Goodnight, sweet prince",
+        }
+
+        with pytest.raises(ValueError):
+            self.integration.create_issue(form_data)
 
     @responses.activate
     def test_get_issue(self):

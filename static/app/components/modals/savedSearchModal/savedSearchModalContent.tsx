@@ -31,7 +31,7 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
 
   const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,
-    label: getSortLabel(sortOption),
+    label: getSortLabel(sortOption, organization),
   }));
 
   return (
@@ -55,7 +55,7 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
         flexibleControlStateSize
         required
       >
-        {({onChange, onBlur, disabled, value}) => (
+        {({onChange, onBlur, disabled, value}: any) => (
           <IssueListSearchBar
             organization={organization}
             onChange={newValue => {

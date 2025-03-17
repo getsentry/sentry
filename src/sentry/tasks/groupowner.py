@@ -4,6 +4,7 @@ from typing import cast
 
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -103,6 +104,17 @@ def _process_suspect_commits(
                                             "project": project_id,
                                         },
                                     )
+                            analytics.record(
+                                "groupowner.assignment",
+                                organization_id=project.organization_id,
+                                project_id=project.id,
+                                group_id=group_id,
+                                new_assignment=created,
+                                user_id=go.user_id,
+                                group_owner_type=go.type,
+                                method="release_commit",
+                            )
+
                     except GroupOwner.MultipleObjectsReturned:
                         GroupOwner.objects.filter(
                             group_id=group_id,

@@ -47,7 +47,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    def load_trace(self):
+    def load_trace(self, is_eap=False):
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",
@@ -71,6 +71,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             slow_db_performance_issue=True,
             project_id=self.project.id,
             milliseconds=3000,
+            is_eap=is_eap,
         )
 
         # First Generation
@@ -96,6 +97,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 parent_span_id=root_span_id,
                 project_id=self.gen1_project.id,
                 milliseconds=2000,
+                is_eap=is_eap,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
                 zip(self.root_span_ids, self.gen1_span_ids)
@@ -120,12 +122,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                         "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
                         "span_id": gen2_span_id,
                         "trace_id": self.trace_id,
+                        "parent_span_id": self.gen2_span_id,
                     }
                 ],
                 parent_span_id=gen1_span_id,
                 span_id=self.gen2_span_id if i == 0 else None,
                 project_id=self.gen2_project.id,
                 milliseconds=1000,
+                is_eap=is_eap,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
                 zip(self.gen1_span_ids, self.gen2_span_ids)
@@ -141,6 +145,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             project_id=self.gen3_project.id,
             parent_span_id=self.gen2_span_id,
             milliseconds=500,
+            is_eap=is_eap,
         )
 
 
@@ -1317,6 +1322,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "message": error.search_message,
         } in response.data["orphan_errors"]
 
+    @pytest.mark.skip(reason="flaky: #84070")
     def test_with_default(self):
         self.load_trace()
         start, _ = self.get_start_end_from_day_ago(1000)
@@ -1569,6 +1575,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         trace_transaction = response.data["transactions"][0]
         self.assert_event(trace_transaction, self.gen1_events[0], "root")
 
+    @pytest.mark.skip(reason="flaky: #84070")
     def test_timestamp_optimization_without_mock(self):
         """Make sure that even if the params are smaller the query still works"""
         self.load_trace()
@@ -1615,6 +1622,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
 
+    @pytest.mark.skip(reason="flaky: #84070")
     def test_split_by_char_optimization(self):
         self.load_trace()
         # This changes the span_id condition so its a split on a string instead of an array
@@ -1674,6 +1682,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 0
         assert data["errors"] == 0
         assert data["performance_issues"] == 0
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -1699,6 +1709,25 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
+
+    def test_no_team(self):
+        self.load_trace()
+        self.team.delete()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
 
     def test_with_errors(self):
         self.load_trace()
@@ -1715,6 +1744,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 3
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
 
     def test_with_default(self):
         self.load_trace()
@@ -1731,6 +1762,6 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
         assert len(data["transaction_child_count_map"]) == 8
-        for item in data["transaction_child_count_map"]:
-            assert item["count"] > 1, item

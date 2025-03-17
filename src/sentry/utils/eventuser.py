@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
@@ -127,7 +127,7 @@ class EventUser:
     @classmethod
     def for_projects(
         self,
-        projects: QuerySet[Project] | list[Project],
+        projects: QuerySet[Project] | Sequence[Project],
         keyword_filters: Mapping[str, list[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
@@ -297,7 +297,7 @@ class EventUser:
         )
 
     @classmethod
-    def for_tags(cls, project_id: int, values):
+    def for_tags(cls, project_id: int, values: list[str]) -> dict[str, EventUser]:
         """
         Finds matching EventUser objects from a list of tag values.
 

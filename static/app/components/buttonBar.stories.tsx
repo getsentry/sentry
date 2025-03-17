@@ -1,9 +1,9 @@
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import Matrix from 'sentry/components/stories/matrix';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(ButtonBar, story => {
+export default storyBook('ButtonBar', story => {
   story('Default', () => (
     <ButtonBar>
       <Button>One</Button>

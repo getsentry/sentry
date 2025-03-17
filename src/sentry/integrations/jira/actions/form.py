@@ -14,6 +14,8 @@ class JiraNotifyServiceForm(IntegrationNotifyServiceForm):
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
 
         integration_id = cleaned_data.get("integration")
         integration = integration_service.get_integration(

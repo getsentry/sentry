@@ -3,11 +3,11 @@ from unittest.mock import patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organizationmember import OrganizationMember
@@ -20,6 +20,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.silo.base import SiloMode
@@ -31,6 +32,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.workflow_engine.models import Detector
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -409,6 +411,14 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
+    def test_project_detector(self):
+        project = self.create_project()
+        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+
+        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
+            project = self.create_project()
+            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+
 
 class ProjectOptionsTests(TestCase):
     """
@@ -529,23 +539,6 @@ class CopyProjectSettingsTest(TestCase):
         rules = Rule.objects.filter(project_id=project.id).order_by("label")
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
-
-    def assert_settings_not_copied(self, project, teams=()):
-        for key in self.options_dict.keys():
-            assert project.get_option(key) is None
-
-        project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)
-        assert len(project_teams) == len(teams)
-
-        project_envs = EnvironmentProject.objects.filter(project_id=project.id)
-        assert len(project_envs) == 0
-
-        assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
-
-        # default rule
-        rules = Rule.objects.filter(project_id=project.id)
-        assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
 
     def test_simple(self):
         project = self.create_project(fire_project_created=True)

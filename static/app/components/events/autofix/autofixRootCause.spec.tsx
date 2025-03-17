@@ -1,10 +1,25 @@
 import {AutofixRootCauseData} from 'sentry-fixture/autofixRootCauseData';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 
 describe('AutofixRootCause', function () {
+  let mockApi: jest.Mock<any, any, any>;
+
+  beforeEach(function () {
+    mockApi = MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/update/',
+      method: 'POST',
+      body: {success: true},
+    });
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    jest.clearAllTimers();
+  });
+
   const defaultProps = {
     causes: [AutofixRootCauseData()],
     groupId: '1',
@@ -16,27 +31,39 @@ describe('AutofixRootCause', function () {
   it('can view a relevant code snippet', async function () {
     render(<AutofixRootCause {...defaultProps} />);
 
-    // Displays all root cause and code context info
-    expect(screen.getByText('Potential Root Cause')).toBeInTheDocument();
-    expect(screen.getByText('This is the title of a root cause.')).toBeInTheDocument();
-    expect(
-      screen.getByText('This is the description of a root cause.')
-    ).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Relevant code',
-      })
+    // Wait for initial render and animations
+    await waitFor(
+      () => {
+        expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
     );
-    expect(
-      screen.getByText('Snippet #1: This is the title of a relevant code snippet.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('This is the description of a relevant code snippet.')
-    ).toBeInTheDocument();
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(defaultProps.causes[0]!.root_cause_reproduction![0]!.title)
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
+
+    await userEvent.click(screen.getByTestId('autofix-root-cause-timeline-item-0'));
+
+    // Wait for code snippet to appear with increased timeout for animation
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            defaultProps.causes[0]!.root_cause_reproduction![0]!.code_snippet_and_analysis
+          )
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
   });
 
-  it('shows graceful error state when there are no causes', function () {
+  it('shows graceful error state when there are no causes', async function () {
     render(
       <AutofixRootCause
         {...{
@@ -47,132 +74,120 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    // Displays all root cause and code context info
-    expect(
-      screen.getByText('No root cause found. The error comes from outside the codebase.')
-    ).toBeInTheDocument();
-  });
-
-  it('shows hyperlink when matching GitHub repo available', async function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [
-            {
-              default_branch: 'main',
-              external_id: 'id',
-              name: 'owner/repo',
-              provider: 'integrations:github',
-              url: 'https://github.com/test_owner/test_repo',
-            },
-          ],
-        }}
-      />
-    );
-
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Relevant code',
-      })
-    );
-
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toHaveAttribute(
-      'href',
-      'https://github.com/test_owner/test_repo/blob/main/src/file.py'
+    // Wait for error state to render
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            'No root cause found. The error comes from outside the codebase.'
+          )
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
     );
   });
 
-  it('shows no hyperlink when no matching GitHub repo available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [],
-        }}
-      />
+  it('can edit and submit custom root cause', async function () {
+    render(<AutofixRootCause {...defaultProps} />);
+
+    // Wait for initial render
+    await waitFor(
+      () => {
+        expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
     );
 
-    expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
-  });
+    // Click edit button
+    await userEvent.click(screen.getByTestId('autofix-root-cause-edit-button'));
 
-  it('shows reproduction steps when applicable', async function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          causes: [AutofixRootCauseData()],
-        }}
-      />
-    );
+    // Verify textarea appears
+    const textarea = screen.getByPlaceholderText('Propose your own root cause...');
+    expect(textarea).toBeInTheDocument();
 
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'How to reproduce',
-      })
-    );
+    // Enter custom root cause
+    await userEvent.type(textarea, 'This is a custom root cause');
 
-    expect(
-      screen.getByText('This is the reproduction of a root cause.')
-    ).toBeInTheDocument();
-  });
+    // Click Save button
+    await userEvent.click(screen.getByTestId('autofix-root-cause-save-edit-button'));
 
-  it('does not show reproduction steps when not applicable', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          causes: [AutofixRootCauseData({reproduction: undefined})],
-        }}
-      />
-    );
-
-    expect(
-      screen.queryByText('This is the reproduction of a root cause.')
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows unit test inside reproduction card when available', async function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          causes: [
-            AutofixRootCauseData({
-              unit_test: {
-                snippet: 'Test case for root cause',
-                description: 'This is the description of a unit test.',
-                file_path: 'src/file.py',
+    // Wait for API call to complete
+    await waitFor(
+      () => {
+        expect(mockApi).toHaveBeenCalledWith(
+          '/issues/1/autofix/update/',
+          expect.objectContaining({
+            method: 'POST',
+            data: {
+              run_id: '101',
+              payload: {
+                type: 'select_root_cause',
+                custom_root_cause: 'This is a custom root cause',
               },
-            }),
-          ],
-        }}
-      />
+            },
+          })
+        );
+      },
+      {timeout: 2000}
     );
-
-    expect(screen.getByText('How to reproduce')).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'How to reproduce',
-      })
-    );
-    expect(
-      screen.getByText('This is the description of a unit test.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Test case for root cause')).toBeInTheDocument();
   });
 
-  it('does not show reproduction or unit test when not available', function () {
+  it('shows selected root cause when rootCauseSelection is provided', async function () {
+    const selectedCause = AutofixRootCauseData();
     render(
       <AutofixRootCause
         {...{
           ...defaultProps,
-          causes: [AutofixRootCauseData({unit_test: undefined, reproduction: undefined})],
+          rootCauseSelection: {
+            cause_id: selectedCause.id,
+          },
         }}
       />
     );
 
-    expect(screen.queryByText('How to reproduce')).not.toBeInTheDocument();
+    // Wait for selected root cause to render
+    await waitFor(
+      () => {
+        expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(selectedCause.root_cause_reproduction![0]!.title)
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
+  });
+
+  it('shows custom root cause when rootCauseSelection has custom_root_cause', async function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          rootCauseSelection: {
+            custom_root_cause: 'This is a custom root cause',
+          },
+        }}
+      />
+    );
+
+    // Wait for custom root cause to render
+    await waitFor(
+      () => {
+        expect(screen.getByText('Custom Root Cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('This is a custom root cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
   });
 });

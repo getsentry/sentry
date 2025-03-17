@@ -78,7 +78,7 @@ export default function formatDuration({
     case 'h:mm:ss': // fall-through
     case 'hh:mm:ss': // fall-through
     case 'h:mm:ss.sss': // fall-through
-    case 'hh:mm:ss.sss':
+    case 'hh:mm:ss.sss': {
       const truncatedValueInMs = normalizeTimespanToMs(
         Math.floor(valueInUnit),
         precision
@@ -90,9 +90,10 @@ export default function formatDuration({
       const str = formatSecondsToClock(valueInSec, {padAll});
       const [head, tail] = str.split('.');
       return includeMs
-        ? [head, precision === 'ms' ? tail ?? '000' : '000'].join('.')
+        ? [head, precision === 'ms' ? (tail ?? '000') : '000'].join('.')
         : String(head);
-    case 'ISO8601':
+    }
+    case 'ISO8601': {
       const output = ['P'];
 
       let incr = 0;
@@ -118,7 +119,9 @@ export default function formatDuration({
               incr += minutes * PRECISION_FACTORS.min;
               const seconds = Math.floor(msToPrecision(ms - incr, 'sec'));
 
-              if (precision !== 'sec') {
+              if (precision === 'sec') {
+                output.push(seconds ? String(seconds) + 'S' : '');
+              } else {
                 incr += seconds * PRECISION_FACTORS.sec;
                 const milliseconds = Math.floor(msToPrecision(ms - incr, 'ms'));
                 output.push(seconds || milliseconds ? String(seconds) : '');
@@ -126,8 +129,6 @@ export default function formatDuration({
                   milliseconds ? '.' + milliseconds.toString().padStart(3, '0') : ''
                 );
                 output.push(seconds || milliseconds ? 'S' : '');
-              } else {
-                output.push(seconds ? String(seconds) + 'S' : '');
               }
             }
           }
@@ -135,6 +136,7 @@ export default function formatDuration({
       }
 
       return output.join('');
+    }
     default:
       throw new Error('Invalid style');
   }

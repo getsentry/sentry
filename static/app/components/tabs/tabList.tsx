@@ -38,7 +38,7 @@ export function useOverflowTabs({
   disabled: boolean | undefined;
   tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
-  tabListRef: React.RefObject<HTMLUListElement>;
+  tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
@@ -91,10 +91,11 @@ export function useOverflowTabs({
 
   // Tabs that are hidden will be rendered with display: none so won't intersect,
   // but we don't want to show them in the overflow menu
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-export function OverflowMenu({state, overflowMenuItems, disabled}) {
+export function OverflowMenu({state, overflowMenuItems, disabled}: any) {
   return (
     <TabListOverflowWrap>
       <CompactSelect
@@ -159,7 +160,7 @@ function BaseTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: key => {
+    onSelectionChange: (key: any) => {
       onChange?.(key);
 
       // If the newly selected tab is a tab link, then navigate to the specified link
@@ -231,7 +232,9 @@ function BaseTabList({
             state={state}
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            ref={element => (tabItemsRef.current[item.key] = element)}
+            ref={element => {
+              tabItemsRef.current[item.key] = element;
+            }}
             variant={variant}
           />
         ))}
@@ -251,7 +254,7 @@ function BaseTabList({
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
 /**
- * To be used as a direct child of the <Tabs /> component. See example usage
+ * To be used as a direct child of the `<Tabs />` component. See example usage
  * in tabs.stories.js
  */
 export function TabList({items, variant, ...props}: TabListProps) {
@@ -281,7 +284,7 @@ export function TabList({items, variant, ...props}: TabListProps) {
       variant={variant}
       {...props}
     >
-      {item => <Item {...item} />}
+      {item => <Item {...item} key={item.key} />}
     </BaseTabList>
   );
 }

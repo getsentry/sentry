@@ -13,4 +13,5 @@ Geolocation: {{ geo.city }}, {{ geo.country_code }}
 Date: {{ datetime|date:"N j, Y, P e" }}</pre></p>
     <p>If you have lost your 2FA credentials, you can follow our <a href="https://sentry.zendesk.com/hc/en-us/articles/23703310917659-How-do-I-recover-my-account-if-I-lost-my-2FA-credentials">account recovery steps here</a>.</p>
     <p>If these logins are not from you, we recommend you log in to your Sentry account and reset your password under <a href="{{ url }}">your account security settings</a>. On the same account security page, we also recommend you click the “Sign out of all devices” button to remove all currently logged-in sessions of your account.</p>
+    <p>If you are unable to log in to your Sentry account for the password reset, you can use <a href="{{ recover_url }}">Password Recovery</a>.</p>
 {% endblock %}

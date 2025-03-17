@@ -18,7 +18,7 @@ from sentry.api.helpers.group_index import (
     delete_group_list,
     get_first_last_release,
     prep_search,
-    update_groups,
+    update_groups_with_search_fn,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
@@ -31,7 +31,7 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, get_open_periods_for_group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
@@ -50,6 +50,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+OPEN_PERIOD_LIMIT = 50
 
 
 def get_group_global_count(group: Group) -> str:
@@ -83,14 +84,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         },
     }
 
-    def _get_activity(self, request: Request, group, num):
-        return Activity.objects.get_activities_for_group(group, num)
-
-    def _get_seen_by(self, request: Request, group):
+    def _get_seen_by(self, request: Request, group: Group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group):
+    def _get_context_plugins(self, request: Request, group: Group):
         project = group.project
         return serialize(
             [
@@ -105,7 +103,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @staticmethod
-    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
+    def __group_hourly_daily_stats(
+        group: Group, environment_ids: Sequence[int]
+    ) -> tuple[list[list[float]], list[list[float]]]:
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
@@ -133,7 +133,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return hourly_stats, daily_stats
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve an Issue
         `````````````````
@@ -164,7 +164,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # TODO: these probably should be another endpoint
-            activity = self._get_activity(request, group, num=100)
+            activity = Activity.objects.get_activities_for_group(group, 100)
+            open_periods = get_open_periods_for_group(group, limit=OPEN_PERIOD_LIMIT)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -205,7 +206,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 data.update({"inbox": inbox_reason})
 
             if "owners" in expand:
-                owner_details = get_owner_details([group], request.user)
+                owner_details = get_owner_details([group])
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
@@ -230,7 +231,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
                 integration_issues = serialize(
                     external_issues,
-                    request,
+                    request.user,
                     serializer=ExternalIssueSerializer(),
                 )
                 data.update({"integrationIssues": integration_issues})
@@ -239,7 +240,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
                 sentry_app_issues = serialize(
                     list(platform_external_issues),
-                    request,
+                    request.user,
                     serializer=PlatformExternalIssueSerializer(),
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
@@ -262,9 +263,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             data.update(
                 {
                     "activity": serialize(activity, request.user),
+                    "openPeriods": [open_period.to_dict() for open_period in open_periods],
                     "seenBy": seen_by,
-                    "pluginActions": get_actions(request, group),
-                    "pluginIssues": get_available_issue_plugins(request, group),
+                    "pluginActions": get_actions(group),
+                    "pluginIssues": get_available_issue_plugins(group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
@@ -317,7 +319,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    def put(self, request: Request, group) -> Response:
+    def put(self, request: Request, group: Group) -> Response:
         """
         Update an Issue
         ```````````````
@@ -329,6 +331,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``.
         :param string assignedTo: the user or team that should be assigned to
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
@@ -351,7 +358,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            response = update_groups(
+            response = update_groups_with_search_fn(
                 request, [group.id], [project], project.organization_id, search_fn
             )
             # if action was discard, there isn't a group to serialize anymore

@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -14,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import type {ColorOrAlias} from 'sentry/utils/theme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -30,6 +29,7 @@ import {
   SelectorLink,
   transformSelectorQuery,
 } from 'sentry/views/replays/deadRageClick/selectorTable';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function DeadRageSelectorCards() {
   return (
@@ -165,7 +165,7 @@ function AccordionWidget({
       )}
       <SearchButton
         label={t('See all selectors')}
-        path="selectors"
+        path="/selectors/"
         sort={`-${clickType}`}
       />
     </StyledWidgetContainer>
@@ -213,18 +213,23 @@ function SearchButton({
   ...props
 }: {
   label: ReactNode;
-  path: string;
+  path: '/' | `/${string}/`;
   sort: string;
 } & Omit<LinkButtonProps, 'size' | 'to' | 'external'>) {
   const location = useLocation();
   const organization = useOrganization();
+
+  const pathname = makeReplaysPathname({
+    path,
+    organization,
+  });
 
   return (
     <StyledButton
       {...props}
       size="xs"
       to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${path}/`),
+        pathname,
         query: {
           ...location.query,
           sort,
@@ -272,7 +277,7 @@ const CenteredContentContainer = styled(ContentContainer)`
 
 const StyledButton = styled(LinkButton)`
   width: 100%;
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   padding: ${space(3)};
   border-bottom: none;
   border-left: none;

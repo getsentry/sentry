@@ -38,7 +38,7 @@ describe('useSpanSamples', () => {
         end: null,
         utc: false,
       },
-      environments: [],
+      environments: ['prod'],
       projects: [],
     },
   });
@@ -61,14 +61,14 @@ describe('useSpanSamples', () => {
         initialProps: {
           fields: [
             SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
+            SpanIndexedField.SPAN_ID,
           ] as SpanIndexedProperty[],
           enabled: false,
         },
       }
     );
 
-    expect(result.current.isFetching).toEqual(false);
+    expect(result.current.isFetching).toBe(false);
     expect(request).not.toHaveBeenCalled();
   });
 
@@ -101,18 +101,17 @@ describe('useSpanSamples', () => {
           filters: {
             'span.group': '221aa7ebd216',
             release: '0.0.1',
-            environment: undefined,
           },
           fields: [
             SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
+            SpanIndexedField.SPAN_ID,
           ] as SpanIndexedProperty[],
           referrer: 'api-spec',
         },
       }
     );
 
-    expect(result.current.isPending).toEqual(true);
+    expect(result.current.isPending).toBe(true);
 
     expect(request).toHaveBeenCalledWith(
       '/api/0/organizations/org-slug/spans-samples/',
@@ -124,6 +123,7 @@ describe('useSpanSamples', () => {
           query: `span.group:221aa7ebd216 release:0.0.1`,
           referrer: 'api-spec',
           statsPeriod: '10d',
+          environment: ['prod'],
           lowerBound: 100,
           firstBound: 300,
           secondBound: 600,
@@ -133,7 +133,7 @@ describe('useSpanSamples', () => {
       })
     );
 
-    await waitFor(() => expect(result.current.isPending).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
     expect(result.current.data).toEqual([
       {
         'transaction.id': '7663aab8a',

@@ -4,17 +4,18 @@ import styled from '@emotion/styled';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
   onClose: SearchBarProps['onClose'];
-  organization: Organization;
   widgetQuery: WidgetQuery;
+  portalTarget?: HTMLElement | null;
 }
 
-function IssuesSearchBar({onClose, widgetQuery, organization}: Props) {
+function IssuesSearchBar({onClose, widgetQuery, portalTarget}: Props) {
+  const organization = useOrganization();
   const onChange = useCallback<NonNullable<SearchQueryBuilderProps['onChange']>>(
     (query, state) => {
       onClose?.(query, {validSearch: state.queryIsValid});
@@ -29,6 +30,7 @@ function IssuesSearchBar({onClose, widgetQuery, organization}: Props) {
       initialQuery={widgetQuery.conditions || ''}
       onChange={onChange}
       placeholder={t('Search for issues, status, assigned, and more')}
+      portalTarget={portalTarget}
     />
   );
 }

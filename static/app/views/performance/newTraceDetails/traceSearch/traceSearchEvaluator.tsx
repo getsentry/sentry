@@ -13,6 +13,7 @@ import {
 
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -24,6 +25,8 @@ export type TraceSearchResult = {
   index: number;
   value: TraceTreeNode<TraceTree.NodeValue>;
 };
+
+const {info, fmt} = Sentry._experiment_log;
 
 /**
  * Evaluates the infix token representation against the token list. The logic is the same as
@@ -37,11 +40,11 @@ export type TraceSearchResult = {
  */
 export function searchInTraceTreeTokens(
   tree: TraceTree,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -65,8 +68,8 @@ export function searchInTraceTreeTokens(
     return handle;
   }
 
-  if (postfix.length === 1 && postfix[0].type === Token.FREE_TEXT) {
-    return searchInTraceTreeText(tree, postfix[0].value, previousNode, cb);
+  if (postfix.length === 1 && postfix[0]!.type === Token.FREE_TEXT) {
+    return searchInTraceTreeText(tree, postfix[0]!.value, previousNode, cb);
   }
 
   let i = 0;
@@ -77,8 +80,8 @@ export function searchInTraceTreeTokens(
   function searchSingleToken() {
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i];
-      if (evaluateTokenForValue(postfix[0], resolveValueFromKey(node, postfix[0]))) {
+      const node = tree.list[i]!;
+      if (evaluateTokenForValue(postfix[0]!, resolveValueFromKey(node, postfix[0]!))) {
         resultsForSingleToken.push({index: i, value: node});
         resultLookup.set(node, matchCount);
 
@@ -100,7 +103,7 @@ export function searchInTraceTreeTokens(
     }
   }
 
-  if (postfix.length <= 1 && postfix[0].type === Token.FILTER) {
+  if (postfix.length <= 1 && postfix[0]!.type === Token.FILTER) {
     handle.id = requestAnimationFrame(searchSingleToken);
     return handle;
   }
@@ -121,25 +124,27 @@ export function searchInTraceTreeTokens(
   const left: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
   const right: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
 
-  const stack: (
-    | ProcessedTokenResult
-    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-  )[] = [];
+  const stack: Array<
+    ProcessedTokenResult | Map<TraceTreeNode<TraceTree.NodeValue>, number>
+  > = [];
 
   function search(): void {
     const ts = performance.now();
     if (!bool) {
       while (ti < postfix.length) {
-        const token = postfix[ti];
+        const token = postfix[ti]!;
         if (token.type === Token.LOGIC_BOOLEAN) {
           bool = token;
           if (stack.length < 2) {
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
-            typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+            info(fmt`Unbalanced tree - missing left or right token`);
+            if (typeof handle.id === 'number') {
+              window.cancelAnimationFrame(handle.id);
+            }
             cb([[], resultLookup, null]);
             return;
           }
-          // @ts-expect-error the type guard is handled and expected
+          // @ts-expect-error TS(2322): Type 'Map<TraceTreeNode<NodeValue>, number> | Proc... Remove this comment to see the full error message
           rightToken = stack.pop()!;
           leftToken = stack.pop()!;
           break;
@@ -154,7 +159,10 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing boolean token'
       );
-      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      info(fmt`Invalid state in searchInTraceTreeTokens, missing boolean token`);
+      if (typeof handle.id === 'number') {
+        window.cancelAnimationFrame(handle.id);
+      }
       cb([[], resultLookup, null]);
       return;
     }
@@ -162,14 +170,17 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing left or right token'
       );
-      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      info(fmt`Invalid state in searchInTraceTreeTokens, missing left or right token`);
+      if (typeof handle.id === 'number') {
+        window.cancelAnimationFrame(handle.id);
+      }
       cb([[], resultLookup, null]);
       return;
     }
 
     if (li < count && !(leftToken instanceof Map)) {
       while (li < count && performance.now() - ts < 12) {
-        const node = tree.list[li];
+        const node = tree.list[li]!;
         if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
           left.set(node, li);
         }
@@ -178,7 +189,7 @@ export function searchInTraceTreeTokens(
       handle.id = requestAnimationFrame(search);
     } else if (ri < count && !(rightToken instanceof Map)) {
       while (ri < count && performance.now() - ts < 12) {
-        const node = tree.list[ri];
+        const node = tree.list[ri]!;
         if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
           right.set(node, ri);
         }
@@ -244,7 +255,7 @@ export function searchInTraceTreeText(
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -255,7 +266,7 @@ export function searchInTraceTreeText(
     resultIndex: number | undefined;
     resultIteratorIndex: number | undefined;
   } | null = null;
-  const results: Array<TraceSearchResult> = [];
+  const results: TraceSearchResult[] = [];
   const resultLookup = new Map();
 
   let i = 0;
@@ -265,7 +276,7 @@ export function searchInTraceTreeText(
   function search() {
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i];
+      const node = tree.list[i]!;
 
       if (evaluateNodeFreeText(query, node)) {
         results.push({index: i, value: node});
@@ -337,7 +348,9 @@ function booleanResult(
   if (operator === BooleanOperator.AND) {
     const result = new Map();
     for (const [key, value] of left) {
-      right.has(key) && result.set(key, value);
+      if (right.has(key)) {
+        result.set(key, value);
+      }
     }
     return result;
   }
@@ -386,6 +399,7 @@ function evaluateValueDate<T extends Token.VALUE_ISO_8601_DATE>(
     }
     default: {
       Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      info(fmt`Unsupported operator for number filter, got ${operator}`);
       return false;
     }
   }
@@ -419,6 +433,7 @@ function evaluateValueNumber<T extends Token.VALUE_DURATION | Token.VALUE_NUMBER
     }
     default: {
       Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      info(fmt`Unsupported operator for number filter, got ${operator}`);
       return false;
     }
   }
@@ -457,12 +472,13 @@ function resolveValueFromKey(
 
         if (
           SPAN_DURATION_ALIASES.has(token.key.value) &&
-          isSpanNode(node) &&
+          (isSpanNode(node) || isEAPSpanNode(node)) &&
           node.space
         ) {
           return node.space[1];
         }
 
+        // TODO Abdullah Khan: Add EAPSpanNode support for exclusive_time
         if (
           SPAN_SELF_TIME_ALIASES.has(token.key.value) &&
           isSpanNode(node) &&
@@ -478,6 +494,7 @@ function resolveValueFromKey(
       case Token.KEY_EXPLICIT_TAG:
       default: {
         Sentry.captureMessage(`Unsupported key type for filter, got ${token.key.type}`);
+        info(fmt`Unsupported key type for filter, got ${token.key.type}`);
       }
     }
 
@@ -515,7 +532,9 @@ function resolveValueFromKey(
       }
 
       // Check for direct key access.
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (value[key] !== undefined) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return value[key];
       }
 
@@ -526,12 +545,14 @@ function resolveValueFromKey(
       const [maybeEntity, ...rest] = key.split('.');
       switch (maybeEntity) {
         case 'span':
-          if (isSpanNode(node)) {
+          if (isSpanNode(node) || isEAPSpanNode(node)) {
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             return value[rest.join('.')];
           }
           break;
         case 'transaction':
           if (isTransactionNode(node)) {
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             return value[rest.join('.')];
           }
           break;
@@ -540,7 +561,8 @@ function resolveValueFromKey(
       }
     }
 
-    return key ? value[key] ?? null : null;
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    return key ? (value[key] ?? null) : null;
   }
 
   return null;
@@ -554,14 +576,16 @@ function evaluateNodeFreeText(
   query: string,
   node: TraceTreeNode<TraceTree.NodeValue>
 ): boolean {
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     if (node.value.op?.includes(query)) {
       return true;
     }
     if (node.value.description?.includes(query)) {
       return true;
     }
-    if (node.value.span_id && node.value.span_id === query) {
+
+    const spanId = 'span_id' in node.value ? node.value.span_id : node.value.event_id;
+    if (spanId && spanId === query) {
       return true;
     }
   }

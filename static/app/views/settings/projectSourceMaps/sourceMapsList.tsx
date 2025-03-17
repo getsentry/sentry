@@ -2,8 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Button, type ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -31,10 +31,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
-type Props = RouteComponentProps<
-  {orgId: string; projectId: string; bundleId?: string},
-  {}
-> & {
+type Props = RouteComponentProps<{
+  orgId: string;
+  projectId: string;
+  bundleId?: string;
+}> & {
   project: Project;
 };
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
@@ -10,7 +11,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer
+from sentry import analytics, buffer, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -70,7 +71,7 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
 
 def split_conditions_and_filters(
     rule_condition_list,
-) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     condition_list = []
     filter_list = []
     for rule_cond in rule_condition_list:
@@ -148,6 +149,7 @@ def activate_downstream_actions(
     event: GroupEvent,
     notification_uuid: str | None = None,
     rule_fire_history: RuleFireHistory | None = None,
+    is_post_process: bool | None = True,
 ) -> MutableMapping[
     str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
 ]:
@@ -155,10 +157,14 @@ def activate_downstream_actions(
         str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
     ] = {}
 
+    instantiated_actions = 0
+
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action, rule_fire_history)
         if not action_inst:
             continue
+
+        instantiated_actions += 1
 
         results = safe_execute(
             action_inst.after,
@@ -177,6 +183,21 @@ def activate_downstream_actions(
                 grouped_futures[key] = (future.callback, [rule_future])
             else:
                 grouped_futures[key][1].append(rule_future)
+
+    if features.has(
+        "organizations:workflow-engine-process-workflows",
+        rule.project.organization,
+    ):
+        if is_post_process:
+            logger_name = "post_process.process_rules.triggered_actions"
+        else:
+            logger_name = "post_process.delayed_processing.triggered_actions"
+
+        metrics.incr(
+            logger_name,
+            amount=instantiated_actions,
+            tags={"event_type": event.group.type},
+        )
 
     return grouped_futures
 
@@ -212,7 +233,7 @@ class RuleProcessor:
 
     def condition_matches(
         self,
-        condition: MutableMapping[str, Any],
+        condition: dict[str, Any],
         state: EventState,
         rule: Rule,
     ) -> bool | None:
@@ -237,8 +258,8 @@ class RuleProcessor:
         )
 
     def group_conditions_by_speed(
-        self, conditions: list[MutableMapping[str, Any]]
-    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        self, conditions: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, str]], list[EventFrequencyConditionData]]:
         fast_conditions = []
         slow_conditions: list[EventFrequencyConditionData] = []
 
@@ -251,10 +272,11 @@ class RuleProcessor:
         return fast_conditions, slow_conditions
 
     def enqueue_rule(self, rule: Rule) -> None:
-        logger.info(
-            "rule_processor.rule_enqueued",
-            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
-        )
+        if random.random() < 0.01:
+            logger.info(
+                "rule_processor.rule_enqueued",
+                extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+            )
         buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(

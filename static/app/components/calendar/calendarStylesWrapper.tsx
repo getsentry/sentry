@@ -244,6 +244,10 @@ const CalendarStylesWrapper = styled('div')`
     border-left-color: ${p => p.theme.textColor};
     margin: 0;
   }
+
+  .rdrDayPassive {
+    visibility: hidden;
+  }
 `;
 
 export default CalendarStylesWrapper;

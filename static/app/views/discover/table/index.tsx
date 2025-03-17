@@ -286,7 +286,7 @@ class Table extends PureComponent<TableProps, TableState> {
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
-      ? parseLinkHeader(pageLinks).previous.results === false
+      ? parseLinkHeader(pageLinks).previous!.results === false
       : false;
 
     return (

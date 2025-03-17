@@ -101,6 +101,16 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
         return f"required member {user_display_name} to setup 2FA"
 
 
+class OrgAddAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=10, name="ORG_ADD", api_name="org.create")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        if channel := audit_log_entry.data.get("channel"):
+            return f"created the organization with {channel} integration"
+        return "created the organization"
+
+
 class OrgEditAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=11, name="ORG_EDIT", api_name="org.edit")
@@ -366,3 +376,19 @@ class DataSecrecyWaivedAuditLogEvent(AuditLogEvent):
             rendered_text += f" from {formatted_start} to {formatted_end}"
 
         return rendered_text
+
+
+class MonitorAddAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=120,
+            name="MONITOR_ADD",
+            api_name="monitor.add",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        entry_data = audit_log_entry.data
+        name = entry_data.get("name")
+        upsert = entry_data.get("upsert")
+
+        return f"added{" upsert " if upsert else " "}monitor {name}"

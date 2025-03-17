@@ -6,7 +6,7 @@ import type {MenuProps} from './menu';
 import Menu from './menu';
 
 function makeActorProps(
-  renderProps,
+  renderProps: any,
   options: {
     lazy: boolean;
     allowActorToggle?: boolean;
@@ -46,6 +46,9 @@ export type DropdownAutoCompleteProps =
   | LazyDropdownAutoCompleteProps
   | StaticDropdownAutoCompleteProps;
 
+/**
+ * @deprecated prefer using CompactSelect
+ */
 function DropdownAutoComplete(
   props: LazyDropdownAutoCompleteProps | StaticDropdownAutoCompleteProps
 ) {

@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ViewHierarchy} from '.';
+import {ViewHierarchy, type ViewHierarchyData} from './index';
 
 // Mocks for useVirtualizedTree hook
 class ResizeObserver {
@@ -47,8 +47,8 @@ const DEFAULT_MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
-  let MOCK_DATA;
-  let project;
+  let MOCK_DATA!: ViewHierarchyData;
+  let project!: ReturnType<typeof ProjectFixture>;
   beforeEach(() => {
     MOCK_DATA = DEFAULT_MOCK_DATA;
     project = ProjectFixture();
@@ -78,7 +78,7 @@ describe('View Hierarchy', function () {
   it('can expand and collapse by clicking the icon', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
@@ -90,13 +90,13 @@ describe('View Hierarchy', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('can navigate with keyboard shortcuts after a selection', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
+    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]!);
 
     await userEvent.keyboard('{ArrowDown}');
 
@@ -107,7 +107,7 @@ describe('View Hierarchy', function () {
   it('can expand/collapse with the keyboard', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]!);
 
     await userEvent.keyboard('{Enter}');
 
@@ -149,9 +149,9 @@ describe('View Hierarchy', function () {
   it('draws the selected node when a tree selection is made', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    const canvas = screen.getByTestId(
+    const canvas = screen.getByTestId<HTMLCanvasElement>(
       'view-hierarchy-wireframe-overlay'
-    ) as HTMLCanvasElement;
+    );
 
     const context = canvas.getContext('2d');
     if (!context) {
@@ -169,9 +169,9 @@ describe('View Hierarchy', function () {
   it('does not render a wireframe selection initially', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    const canvas = screen.getByTestId(
+    const canvas = screen.getByTestId<HTMLCanvasElement>(
       'view-hierarchy-wireframe-overlay'
-    ) as HTMLCanvasElement;
+    );
 
     const context = canvas.getContext('2d');
     if (!context) {

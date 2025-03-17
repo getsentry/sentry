@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
+ORGANIZATION_NAME_MAX_LENGTH = 64
 
 
 class OrganizationStatus(IntEnum):
@@ -154,7 +155,7 @@ class Organization(ReplicatedRegionModel):
     replication_version = 4
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=ORGANIZATION_NAME_MAX_LENGTH)
     slug: models.Field[str, str] = SentryOrgSlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
@@ -420,11 +421,11 @@ class Organization(ReplicatedRegionModel):
         return OrganizationOption.objects
 
     def _handle_requirement_change(self, request, task):
-        from sentry.models.apikey import is_api_key_auth
-
-        actor_id = request.user.id if request.user and request.user.is_authenticated else None
+        actor_id = request.user.id if request.user.is_authenticated else None
         api_key_id = (
-            request.auth.id if hasattr(request, "auth") and is_api_key_auth(request.auth) else None
+            request.auth.entity_id
+            if request.auth is not None and request.auth.kind == "api_key"
+            else None
         )
         ip_address = request.META["REMOTE_ADDR"]
 

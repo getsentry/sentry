@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -32,15 +32,14 @@ function getInitialChartSettings(
   return new Array(chartCount)
     .fill(0)
     .map((_, index) =>
-      getChartSetting(index, chartHeight, performanceType, allowedCharts[index])
+      getChartSetting(index, chartHeight, performanceType, allowedCharts[index]!)
     );
 }
 
 function ChartRow(props: ChartRowProps) {
   const {chartCount, chartHeight, allowedCharts} = props;
-  const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
-  const palette = theme.charts.getColorPalette(chartCount);
+  const palette = getChartColorPalette(chartCount);
 
   const [chartSettings, setChartSettings] = useState(
     getInitialChartSettings(chartCount, chartHeight, performanceType, allowedCharts)
@@ -59,7 +58,7 @@ function ChartRow(props: ChartRowProps) {
           index={index}
           chartHeight={chartHeight}
           chartColor={palette[index]}
-          defaultChartSetting={allowedCharts[index]}
+          defaultChartSetting={allowedCharts[index]!}
           rowChartSettings={chartSettings}
           setRowChartSettings={setChartSettings}
         />
@@ -68,23 +67,17 @@ function ChartRow(props: ChartRowProps) {
   );
 }
 
-export function TripleChartRow(props: ChartRowProps) {
-  return <ChartRow {...props} />;
+type DefaultProps = 'chartCount' | 'chartHeight';
+type ChartRowPropsWithDefaults = Omit<ChartRowProps, DefaultProps> &
+  Pick<Partial<ChartRowProps>, DefaultProps>;
+
+export function TripleChartRow(props: ChartRowPropsWithDefaults) {
+  return <ChartRow chartCount={3} chartHeight={100} {...props} />;
 }
 
-TripleChartRow.defaultProps = {
-  chartCount: 3,
-  chartHeight: 100,
-};
-
-export function DoubleChartRow(props: ChartRowProps) {
-  return <ChartRow {...props} />;
+export function DoubleChartRow(props: ChartRowPropsWithDefaults) {
+  return <ChartRow chartCount={2} chartHeight={150} {...props} />;
 }
-
-DoubleChartRow.defaultProps = {
-  chartCount: 2,
-  chartHeight: 150,
-};
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};

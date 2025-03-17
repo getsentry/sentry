@@ -1,17 +1,29 @@
 ---
-created: '2024-10-28T14:02:48.400245+00:00'
+created: '2024-12-17T22:50:17.207242+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: template
+hashing_metadata: {
+  "template_context_line": "{% invalid template tag %}",
+  "template_name": "foo.html"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "template",
+    "is_hybrid_fingerprint": "False"
+  }
+}
 ---
 contributing variants:
   default*
-    hash: "826f66ef602835f68030c04c634df320"
+    hash: "1f5bdebe3c9f414c7dbb4296a8353245"
+    contributing component: template
     component:
       default*
         template*
           filename*
             "foo.html"
           context-line*
-            "hello world"
+            "{% invalid template tag %}"

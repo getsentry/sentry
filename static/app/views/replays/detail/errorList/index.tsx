@@ -69,7 +69,7 @@ function ErrorList() {
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const error = items[rowIndex - 1];
+    const error = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer
@@ -88,7 +88,11 @@ function ErrorList() {
         }) =>
           rowIndex === 0 ? (
             <ErrorHeaderCell
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e && registerChild) {
+                  registerChild(e);
+                }
+              }}
               handleSort={handleSort}
               index={columnIndex}
               sortConfig={sortConfig}
@@ -103,7 +107,11 @@ function ErrorList() {
               onMouseEnter={onMouseEnter}
               onMouseLeave={onMouseLeave}
               onClickTimestamp={onClickTimestamp}
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e && registerChild) {
+                  registerChild(e);
+                }
+              }}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               startTimestampMs={startTimestampMs}

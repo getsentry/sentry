@@ -19,7 +19,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, timestamp_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 
@@ -39,10 +39,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         direction=translate_direction(AlertRuleThresholdType.ABOVE.value),
         expected_seasonality=AlertRuleSeasonality.AUTO.value,
     )
-    historical_timestamp_1 = timestamp_format(four_weeks_ago)
-    historical_timestamp_2 = timestamp_format(four_weeks_ago + timedelta(days=10))
-    current_timestamp_1 = timestamp_format(one_week_ago)
-    current_timestamp_2 = timestamp_format(one_week_ago + timedelta(minutes=10))
+    historical_timestamp_1 = four_weeks_ago.timestamp()
+    historical_timestamp_2 = (four_weeks_ago + timedelta(days=10)).timestamp()
+    current_timestamp_1 = one_week_ago.timestamp()
+    current_timestamp_2 = (one_week_ago + timedelta(minutes=10)).timestamp()
     data = {
         "project_id": 1,
         "config": config,
@@ -304,7 +304,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
-                "message": "I have revolted against my human overlords",
+                "response_data": "I have revolted against my human overlords",
                 "organization_id": self.organization.id,
                 "project_id": 1,
                 "config": self.config,

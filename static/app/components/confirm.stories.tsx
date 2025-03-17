@@ -1,10 +1,8 @@
-/* eslint-disable no-console */
-
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
@@ -13,7 +11,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(Confirm, story => {
+export default storyBook('Confirm', story => {
   story('Triggers', () => {
     const [state, setState] = useState('empty');
 

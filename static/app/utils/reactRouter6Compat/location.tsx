@@ -52,9 +52,9 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
     to.pathname = pathname;
 
     if (query) {
-      query = {...query, ...qs.parse(search)};
+      query = {...query, ...qs.parse(search!)};
     } else {
-      query = qs.parse(search);
+      query = qs.parse(search!);
     }
   }
 
@@ -86,10 +86,10 @@ export function location6ToLocation3<Q extends Query = DefaultQuery>(
   const {pathname, search, hash, state, key} = location;
 
   return {
-    pathname: pathname,
-    search: search,
+    pathname,
+    search,
     query: qs.parse(search) as Q,
-    hash: hash,
+    hash,
     state,
     key,
 

@@ -14,7 +14,7 @@ type Props = {
 function DiscoverFeature({children}: Props) {
   const noFeatureMessage = t('Requires discover feature.');
 
-  const renderDisabled = p => (
+  const renderDisabled = (p: any) => (
     <Hovercard
       body={
         <FeatureDisabled

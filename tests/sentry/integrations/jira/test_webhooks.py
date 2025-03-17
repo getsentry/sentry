@@ -236,7 +236,7 @@ class JiraWebhookBaseTest(TestCase):
         # This kind of error shouldn't be sent to Sentry
         assert mock_capture_exception.call_count == 0
 
-    @patch("sentry.api.base.Endpoint.handle_exception", return_value=Response())
+    @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
     def test_APIError_host_and_path_added_as_tags(self, mock_super_handle_exception: MagicMock):
         handler_error = ApiError("", url="http://maiseycharlie.jira.com/rest/api/3/dogs/tricks")
         mock_endpoint = MockErroringJiraEndpoint.as_view(error=handler_error)
@@ -244,7 +244,7 @@ class JiraWebhookBaseTest(TestCase):
         request = self.make_request(method="GET")
         mock_endpoint(request)
 
-        # signature is super().handle_exception(request, error, handler_context, scope)
+        # signature is super().handle_exception_with_details(request, error, handler_context, scope)
         assert (
             mock_super_handle_exception.call_args.args[3]._tags["jira.host"]
             == "maiseycharlie.jira.com"
@@ -254,7 +254,7 @@ class JiraWebhookBaseTest(TestCase):
             == "/rest/api/3/dogs/tricks"
         )
 
-    @patch("sentry.api.base.Endpoint.handle_exception", return_value=Response())
+    @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
     def test_handles_xml_as_error_message(self, mock_super_handle_exception: MagicMock):
         """Moves the XML to `handler_context` and replaces it with a human-friendly message"""
         xml_string = '<?xml version="1.0"?><status><code>500</code><message>PSQLException: too many connections</message></status>'
@@ -267,12 +267,12 @@ class JiraWebhookBaseTest(TestCase):
         request = self.make_request(method="GET")
         mock_endpoint(request)
 
-        # signature is super().handle_exception(request, error, handler_context, scope)
+        # signature is super().handle_exception_with_details(request, error, handler_context, scope)
         assert mock_super_handle_exception.call_args.args[1] == handler_error
         assert str(handler_error) == "Unknown error when requesting /rest/api/3/dogs/tricks"
         assert mock_super_handle_exception.call_args.args[2]["xml_response"] == xml_string
 
-    @patch("sentry.api.base.Endpoint.handle_exception", return_value=Response())
+    @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
     def test_handles_html_as_error_message(self, mock_super_handle_exception: MagicMock):
         """Moves the HTML to `handler_context` and replaces it with a human-friendly message"""
         html_strings = [
@@ -291,12 +291,12 @@ class JiraWebhookBaseTest(TestCase):
             request = self.make_request(method="GET")
             mock_endpoint(request)
 
-            # signature is super().handle_exception(request, error, handler_context, scope)
+            # signature is super().handle_exception_with_details(request, error, handler_context, scope)
             assert mock_super_handle_exception.call_args.args[1] == handler_error
             assert str(handler_error) == "Unknown error when requesting /rest/api/3/dogs/tricks"
             assert mock_super_handle_exception.call_args.args[2]["html_response"] == html_string
 
-    @patch("sentry.api.base.Endpoint.handle_exception", return_value=Response())
+    @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
     def test_replacement_error_messages(self, mock_super_handle_exception: MagicMock):
         replacement_messages_by_code = {
             429: "Rate limit hit when requesting /rest/api/3/dogs/tricks",
@@ -316,12 +316,12 @@ class JiraWebhookBaseTest(TestCase):
             request = self.make_request(method="GET")
             mock_endpoint(request)
 
-            # signature is super().handle_exception(request, error, handler_context, scope)
+            # signature is super().handle_exception_with_details(request, error, handler_context, scope)
             assert mock_super_handle_exception.call_args.args[1] == handler_error
             assert str(handler_error) == new_message
 
     @patch("sentry.integrations.jira.webhooks.base.logger")
-    @patch("sentry.api.base.Endpoint.handle_exception", return_value=Response())
+    @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
     def test_unexpected_jira_errors(
         self, mock_super_handle_exception: MagicMock, mock_logger: MagicMock
     ):

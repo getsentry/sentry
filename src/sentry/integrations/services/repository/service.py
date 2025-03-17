@@ -72,15 +72,6 @@ class RepositoryService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def reinstall_repositories_for_integration(
-        self, *, organization_id: int, integration_id: int, provider: str
-    ) -> None:
-        """
-        Reinstalls all repositories associated with the given integration by marking them as active.
-        """
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:

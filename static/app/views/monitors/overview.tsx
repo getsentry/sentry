@@ -4,11 +4,13 @@ import * as qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/button';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -20,7 +22,7 @@ import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -30,8 +32,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
+import useProjects from 'sentry/utils/useProjects';
 
 import {
   CronsLandingPanel,
@@ -41,6 +42,8 @@ import {
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {OwnerFilter} from './components/ownerFilter';
+import {MonitorProcessingErrors} from './components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from './components/processingErrors/utils';
 import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
@@ -56,6 +59,7 @@ export default function Monitors() {
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
   const project = decodeList(location.query?.project);
+  const {projects} = useProjects();
 
   const queryKey = makeMonitorListQueryKey(organization, location.query);
 
@@ -81,7 +85,7 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    const currentQuery = {...location.query, cursor: undefined};
     navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
@@ -95,8 +99,16 @@ export default function Monitors() {
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
+  const canCreateAlert =
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
   return (
-    <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
+    <SentryDocumentTitle title={t(`Crons`)} orgSlug={organization.slug}>
       <CronsListPageHeader organization={organization} />
       <Layout.Page>
         <Layout.Header>
@@ -124,11 +136,18 @@ export default function Monitors() {
                 }
                 analyticsEventKey="crons.bulk_edit_modal_button_clicked"
                 analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+                disabled={!canCreateAlert}
+                title={canCreateAlert ? undefined : permissionTooltipText}
               >
                 {t('Manage Monitors')}
               </Button>
               {showAddMonitor && (
-                <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
+                <NewMonitorButton
+                  size="sm"
+                  icon={<IconAdd isCircled />}
+                  disabled={!canCreateAlert}
+                  title={canCreateAlert ? undefined : permissionTooltipText}
+                >
                   {t('Add Monitor')}
                 </NewMonitorButton>
               )}

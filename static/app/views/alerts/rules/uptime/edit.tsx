@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -9,9 +11,9 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import type {UptimeAlert} from 'sentry/views/alerts/types';
 
@@ -25,7 +27,7 @@ type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 export function UptimeRulesEdit({params, onChangeTitle, organization, project}: Props) {
   const api = useApi();
@@ -57,9 +59,11 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
   if (isError) {
     if (error?.status === 404) {
       return (
-        <Alert type="error" showIcon>
-          {t('This alert rule could not be found.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('This alert rule could not be found.')}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -69,18 +73,29 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
   const handleDelete = async () => {
     try {
       await api.requestPromise(apiUrl, {method: 'DELETE'});
-      navigate(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
+      navigate(
+        makeAlertsPathname({
+          path: `/rules/`,
+          organization,
+        })
+      );
     } catch (_err) {
       addErrorMessage(t('Error deleting rule'));
     }
   };
 
   return (
-    <UptimeAlertForm
-      organization={organization}
-      project={project}
-      rule={rule}
-      handleDelete={handleDelete}
-    />
+    <Main fullWidth>
+      <UptimeAlertForm
+        organization={organization}
+        project={project}
+        rule={rule}
+        handleDelete={handleDelete}
+      />
+    </Main>
   );
 }
+
+const Main = styled(Layout.Main)`
+  max-width: 1000px;
+`;

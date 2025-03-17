@@ -15,8 +15,9 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
+import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
 
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -39,16 +40,32 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     meta,
   } = props;
 
+  if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
+    throw new Error(NON_FINITE_NUMBER_MESSAGE);
+  }
+
   const location = useLocation();
   const organization = useOrganization();
 
-  // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, meta as MetaType, false)
-    : renderableValue => renderableValue.toString();
+  const unit = meta?.unit;
+  const type = meta?.type;
 
-  const unit = meta?.units?.[field];
-  const type = meta?.fields?.[field];
+  // Create old-school renderer meta, so we can pass it to field renderers
+  const rendererMeta: MetaType = {
+    fields: {
+      [field]: type ?? undefined,
+    },
+  };
+
+  if (unit) {
+    rendererMeta.units = {
+      [field]: unit,
+    };
+  }
+
+  const fieldRenderer = meta
+    ? getFieldRenderer(field, rendererMeta, false)
+    : (renderableValue: any) => renderableValue.toString();
 
   const baggage = {
     location,
@@ -133,17 +150,28 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   );
 }
 
-function Wrapper({children}) {
+function Wrapper({children}: any) {
   return (
-    <AutoResizeParent>
-      <AutoSizedText>{children}</AutoSizedText>
-    </AutoResizeParent>
+    <GrowingWrapper>
+      <AutoResizeParent>
+        <AutoSizedText>{children}</AutoSizedText>
+      </AutoResizeParent>
+    </GrowingWrapper>
   );
 }
 
+// Takes up 100% of the parent. If within flex context, grows to fill.
+// Otherwise, takes up 100% horizontally and vertically
+const GrowingWrapper = styled('div')`
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+`;
+
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  inset: 0;
 
   color: ${p => p.theme.headingColor};
 
@@ -171,3 +199,12 @@ const NumberContainerOverride = styled('div')`
     white-space: nowrap;
   }
 `;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+BigNumberWidgetVisualization.LoadingPlaceholder = function () {
+  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+};

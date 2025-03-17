@@ -25,6 +25,7 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -162,17 +163,20 @@ class Chart extends Component<ChartProps, State> {
     return AreaChart;
   }
 
-  handleLegendSelectChanged = legendChange => {
+  handleLegendSelectChanged = (legendChange: any) => {
     const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
-    const seriesSelection = Object.keys(selected).reduce((state, key) => {
-      // we only want them to be able to disable the Releases&Other series,
-      // and not any of the other possible series here
-      const disableable =
-        ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
-      state[key] = disableable ? selected[key] : true;
-      return state;
-    }, {});
+    const seriesSelection = Object.keys(selected).reduce(
+      (state, key) => {
+        // we only want them to be able to disable the Releases&Other series,
+        // and not any of the other possible series here
+        const disableable =
+          ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
+        state[key] = disableable ? selected[key] : true;
+        return state;
+      },
+      {} as Record<string, boolean>
+    );
 
     // we have to force an update here otherwise ECharts will
     // update its internal state and disable the series
@@ -212,9 +216,14 @@ class Chart extends Component<ChartProps, State> {
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
-      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
       ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
+
+    if (defined(previousTimeseriesData)) {
+      data.push(
+        ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
+      );
+    }
 
     const releasesLegend = t('Releases');
 
@@ -223,7 +232,7 @@ class Chart extends Component<ChartProps, State> {
       data.push('Other');
     }
 
-    if (Array.isArray(releaseSeries)) {
+    if (Array.isArray(releaseSeries) && releaseSeries.length > 0) {
       data.push(releasesLegend);
     }
 
@@ -234,11 +243,11 @@ class Chart extends Component<ChartProps, State> {
       (releases as any)?.markLine?.data &&
       (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
 
-    const selected = !Array.isArray(releaseSeries)
-      ? seriesSelection
-      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+    const selected = Array.isArray(releaseSeries)
+      ? Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
         ? {[releasesLegend]: false}
-        : seriesSelection;
+        : seriesSelection
+      : seriesSelection;
 
     const legend = showLegend
       ? {
@@ -246,7 +255,7 @@ class Chart extends Component<ChartProps, State> {
           top: 12,
           data,
           selected,
-          ...(legendOptions ?? {}),
+          ...legendOptions,
         }
       : undefined;
 
@@ -265,9 +274,8 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? colors?.slice(0, series.length) ?? [
-          ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
-        ]
+      ? (colors?.slice(0, series.length) ??
+        getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice())
       : undefined;
     if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);
@@ -314,7 +322,7 @@ class Chart extends Component<ChartProps, State> {
               // Check to see if all series output types are the same. If not, then default to number.
               const outputType =
                 new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[yAxis]
+                  ? timeseriesResultsTypes[yAxis]!
                   : 'number';
               return axisLabelFormatterUsingAggregateOutputType(value, outputType);
             }
@@ -322,7 +330,7 @@ class Chart extends Component<ChartProps, State> {
           },
         },
       },
-      ...(chartOptionsProp ?? {}),
+      ...chartOptionsProp,
       animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 
@@ -607,7 +615,7 @@ class EventsChart extends Component<EventsChartProps> {
             additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxisArray[0]}
+            yAxis={yAxisArray[0]!}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}

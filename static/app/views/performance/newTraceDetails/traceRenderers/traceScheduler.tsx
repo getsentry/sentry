@@ -49,8 +49,7 @@ export class TraceScheduler {
 
   once<K extends keyof TraceEvents>(eventName: K, cb: TraceEvents[K]) {
     const wrapper = (...args: any[]) => {
-      // @ts-expect-error
-      cb(...args);
+      (cb as any)(...args);
       this.off(eventName, wrapper);
     };
 
@@ -77,8 +76,7 @@ export class TraceScheduler {
       return;
     }
 
-    // @ts-expect-error - filter out the callback
-    this.events[eventName] = arr.filter(a => a[1] !== cb) as unknown as Array<
+    (this.events as any)[eventName] = arr.filter(a => a[1] !== cb) as unknown as Array<
       [TraceEventPriority, K]
     >;
   }
@@ -88,8 +86,7 @@ export class TraceScheduler {
     ...args: ArgumentTypes<TraceEvents[K]>
   ): void {
     for (const [_priority, handler] of this.events[eventName]) {
-      // @ts-expect-error
-      handler(...args);
+      (handler as any)(...args);
     }
   }
 }

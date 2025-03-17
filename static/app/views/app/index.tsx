@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -22,9 +22,9 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
+import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -37,11 +37,9 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
-import SystemAlerts from './systemAlerts';
-
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{orgId?: string}, {}>;
+} & RouteComponentProps<{orgId?: string}>;
 
 const InstallWizard = lazy(
   () => import('sentry/views/admin/installWizard')
@@ -59,31 +57,18 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
+  const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
-  useHotkeys(
-    [
-      {
-        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        includeInputs: true,
-        callback: () => openCommandPalette(),
-      },
-    ],
-    []
-  );
+  const commandPaletteHotkeys = useMemo(() => {
+    return {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => openCommandPalette(),
+    };
+  }, []);
 
-  // Theme toggle global shortcut
-  useHotkeys(
-    [
-      {
-        match: ['command+shift+l', 'ctrl+shift+l'],
-        includeInputs: true,
-        callback: () =>
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
-      },
-    ],
-    [config.theme]
-  );
+  useHotkeys([commandPaletteHotkeys]);
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -141,6 +126,12 @@ function App({children, params}: Props) {
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
+    // Skip loading organization-related data before the user is logged in,
+    // because it triggers a 401 error in the UI.
+    if (!preloadData) {
+      return undefined;
+    }
+
     loadOrganizations();
     checkInternalHealth();
 
@@ -169,7 +160,7 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, user]);
+  }, [loadOrganizations, checkInternalHealth, config.messages, user, preloadData]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -237,6 +228,18 @@ function App({children, params}: Props) {
     return children;
   }
 
+  const renderOrganizationContextProvider = useCallback(
+    (content: React.ReactNode) => {
+      // Skip loading organization-related data before the user is logged in,
+      // because it triggers a 401 error in the UI.
+      if (!preloadData) {
+        return content;
+      }
+      return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
+    },
+    [preloadData]
+  );
+
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
@@ -245,20 +248,19 @@ function App({children, params}: Props) {
     <Profiler id="App" onRender={onRenderCallback}>
       <LastKnownRouteContextProvider>
         <RouteAnalyticsContextProvider>
-          <OrganizationContextProvider>
+          {renderOrganizationContextProvider(
             <AsyncSDKIntegrationContextProvider>
               <GlobalFeedbackForm>
                 <GlobalDrawer>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <GlobalModal onClose={handleModalClose} />
-                    <SystemAlerts className="messages-container" />
                     <Indicators className="indicators-container" />
                     <ErrorBoundary>{renderBody()}</ErrorBoundary>
                   </MainContainer>
                 </GlobalDrawer>
               </GlobalFeedbackForm>
             </AsyncSDKIntegrationContextProvider>
-          </OrganizationContextProvider>
+          )}
         </RouteAnalyticsContextProvider>
       </LastKnownRouteContextProvider>
     </Profiler>
@@ -272,5 +274,4 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
 `;

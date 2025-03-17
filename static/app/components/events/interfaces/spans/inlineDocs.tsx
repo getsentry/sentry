@@ -24,7 +24,9 @@ function InlineDocs({platform}: Props) {
   }
 
   const componentKey = Object.keys(DOC_COMPONENTS).find(key => platform.startsWith(key));
-  const DocComponent = componentKey ? DOC_COMPONENTS[componentKey] : null;
+  const DocComponent = componentKey
+    ? DOC_COMPONENTS[componentKey as keyof typeof DOC_COMPONENTS]
+    : null;
 
   return (
     <div>

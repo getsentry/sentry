@@ -5,9 +5,11 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import * as indicatorActions from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
+import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', function () {
   const {organization, routerProps} = initializeOrg();
@@ -74,7 +76,7 @@ describe('OrganizationSettingsForm', function () {
       'name'
     );
 
-    const model = saveOnBlur.mock.calls[0][1];
+    const model = saveOnBlur.mock.calls[0]![1];
 
     // Test "undo" call undo directly
     expect(model.getValue('name')).toBe('New Name');
@@ -168,5 +170,64 @@ describe('OrganizationSettingsForm', function () {
         },
       })
     );
+  });
+
+  it('can toggle hideAiFeatures setting', async function () {
+    putMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      body: {...organization, hideAiFeatures: true},
+    });
+
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture({hideAiFeatures: false})}
+        onSave={onSave}
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['autofix'],
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Hide AI Features'}));
+
+    expect(putMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/',
+      expect.objectContaining({
+        data: {
+          hideAiFeatures: true,
+        },
+      })
+    );
+  });
+
+  it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
+    // Mock the region util to return DE region
+    jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+      name: 'de',
+      displayName: 'Europe (Frankfurt)',
+      url: 'https://sentry.de.example.com',
+    }));
+
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture()}
+        onSave={onSave}
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['autofix'],
+        },
+      }
+    );
+
+    const toggle = screen.getByRole('checkbox', {name: 'Hide AI Features'});
+    expect(toggle).toBeDisabled();
   });
 });

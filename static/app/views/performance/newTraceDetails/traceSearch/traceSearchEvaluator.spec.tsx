@@ -36,6 +36,24 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   };
 }
 
+function makeEAPSpan(overrides: Partial<TraceTree.EAPSpan> = {}): TraceTree.EAPSpan {
+  return {
+    event_id: '',
+    op: '',
+    description: '',
+    start_timestamp: 0,
+    end_timestamp: 10,
+    is_transaction: false,
+    project_id: 1,
+    project_slug: 'project_slug',
+    transaction: '',
+    parent_span_id: null,
+    children: [],
+    duration: 10,
+    ...overrides,
+  } as TraceTree.EAPSpan;
+}
+
 function makeError(overrides: Partial<TraceTree.TraceError> = {}): TraceTree.TraceError {
   return {
     issue_id: 1,
@@ -104,7 +122,7 @@ describe('TraceSearchEvaluator', () => {
     });
     expect(cb.mock.calls[0][0][0]).toEqual([]);
     expect(cb.mock.calls[0][0][1].size).toBe(0);
-    expect(cb.mock.calls[0][0][2]).toBe(null);
+    expect(cb.mock.calls[0][0][2]).toBeNull();
   });
   it.each([
     [''],
@@ -129,7 +147,7 @@ describe('TraceSearchEvaluator', () => {
     });
     expect(cb.mock.calls[0][0][0]).toEqual([]);
     expect(cb.mock.calls[0][0][1].size).toBe(0);
-    expect(cb.mock.calls[0][0][2]).toBe(null);
+    expect(cb.mock.calls[0][0][2]).toBeNull();
   });
 
   it('AND query', async () => {
@@ -145,7 +163,7 @@ describe('TraceSearchEvaluator', () => {
     });
     expect(cb.mock.calls[0][0][1].size).toBe(1);
     expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-    expect(cb.mock.calls[0][0][2]).toBe(null);
+    expect(cb.mock.calls[0][0][2]).toBeNull();
   });
 
   it('OR query', async () => {
@@ -164,7 +182,7 @@ describe('TraceSearchEvaluator', () => {
       {index: 1, value: tree.list[1]},
     ]);
     expect(cb.mock.calls[0][0][1].size).toBe(2);
-    expect(cb.mock.calls[0][0][2]).toBe(null);
+    expect(cb.mock.calls[0][0][2]).toBeNull();
   });
 
   it('OR with AND respects precedence', async () => {
@@ -187,7 +205,7 @@ describe('TraceSearchEvaluator', () => {
       {index: 0, value: tree.list[0]},
       {index: 1, value: tree.list[1]},
     ]);
-    expect(cb.mock.calls[0][0][2]).toBe(null);
+    expect(cb.mock.calls[0][0][2]).toBeNull();
   });
 
   describe('transaction', () => {
@@ -202,7 +220,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('text filter with prefix', async () => {
@@ -213,7 +231,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('transaction.duration (milliseconds)', async () => {
@@ -227,7 +245,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('transaction.duration (seconds)', async () => {
@@ -241,7 +259,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('transaction.total_time', async () => {
@@ -255,11 +273,10 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
-    // For consistency between spans and txns, should should be implemented
-    // it('transaction.self_time', () => {});
+    // For consistency between spans and txns, `transaction.self_time` should be implemented
   });
 
   describe('span', () => {
@@ -271,7 +288,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('text filter with prefix', async () => {
@@ -282,7 +299,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('span.duration (milliseconds)', async () => {
@@ -296,7 +313,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('span.duration (seconds)', async () => {
@@ -310,7 +327,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
 
     it('span.total_time', async () => {
@@ -324,7 +341,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('span.self_time', async () => {
       const tree = makeTree([
@@ -337,7 +354,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('span.exclusive_time', async () => {
       const tree = makeTree([
@@ -350,7 +367,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('exclusive_time', async () => {
       const tree = makeTree([
@@ -363,7 +380,74 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+  });
+
+  // TODO Abdullah Khan: Add eap span tests for self_time/exclusive_time
+  describe('eap span', () => {
+    it('text filter', async () => {
+      const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
+
+      const cb = jest.fn();
+      search('op:db', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('text filter with prefix', async () => {
+      const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
+
+      const cb = jest.fn();
+      search('span.op:db', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('span.duration (milliseconds)', async () => {
+      const tree = makeTree([
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.duration:>500ms', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('span.duration (seconds)', async () => {
+      const tree = makeTree([
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.duration:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('span.total_time', async () => {
+      const tree = makeTree([
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
+        makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.total_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
   });
 
@@ -382,7 +466,7 @@ describe('TraceSearchEvaluator', () => {
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
         expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-        expect(cb.mock.calls[0][0][2]).toBe(null);
+        expect(cb.mock.calls[0][0][2]).toBeNull();
       });
       it.each(['issue', 'issues'])('%s (error on transaction)', async key => {
         const tree = makeTree([
@@ -397,7 +481,7 @@ describe('TraceSearchEvaluator', () => {
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
         expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-        expect(cb.mock.calls[0][0][2]).toBe(null);
+        expect(cb.mock.calls[0][0][2]).toBeNull();
       });
 
       it.each(['issue', 'issues'])('%s (performance issue on transaction)', async key => {
@@ -413,7 +497,7 @@ describe('TraceSearchEvaluator', () => {
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
         expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-        expect(cb.mock.calls[0][0][2]).toBe(null);
+        expect(cb.mock.calls[0][0][2]).toBeNull();
       });
       it.each(['profile', 'profiles'])('%s (profile on transaction)', async key => {
         const tree = makeTree([
@@ -428,7 +512,7 @@ describe('TraceSearchEvaluator', () => {
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
         expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-        expect(cb.mock.calls[0][0][2]).toBe(null);
+        expect(cb.mock.calls[0][0][2]).toBeNull();
       });
     });
   });
@@ -442,7 +526,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
     it('project.name -> project_slug', async () => {
       const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
@@ -452,7 +536,7 @@ describe('TraceSearchEvaluator', () => {
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
-      expect(cb.mock.calls[0][0][2]).toBe(null);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
     });
   });
 });

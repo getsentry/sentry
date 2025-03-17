@@ -23,14 +23,12 @@ from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -52,6 +50,14 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
+from sentry.workflow_engine.models.data_condition import DataCondition
+from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
+    assert_alert_rule_migrated,
+    assert_alert_rule_resolve_trigger_migrated,
+    assert_alert_rule_trigger_action_migrated,
+    assert_alert_rule_trigger_migrated,
+)
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -99,7 +105,6 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "activations": [],
         }
 
     @cached_property
@@ -132,7 +137,6 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "activations": [],
         }
 
 
@@ -178,43 +182,16 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
-    def test_filter_by_monitor_type(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        self.login_as(self.user)
-
-        params = {"monitor_type": 1}
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, **params)
-
-        assert serialize([alert_rule2]) not in resp.data
-        assert resp.data == serialize([alert_rule1])
-
     def test_response_headers(self):
         self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        self.create_alert_rule()
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug)
 
-        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
-
-    def test_simple_with_activation(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule()
-        self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-        )
-
-        self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug)
-
-        assert resp.data == serialize([alert_rule])
 
 
 @freeze_time()
@@ -254,24 +231,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             == list(audit_log_entry)[0].ip_address
         )
 
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        data = {
-            **self.alert_rule_dict,
-            "description": "yeehaw",
-        }
-
-        with outbox_runner():
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_create_alert_rule_aci(self):
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            self.alert_rule_dict["resolveThreshold"] = 50
             resp = self.get_success_response(
                 self.organization.slug,
                 status_code=201,
-                **data,
+                **self.alert_rule_dict,
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
+        actions = AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[trigger.id for trigger in triggers]
+        )
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.description == resp.data.get("description")
+        assert_alert_rule_migrated(alert_rule, self.project.id)
+        assert_alert_rule_trigger_migrated(triggers[0])
+        assert_alert_rule_trigger_migrated(triggers[1])
+        assert_alert_rule_resolve_trigger_migrated(alert_rule)
+        assert_alert_rule_trigger_action_migrated(actions[0], Action.Type.EMAIL)
+        assert_alert_rule_trigger_action_migrated(actions[1], Action.Type.EMAIL)
 
     @with_feature("organizations:incidents")
     def test_invalid_threshold_type(self):
@@ -344,6 +328,32 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request):
+        """
+        For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We
+        will repurpose this test once we have a plan in place to handle them.
+        """
+        data = self.dynamic_alert_rule_dict
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=resp.data["id"]).exists()
+        assert not DataCondition.objects.filter().exists()
+        assert not ActionAlertRuleTriggerAction.objects.filter().exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -425,37 +435,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
         assert resp.data[0] == INVALID_TIME_WINDOW
 
-    def test_monitor_type_with_condition(self):
-        data = {
-            **self.alert_rule_dict,
-            "monitorType": AlertRuleMonitorTypeInt.ACTIVATED,
-            "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
-        }
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents"]),
-        ):
-            err_resp = self.get_error_response(
-                self.organization.slug,
-                method=responses.POST,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                **data,
-            ).json()
-        assert err_resp == {"monitorType": ["Invalid monitor type"]}
-
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-
     def test_multiple_projects(self):
         new_project = self.create_project()
         data = {**self.alert_rule_dict, "projects": [self.project.slug, new_project.slug]}
@@ -488,7 +467,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
 
     def test_spm_function(self):
@@ -544,7 +522,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "span.module:db has:span.description"
         assert alert_rule.snuba_query.aggregate == "spm()"
 
@@ -601,7 +578,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "transaction.op:pageload"
         assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.fcp)"
 
@@ -806,8 +782,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **alert_rule)
 
-        assert resp.status_code == 400
-        assert error_message in resp.data["sentry_app"]
+        assert resp.status_code == 500
+        assert error_message in resp.data["detail"]
 
     def test_no_label(self):
         rule_one_trigger_no_label = {
@@ -1284,7 +1260,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -1309,66 +1284,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 assert "id" in resp.data
                 alert_rule = AlertRule.objects.get(id=resp.data["id"])
                 assert resp.data == serialize(alert_rule, self.user)
-
-    def test_alert_with_metric_mri(self):
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:mep-rollout-flag",
-                "organizations:dynamic-sampling",
-                "organizations:custom-metrics",
-            ]
-        ):
-            for mri in (
-                "sum(c:transactions/count_per_root_project@none)",
-                "p90(d:transactions/duration@millisecond)",
-                "p95(d:transactions/duration@millisecond)",
-                "count_unique(s:transactions/user@none)",
-                "avg(d:custom/sentry.process_profile.symbolicate.process@second)",
-            ):
-                test_params = {
-                    **self.alert_rule_dict,
-                    "aggregate": mri,
-                    "dataset": "generic_metrics",
-                }
-
-                resp = self.get_success_response(
-                    self.organization.slug,
-                    status_code=201,
-                    **test_params,
-                )
-
-                assert "id" in resp.data
-                alert_rule = AlertRule.objects.get(id=resp.data["id"])
-                assert resp.data == serialize(alert_rule, self.user)
-
-    def test_alert_with_metric_mri_on_wrong_dataset(self):
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:mep-rollout-flag",
-                "organizations:dynamic-sampling",
-                "organizations:custom-metrics",
-            ]
-        ):
-            test_params = {
-                **self.alert_rule_dict,
-                "aggregate": "sum(c:sessions/session@none)",
-                "dataset": "metrics",
-            }
-
-            resp = self.get_error_response(
-                self.organization.slug,
-                status_code=400,
-                **test_params,
-            )
-
-            assert (
-                resp.data["nonFieldErrors"][0]
-                == "You can use an MRI only on alerts on performance metrics"
-            )
 
     def test_post_rule_256_char_name(self):
         char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"

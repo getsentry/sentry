@@ -19,7 +19,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
@@ -110,7 +109,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_needs_authentication(self):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
@@ -120,7 +118,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert resp.json()["needsAuthentication"]
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_not_needs_authentication(self):
         self.login_as(self.user)
 
@@ -132,7 +129,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert not resp.json()["needsAuthentication"]
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
         assert not self.user.has_2fa()
@@ -150,7 +146,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_in_session(om)
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_multi_region_organizationmember_id(self):
         org_region_name = OrganizationMapping.objects.get(
             organization_id=self.organization.id
@@ -214,7 +209,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             )
         assert resp.status_code == 400
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()
         self._enroll_user_in_2fa(self.user)
@@ -231,7 +225,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_user_can_use_sso(self):
         AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
         self.login_as(self.user)

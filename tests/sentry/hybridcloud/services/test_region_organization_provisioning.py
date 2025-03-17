@@ -7,6 +7,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
 from sentry.hybridcloud.services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -22,6 +23,7 @@ from sentry.services.organization import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
 from sentry.users.models.user import User
 
@@ -137,6 +139,19 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             )
         assert not provisioning_user_memberships.exists()
 
+    def test_truncates_name_when_too_long(self) -> None:
+        user = self.create_user()
+        provision_options = self.get_provisioning_args(user)
+        provision_options.provision_options.name = "a" * 128
+        result = region_organization_provisioning_rpc_service.create_organization_in_region(
+            organization_id=42, provision_payload=provision_options, region_name="us"
+        )
+
+        assert result is True
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=42)
+            assert org.name == "a" * 64
+
     def test_does_not_provision_and_returns_false_when_conflicting_org_with_different_owner(
         self,
     ) -> None:
@@ -195,6 +210,41 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         with assume_test_silo_mode(SiloMode.REGION):
             assert not Organization.objects.filter(id=organization_id).exists()
+
+    def setup_experiment_options(self) -> int:
+        user = self.create_user()
+        provision_options = self.get_provisioning_args(user)
+        organization_id = 42
+        region_organization_provisioning_rpc_service.create_organization_in_region(
+            organization_id=organization_id,
+            provision_payload=provision_options,
+            region_name="us",
+        )
+        return organization_id
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 1.0})
+    def test_organization_experiment_rollout_with_split(self) -> None:
+        organization_id = self.setup_experiment_options()
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=organization_id)
+            assert OrganizationOption.objects.get_value(org, "sentry:streamline_ui_only")
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 0.0})
+    def test_organization_experiment_rollout_without_split(self) -> None:
+        organization_id = self.setup_experiment_options()
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=organization_id)
+            assert not OrganizationOption.objects.get_value(org, "sentry:streamline_ui_only")
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 0.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 1.0})
+    def test_organization_experiment_no_rollout_ignores_split(self) -> None:
+        organization_id = self.setup_experiment_options()
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=organization_id)
+            assert OrganizationOption.objects.get_value(org, "sentry:streamline_ui_only") is None
 
 
 @control_silo_test(regions=create_test_regions("us"))

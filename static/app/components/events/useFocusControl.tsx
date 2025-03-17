@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import type {BreadcrumbControlOptions} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import type {FlagControlOptions} from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import type {FlagControlOptions} from 'sentry/components/events/featureFlags/utils';
 
 type FocusControlOption = BreadcrumbControlOptions | FlagControlOptions;
 

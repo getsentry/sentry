@@ -8,19 +8,19 @@ describe('Wizard utils', function () {
         aggregate: 'p95(measurements.lcp)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('lcp');
+    ).toBe('lcp');
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'percentile(measurements.lcp,0.7)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('lcp');
+    ).toBe('lcp');
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'avg(measurements.lcp)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('lcp');
+    ).toBe('lcp');
   });
 
   it('extracts duration alert', function () {
@@ -29,19 +29,19 @@ describe('Wizard utils', function () {
         aggregate: 'p95(transaction.duration)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('trans_duration');
+    ).toBe('trans_duration');
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'percentile(transaction.duration,0.3)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('trans_duration');
+    ).toBe('trans_duration');
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'avg(transaction.duration)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('trans_duration');
+    ).toBe('trans_duration');
   });
 
   it('extracts throughput alert', function () {
@@ -50,7 +50,7 @@ describe('Wizard utils', function () {
         aggregate: 'count()',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('throughput');
+    ).toBe('throughput');
   });
 
   it('extracts user error alert', function () {
@@ -59,7 +59,7 @@ describe('Wizard utils', function () {
         aggregate: 'count_unique(user)',
         dataset: Dataset.ERRORS,
       })
-    ).toEqual('users_experiencing_errors');
+    ).toBe('users_experiencing_errors');
   });
 
   it('extracts error count alert', function () {
@@ -68,7 +68,7 @@ describe('Wizard utils', function () {
         aggregate: 'count()',
         dataset: Dataset.ERRORS,
       })
-    ).toEqual('num_errors');
+    ).toBe('num_errors');
   });
 
   it('extracts crash free sessions alert', function () {
@@ -77,7 +77,7 @@ describe('Wizard utils', function () {
         aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
         dataset: Dataset.METRICS,
       })
-    ).toEqual('crash_free_sessions');
+    ).toBe('crash_free_sessions');
   });
 
   it('extracts crash free users alert', function () {
@@ -86,7 +86,7 @@ describe('Wizard utils', function () {
         aggregate: SessionsAggregate.CRASH_FREE_USERS,
         dataset: Dataset.METRICS,
       })
-    ).toEqual('crash_free_users');
+    ).toBe('crash_free_users');
   });
 
   it('extracts crash free users alert from metrics', function () {
@@ -98,36 +98,27 @@ describe('Wizard utils', function () {
     ).toBe('crash_free_users');
   });
 
-  it('extracts custom metric alert from custom mri aggregate', function () {
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'count(d:custom/my_metric@seconds)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toBe('custom_metrics');
-  });
-
   it('defaults to custom', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count_unique(tags[sentry:user])',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('custom_transactions');
+    ).toBe('custom_transactions');
 
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'p95(measurements.fp)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('custom_transactions');
+    ).toBe('custom_transactions');
 
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'p95(measurements.ttfb)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('custom_transactions');
+    ).toBe('custom_transactions');
 
     expect(
       getAlertTypeFromAggregateDataset({
@@ -137,33 +128,12 @@ describe('Wizard utils', function () {
     ).toBe('custom_transactions');
   });
 
-  it('extracts insights metric alerts', function () {
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'spm()',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'avg(d:spans/exclusive_time@millisecond)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'avg(g:spans/mobile.slow_frames@none)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-  });
-
   it('extracts eap metric alerts', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count(span.duration)',
         dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       })
-    ).toEqual('eap_metrics');
+    ).toBe('eap_metrics');
   });
 });

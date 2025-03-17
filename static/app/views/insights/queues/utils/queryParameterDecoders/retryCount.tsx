@@ -19,5 +19,5 @@ export default function decode(value: string | string[] | undefined | null): Ret
 
 function isAValidOption(maybeOption: string): maybeOption is RetryCount {
   // Manually widen to allow the comparison to string
-  return (OPTIONS as unknown as string[]).includes(maybeOption as RetryCount);
+  return (OPTIONS as unknown as string[]).includes(maybeOption);
 }

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import Avatar from 'sentry/components/avatar';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -44,7 +44,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
       </StyledBox>
       <AvatarContainer>
         {actor && (
-          <Avatar
+          <UserAvatar
             user={actor}
             hasTooltip
             tooltip={t('Discarded by %s', actor.name || actor.email)}

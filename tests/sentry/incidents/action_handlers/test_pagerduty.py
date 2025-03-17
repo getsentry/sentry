@@ -16,6 +16,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
@@ -31,6 +32,7 @@ from . import FireTest
 class PagerDutyActionHandlerTest(FireTest):
     def setUp(self):
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        self.handler = PagerDutyActionHandler()
         service = [
             {
                 "type": "service",
@@ -79,11 +81,14 @@ class PagerDutyActionHandlerTest(FireTest):
         metric_value = 1000
         notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            incident,
-            self.integration_key,
-            IncidentStatus(incident.status),
-            metric_value,
-            notification_uuid,
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            integration_key=self.integration_key,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
 
         assert data["routing_key"] == self.integration_key
@@ -133,11 +138,14 @@ class PagerDutyActionHandlerTest(FireTest):
         metric_value = 1000
         notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            incident,
-            self.integration_key,
-            IncidentStatus(incident.status),
-            metric_value,
-            notification_uuid,
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            integration_key=self.integration_key,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
 
         assert data["routing_key"] == self.integration_key
@@ -169,17 +177,31 @@ class PagerDutyActionHandlerTest(FireTest):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(self.action, incident, self.project)
+
         metric_value = 1000
         new_status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, new_status)
+            getattr(self.handler, method)(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=new_status,
+            )
         data = responses.calls[0].request.body
 
         expected_payload = build_incident_attachment(
-            incident, self.service["integration_key"], new_status, metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            organization=incident.organization,
+            snuba_query=incident.alert_rule.snuba_query,
+            integration_key=self.integration_key,
+            new_status=new_status,
+            metric_value=metric_value,
         )
-        expected_payload = attach_custom_severity(expected_payload, self.action, new_status)
+        expected_payload = attach_custom_severity(
+            expected_payload, self.action.sentry_app_config, new_status
+        )
 
         assert json.loads(data) == expected_payload
 
@@ -229,10 +251,15 @@ class PagerDutyActionHandlerTest(FireTest):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
 
@@ -260,3 +287,9 @@ class PagerDutyActionHandlerTest(FireTest):
     def test_custom_severity_resolved(self):
         self.action.update(sentry_app_config={"priority": "critical"})
         self.run_fire_test("resolve")
+
+    @responses.activate
+    def test_custom_severity_with_default_severity(self):
+        # default closed incident severity is info, setting severity to default should be ignored
+        self.action.update(sentry_app_config={"priority": "default"})
+        self.run_fire_test(status=IncidentStatus.CRITICAL)

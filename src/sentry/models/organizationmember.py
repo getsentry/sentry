@@ -503,6 +503,13 @@ class OrganizationMember(ReplicatedRegionModel):
             ).values("team"),
         )
 
+    def get_team_roles(self):
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+
+        return OrganizationMemberTeam.objects.filter(
+            organizationmember=self, is_active=True
+        ).values("team", "role")
+
     def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership
         role = organization_roles.get(self.role)

@@ -3,7 +3,7 @@ import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {Frame} from '../frame';
 
-import {firstCallee, makeTestingBoilerplate} from './profile.spec';
+import {firstCallee, makeTestingBoilerplate} from './testUtils';
 
 describe('SampledProfile', () => {
   it('imports the base properties', () => {
@@ -86,7 +86,7 @@ describe('SampledProfile', () => {
       createFrameIndex('mobile', [{name: 'f0'}]),
       {type: 'flamechart'}
     );
-    expect(profile.rawWeights.length).toBe(2);
+    expect(profile.rawWeights).toHaveLength(2);
   });
 
   it('rebuilds the stack', () => {
@@ -123,13 +123,13 @@ describe('SampledProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
-    const root = firstCallee(profile.callTree);
+    const root = firstCallee(profile.callTree)!;
 
-    expect(root.totalWeight).toEqual(2);
-    expect(firstCallee(root).totalWeight).toEqual(2);
+    expect(root.totalWeight).toBe(2);
+    expect(firstCallee(root)!.totalWeight).toBe(2);
 
-    expect(root.selfWeight).toEqual(0);
-    expect(firstCallee(root).selfWeight).toEqual(2);
+    expect(root.selfWeight).toBe(0);
+    expect(firstCallee(root)!.selfWeight).toBe(2);
   });
 
   it('marks direct recursion', () => {
@@ -150,7 +150,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)!)!.recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -171,7 +171,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree)!)!)!.recursive).toBe(
       true
     );
   });
@@ -226,14 +226,18 @@ describe('SampledProfile', () => {
     );
 
     // GC gets places on top of the previous stack and the weight is updated
-    expect(profile.callTree.children[0].children[0].frame.name).toBe('f1 [native code]');
+    expect(profile.callTree.children[0]!.children[0]!.frame.name).toBe(
+      'f1 [native code]'
+    );
     // The total weight of the previous top is now the weight of the GC call + the weight of the previous top
-    expect(profile.callTree.children[0].children[0].frame.totalWeight).toBe(4);
-    expect(profile.callTree.children[0].children[0].children[0].frame.name).toBe(
+    expect(profile.callTree.children[0]!.children[0]!.frame.totalWeight).toBe(4);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.name).toBe(
       '(garbage collector) [native code]'
     );
     // The self weight of the GC call is only the weight of the GC call
-    expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
+      3
+    );
   });
 
   it('places garbage collector calls on top of previous stack and skips stack', () => {
@@ -292,11 +296,11 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].children[0].children.length).toBe(2);
-    expect(profile.callTree.children[0].children[0].children[0].frame.name).toBe(
+    expect(profile.callTree.children[0]!.children[0]!.children).toHaveLength(2);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.name).toBe(
       'f2 [native code]'
     );
-    expect(profile.callTree.children[0].children[0].children[1].frame.name).toBe(
+    expect(profile.callTree.children[0]!.children[0]!.children[1]!.frame.name).toBe(
       '(garbage collector) [native code]'
     );
   });
@@ -329,8 +333,10 @@ describe('SampledProfile', () => {
     );
 
     // There are no other children than the GC call meaning merge happened
-    expect(profile.callTree.children[0].children[0].children[1]).toBe(undefined);
-    expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
+    expect(profile.callTree.children[0]!.children[0]!.children[1]).toBeUndefined();
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
+      6
+    );
   });
 
   it('flamegraph tracks node occurrences', () => {
@@ -351,8 +357,8 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(3);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 
   it('filters frames', () => {
@@ -383,9 +389,9 @@ describe('SampledProfile', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
-    expect(profile.callTree.children[0].children).toHaveLength(0);
+    expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });
 
   it('aggregates durations for flamegraph', () => {
@@ -412,12 +418,12 @@ describe('SampledProfile', () => {
       }
     );
 
-    expect(profile.callTree.children[0].frame.name).toBe('f0');
-    expect(profile.callTree.children[0].aggregate_duration_ns).toBe(15);
-    expect(profile.callTree.children[0].children[0].aggregate_duration_ns).toBe(10);
-    expect(profile.callTree.children[0].children[1].aggregate_duration_ns).toBe(5);
-    expect(profile.callTree.children[0].frame.aggregateDuration).toBe(15);
-    expect(profile.callTree.children[0].children[0].frame.aggregateDuration).toBe(10);
-    expect(profile.callTree.children[0].children[1].frame.aggregateDuration).toBe(5);
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
+    expect(profile.callTree.children[0]!.aggregate_duration_ns).toBe(15);
+    expect(profile.callTree.children[0]!.children[0]!.aggregate_duration_ns).toBe(10);
+    expect(profile.callTree.children[0]!.children[1]!.aggregate_duration_ns).toBe(5);
+    expect(profile.callTree.children[0]!.frame.aggregateDuration).toBe(15);
+    expect(profile.callTree.children[0]!.children[0]!.frame.aggregateDuration).toBe(10);
+    expect(profile.callTree.children[0]!.children[1]!.frame.aggregateDuration).toBe(5);
   });
 });

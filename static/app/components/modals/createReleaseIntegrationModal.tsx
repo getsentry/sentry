@@ -12,7 +12,7 @@ import useApi from 'sentry/utils/useApi';
 
 export type CreateReleaseIntegrationModalOptions = {
   onCancel: () => void;
-  onCreateSuccess: (integration) => void;
+  onCreateSuccess: (integration: any) => void;
   organization: Organization;
   project: Project;
 };

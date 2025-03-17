@@ -1,13 +1,29 @@
 ---
-created: '2024-10-28T14:02:49.603735+00:00'
+created: '2024-12-17T22:49:57.218241+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: violation
+hashing_metadata: {
+  "blocked_host": "use.fontawesome.com",
+  "csp_directive": "style-src-elem",
+  "security_report_type": "csp"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "csp"
+  }
+}
 ---
 contributing variants:
   default*
     hash: "537a973f594c364842893e9a72af62a5"
+    contributing component: csp
     component:
       default*
         csp*

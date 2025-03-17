@@ -42,7 +42,7 @@ def properties(request) -> Properties:
         if backend_label == "default":
             from sentry.cache import default_cache as cache
         else:
-            raise ValueError("unknown cache backend label")
+            raise AssertionError("unknown cache backend label")
 
         return Properties(
             CacheKVStorage(cache),
@@ -77,7 +77,7 @@ def properties(request) -> Properties:
             values=itertools.count(),
         )
     else:
-        raise ValueError("unknown kvstore label")
+        raise AssertionError("unknown kvstore label")
 
 
 def test_single_key_operations(properties: Properties) -> None:

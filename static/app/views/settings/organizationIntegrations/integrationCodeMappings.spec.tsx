@@ -42,16 +42,16 @@ describe('IntegrationCodeMappings', function () {
   ];
 
   const pathConfig1 = RepositoryProjectPathConfigFixture({
-    project: projects[0],
-    repo: repos[0],
+    project: projects[0]!,
+    repo: repos[0]!,
     integration,
     stackRoot: 'stack/root',
     sourceRoot: 'source/root',
   });
 
   const pathConfig2 = RepositoryProjectPathConfigFixture({
-    project: projects[1],
-    repo: repos[1],
+    project: projects[1]!,
+    repo: repos[1]!,
     integration,
     id: '12',
     stackRoot: 'one/path',
@@ -100,8 +100,8 @@ describe('IntegrationCodeMappings', function () {
       url,
       method: 'POST',
       body: RepositoryProjectPathConfigFixture({
-        project: projects[1],
-        repo: repos[1],
+        project: projects[1]!,
+        repo: repos[1]!,
         integration,
         stackRoot,
         sourceRoot,
@@ -114,8 +114,11 @@ describe('IntegrationCodeMappings', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    await selectEvent.select(screen.getByText('Choose Sentry project'), projects[1].slug);
-    await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
+    await selectEvent.select(
+      screen.getByText('Choose Sentry project'),
+      projects[1]!.slug
+    );
+    await selectEvent.select(screen.getByText('Choose repo'), repos[1]!.name);
 
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Stack Trace Root'}),
@@ -135,8 +138,8 @@ describe('IntegrationCodeMappings', function () {
       url,
       expect.objectContaining({
         data: expect.objectContaining({
-          projectId: projects[1].id,
-          repositoryId: repos[1].id,
+          projectId: projects[1]!.id,
+          repositoryId: repos[1]!.id,
           stackRoot,
           sourceRoot,
           defaultBranch,
@@ -155,8 +158,8 @@ describe('IntegrationCodeMappings', function () {
       url,
       method: 'PUT',
       body: RepositoryProjectPathConfigFixture({
-        project: projects[0],
-        repo: repos[0],
+        project: projects[0]!,
+        repo: repos[0]!,
         integration,
         stackRoot,
         sourceRoot,
@@ -166,7 +169,7 @@ describe('IntegrationCodeMappings', function () {
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
     const {waitForModalToHide} = renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]!);
     await userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Stack Trace Root'}),
@@ -196,8 +199,8 @@ describe('IntegrationCodeMappings', function () {
       body: {
         repos: [
           {
-            id: repos[0].id,
-            identifier: repos[1].name,
+            id: repos[0]!.id,
+            identifier: repos[1]!.name,
             defaultBranch: 'main',
           },
         ],
@@ -209,7 +212,7 @@ describe('IntegrationCodeMappings', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('master');
 
-    await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
+    await selectEvent.select(screen.getByText('Choose repo'), repos[1]!.name);
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
     });

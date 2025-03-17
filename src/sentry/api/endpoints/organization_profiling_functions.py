@@ -71,7 +71,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def has_feature(self, organization: Organization, request: Request):
         return features.has(
@@ -100,7 +99,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
-                    "examples()",
                 ],
                 query=data.get("query"),
                 snuba_params=snuba_params,
@@ -135,7 +133,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # It's possible to override the columns via
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
-                    timeseries_columns=[data["function"], "examples()"],
+                    timeseries_columns=[data["function"], "examples()", "all_examples()"],
                     config=QueryBuilderConfig(
                         skip_tag_resolution=True,
                     ),
@@ -196,7 +194,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
-            additional_query_column="examples()",
+            additional_query_columns=["examples()", "all_examples()"],
             snuba_params=snuba_params,
             query=data.get("query"),
         )
@@ -244,9 +242,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 key = f"{result['project']},{result['transaction']}"
                 formatted_result = {
                     "stats": stats_data[key][data["function"]],
-                    "worst": [
+                    "worst": [  # deprecated, migrate to `examples`
                         (ts, data[0]["count"][0])
                         for ts, data in stats_data[key]["examples()"]["data"]
+                        if data[0]["count"]  # filter out entries without an example
+                    ],
+                    "examples": [
+                        (ts, data[0]["count"][0])
+                        for ts, data in stats_data[key]["all_examples()"]["data"]
                         if data[0]["count"]  # filter out entries without an example
                     ],
                 }
@@ -269,7 +272,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()", "examples()"]
+                        for k in ["fingerprint", "package", "function", "count()"]
                     }
                 )
                 formatted_results.append(formatted_result)

@@ -13,6 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 
+import {CronRulesEdit} from './rules/crons/edit';
 import IssueEditor from './rules/issue';
 import {MetricRulesEdit} from './rules/metric/edit';
 import {UptimeRulesEdit} from './rules/uptime/edit';
@@ -23,7 +24,7 @@ type RouteParams = {
   ruleId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   hasUptimeAlerts: boolean;
   members: Member[] | undefined;
@@ -40,6 +41,7 @@ function ProjectAlertsEditor(props: Props) {
   const alertTypeUrls = [
     {url: '/alerts/metric-rules/', type: CombinedAlertType.METRIC},
     {url: '/alerts/uptime-rules/', type: CombinedAlertType.UPTIME},
+    {url: '/alerts/crons-rules/', type: CombinedAlertType.CRONS},
     {url: '/alerts/rules/', type: CombinedAlertType.ISSUE},
   ] as const;
 
@@ -78,7 +80,9 @@ function ProjectAlertsEditor(props: Props) {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        {!teamsLoading ? (
+        {teamsLoading ? (
+          <LoadingIndicator />
+        ) : (
           <Fragment>
             {alertType === CombinedAlertType.ISSUE && (
               <IssueEditor
@@ -105,9 +109,10 @@ function ProjectAlertsEditor(props: Props) {
                 userTeamIds={teams.map(({id}) => id)}
               />
             )}
+            {alertType === CombinedAlertType.CRONS && (
+              <CronRulesEdit {...props} project={project} onChangeTitle={setTitle} />
+            )}
           </Fragment>
-        ) : (
-          <LoadingIndicator />
         )}
       </Layout.Body>
     </Fragment>

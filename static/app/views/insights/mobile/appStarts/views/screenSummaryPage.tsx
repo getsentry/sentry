@@ -2,22 +2,18 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -25,7 +21,8 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
   COLD_START_TYPE,
@@ -34,7 +31,6 @@ import {
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -56,43 +52,24 @@ export function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
   const organization = useOrganization();
-  const crumbs = useModuleBreadcrumbs('app_start');
-  const {isInDomainView} = useDomainViewFilters();
 
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Screen Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>{transactionName}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
-        {isInDomainView && (
-          <MobileHeader
-            hideDefaultTabs={isMobileScreensEnabled}
-            module={
-              isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
-            }
-            headerTitle={transactionName}
-            breadcrumbs={[
-              {
-                label: t('Screen Summary'),
-              },
-            ]}
-          />
-        )}
+        <MobileHeader
+          hideDefaultTabs={isMobileScreensEnabled}
+          module={
+            isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
+          }
+          headerTitle={transactionName}
+          breadcrumbs={[
+            {
+              label: t('Screen Summary'),
+            },
+          ]}
+        />
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -105,41 +82,64 @@ export function ScreenSummary() {
 }
 
 export function ScreenSummaryContentPage() {
+  const navigate = useNavigate();
   const location = useLocation<Query>();
-  const router = useRouter();
 
   const {
-    primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanGroup,
-    spanDescription,
-    spanOp,
     [SpanMetricsField.APP_START_TYPE]: appStartType,
-    'device.class': deviceClass,
   } = location.query;
+
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   useEffect(() => {
     // Default the start type to cold start if not present
     if (!appStartType) {
-      browserHistory.replace({
-        ...location,
-        query: {
-          ...location.query,
-          [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+          },
         },
-      });
+        {replace: true}
+      );
     }
-  }, [location, appStartType]);
+  }, [location, appStartType, navigate]);
+
+  useSamplesDrawer({
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.APP_START} />,
+    moduleName: ModuleName.APP_START,
+    requiredParams: [
+      'transaction',
+      'spanGroup',
+      'spanOp',
+      SpanMetricsField.APP_START_TYPE,
+    ],
+    onClose: () => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: omit(
+            location.query,
+            'spanGroup',
+            'transactionMethod',
+            'spanDescription',
+            'spanOp'
+          ),
+        },
+        {replace: true}
+      );
+    },
+  });
 
   return (
     <Fragment>
       <HeaderContainer>
         <ToolRibbon>
-          <PageFilterBar condensed>
-            <EnvironmentPageFilter />
-            <DatePageFilter />
-          </PageFilterBar>
+          <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
           <ReleaseComparisonSelector />
           <StartTypeSelector />
         </ToolRibbon>
@@ -206,42 +206,13 @@ export function ScreenSummaryContentPage() {
       <SamplesContainer>
         <SamplesTables transactionName={transactionName} />
       </SamplesContainer>
-      {spanGroup && spanOp && appStartType && (
-        <SpanSamplesPanel
-          additionalFilters={{
-            [SpanMetricsField.APP_START_TYPE]: appStartType,
-            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-          }}
-          groupId={spanGroup}
-          moduleName={ModuleName.APP_START}
-          transactionName={transactionName}
-          spanDescription={spanDescription}
-          spanOp={spanOp}
-          onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(
-                router.location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            });
-          }}
-        />
-      )}
     </Fragment>
   );
 }
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="app_start"
-      pageTitle={t('Screen Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="app_start" pageTitle={t('Screen Summary')}>
       <ScreenSummary />
     </ModulePageProviders>
   );

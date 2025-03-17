@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar
 
-from sentry import features
+from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import AbstractOnboardingTask
 from sentry.utils.services import Service
 
@@ -26,9 +26,7 @@ class OnboardingTaskBackend(Service, Generic[T]):
     def get_status_lookup_by_key(self, key):
         return self.Model.STATUS_LOOKUP_BY_KEY.get(key)
 
-    def get_skippable_tasks(self, organization):
-        if features.has("organizations:quick-start-updates", organization):
-            return self.Model.NEW_SKIPPABLE_TASKS
+    def get_skippable_tasks(self, organization: Organization):
         return self.Model.SKIPPABLE_TASKS
 
     def fetch_onboarding_tasks(self, organization, user):
@@ -37,5 +35,5 @@ class OnboardingTaskBackend(Service, Generic[T]):
     def create_or_update_onboarding_task(self, organization, user, task, values):
         raise NotImplementedError
 
-    def try_mark_onboarding_complete(self, organization_id):
+    def try_mark_onboarding_complete(self, organization_id: int):
         raise NotImplementedError

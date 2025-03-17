@@ -20,6 +20,7 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
 }
 
 // in milliseconds
+export const YEAR = 31536000000;
 export const MONTH = 2629800000;
 export const WEEK = 604800000;
 export const DAY = 86400000;

@@ -14,6 +14,8 @@ from sentry.api.serializers import serialize
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppsBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
@@ -46,25 +48,11 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
             if not elevated_user:
-                queryset = queryset.filter(
-                    owner_id__in=[
-                        o.id
-                        for o in user_service.get_organizations(
-                            user_id=request.user.id, only_visible=True
-                        )
-                    ]
-                )
+                queryset = self._filter_queryset_for_user(queryset, request.user.id)
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
             if not elevated_user:
-                queryset = queryset.filter(
-                    owner_id__in=[
-                        o.id
-                        for o in user_service.get_organizations(
-                            user_id=request.user.id, only_visible=True
-                        )
-                    ]
-                )
+                queryset = self._filter_queryset_for_user(queryset, request.user.id)
         else:
             if elevated_user:
                 queryset = SentryApp.objects.all()
@@ -83,22 +71,22 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         data = {
-            "name": request.json_body.get("name"),
+            "name": request.data.get("name"),
             "user": request.user,
-            "author": request.json_body.get("author"),
+            "author": request.data.get("author"),
             "organization": organization,
-            "webhookUrl": request.json_body.get("webhookUrl"),
-            "redirectUrl": request.json_body.get("redirectUrl"),
-            "isAlertable": request.json_body.get("isAlertable"),
-            "isInternal": request.json_body.get("isInternal"),
-            "verifyInstall": request.json_body.get("verifyInstall"),
-            "scopes": request.json_body.get("scopes", []),
-            "events": request.json_body.get("events", []),
-            "schema": request.json_body.get("schema", {}),
-            "overview": request.json_body.get("overview"),
-            "allowedOrigins": request.json_body.get("allowedOrigins", []),
+            "webhookUrl": request.data.get("webhookUrl"),
+            "redirectUrl": request.data.get("redirectUrl"),
+            "isAlertable": request.data.get("isAlertable"),
+            "isInternal": request.data.get("isInternal"),
+            "verifyInstall": request.data.get("verifyInstall"),
+            "scopes": request.data.get("scopes", []),
+            "events": request.data.get("events", []),
+            "schema": request.data.get("schema", {}),
+            "overview": request.data.get("overview"),
+            "allowedOrigins": request.data.get("allowedOrigins", []),
             "popularity": (
-                request.json_body.get("popularity") if is_active_superuser(request) else None
+                request.data.get("popularity") if is_active_superuser(request) else None
             ),
         }
 
@@ -168,8 +156,17 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 analytics.record(name, **log_info)
         return Response(serializer.errors, status=400)
 
+    def _filter_queryset_for_user(self, queryset: BaseQuerySet[SentryApp, SentryApp], user_id: int):
+        owner_ids = []
+        for o in user_service.get_organizations(user_id=user_id, only_visible=True):
+            org_context = organization_service.get_organization_by_id(id=o.id, user_id=user_id)
+            if org_context and org_context.member and "org:read" in org_context.member.scopes:
+                owner_ids.append(o.id)
+
+        return queryset.filter(owner_id__in=owner_ids)
+
     def _has_hook_events(self, request: Request):
-        if not request.json_body.get("events"):
+        if not request.data.get("events"):
             return False
 
-        return "error" in request.json_body["events"]
+        return "error" in request.data["events"]

@@ -216,9 +216,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
-    enabled_copilot = features.has("projects:ai-autofix", project) or features.has(
-        "organizations:autofix", organization
-    )
+    enabled_copilot = features.has("organizations:gen-ai-features", organization)
     github_copilot_actions = (
         [
             {

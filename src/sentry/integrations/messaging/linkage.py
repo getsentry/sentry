@@ -36,6 +36,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view, region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -642,6 +643,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
                     "team": team,
                     "channel_name": channel_name,
                     "provider": integration.get_provider(),
+                    "react_config": get_client_config(request, self.active_organization),
                 },
             )
 
@@ -673,5 +675,6 @@ class UnlinkTeamView(TeamLinkageView, ABC):
                 "body_text": SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
+                "react_config": get_client_config(request, self.active_organization),
             },
         )

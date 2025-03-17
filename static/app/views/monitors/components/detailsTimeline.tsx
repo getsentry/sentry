@@ -1,38 +1,49 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
 } from 'sentry/actionCreators/monitors';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {Monitor} from 'sentry/views/monitors/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {Monitor, MonitorBucket} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
+import {useMonitorStats} from './../utils/useMonitorStats';
 import {OverviewRow} from './overviewTimeline/overviewRow';
-import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
-import {useTimeWindowConfig} from './timeline/hooks/useTimeWindowConfig';
+import {CronServiceIncidents} from './serviceIncidents';
 
 interface Props {
   monitor: Monitor;
-  organization: Organization;
+  /**
+   * Called when monitor stats have been loaded for this timeline.
+   */
+  onStatsLoaded: (stats: MonitorBucket[]) => void;
 }
 
-export function DetailsTimeline({monitor, organization}: Props) {
+export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
+  const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
   const queryClient = useQueryClient();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -43,20 +54,29 @@ export function DetailsTimeline({monitor, organization}: Props) {
     {...location.query}
   );
 
+  const {data: monitorStats} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
+  });
+
+  useEffect(
+    () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]!),
+    [onStatsLoaded, monitorStats, monitor.id]
+  );
+
   const handleDeleteEnvironment = async (env: string) => {
     const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
 
-    setApiQueryData(queryClient, monitorDetailsQueryKey, (oldMonitorDetails: Monitor) => {
-      const newEnvList = oldMonitorDetails.environments.filter(e => e.name !== env);
-      const newMonitorDetails = {
-        ...oldMonitorDetails,
-        environments: newEnvList,
-      };
-
-      return newMonitorDetails;
+    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
+      return oldMonitorDetails
+        ? {
+            ...oldMonitorDetails,
+            environments: oldMonitorDetails.environments.filter(e => e.name !== env),
+          }
+        : undefined;
     });
   };
 
@@ -73,19 +93,20 @@ export function DetailsTimeline({monitor, organization}: Props) {
       return;
     }
 
-    setApiQueryData(queryClient, monitorDetailsQueryKey, (oldMonitorDetails: Monitor) => {
-      const oldMonitorEnvIdx = oldMonitorDetails.environments.findIndex(
-        monitorEnv => monitorEnv.name === env
-      );
-      if (oldMonitorEnvIdx < 0) {
-        return oldMonitorDetails;
-      }
-
-      oldMonitorDetails.environments[oldMonitorEnvIdx] = {
-        ...oldMonitorDetails.environments[oldMonitorEnvIdx],
-        isMuted,
-      };
-      return oldMonitorDetails;
+    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
+      return oldMonitorDetails
+        ? {
+            ...oldMonitorDetails,
+            environments: oldMonitorDetails.environments.map(monitorEnv =>
+              monitorEnv.name === env
+                ? {
+                    ...monitorEnv,
+                    isMuted,
+                  }
+                : monitorEnv
+            ),
+          }
+        : undefined;
     });
   };
 
@@ -99,8 +120,8 @@ export function DetailsTimeline({monitor, organization}: Props) {
       <AlignedGridLineOverlay
         allowZoom
         showCursor
-        showIncidents
         timeWindowConfig={timeWindowConfig}
+        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
       />
       <OverviewRow
         monitor={monitor}
@@ -123,6 +144,11 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
+  z-index: 1;
+
+  > :last-child {
+    box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+  }
 `;
 
 const TimelineWidthTracker = styled('div')`
@@ -137,7 +163,8 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const TimelineTitle = styled(Text)`
-  ${p => p.theme.text.cardTitle};
   padding: ${space(2)};
   grid-column: 1;
+  line-height: 1.2;
+  font-weight: bold;
 `;

@@ -17,7 +17,7 @@ const HOUR = 60 * MINUTE;
  * @param minWidth Minimum space for each column, pixels. Ex: So we can show formatted time like `1:00:00` between major ticks
  * @returns
  */
-export function countColumns(durationMs: number, width: number, minWidth: number = 50) {
+export function countColumns(durationMs: number, width: number, minWidth = 50) {
   let maxCols = Math.floor(width / minWidth);
   const remainder = durationMs - maxCols * width > 0 ? 1 : 0;
   maxCols -= remainder;
@@ -134,7 +134,7 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
     };
   });
 
-  const flattened = [first];
+  const flattened = [first!];
 
   for (const span of rest) {
     let overlap = false;
@@ -159,7 +159,7 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
  * Finds the index of the mobile replay segment that is nearest
  */
 export function findVideoSegmentIndex(
-  trackList: [ts: number, index: number][],
+  trackList: Array<[ts: number, index: number]>,
   segments: VideoEvent[],
   targetTimestamp: number,
   optionalStart?: number,
@@ -178,11 +178,11 @@ export function findVideoSegmentIndex(
 
   const mid = Math.floor((start + end) / 2);
 
-  const [ts, index] = trackList[mid];
+  const [ts, index] = trackList[mid]!;
   const segment = segments[index];
 
   // Segment match found
-  if (targetTimestamp >= ts && targetTimestamp <= ts + segment.duration) {
+  if (targetTimestamp >= ts && targetTimestamp <= ts + segment!.duration) {
     return index;
   }
 

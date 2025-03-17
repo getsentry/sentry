@@ -12,9 +12,9 @@ import {
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 type Props = {
-  headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
   tabs?: HeaderProps['tabs'];
@@ -36,6 +36,7 @@ export function AiHeader({
 
   return (
     <DomainViewHeader
+      hasOverviewPage={false}
       domainBaseUrl={aiBaseUrl}
       headerTitle={headerTitle}
       domainTitle={AI_LANDING_TITLE}

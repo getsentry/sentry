@@ -23,8 +23,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
-from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -127,10 +128,10 @@ class Activity(Model):
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 
     @staticmethod
-    def get_version_ident(version):
+    def get_version_ident(version: str | None) -> str:
         return (version or "")[:64]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         from sentry.models.release import Release
 
@@ -142,7 +143,7 @@ class Activity(Model):
         if self.type == ActivityType.ASSIGNED.value:
             self.data["assignee"] = str(self.data["assignee"])
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         created = bool(not self.id)
 
         super().save(*args, **kwargs)
@@ -177,8 +178,8 @@ class Activity(Model):
                     sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
                 )
 
-    def delete(self, *args, **kwargs):
-        super().delete(*args, **kwargs)
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        result = super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
@@ -190,7 +191,21 @@ class Activity(Model):
                     sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
                 )
 
-    def send_notification(self):
+        return result
+
+    def send_notification(self) -> None:
+        if self.group:
+            group_type = get_group_type_by_type_id(self.group.type)
+            has_status_change_notifications = group_type.enable_status_change_workflow_notifications
+            is_status_change = self.type in {
+                activity.value for activity in STATUS_CHANGE_ACTIVITY_TYPES
+            }
+
+            # Skip sending the activity notification if the group type does not
+            # support status change workflow notifications
+            if is_status_change and not has_status_change_notifications:
+                return
+
         activity.send_activity_notifications.delay(self.id)
 
 

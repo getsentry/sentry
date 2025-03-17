@@ -24,7 +24,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover, transactions
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
@@ -288,8 +288,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
-        event_hour = self.event_time.replace(minute=0, second=0)
-        assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
+        event_hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+        assert data[0]["timestamp.to_hour"] == event_hour.isoformat()
 
         assert len(result["meta"]["fields"]) == 4
         assert result["meta"]["fields"] == {
@@ -991,8 +991,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
         hour = self.event_time.replace(minute=0, second=0, microsecond=0)
         day = hour.replace(hour=0)
-        assert [item["timestamp.to_hour"] for item in data] == [f"{iso_format(hour)}+00:00"]
-        assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
+        assert [item["timestamp.to_hour"] for item in data] == [hour.isoformat()]
+        assert [item["timestamp.to_day"] for item in data] == [day.isoformat()]
 
     def test_timestamp_rounding_filters(self):
         one_day_ago = before_now(days=1)
@@ -1005,7 +1005,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = transactions.query(
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
-            query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
+            query=f"timestamp.to_hour:<{one_day_ago.isoformat()} timestamp.to_day:<{one_day_ago.isoformat()}",
             snuba_params=self.snuba_params,
             referrer="test_discover_query",
         )
@@ -1014,8 +1014,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
         hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
         day = hour.replace(hour=0)
-        assert [item["timestamp.to_hour"] for item in data] == [f"{iso_format(hour)}+00:00"]
-        assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
+        assert [item["timestamp.to_hour"] for item in data] == [hour.isoformat()]
+        assert [item["timestamp.to_day"] for item in data] == [day.isoformat()]
 
     def test_user_display(self):
         # `user.display` should give `username`
@@ -2678,8 +2678,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         results = transactions.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(self.now - timedelta(seconds=5)),
-                iso_format(self.now - timedelta(seconds=3)),
+                (self.now - timedelta(seconds=5)).isoformat(),
+                (self.now - timedelta(seconds=3)).isoformat(),
             ),
             snuba_params=SnubaParams(
                 start=self.two_min_ago,
@@ -2704,7 +2704,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         event_hour = self.event_time.replace(minute=0, second=0)
         result = transactions.query(
             selected_columns=["project.id", "user", "release"],
-            query="timestamp.to_hour:" + iso_format(event_hour),
+            query="timestamp.to_hour:" + event_hour.isoformat(),
             snuba_params=self.snuba_params,
             referrer="discover",
         )
@@ -2865,8 +2865,8 @@ class TransactionsArithmeticTest(SnubaTestCase, TestCase):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
-        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+        event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
         self.store_event(data=event_data, project_id=self.project.id)
         self.snuba_params = SnubaParams(
             projects=[self.project],
@@ -2967,8 +2967,8 @@ class TransactionsArithmeticTest(SnubaTestCase, TestCase):
             event_data = load_data("transaction")
             # Half of duration so we don't get weird rounding differences when comparing the results
             event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300 * i
-            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+            event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
             self.store_event(data=event_data, project_id=self.project.id)
         results = transactions.query(
             selected_columns=[
@@ -3117,8 +3117,8 @@ class TransactionsArithmeticTest(SnubaTestCase, TestCase):
             event_data = load_data("transaction")
             # Half of duration so we don't get weird rounding differences when comparing the results
             event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 0
-            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+            event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
             self.store_event(data=event_data, project_id=self.project.id)
         results = transactions.query(
             selected_columns=[

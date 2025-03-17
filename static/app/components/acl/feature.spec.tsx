@@ -285,7 +285,7 @@ describe('Feature', function () {
   });
 
   describe('using HookStore for renderDisabled', function () {
-    let hookFn;
+    let hookFn: jest.Mock;
 
     beforeEach(function () {
       hookFn = jest.fn(() => null);

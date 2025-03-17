@@ -9,7 +9,6 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
-import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
@@ -18,6 +17,7 @@ import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingInd
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import useVirtualizedInspector from 'sentry/views/replays/detail/useVirtualizedInspector';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -83,7 +83,7 @@ function Breadcrumbs() {
   }, [isFetchingExtractions, updateList]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = (items || [])[index];
+    const item = (items || [])[index]!;
 
     return (
       <CellMeasurer

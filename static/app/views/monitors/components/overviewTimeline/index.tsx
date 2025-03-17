@@ -6,37 +6,44 @@ import {
   setEnvironmentIsMuted,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
+import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {DateNavigator} from '../timeline/dateNavigator';
-import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
-import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
-import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+import {CronServiceIncidents} from '../serviceIncidents';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
 
 interface Props {
   monitorList: Monitor[];
+  linkToAlerts?: boolean;
 }
 
-export function OverviewTimeline({monitorList}: Props) {
+export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
   const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
@@ -48,13 +55,16 @@ export function OverviewTimeline({monitorList}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      if (!oldMonitorList) {
+        return undefined;
+      }
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       if (oldMonitorIdx < 0) {
         return oldMonitorList;
       }
 
-      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const oldMonitor = oldMonitorList[oldMonitorIdx]!;
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
       const updatedMonitor = {
         ...oldMonitor,
@@ -90,11 +100,11 @@ export function OverviewTimeline({monitorList}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
-      oldMonitorList[monitorIdx] = resp;
-      return oldMonitorList;
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      return oldMonitorList
+        ? // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+          oldMonitorList.map(m => (m.slug === monitor.slug ? resp : m))
+        : undefined;
     });
   };
 
@@ -107,11 +117,12 @@ export function OverviewTimeline({monitorList}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};
-
-      return oldMonitorList;
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      return oldMonitorList
+        ? oldMonitorList.map(m =>
+            m.slug === monitor.slug ? {...m, status: resp.status} : m
+          )
+        : undefined;
     });
   };
 
@@ -142,7 +153,8 @@ export function OverviewTimeline({monitorList}: Props) {
         stickyCursor
         allowZoom
         showCursor
-        showIncidents
+        cursorOffsets={{right: 40}}
+        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
 
@@ -157,6 +169,7 @@ export function OverviewTimeline({monitorList}: Props) {
               handleToggleMuteEnvironment(monitor, env, isMuted)
             }
             onToggleStatus={handleToggleStatus}
+            linkToAlerts={linkToAlerts}
           />
         ))}
       </MonitorRows>
@@ -171,8 +184,8 @@ const Header = styled(Sticky)`
 
   z-index: 1;
   background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
@@ -195,6 +208,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
   grid-row: 1;
   grid-column: 3/-1;
 `;

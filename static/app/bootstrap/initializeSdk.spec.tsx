@@ -9,7 +9,7 @@ import {
   isFilteredRequestErrorEvent,
 } from './initializeSdk';
 
-const ERROR_MAP = {
+const ERROR_MAP: Record<number, string | undefined> = {
   ...origErrorMap,
   // remove `UndefinedResponseBodyError` since we don't filter those
   200: undefined,

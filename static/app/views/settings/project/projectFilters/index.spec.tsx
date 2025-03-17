@@ -92,7 +92,9 @@ describe('ProjectFilters', function () {
     for (const filter of Object.keys(FILTERS)) {
       const mock = createFilterMock(filter);
 
-      await userEvent.click(screen.getByRole('checkbox', {name: FILTERS[filter]}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: FILTERS[filter as keyof typeof FILTERS]})
+      );
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
         expect.objectContaining({
@@ -279,7 +281,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByText(
-        "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+        "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
       )
     ).toBeInTheDocument();
   });

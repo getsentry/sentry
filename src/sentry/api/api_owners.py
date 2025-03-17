@@ -18,7 +18,6 @@ class ApiOwner(Enum):
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issues"
     ML_AI = "machine-learning-ai"
-    OPEN_SOURCE = "open-source"
     OWNERS_INGEST = "ingest"
     OWNERS_SNUBA = "owners-snuba"
     PERFORMANCE = "performance"
@@ -28,3 +27,4 @@ class ApiOwner(Enum):
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
+    GDX = "gdx"

@@ -58,7 +58,7 @@ def get_symbolication_platforms(
 
     platforms = []
 
-    if is_jvm_event(data):
+    if is_jvm_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.jvm)
     if is_js_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.js)
@@ -230,7 +230,6 @@ def _do_symbolicate_event(
 # ============ Parameterized tasks below ============
 # We have different *tasks* and associated *queues* for the following permutations:
 # - Event Type (JS vs Native)
-# - Queue Type (LPQ vs normal)
 # - Reprocessing (currently not available for JS events)
 
 

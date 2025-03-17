@@ -17,6 +17,7 @@ function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {
     breakdowns: [],
     duration: 333,
+    rootDuration: 333,
     end: 456,
     matchingSpans: 1,
     name: 'name',

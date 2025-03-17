@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
@@ -37,22 +38,24 @@ class BaseSafeMigrationTest(TestCase):
         self._run_migration(self.app, self.migrate_from)
         self._run_migration(self.app, self.migrate_to)
 
-    def _run_migration(self, app, migration):
+    def _run_migration(self, app, migration_name):
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
             executor = MigrationExecutor(connection)
+            migration = executor.loader.get_migration_by_prefix(app, migration_name)
             executor.loader.build_graph()
-            target = [(app, migration)]
+            target = [(migration.app_label, migration.name)]
             executor.loader.project_state(target).apps
             executor.migrate(target)
 
-    def sql_migrate(self, app_label, migration_name):
+    def sql_migrate(self, app, migration_name):
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
-            target = (app_label, migration_name)
             executor = MigrationExecutor(connection)
+            migration = executor.loader.get_migration_by_prefix(app, migration_name)
+            target = (app, migration.name)
             plan = [(executor.loader.graph.nodes[target], None)]
             sql_statements = executor.loader.collect_sql(plan)  # type: ignore[attr-defined]
             return "\n".join(sql_statements)
@@ -66,7 +69,8 @@ class AddColWithDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
+            match="Adding TestTable.field as a not null column with no default is unsafe. "
+            "Provide a default using db_default.",
         ):
             self.run_migration()
 
@@ -79,9 +83,18 @@ class AddColWithNotNullDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
+            match="Adding TestTable.field as a not null column with no default is unsafe. Provide a default using db_default.",
         ):
             self.run_migration()
+
+
+class AddColWithNotNullDbDefaultTest(BaseSafeMigrationTest):
+    app = "good_flow_add_column_with_notnull_db_default_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_add_field_notnull_db_default"
+
+    def test(self):
+        self.run_migration()
 
 
 class AddColWithNotNullTest(BaseSafeMigrationTest):
@@ -91,7 +104,8 @@ class AddColWithNotNullTest(BaseSafeMigrationTest):
 
     def test(self):
         with pytest.raises(
-            UnsafeOperationException, match="Adding TestTable.field as a not null column is unsafe."
+            UnsafeOperationException,
+            match="Adding TestTable.field as a not null column with no default is unsafe. Provide a default using db_default",
         ):
             self.run_migration()
 
@@ -173,6 +187,50 @@ class RemoveFieldTest(BaseSafeMigrationTest):
             self.run_migration()
 
 
+class RunSqlDisabledTest(BaseSafeMigrationTest):
+    app = "bad_flow_run_sql_disabled_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0001_initial"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Using RunSQL is unsafe because our migrations safety framework can't detect problems with the migration.",
+        ):
+            self.run_migration()
+
+
+class RunSqlDisabledNestedTest(BaseSafeMigrationTest):
+    app = "bad_flow_run_sql_nested_disabled_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0001_initial"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Using RunSQL is unsafe because our migrations safety framework can't detect problems with the migration.",
+        ):
+            self.run_migration()
+
+
+class RunSqlEnabledTest(BaseSafeMigrationTest):
+    app = "good_flow_run_sql_enabled_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0001_initial"
+
+    def test(self):
+        self.run_migration()
+
+
+class SafeRunSqlWithRunSqlDisabledTest(BaseSafeMigrationTest):
+    app = "good_flow_safe_run_sql_with_run_sql_disabled_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0001_initial"
+
+    def test(self):
+        self.run_migration()
+
+
 class DeleteModelCorrectTest(BaseSafeMigrationTest):
     app = "good_flow_delete_model_state_app"
     migrate_from = "0001_initial"
@@ -216,6 +274,259 @@ class LockTimeoutTest(BaseSafeMigrationTest):
                 "SET statement_timeout TO '5s';",
                 "SET lock_timeout TO '5s';",
                 'ALTER TABLE "run_sql_app_testtable" ADD COLUMN "field" integer NULL;',
+                "SET statement_timeout TO '0ms';",
+                "SET lock_timeout TO '0ms';",
+            ]
+
+
+class SafeRunSQLLockTimeoutTest(BaseSafeMigrationTest):
+    app = "safe_run_sql_app"
+
+    def test(self):
+        with override_settings(
+            ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="5s",
+            ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT="5s",
+            ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE=False,
+        ):
+            migration_sql = self.sql_migrate(self.app, "0001_initial")
+            # This operation doesn't need any timeouts set, so should just run as usual
+            assert split_sql_queries(migration_sql) == [
+                'CREATE TABLE "safe_run_sql_app_testtable" ("id" integer NOT NULL PRIMARY KEY '
+                "GENERATED BY DEFAULT AS IDENTITY);",
+            ]
+            self._run_migration(self.app, "0001_initial")
+            migration_sql = self.sql_migrate(self.app, "0002_run_sql")
+            # The SafeRunSQL operation should have both the statement and lock timeout set
+            assert split_sql_queries(migration_sql) == [
+                "SET statement_timeout TO '5s';",
+                "SET lock_timeout TO '5s';",
+                'ALTER TABLE "safe_run_sql_app_testtable" DROP COLUMN IF EXISTS "field";',
+                "SET lock_timeout TO '0ms';",
+                "SET statement_timeout TO '0ms';",
+                "SET statement_timeout TO '5s';",
+                "SET lock_timeout TO '5s';",
+                'ALTER TABLE "safe_run_sql_app_testtable" ADD COLUMN "field" integer NULL;',
+                "SET statement_timeout TO '0ms';",
+                "SET lock_timeout TO '0ms';",
+            ]
+            self._run_migration(self.app, "0002_run_sql")
+            migration_sql = self.sql_migrate(self.app, "0003_add_col")
+            # This should set the statement timeout since it's an operation that dzdm handles
+            assert split_sql_queries(migration_sql) == [
+                "SET statement_timeout TO '5s';",
+                "SET lock_timeout TO '5s';",
+                'ALTER TABLE "safe_run_sql_app_testtable" ADD CONSTRAINT "safe_run_sql_app_testtable_field_6824dc88_check" CHECK ("field" >= 0) NOT VALID;',
+                "SET statement_timeout TO '0ms';",
+                "SET lock_timeout TO '0ms';",
+                'ALTER TABLE "safe_run_sql_app_testtable" VALIDATE CONSTRAINT "safe_run_sql_app_testtable_field_6824dc88_check";',
+            ]
+
+
+class DeletionModelBadDeleteWithoutPendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_model_without_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Model must be in the pending deletion state before full deletion",
+        ):
+            self.run_migration()
+
+
+class DeletionModelBadDeleteDoublePendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_model_double_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        with pytest.raises(
+            LookupError,
+            match="App 'bad_flow_delete_model_double_pending_app' doesn't have a 'TestTable' model",
+        ):
+            self.run_migration()
+
+
+class DeletionModelBadDeletePendingWithFKConstraints(BaseSafeMigrationTest):
+    app = "bad_flow_delete_pending_with_fk_constraints_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Foreign key db constraints must be removed before dropping "
+            "bad_flow_delete_pending_with_fk_constraints_app.TestTable. "
+            "Fields with constraints: \\['fk_table'\\]",
+        ):
+            self.run_migration()
+
+
+class DeletionModelGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
+    app = "good_flow_delete_pending_with_fk_constraints_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+
+        self._run_migration(self.app, "0001_initial")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0002_remove_constraints_and_pending")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0003_delete")
+        assert f"{self.app}_testtable" not in connection.introspection.table_names()
+
+
+class DeletionModelGoodDeleteSimple(BaseSafeMigrationTest):
+    app = "good_flow_delete_simple_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0002_set_pending")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0003_delete")
+        assert f"{self.app}_testtable" not in connection.introspection.table_names()
+
+
+class DeletionFieldBadDeleteWithoutPendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_without_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Field must be in the pending deletion state before full deletion",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldBadDeleteDoublePendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_double_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        with pytest.raises(
+            FieldDoesNotExist,
+            match="TestTable has no field named 'field'",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldBadDeletePendingWithFKConstraint(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_pending_with_fk_constraint_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Foreign key db constraint must be removed before dropping "
+            "bad_flow_delete_field_pending_with_fk_constraint_app.testtable.fk_table",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldBadDeletePendingWithNotNull(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_pending_with_not_null_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Field bad_flow_delete_field_pending_with_not_null_app.testtable.field "
+            "must either be nullable or have a db_default before dropping",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldGoodDeletePendingWithNotNullM2M(BaseSafeMigrationTest):
+    app = "good_flow_delete_field_pending_with_not_null_m2m_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        self.run_migration()
+
+
+class ColExistsMixin:
+    app = ""
+
+    def col_exists(self, col_name):
+        with connection.cursor() as cursor:
+            table_name = f"{self.app}_testtable"
+            columns = connection.introspection.get_table_description(cursor, table_name)
+            return any(c for c in columns if c.name == col_name)
+
+
+class DeletionFieldGoodDeletePendingWithFKConstraint(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_delete_field_pending_with_fk_constraint_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert self.col_exists("fk_table_id")
+        self._run_migration(self.app, "0002_remove_constraints_and_pending")
+        assert self.col_exists("fk_table_id")
+        self._run_migration(self.app, "0003_delete")
+        assert not self.col_exists("fk_table_id")
+
+
+class DeletionFieldGoodDeletePendingWithNotNull(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_delete_field_pending_with_not_null_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0002_remove_not_null_and_pending")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0003_delete")
+        assert not self.col_exists("field")
+
+
+class DeletionFieldGoodDeleteSimple(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_delete_field_simple_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0002_set_pending")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0003_delete")
+        assert not self.col_exists("field")
+
+
+class DeletionFieldGoodDeleteSimpleLockTimeoutTest(BaseSafeMigrationTest):
+    app = "good_flow_delete_field_simple_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        with override_settings(
+            ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="5s",
+            ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT="5s",
+        ):
+            self._run_migration(self.app, "0001_initial")
+            migration_sql = self.sql_migrate(self.app, "0002_set_pending")
+            assert split_sql_queries(migration_sql) == []
+            self._run_migration(self.app, "0002_set_pending")
+            migration_sql = self.sql_migrate(self.app, "0003_delete")
+            # This should set both the lock and statement timeouts
+            assert split_sql_queries(migration_sql) == [
+                "SET statement_timeout TO '5s';",
+                "SET lock_timeout TO '5s';",
+                'ALTER TABLE "good_flow_delete_field_simple_app_testtable" DROP COLUMN "field" CASCADE;',
                 "SET statement_timeout TO '0ms';",
                 "SET lock_timeout TO '0ms';",
             ]

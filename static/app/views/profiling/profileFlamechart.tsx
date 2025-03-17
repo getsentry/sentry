@@ -70,7 +70,7 @@ function ProfileFlamegraph(): React.ReactElement {
         ...queryStringState.preferences,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-          ...(storedPreferences?.preferences?.timelines ?? {}),
+          ...storedPreferences?.preferences?.timelines,
         },
         layout:
           storedPreferences?.preferences?.layout ??
@@ -90,7 +90,7 @@ function ProfileFlamegraph(): React.ReactElement {
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
         <ProfileGroupTypeProvider
           input={profiles.type === 'resolved' ? profiles.data : null}
-          traceID={params.eventID}
+          traceID={params.eventId!}
         >
           <FlamegraphThemeProvider>
             <FlamegraphStateQueryParamSync />

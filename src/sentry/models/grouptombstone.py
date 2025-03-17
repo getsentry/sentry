@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.db import models
+from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
@@ -23,6 +24,8 @@ TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "dat
 class GroupTombstone(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
+    # Will be null for tombstones created before January 2025
+    date_added = models.DateTimeField(default=timezone.now, null=True)
     previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")
     level = BoundedPositiveIntegerField(

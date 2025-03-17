@@ -9,6 +9,6 @@ export const MODULE_DESCRIPTION = t(
   'Improve the latency associated with your application starting up. '
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/insights/mobile-vitals/app-starts/';
+  'https://docs.sentry.io/product/insights/mobile/app-starts/';
 
 export const MODULE_FEATURES = ['insights-initial-modules'];

@@ -58,6 +58,12 @@ class OrganizationInviteRequestGetTest(InviteRequestBase):
         resp = self.get_response(self.org.slug, "123")
         assert resp.status_code == 404
 
+    def test_me_not_supported(self):
+        self.login_as(user=self.user)
+        # the serializer allows this value but it makes no sense for this view
+        resp = self.get_response(self.org.slug, "me")
+        assert resp.status_code == 404
+
     def test_get_invite_request(self):
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug, self.invite_request.id)

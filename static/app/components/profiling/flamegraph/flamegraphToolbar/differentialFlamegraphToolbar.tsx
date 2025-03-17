@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DifferentialFlamegraphNegationSwitch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphNegationSwitch';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {t} from 'sentry/locale';
@@ -11,7 +11,7 @@ import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFl
 
 import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
 
-const EMPTY_SPANS = [];
+const EMPTY_SPANS: any = [];
 
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
