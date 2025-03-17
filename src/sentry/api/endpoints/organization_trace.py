@@ -38,7 +38,7 @@ class SerializedEvent(TypedDict):
 
 
 @region_silo_endpoint
-class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

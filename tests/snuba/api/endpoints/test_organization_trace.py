@@ -8,7 +8,7 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
-    url_name = "sentry-api-0-organization-spans-trace"
+    url_name = "sentry-api-0-organization-trace"
     FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
