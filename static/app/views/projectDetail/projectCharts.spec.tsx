@@ -81,9 +81,7 @@ describe('ProjectDetail > ProjectCharts', () => {
   });
 
   it('renders App Hang options for apple projects when the feature flag is enabled', async () => {
-    renderProjectCharts('apple', undefined, [
-      'projects:project-detail-apple-app-hang-rate',
-    ]);
+    renderProjectCharts('apple', undefined, ['project-detail-apple-app-hang-rate']);
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
@@ -94,9 +92,7 @@ describe('ProjectDetail > ProjectCharts', () => {
   });
 
   it('renders App Hang options for apple-ios projects when the feature flag is enabled', async () => {
-    renderProjectCharts('apple-ios', undefined, [
-      'projects:project-detail-apple-app-hang-rate',
-    ]);
+    renderProjectCharts('apple-ios', undefined, ['project-detail-apple-app-hang-rate']);
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})

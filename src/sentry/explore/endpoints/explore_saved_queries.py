@@ -36,8 +36,8 @@ from sentry.search.utils import tokenize_query
 @region_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
     permission_classes = (ExploreSavedQueryPermission,)

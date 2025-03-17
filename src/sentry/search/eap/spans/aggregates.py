@@ -66,8 +66,11 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 
 # TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    attribute_key = cast(AttributeKey, args[0])
-    print("KEY!", attribute_key)
+    score_column = cast(str, args[0])
+    ratio_column_name = score_column.replace("measurements.score", "score.ratio")
+    if ratio_column_name == "score.ratio.total":
+        ratio_column_name = "score.total"
+    attribute_key = AttributeKey(name=ratio_column_name, type=AttributeKey.TYPE_DOUBLE)
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=attribute_key))
 
     return (attribute_key, filter)
@@ -127,7 +130,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ArgumentDefinition(
                 argument_types={"string"},
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
-                transformer=transform_measurement_to_ratio,
                 is_attribute=True,
             )
         ],

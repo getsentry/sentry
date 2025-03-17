@@ -1,11 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 import DisableInDemoMode from './demoModeDisabled'; // Adjust the import path as necessary
 
 jest.mock('sentry/utils/demoMode', () => ({
-  isDemoModeEnabled: jest.fn(),
+  isDemoModeActive: jest.fn(),
 }));
 
 jest.mock('sentry/locale', () => ({
@@ -14,7 +14,7 @@ jest.mock('sentry/locale', () => ({
 
 describe('DisableInDemoMode', () => {
   it('renders children when demo mode is disabled', () => {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(false);
+    (isDemoModeActive as jest.Mock).mockReturnValue(false);
 
     render(
       <DisableInDemoMode>
@@ -27,7 +27,7 @@ describe('DisableInDemoMode', () => {
   });
 
   it('renders a tooltip when demo mode is enabled', () => {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     render(
       <DisableInDemoMode>

@@ -10,7 +10,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useTeams} from 'sentry/utils/useTeams';
 
 interface Props {
@@ -81,7 +81,7 @@ function TeamFilter({
       multiple
       clearable
       searchable
-      disabled={isDemoModeEnabled()}
+      disabled={isDemoModeActive()}
       loading={fetching}
       menuTitle={t('Filter teams')}
       options={[

@@ -42,7 +42,7 @@ export function IssueViewNavItems({
    * source of truth for the view state, rather than a separate state
    */
   const [views, setViews] = useState<IssueView[]>(loadedViews);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDragging, setIsDragging] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {

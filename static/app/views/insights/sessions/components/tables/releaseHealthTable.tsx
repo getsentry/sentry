@@ -46,7 +46,7 @@ interface Props {
 type Column = GridColumnHeader<keyof ReleaseHealthItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
-  {key: 'release', name: 'version'},
+  {key: 'release', name: 'release'},
   {key: 'project', name: 'project'},
   {key: 'date', name: 'date created'},
   {key: 'adoption', name: 'adoption'},
