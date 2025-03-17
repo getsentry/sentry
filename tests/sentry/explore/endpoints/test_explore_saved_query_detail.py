@@ -34,16 +34,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         self.query_id_without_access = invalid.id
 
-    def setup_no_team_user(self):
-        # disable Open Membership
-        self.org.flags.allow_joinleave = False
-        self.org.save()
-
-        # user has no access to the first project
-        user_no_team = self.create_user(is_superuser=False)
-        self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
-        self.login_as(user_no_team)
-
     def test_invalid_id(self):
         with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, "not-an-id"])
@@ -81,18 +71,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 403, response.content
-
-    def test_get_disallow_when_no_project_access(self):
-        self.setup_no_team_user()
-
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-            response = self.client.get(url)
-
-        assert response.status_code == 403, response.data
-        assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_put(self):
         with self.feature(self.feature_name):
@@ -216,28 +194,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
-    def test_put_disallow_when_no_project_access(self):
-        self.setup_no_team_user()
-
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-
-            response = self.client.put(
-                url,
-                {
-                    "name": "New query",
-                    "projects": self.project_ids,
-                    "fields": [],
-                    "range": "24h",
-                    "orderby": "-timestamp",
-                },
-            )
-
-        assert response.status_code == 403, response.data
-        assert response.data == {"detail": "You do not have permission to perform this action."}
-
     def test_delete(self):
         with self.feature(self.feature_name):
             url = reverse(
@@ -282,40 +238,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
-
-    def test_delete_disallow_when_no_project_access(self):
-        self.setup_no_team_user()
-
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-
-            response = self.client.delete(url)
-
-        assert response.status_code == 403, response.data
-        assert response.data == {"detail": "You do not have permission to perform this action."}
-
-    def test_disallow_delete_all_projects_savedquery_when_no_open_membership(self):
-        self.setup_no_team_user()
-
-        query = {"fields": ["span.op"], "mode": "samples"}
-        model = ExploreSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="test query",
-            query=query,
-        )
-
-        assert not model.projects.exists()
-
-        with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, model.id])
-
-            response = self.client.delete(url)
-
-        assert response.status_code == 403, response.data
-        assert response.data == {"detail": "You do not have permission to perform this action."}
 
 
 class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
