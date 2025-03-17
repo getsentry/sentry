@@ -1,6 +1,5 @@
 from functools import reduce
 from operator import or_
-from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -64,9 +63,6 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
         choices=[v[0] for v in GroupSearchViewVisibility.as_choices()],
         required=False,
     )
-
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        return data
 
 
 @region_silo_endpoint
