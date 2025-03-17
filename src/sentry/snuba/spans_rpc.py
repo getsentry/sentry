@@ -195,7 +195,7 @@ def run_timeseries_query(
         )
 
     if comparison_delta is not None:
-        if len(rpc_request.aggregations) != 1:
+        if len(rpc_request.expressions) != 1:
             raise InvalidSearchQuery("Only one column can be selected for comparison queries")
 
         comp_query_params = params.copy()
