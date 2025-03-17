@@ -20,12 +20,16 @@ from sentry.utils.cursors import Cursor, CursorResult
 @region_silo_endpoint
 class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationAndStaffPermission,)
 
-    """Get the time series data for one or more metrics.
+    """
+    @deprecated This endpoint is not actively maintained
+    and its usages should be replaced with queries to /events-stats/
+
+    Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.

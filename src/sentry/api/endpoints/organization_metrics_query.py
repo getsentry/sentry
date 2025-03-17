@@ -33,12 +33,15 @@ from sentry.utils.dates import parse_stats_period
 @region_silo_endpoint
 class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationMetricsPermission,)
 
     """
+    @deprecated This endpoint is not actively maintained
+    and its usages should be replaced with queries to /events-stats/
+
     Queries one or more metrics over a time range.
     """
 
