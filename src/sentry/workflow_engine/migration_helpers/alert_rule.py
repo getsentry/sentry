@@ -649,7 +649,8 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
         raise MissingDataConditionGroup
     data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
 
-    # update the data condition types in case the threshold type was updated
+    # update the data condition types if the threshold type was updated
+
     threshold_type = (
         Condition.GREATER
         if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value

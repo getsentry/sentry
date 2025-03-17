@@ -32,9 +32,11 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
     dual_delete_migrated_alert_rule_trigger_action,
+    dual_update_alert_rule,
     dual_update_migrated_alert_rule,
     dual_update_migrated_alert_rule_trigger,
     dual_update_migrated_alert_rule_trigger_action,
+    dual_write_alert_rule,
     get_action_filter,
     get_detector_trigger,
     get_resolve_threshold,
@@ -119,7 +121,13 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
     assert detector_trigger.condition_result == DetectorPriorityLevel.OK
     assert detector_trigger.condition_group == detector.workflow_condition_group
 
-    data_condition = DataCondition.objects.get(comparison=DetectorPriorityLevel.OK)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    workflow = alert_rule_workflow.workflow
+    workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
+
+    data_condition = DataCondition.objects.get(
+        comparison=DetectorPriorityLevel.OK, condition_group__in=workflow_dcgs
+    )
 
     assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
     assert data_condition.comparison == DetectorPriorityLevel.OK
@@ -160,7 +168,14 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     )
     assert detector_trigger.condition_result == condition_result
 
-    data_condition = DataCondition.objects.get(comparison=condition_result, condition_result=True)
+    alert_rule = alert_rule_trigger.alert_rule
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    workflow = alert_rule_workflow.workflow
+    workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
+
+    data_condition = DataCondition.objects.get(
+        comparison=condition_result, condition_result=True, condition_group__in=workflow_dcgs
+    )
     assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
     assert data_condition.condition_result is True
     assert WorkflowDataConditionGroup.objects.filter(
@@ -1270,3 +1285,82 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
 
         with pytest.raises(DataCondition.DoesNotExist):
             get_action_filter(self.alert_rule_trigger, DetectorPriorityLevel.HIGH)
+
+
+class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
+    """
+    Test that the SPE create/update methods properly create and update all relevant ACI
+    objects for an alert rule, its triggers, and its actions.
+    """
+
+    def setUp(self):
+        # rule for testing SPE create
+        self.metric_alert = self.create_alert_rule(resolve_threshold=100)
+        self.alert_rule_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.metric_alert, label="critical", alert_threshold=200
+        )
+        self.alert_rule_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger
+        )
+
+        # rule for testing SPE update
+        resolve_threshold = 50
+        self.dual_written_alert = self.create_alert_rule(resolve_threshold=resolve_threshold)
+        self.dual_written_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.dual_written_alert, label="critical", alert_threshold=100
+        )
+        self.dual_written_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.dual_written_trigger
+        )
+        # dual write him
+        self.create_migrated_metric_alert_objects(self.dual_written_alert)
+        self.detector_trigger, self.action_filter = (
+            self.create_migrated_metric_alert_rule_trigger_objects(
+                self.dual_written_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+            )
+        )
+        self.action, self.data_condition_group_action, self.aarta = (
+            self.create_migrated_metric_alert_rule_action_objects(self.dual_written_trigger_action)
+        )
+        self.create_migrated_metric_alert_rule_resolve_objects(
+            self.dual_written_alert, resolve_threshold, Condition.LESS_OR_EQUAL
+        )
+
+    def test_spe_create(self):
+        dual_write_alert_rule(self.metric_alert)
+        assert_alert_rule_migrated(self.metric_alert, self.project.id)
+        assert_alert_rule_trigger_migrated(self.alert_rule_trigger)
+        assert ActionAlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger_action=self.alert_rule_trigger_action
+        ).exists()
+        assert_alert_rule_resolve_trigger_migrated(self.metric_alert)
+
+    def test_spe_update(self):
+        # do some updates on all legacy objects
+        user_2 = self.create_user()
+        self.dual_written_alert.update(name="sencha")
+        self.dual_written_trigger.update(alert_threshold=95)
+        self.dual_written_trigger_action.update(target_identifier=user_2.id)
+
+        dual_update_alert_rule(self.dual_written_alert)
+        detector = AlertRuleDetector.objects.get(alert_rule=self.dual_written_alert).detector
+        self.detector_trigger.refresh_from_db()
+        self.action.refresh_from_db()
+
+        assert detector.name == "sencha"
+        assert self.detector_trigger.comparison == 95
+        assert self.action.config["target_identifier"] == str(user_2.id)
+
+    def test_spe_update_new_objects(self):
+        # create new trigger and action on migrated alert rule
+        new_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.dual_written_alert, label="warning", alert_threshold=75
+        )
+        new_trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=new_trigger)
+
+        dual_update_alert_rule(self.dual_written_alert)
+
+        assert_alert_rule_trigger_migrated(new_trigger)
+        assert ActionAlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger_action=new_trigger_action
+        ).exists()
