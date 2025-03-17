@@ -8,6 +8,7 @@ from typing import Any
 import orjson
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -378,10 +379,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             rule_action_uuid=rule_action_uuid,
         )
 
-            open_period_start: datetime | None = None
-            if event.group.issue_category == GroupCategory.UPTIME:
-                open_period_start = open_period_start_for_group(event.group)
-                new_notification_message_object.open_period_start = open_period_start
+        open_period_start: datetime | None = None
+        if event.group.issue_category == GroupCategory.UPTIME:
+            open_period_start = open_period_start_for_group(event.group)
+            new_notification_message_object.open_period_start = open_period_start
 
         thread_ts_args = {
             "organization": self.project.organization,
