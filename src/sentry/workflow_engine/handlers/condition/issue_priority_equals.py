@@ -7,6 +7,9 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.ISSUE_PRIORITY_EQUALS)
 class IssuePriorityCondition(DataConditionHandler[WorkflowJob]):
+    type = DataConditionHandler.Type.ACTION_FILTER
+    filter_group = DataConditionHandler.FilterGroup.ISSUE_ATTRIBUTES
+
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         group = job["event"].group

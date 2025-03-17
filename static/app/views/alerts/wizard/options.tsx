@@ -1,11 +1,12 @@
 import mapValues from 'lodash/mapValues';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   FieldKey,
   makeTagCollection,
@@ -15,11 +16,6 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {
-  DEFAULT_EAP_METRICS_ALERT_FIELD,
-  DEFAULT_METRIC_ALERT_FIELD,
-} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -43,7 +39,6 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users'
   | 'custom_transactions'
-  | 'custom_metrics'
   | 'uptime_monitor'
   | 'crons_monitor'
   | 'eap_metrics';
@@ -52,12 +47,6 @@ export enum MEPAlertsQueryType {
   ERROR = 0,
   PERFORMANCE = 1,
   CRASH_RATE = 2,
-}
-
-export enum MEPAlertsDataset {
-  DISCOVER = 'discover',
-  METRICS = 'metrics',
-  METRICS_ENHANCED = 'metricsEnhanced',
 }
 
 export type MetricAlertType = Exclude<
@@ -87,7 +76,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   lcp: t('Largest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
-  custom_metrics: t('Custom Metric'),
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
@@ -104,10 +92,12 @@ export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>
   eap_metrics: (
     <FeatureBadge
       type="beta"
-      title={t('This feature is available for early adopters and the UX may change')}
+      tooltipProps={{
+        title: t('This feature is available for early adopters and the UX may change'),
+      }}
     />
   ),
-  uptime_monitor: <FeatureBadge type="beta" />,
+  uptime_monitor: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -139,15 +129,17 @@ export const getAlertWizardCategories = (org: Organization) => {
         'lcp',
         'fid',
         'cls',
-        ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
+
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
 
-    result.push({
-      categoryHeading: t('Uptime Monitoring'),
-      options: ['uptime_monitor'],
-    });
+    if (org.features.includes('uptime')) {
+      result.push({
+        categoryHeading: t('Uptime Monitoring'),
+        options: ['uptime_monitor'],
+      });
+    }
 
     if (org.features.includes('insights-crons')) {
       result.push({
@@ -157,8 +149,8 @@ export const getAlertWizardCategories = (org: Organization) => {
     }
 
     result.push({
-      categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+      categoryHeading: t('Custom'),
+      options: ['custom_transactions'],
     });
   }
   return result;
@@ -225,11 +217,6 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  custom_metrics: {
-    aggregate: DEFAULT_METRIC_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
     dataset: Dataset.METRICS,
@@ -241,7 +228,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.USER,
   },
   eap_metrics: {
-    aggregate: DEFAULT_EAP_METRICS_ALERT_FIELD,
+    aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRANSACTION,
   },
@@ -415,22 +402,22 @@ export function getSupportedAndOmittedTags(
   }, {});
 }
 
-export function getMEPAlertsDataset(
+export function getDiscoverDataset(
   dataset: Dataset,
   newAlert: boolean
-): MEPAlertsDataset {
+): DiscoverDatasets {
   // Dataset.ERRORS overrides all cases
   if (dataset === Dataset.ERRORS) {
-    return MEPAlertsDataset.DISCOVER;
+    return DiscoverDatasets.DISCOVER;
   }
 
   if (newAlert) {
-    return MEPAlertsDataset.METRICS_ENHANCED;
+    return DiscoverDatasets.METRICS_ENHANCED;
   }
 
   if (dataset === Dataset.GENERIC_METRICS) {
-    return MEPAlertsDataset.METRICS_ENHANCED;
+    return DiscoverDatasets.METRICS_ENHANCED;
   }
 
-  return MEPAlertsDataset.DISCOVER;
+  return DiscoverDatasets.DISCOVER;
 }

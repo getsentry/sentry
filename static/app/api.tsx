@@ -342,7 +342,7 @@ export class Client {
   wrapCallback<T extends any[]>(
     id: string,
     func: FunctionCallback<T> | undefined,
-    cleanup: boolean = false
+    cleanup = false
   ) {
     return (...args: T) => {
       const req = this.activeRequests[id];
@@ -506,7 +506,7 @@ export class Client {
         : undefined;
 
     // GET requests may not have a body
-    const body = method !== 'GET' ? data : undefined;
+    const body = method === 'GET' ? undefined : data;
 
     const requestHeaders = new Headers({...this.headers, ...options.headers});
 

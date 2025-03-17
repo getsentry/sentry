@@ -86,7 +86,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
-        Create a Worfkllow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
+        Create a Workflow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
         These models are configured to work together to test the workflow engine.
         """
         workflow_triggers = workflow_triggers or self.create_data_condition_group()
@@ -134,7 +134,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         }
 
         data_source = self.create_data_source(
-            query_id=subscription_update["subscription_id"],
+            source_id=str(subscription_update["subscription_id"]),
             organization=self.organization,
         )
 
@@ -153,7 +153,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         # Create a data_packet from the update for testing
         data_packet = DataPacket[QuerySubscriptionUpdate](
-            query_id=subscription_update["subscription_id"],
+            source_id=str(subscription_update["subscription_id"]),
             packet=subscription_update,
         )
 

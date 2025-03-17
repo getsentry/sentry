@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {LinkButton} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,6 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -154,7 +155,10 @@ function TeamAlertsTriggered({
             <LinkButton
               priority="primary"
               size="sm"
-              to={`/organizations/${organization.slug}/alerts/rules/`}
+              to={makeAlertsPathname({
+                path: `/rules/`,
+                organization,
+              })}
             >
               {t('Create Alert')}
             </LinkButton>
@@ -182,7 +186,10 @@ function TeamAlertsTriggered({
             <Fragment key={rule.id}>
               <AlertNameContainer>
                 <Link
-                  to={`/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`}
+                  to={makeAlertsPathname({
+                    path: `/rules/details/${rule.id}/`,
+                    organization,
+                  })}
                 >
                   {rule.name}
                 </Link>

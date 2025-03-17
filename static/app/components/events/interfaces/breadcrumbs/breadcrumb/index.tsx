@@ -106,7 +106,9 @@ export function Breadcrumb({
         meta={meta}
         transactionEvents={transactionEvents}
       />
-      <Level level={level} searchTerm={searchTerm} />
+      <LevelWrapper>
+        <Level level={level} searchTerm={searchTerm} />
+      </LevelWrapper>
       <Time
         timestamp={timestamp}
         relativeTime={relativeTime}
@@ -122,7 +124,7 @@ const Wrapper = styled('div')<{
   isLastItem: boolean;
 }>`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px;
+  grid-template-columns: 64px 140px 1fr min-content 100px;
 
   > * {
     padding: ${space(1)} ${space(2)};
@@ -152,14 +154,6 @@ const Wrapper = styled('div')<{
         padding-right: ${space(2)};
       }
 
-      /* Level */
-      :nth-child(5n-1) {
-        padding-right: 0;
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-start;
-      }
-
       /* Time */
       :nth-child(5n) {
         padding: ${space(1)} ${space(2)};
@@ -169,4 +163,13 @@ const Wrapper = styled('div')<{
 
   word-break: break-all;
   white-space: pre-wrap;
+`;
+
+// Required or else the layout definiton causes the tag to stretch
+// over the entire width of the column.
+const LevelWrapper = styled('div')`
+  padding-right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
 `;

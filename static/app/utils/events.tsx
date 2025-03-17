@@ -12,12 +12,7 @@ import type {
   Thread,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {
-  BaseGroup,
-  Group,
-  GroupActivityAssigned,
-  GroupTombstoneHelper,
-} from 'sentry/types/group';
+import type {BaseGroup, Group, GroupTombstoneHelper} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -134,12 +129,13 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper) {
         subtitle: '',
       };
     case EventOrGroupType.TRANSACTION:
-    case EventOrGroupType.GENERIC:
+    case EventOrGroupType.GENERIC: {
       const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
         title: customTitle ?? title,
         subtitle: isIssue ? culprit : '',
       };
+    }
     default:
       return {
         title: customTitle ?? title,
@@ -406,7 +402,7 @@ function getAssignmentIntegration(group: Group) {
   }
   const assignmentAcitivies = group.activity.filter(
     activity => activity.type === GroupActivityType.ASSIGNED
-  ) as GroupActivityAssigned[];
+  );
   const integrationAssignments = assignmentAcitivies.find(
     activity => !!activity.data.integration
   );
@@ -516,6 +512,6 @@ export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneH
   return evidenceData.templateName === 'profile';
 }
 
-function isGroup(event: BaseGroup | Event): event is BaseGroup {
+export function isGroup(event: BaseGroup | Event): event is BaseGroup {
   return (event as BaseGroup).status !== undefined;
 }

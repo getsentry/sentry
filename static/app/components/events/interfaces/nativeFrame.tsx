@@ -2,9 +2,9 @@ import type {MouseEvent} from 'react';
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -52,6 +52,7 @@ type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
+  isFirstInAppFrame: boolean;
   isUsedForGrouping: boolean;
   platform: PlatformKey;
   registers: Record<string, string>;
@@ -59,7 +60,6 @@ type Props = {
   frameMeta?: Record<any, any>;
   hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
-  includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
   isShowFramesToggleExpanded?: boolean;
@@ -87,6 +87,7 @@ function NativeFrame({
   event,
   components,
   hiddenFrameCount,
+  isFirstInAppFrame,
   isShowFramesToggleExpanded,
   isSubFrame,
   onShowFramesToggle,
@@ -149,7 +150,7 @@ function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(() => isOnlyFrame || isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
@@ -417,10 +418,10 @@ function NativeFrame({
           <ExpandCell>
             {expandable && (
               <ToggleButton
+                type="button"
                 size="zero"
                 borderless
-                aria-label={t('Toggle Context')}
-                tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+                aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
                 icon={<Chevron size="medium" direction={expanded ? 'up' : 'down'} />}
               />
             )}
@@ -535,8 +536,8 @@ const RowHeader = styled('span')<{
       : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(1)};
-  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
-  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

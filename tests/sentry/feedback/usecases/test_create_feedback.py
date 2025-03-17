@@ -811,50 +811,62 @@ def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occur
 
 
 @django_db_all
-def test_create_feedback_large_message_truncated(
-    default_project, mock_produce_occurrence_to_kafka, set_sentry_option
+@pytest.mark.parametrize("spam_enabled", (True, False))
+def test_create_feedback_filters_large_message(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch, set_sentry_option, spam_enabled
 ):
-    """Large messages are truncated before producing to kafka."""
-    with set_sentry_option("feedback.message.max-size", 4096):
+    """Large messages are filtered before spam detection and producing to kafka."""
+    features = (
+        {
+            "organizations:user-feedback-spam-filter-actions": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
+        }
+        if spam_enabled
+        else {}
+    )
+
+    mock_complete_prompt = Mock()
+    monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
+
+    with Feature(features), set_sentry_option("feedback.message.max-size", 4096):
         event = mock_feedback_event(default_project.id, datetime.now(UTC))
         event["contexts"]["feedback"]["message"] = "a" * 7007
         create_feedback_issue(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-    kwargs = mock_produce_occurrence_to_kafka.call_args[1]
-    assert len(kwargs["occurrence"].subtitle) == 4096
+    assert mock_complete_prompt.call_count == 0
+    assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
 @django_db_all
-def test_create_feedback_large_message_skips_spam_detection(
-    default_project, set_sentry_option, monkeypatch
+def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    create_feedback_issue(event, default_project.id, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["source"] == source.value
+
+
+@django_db_all
+def test_create_feedback_evidence_has_spam(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch
 ):
-    """If spam is enabled, large messages are marked as spam without making an LLM request."""
-    with (
-        Feature(
-            {
-                "organizations:user-feedback-spam-filter-actions": True,
-                "organizations:user-feedback-spam-filter-ingest": True,
-            }
-        ),
-        set_sentry_option("feedback.message.max-size", 4096),
-    ):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
+    default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
+    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
         event = mock_feedback_event(default_project.id, datetime.now(UTC))
-        event["contexts"]["feedback"]["message"] = "a" * 7007
+        source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        create_feedback_issue(event, default_project.id, source)
 
-        mock_complete_prompt = Mock()
-        monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
-
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
-        assert mock_complete_prompt.call_count == 0
-
-        group = Group.objects.get()
-        assert group.status == GroupStatus.IGNORED
-        assert group.substatus == GroupSubStatus.FOREVER
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["is_spam"] is True
 
 
 """

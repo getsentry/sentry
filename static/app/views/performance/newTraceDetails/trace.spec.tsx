@@ -50,8 +50,7 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
 function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
@@ -111,6 +110,8 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
       },
     }),
   });
@@ -158,7 +159,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -182,7 +183,7 @@ function mockSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -196,7 +197,7 @@ function mockTransactionSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -206,10 +207,10 @@ const {router} = initializeOrg({
   },
 });
 
-function mockMetricsResponse() {
+function mockEventsResponse() {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/metrics/query/',
-    method: 'POST',
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
     body: {
       data: [],
       queries: [],
@@ -271,12 +272,14 @@ async function keyboardNavigationTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -328,12 +331,14 @@ async function pageloadTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -391,7 +396,7 @@ async function nestedTransactionsTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -441,13 +446,15 @@ async function searchTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
 
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -502,12 +509,14 @@ async function simpleTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -605,12 +614,14 @@ async function completeTestSetup() {
           count: 2,
         },
       ],
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
+  mockEventsResponse();
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/project_slug:error0/',
@@ -806,12 +817,12 @@ function printVirtualizedList(container: HTMLElement) {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join('\n'));
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
@@ -825,7 +836,7 @@ function printTabs() {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join(' | '));
 }
 
@@ -864,6 +875,7 @@ describe('trace view', () => {
     mockTraceResponse();
     mockTraceMetaResponse();
     mockTraceTagsResponse();
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
@@ -874,6 +886,7 @@ describe('trace view', () => {
     mockTraceResponse({statusCode: 404});
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
@@ -890,6 +903,7 @@ describe('trace view', () => {
     });
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
@@ -905,6 +919,7 @@ describe('trace view', () => {
     });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(
@@ -1607,7 +1622,8 @@ describe('trace view', () => {
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
-      mockMetricsResponse();
+
+      mockEventsResponse();
 
       mockTraceResponse({
         body: {
@@ -1669,6 +1685,8 @@ describe('trace view', () => {
               count: 5,
             },
           ],
+          span_count: 0,
+          span_count_map: {},
         },
       });
 

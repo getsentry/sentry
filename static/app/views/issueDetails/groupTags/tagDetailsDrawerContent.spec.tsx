@@ -72,7 +72,7 @@ describe('TagDetailsDrawerContent', () => {
 
     // Affected user column
     expect(screen.getByText('David Cramer')).toBeInTheDocument();
-    expect(screen.getByText('17%')).toBeInTheDocument();
+    expect(screen.getByText('16%')).toBeInTheDocument();
     // Count column
     expect(screen.getByText('3')).toBeInTheDocument();
 
@@ -163,7 +163,7 @@ describe('TagDetailsDrawerContent', () => {
       query: {
         dataset: 'errors',
         field: ['title', 'release', 'environment', 'user.display', 'timestamp'],
-        interval: '4h',
+        interval: '1m',
         name: 'RequestError: GET /issues/ 404',
         project: '2',
         query: 'issue:JAVASCRIPT-6QS user.username:david',

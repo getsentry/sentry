@@ -34,6 +34,7 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -65,12 +66,15 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPSpanNode,
+  isEAPTraceNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
+import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -102,6 +106,7 @@ interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
   manager: VirtualizedViewManager;
+  metaQueryResults: TraceMetaQueryResults;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
@@ -124,6 +129,7 @@ export function Trace({
   onRowClick,
   manager,
   previouslyFocusedNodeRef,
+  metaQueryResults,
   onTraceSearch,
   rerender,
   scheduler,
@@ -142,8 +148,10 @@ export function Trace({
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
 
-  const treePromiseStatusRef =
-    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
+  const treePromiseStatusRef = useRef<Map<
+    TraceTreeNode<TraceTree.NodeValue>,
+    'loading' | 'error' | 'success'
+  > | null>(null);
 
   if (!treePromiseStatusRef.current) {
     treePromiseStatusRef.current = new Map();
@@ -401,6 +409,10 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
+        <TraceLevelOpsBreakdown
+          isTraceLoading={isLoading}
+          metaQueryResults={metaQueryResults}
+        />
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -556,7 +568,7 @@ function RenderTraceRow(props: {
 
   const registerSpanArrowRef = useCallback(
     (ref: any) => {
-      props.manager.registerArrowRef(ref, node.space!, virtualized_index);
+      props.manager.registerArrowRef(ref, node.space, virtualized_index);
     },
     [props.manager, node, virtualized_index]
   );
@@ -581,14 +593,14 @@ function RenderTraceRow(props: {
         organization: props.organization,
       });
       e.stopPropagation();
-      props.manager.onZoomIntoSpace(node.space!);
+      props.manager.onZoomIntoSpace(node.space);
     },
     [node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
     (_e: React.MouseEvent) => {
-      props.manager.onBringRowIntoView(node.space!);
+      props.manager.onBringRowIntoView(node.space);
     },
     [node.space, props.manager]
   );
@@ -656,7 +668,7 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
@@ -672,7 +684,7 @@ function RenderTraceRow(props: {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
-  if (isTraceNode(node)) {
+  if (isTraceNode(node) || isEAPTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
   }
 
@@ -840,6 +852,9 @@ const TraceStylingWrapper = styled('div')`
     overflow-x: auto;
     overscroll-behavior: none;
     will-change: transform;
+    z-index: 10;
+    display: flex;
+    align-items: center;
 
     .TraceScrollbarScroller {
       height: 1px;

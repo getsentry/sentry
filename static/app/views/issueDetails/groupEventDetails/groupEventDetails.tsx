@@ -13,7 +13,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -97,7 +96,7 @@ function GroupEventDetails() {
     ) {
       const shouldRedirect =
         environments.length > 0 &&
-        !environments.find(env => env === getEventEnvironment(prevEvent as Event));
+        !environments.find(env => env === getEventEnvironment(prevEvent));
 
       if (shouldRedirect) {
         navigate(

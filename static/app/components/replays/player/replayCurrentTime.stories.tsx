@@ -8,7 +8,7 @@ import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPa
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(ReplayCurrentTime, story => {
+export default storyBook('ReplayCurrentTime', story => {
   story('Default', () => {
     function Example() {
       return (

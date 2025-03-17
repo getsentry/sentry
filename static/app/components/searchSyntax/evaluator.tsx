@@ -50,8 +50,8 @@ export function toFlattened(tokens: Array<TokenResult<Token>>): ProcessedTokenRe
     }
   }
 
-  for (let i = 0; i < tokens.length; i++) {
-    flatten(tokens[i]!);
+  for (const token of tokens) {
+    flatten(token);
   }
 
   return flattened_result;

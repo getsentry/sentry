@@ -7,12 +7,11 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   fieldAlignment,
@@ -20,7 +19,6 @@ import {
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   Table,
@@ -34,16 +32,12 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useExploreDataset,
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
-  useExploreTitle,
-  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {viewSamplesTarget} from 'sentry/views/explore/utils';
@@ -52,22 +46,14 @@ import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
-  confidences: Confidence[];
 }
 
-export function AggregatesTable({
-  aggregatesTableResult,
-  confidences,
-}: AggregatesTableProps) {
+export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const location = useLocation();
-  const organization = useOrganization();
   const {projects} = useProjects();
 
   const topEvents = useTopEvents();
-  const title = useExploreTitle();
-  const dataset = useExploreDataset();
   const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
 
   const {result, eventView, fields} = aggregatesTableResult;
 
@@ -77,19 +63,6 @@ export function AggregatesTable({
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  useAnalytics({
-    dataset,
-    resultLength: result.data?.length,
-    resultMode: 'aggregates',
-    resultStatus: result.status,
-    visualizes,
-    organization,
-    columns: groupBys,
-    userQuery: query,
-    confidences,
-    title,
-  });
-
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
@@ -98,8 +71,12 @@ export function AggregatesTable({
 
   const meta = result.meta ?? {};
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
+
+  const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
+
+  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2)!; // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
     <Fragment>
@@ -187,7 +164,9 @@ export function AggregatesTable({
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
-                    {topEvents && i < topEvents && <TopResultsIndicator index={i} />}
+                    {topEvents && i < topEvents && (
+                      <TopResultsIndicator color={palette[i]!} />
+                    )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target}>
                         <IconStack />
@@ -223,16 +202,14 @@ export function AggregatesTable({
   );
 }
 
-const TopResultsIndicator = styled('div')<{index: number}>`
+const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;
   left: -1px;
   width: 9px;
   height: 16px;
   border-radius: 0 3px 3px 0;
 
-  background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
-  }};
+  background-color: ${p => p.color};
 `;
 
 const StyledLink = styled(Link)`

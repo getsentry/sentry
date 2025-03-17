@@ -86,6 +86,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.profileDurationUI.titleName,
+    value: DATA_CATEGORY_INFO.profileDurationUI.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -418,11 +424,11 @@ function UsageChartBody({
   const colors = categoryColors?.length
     ? categoryColors
     : [
-        theme.outcome[Outcome.ACCEPTED]!,
-        theme.outcome[Outcome.FILTERED]!,
-        theme.outcome[Outcome.RATE_LIMITED]!,
-        theme.outcome[Outcome.INVALID]!,
-        theme.outcome[Outcome.CLIENT_DISCARD]!,
+        theme.outcome[Outcome.ACCEPTED],
+        theme.outcome[Outcome.FILTERED],
+        theme.outcome[Outcome.RATE_LIMITED],
+        theme.outcome[Outcome.INVALID],
+        theme.outcome[Outcome.CLIENT_DISCARD],
         theme.chartOther, // Projected
       ];
 

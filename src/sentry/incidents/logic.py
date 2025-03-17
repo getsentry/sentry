@@ -6,7 +6,6 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from enum import Enum, auto
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -61,7 +60,7 @@ from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
-from sentry.search.events.fields import is_function, resolve_field
+from sentry.search.events.fields import is_function, is_typed_numeric_tag, resolve_field
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
@@ -98,19 +97,13 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
 WINDOWED_STATS_DATA_POINTS = 200
-
-
-class NotSet(Enum):
-    TOKEN = auto()
-
-
-NOT_SET = NotSet.TOKEN
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
@@ -277,25 +270,56 @@ def _unpack_organization(alert_rule: AlertRule) -> Organization:
     return organization
 
 
-def _build_incident_query_builder(
-    incident: Incident,
-    entity_subscription: EntitySubscription,
-    start: datetime | None = None,
-    end: datetime | None = None,
-    windowed_stats: bool = False,
+@dataclass
+class BaseMetricIssueQueryParams:
+    snuba_query: SnubaQuery
+    date_started: datetime
+    current_end_date: datetime
+    organization: Organization
+
+
+@dataclass
+class CalculateOpenPeriodTimeRangeParams(BaseMetricIssueQueryParams):
+    start_arg: datetime | None = None
+    end_arg: datetime | None = None
+
+
+@dataclass
+class BuildMetricQueryBuilderParams(BaseMetricIssueQueryParams):
+    project_ids: list[int]
+    entity_subscription: EntitySubscription
+    start_arg: datetime | None = None
+    end_arg: datetime | None = None
+
+
+@dataclass
+class GetMetricIssueAggregatesParams(BaseMetricIssueQueryParams):
+    project_ids: list[int]
+    start_arg: datetime | None = None
+    end_arg: datetime | None = None
+
+
+def _build_metric_query_builder(
+    params: BuildMetricQueryBuilderParams,
 ) -> BaseQueryBuilder:
-    snuba_query = _unpack_snuba_query(incident.alert_rule)
-    start, end = _calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
-    project_ids = list(
-        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    start, end = _calculate_open_period_time_range(
+        CalculateOpenPeriodTimeRangeParams(
+            snuba_query=params.snuba_query,
+            date_started=params.date_started,
+            current_end_date=params.current_end_date,
+            organization=params.organization,
+            start_arg=params.start_arg,
+            end_arg=params.end_arg,
+        )
     )
-    query_builder = entity_subscription.build_query_builder(
-        query=snuba_query.query,
-        project_ids=project_ids,
-        environment=snuba_query.environment,
+
+    query_builder = params.entity_subscription.build_query_builder(
+        query=params.snuba_query.query,
+        project_ids=params.project_ids,
+        environment=params.snuba_query.environment,
         params={
-            "organization_id": incident.organization_id,
-            "project_id": project_ids,
+            "organization_id": params.organization.id,
+            "project_id": params.project_ids,
             "start": start,
             "end": end,
         },
@@ -316,37 +340,19 @@ def _build_incident_query_builder(
     return query_builder
 
 
-def _calculate_incident_time_range(
-    incident: Incident,
-    start_arg: datetime | None = None,
-    end_arg: datetime | None = None,
-    windowed_stats: bool = False,
+def _calculate_open_period_time_range(
+    params: CalculateOpenPeriodTimeRangeParams,
 ) -> tuple[datetime, datetime]:
-    snuba_query = _unpack_snuba_query(incident.alert_rule)
-    time_window = snuba_query.time_window if incident.alert_rule is not None else 60
+    time_window = params.snuba_query.time_window
     time_window_delta = timedelta(seconds=time_window)
-    start = (incident.date_started - time_window_delta) if start_arg is None else start_arg
-    end = (incident.current_end_date + time_window_delta) if end_arg is None else end_arg
-    if windowed_stats:
-        now = django_timezone.now()
-        end = start + timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
-        start = start - timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
-        if end > now:
-            end = now
+    start = (
+        (params.date_started - time_window_delta) if params.start_arg is None else params.start_arg
+    )
+    end = (
+        (params.current_end_date + time_window_delta) if params.end_arg is None else params.end_arg
+    )
 
-            # If the incident ended already, 'now' could be greater than we'd like
-            # which would result in showing too many data points after an incident ended.
-            # This depends on when the task to process snapshots runs.
-            # To resolve that, we ensure that the end is never greater than the date
-            # an incident ended + the smaller of time_window*10 or 10 days.
-            latest_end_date = incident.current_end_date + min(
-                timedelta(seconds=time_window * 10), timedelta(days=10)
-            )
-            end = min(end, latest_end_date)
-
-            start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
-
-    retention = quotas.backend.get_event_retention(organization=incident.organization) or 90
+    retention = quotas.backend.get_event_retention(organization=params.organization) or 90
     start = max(
         start.replace(tzinfo=timezone.utc),
         datetime.now(timezone.utc) - timedelta(days=retention),
@@ -356,41 +362,43 @@ def _calculate_incident_time_range(
     return start, end
 
 
-def get_incident_aggregates(
-    incident: Incident,
-    start: datetime | None = None,
-    end: datetime | None = None,
-    windowed_stats: bool = False,
+def get_metric_issue_aggregates(
+    params: GetMetricIssueAggregatesParams,
 ) -> dict[str, float | int]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
-    snuba_query = _unpack_snuba_query(incident.alert_rule)
     entity_subscription = get_entity_subscription_from_snuba_query(
-        snuba_query,
-        incident.organization_id,
+        params.snuba_query,
+        params.organization.id,
     )
+
     if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
-        start, end = _calculate_incident_time_range(
-            incident, start, end, windowed_stats=windowed_stats
+        start, end = _calculate_open_period_time_range(
+            CalculateOpenPeriodTimeRangeParams(
+                snuba_query=params.snuba_query,
+                date_started=params.date_started,
+                current_end_date=params.current_end_date,
+                organization=params.organization,
+                start_arg=params.start_arg,
+                end_arg=params.end_arg,
+            )
         )
 
-        project_ids = list(
-            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
-        )
-
-        params = SnubaParams(
-            environments=[snuba_query.environment],
-            projects=[Project.objects.get_from_cache(id=project_id) for project_id in project_ids],
-            organization=Organization.objects.get_from_cache(id=incident.organization_id),
+        snuba_params = SnubaParams(
+            environments=[params.snuba_query.environment],
+            projects=[
+                Project.objects.get_from_cache(id=project_id) for project_id in params.project_ids
+            ],
+            organization=params.organization,
             start=start,
             end=end,
         )
 
         try:
             results = spans_rpc.run_table_query(
-                params,
-                query_string=snuba_query.query,
+                snuba_params,
+                query_string=params.snuba_query.query,
                 selected_columns=[entity_subscription.aggregate],
                 orderby=None,
                 offset=0,
@@ -405,14 +413,23 @@ def get_incident_aggregates(
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
-                    "dataset": snuba_query.dataset,
+                    "dataset": params.snuba_query.dataset,
                     "entity": EntityKey.EAPSpans.value,
                 },
             )
             raise
     else:
-        query_builder = _build_incident_query_builder(
-            incident, entity_subscription, start, end, windowed_stats
+        query_builder = _build_metric_query_builder(
+            BuildMetricQueryBuilderParams(
+                snuba_query=params.snuba_query,
+                organization=params.organization,
+                project_ids=params.project_ids,
+                entity_subscription=entity_subscription,
+                date_started=params.date_started,
+                current_end_date=params.current_end_date,
+                start_arg=params.start_arg,
+                end_arg=params.end_arg,
+            )
         )
         try:
             results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
@@ -420,7 +437,7 @@ def get_incident_aggregates(
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
-                    "dataset": snuba_query.dataset,
+                    "dataset": params.snuba_query.dataset,
                     "entity": get_entity_key_from_query_builder(query_builder).value,
                 },
             )
@@ -753,6 +770,8 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_alert_rule
+
     snuba_query = _unpack_snuba_query(alert_rule)
     organization = _unpack_organization(alert_rule)
 
@@ -886,7 +905,11 @@ def update_alert_rule(
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
-        alert_rule.update(**updated_fields)
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            alert_rule.update(**updated_fields)
+            # if an exception occurs in this helper, don't catch it so we can see the full stack trace
+            dual_update_migrated_alert_rule(alert_rule, updated_fields)
+
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -997,7 +1020,6 @@ def delete_alert_rule(
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
@@ -1035,10 +1057,6 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-        # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
-        # the user could be removed from the dual write flag for whatever reason, and we need to make sure
-        # that the extra table data is deleted. If the rows don't exist, we'll exit early.
-        dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)
         schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
@@ -1097,6 +1115,9 @@ def update_alert_rule_trigger(
     alert rule
     :return: The updated AlertRuleTrigger
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule_trigger,
+    )
 
     if (
         AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
@@ -1116,6 +1137,8 @@ def update_alert_rule_trigger(
 
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
+            # exceptions from this helper are purposely uncaught
+            dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
             trigger.update(**updated_fields)
 
     return trigger
@@ -1304,16 +1327,18 @@ def create_alert_rule_trigger_action(
         else:
             sentry_app_config = {"priority": priority}
 
-    return AlertRuleTriggerAction.objects.create(
-        alert_rule_trigger=trigger,
-        type=type.value,
-        target_type=target_type.value,
-        target_identifier=str(target.identifier) if target.identifier is not None else None,
-        target_display=target.display,
-        integration_id=integration_id,
-        sentry_app_id=sentry_app_id,
-        sentry_app_config=sentry_app_config,
-    )
+    with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+        trigger_action = AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=trigger,
+            type=type.value,
+            target_type=target_type.value,
+            target_identifier=str(target.identifier) if target.identifier is not None else None,
+            target_display=target.display,
+            integration_id=integration_id,
+            sentry_app_id=sentry_app_id,
+            sentry_app_config=sentry_app_config,
+        )
+    return trigger_action
 
 
 def update_alert_rule_trigger_action(
@@ -1342,6 +1367,10 @@ def update_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule_trigger_action,
+    )
+
     updated_fields: dict[str, Any] = {}
     if type is not None:
         updated_fields["type"] = type.value
@@ -1392,7 +1421,10 @@ def update_alert_rule_trigger_action(
         else:
             updated_fields["sentry_app_config"] = {"priority": priority}
 
-    trigger_action.update(**updated_fields)
+    with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+        trigger_action.update(**updated_fields)
+        # exceptions from this helper are purposely left uncaught
+        dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 
@@ -1711,6 +1743,12 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
 EAP_COLUMNS = [
     "span.duration",
     "span.self_time",
+    "ai.total_tokens.used",
+    "ai.total_cost",
+    "cache.item_size",
+    "http.decoded_response_content_length",
+    "http.response_content_length",
+    "http.response_transfer_size",
 ]
 EAP_FUNCTIONS = [
     "count",
@@ -1723,6 +1761,7 @@ EAP_FUNCTIONS = [
     "p100",
     "max",
     "min",
+    "sum",
 ]
 
 
@@ -1791,6 +1830,7 @@ def check_aggregate_column_support(
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
         or (column in EAP_COLUMNS and allow_eap)
+        or (is_typed_numeric_tag(column) and allow_eap)
     )
 
 

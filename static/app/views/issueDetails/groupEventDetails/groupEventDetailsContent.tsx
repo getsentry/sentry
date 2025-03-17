@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {CombinedBreadcrumbsAndLogsSection} from 'sentry/components/events/breadcrumbs/combinedBreadcrumbsAndLogsSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -70,13 +70,12 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import MetricIssuesSection from '../metricIssuesSection';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -138,7 +137,7 @@ export function EventDetailsContent({
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
-        <ActionableItems event={event} project={project} isShare={false} />
+        <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
@@ -213,10 +212,11 @@ export function EventDetailsContent({
           organization={organization}
         />
       ) : null}
-      {group.issueCategory === IssueCategory.UPTIME && (
+
+      {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
-      {group.issueCategory === IssueCategory.CRON && (
+      {!hasStreamlinedUI && group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
           organization={organization}
@@ -227,7 +227,6 @@ export function EventDetailsContent({
         <MetricIssuesSection
           organization={organization}
           group={group}
-          event={event}
           project={project}
         />
       )}
@@ -369,9 +368,7 @@ export function EventDetailsContent({
         </Fragment>
       )}
       <EventHydrationDiff event={event} group={group} />
-      {issueTypeConfig.replays.enabled && (
-        <EventReplay event={event} group={group} projectSlug={project.slug} />
-      )}
+      <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.HPKP]) && (
         <EntryErrorBoundary type={EntryType.HPKP}>
           <Generic
@@ -407,7 +404,7 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
       {hasStreamlinedUI && event.contexts.trace?.trace_id && (
         <EventTraceView group={group} event={event} organization={organization} />
       )}
@@ -502,11 +499,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>

@@ -1,6 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/react';
-import {type Event, _browserPerformanceTimeOriginMode} from '@sentry/core';
+import type {Event} from '@sentry/core';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
@@ -65,6 +65,9 @@ function getSentryIntegrations() {
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
+      _experiments: {
+        enableStandaloneClsSpans: true,
+      },
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
@@ -88,7 +91,7 @@ export function initializeSdk(config: Config) {
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
-    : [...sentryConfig?.tracePropagationTargets];
+    : [...sentryConfig.tracePropagationTargets];
 
   Sentry.init({
     ...sentryConfig,
@@ -183,21 +186,10 @@ export function initializeSdk(config: Config) {
 
       return event;
     },
+    _experiments: {
+      enableLogs: true,
+    },
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    if (
-      sentryConfig.environment === 'development' &&
-      process.env.SENTRY_SPOTLIGHT &&
-      !['false', 'f', 'n', 'no', 'off', '0'].includes(process.env.SENTRY_SPOTLIGHT)
-    ) {
-      import('@spotlightjs/spotlight').then(Spotlight => {
-        // TODO: use the value of `process.env.SENTRY_SPOTLIGHT` for the `sidecarUrl` below when it is not "truthy"
-        //       Truthy is defined in https://github.com/getsentry/sentry-javascript/pull/13325/files#diff-a139d0f6c10ca33f2b0264da406662f90061cd7e8f707c197a02460a7f666e87R2
-        /* #__PURE__ */ Spotlight.init();
-      });
-    }
-  }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
   // files the error touched. (files inside the stacktrace)
@@ -234,7 +226,6 @@ export function initializeSdk(config: Config) {
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   Sentry.addEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
     event.tags = event.tags || {};
-    event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
     return event;
   });
 

@@ -83,7 +83,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
 
 @contextmanager
-def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage, None, None]:
+def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage]:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"

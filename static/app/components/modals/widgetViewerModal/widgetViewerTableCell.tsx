@@ -33,7 +33,6 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -205,7 +204,7 @@ export const renderGridBodyCell = ({
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
       case WidgetType.ERRORS:
-      default:
+      default: {
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
@@ -235,6 +234,7 @@ export const renderGridBodyCell = ({
           );
         }
         break;
+      }
     }
 
     if (columnKey === 'transaction' && dataRow.transaction) {
@@ -295,7 +295,7 @@ export const renderPrependColumns =
     const eventSlug = generateEventSlug(dataRow);
 
     const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
+      organization,
       eventSlug,
       eventView,
     });
@@ -369,30 +369,10 @@ export const renderReleaseGridHeaderCell = ({
     );
   };
 
-export const renderMetricGridHeaderCell = () =>
-  function (
-    column: TableColumn<keyof TableDataRow>,
-    _columnIndex: number
-  ): React.ReactNode {
-    const align = parseField(column.name) ? 'right' : 'left';
-    const titleText = formatMRIField(column.name);
-
-    return (
-      <StyledTooltip skipWrapper showOnlyOnOverflow title={titleText}>
-        <AlignedText align={align}>{titleText}</AlignedText>
-      </StyledTooltip>
-    );
-  };
-
 const StyledTooltip = styled(Tooltip)`
   display: initial;
 `;
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const AlignedText = styled('div')<{align: string}>`
-  width: 100%;
-  text-align: ${p => p.align};
 `;

@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import functools
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
-from typing_extensions import TypeIs
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
@@ -136,6 +136,9 @@ text_filter = negation? text_key sep operator? search_value
 
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+explicit_flag_key       = "flags" open_bracket search_key closed_bracket
+explicit_string_flag_key = "flags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key = "flags" open_bracket search_key spaces comma spaces "number" closed_bracket
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
@@ -144,8 +147,8 @@ function_args          = aggregate_param (spaces comma spaces !comma aggregate_p
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = explicit_number_tag_key / key / quoted_key
-text_key               = explicit_tag_key / explicit_string_tag_key / search_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -225,6 +228,50 @@ def translate_wildcard(pat: str) -> str:
     return "^" + res + "$"
 
 
+def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
+    """
+    Translate a wildcard pattern to clickhouse pattern.
+
+    See https://clickhouse.com/docs/en/sql-reference/functions/string-search-functions#like
+    """
+    chars: list[str] = []
+
+    i = 0
+    n = len(pattern)
+
+    while i < n:
+        c = pattern[i]
+        i += 1
+        if c == "\\" and i < n:
+            c = pattern[i]
+            if c not in {"*"}:
+                raise InvalidSearchQuery(f"Unexpected escape character: {c}")
+            chars.append(c)
+            i += 1
+        elif c == "*":
+            # sql uses % as the wildcard character
+            chars.append("%")
+        elif c in {"%", "_"}:
+            # these are special characters and need to be escaped
+            chars.append("\\")
+            chars.append(c)
+        else:
+            chars.append(c)
+
+    return "".join(chars)
+
+
+def wrap_free_text(string: str, autowrap: bool) -> str:
+    if not autowrap:
+        return string
+    # Free text already had wildcarding on it, leave it alone
+    if string.startswith("*") or string.endswith("*"):
+        return string
+    # Otherwise always wrap it with wildcarding
+    else:
+        return f"*{string}*"
+
+
 def translate_escape_sequences(string: str) -> str:
     """
     A non-wildcard pattern can contain escape sequences that we need to handle.
@@ -248,8 +295,11 @@ def translate_escape_sequences(string: str) -> str:
     return res
 
 
-def flatten(children):
-    def _flatten(seq):
+type _RecursiveList[T] = list[T] | list[_RecursiveList[T]]
+
+
+def flatten[T](children: T | _RecursiveList[T]) -> list[T]:
+    def _flatten(seq: _RecursiveList[T]) -> Generator[T]:
         # there is a list from search_term and one from free_text, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
         for item in seq:
@@ -258,27 +308,19 @@ def flatten(children):
             else:
                 yield item
 
-    if not (children and isinstance(children, list) and isinstance(children[0], list)):
-        return children
+    if not isinstance(children, list):
+        return [children]
 
-    children = [child for group in children for child in _flatten(group)]
-    children = [_f for _f in _flatten(children) if _f]
-
-    return children
+    return [_f for _f in _flatten(children) if _f]
 
 
-def remove_optional_nodes(children):
-    def is_not_optional(child):
-        return not (isinstance(child, Node) and not child.text)
-
-    return list(filter(is_not_optional, children))
-
-
-def remove_space(children):
-    def is_not_space(text):
-        return not (isinstance(text, str) and text == " " * len(text))
-
-    return list(filter(is_not_space, children))
+def remove_optional_nodes[T](children: list[T]) -> list[T]:
+    return [
+        item
+        for item in children
+        if not (isinstance(item, Node) and not item.text)
+        if not (isinstance(item, str) and item.isspace())
+    ]
 
 
 def process_list(first, remaining):
@@ -329,15 +371,14 @@ class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")
         return value == SearchBoolean.BOOLEAN_AND or SearchBoolean.is_or_operator(value)
 
 
-class ParenExpression(namedtuple("ParenExpression", "children")):
-    def to_query_string(self):
-        children = ""
-        for child in self.children:
-            if isinstance(child, str):
-                children += f" {child}"
-            else:
-                children += f" {child.to_query_string()}"
-        return f"({children})"
+class ParenExpression(NamedTuple):
+    children: Sequence[QueryToken]
+
+    def to_query_string(self) -> str:
+        inner = " ".join(
+            child if isinstance(child, str) else child.to_query_string() for child in self.children
+        )
+        return f"({inner})"
 
 
 class SearchKey(NamedTuple):
@@ -474,7 +515,7 @@ class SearchFilter(NamedTuple):
     def __str__(self):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
-    def to_query_string(self):
+    def to_query_string(self) -> str:
         if self.operator == "IN":
             return f"{self.key.name}:{self.value.to_query_string()}"
         elif self.operator == "NOT IN":
@@ -516,12 +557,18 @@ if TYPE_CHECKING:
         value: SearchValue
         DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
 
+        def to_query_string(self) -> str:
+            return ""
+
 else:  # real implementation here!
 
     class AggregateFilter(NamedTuple):
         key: AggregateKey
         operator: str
         value: SearchValue
+
+        def to_query_string(self) -> str:
+            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
         def __str__(self) -> str:
             return f"{self.key.name}{self.operator}{self.value.raw_value}"
@@ -541,10 +588,6 @@ class SearchConfig:
 
     # Keys which are considered valid for duration filters
     duration_keys: set[str] = field(default_factory=set)
-
-    # Keys considered valid for the percentage aggregate and may have
-    # percentage search values
-    percentage_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for numeric filter types
     numeric_keys: set[str] = field(default_factory=set)
@@ -573,6 +616,9 @@ class SearchConfig:
     # Which key we should return any free text under
     free_text_key = "message"
 
+    # Whether to wrap free_text_keys in asterisks
+    wildcard_free_text: bool = False
+
     @classmethod
     def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
@@ -586,39 +632,39 @@ class SearchVisitor(NodeVisitor):
 
     def __init__(
         self,
-        config=None,
+        config: SearchConfig,
         params: ParamsType | None = None,
-        builder=None,
-        get_field_type=None,
-        get_function_result_type=None,
-    ):
+        get_field_type: Callable[[str], str | None] | None = None,
+        get_function_result_type: Callable[[str], str | None] | None = None,
+    ) -> None:
         super().__init__()
 
-        if config is None:
-            config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
-        self.get_field_type = get_field_type
-        if builder is None:
+
+        if TYPE_CHECKING:
+            from sentry.search.events.builder.discover import UnresolvedQuery
+
+        @functools.cache
+        def _get_fallback_builder() -> UnresolvedQuery:
             # Avoid circular import
             from sentry.search.events.builder.discover import UnresolvedQuery
 
             # TODO: read dataset from config
-            self.builder = UnresolvedQuery(
+            return UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=self.params,
                 config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
-        else:
-            self.builder = builder
-        if get_field_type is None:
-            self.get_field_type = self.builder.get_field_type
-        else:
+
+        if get_field_type is not None:
             self.get_field_type = get_field_type
-        if get_function_result_type is None:
-            self.get_function_result_type = self.builder.get_function_result_type
         else:
+            self.get_field_type = _get_fallback_builder().get_field_type
+        if get_function_result_type is not None:
             self.get_function_result_type = get_function_result_type
+        else:
+            self.get_function_result_type = _get_fallback_builder().get_function_result_type
 
     @cached_property
     def key_mappings_lookup(self):
@@ -635,6 +681,7 @@ class SearchVisitor(NodeVisitor):
             or is_span_op_breakdown(key)
             or self.get_field_type(key) in ["number", "integer"]
             or self.is_duration_key(key)
+            or self.is_size_key(key)
         )
 
     def is_duration_key(self, key):
@@ -655,14 +702,11 @@ class SearchVisitor(NodeVisitor):
     def is_boolean_key(self, key):
         return key in self.config.boolean_keys
 
-    def is_percentage_key(self, key):
-        return key in self.config.percentage_keys
-
     def visit_search(self, node, children):
-        return flatten(remove_space(children[1]))
+        return remove_optional_nodes(flatten(children[1]))
 
     def visit_term(self, node, children):
-        return flatten(remove_space(children[0]))
+        return remove_optional_nodes(flatten(children[0]))
 
     def visit_boolean_operator(self, node, children):
         if not self.config.allow_boolean:
@@ -678,18 +722,26 @@ class SearchVisitor(NodeVisitor):
     def visit_free_text(self, node, children):
         if not children[0]:
             return None
-        return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(children[0]))
+        # Free text searches need to be treated like they were wildcards
+        return SearchFilter(
+            SearchKey(self.config.free_text_key),
+            "=",
+            SearchValue(wrap_free_text(children[0], self.config.wildcard_free_text)),
+        )
 
     def visit_paren_group(self, node, children):
         if not self.config.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
+            return SearchFilter(
+                SearchKey(self.config.free_text_key),
+                "=",
+                SearchValue(wrap_free_text(node.text, self.config.wildcard_free_text)),
+            )
 
-        children = remove_space(remove_optional_nodes(flatten(children)))
-        children = flatten(children[1])
+        children = remove_optional_nodes(flatten(children))[1:-1]
         if len(children) == 0:
-            return node.text
+            return []
 
         return ParenExpression(children)
 
@@ -887,7 +939,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
+            result_type = self.get_function_result_type(search_key.name)
 
             if result_type == "duration" or result_type in DURATION_UNITS:
                 aggregate_value = parse_duration(*search_value)
@@ -928,7 +980,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
+            result_type = self.get_function_result_type(search_key.name)
             if result_type == "percentage":
                 aggregate_value = parse_percentage(search_value)
         except ValueError:
@@ -989,8 +1041,8 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
         # Invalid formats fall back to text match
-        search_value = operator + search_value.text if operator != "=" else search_value
-        return AggregateFilter(search_key, "=", SearchValue(search_value))
+        search_value_s = operator + search_value.text if operator != "=" else search_value.text
+        return AggregateFilter(search_key, "=", SearchValue(search_value_s))
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
@@ -1022,11 +1074,11 @@ class SearchVisitor(NodeVisitor):
                 f'Invalid value for "is" search, valid values are {valid_keys}'
             )
 
-        search_key, search_value = translators[search_value.raw_value]
+        search_key_s, search_value_v = translators[search_value.raw_value]
 
         operator = "!=" if is_negated(negation) else "="
-        search_key = SearchKey(search_key)
-        search_value = SearchValue(search_value)
+        search_key = SearchKey(search_key_s)
+        search_value = SearchValue(search_value_v)
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -1083,9 +1135,17 @@ class SearchVisitor(NodeVisitor):
     def visit_explicit_number_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name},number]")
 
+    def visit_explicit_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name}]")
+
+    def visit_explicit_string_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},string]")
+
+    def visit_explicit_number_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},number]")
+
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
-        children = remove_space(children)
 
         if len(children) == 3:
             (function_name, open_paren, close_paren) = children
@@ -1235,7 +1295,6 @@ class SearchVisitor(NodeVisitor):
 
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
-    percentage_keys={"percentage"},
     text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     # do not put aggregate functions in this list
     numeric_keys={
@@ -1268,17 +1327,16 @@ default_config = SearchConfig(
 )
 
 QueryOp = Literal["AND", "OR"]
-QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+QueryToken = Union[SearchFilter, AggregateFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query,
-    config=None,
+    query: str,
+    *,
+    config: SearchConfig | None = None,
     params=None,
-    builder=None,
-    config_overrides=None,
-    get_field_type=None,
-    get_function_result_type=None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
@@ -1298,13 +1356,9 @@ def parse_search_query(
             )
         )
 
-    if config_overrides:
-        config = SearchConfig.create_from(config, **config_overrides)
-
     return SearchVisitor(
         config,
         params=params,
-        builder=builder,
         get_field_type=get_field_type,
         get_function_result_type=get_function_result_type,
     ).visit(tree)

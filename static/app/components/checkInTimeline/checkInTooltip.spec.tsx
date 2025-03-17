@@ -4,10 +4,11 @@ import {getFormat} from 'sentry/utils/dates';
 
 import {generateTestStats, testStatusLabel, testStatusStyle} from './utils/testUtils';
 import {CheckInTooltip} from './checkInTooltip';
-import type {TimeWindowConfig} from './types';
+import type {JobTickData, TimeWindowConfig} from './types';
 
 const tickConfig: TimeWindowConfig = {
   start: new Date('2023-06-15T11:00:00Z'),
+  periodStart: new Date('2023-06-15T11:00:00Z'),
   end: new Date('2023-06-15T12:00:00Z'),
   dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
   elapsedMinutes: 60,
@@ -18,6 +19,14 @@ const tickConfig: TimeWindowConfig = {
   },
   timelineWidth: 1000,
   dateTimeProps: {timeOnly: true},
+  rollupConfig: {
+    bucketPixels: 0,
+    interval: 0,
+    timelineUnderscanWidth: 0,
+    totalBuckets: 0,
+    underscanBuckets: 0,
+    underscanStartOffset: 0,
+  },
 };
 
 describe('CheckInTooltip', function () {
@@ -25,13 +34,14 @@ describe('CheckInTooltip', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const stats = generateTestStats([0, 0, 1, 0, 0]);
-    const jobTick = {
+    const jobTick: JobTickData<any> = {
       startTs,
       stats,
-      roundedLeft: false,
-      roundedRight: false,
+      isStarting: false,
+      isEnding: false,
       endTs,
       width: 4,
+      left: 0,
     };
 
     render(
@@ -55,13 +65,14 @@ describe('CheckInTooltip', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const stats = generateTestStats([0, 1, 1, 1, 1]);
-    const jobTick = {
+    const jobTick: JobTickData<any> = {
       startTs,
       stats,
-      roundedLeft: false,
-      roundedRight: false,
+      isStarting: false,
+      isEnding: false,
       endTs,
       width: 4,
+      left: 0,
     };
 
     render(

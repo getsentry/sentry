@@ -11,7 +11,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
@@ -127,7 +127,7 @@ export function CreateProjectsFooter({
         });
 
         clearIndicators();
-        setTimeout(() => onComplete(createProjectForPlatform!));
+        setTimeout(() => onComplete(createProjectForPlatform));
       } catch (err) {
         addErrorMessage(t('Failed to load SDK configuration'));
         Sentry.captureException(err);

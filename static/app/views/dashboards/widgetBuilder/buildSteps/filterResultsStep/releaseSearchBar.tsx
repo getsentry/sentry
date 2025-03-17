@@ -5,7 +5,7 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagValue} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,9 +34,15 @@ interface Props {
   onClose: SearchBarProps['onClose'];
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  portalTarget?: HTMLElement | null;
 }
 
-export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
+export function ReleaseSearchBar({
+  pageFilters,
+  widgetQuery,
+  onClose,
+  portalTarget,
+}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
@@ -56,7 +62,7 @@ export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
       projectIds: projectIdStrings,
       includeTransactions: true,
     }).then(
-      tagValues => (tagValues as TagValue[]).map(({value}) => value),
+      tagValues => tagValues.map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }
@@ -79,6 +85,7 @@ export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
       disallowFreeText
       invalidMessages={invalidMessages}
       recentSearches={SavedSearchType.SESSION}
+      portalTarget={portalTarget}
     />
   );
 }

@@ -6,7 +6,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(EmptyStateWarning, story => {
+export default storyBook('EmptyStateWarning', story => {
   story('Default', () => (
     <Fragment>
       <p>

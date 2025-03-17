@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -114,9 +114,13 @@ function TriggerDescription({
             {thresholdText}
             {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
               <FeatureBadge
-                type="alpha"
-                title="Anomaly detection is in alpha and may produce inaccurate results"
-                tooltipProps={{isHoverable: true}}
+                type="beta"
+                tooltipProps={{
+                  title: t(
+                    'Anomaly detection is in beta and may produce unexpected results'
+                  ),
+                  isHoverable: true,
+                }}
               />
             ) : null}
           </TriggerText>
@@ -182,13 +186,13 @@ export function MetricDetailsSidebar({
     <Fragment>
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Alert Status')}</Heading>
+          <SectionHeading>{t('Alert Status')}</SectionHeading>
           <Status>
             <AlertBadge status={status} withText />
           </Status>
         </HeaderItem>
         <HeaderItem>
-          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <SectionHeading>{t('Last Triggered')}</SectionHeading>
           <Status>
             {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
           </Status>
@@ -222,7 +226,7 @@ export function MetricDetailsSidebar({
       </SidebarGroup>
       {showOnDemandMetricAlertUI && (
         <SidebarGroup>
-          <Heading>{t('Filters Used')}</Heading>
+          <SectionHeading>{t('Filters Used')}</SectionHeading>
           <KeyValueTable>
             {getSearchFilters(rule.query).map(({key, operator, value}) => (
               <FilterKeyValueTableRow
@@ -236,7 +240,7 @@ export function MetricDetailsSidebar({
         </SidebarGroup>
       )}
       <SidebarGroup>
-        <Heading>{t('Alert Rule Details')}</Heading>
+        <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
         <KeyValueTable>
           <KeyValueTableRow
             keyName={t('Environment')}
@@ -377,12 +381,11 @@ const Status = styled('div')`
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(1)};
-`;
+  margin-bottom: ${space(2)};
 
-const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const OverflowTableValue = styled('div')`

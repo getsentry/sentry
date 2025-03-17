@@ -136,11 +136,13 @@ export default function useInviteModal({organization, initialData, source}: Prop
         // Use the email error message if available. This inconsistently is
         // returned as either a list of errors for the field, or a single error.
         const emailError =
-          !errorResponse || !errorResponse.email
-            ? false
-            : Array.isArray(errorResponse.email)
+          !errorResponse ||
+          (errorResponse.email
+            ? Array.isArray(errorResponse.email)
               ? errorResponse.email[0]
-              : errorResponse.email;
+              : errorResponse.email
+            : false) ||
+          (errorResponse.role ? errorResponse.role : false);
 
         const orgLevelError = errorResponse?.organization;
         const error = orgLevelError || emailError || t('Could not invite user');
@@ -181,7 +183,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   }, []);
 
   useEffect(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const statuses = Object.values<InviteStatus>(state.inviteStatus);
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
     // Don't track if no invites have been sent or invites are still sending

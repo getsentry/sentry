@@ -91,7 +91,7 @@ class ProjectSessionsChartRequest extends Component<
     this.unmounting = true;
   }
 
-  private unmounting: boolean = false;
+  private unmounting = false;
 
   fetchData = async () => {
     const {
@@ -307,7 +307,7 @@ class ProjectSessionsChartRequest extends Component<
 
     const chartData = [
       {
-        ...sessionsChart[SessionStatus.HEALTHY]!,
+        ...sessionsChart[SessionStatus.HEALTHY],
         data: getCountSeries(
           SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.HEALTHY),
@@ -315,7 +315,7 @@ class ProjectSessionsChartRequest extends Component<
         ),
       },
       {
-        ...sessionsChart[SessionStatus.ERRORED]!,
+        ...sessionsChart[SessionStatus.ERRORED],
         data: getCountSeries(
           SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.ERRORED),
@@ -323,7 +323,7 @@ class ProjectSessionsChartRequest extends Component<
         ),
       },
       {
-        ...sessionsChart[SessionStatus.ABNORMAL]!,
+        ...sessionsChart[SessionStatus.ABNORMAL],
         data: getCountSeries(
           SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.ABNORMAL),
@@ -331,7 +331,7 @@ class ProjectSessionsChartRequest extends Component<
         ),
       },
       {
-        ...sessionsChart[SessionStatus.CRASHED]!,
+        ...sessionsChart[SessionStatus.CRASHED],
         data: getCountSeries(
           SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.CRASHED),

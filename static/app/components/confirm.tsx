@@ -2,9 +2,9 @@ import {cloneElement, Component, Fragment, isValidElement} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 
 export type ConfirmMessageRenderProps = {
@@ -75,6 +75,12 @@ export type OpenConfirmOptions = {
    * Header of modal
    */
   header?: React.ReactNode;
+  /**
+   * By default, the Confirm button has autofocus.
+   * However, if `isDangerous` is true, the Cancel button receives autofocus instead,
+   * preventing users from accidental modification of dangerous settings.
+   */
+  isDangerous?: boolean;
   /**
    * Message to display to user when asking for confirmation
    */
@@ -213,6 +219,7 @@ type ModalProps = ModalRenderProps &
     | 'confirmText'
     | 'cancelText'
     | 'header'
+    | 'isDangerous'
     | 'onConfirm'
     | 'onCancel'
     | 'disableConfirmButton'
@@ -240,7 +247,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     this.props.onRender?.();
   }
 
-  confirming: boolean = false;
+  confirming = false;
 
   handleClose = () => {
     const {disableConfirmButton, onCancel, closeModal} = this.props;
@@ -298,6 +305,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
       confirmText,
       cancelText,
       header,
+      isDangerous,
       renderConfirmButton,
       renderCancelButton,
     } = this.props;
@@ -315,6 +323,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
             ) : (
               <Button
                 onClick={this.handleClose}
+                autoFocus={!!isDangerous}
                 aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
               >
                 {cancelText ?? t('Cancel')}
@@ -331,7 +340,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
                 disabled={this.state.disableConfirmButton}
                 priority={priority}
                 onClick={this.handleConfirm}
-                autoFocus
+                autoFocus={!isDangerous}
                 aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
               >
                 {confirmText ?? t('Confirm')}

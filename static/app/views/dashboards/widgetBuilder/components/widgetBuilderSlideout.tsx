@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,6 +21,7 @@ import {
   DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
@@ -48,7 +49,7 @@ type WidgetBuilderSlideoutProps = {
   isWidgetInvalid: boolean;
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
@@ -140,6 +141,7 @@ function WidgetBuilderSlideout({
       collapsed={!isOpen}
       slidePosition="left"
       data-test-id="widget-slideout"
+      transitionProps={animationTransitionSettings}
     >
       <SlideoutHeaderWrapper>
         <SlideoutTitle>{title}</SlideoutTitle>
@@ -162,7 +164,28 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {!openWidgetTemplates ? (
+        {openWidgetTemplates ? (
+          <Fragment>
+            <div ref={templatesPreviewRef}>
+              {isSmallScreen && (
+                <Section>
+                  <WidgetPreviewContainer
+                    dashboard={dashboard}
+                    dashboardFilters={dashboardFilters}
+                    isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
+                    openWidgetTemplates={openWidgetTemplates}
+                  />
+                </Section>
+              )}
+            </div>
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+              setIsPreviewDraggable={setIsPreviewDraggable}
+            />
+          </Fragment>
+        ) : (
           <Fragment>
             <Section>
               <WidgetBuilderFilterBar />
@@ -200,6 +223,8 @@ function WidgetBuilderSlideout({
                 <ThresholdsSection
                   dataType={thresholdMetaState?.dataType}
                   dataUnit={thresholdMetaState?.dataUnit}
+                  error={error}
+                  setError={setError}
                 />
               </Section>
             )}
@@ -219,27 +244,6 @@ function WidgetBuilderSlideout({
               <WidgetBuilderNameAndDescription error={error} setError={setError} />
             </Section>
             <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
-          </Fragment>
-        ) : (
-          <Fragment>
-            <div ref={templatesPreviewRef}>
-              {isSmallScreen && (
-                <Section>
-                  <WidgetPreviewContainer
-                    dashboard={dashboard}
-                    dashboardFilters={dashboardFilters}
-                    isWidgetInvalid={isWidgetInvalid}
-                    onDataFetched={onDataFetched}
-                    openWidgetTemplates={openWidgetTemplates}
-                  />
-                </Section>
-              )}
-            </div>
-            <WidgetTemplatesList
-              onSave={onSave}
-              setOpenWidgetTemplates={setOpenWidgetTemplates}
-              setIsPreviewDraggable={setIsPreviewDraggable}
-            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>
@@ -275,5 +279,5 @@ const SlideoutBodyWrapper = styled('div')`
 `;
 
 const Section = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: 24px;
 `;

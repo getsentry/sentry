@@ -128,7 +128,7 @@ def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) 
 # dumps JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this when orjson experiment is successful
 def dumps_experimental(option_name: str, data: Any) -> str:
-    from sentry.features.rollout import in_random_rollout
+    from sentry.options.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
         return orjson.dumps(data).decode()

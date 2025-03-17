@@ -38,8 +38,5 @@ def get_aggregation_options(mri: str) -> dict[AggregationOption, TimeWindow] | N
     # Then move to use case-level disabled percentiles
     elif use_case_id.value in options.get("sentry-metrics.drop-percentiles.per-use-case"):
         return {AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS}
-    # And finally 10s granularity if none of the above apply for custom
-    elif (use_case_id == UseCaseID.CUSTOM) and options.get("sentry-metrics.10s-granularity"):
-        return {AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS}
 
     return None

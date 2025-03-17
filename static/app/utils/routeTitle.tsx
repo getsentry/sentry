@@ -1,7 +1,7 @@
 function routeTitleGen(
   routeName: string,
   orgSlug: string,
-  withSentry: boolean = true,
+  withSentry = true,
   projectSlug?: string
 ): string {
   const tmplBase = `${routeName} - ${orgSlug}`;

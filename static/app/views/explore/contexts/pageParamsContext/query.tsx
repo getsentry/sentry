@@ -17,6 +17,9 @@ export function updateLocationWithQuery(
 ) {
   if (defined(query)) {
     location.query.query = query;
+
+    // make sure to clear the cursor every time the query is updated
+    delete location.query.cursor;
   } else if (query === null) {
     delete location.query.query;
   }

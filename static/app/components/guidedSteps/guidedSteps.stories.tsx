@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -9,7 +9,7 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(GuidedSteps, story => {
+export default storyBook('GuidedSteps', story => {
   story('Default', () => (
     <Fragment>
       <p>

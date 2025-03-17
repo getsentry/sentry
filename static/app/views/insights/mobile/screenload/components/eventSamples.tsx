@@ -94,6 +94,7 @@ export function ScreenLoadEventSamples({
     fields: [
       'id',
       'trace',
+      'timestamp',
       'project.name',
       'profile.id',
       'measurements.time_to_initial_display',

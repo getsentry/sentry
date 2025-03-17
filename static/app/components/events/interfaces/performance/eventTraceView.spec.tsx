@@ -7,7 +7,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueTitle} from 'sentry/types/group';
 import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
-import {makeTraceError} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {
+  makeTraceError,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import {EventTraceView} from './eventTraceView';
 
@@ -62,31 +65,33 @@ describe('EventTraceView', () => {
         transaction_child_count_map: new Array(20)
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
       body: {
-        transactions: new Array(20).fill(0).map((_, i) => [
-          {
-            project_slug: project.slug,
-            event_id: i.toString(),
-            children: [],
-            sdk_name: '',
-            start_timestamp: 0,
-            timestamp: 1,
-            transaction: 'transaction',
-            'transaction.op': '',
-            'transaction.status': '',
-            performance_issues: [],
-            errors: i === 5 ? [makeTraceError({event_id: 'issue-5'})] : [],
-          },
-        ]),
+        transactions: Array.from({length: 20}, (_, i) =>
+          makeTransaction({
+            'transaction.op': `transaction-op-${i + 1}`,
+            project_slug: `project-slug-${i + 1}`,
+            event_id: `event-id-${i + 1}`,
+            errors: i === 0 ? [makeTraceError({event_id: 'issue-5'})] : [],
+          })
+        ),
         orphan_errors: [makeTraceError()],
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/${project.slug}:1/`,
+      url: `/organizations/${organization.slug}/events/project-slug-1:event-id-1/`,
+      method: 'GET',
+      body: {
+        entries: [{type: EntryType.SPANS, data: []}],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/project-slug-1:event-id-1/?averageColumn=span.self_time&averageColumn=span.duration`,
       method: 'GET',
       body: {
         entries: [{type: EntryType.SPANS, data: []}],
@@ -102,6 +107,17 @@ describe('EventTraceView', () => {
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
     expect(await screen.findByText('Trace')).toBeInTheDocument();
+
+    // Renders the transactions
+    expect(await screen.findByText('transaction-op-1')).toBeInTheDocument();
+    expect(await screen.findByText('transaction-op-2')).toBeInTheDocument();
+    expect(await screen.findByText('transaction-op-3')).toBeInTheDocument();
+    expect(await screen.findByText('transaction-op-4')).toBeInTheDocument();
+
+    // Renders the collapsed spans row
+    expect(await screen.findByText(/16 hidden spans/i)).toBeInTheDocument();
+
+    // Renders the error
     expect(
       await screen.findByText('MaybeEncodingError: Error sending result')
     ).toBeInTheDocument();
@@ -158,9 +174,6 @@ describe('EventTraceView', () => {
     );
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', {name: 'View Full Trace'})
-    ).toBeInTheDocument();
-    expect(
       screen.getByText('One other issue appears in the same trace.')
     ).toBeInTheDocument();
   });
@@ -180,6 +193,8 @@ describe('EventTraceView', () => {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({

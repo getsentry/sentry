@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.grouping.grouptype import ErrorGroupType
@@ -20,13 +20,23 @@ from sentry.workflow_engine.models.data_condition_group_action import DataCondit
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
 
+class ActionSerializerResponse(TypedDict):
+    id: str
+    type: str
+    integration_id: int | None
+    data: str
+    config: str
+
+
 @register(Action)
 class ActionSerializer(Serializer):
-    def serialize(self, obj: Action, *args, **kwargs):
+    def serialize(self, obj: Action, *args, **kwargs) -> ActionSerializerResponse:
         return {
             "id": str(obj.id),
             "type": obj.type,
+            "integration_id": obj.integration_id,
             "data": json.dumps(obj.data),
+            "config": json.dumps(obj.config),
         }
 
 
@@ -65,7 +75,7 @@ class DataSourceSerializer(Serializer):
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "type": obj.type,
-            "queryId": str(obj.query_id),
+            "sourceId": str(obj.source_id),
             "queryObj": attrs["query_obj"],
         }
 

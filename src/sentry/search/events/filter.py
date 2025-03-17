@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
-from functools import reduce
 from typing import Any, TypedDict, Union
 
 import orjson
@@ -54,8 +53,8 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 
 class FilterConvertParams(TypedDict, total=False):
     organization_id: int
-    project_id: list[int]
-    environment: list[str]
+    project_id: Sequence[int]
+    environment: Sequence[str] | None
     environment_id: list[int] | None
 
 
@@ -77,7 +76,7 @@ def to_list[T](value: list[T] | T) -> list[T]:
 def _environment_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     # conditions added to env_conditions are OR'd
     env_conditions: list[list[object]] = []
@@ -100,7 +99,7 @@ def _environment_filter_converter(
 def _message_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     value = search_filter.value.value
     if search_filter.value.is_wildcard():
@@ -137,7 +136,7 @@ def _message_filter_converter(
 def _transaction_status_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     # Handle "has" queries
     if search_filter.value.raw_value == "":
@@ -156,7 +155,7 @@ def _transaction_status_filter_converter(
 def _issue_id_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     value = search_filter.value.value
     # Handle "has" queries
@@ -183,7 +182,7 @@ def _issue_id_filter_converter(
 def _user_display_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     value = search_filter.value.value
     user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
@@ -203,7 +202,7 @@ def _user_display_filter_converter(
 def _error_unhandled_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     value = search_filter.value.value
     # This field is the inversion of error.handled, otherwise the logic is the same.
@@ -222,7 +221,7 @@ def _error_unhandled_filter_converter(
 def _error_handled_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     value = search_filter.value.value
     # Treat has filter as equivalent to handled
@@ -240,7 +239,7 @@ def _error_handled_filter_converter(
 def _team_key_transaction_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams | None,
 ):
     value = search_filter.value.value
     key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(params)
@@ -264,8 +263,8 @@ def _flip_field_sort(field: str):
 def _release_stage_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: FilterConvertParams,
-) -> tuple[str, str, Sequence[str]]:
+    params: FilterConvertParams | None,
+) -> list[Any]:
     """
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
@@ -303,8 +302,8 @@ def _release_stage_filter_converter(
 def _semver_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
-) -> tuple[str, str, Sequence[str]]:
+    params: FilterConvertParams | None,
+) -> list[Any]:
     """
     Parses a semver query search and returns a snuba condition to filter to the
     requested releases.
@@ -377,8 +376,8 @@ def _semver_filter_converter(
 def _semver_package_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
-) -> tuple[str, str, Sequence[str]]:
+    params: FilterConvertParams | None,
+) -> list[Any]:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -407,8 +406,8 @@ def _semver_package_filter_converter(
 def _semver_build_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
-) -> tuple[str, str, Sequence[str]]:
+    params: FilterConvertParams | None,
+) -> list[Any]:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -548,6 +547,7 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
+        assert isinstance(raw_value, str), raw_value
         # TODO: There are rare cases where this chaining don't
         # work. For example, a wildcard like '\**' will incorrectly
         # be replaced with '\%%'.
@@ -718,19 +718,16 @@ def format_search_filter(term, params):
         and params
         and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
-        value = reduce(
-            lambda x, y: x + y,
-            [
-                parse_release(
-                    v,
-                    params["project_id"],
-                    params.get("environment_objects"),
-                    params.get("organization_id"),
-                )
-                for v in to_list(value)
-            ],
-            [],
-        )
+        value = [
+            part
+            for v in to_list(value)
+            for part in parse_release(
+                v,
+                params["project_id"],
+                params.get("environment_objects"),
+                params.get("organization_id"),
+            )
+        ]
 
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
         operator = operator_conversions.get(term.operator, term.operator)

@@ -1,29 +1,27 @@
 import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
-import TraceExplorerTabs from 'sentry/views/explore/tabBar';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export function ExploreContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = limitMaxPickableDays(
-    organization!
-  );
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,15 +34,13 @@ export function ExploreContent() {
       },
     });
   }, [location, navigate]);
-  const ourlogsEnabled = organization.features.includes('ourlogs-enabled');
-  const selectedTab = decodeScalar(location.query.exploreTab, 'spans');
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('Traces')}
                 <PageHeadingQuestionTooltip
@@ -55,9 +51,11 @@ export function ExploreContent() {
                   linkLabel={t('Read the Discussion')}
                 />
                 <FeatureBadge
-                  title={t(
-                    'This feature is available for early adopters and the UX may change'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'This feature is available for early adopters and the UX may change'
+                    ),
+                  }}
                   type="beta"
                 />
               </Layout.Title>
@@ -72,17 +70,12 @@ export function ExploreContent() {
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
-            {ourlogsEnabled ? <TraceExplorerTabs selected={selectedTab} /> : null}
           </Layout.Header>
-          {ourlogsEnabled && selectedTab === 'logs' ? (
-            <LogsTabContent />
-          ) : (
-            <SpansTabContent
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
-          )}
+          <SpansTabContent
+            defaultPeriod={defaultPeriod}
+            maxPickableDays={maxPickableDays}
+            relativeOptions={relativeOptions}
+          />
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>

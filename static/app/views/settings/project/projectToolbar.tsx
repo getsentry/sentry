@@ -1,8 +1,10 @@
+import styled from '@emotion/styled';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -16,17 +18,21 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };
 
-function ProjectToolbarSettings({organization, project, params: {projectId}}: Props) {
+export default function ProjectToolbarSettings({
+  organization,
+  project,
+  params: {projectId},
+}: Props) {
   const location = useLocation();
   const domain = decodeScalar(location.query.domain);
 
@@ -45,6 +51,10 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
           label: t('Allowed Origins'),
           help: (
             <div>
+              <Important>
+                {t('Only add trusted domains, that you control, to this list.')}
+              </Important>
+              <br />
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
               {t(
@@ -68,7 +78,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
       <SettingsPageHeader
         title={t('Dev Toolbar')}
         action={
-          <LinkButton href="https://docs.sentry.io/product/dev-toolbar/" external>
+          <LinkButton href="https://docs.sentry.io/product/sentry-toolbar/" external>
             {t('Read the Docs')}
           </LinkButton>
         }
@@ -83,15 +93,17 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
             `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
           )}
         </TextBlock>
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         {domain && (
-          <Alert type="info" showIcon>
-            {tct(
-              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
-              {domain: <strong>{domain}</strong>}
-            )}
-            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {tct(
+                'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+                {domain: <strong>{domain}</strong>}
+              )}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+            </Alert>
+          </Alert.Container>
         )}
 
         <Form
@@ -115,4 +127,6 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
   );
 }
 
-export default ProjectToolbarSettings;
+const Important = styled('strong')`
+  color: ${p => p.theme.red400};
+`;

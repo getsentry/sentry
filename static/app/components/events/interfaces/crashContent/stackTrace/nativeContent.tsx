@@ -177,6 +177,9 @@ export function NativeContent({
     0
   );
 
+  const firstInAppFrameIndex = frames[newestFirst ? 'findLastIndex' : 'findIndex'](
+    frame => frame.inApp
+  );
   let convertedFrames = frames
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
@@ -222,6 +225,7 @@ export function NativeContent({
           isHoverPreviewed,
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
+          isFirstInAppFrame: firstInAppFrameIndex === frameIndex,
           isUsedForGrouping,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
@@ -281,7 +285,7 @@ export function NativeContent({
         hideIcon={hideIcon}
       >
         <Frames data-test-id="stack-trace">
-          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+          {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
         </Frames>
       </ContentPanel>
     </Wrapper>

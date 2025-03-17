@@ -22,6 +22,8 @@ import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
+const {error, fmt} = Sentry._experiment_log;
+
 // In minutes
 export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
@@ -42,7 +44,7 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 export function truncationFormatter(
   value: string,
   truncate: number | boolean | undefined,
-  escaped: boolean = true
+  escaped = true
 ): string {
   // Whitespace characters such as newlines and tabs can
   // mess up the formatting in legends where it's part of
@@ -102,12 +104,9 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['invalid-duration-for-interval']);
-        Sentry.captureException(
-          new Error('Invalid duration supplied to interval function')
-        );
-      });
+      error(
+        fmt`Invalid duration supplied to interval function. (minutes: ${String(minutes)})`
+      );
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -120,7 +119,14 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
+export type Fidelity =
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'metrics'
+  | 'issues'
+  | 'spans'
+  | 'spans-low';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -131,6 +137,8 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
     issues: issuesFidelityLadder,
+    spans: spansFidelityLadder,
+    'spans-low': spansLowFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -179,6 +187,29 @@ const issuesFidelityLadder = new GranularityLadder([
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
+]);
+
+const spansFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '30m'],
+  [TWENTY_FOUR_HOURS, '15m'],
+  [SIX_HOURS, '15m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
+const spansLowFidelityLadder = new GranularityLadder([
+  [THIRTY_DAYS, '1d'],
+  [TWO_WEEKS, '12h'],
+  [ONE_WEEK, '4h'],
+  [FORTY_EIGHT_HOURS, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '10m'],
+  [0, '5m'],
 ]);
 
 /**
@@ -253,6 +284,9 @@ export function getSeriesSelection(
   );
 }
 
+/**
+ * @deprecated Prefer `isEventsStats`
+ */
 function isSingleSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
@@ -263,6 +297,9 @@ function isSingleSeriesStats(
   );
 }
 
+/**
+ * @deprecated Prefer `isMultiSeriesEventsStats`
+ */
 export function isMultiSeriesStats(
   data:
     | MultiSeriesEventsStats
@@ -330,7 +367,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
-    title: tableResult!.title ?? '',
+    title: tableResult.title ?? '',
     data: data.map(row => {
       return {
         name: row['geo.country_code'] as string,

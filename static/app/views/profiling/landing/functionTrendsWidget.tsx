@@ -5,9 +5,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {Button} from 'sentry/components/button';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
@@ -138,7 +138,7 @@ export function FunctionTrendsWidget({
                   trendType={trendType}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
-                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    const nextIndex = expandedIndex === i ? (i + 1) % l.length : i;
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}
@@ -242,11 +242,11 @@ function FunctionTrendsEntry({
     // the same bucket as the breakpoint.
 
     const beforeTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: beforeExamples[beforeExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     before = (
@@ -256,11 +256,11 @@ function FunctionTrendsEntry({
     );
 
     const afterTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: afterExamples[afterExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     after = (

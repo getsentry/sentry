@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -27,15 +27,18 @@ import useProjects from 'sentry/utils/useProjects';
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
+// Keep this list in sync with SUPPORTED_LANGUAGES in code_mapping.py
 const supportedStacktracePlatforms: PlatformKey[] = [
+  'csharp',
+  'elixir',
   'go',
   'javascript',
   'node',
   'php',
   'python',
   'ruby',
-  'elixir',
 ];
+const scmProviders = ['github', 'gitlab'];
 
 function shouldShowCodecovFeatures(
   organization: Organization,
@@ -105,7 +108,7 @@ interface StacktraceLinkProps {
   /**
    * The line of code being linked
    */
-  line: string;
+  line: string | null;
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
@@ -223,7 +226,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     return null;
   }
 
-  // Render the provided `sourceLink` for all the non-inapp frames for `csharp` platform Issues
+  // Render the provided `sourceLink` for all the non-in-app frames for `csharp` platform Issues
   // We skip fetching from the API for these frames.
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
@@ -260,7 +263,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
             match.config.provider.key,
-            match!.sourceUrl,
+            match.sourceUrl,
             frame.lineNo
           )}
           openInNewTab
@@ -290,7 +293,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
-    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );
@@ -332,7 +335,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     }
 
     const sourceCodeProviders = match.integrations.filter(integration =>
-      ['github', 'gitlab'].includes(integration.provider?.key)
+      scmProviders.includes(integration.provider?.key)
     );
     return (
       <StacktraceLinkWrapper>

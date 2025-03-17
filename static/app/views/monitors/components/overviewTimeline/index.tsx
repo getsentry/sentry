@@ -18,6 +18,7 @@ import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +42,8 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
   const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
@@ -53,7 +55,10 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      if (!oldMonitorList) {
+        return undefined;
+      }
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       if (oldMonitorIdx < 0) {
         return oldMonitorList;
@@ -95,11 +100,11 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
-      oldMonitorList[monitorIdx] = resp;
-      return oldMonitorList;
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      return oldMonitorList
+        ? // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+          oldMonitorList.map(m => (m.slug === monitor.slug ? resp : m))
+        : undefined;
     });
   };
 
@@ -112,11 +117,12 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
     }
 
     const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx]!, status: resp.status};
-
-      return oldMonitorList;
+    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+      return oldMonitorList
+        ? oldMonitorList.map(m =>
+            m.slug === monitor.slug ? {...m, status: resp.status} : m
+          )
+        : undefined;
     });
   };
 
@@ -147,6 +153,7 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
         stickyCursor
         allowZoom
         showCursor
+        cursorOffsets={{right: 40}}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
@@ -177,8 +184,8 @@ const Header = styled(Sticky)`
 
   z-index: 1;
   background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
@@ -201,6 +208,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
   grid-row: 1;
   grid-column: 3/-1;
 `;

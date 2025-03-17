@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -12,7 +13,11 @@ import {
   updateDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -47,7 +52,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -78,7 +82,6 @@ import {
   assignDefaultLayout,
   assignTempId,
   calculateColumnDepths,
-  generateWidgetsAfterCompaction,
   getDashboardLayout,
 } from './layoutUtils';
 import DashboardTitle from './title';
@@ -113,7 +116,7 @@ type RouteParams = {
   widgetIndex?: number;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   api: Client;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
@@ -130,6 +133,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   dashboardState: DashboardState;
+  isSavingDashboardFilters: boolean;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
@@ -156,7 +160,9 @@ export function handleUpdateDashboardSplit({
   // because the backend has evaluated the query and stored that value
   const updatedDashboard = cloneDashboard(dashboard);
   const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget => widget.id === widgetId
+    widget =>
+      (defined(widget.id) && widget.id === widgetId) ||
+      (defined(widget.tempId) && widget.tempId === widgetId)
   );
 
   if (widgetIndex >= 0) {
@@ -251,6 +257,7 @@ class DashboardDetail extends Component<Props, State> {
       location: this.props.location,
       router: this.props.router,
     }),
+    isSavingDashboardFilters: false,
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
     openWidgetTemplates: undefined,
   };
@@ -299,18 +306,12 @@ class DashboardDetail extends Component<Props, State> {
       totalIssuesCount,
       seriesResultsType,
       confidence,
+      sampleCount,
+      isSampled,
+      modifiedDashboard,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
-      const widget =
-        defined(widgetId) &&
-        (dashboard.widgets.find(({id}) => {
-          // This ternary exists because widgetId is in some places typed as string, while
-          // in other cases it is typed as number. Instead of changing the type everywhere,
-          // we check for both cases at runtime as I am not sure which is the correct type.
-          return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
-        }) ??
-          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-          dashboard.widgets[widgetId]);
+      const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
           organization,
@@ -344,7 +345,20 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
-            const widgetIndex = dashboard.widgets.indexOf(widget);
+            const widgetIndex = dashboard.widgets.findIndex(
+              w =>
+                (defined(widget.id) && w.id === widget.id) ||
+                (defined(widget.tempId) && w.tempId === widget.tempId)
+            );
+            if (widgetIndex === -1) {
+              Sentry.setTag('edit_source', 'modal');
+              Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+                level: 'error',
+                extra: {widget, dashboard},
+              });
+              return;
+            }
+
             if (organization.features.includes('dashboards-widget-builder-redesign')) {
               this.onEditWidget(widget);
               return;
@@ -365,6 +379,8 @@ class DashboardDetail extends Component<Props, State> {
             }
           },
           confidence,
+          sampleCount,
+          isSampled,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -631,7 +647,11 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-        } else {
+        } else if (
+          !organization.features.includes('dashboards-widget-builder-redesign')
+        ) {
+          // If we're not using the new widget builder, we need to replace the URL to
+          // ensure we're navigating back to the dashboard
           browserHistory.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
@@ -658,27 +678,6 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const widgetCopy = assignTempId({
-      layout,
-      ...defaultMetricWidget(),
-    });
-
-    const currentWidgets =
-      this.state.modifiedDashboard?.widgets ?? this.props.dashboard.widgets;
-
-    openWidgetViewerModal({
-      organization: this.props.organization,
-      widget: widgetCopy,
-      widgetLegendState: this.state.widgetLegendState,
-      onMetricWidgetEdit: widget => {
-        const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
-        this.onUpdateWidget(nextList);
-        this.handleUpdateWidgetList(nextList);
-      },
-    });
-  };
-
   onAddWidget = (dataset?: DataSet) => {
     const {
       organization,
@@ -687,11 +686,6 @@ class DashboardDetail extends Component<Props, State> {
       location,
       params: {dashboardId},
     } = this.props;
-
-    if (dataset === DataSet.METRICS) {
-      this.handleAddMetricWidget();
-      return;
-    }
 
     if (organization.features.includes('dashboards-widget-builder-redesign')) {
       this.onAddWidgetFromNewWidgetBuilder(dataset ?? DataSet.ERRORS);
@@ -749,11 +743,11 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                ...(!openWidgetTemplates
-                  ? convertWidgetToBuilderStateParams(
+                ...(openWidgetTemplates
+                  ? {}
+                  : convertWidgetToBuilderStateParams(
                       getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
-                    )
-                  : {}),
+                    )),
               },
             })
           );
@@ -771,7 +765,23 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
-    const widgetIndex = currentDashboard.widgets.indexOf(widget);
+
+    const widgetIndex = currentDashboard.widgets.findIndex(
+      w =>
+        (defined(widget.id) && w.id === widget.id) ||
+        (defined(widget.tempId) && w.tempId === widget.tempId)
+    );
+    if (widgetIndex === -1) {
+      Sentry.setTag('edit_source', 'context-menu');
+      Sentry.captureMessage('Attempted edit of widget not found in dashboard', {
+        level: 'error',
+        extra: {
+          widget,
+          currentDashboard,
+        },
+      });
+    }
+
     this.setState({
       isWidgetBuilderOpen: true,
       openWidgetTemplates: false,
@@ -790,13 +800,7 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleSaveWidget = async ({
-    index,
-    widget,
-  }: {
-    index: number | undefined;
-    widget: Widget;
-  }) => {
+  handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
     if (
       !this.props.organization.features.includes('dashboards-widget-builder-redesign')
     ) {
@@ -807,7 +811,7 @@ class DashboardDetail extends Component<Props, State> {
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
-    const mergedWidget = {...baseWidget, ...widget};
+    const mergedWidget = assignTempId({...baseWidget, ...widget});
 
     const newWidgets = defined(index)
       ? [
@@ -818,12 +822,13 @@ class DashboardDetail extends Component<Props, State> {
       : [...currentDashboard.widgets, mergedWidget];
 
     try {
-      if (!this.isEditingDashboard) {
-        // If we're not in edit mode, send a request to update the dashboard
-        await this.handleUpdateWidgetList(newWidgets);
-      } else {
+      if (this.isEditingDashboard) {
         // If we're in edit mode, update the edit state
         this.onUpdateWidget(newWidgets);
+      } else {
+        // If we're not in edit mode, send a request to update the dashboard
+        addLoadingMessage(t('Saving widget'));
+        this.handleUpdateWidgetList(newWidgets);
       }
 
       this.handleCloseWidgetBuilder();
@@ -1107,7 +1112,6 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
-                          handleAddMetricWidget={this.handleAddMetricWidget}
                           onAddWidgetFromNewWidgetBuilder={
                             this.onAddWidgetFromNewWidgetBuilder
                           }
@@ -1173,6 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           disablePersistence
+          skipLoadLastUsed
           defaultSelection={{
             datetime: {
               start: null,
@@ -1266,6 +1271,7 @@ class DashboardDetail extends Component<Props, State> {
                                 }
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
+                                shouldBusySaveButton={this.state.isSavingDashboardFilters}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1287,6 +1293,8 @@ class DashboardDetail extends Component<Props, State> {
                                       getDashboardFiltersFromURL(location) ??
                                       (modifiedDashboard ?? dashboard).filters,
                                   };
+                                  this.setState({isSavingDashboardFilters: true});
+                                  addLoadingMessage(t('Saving dashboard filters'));
                                   updateDashboard(
                                     api,
                                     organization.slug,
@@ -1315,6 +1323,7 @@ class DashboardDetail extends Component<Props, State> {
                                         this.setState(
                                           {
                                             modifiedDashboard: null,
+                                            isSavingDashboardFilters: false,
                                           },
                                           () => {
                                             // Wait for modifiedDashboard state to update before navigating
@@ -1325,6 +1334,7 @@ class DashboardDetail extends Component<Props, State> {
                                       }
 
                                       navigateToDashboard();
+                                      this.setState({isSavingDashboardFilters: false});
                                     },
                                     // `updateDashboard` does its own error handling
                                     () => undefined
@@ -1343,7 +1353,6 @@ class DashboardDetail extends Component<Props, State> {
                                     onUpdate={this.onUpdateWidget}
                                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                                     handleAddCustomWidget={this.handleAddCustomWidget}
-                                    handleAddMetricWidget={this.handleAddMetricWidget}
                                     onAddWidgetFromNewWidgetBuilder={
                                       this.onAddWidgetFromNewWidgetBuilder
                                     }

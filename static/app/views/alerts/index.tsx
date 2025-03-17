@@ -1,6 +1,8 @@
 import {cloneElement, isValidElement} from 'react';
 
+import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import Redirect from 'sentry/components/redirect';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -22,6 +24,15 @@ function AlertsContainer({children}: Props) {
           hasUptimeAlerts,
         })
       : children;
+
+  const redirectPath = useRedirectNavV2Routes({
+    oldPathPrefix: '/alerts/',
+    newPathPrefix: '/issues/alerts/',
+  });
+
+  if (redirectPath) {
+    return <Redirect to={redirectPath} />;
+  }
 
   return <NoProjectMessage organization={organization}>{content}</NoProjectMessage>;
 }

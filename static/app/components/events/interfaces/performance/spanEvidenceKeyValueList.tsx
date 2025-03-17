@@ -5,9 +5,9 @@ import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
-import {LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {LinkButton} from 'sentry/components/core/button';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -245,7 +245,7 @@ function MainThreadFunctionEvidence({
 
     if (evidenceData.transactionName) {
       const transactionSummaryLocation = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectID: event.projectID,
         transaction: evidenceData.transactionName,
         query: {},
@@ -466,7 +466,7 @@ const makeTransactionNameRow = (
   projectSlug?: string
 ) => {
   const transactionSummaryLocation = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectID: event.projectID,
     transaction: event.title,
     query: {},

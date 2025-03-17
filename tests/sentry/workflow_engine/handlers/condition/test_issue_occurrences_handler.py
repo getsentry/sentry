@@ -9,10 +9,9 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueOccurrencesCondition(ConditionTestCase):
     condition = Condition.ISSUE_OCCURRENCES
-    rule_cls = IssueOccurrencesFilter
     payload = {
         "id": IssueOccurrencesFilter.id,
-        "value": 10,
+        "value": "10",
     }
 
     def setUp(self):

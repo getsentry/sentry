@@ -15,7 +15,10 @@ type ParamKeys =
   | 'appId'
   | 'appSlug'
   | 'authId'
+  | 'codeId'
   | 'dataExportId'
+  | 'dashboardId'
+  | 'docIntegrationSlug'
   | 'eventId'
   | 'fineTuneType'
   | 'groupId'
@@ -35,6 +38,7 @@ type ParamKeys =
   | 'tagKey'
   | 'teamId'
   | 'traceSlug'
+  | 'viewId'
   | 'widgetIndex';
 
 /**
@@ -52,11 +56,11 @@ export function useParams<P extends Partial<Record<ParamKeys, string | undefined
 
   let contextParams: any;
 
-  if (!testRouteContext) {
+  if (testRouteContext) {
+    contextParams = testRouteContext.params;
+  } else {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     contextParams = useReactRouter6Params();
-  } else {
-    contextParams = testRouteContext.params;
   }
 
   // Memoize params as mutating for customer domains causes other hooks

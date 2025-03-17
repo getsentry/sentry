@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -132,7 +132,7 @@ function TeamMisery({
                     <TransactionWrapper>
                       <Link
                         to={transactionSummaryRouteWithQuery({
-                          orgSlug: organization.slug,
+                          organization,
                           transaction: dataRow.transaction as string,
                           projectID: project?.id,
                           query: {query: 'transaction.duration:<15m'},

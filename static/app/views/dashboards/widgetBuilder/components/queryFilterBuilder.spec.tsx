@@ -20,14 +20,10 @@ describe('QueryFilterBuilder', () => {
     organization = OrganizationFixture({
       features: ['dashboards-widget-builder-redesign'],
     });
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
   });
 
   it('renders a dataset-specific query filter bar', async () => {
@@ -66,11 +62,7 @@ describe('QueryFilterBuilder', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              query: [],
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.TABLE,
-            },
+            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
           }),
         }),
       }
@@ -130,11 +122,11 @@ describe('QueryFilterBuilder', () => {
     expect(
       screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
-    expect(await screen.findByText('Add Filter')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByText('Add Filter'));
-    await userEvent.click(await screen.findByText('Add Filter'));
+    await userEvent.click(await screen.findByText('+ Add Filter'));
+    await userEvent.click(await screen.findByText('+ Add Filter'));
 
-    expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
   });
 });

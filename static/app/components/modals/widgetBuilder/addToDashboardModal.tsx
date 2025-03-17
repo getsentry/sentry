@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
@@ -10,9 +10,9 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
@@ -43,7 +43,6 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type WidgetAsQueryParams = Query<{
@@ -187,7 +186,7 @@ function AddToDashboardModal({
     const title =
       // Metric widgets have their default title derived from the query
       widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('All Events')
+        ? t('Custom Widget')
         : widget.title;
 
     const newWidget = {
@@ -256,13 +255,13 @@ function AddToDashboardModal({
   };
 
   return (
-    <OrganizationContext.Provider value={organization}>
+    <Fragment>
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
         <Wrapper>
-          <SelectControl
+          <Select
             disabled={dashboards === null}
             menuPlacement="auto"
             name="dashboard"
@@ -360,7 +359,7 @@ function AddToDashboardModal({
           )}
         </StyledButtonBar>
       </Footer>
-    </OrganizationContext.Provider>
+    </Fragment>
   );
 }
 

@@ -88,6 +88,7 @@ export function useExploreAggregatesTable({
     initialData: [],
     limit,
     referrer: 'api.explore.spans-aggregates-table',
+    trackResponseAnalytics: false,
   });
 
   return useMemo(() => {

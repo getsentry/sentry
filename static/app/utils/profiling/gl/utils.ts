@@ -695,8 +695,8 @@ export function getTranslationMatrixFromPhysicalSpace(
   deltaY: number,
   view: CanvasView<any>,
   canvas: FlamegraphCanvas,
-  multiplierX: number = 0.8,
-  multiplierY: number = 1
+  multiplierX = 0.8,
+  multiplierY = 1
 ) {
   const physicalDelta = vec2.fromValues(deltaX * multiplierX, deltaY * multiplierY);
   const physicalToConfig = mat3.invert(

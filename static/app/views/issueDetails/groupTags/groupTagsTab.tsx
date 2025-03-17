@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
@@ -52,17 +52,10 @@ export function GroupTagsTab() {
     refetch: refetchGroup,
   } = useGroup({groupId: params.groupId});
 
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupTags({
+  const {data, isPending, isError, refetch} = useGroupTags({
     groupId: group?.id,
     environment: environments,
   });
-
-  const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
   if (isPending || isGroupPending) {
     return <LoadingIndicator />;
@@ -87,17 +80,20 @@ export function GroupTagsTab() {
     };
   };
 
+  const alphabeticalTags = data.toSorted((a, b) => a.key.localeCompare(b.key));
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="info">
-          {tct(
-            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-            {
-              link: <ExternalLink href={TAGS_DOCS_LINK} />,
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            {tct(
+              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+              {
+                link: <ExternalLink href={TAGS_DOCS_LINK} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
         <Container>
           {alphabeticalTags.map((tag, tagIdx) => (
             <TagItem key={tagIdx}>

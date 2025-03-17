@@ -331,8 +331,8 @@ export function computePreviewConfigView(
       }
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]!);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 

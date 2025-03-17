@@ -31,6 +31,7 @@ from sentry.incidents.logic import (
     AlertRuleTriggerLabelAlreadyUsedError,
     AlertTarget,
     ChannelLookupTimeoutError,
+    GetMetricIssueAggregatesParams,
     InvalidTriggerActionError,
     create_alert_rule,
     create_alert_rule_trigger,
@@ -46,7 +47,7 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
-    get_incident_aggregates,
+    get_metric_issue_aggregates,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
     translate_aggregate_field,
@@ -76,6 +77,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
@@ -268,9 +270,8 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
         )
 
 
-class BaseIncidentAggregatesTest(BaseIncidentsTest):
-    @property
-    def project_incident(self):
+class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
+    def test_projects(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
@@ -278,12 +279,15 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
         self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
         self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
         self.create_event(self.now - timedelta(minutes=2), user={"id": 124})
-        return incident
-
-
-class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
-    def test_projects(self):
-        assert get_incident_aggregates(self.project_incident) == {"count": 4}
+        snuba_query = incident.alert_rule.snuba_query
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=[self.project.id],
+        )
+        assert get_metric_issue_aggregates(params) == {"count": 4}
 
     def test_is_unresolved_query(self):
         incident = self.create_incident(
@@ -297,7 +301,16 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         self.create_event(self.now - timedelta(minutes=4))
 
         event.group.update(status=GroupStatus.UNRESOLVED)
-        assert get_incident_aggregates(incident) == {"count": 4}
+
+        snuba_query = incident.alert_rule.snuba_query
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=[self.project.id],
+        )
+        assert get_metric_issue_aggregates(params) == {"count": 4}
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
@@ -321,7 +334,18 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
         )
         incident.update(alert_rule=alert_rule)
-        incident_aggregates = get_incident_aggregates(incident)
+        snuba_query = incident.alert_rule.snuba_query
+        project_ids = list(
+            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        )
+        params = GetMetricIssueAggregatesParams(
+            snuba_query=snuba_query,
+            date_started=incident.date_started,
+            current_end_date=incident.current_end_date,
+            organization=incident.organization,
+            project_ids=project_ids,
+        )
+        incident_aggregates = get_metric_issue_aggregates(params)
         assert "count" in incident_aggregates
         assert incident_aggregates["count"] == 100.0
 
@@ -834,6 +858,25 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.threshold_period == threshold_period
         assert self.alert_rule.projects.all().count() == 2
         assert self.alert_rule.projects.all()[0] == updated_projects[0]
+
+    @mock.patch(
+        "sentry.workflow_engine.migration_helpers.alert_rule.dual_update_migrated_alert_rule"
+    )
+    def test_dual_update(self, mock_dual_update):
+        # test that we call the ACI dual update helpers-will be removed after dual write period ends
+        name = "hojicha"
+
+        updated_rule = update_alert_rule(
+            self.alert_rule,
+            name=name,
+        )
+        assert self.alert_rule.id == updated_rule.id
+        assert self.alert_rule.name == name
+
+        assert mock_dual_update.call_count == 1
+        call_args = mock_dual_update.call_args_list[0][0]
+        assert call_args[0] == self.alert_rule
+        assert call_args[1]["name"] == name
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
@@ -2189,6 +2232,22 @@ class UpdateAlertRuleTriggerTest(TestCase):
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
 
+    @mock.patch(
+        "sentry.workflow_engine.migration_helpers.alert_rule.dual_update_migrated_alert_rule_trigger"
+    )
+    def test_dual_update(self, mock_dual_update):
+        # test that we can call the ACI dual update helpers—will be removed after dual write period ends
+        trigger = create_alert_rule_trigger(self.alert_rule, "hello", 1000)
+
+        label = "matcha"
+        trigger = update_alert_rule_trigger(trigger, label=label)
+        assert trigger.label == label
+
+        assert mock_dual_update.call_count == 1
+        call_args = mock_dual_update.call_args_list[0][0]
+        assert call_args[0] == trigger
+        assert call_args[1]["label"] == label
+
     def test_name_used(self):
         label = "uh oh"
         create_alert_rule_trigger(self.alert_rule, label, 1000)
@@ -2519,7 +2578,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         channel_id = "channel-id"
         responses.add(
             method=responses.GET,
-            url=f"https://discord.com/api/v10/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json=metadata,
         )
         action = create_alert_rule_trigger_action(
@@ -2616,6 +2675,20 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert self.action.type == type.value
         assert self.action.target_type == target_type.value
         assert self.action.target_identifier == target_identifier
+
+    @mock.patch(
+        "sentry.workflow_engine.migration_helpers.alert_rule.dual_update_migrated_alert_rule_trigger_action"
+    )
+    def test_dual_update(self, mock_dual_update):
+        # test that we call the ACI dual update helpers—will be removed after dual wrie period ends
+        type = AlertRuleTriggerAction.Type.EMAIL
+        update_alert_rule_trigger_action(self.action, type=type)
+        assert self.action.type == type.value
+
+        assert mock_dual_update.call_count == 1
+        call_args = mock_dual_update.call_args_list[0][0]
+        assert call_args[0] == self.action
+        assert call_args[1]["type"] == type
 
     @responses.activate
     def test_slack(self):
@@ -2816,7 +2889,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_opsgenie(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
@@ -2863,7 +2936,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_opsgenie_not_existing(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         integration, _ = self.create_provider_integration_for(
@@ -2890,7 +2963,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2912,7 +2984,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -2936,7 +3008,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_invalid_channel_id(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "****bad****"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2956,7 +3027,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        responses.add(method=responses.GET, url=f"{base_url}/channels/{channel_id}", status=404)
+        responses.add(
+            method=responses.GET, url=f"{DISCORD_BASE_URL}/channels/{channel_id}", status=404
+        )
 
         with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
@@ -2969,7 +3042,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_bad_response(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2990,7 +3062,10 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
-            method=responses.GET, url=f"{base_url}/channels/{channel_id}", body="Error", status=500
+            method=responses.GET,
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
+            body="Error",
+            status=500,
         )
 
         with pytest.raises(InvalidTriggerActionError):
@@ -3021,7 +3096,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_discord_timeout(self, mock_validate_channel_id):
         mock_validate_channel_id.side_effect = ApiTimeoutError("Discord channel lookup timed out")
 
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3043,7 +3117,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -3061,7 +3135,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_channel_not_in_guild(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3083,7 +3156,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": "other-guild",
                 "name": f"{guild_name}",
@@ -3102,7 +3175,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_unsupported_type(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3124,7 +3196,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -3145,7 +3217,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_supported_priority(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}

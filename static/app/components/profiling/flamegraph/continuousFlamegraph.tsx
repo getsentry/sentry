@@ -214,8 +214,8 @@ function findLongestMatchingFrame(
       longestFrame = frame;
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]!);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 
@@ -1464,7 +1464,7 @@ export function ContinuousFlamegraph(): ReactElement {
         batteryChart={
           hasBatteryChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
@@ -1486,7 +1486,7 @@ export function ContinuousFlamegraph(): ReactElement {
         memoryChart={
           hasMemoryChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
@@ -1512,7 +1512,7 @@ export function ContinuousFlamegraph(): ReactElement {
         cpuChart={
           hasCPUChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}

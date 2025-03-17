@@ -14,6 +14,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.msteams.card_builder.block import (
     Block,
@@ -40,6 +41,7 @@ class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.spec = MsTeamsMessagingSpec()
+        self.handler = MessagingActionHandler(self.spec)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
@@ -85,14 +87,25 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
         data = json.loads(responses.calls[0].request.body)
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
-            incident, IncidentStatus(incident.status), metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=incident.alert_rule.snuba_query,
+            organization=incident.organization,
+            date_started=incident.date_started,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
 
         assert_slo_metric(mock_record)
@@ -116,7 +129,13 @@ class MsTeamsActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=alert_rule.snuba_query,
+            organization=incident.organization,
+            date_started=incident.date_started,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
         body: list[Block] = data["body"]
         column_set_block = cast(ColumnSetBlock, body[0])
@@ -161,7 +180,13 @@ class MsTeamsActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=alert_rule.snuba_query,
+            organization=incident.organization,
+            date_started=incident.date_started,
+            new_status=IncidentStatus(incident.status),
+            metric_value=metric_value,
         )
         body: list[Block] = data["body"]
         column_set_block = cast(ColumnSetBlock, body[0])
@@ -212,10 +237,15 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
 
@@ -234,9 +264,46 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_fire_metric_alert_halt(self, mock_record):
+        self.alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/d_s/activities",
+            status=403,
+            json={
+                "error": {
+                    "code": "ConversationBlockedByUser",
+                    "message": "User blocked the conversation with the bot.",
+                }
+            },
+        )
+
+        metric_value = 1000
+        with self.tasks():
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)

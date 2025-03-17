@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import time
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -237,7 +238,46 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 
 
 @run.command()
+@click.option(
+    "--redis-cluster",
+    help="The rediscluster name to store run state in.",
+    default="default",
+)
+@log_options()
+@configuration
+def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
+    """
+    Run a scheduler for taskworkers
+
+    All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
+    """
+    from django.conf import settings
+
+    from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+    from sentry.utils.redis import redis_clusters
+
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
+    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+
+    with managed_bgtasks(role="taskworker-scheduler"):
+        runner = ScheduleRunner(taskregistry, run_storage)
+        for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(schedule_data)
+
+        runner.log_startup()
+        while True:
+            sleep_time = runner.tick()
+            time.sleep(sleep_time)
+
+
+@run.command()
 @click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
+@click.option(
+    "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
+)
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
@@ -245,6 +285,16 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 @click.option("--concurrency", help="Number of child worker processes to create.", default=1)
 @click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
+)
+@click.option(
+    "--result-queue-maxsize",
+    help="Size of multiprocessing queue for child process results",
+    default=5,
+)
+@click.option(
+    "--child-tasks-queue-maxsize",
+    help="Size of multiprocessing queue for pending tasks for child processes",
+    default=5,
 )
 @log_options()
 @configuration
@@ -259,7 +309,14 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str, max_task_count: int, namespace: str | None, concurrency: int, **options: Any
+    rpc_host: str,
+    num_brokers: int | None,
+    max_task_count: int,
+    namespace: str | None,
+    concurrency: int,
+    child_tasks_queue_maxsize: int,
+    result_queue_maxsize: int,
+    **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
@@ -269,9 +326,12 @@ def run_taskworker(
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
             rpc_host=rpc_host,
+            num_brokers=num_brokers,
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,
+            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+            result_queue_maxsize=result_queue_maxsize,
             **options,
         )
         exitcode = worker.start()
@@ -308,7 +368,19 @@ def run_taskworker(
     "--bootstrap-servers",
     type=str,
     help="The bootstrap servers to use for the kafka topic",
-    required=True,
+    default="127.0.0.1:9092",
+)
+@click.option(
+    "--kafka-topic",
+    type=str,
+    help="The kafka topic to use for the task",
+    default=None,
+)
+@click.option(
+    "--namespace",
+    type=str,
+    help="The namespace that the task is registered in",
+    default=None,
 )
 def taskbroker_send_tasks(
     task_function_path: str,
@@ -316,11 +388,16 @@ def taskbroker_send_tasks(
     kwargs: str,
     repeat: int,
     bootstrap_servers: str,
+    kafka_topic: str,
+    namespace: str,
 ) -> None:
-    from sentry.conf.server import KAFKA_CLUSTERS
+    from sentry.conf.server import KAFKA_CLUSTERS, TASKWORKER_ROUTES
     from sentry.utils.imports import import_string
 
     KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+    if kafka_topic and namespace:
+        TASKWORKER_ROUTES[namespace] = kafka_topic
+
     try:
         func = import_string(task_function_path)
     except Exception as e:
@@ -329,8 +406,12 @@ def taskbroker_send_tasks(
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
 
-    for _ in range(repeat):
+    checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
+    for i in range(repeat):
         func.delay(*task_args, **task_kwargs)
+        if i in checkmarks:
+            click.echo(message=f"{int((i / repeat) * 100)}% complete")
+
     click.echo(message=f"Successfully sent {repeat} messages.")
 
 
@@ -426,14 +507,14 @@ def cron(**options: Any) -> None:
 )
 @click.option(
     "--enable-dlq/--disable-dlq",
-    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    help="Enable dlq to route invalid messages to the dlq topic. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
     default=True,
 )
 @click.option(
     "--stale-threshold-sec",
-    type=click.IntRange(min=60),
-    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+    type=click.IntRange(min=120),
+    help="Enable backlog queue to route stale messages to the blq topic.",
 )
 @click.option(
     "--log-level",

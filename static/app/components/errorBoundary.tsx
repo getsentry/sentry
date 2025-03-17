@@ -2,9 +2,10 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -12,11 +13,15 @@ type DefaultProps = {
   mini: boolean;
 };
 
+type CustomComponentRenderProps = {
+  error: Error | null;
+};
+
 type Props = DefaultProps & {
   children?: React.ReactNode;
   // To add context for better UX
   className?: string;
-  customComponent?: React.ReactNode;
+  customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
   // To add context for better error reporting
   errorTag?: Record<string, string>;
 
@@ -95,15 +100,21 @@ class ErrorBoundary extends Component<Props, State> {
 
     const {customComponent, mini, message, className} = this.props;
 
-    if (typeof customComponent !== 'undefined') {
-      return customComponent;
+    if (customComponent === null) {
+      return null;
+    }
+
+    if (customComponent) {
+      return customComponent({error: this.state.error});
     }
 
     if (mini) {
       return (
-        <Alert type="error" showIcon className={className}>
-          {message || t('There was a problem rendering this component')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon className={className}>
+            {message || t('There was a problem rendering this component')}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -128,7 +139,7 @@ Anyway, we apologize for the inconvenience.`
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  padding: ${p => p.theme.grid * 3}px;
+  padding: ${space(3)};
   max-width: 1000px;
   margin: auto;
 `;

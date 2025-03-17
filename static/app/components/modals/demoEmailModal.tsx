@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 
 import sandboxDemo from 'sentry-images/spot/sandbox.jpg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EmailForm from 'sentry/utils/demoMode/emailForm';
 import {getUTMState, updateTouches} from 'sentry/utils/demoMode/utm';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -50,7 +49,6 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
     async (email: string) => {
       const utmState = getUTMState();
 
-      // always save the email before the API call
       if (onAddedEmail) {
         onAddedEmail(email);
       }
@@ -121,7 +119,7 @@ const SignUpBody = styled('div')`
 
   padding: 0;
   p {
-    font-size: ${theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSizeLarge};
     margin: 0;
   }
   h2 {
@@ -141,8 +139,8 @@ const Subheader = styled('h4')`
   margin-bottom: ${space(1)};
   text-transform: uppercase;
   font-weight: bold;
-  color: ${theme.purple300};
-  font-size: ${theme.fontSizeMedium};
+  color: ${p => p.theme.purple300};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export const modalCss = css`

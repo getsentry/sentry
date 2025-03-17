@@ -34,8 +34,8 @@ export default function getGroupActivityItem(
   const issuesLink = `/organizations/${organization.slug}/issues/`;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     if (data.ignoreDuration) {
       return {
@@ -168,8 +168,8 @@ export default function getGroupActivityItem(
   }
 
   function getEscalatingMessage(data: GroupActivitySetEscalating['data']): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     if (data.forecast) {
       return {
@@ -247,8 +247,8 @@ export default function getGroupActivityItem(
   }
 
   function renderContent(): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     switch (activity.type) {
       case GroupActivityType.NOTE:
@@ -256,8 +256,8 @@ export default function getGroupActivityItem(
           title: tct('[author]', {author}),
           message: activity.data.text,
         };
-      case GroupActivityType.SET_RESOLVED:
-        let resolvedMessage: JSX.Element;
+      case GroupActivityType.SET_RESOLVED: {
+        let resolvedMessage: React.JSX.Element;
         if ('integration_id' in activity.data && activity.data.integration_id) {
           resolvedMessage = tct('by [author] via [integration]', {
             integration: (
@@ -276,6 +276,7 @@ export default function getGroupActivityItem(
           title: t('Resolved'),
           message: resolvedMessage,
         };
+      }
       case GroupActivityType.SET_RESOLVED_BY_AGE:
         return {
           title: t('Resolved'),
@@ -283,7 +284,7 @@ export default function getGroupActivityItem(
             author,
           }),
         };
-      case GroupActivityType.SET_RESOLVED_IN_RELEASE:
+      case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
         // Resolved in the next release
         if ('current_release_version' in activity.data) {
           const currentVersion = activity.data.current_release_version;
@@ -309,7 +310,8 @@ export default function getGroupActivityItem(
                 author,
               }),
         };
-      case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+      }
+      case GroupActivityType.SET_RESOLVED_IN_COMMIT: {
         const deployedReleases = (activity.data.commit?.releases || [])
           .filter(r => r.dateReleased !== null)
           .sort(
@@ -383,6 +385,7 @@ export default function getGroupActivityItem(
           title: t('Resolved'),
           message: tct('by [author] in a commit', {author}),
         };
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;

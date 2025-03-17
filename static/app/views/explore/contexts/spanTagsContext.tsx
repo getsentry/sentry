@@ -8,15 +8,18 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import usePrevious from 'sentry/utils/usePrevious';
 import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
-type TypedSpanTags = {
-  number: TagCollection;
-  string: TagCollection;
-};
+import {SENTRY_SPAN_NUMBER_TAGS, SENTRY_SPAN_STRING_TAGS} from '../constants';
 
-export const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefined);
+type TypedSpanTags = {number: TagCollection; string: TagCollection};
+
+type TypedSpanTagsStatus = {numberTagsLoading: boolean; stringTagsLoading: boolean};
+
+type TypedSpanTagsResult = TypedSpanTags & TypedSpanTagsStatus;
+
+export const SpanTagsContext = createContext<TypedSpanTagsResult | undefined>(undefined);
 
 interface SpanTagsProviderProps {
   children: React.ReactNode;
@@ -32,124 +35,72 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
   const isEAP =
     dataset === DiscoverDatasets.SPANS_EAP || dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
-  const numberTags: TagCollection = useTypedSpanTags({
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTypedSpanTags({
     enabled: isEAP && enabled,
     type: 'number',
   });
 
-  const stringTags: TagCollection = useTypedSpanTags({
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTypedSpanTags({
     enabled: isEAP && enabled,
     type: 'string',
   });
 
   const allNumberTags = useMemo(() => {
-    const measurements = [
-      SpanIndexedField.SPAN_DURATION,
-      SpanIndexedField.SPAN_SELF_TIME,
-    ].map(measurement => [
+    const measurements = SENTRY_SPAN_NUMBER_TAGS.map(measurement => [
       measurement,
-      {
-        key: measurement,
-        name: measurement,
-        kind: FieldKind.MEASUREMENT,
-      },
+      {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
     ]);
 
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-      return {
-        ...Object.fromEntries(measurements),
-      };
+      return {...Object.fromEntries(measurements)};
     }
 
-    return {
-      ...numberTags,
-      ...Object.fromEntries(measurements),
-    };
+    return {...numberTags, ...Object.fromEntries(measurements)};
   }, [dataset, numberTags]);
 
   const allStringTags = useMemo(() => {
-    const tags = [
-      // NOTE: intentionally choose to not expose transaction id
-      // as we're moving toward span ids
-
-      'id', // SpanIndexedField.SPAN_OP is actually `span_id`
-      'profile.id', // SpanIndexedField.PROFILE_ID is actually `profile_id`
-      SpanIndexedField.BROWSER_NAME,
-      SpanIndexedField.ENVIRONMENT,
-      SpanIndexedField.ORIGIN_TRANSACTION,
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.RAW_DOMAIN,
-      SpanIndexedField.RELEASE,
-      SpanIndexedField.SDK_NAME,
-      SpanIndexedField.SDK_VERSION,
-      SpanIndexedField.SPAN_ACTION,
-      SpanIndexedField.SPAN_CATEGORY,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.SPAN_DOMAIN,
-      SpanIndexedField.SPAN_GROUP,
-      SpanIndexedField.SPAN_MODULE,
-      SpanIndexedField.SPAN_OP,
-      SpanIndexedField.SPAN_STATUS,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION,
-      SpanIndexedField.TRANSACTION_METHOD,
-      SpanIndexedField.TRANSACTION_OP,
-      SpanIndexedField.USER,
-      SpanIndexedField.USER_EMAIL,
-      SpanIndexedField.USER_GEO_SUBREGION,
-      SpanIndexedField.USER_ID,
-      SpanIndexedField.USER_IP,
-      SpanIndexedField.USER_USERNAME,
-      SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
-    ].map(tag => [
+    const tags = SENTRY_SPAN_STRING_TAGS.map(tag => [
       tag,
-      {
-        key: tag,
-        name: tag,
-        kind: FieldKind.TAG,
-      },
+      {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-      return {
-        ...indexedTags,
-        ...Object.fromEntries(tags),
-      };
+      return {...indexedTags, ...Object.fromEntries(tags)};
     }
 
-    return {
-      ...stringTags,
-      ...Object.fromEntries(tags),
-    };
+    return {...stringTags, ...Object.fromEntries(tags)};
   }, [dataset, indexedTags, stringTags]);
 
-  const tags = useMemo(() => {
+  const tagsResult = useMemo(() => {
     return {
       number: allNumberTags,
       string: allStringTags,
+      numberTagsLoading,
+      stringTagsLoading,
     };
-  }, [allNumberTags, allStringTags]);
+  }, [allNumberTags, allStringTags, numberTagsLoading, stringTagsLoading]);
 
-  return <SpanTagsContext.Provider value={tags}>{children}</SpanTagsContext.Provider>;
+  return (
+    <SpanTagsContext.Provider value={tagsResult}>{children}</SpanTagsContext.Provider>
+  );
 }
 
 export function useSpanTags(type?: 'number' | 'string') {
-  const typedTags = useContext(SpanTagsContext);
+  const typedTagsResult = useContext(SpanTagsContext);
 
-  if (typedTags === undefined) {
+  if (typedTagsResult === undefined) {
     throw new Error('useSpanTags must be used within a SpanTagsProvider');
   }
 
   if (type === 'number') {
-    return typedTags.number;
+    return {tags: typedTagsResult.number, isLoading: typedTagsResult.numberTagsLoading};
   }
-  return typedTags.string;
+  return {tags: typedTagsResult.string, isLoading: typedTagsResult.stringTagsLoading};
 }
 
 export function useSpanTag(key: string) {
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   return stringTags[key] ?? numberTags[key] ?? null;
 }
@@ -171,7 +122,6 @@ function useTypedSpanTags({
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
       dataset: 'spans',
-      process: 1,
       type,
     },
   };
@@ -211,7 +161,9 @@ function useTypedSpanTags({
     }
 
     return allTags;
-  }, [result, type]);
+  }, [result.data, type]);
 
-  return tags;
+  const previousTags = usePrevious(tags, result.isLoading);
+
+  return {tags: result.isLoading ? previousTags : tags, isLoading: result.isLoading};
 }

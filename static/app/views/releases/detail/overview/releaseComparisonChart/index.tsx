@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -792,10 +792,10 @@ function ReleaseComparisonChart({
       role: 'default',
       drilldown: null,
       thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
-        <Count value={eventsTotals?.releaseErrorCount!} />
+        <Count value={eventsTotals?.releaseErrorCount} />
       ) : null,
       allReleases: defined(eventsTotals?.allErrorCount) ? (
-        <Count value={eventsTotals?.allErrorCount!} />
+        <Count value={eventsTotals?.allErrorCount} />
       ) : null,
       diff: null,
       diffDirection: null,
@@ -809,10 +809,10 @@ function ReleaseComparisonChart({
       role: 'default',
       drilldown: null,
       thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
-        <Count value={eventsTotals?.releaseTransactionCount!} />
+        <Count value={eventsTotals?.releaseTransactionCount} />
       ) : null,
       allReleases: defined(eventsTotals?.allTransactionCount) ? (
-        <Count value={eventsTotals?.allTransactionCount!} />
+        <Count value={eventsTotals?.allTransactionCount} />
       ) : null,
       diff: null,
       diffDirection: null,

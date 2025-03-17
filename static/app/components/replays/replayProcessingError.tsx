@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,7 +14,7 @@ interface Props {
   className?: string;
 }
 
-export default function ReplayProcessingError({className, processingErrors}: Props) {
+export default function ReplayProcessingError({className}: Props) {
   const {replay} = useReplayContext();
   const {sdk} = replay?.getReplay() || {};
 
@@ -25,20 +25,8 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
       if (sdk) {
         scope.setTag('sdk.version', sdk.version);
       }
-      processingErrors.forEach(error => {
-        Sentry.metrics.increment(`replay.processing-error`, 1, {
-          tags: {
-            'sdk.version': sdk?.version ?? 'unknown',
-            // There are only 2 different error types
-            type:
-              error.toLowerCase() === 'missing meta frame'
-                ? 'missing-meta-frame'
-                : 'insufficient-replay-frames',
-          },
-        });
-      });
     });
-  }, [processingErrors, sdk]);
+  }, [sdk]);
 
   return (
     <StyledAlert type="error" showIcon className={className}>
@@ -70,7 +58,6 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
 }
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
   height: 100%;
 `;
 

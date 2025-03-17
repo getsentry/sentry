@@ -42,7 +42,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -59,6 +58,7 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {showConfidence} from 'sentry/views/explore/utils';
 
 import type {MetricRule, Trigger} from '../../types';
 import {
@@ -96,6 +96,7 @@ type Props = {
   includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  isSampled?: boolean | null;
   onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
@@ -348,7 +349,6 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -492,7 +492,8 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+              showConfidence(this.props.isSampled) ? (
                 <ConfidenceFooter
                   sampleCount={extrapolationSampleCount ?? undefined}
                   confidence={confidence}
@@ -501,7 +502,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 <React.Fragment>
                   <SectionHeading>{totalCountLabel}</SectionHeading>
                   <SectionValue>
-                    {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+                    {totalCount === null ? '\u2014' : totalCount.toLocaleString()}
                   </SectionValue>
                 </React.Fragment>
               )}
@@ -559,18 +560,13 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
-    const queryExtras = {
-      ...getMetricDatasetQueryExtras({
-        organization,
-        location,
-        dataset,
-        newAlertOrQuery,
-      }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
-      ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
-        ? {dataset: DiscoverDatasets.ERRORS}
-        : {}),
-    };
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      query,
+      newAlertOrQuery,
+    });
 
     if (isOnDemandMetricAlert) {
       const {sampleRate} = this.state;

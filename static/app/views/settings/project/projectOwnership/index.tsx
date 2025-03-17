@@ -1,8 +1,8 @@
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -24,11 +24,11 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 export default function ProjectOwnership({project}: {project: Project}) {
   const organization = useOrganization();
@@ -161,16 +161,18 @@ export default function ProjectOwnership({project}: {project: Project}) {
           }
         )}
       </TextBlock>
-      <PermissionAlert
-        access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
+      <ProjectPermissionAlert
+        access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
         project={project}
       />
       {isCodeownersError && (
-        <Alert type="error">
-          {t(
-            "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error">
+            {t(
+              "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
       <CodeOwnerErrors
         orgSlug={organization.slug}
@@ -185,7 +187,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </ErrorBoundary>
       )}
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       {hasCodeowners && (
         <CodeOwnerFileTable
           project={project}
@@ -244,7 +246,9 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </Form>
       ) : (
-        <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+        <Alert.Container>
+          <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+        </Alert.Container>
       )}
     </SentryDocumentTitle>
   );

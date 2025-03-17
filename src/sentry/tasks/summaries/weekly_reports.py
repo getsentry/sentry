@@ -76,18 +76,39 @@ def schedule_organizations(
 
     batch_id = uuid.uuid4()
 
+    def min_org_id_redis_key(timestamp: float) -> str:
+        return f"weekly_reports_org_id_min:{timestamp}"
+
+    redis_cluster = redis.clusters.get("default").get_local_client_for_key(
+        "weekly_reports_org_id_min"
+    )
+
+    min_org_id_from_redis = redis_cluster.get(min_org_id_redis_key(timestamp))
+    minimum_organization_id = int(min_org_id_from_redis) if min_org_id_from_redis else None
+
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+
     for organization in RangeQuerySetWrapper(
-        organizations, step=10000, result_value_getter=lambda item: item.id
+        organizations,
+        step=10000,
+        result_value_getter=lambda item: item.id,
+        min_id=minimum_organization_id,
     ):
         # Create a celery task per organization
         logger.info(
             "weekly_reports.schedule_organizations",
-            extra={"batch_id": str(batch_id), "organization": organization.id},
+            extra={
+                "batch_id": str(batch_id),
+                "organization": organization.id,
+                "minimum_organization_id": minimum_organization_id,
+            },
         )
         prepare_organization_report.delay(
             timestamp, duration, organization.id, batch_id, dry_run=dry_run
         )
+        redis_cluster.set(min_org_id_redis_key(timestamp), organization.id)
+
+    redis_cluster.delete(min_org_id_redis_key(timestamp))
 
 
 # This task is launched per-organization.
@@ -676,9 +697,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
-
-    def key_replays():
-        return []
 
     def issue_summary():
         new_substatus_count = 0

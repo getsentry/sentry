@@ -3,9 +3,9 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -37,7 +37,7 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  const tags = useSpanTags();
+  const {tags} = useSpanTags();
   const mode = useExploreMode();
 
   const groupBys = useExploreGroupBys();
@@ -55,7 +55,8 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
   const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
-      ...Object.keys(tags),
+      // We do not support grouping by span id, we have a dedicated sample mode for that
+      ...Object.keys(tags).filter(key => key !== 'id'),
 
       // These options aren't known to exist on this project but it was inserted into
       // the group bys somehow so it should be a valid options in the group bys.
@@ -68,16 +69,8 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
     return [
       // hard code in an empty option
-      {
-        label: <Disabled>{t('None')}</Disabled>,
-        value: UNGROUPED,
-        textValue: t('none'),
-      },
-      ...potentialOptions.map(key => ({
-        label: key,
-        value: key,
-        textValue: key,
-      })),
+      {label: <Disabled>{t('None')}</Disabled>, value: UNGROUPED, textValue: t('none')},
+      ...potentialOptions.map(key => ({label: key, value: key, textValue: key})),
     ];
   }, [groupBys, tags]);
 
@@ -107,14 +100,18 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
               </Tooltip>
             </ToolbarHeader>
             {disabled ? (
-              <ColumnEditorRow
-                disabled={mode === Mode.SAMPLES}
-                canDelete={false}
-                column={{id: 1, column: ''}}
-                options={disabledOptions}
-                onColumnChange={() => {}}
-                onColumnDelete={() => {}}
-              />
+              <FullWidthTooltip
+                title={t('Switch to aggregate results to apply grouping')}
+              >
+                <ColumnEditorRow
+                  disabled={disabled}
+                  canDelete={false}
+                  column={{id: 1, column: ''}}
+                  options={disabledOptions}
+                  onColumnChange={() => {}}
+                  onColumnDelete={() => {}}
+                />
+              </FullWidthTooltip>
             ) : (
               editableColumns.map((column, i) => (
                 <ColumnEditorRow
@@ -173,10 +170,7 @@ function ColumnEditorRow({
     <ToolbarRow
       key={column.id}
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
+      style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
       <Button
@@ -195,11 +189,7 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
-        triggerProps={{
-          style: {
-            width: '100%',
-          },
-        }}
+        triggerProps={{style: {width: '100%'}}}
       />
       <Button
         aria-label={t('Remove Column')}
@@ -228,4 +218,8 @@ const TriggerLabel = styled('span')`
 
 const Disabled = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
 `;

@@ -14,6 +14,7 @@ from sentry.spans.grouping.strategy.base import (
 )
 from sentry.spans.grouping.strategy.config import (
     CONFIGURATIONS,
+    DEFAULT_CONFIG_ID,
     SpanGroupingConfig,
     register_configuration,
 )
@@ -584,3 +585,32 @@ def test_default_2022_10_27_strategy(spans: list[Span], expected: Mapping[str, l
         key: hash_values(values)
         for key, values in {**expected, "a" * 16: ["transaction name"]}.items()
     }
+
+
+def test_standalone_spans_compat() -> None:
+    spans = [
+        SpanBuilder().with_span_id("b" * 16).with_description("b" * 16).build(),
+        SpanBuilder().with_span_id("c" * 16).with_description("c" * 16).build(),
+        SpanBuilder().with_span_id("d" * 16).with_description("d" * 16).build(),
+    ]
+
+    event = {
+        "transaction": "transaction name",
+        "contexts": {
+            "trace": {
+                "span_id": "a" * 16,
+            },
+        },
+        "spans": spans,
+    }
+
+    standalone_spans = spans + [
+        SpanBuilder()
+        .with_span_id("a" * 16)
+        .segment()
+        .with_sentry_tag("transaction", "transaction name")
+        .build()
+    ]
+
+    cfg = CONFIGURATIONS[DEFAULT_CONFIG_ID]
+    assert cfg.execute_strategy(event) == cfg.execute_strategy_standalone(standalone_spans)

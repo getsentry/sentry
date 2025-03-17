@@ -114,11 +114,11 @@ function Breadcrumbs({
 }: Props) {
   const {projects, fetching: loadingProjects} = useProjects();
 
-  const maybeProject = !loadingProjects
-    ? projects.find(project => {
+  const maybeProject = loadingProjects
+    ? null
+    : projects.find(project => {
         return event && project.id === event.projectID;
-      })
-    : null;
+      });
 
   const listRef = useRef<List>(null);
 
@@ -328,7 +328,7 @@ const PanelDragHandle = styled('div')`
     content: '';
     height: 5px;
     width: 100%;
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
     transition: background 100ms ease-in-out;
   }
 

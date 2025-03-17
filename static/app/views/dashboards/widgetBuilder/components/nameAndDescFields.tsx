@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import TextArea from 'sentry/components/forms/controls/textarea';
+import {Button} from 'sentry/components/core/button';
+import {TextArea} from 'sentry/components/core/textarea';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,7 +51,7 @@ function WidgetBuilderNameAndDescription({
             widget_type: state.dataset ?? '',
             builder_version: WidgetBuilderVersion.SLIDEOUT,
             field: 'title',
-            value: state.title ?? '',
+            value: '',
             new_widget: !isEditing,
             organization,
           });
@@ -88,7 +88,7 @@ function WidgetBuilderNameAndDescription({
               widget_type: state.dataset ?? '',
               builder_version: WidgetBuilderVersion.SLIDEOUT,
               field: 'description',
-              value: state.description ?? '',
+              value: '',
               new_widget: !isEditing,
               organization,
             });

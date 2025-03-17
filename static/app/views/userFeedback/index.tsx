@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -25,13 +25,13 @@ import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-interface Props extends RouteComponentProps<{}, {}> {}
+interface Props extends RouteComponentProps {}
 
 function OrganizationUserFeedback({location: {search, pathname, query}, router}: Props) {
   const organization = useOrganization();
@@ -127,9 +127,10 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                     size="sm"
                     priority="default"
                     to={{
-                      pathname: normalizeUrl(
-                        `/organizations/${organization.slug}/feedback/`
-                      ),
+                      pathname: makeFeedbackPathname({
+                        path: '/',
+                        organization,
+                      }),
                       query: {
                         ...query,
                         query: undefined,
@@ -153,7 +154,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                 </PageFilterBar>
                 <SegmentedControl
                   aria-label={t('Issue Status')}
-                  value={!Array.isArray(status) ? status || '' : ''}
+                  value={Array.isArray(status) ? '' : status || ''}
                   onChange={key =>
                     router.replace({
                       pathname,

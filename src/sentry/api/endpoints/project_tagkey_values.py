@@ -42,8 +42,16 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
+        # Flags are stored on the same table as tags but on a different column. Ideally both
+        # could be queried in a single request. But at present we're not sure if we want to
+        # treat tags and flags as the same or different and in which context.
+        if request.GET.get("useFlagsBackend") == "1":
+            backend = tagstore.flag_backend
+        else:
+            backend = tagstore.backend
+
         try:
-            tagkey = tagstore.backend.get_tag_key(
+            tagkey = backend.get_tag_key(
                 project.id,
                 environment_id,
                 lookup_key,
@@ -54,7 +62,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         start, end = get_date_range_from_params(request.GET)
 
-        paginator = tagstore.backend.get_tag_value_paginator(
+        paginator = backend.get_tag_value_paginator(
             project.id,
             environment_id,
             tagkey.key,

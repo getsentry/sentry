@@ -38,6 +38,7 @@ type Props = {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onDataFetched?: (results: {
     pageLinks?: string;
@@ -80,6 +81,7 @@ export function WidgetCardChartContainer({
   shouldResize,
   widgetLegendState,
   showConfidenceWarning,
+  minTableColumnWidth,
 }: Props) {
   const location = useLocation();
 
@@ -108,6 +110,8 @@ export function WidgetCardChartContainer({
         loading,
         timeseriesResultsTypes,
         confidence,
+        sampleCount,
+        isSampled,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -165,6 +169,9 @@ export function WidgetCardChartContainer({
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
+              sampleCount={sampleCount}
+              isSampled={isSampled}
+              minTableColumnWidth={minTableColumnWidth}
             />
           </Fragment>
         );

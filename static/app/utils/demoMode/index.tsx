@@ -1,10 +1,14 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
+import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
+import {logout} from '../../actionCreators/account';
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
-const SIGN_UP_MODAL_DELAY = 30_000;
+const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
+
+const INACTIVITY_TIMEOUT_MS = 10 * 1000;
 
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
@@ -31,12 +35,12 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
   return url;
 }
 
-export function isDemoModeEnabled(): boolean {
-  return ConfigStore.get('demoMode');
+export function isDemoModeActive(): boolean {
+  return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }
 
 export function openDemoSignupModal() {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return;
   }
   setTimeout(() => {
@@ -45,7 +49,7 @@ export function openDemoSignupModal() {
 }
 
 export function openDemoEmailModal() {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return;
   }
 
@@ -68,20 +72,19 @@ function onAddedEmail(email: string) {
   openDemoSignupModal();
 }
 
-// Function to determine which tour has completed depending on the guide that is being passed in.
-export function getTourTask(
-  guide: string
-): {task: OnboardingTaskKey; tour: string} | undefined {
-  switch (guide) {
-    case 'sidebar_v2':
-      return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
-    case 'issues_v3':
-      return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
-    case 'release-details_v2':
-      return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
-    case 'transaction_details_v2':
-      return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
-    default:
-      return undefined;
+let inactivityTimeout: number | undefined;
+
+window.addEventListener('blur', () => {
+  if (isDemoModeActive()) {
+    inactivityTimeout = window.setTimeout(() => {
+      logout(new Client());
+    }, INACTIVITY_TIMEOUT_MS);
   }
-}
+});
+
+window.addEventListener('focus', () => {
+  if (inactivityTimeout) {
+    window.clearTimeout(inactivityTimeout);
+    inactivityTimeout = undefined;
+  }
+});

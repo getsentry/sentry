@@ -5,6 +5,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {
   MOCK_DATA_SECTION_PROPS,
+  MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
 } from 'sentry/components/events/featureFlags/testUtils';
 
@@ -23,8 +24,8 @@ async function renderFlagDrawer() {
       bottom: 0,
       toJSON: jest.fn(),
     }));
-  render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
-  await userEvent.click(screen.getByRole('button', {name: 'View All'}));
+  render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
+  await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
   return screen.getByRole('complementary', {name: 'Feature flags drawer'});
 }
 

@@ -10,6 +10,7 @@ import {
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {
   SessionApiResponse,
@@ -67,7 +68,7 @@ export function getSeriesSum(
   field: SessionFieldWithOperation,
   intervals: SessionApiResponse['intervals'] = []
 ) {
-  const dataPointsSums: number[] = Array(intervals.length).fill(0);
+  const dataPointsSums: number[] = new Array(intervals.length).fill(0);
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {
@@ -198,7 +199,7 @@ export function getCountSeries(
 }
 
 export function initSessionsChart(theme: Theme) {
-  const colors = theme.charts.getColorPalette(14) ?? [];
+  const colors = getChartColorPalette(14);
   return {
     [SessionStatus.HEALTHY]: {
       seriesName: sessionTerm.healthy,

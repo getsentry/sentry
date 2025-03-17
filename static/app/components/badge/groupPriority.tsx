@@ -1,14 +1,14 @@
 import {Fragment, useMemo} from 'react';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import Tag from 'sentry/components/badge/tag';
-import {Button, LinkButton} from 'sentry/components/button';
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -16,7 +16,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
-import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -48,7 +47,7 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 
-function getTagTypeForPriority(priority: string): keyof Theme['tag'] {
+function getTagTypeForPriority(priority: string): TagProps['type'] {
   switch (priority) {
     case PriorityLevel.HIGH:
       return 'error';
@@ -278,15 +277,10 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.25)};
-  }
-
-  & > div {
-    height: 24px;
-  }
+  gap: ${space(0.25)};
+  position: relative;
+  height: 24px;
+  overflow: hidden;
 `;
 
 const InlinePlaceholder = styled(Placeholder)`

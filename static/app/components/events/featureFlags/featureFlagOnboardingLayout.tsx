@@ -1,10 +1,8 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
-import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
+import {LinkButton} from 'sentry/components/core/button';
+import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -19,9 +17,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
-  integration?: string;
-  provider?: string;
-  skipConfig?: boolean;
+  integration: string;
 }
 
 export function FeatureFlagOnboardingLayout({
@@ -32,9 +28,7 @@ export function FeatureFlagOnboardingLayout({
   projectSlug,
   projectKeyId,
   configType = 'onboarding',
-  integration = '',
-  provider = '',
-  skipConfig,
+  integration,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -42,7 +36,6 @@ export function FeatureFlagOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [skipSteps, setSkipSteps] = useState(skipConfig);
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -95,24 +88,16 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        {!skipConfig ? null : (
-          <Alert type="info" showIcon>
-            <Flex gap={space(3)}>
-              {t('Feature flag integration detected. Please follow the remaining steps.')}
-              <Button onClick={() => setSkipSteps(!skipSteps)}>
-                {skipSteps ? t('Show Full Guide') : t('Hide Full Guide')}
-              </Button>
-            </Flex>
-          </Alert>
-        )}
-        {!skipSteps && (
-          <Steps>
-            {steps.map(step => (
-              <Step key={step.title ?? step.type} {...step} />
-            ))}
-          </Steps>
-        )}
-        <OnboardingIntegrationSection provider={provider} integration={integration} />
+        <Steps>
+          {steps.map(step => (
+            <Step key={step.title ?? step.type} {...step} />
+          ))}
+          <StyledLinkButton to="/issues/" priority="primary">
+            {t('Take me to Issues')}
+          </StyledLinkButton>
+        </Steps>
+        <Divider />
+        <OnboardingAdditionalFeatures organization={organization} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );
@@ -122,6 +107,10 @@ const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  align-self: flex-start;
 `;
 
 const Wrapper = styled('div')`
@@ -135,5 +124,19 @@ const Wrapper = styled('div')`
     h5 {
       margin-bottom: 0;
     }
+  }
+`;
+
+const Divider = styled('div')`
+  position: relative;
+  margin-top: ${space(3)};
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    height: 1px;
+    left: 0;
+    right: 0;
+    background: ${p => p.theme.border};
   }
 `;

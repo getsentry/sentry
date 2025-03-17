@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:08.048826+00:00'
+created: '2025-02-26T00:33:56.367161+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -414,7 +414,7 @@ system:
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
-          frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
+          frame*
             filename*
               "boxed.rs"
             function*

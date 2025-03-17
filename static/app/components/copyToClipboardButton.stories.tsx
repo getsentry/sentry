@@ -1,8 +1,8 @@
 import type {ComponentProps} from 'react';
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button} from 'sentry/components/core/button';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import type {PropMatrix} from 'sentry/components/stories/matrix';
 import Matrix from 'sentry/components/stories/matrix';
@@ -10,7 +10,7 @@ import {IconLink} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-export default storyBook(CopyToClipboardButton, story => {
+export default storyBook('CopyToClipboardButton', story => {
   story('Basic', () => (
     <Fragment>
       <p>

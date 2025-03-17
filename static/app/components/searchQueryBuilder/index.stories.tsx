@@ -118,7 +118,7 @@ const getTagValues = (): Promise<string[]> => {
   });
 };
 
-export default storyBook(SearchQueryBuilder, story => {
+export default storyBook('SearchQueryBuilder', story => {
   story('Getting started', () => {
     return (
       <Fragment>

@@ -18,6 +18,7 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseExploreTimeseriesOptions {
+  enabled: boolean;
   query: string;
 }
 
@@ -27,6 +28,7 @@ interface UseExploreTimeseriesResults {
 }
 
 export function useExploreTimeseries({
+  enabled,
   query,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useExploreDataset();
@@ -76,8 +78,9 @@ export function useExploreTimeseries({
       fields,
       orderby,
       topEvents,
+      enabled,
     };
-  }, [query, yAxes, interval, fields, orderby, topEvents]);
+  }, [query, yAxes, interval, fields, orderby, topEvents, enabled]);
 
   const previousQuery = usePrevious(query);
   const previousOptions = usePrevious(options);

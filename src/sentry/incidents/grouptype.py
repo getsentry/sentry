@@ -6,7 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from sentry import features
-from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
+from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType

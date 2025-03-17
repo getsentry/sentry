@@ -17,7 +17,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplaySDKSetupSnippet,
@@ -152,7 +151,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'You can further customize your SDK by [manualSetupLink:manually inializing the SDK].',
+            'You can further customize your SDK by [manualSetupLink:manually initializing the SDK].',
             {
               manualSetupLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/" />
@@ -377,7 +376,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   featureFlagOnboarding,
 };

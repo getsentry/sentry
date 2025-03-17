@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -81,7 +81,7 @@ class Table extends Component<Props, State> {
   };
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, location, organization} = this.props;
 
       trackAnalytics('performance_views.overview.cellaction', {
@@ -163,7 +163,7 @@ class Table extends Component<Props, State> {
       const transaction = String(dataRow.transaction) || '';
 
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction,
         query: summaryView.generateQueryStringObject(),
         projectID,
@@ -272,7 +272,7 @@ class Table extends Component<Props, State> {
     const {eventView} = this.props;
     const teamKeyTransactionColumn = eventView
       .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
+      .find((col: TableColumn<string | number>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
@@ -357,9 +357,9 @@ class Table extends Component<Props, State> {
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'team_key_transaction')
+      .filter((col: TableColumn<string | number>) => col.name !== 'team_key_transaction')
       .slice(0, -1)
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }
@@ -419,30 +419,18 @@ const UniqueTagCell = styled('div')`
 `;
 
 const GoodTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme[vitalStateColors[VitalState.GOOD]]};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
+  background-color: ${p => p.theme[vitalStateColors[VitalState.GOOD]]};
+  color: ${p => p.theme.white};
 `;
 
 const MehTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme[vitalStateColors[VitalState.MEH]]};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
+  background-color: ${p => p.theme[vitalStateColors[VitalState.MEH]]};
+  color: ${p => p.theme.white};
 `;
 
 const PoorTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme[vitalStateColors[VitalState.POOR]]};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
+  background-color: ${p => p.theme[vitalStateColors[VitalState.POOR]]};
+  color: ${p => p.theme.white};
 `;
 
 export default Table;

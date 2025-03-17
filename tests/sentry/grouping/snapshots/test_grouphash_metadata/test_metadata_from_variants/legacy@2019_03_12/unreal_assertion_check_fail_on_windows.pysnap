@@ -1,0 +1,59 @@
+---
+created: '2025-02-19T15:23:47.199501+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "93cdbc603c0e1c54a7095f789dfac612"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "exe_common.inl"
+              symbol*
+                "__scrt_common_main_seh()"
+            frame*
+              filename*
+                "exe_common.inl"
+              symbol*
+                "invoke_main()"
+            frame*
+              filename*
+                "SentryPlaygroundUtils.gen.cpp"
+              context-line*
+                "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));"
+            frame*
+              filename*
+                "SentryPlaygroundUtils.cpp"
+              context-line*
+                "\t\t\t\tcheck(assertPtr != nullptr);"
+            frame*
+              filename*
+                "SentryOutputDeviceError.cpp"
+              context-line*
+                "\tParentDevice->Serialize(V, Verbosity, Category);"
+          type*
+            "unknown 0x00004000 / 0x7ff89574837a"

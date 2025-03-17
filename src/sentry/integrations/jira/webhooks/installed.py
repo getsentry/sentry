@@ -6,16 +6,21 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.tasks import sync_metadata
+from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.utils import jwt
 
-from ...base import IntegrationDomain
-from ...project_management.metrics import ProjectManagementFailuresReason
-from ...utils.metrics import IntegrationPipelineViewEvent, IntegrationPipelineViewType
-from ..integration import JiraIntegrationProvider
-from .base import JiraWebhookBase
+# Atlassian sends scanner bots to "test" Atlassian apps and they often hit this endpoint with a bad kid causing errors
+INVALID_KEY_IDS = ["fake-kid"]
 
 
 @control_silo_endpoint
@@ -35,14 +40,27 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             provider_key=self.provider,
         ).capture() as lifecycle:
             token = self.get_token(request)
-
             state = request.data
             if not state:
                 lifecycle.record_failure(ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING)
                 return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
             key_id = jwt.peek_header(token).get("kid")
+            lifecycle.add_extras(
+                {
+                    "key_id": key_id,
+                    "base_url": state.get("baseUrl", ""),
+                    "description": state.get("description", ""),
+                    "clientKey": state.get("clientKey", ""),
+                }
+            )
+
             if key_id:
+                if key_id in INVALID_KEY_IDS:
+                    lifecycle.record_halt(halt_reason="JWT contained invalid key_id (kid)")
+                    return self.respond(
+                        {"detail": "Invalid key id"}, status=status.HTTP_400_BAD_REQUEST
+                    )
                 decoded_claims = authenticate_asymmetric_jwt(token, key_id)
                 verify_claims(decoded_claims, request.path, request.GET, method="POST")
 

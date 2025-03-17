@@ -98,15 +98,6 @@ describe('Wizard utils', function () {
     ).toBe('crash_free_users');
   });
 
-  it('extracts custom metric alert from custom mri aggregate', function () {
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'count(d:custom/my_metric@seconds)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toBe('custom_metrics');
-  });
-
   it('defaults to custom', function () {
     expect(
       getAlertTypeFromAggregateDataset({

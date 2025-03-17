@@ -78,6 +78,12 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.PRECISE_START_TS: lambda alias: field_aliases.resolve_precise_timestamp(
                 Column("start_timestamp"), Column("start_ms"), alias
             ),
+            constants.USER_DISPLAY_ALIAS: lambda alias: field_aliases.resolve_user_display_alias(
+                self.builder, alias
+            ),
+            constants.REPLAY_ALIAS: lambda alias: field_aliases.resolve_replay_alias(
+                self.builder, alias
+            ),
         }
 
     @property

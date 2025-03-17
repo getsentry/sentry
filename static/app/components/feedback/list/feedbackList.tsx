@@ -78,14 +78,8 @@ export default function FeedbackList() {
     }
 
     return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={0}
-        key={key}
-        parent={parent}
-        rowIndex={index}
-      >
-        <ErrorBoundary mini>
+      <ErrorBoundary mini key={key}>
+        <CellMeasurer cache={cache} columnIndex={0} parent={parent} rowIndex={index}>
           <FeedbackListItem
             feedbackItem={item}
             isSelected={checkboxState.isSelected(item.id)}
@@ -94,8 +88,8 @@ export default function FeedbackList() {
             }}
             style={style}
           />
-        </ErrorBoundary>
-      </CellMeasurer>
+        </CellMeasurer>
+      </ErrorBoundary>
     );
   };
 

@@ -26,6 +26,7 @@ export function useSpansQuery<T = any[]>({
   referrer = 'use-spans-query',
   allowAggregateConditions,
   cursor,
+  trackResponseAnalytics = true,
 }: {
   allowAggregateConditions?: boolean;
   cursor?: string;
@@ -34,6 +35,7 @@ export function useSpansQuery<T = any[]>({
   initialData?: T;
   limit?: number;
   referrer?: string;
+  trackResponseAnalytics?: boolean;
 }) {
   const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
   const queryFunction = isTimeseriesQuery
@@ -55,7 +57,9 @@ export function useSpansQuery<T = any[]>({
       allowAggregateConditions,
     });
 
-    TrackResponse(eventView, response);
+    if (trackResponseAnalytics) {
+      TrackResponse(eventView, response);
+    }
 
     return response;
   }
@@ -166,7 +170,7 @@ export function useWrappedDiscoverQuery<T>({
     cursor,
     limit,
     options: {
-      enabled: enabled && pageFiltersReady,
+      enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,

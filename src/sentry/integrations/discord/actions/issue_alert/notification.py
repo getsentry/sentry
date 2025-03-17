@@ -20,7 +20,6 @@ from sentry.utils import metrics
 
 class DiscordNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
-    form_cls = DiscordNotifyServiceForm
     label = "Send a notification to the {server} Discord server in the channel with ID or URL: {channel_id} and show tags {tags} in the notification."
     prompt = "Send a Discord notification"
     provider = "discord"
@@ -39,7 +38,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         channel_id = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -50,7 +49,9 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
+            message = DiscordIssuesMessageBuilder(
+                event.group, event=event, tags=tags, rules=rules
+            ).build(notification_uuid=notification_uuid)
 
             client = DiscordClient()
             with MessagingInteractionEvent(
@@ -59,7 +60,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             ).capture() as lifecycle:
                 try:
                     lifecycle.add_extras({"integration_id": integration.id, "channel": channel_id})
-                    client.send_message(channel_id, message, notification_uuid=notification_uuid)
+                    client.send_message(channel_id, message)
                 except ApiError as error:
                     # Errors that we recieve from the Discord API
                     record_lifecycle_termination_level(lifecycle, error)
@@ -95,5 +96,5 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(self.data, integrations=self.get_integrations())
+    def get_form_instance(self) -> DiscordNotifyServiceForm:
+        return DiscordNotifyServiceForm(self.data, integrations=self.get_integrations())

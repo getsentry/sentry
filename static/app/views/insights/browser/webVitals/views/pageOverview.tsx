@@ -2,11 +2,11 @@ import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/button';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {LinkButton} from 'sentry/components/core/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -28,6 +28,7 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -46,17 +47,6 @@ export enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }
-
-const LANDING_DISPLAYS = [
-  {
-    label: t('Overview'),
-    field: LandingDisplayField.OVERVIEW,
-  },
-  {
-    label: t('Aggregate Spans'),
-    field: LandingDisplayField.SPANS,
-  },
-];
 
 function getCurrentTabSelection(selectedTab: any) {
   const tab = decodeScalar(selectedTab);
@@ -137,7 +127,7 @@ export function PageOverview() {
     !Array.isArray(location.query.project) && // Only render button to transaction summary when one project is selected.
     transaction &&
     transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction,
       query: {...location.query},
       projectID: project.id,
@@ -188,18 +178,6 @@ export function PageOverview() {
               </LinkButton>
             )
           }
-          hideDefaultTabs
-          tabs={{
-            value: tab,
-            onTabChange: handleTabChange,
-            tabList: (
-              <TabList hideBorder>
-                {LANDING_DISPLAYS.map(({label, field}) => (
-                  <TabList.Item key={field}>{label}</TabList.Item>
-                ))}
-              </TabList>
-            ),
-          }}
           breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
           module={ModuleName.VITAL}
         />
@@ -225,6 +203,7 @@ export function PageOverview() {
                   />
                 </Flex>
                 <WebVitalMetersContainer>
+                  {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
                   <WebVitalMeters
                     projectData={pageData}
                     projectScore={projectScore}

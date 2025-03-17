@@ -173,4 +173,35 @@ describe('Native StackTrace', function () {
     ).toBeInTheDocument();
     expect(within(frames[2]!).queryByTestId(/symbolication/)).not.toBeInTheDocument();
   });
+
+  it('expands the first in app frame', function () {
+    const newData = {
+      ...data,
+      frames: [
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.MISSING,
+          function: 'missing()',
+          inApp: true,
+        }),
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
+          function: 'unknown_image()',
+          inApp: false,
+        }),
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+          function: 'symbolicated()',
+          inApp: true,
+        }),
+      ],
+    };
+
+    render(
+      <NativeContent data={newData} platform="cocoa" event={event} includeSystemFrames />
+    );
+
+    expect(screen.getByRole('button', {name: 'Collapse Context'})).toBeInTheDocument();
+    const collapsed = screen.getAllByRole('button', {name: 'Expand Context'});
+    expect(collapsed).toHaveLength(2);
+  });
 });

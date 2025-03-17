@@ -5,6 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.constants import SentryAppStatus
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -327,6 +328,16 @@ class DetectorParams:
     )
 
 
+class WorkflowParams:
+    WORKFLOW_ID = OpenApiParameter(
+        name="workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+    )
+
+
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
@@ -344,6 +355,29 @@ class MetricAlertParams:
         required=True,
         type=int,
         description="The ID of the rule you'd like to query.",
+    )
+
+
+class SentryAppParams:
+    SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
+        name="sentry_app_id_or_slug",
+        location="path",
+        required=True,
+        many=False,
+        type=str,
+        description="The ID or slug of the custom integration.",
+    )
+
+
+class SentryAppStatusParams:
+    SENTRY_APP_STATUS = OpenApiParameter(
+        name="sentry_app_status",
+        location="query",
+        required=False,
+        many=False,
+        type=int,
+        description=f"The status of the custom integration, values translate to the following: {SentryAppStatus.as_choices()}",
+        enum=SentryAppStatus.as_int_choices(),
     )
 
 
@@ -765,6 +799,43 @@ class DiscoverSavedQueriesParams:
         required=False,
         type=str,
         description="""The name of the Discover query you'd like to filter by.""",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by query name.
+
+Available fields are:
+- `name`
+- `dateCreated`
+- `dateUpdated`
+- `mostPopular`
+- `recentlyViewed`
+- `myqueries`
+        """,
+    )
+
+
+class ExploreSavedQueryParams:
+    EXPLORE_SAVED_QUERY_ID = OpenApiParameter(
+        name="id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the Explore query you'd like to retrieve.""",
+    )
+
+
+class ExploreSavedQueriesParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""The name of the Explore query you'd like to filter by.""",
     )
 
     SORT = OpenApiParameter(

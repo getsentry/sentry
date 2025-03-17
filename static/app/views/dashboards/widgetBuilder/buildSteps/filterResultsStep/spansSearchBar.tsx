@@ -11,12 +11,13 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 function SpansSearchBar({
   widgetQuery,
   onSearch,
-}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch'>) {
+  portalTarget,
+}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch' | 'portalTarget'>) {
   const {
     selection: {projects},
   } = usePageFilters();
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
   return (
     <EAPSpanSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
@@ -26,6 +27,7 @@ function SpansSearchBar({
       supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="dashboards"
       projects={projects}
+      portalTarget={portalTarget}
     />
   );
 }

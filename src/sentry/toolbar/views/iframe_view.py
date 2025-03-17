@@ -71,7 +71,7 @@ class IframeView(ProjectView):
         referrer = _get_referrer(self.request) or ""
 
         # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
-        response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}  # type: ignore[attr-defined]
+        response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}
         response["X-Frame-Options"] = "DENY" if referrer == "" else "ALLOWALL"
 
         return response

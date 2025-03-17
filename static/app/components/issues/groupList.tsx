@@ -22,7 +22,9 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -37,7 +39,6 @@ const defaultProps = {
   useFilteredStats: true,
   useTintRow: true,
   narrowGroups: false,
-  withColumns: ['graph', 'event', 'users', 'assignee'] satisfies GroupListColumn[],
 };
 
 export type GroupListColumn =
@@ -47,12 +48,12 @@ export type GroupListColumn =
   | 'priority'
   | 'assignee'
   | 'lastTriggered'
-  | 'lastSeen'
-  | 'firstSeen';
+  | 'firstSeen'
+  | 'lastSeen';
 
 type Props = WithRouterProps & {
   api: Client;
-  orgSlug: string;
+  organization: Organization;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
   /**
@@ -117,7 +118,7 @@ class GroupList extends Component<Props, State> {
     const ignoredQueryParams = ['end'];
 
     if (
-      prevProps.orgSlug !== this.props.orgSlug ||
+      prevProps.organization.slug !== this.props.organization.slug ||
       prevProps.endpointPath !== this.props.endpointPath ||
       prevProps.query !== this.props.query ||
       !isEqual(
@@ -138,12 +139,12 @@ class GroupList extends Component<Props, State> {
 
   fetchData = async () => {
     GroupStore.loadInitialData([]);
-    const {api, orgSlug, queryParams} = this.props;
+    const {api, organization, queryParams} = this.props;
     api.clear();
 
     this.setState({loading: true, error: false, errorData: null});
 
-    fetchOrgMembers(api, orgSlug).then(members => {
+    fetchOrgMembers(api, organization.slug).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
     });
 
@@ -197,8 +198,8 @@ class GroupList extends Component<Props, State> {
   };
 
   getGroupListEndpoint() {
-    const {orgSlug, endpointPath, queryParams} = this.props;
-    const path = endpointPath ?? `/organizations/${orgSlug}/issues/`;
+    const {organization, endpointPath, queryParams} = this.props;
+    const path = endpointPath ?? `/organizations/${organization.slug}/issues/`;
     const queryParameters = queryParams ?? this.getQueryParams();
 
     return `${path}?${qs.stringify(queryParameters)}`;
@@ -251,7 +252,8 @@ class GroupList extends Component<Props, State> {
     const {
       canSelectGroups,
       withChart,
-      withColumns,
+      organization,
+      withColumns = ['graph', 'event', 'users', 'assignee'],
       renderEmptyMessage,
       renderErrorMessage,
       withPagination,
@@ -265,6 +267,13 @@ class GroupList extends Component<Props, State> {
       query,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
+
+    const columns: GroupListColumn[] = [
+      ...withColumns,
+      ...(organization.features.includes('issue-stream-table-layout')
+        ? ['firstSeen' as const, 'lastSeen' as const]
+        : []),
+    ];
 
     if (error) {
       if (typeof renderErrorMessage === 'function' && errorData) {
@@ -296,11 +305,11 @@ class GroupList extends Component<Props, State> {
 
     return (
       <Fragment>
-        <Panel>
+        <PanelContainer>
           <GroupListHeader
             withChart={!!withChart}
             narrowGroups={narrowGroups}
-            withColumns={withColumns}
+            withColumns={columns}
           />
           <PanelBody>
             {loading
@@ -310,7 +319,7 @@ class GroupList extends Component<Props, State> {
                   ),
                 ].map((_, i) => (
                   <GroupPlaceholder key={i}>
-                    <Placeholder height="3rem" />
+                    <Placeholder height="50px" />
                   </GroupPlaceholder>
                 ))
               : groups.map(({id, project}) => {
@@ -324,7 +333,7 @@ class GroupList extends Component<Props, State> {
                       id={id}
                       canSelect={canSelectGroups}
                       withChart={withChart}
-                      withColumns={withColumns}
+                      withColumns={columns}
                       memberList={members}
                       useFilteredStats={useFilteredStats}
                       useTintRow={useTintRow}
@@ -338,7 +347,7 @@ class GroupList extends Component<Props, State> {
                   );
                 })}
           </PanelBody>
-        </Panel>
+        </PanelContainer>
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
@@ -349,7 +358,7 @@ class GroupList extends Component<Props, State> {
 
 export {GroupList};
 
-export default withApi(withSentryRouter(GroupList));
+export default withOrganization(withApi(withSentryRouter(GroupList)));
 
 const GroupPlaceholder = styled('div')`
   padding: ${space(1)};
@@ -357,4 +366,8 @@ const GroupPlaceholder = styled('div')`
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};
   }
+`;
+
+const PanelContainer = styled(Panel)`
+  container-type: inline-size;
 `;

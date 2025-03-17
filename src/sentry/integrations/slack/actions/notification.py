@@ -8,7 +8,6 @@ from typing import Any
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -32,14 +31,11 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 from sentry.integrations.slack.metrics import (
     SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
+    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
-from sentry.integrations.slack.utils.errors import (
-    SLACK_SDK_HALT_ERROR_CATEGORIES,
-    unpack_slack_api_error,
-)
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
@@ -56,7 +52,6 @@ _default_logger: Logger = getLogger(__name__)
 
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
-    form_cls = SlackNotifyServiceForm
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -134,12 +129,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
 
             open_period_start: datetime | None = None
-            if (
-                features.has(
-                    "organizations:slack-threads-refactor-uptime", self.project.organization
-                )
-                and event.group.issue_category == GroupCategory.UPTIME
-            ):
+            if event.group.issue_category == GroupCategory.UPTIME:
                 open_period_start = open_period_start_for_group(event.group)
                 new_notification_message_object.open_period_start = open_period_start
 
@@ -231,15 +221,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         log_params["channel_name"] = self.get_option("channel")
 
                     lifecycle.add_extras(log_params)
-                    # If the error is a channel not found or archived, we can halt the flow
-                    if (
-                        (reason := unpack_slack_api_error(e))
-                        and reason is not None
-                        and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
-                    ):
-                        lifecycle.record_halt(reason.message)
-                    else:
-                        lifecycle.record_failure(e)
+                    record_lifecycle_termination_level(lifecycle, e)
                 else:
                     ts = response.get("ts")
                     new_notification_message_object.message_identifier = (
@@ -346,8 +328,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(
+    def get_form_instance(self) -> SlackNotifyServiceForm:
+        return SlackNotifyServiceForm(
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 

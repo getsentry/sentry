@@ -133,11 +133,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           <SlowestFunctionsQueryState>
             {t('Failed to fetch slowest functions')}
           </SlowestFunctionsQueryState>
-        ) : !functions.length ? (
-          <SlowestFunctionsQueryState>
-            {t('The fastest code is one that never runs.')}
-          </SlowestFunctionsQueryState>
-        ) : (
+        ) : functions.length ? (
           functions.map((fn, i) => {
             return (
               <SlowestFunctionEntry
@@ -149,6 +145,10 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
               />
             );
           })
+        ) : (
+          <SlowestFunctionsQueryState>
+            {t('The fastest code is one that never runs.')}
+          </SlowestFunctionsQueryState>
         )}
       </SlowestFunctionsList>
     </SlowestFunctionsContainer>
@@ -162,6 +162,7 @@ interface SlowestFunctionEntryProps {
   project: Project | null;
 }
 function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
+  const organization = useOrganization();
   const frame = useMemo(() => {
     return new Frame(
       {
@@ -182,9 +183,9 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   const example = props.func['all_examples()']?.[0];
   if (defined(example)) {
     const target = generateProfileRouteFromProfileReference({
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.project?.slug ?? '',
-      frameName: frame.name as string,
+      frameName: frame.name,
       framePackage: frame.package as string,
       reference: example,
     });

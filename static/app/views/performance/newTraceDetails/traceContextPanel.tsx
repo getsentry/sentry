@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,6 +13,7 @@ import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
@@ -126,6 +128,11 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
             {renderTags()}
           </FoldSection>
         </TraceTagsContainer>
+        <Feature features={['ourlogs-enabled']}>
+          <TraceTagsContainer>
+            <TraceViewLogsSection />
+          </TraceTagsContainer>
+        </Feature>
       </TraceContextContainer>
     </Container>
   );
@@ -136,6 +143,7 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: ${space(1)};
 `;
 
 const TraceContextContainer = styled('div')`
@@ -143,7 +151,6 @@ const TraceContextContainer = styled('div')`
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-top: ${space(1)};
   --panel-height: ${DEFAULT_HEIGHT}px;
   height: var(--panel-height);
 
@@ -170,11 +177,10 @@ const GrabberContainer = styled(Container)`
 
 const VitalMetersContainer = styled('div')`
   display: flex;
-  justify-content: space-between;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: ${space(1)};
   width: 100%;
-  margin-bottom: ${space(1)};
 `;
 
 const TraceTagsContainer = styled('div')`
@@ -182,5 +188,6 @@ const TraceTagsContainer = styled('div')`
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 0 ${space(0.5)};
+  padding: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

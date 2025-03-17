@@ -102,6 +102,15 @@ export enum IssueType {
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
+
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'monitor_check_in_failure',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
+
+  // Metric Issues
+  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -239,7 +248,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: object;
+  headers: Record<PropertyKey, unknown>;
   id: string;
   mimetype: string;
   name: string;
@@ -422,7 +431,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -445,7 +454,7 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -663,7 +672,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 }
 
 interface GroupActivityDeletedAttachment extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
@@ -770,7 +779,7 @@ export interface MarkReviewed {
 
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
-  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
+  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | Record<string, unknown>;
   substatus?: GroupSubstatus | null;
 }
 
@@ -819,7 +828,7 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: TitledPlugin[];
+  pluginActions: Array<[title: string, actionLink: string]>;
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
@@ -848,8 +857,8 @@ export interface GroupOpenPeriod {
   duration: string;
   end: string;
   isOpen: boolean;
+  lastChecked: string;
   start: string;
-  lastChecked?: string;
 }
 
 export interface GroupReprocessing extends BaseGroup, GroupStats {
@@ -869,7 +878,7 @@ export interface GroupIgnored extends BaseGroup, GroupStats {
 
 export interface GroupUnresolved extends BaseGroup, GroupStats {
   status: GroupStatus.UNRESOLVED;
-  statusDetails: {};
+  statusDetails: Record<string, unknown>;
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;

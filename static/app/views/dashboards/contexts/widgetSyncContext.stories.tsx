@@ -1,14 +1,15 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
-import {LineChartWidget} from '../widgets/lineChartWidget/lineChartWidget';
-import sampleDurationTimeSeries from '../widgets/lineChartWidget/sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from '../widgets/lineChartWidget/sampleThroughputTimeSeries.json';
+import {sampleDurationTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
+import {Line} from '../widgets/timeSeriesWidget/plottables/line';
+import {TimeSeriesWidgetVisualization} from '../widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {WidgetSyncContextProvider} from './widgetSyncContext';
 
@@ -32,16 +33,14 @@ export default storyBook('WidgetSyncContext', story => {
         <WidgetSyncContextProvider>
           <SideBySide>
             <MediumWidget>
-              <LineChartWidget
-                title="span.duration"
-                timeseries={[sampleDurationTimeSeries]}
+              <TimeSeriesWidgetVisualization
+                plottables={[new Line(sampleDurationTimeSeries)]}
               />
             </MediumWidget>
             {visible && (
               <MediumWidget>
-                <LineChartWidget
-                  title="span.duration"
-                  timeseries={[sampleThroughputTimeSeries]}
+                <TimeSeriesWidgetVisualization
+                  plottables={[new Line(sampleThroughputTimeSeries)]}
                 />
               </MediumWidget>
             )}

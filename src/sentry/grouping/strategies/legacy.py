@@ -77,7 +77,7 @@ RECURSION_COMPARISON_FIELDS = [
 ]
 
 
-def is_unhashable_module_legacy(frame: Frame, platform: str) -> bool:
+def is_unhashable_module_legacy(frame: Frame, platform: str | None) -> bool:
     # Fix for the case where module is a partial copy of the URL
     # and should not be hashed
     if (
@@ -108,7 +108,7 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
     return True
 
 
-def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str | None]:
+def remove_module_outliers_legacy(module: str, platform: str | None) -> tuple[str, str | None]:
     """Remove things that augment the module but really should not."""
     if platform == "java":
         if module.startswith("sun.reflect.GeneratedMethodAccessor"):
@@ -125,7 +125,7 @@ def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str 
     return module, None
 
 
-def remove_filename_outliers_legacy(filename: str, platform: str) -> tuple[str, str | None]:
+def remove_filename_outliers_legacy(filename: str, platform: str | None) -> tuple[str, str | None]:
     """
     Attempt to normalize filenames by removing common platform outliers.
 
@@ -448,7 +448,7 @@ def stacktrace_legacy(
         prev_frame = frame
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
-        frame_components, frames_for_filtering, event.platform
+        variant_name, frame_components, frames_for_filtering, event.platform
     )
     stacktrace_component.update(contributes=contributes, hint=hint)
     return {variant_name: stacktrace_component}

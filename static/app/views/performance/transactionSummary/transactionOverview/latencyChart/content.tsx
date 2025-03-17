@@ -5,6 +5,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -18,7 +19,6 @@ import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-import theme from 'sentry/utils/theme';
 
 import type {ViewProps} from '../../../types';
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
@@ -85,7 +85,7 @@ function Content({
 
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
-        ? theme.charts.getColorPalette(1)
+        ? getChartColorPalette(1)
         : [filterToColor(currentFilter)];
 
     // Use a custom tooltip formatter as we need to replace
@@ -94,7 +94,13 @@ function Content({
       formatter(series: any) {
         const seriesData = toArray(series);
         let contents: string[] = [];
-        if (!zoomError) {
+        if (zoomError) {
+          contents = [
+            '<div class="tooltip-series tooltip-series-solo">',
+            t('Target zoom region too small'),
+            '</div>',
+          ];
+        } else {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
             const label = t('Transactions');
@@ -108,12 +114,6 @@ function Content({
           });
           const seriesLabel = seriesData[0].value[0];
           contents.push(`<div class="tooltip-footer">${seriesLabel}</div>`);
-        } else {
-          contents = [
-            '<div class="tooltip-series tooltip-series-solo">',
-            t('Target zoom region too small'),
-            '</div>',
-          ];
         }
         contents.push('<div class="tooltip-arrow"></div>');
         return contents.join('');

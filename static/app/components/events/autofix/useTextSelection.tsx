@@ -5,7 +5,7 @@ interface TextSelection {
   selectedText: string;
 }
 
-export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
+export function useTextSelection(containerRef: React.RefObject<HTMLElement | null>) {
   const [selection, setSelection] = useState<TextSelection | null>(null);
 
   const isClickInPopup = (target: HTMLElement) =>
@@ -34,12 +34,18 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
         return;
       }
 
+      // Clear selection if clicking the same text
+      if (selection?.referenceElement === target) {
+        setSelection(null);
+        return;
+      }
+
       setSelection({
         selectedText: clickedText,
         referenceElement: target,
       });
     },
-    [containerRef]
+    [containerRef, selection]
   );
 
   const clearSelection = useCallback(

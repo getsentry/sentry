@@ -3,8 +3,9 @@ from unittest.mock import ANY, Mock, call, patch
 
 import orjson
 
-from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint, SummarizeIssueResponse
+from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
@@ -37,6 +38,10 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             "whats_wrong": "Existing whats wrong",
             "trace": "Existing trace",
             "possible_cause": "Existing possible cause",
+            "scores": {
+                "possible_cause_confidence": 0.9,
+                "possible_cause_novelty": 0.8,
+            },
         }
 
         # Set the cache with the existing summary
@@ -82,6 +87,10 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             whats_wrong="Test whats wrong",
             trace="Test trace",
             possible_cause="Test possible cause",
+            scores=SummarizeIssueScores(
+                possible_cause_confidence=0.0,
+                possible_cause_novelty=0.0,
+            ),
         )
         mock_call_seer.return_value = mock_summary
         mock_get_connected_issues.return_value = [self.group, self.group]
@@ -126,6 +135,13 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             "trace": "Test trace",
             "possible_cause": "Test possible cause",
             "headline": "Test headline",
+            "scores": {
+                "possible_cause_confidence": 0.9,
+                "possible_cause_novelty": 0.8,
+                "fixability_score": 0.5,
+                "is_fixable": True,
+                "fixability_score_version": 1,
+            },
         }
         mock_post.return_value = mock_response
 
@@ -230,6 +246,10 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
                 "trace": "Test trace",
                 "possible_cause": "Test possible cause",
                 "headline": "Test headline",
+                "scores": {
+                    "possible_cause_confidence": 0.9,
+                    "possible_cause_novelty": 0.8,
+                },
             }
 
             self.client.post(self.url, format="json")

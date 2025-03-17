@@ -24,12 +24,10 @@ interface _DiscoverQueryExtras {
   queryExtras?: DiscoverQueryExtras;
 }
 export class QueryError extends Error {
-  message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
   constructor(errorMessage: string, originalError?: any) {
     super(errorMessage);
-
-    this.message = errorMessage;
+    this.name = 'QueryError';
     this.originalError = originalError;
   }
 
@@ -320,7 +318,8 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
     orgSlug,
     eventView,
   };
-  return <_GenericDiscoverQuery<T, P> {..._props} />;
+  // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+  return <_GenericDiscoverQuery<T, P> {...(_props as any)} />;
 }
 
 export type DiscoverQueryRequestParams = Partial<
@@ -427,6 +426,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
 
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: [route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {

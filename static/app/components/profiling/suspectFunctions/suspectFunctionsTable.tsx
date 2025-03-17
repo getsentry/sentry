@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
@@ -220,7 +220,7 @@ function TableEntry({
                   source: `${analyticsPageSource}.suspect_functions_table`,
                 }),
               target: generateProfileRouteFromProfileReference({
-                orgSlug: organization.slug,
+                organization,
                 projectSlug: project?.slug || '',
                 reference: example,
                 // specify the frame to focus, the flamegraph will switch

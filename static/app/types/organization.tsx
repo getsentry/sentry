@@ -302,10 +302,17 @@ export type EventsStatsData = Array<
 
 export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
+type AccuracyStatsItem<T> = {
+  timestamp: number;
+  value: T;
+};
+
+export type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
+
 // API response for a single Discover timeseries
 export type EventsStats = {
   data: EventsStatsData;
-  confidence?: ConfidenceStatsData;
+  confidence?: ConfidenceStatsData; // deprecated
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
@@ -315,6 +322,12 @@ export type EventsStats = {
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string | null>;
+    accuracy?: {
+      confidence?: AccuracyStats<Confidence>;
+      sampleCount?: AccuracyStats<number>;
+      // 0 sample count can result in null sampling rate
+      samplingRate?: AccuracyStats<number | null>;
+    };
     dataset?: string;
     datasetReason?: string;
     discoverSplitDecision?: WidgetType;

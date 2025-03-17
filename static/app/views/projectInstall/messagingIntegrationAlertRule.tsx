@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -53,7 +53,7 @@ export default function MessagingIntegrationAlertRule({
             options={providerOptions}
             onChange={(p: any) => {
               setProvider(p.value);
-              setIntegration(providersToIntegrations[p.value]![0]!);
+              setIntegration(providersToIntegrations[p.value]![0]);
               setChannel('');
             }}
           />
@@ -94,7 +94,7 @@ const Rule = styled('div')`
   gap: ${space(1)};
 `;
 
-const InlineSelectControl = styled(SelectControl)`
+const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 

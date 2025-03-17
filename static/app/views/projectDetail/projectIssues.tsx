@@ -5,8 +5,8 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -25,6 +25,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
@@ -148,7 +149,10 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
   function getDiscoverUrl() {
     return {
-      pathname: `/organizations/${organization.slug}/discover/results/`,
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
@@ -282,7 +286,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       </ControlsWrapper>
 
       <GroupList
-        orgSlug={organization.slug}
         queryParams={queryParams}
         canSelectGroups={false}
         renderEmptyMessage={renderEmptyMessage}

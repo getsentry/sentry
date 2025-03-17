@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -271,12 +271,14 @@ const SECTIONS: TSection[] = [
           'expand',
           'collapse',
           'arrow',
+          'double',
         ],
-        additionalProps: ['isCircled', 'direction'],
+        additionalProps: ['isCircled', 'direction', 'isDouble'],
         name: 'Chevron',
         defaultProps: {
           isCircled: false,
           direction: 'left',
+          isDouble: false,
         },
       },
       {
@@ -332,6 +334,38 @@ const SECTIONS: TSection[] = [
         name: 'Chevron',
         defaultProps: {
           isCircled: true,
+          direction: 'down',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-left',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'left',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-right',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'right',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-up',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'up',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-down',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
           direction: 'down',
         },
       },
@@ -586,6 +620,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'divide',
+        groups: ['action'],
+        keywords: ['divided', 'math'],
+        name: 'Divide',
+        defaultProps: {},
+      },
+      {
         id: 'upload',
         groups: ['action'],
         keywords: ['file', 'image', 'up'],
@@ -716,7 +757,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'previous',
         groups: ['action'],
-        keywords: ['video', 'audio', 'back', 'return', 'rewind'],
+        keywords: ['video', 'audio', 'back', 'rewind'],
         name: 'Previous',
         defaultProps: {},
       },
@@ -890,13 +931,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {
           direction: 'up',
         },
-      },
-      {
-        id: 'toggle',
-        groups: ['action'],
-        keywords: ['switch', 'form', 'disable', 'enable'],
-        name: 'Toggle',
-        defaultProps: {},
       },
       {
         id: 'fix',
@@ -1139,13 +1173,6 @@ const SECTIONS: TSection[] = [
     label: 'Device',
     icons: [
       {
-        id: 'return',
-        groups: ['device'],
-        keywords: ['enter'],
-        name: 'Return',
-        defaultProps: {},
-      },
-      {
         id: 'file',
         groups: ['device'],
         keywords: ['document'],
@@ -1322,6 +1349,13 @@ function Section({section}: {section: TSection}) {
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const Component = Icons[name];
 
+          if (!Component) {
+            // The definition is not type safe, so lets log the icon instead of throwing an error
+            // eslint-disable-next-line no-console
+            console.log('Missing icon', name);
+            return null;
+          }
+
           const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};
           return (
             <Tooltip
@@ -1386,8 +1420,10 @@ const StyledSticky = styled(Sticky)`
   }
 `;
 
+// Large scroll margin top due to sticky header
 const SectionHeader = styled('h5')`
   margin-block: ${space(2)};
+  scroll-margin-top: 96px;
 `;
 
 const Grid = styled('div')`

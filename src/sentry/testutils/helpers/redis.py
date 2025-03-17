@@ -19,8 +19,9 @@ def use_redis_cluster(
     high_watermark: int = 100,
     with_settings: dict[str, Any] | None = None,
     with_options: dict[str, Any] | None = None,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     # Cluster id needs to be different than "default" to distinguish redis instance with redis cluster.
+    # In order to run tests that use this helper, run 'devservices up --mode backend-ci' or '--mode full'
 
     options = {
         "backpressure.high_watermarks.redis": high_watermark,

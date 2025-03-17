@@ -21,7 +21,7 @@ class DiscordActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.spec = DiscordMessagingSpec()
-
+        self.handler = MessagingActionHandler(self.spec)
         self.guild_id = "guild-id"
         self.channel_id = "12345678910"
         self.discord_user_id = "user1234"
@@ -59,10 +59,15 @@ class DiscordActionHandlerTest(FireTest):
             status=200,
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(self.handler, method)(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
+            )
 
         data = orjson.loads(responses.calls[0].request.body)
         return data
@@ -86,10 +91,15 @@ class DiscordActionHandlerTest(FireTest):
             status=200,
         )
 
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
 
@@ -99,10 +109,15 @@ class DiscordActionHandlerTest(FireTest):
     def test_metric_alert_failure(self, mock_record_event, mock_send_message):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus.WARNING,
+            )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
@@ -114,25 +129,38 @@ class DiscordActionHandlerTest(FireTest):
     def test_metric_alert_halt_for_rate_limited(self, mock_record_event, mock_send_message):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus.WARNING,
+            )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
     @patch(
         "sentry.integrations.discord.client.DiscordClient.send_message",
-        side_effect=ApiError(code=50001, text="Missing access"),
+        side_effect=ApiError(
+            code=403,
+            text='{"message": "Missing access", "code": 50001}',
+        ),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_metric_alert_halt_for_missing_access(self, mock_record_event, mock_send_message):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            self.handler.fire(
+                self.action,
+                incident,
+                self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus.WARNING,
+            )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
@@ -144,9 +172,14 @@ class DiscordActionHandlerTest(FireTest):
     def test_metric_alert_halt_for_other_api_error(self, mock_record_event, mock_send_message):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN)
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus.WARNING,
+            )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)

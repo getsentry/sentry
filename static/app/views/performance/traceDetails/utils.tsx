@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -19,11 +20,30 @@ import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
-  TraceViewSources,
+  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
+  type TraceViewSources,
 } from '../newTraceDetails/traceHeader/breadcrumbs';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
+
+function getBaseTraceUrl(
+  organization: Organization,
+  source?: TraceViewSources,
+  view?: DomainView
+) {
+  if (view) {
+    return getPerformanceBaseUrl(organization.slug, view);
+  }
+
+  const routesMap = prefersStackedNav()
+    ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
+    : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
+
+  const routeSuffix = source && source in routesMap ? routesMap[source] : 'traces';
+
+  return normalizeUrl(`/organizations/${organization.slug}/${routeSuffix}`);
+}
 
 export function getTraceDetailsUrl({
   organization,
@@ -35,7 +55,7 @@ export function getTraceDetailsUrl({
   targetId,
   demo,
   location,
-  source = TraceViewSources.TRACES,
+  source,
   view,
 }: {
   // @TODO add a type for dateSelection
@@ -53,11 +73,7 @@ export function getTraceDetailsUrl({
   timestamp?: string | number;
   view?: DomainView;
 }): LocationDescriptorObject {
-  const baseUrl = view
-    ? getPerformanceBaseUrl(organization.slug, view)
-    : normalizeUrl(
-        `/organizations/${organization.slug}/${TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]}`
-      );
+  const baseUrl = getBaseTraceUrl(organization, source, view);
   const queryParams: Record<string, string | number | undefined | DateString | string[]> =
     {
       ...location.query,
@@ -212,7 +228,7 @@ export function shortenErrorTitle(title: string): string {
   return title.split(':')[0]!;
 }
 
-export function isRootTransaction(trace: TraceFullDetailed): boolean {
-  // Root transactions has no parent_span_id
-  return trace.parent_span_id === null;
+export function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }

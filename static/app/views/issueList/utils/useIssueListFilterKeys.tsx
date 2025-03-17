@@ -6,10 +6,15 @@ import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags'
 export function useIssueListFilterKeys() {
   const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
+  const hasFeatureFlagSearch = organization.features.includes(
+    'feature-flag-autocomplete'
+  );
+
   const {tags: issueTags} = useFetchIssueTags({
     org: organization,
     projectIds: pageFilters.projects.map(id => id.toString()),
     keepPreviousData: true,
+    includeFeatureFlags: hasFeatureFlagSearch,
     start: pageFilters.datetime.start
       ? getUtcDateString(pageFilters.datetime.start)
       : undefined,

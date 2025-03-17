@@ -9,7 +9,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -140,7 +140,7 @@ interface QueryData {
   queryOrderby: string;
 }
 
-interface Props extends RouteComponentProps<RouteParams, {}> {
+interface Props extends RouteComponentProps<RouteParams> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   selection: PageFilters;
@@ -307,8 +307,8 @@ function WidgetBuilder({
   let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
   if (state.dataSet === DataSet.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
@@ -763,11 +763,11 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!orderOptions.length) {
-          newQuery.orderby = '';
-        } else {
+        if (orderOptions.length) {
           orderOption = orderOptions[0]!.value;
           newQuery.orderby = `-${orderOption}`;
+        } else {
+          newQuery.orderby = '';
         }
       }
       return newQuery;
@@ -876,27 +876,21 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      const nextWidgetData = {
-        ...widgetData,
-        id: widgetToBeUpdated.id,
-      };
+      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) ===
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
+      } else {
         nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
-      } else {
-        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(
-        {
-          ...dashboard,
-          widgets: [...nextWidgetList],
-        },
+        {...dashboard, widgets: [...nextWidgetList]},
         nextWidgetData
       );
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
@@ -979,10 +973,7 @@ function WidgetBuilder({
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
       Object.keys(queryParamsWithoutSource).length > 0 || query
-        ? {
-            ...queryParamsWithoutSource,
-            ...query,
-          }
+        ? {...queryParamsWithoutSource, ...query}
         : {};
 
     const sanitizedQuery = omit(pathQuery, ['defaultWidgetQuery', 'defaultTitle']);
@@ -1147,6 +1138,8 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
+        disablePersistence
+        skipLoadLastUsed
       >
         <OnRouteLeave message={UNSAVED_CHANGES_MESSAGE} when={onRouteLeave} />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -1199,7 +1192,7 @@ function WidgetBuilder({
                                           {
                                             from: source,
                                             field: 'title',
-                                            value: state.title ?? '',
+                                            value: '',
                                             widget_type: widgetType,
                                             organization,
                                             new_widget: !isEditing,
@@ -1229,7 +1222,7 @@ function WidgetBuilder({
                                           {
                                             from: source,
                                             field: 'description',
-                                            value: state.description ?? '',
+                                            value: '',
                                             widget_type: widgetType,
                                             organization,
                                             new_widget: !isEditing,

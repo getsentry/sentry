@@ -65,7 +65,7 @@ function RelatedTransactions({
       summaryView.query = summaryConditions;
 
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: String(dataRow.transaction) || '',
         query: summaryView.generateQueryStringObject(),
         projectID,
@@ -116,7 +116,7 @@ function RelatedTransactions({
 
   const columnOrder = eventView
     .getColumns()
-    .map((col: TableColumn<React.ReactText>, i: number) => {
+    .map((col: TableColumn<string | number>, i: number) => {
       if (typeof widths[i] === 'number') {
         return {...col, width: widths[i]};
       }

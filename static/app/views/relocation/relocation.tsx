@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -34,7 +34,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -250,7 +250,7 @@ function RelocationOnboarding(props: Props) {
             currentStepIndex={stepIndex}
             onClick={i => {
               // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]!);
+              goToStep(onboardingSteps[i]);
             }}
           />
         )}
