@@ -2,9 +2,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {
+  debouncedOptionLoad,
   ensureCurrentOption,
   getConfigName,
-  getDebouncedOptionLoad,
   getDefaultOptions,
   getDynamicFields,
   getFieldProps,
@@ -161,11 +161,14 @@ export default class AbstractExternalIssueForm<
   debouncedOptionLoad = (
     field: IssueConfigField,
     input: string,
-    cb: (err: Error | null, result?: any) => void
+    callback: (err: Error | null, result?: any) => void
   ) => {
-    return getDebouncedOptionLoad({
+    return debouncedOptionLoad({
+      field,
+      input,
+      callback,
       dynamicFieldValues: this.state.dynamicFieldValues || {},
-    })(field, input, cb);
+    });
   };
 
   getDefaultOptions = (field: IssueConfigField) => {

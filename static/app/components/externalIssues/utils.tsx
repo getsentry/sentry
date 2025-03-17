@@ -16,39 +16,51 @@ import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integr
 const API_CLIENT = new Client({baseUrl: '', headers: {}});
 const DEBOUNCE_MS = 200;
 
-export function getDebouncedOptionLoad({
+async function getOptionLoad({
+  field,
+  input,
+  callback,
   dynamicFieldValues,
 }: {
+  callback: (err: Error | null, result?: any) => void;
   dynamicFieldValues: Record<string, FieldValue | null>;
+  field: IssueConfigField;
+  input: string;
 }) {
-  return debounce(
-    async (
-      field: IssueConfigField,
-      input: string,
-      cb: (err: Error | null, result?: any) => void
-    ) => {
-      const query = qs.stringify({
-        ...dynamicFieldValues,
-        field: field.name,
-        query: input,
-      });
+  const query = qs.stringify({
+    ...dynamicFieldValues,
+    field: field.name,
+    query: input,
+  });
 
-      const url = field.url || '';
-      const separator = url.includes('?') ? '&' : '?';
-      // We can't use the API client here since the URL is not scoped under the
-      // API endpoints (which the client prefixes)
+  const url = field.url || '';
+  const separator = url.includes('?') ? '&' : '?';
+  // We can't use the API client here since the URL is not scoped under the
+  // API endpoints (which the client prefixes)
 
-      try {
-        const response = await API_CLIENT.requestPromise(url + separator + query);
-        cb(null, response);
-      } catch (err) {
-        cb(err);
-      }
-    },
-    DEBOUNCE_MS,
-    {trailing: true}
-  );
+  try {
+    const response = await API_CLIENT.requestPromise(url + separator + query);
+    callback(null, response);
+  } catch (err) {
+    callback(err);
+  }
 }
+
+export const debouncedOptionLoad = debounce(
+  ({
+    field,
+    input,
+    callback,
+    dynamicFieldValues,
+  }: {
+    callback: (err: Error | null, result?: any) => void;
+    dynamicFieldValues: Record<string, FieldValue | null>;
+    field: IssueConfigField;
+    input: string;
+  }) => getOptionLoad({field, input, callback, dynamicFieldValues}),
+  DEBOUNCE_MS,
+  {trailing: true}
+);
 
 export function getConfigName(
   action: ExternalIssueAction
@@ -91,15 +103,19 @@ export function getOptions({
     if (!input) {
       return resolve(getDefaultOptions({field}));
     }
-    const debouncedOptionLoad = getDebouncedOptionLoad({dynamicFieldValues});
-    return debouncedOptionLoad(field, input, (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        result = ensureCurrentOption({field, result, model});
-        successCallback({field, result});
-        resolve(result);
-      }
+    return debouncedOptionLoad({
+      field,
+      input,
+      callback: (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          result = ensureCurrentOption({field, result, model});
+          successCallback({field, result});
+          resolve(result);
+        }
+      },
+      dynamicFieldValues: dynamicFieldValues || {},
     });
   });
 }
