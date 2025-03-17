@@ -240,6 +240,9 @@ const appConfig: webpack.Configuration = {
      */
     pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
 
+    // admin interface
+    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
      * This generates a single "sentry.css" file that imports ALL component styles
