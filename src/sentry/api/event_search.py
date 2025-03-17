@@ -632,15 +632,13 @@ class SearchVisitor(NodeVisitor):
 
     def __init__(
         self,
-        config: SearchConfig | None = None,
+        config: SearchConfig,
         params: ParamsType | None = None,
         get_field_type: Callable[[str], str | None] | None = None,
         get_function_result_type: Callable[[str], str | None] | None = None,
     ) -> None:
         super().__init__()
 
-        if config is None:
-            config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
 
