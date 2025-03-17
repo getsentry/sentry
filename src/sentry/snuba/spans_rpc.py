@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -37,6 +37,22 @@ from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+
+
+def categorize_aggregate(
+    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+) -> Column:
+    if isinstance(column, ResolvedFormula):
+        return Expression(
+            formula=transform_binary_formula_to_expression(column.proto_definition),
+            label=column.public_alias,
+        )
+    if isinstance(column, ResolvedAggregate):
+        return Expression(aggregation=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedConditionalAggregate):
+        return Expression(
+            conditional_aggregation=column.proto_definition, label=column.public_alias
+        )
 
 
 @dataclass
@@ -107,21 +123,7 @@ def get_timeseries_query(
         TimeSeriesRequest(
             meta=meta,
             filter=query,
-            expressions=[
-                Expression(
-                    formula=transform_binary_formula_to_expression(
-                        agg.proto_definition
-                    ),  # remove transformer with https://github.com/getsentry/eap-planning/issues/206
-                    label=agg.public_alias,
-                )
-                for agg in functions
-                if isinstance(agg.proto_definition, Column.BinaryFormula)
-            ],
-            aggregations=[
-                agg.proto_definition
-                for agg in functions
-                if isinstance(agg.proto_definition, AttributeAggregation)
-            ],
+            expressions=[categorize_aggregate(fn) for fn in functions if fn.is_aggregate],
             group_by=[
                 groupby.proto_definition
                 for groupby in groupbys
