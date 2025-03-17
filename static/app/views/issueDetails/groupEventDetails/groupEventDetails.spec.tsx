@@ -336,6 +336,12 @@ const mockGroupApis = (
       },
     },
   });
+  MockApiClient.addMockResponse({
+    url: `/issues/${group.id}/autofix/`,
+    body: {
+      steps: [],
+    },
+  });
 };
 
 describe('groupEventDetails', () => {

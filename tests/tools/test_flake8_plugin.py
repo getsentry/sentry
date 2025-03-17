@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import ast
 
-import pytest
-
 from tools.flake8_plugin import SentryCheck
 
 
@@ -135,18 +133,21 @@ import sentry.testutils.outbox as outbox_utils
     ]
 
 
-@pytest.mark.parametrize(
-    "src",
-    (
-        "from pytz import utc",
-        "from pytz import UTC",
-        "pytz.utc",
-        "pytz.UTC",
-    ),
-)
-def test_S008(src):
-    expected = ["t.py:1:0: S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"]
-    assert _run(src) == expected
+def test_s008():
+    src = """\
+from dateutil.parser import parse
+"""
+    # no errors in source
+    assert _run(src, filename="src/sentry/example.py") == []
+
+    # errors in tests
+    tests1 = _run(src, filename="tests/test_example.py")
+    tests2 = _run(src, filename="src/sentry/testutils/example.py")
+    assert (
+        tests1
+        == tests2
+        == ["t.py:1:0: S008 Use datetime.fromisoformat rather than guessing at date formats"]
+    )
 
 
 def test_S009():
@@ -210,5 +211,16 @@ class Test(ApiTestCase):
         "t.py:5:27: S011 Use override_options(...) instead to ensure proper cleanup",
         "t.py:9:8: S011 Use override_options(...) instead to ensure proper cleanup",
         "t.py:19:27: S011 Use override_options(...) instead to ensure proper cleanup",
+    ]
+    assert _run(src, filename="tests/test_example.py") == expected
+
+
+def test_S012():
+    src = """\
+from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_METHODS
+"""
+
+    expected = [
+        "t.py:1:0: S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
     ]
     assert _run(src, filename="tests/test_example.py") == expected

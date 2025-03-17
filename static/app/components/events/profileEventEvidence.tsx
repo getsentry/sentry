@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -54,9 +54,9 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
               <LinkButton
                 size="xs"
                 to={generateProfileFlamechartRouteWithHighlightFrame({
+                  organization,
                   profileId: evidenceData.profileId,
                   projectSlug,
-                  orgSlug: organization.slug,
                   frameName: evidenceData.frameName,
                   framePackage: evidenceData.framePackage,
                   query: {

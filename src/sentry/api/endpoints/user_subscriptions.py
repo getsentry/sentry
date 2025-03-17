@@ -45,8 +45,8 @@ class UserSubscriptionsEndpoint(UserEndpoint):
 
         # This returns a dict with `subscriber` and `subscriptions`
         # Returns `None` if no subscriptions for user
-        sub = newsletter.get_subscriptions(user)
-        if sub is None or not newsletter.is_enabled():
+        sub = newsletter.backend.get_subscriptions(user)
+        if sub is None or not newsletter.backend.is_enabled():
             return self.respond([])
 
         return self.respond(
@@ -92,7 +92,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         else:
             kwargs["subscribed_date"] = timezone.now()
 
-        newsletter.create_or_update_subscription(user, **kwargs)
+        newsletter.backend.create_or_update_subscription(user, **kwargs)
         return self.respond(status=204)
 
     def post(self, request: Request, user) -> Response:
@@ -115,14 +115,14 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         kwargs = {
             "subscribed": result["subscribed"],
             "verified": email.is_verified,
-            "list_ids": newsletter.get_default_list_ids(),
+            "list_ids": newsletter.backend.get_default_list_ids(),
         }
         if not result["subscribed"]:
             kwargs["unsubscribed_date"] = timezone.now()
         else:
             kwargs["subscribed_date"] = timezone.now()
 
-        newsletter.create_or_update_subscriptions(user, **kwargs)
+        newsletter.backend.create_or_update_subscriptions(user, **kwargs)
 
         user.update(flags=F("flags").bitand(~User.flags.newsletter_consent_prompt))
 

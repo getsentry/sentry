@@ -38,7 +38,7 @@ describe('useSpanSamples', () => {
         end: null,
         utc: false,
       },
-      environments: [],
+      environments: ['prod'],
       projects: [],
     },
   });
@@ -61,7 +61,7 @@ describe('useSpanSamples', () => {
         initialProps: {
           fields: [
             SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
+            SpanIndexedField.SPAN_ID,
           ] as SpanIndexedProperty[],
           enabled: false,
         },
@@ -101,11 +101,10 @@ describe('useSpanSamples', () => {
           filters: {
             'span.group': '221aa7ebd216',
             release: '0.0.1',
-            environment: undefined,
           },
           fields: [
             SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
+            SpanIndexedField.SPAN_ID,
           ] as SpanIndexedProperty[],
           referrer: 'api-spec',
         },
@@ -124,6 +123,7 @@ describe('useSpanSamples', () => {
           query: `span.group:221aa7ebd216 release:0.0.1`,
           referrer: 'api-spec',
           statsPeriod: '10d',
+          environment: ['prod'],
           lowerBound: 100,
           firstBound: 300,
           secondBound: 600,

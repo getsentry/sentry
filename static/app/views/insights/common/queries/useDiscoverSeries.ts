@@ -31,7 +31,7 @@ export interface MetricTimeseriesRow {
 }
 
 export type DiscoverSeries = Series & {
-  meta?: EventsMetaType;
+  meta: EventsMetaType;
 };
 
 interface UseMetricsSeriesOptions<Fields> {

@@ -16,7 +16,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,14 @@ def get_anomaly_data_from_seer(
     aggregation_value: float | None,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query = alert_rule.snuba_query
-    if not snuba_query or aggregation_value is None:
+    extra_data = {
+        "subscription_id": subscription.id,
+        "organization_id": subscription.project.organization.id,
+        "project_id": subscription.project_id,
+        "alert_rule_id": alert_rule.id,
+    }
+    if not snuba_query:
+        logger.warning("Snuba query is empty", extra=extra_data)
         return None
 
     # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
@@ -45,6 +52,16 @@ def get_anomaly_data_from_seer(
         or not snuba_query.time_window
     ):
         return None
+
+    if aggregation_value is None:
+        extra_data["threshold_type"] = alert_rule.threshold_type
+        extra_data["sensitivity"] = alert_rule.sensitivity
+        extra_data["seasonality"] = alert_rule.seasonality
+        extra_data["aggregation_value"] = aggregation_value
+
+        metrics.incr("anomaly_detection.aggregation_value.none")
+        logger.warning("Aggregation value is none", extra=extra_data)
+        aggregation_value = 0
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=int(snuba_query.time_window / 60),
@@ -62,13 +79,7 @@ def get_anomaly_data_from_seer(
         config=anomaly_detection_config,
         context=context,
     )
-    extra_data = {
-        "subscription_id": subscription.id,
-        "dataset": snuba_query.dataset,
-        "organization_id": subscription.project.organization.id,
-        "project_id": subscription.project_id,
-        "alert_rule_id": alert_rule.id,
-    }
+    extra_data["dataset"] = snuba_query.dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
         response = make_signed_seer_api_request(

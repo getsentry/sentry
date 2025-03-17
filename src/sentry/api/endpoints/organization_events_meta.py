@@ -1,5 +1,4 @@
 import re
-from collections.abc import Mapping
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -27,9 +26,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
-    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
         feature_names = [
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
@@ -171,7 +169,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         is_frontend = is_frontend_request(request)

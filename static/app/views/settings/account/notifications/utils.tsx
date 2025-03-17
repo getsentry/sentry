@@ -57,6 +57,8 @@ export function getDocsLinkForEventType(
       return 'https://docs.sentry.io/product/crons/';
     case DataCategoryExact.PROFILE_DURATION:
       return 'https://docs.sentry.io/product/explore/profiling/';
+    case DataCategoryExact.UPTIME:
+      return 'https://docs.sentry.io/product/alerts/uptime-monitoring/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }

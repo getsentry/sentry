@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -18,7 +19,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -33,67 +33,84 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/react";
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
 
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-        Sentry.browserTracingIntegration(),`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-          Sentry.browserProfilingIntegration(),`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-      : ''
-  }
-],${
-  params.isPerformanceSelected
-    ? `
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isProfilingSelected) {
+    dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
         // Since profilesSampleRate is relative to tracesSampleRate,
         // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
         // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
         // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
-    : ''
-}${
-  params.isReplaySelected
-    ? `
-      // Session Replay
-      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-    : ''
-}
+        profilesSampleRate: 1.0`);
+  }
+
+  return dynamicParts;
+};
+
+const getIntegrations = (params: Params): string[] => {
+  const integrations = [];
+  if (params.isPerformanceSelected) {
+    integrations.push(`Sentry.browserTracingIntegration()`);
+  }
+
+  if (params.isProfilingSelected) {
+    integrations.push(`Sentry.browserProfilingIntegration()`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      }),`);
+  }
+
+  return integrations;
+};
+
+const getSdkSetupSnippet = (params: Params) => {
+  const config = buildSdkConfig({
+    params,
+    staticParts: [`dsn: "${params.dsn.public}"`],
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  return `
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  ${config}
 });
 
 const container = document.getElementById(“app”);
 const root = createRoot(container);
 root.render(<App />);
 `;
+};
 
 const getVerifySnippet = () => `
 return <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>;
@@ -311,12 +328,12 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
       configurations: [
         {
           language: 'javascript',
+          description: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
           code: `
 import React from "react";
 import ReactDOM from "react-dom";
@@ -341,7 +358,7 @@ ReactDOM.render(<App />, document.getElementById("root"));
 // ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 `,
           additionalInfo: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
@@ -355,6 +372,25 @@ ReactDOM.render(<App />, document.getElementById("root"));
               ),
             }
           ),
+        },
+        {
+          language: 'javascript',
+          description: tct(
+            "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" />
+              ),
+            }
+          ),
+          code: `
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+  tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+});
+`,
         },
       ],
     },
@@ -370,49 +406,6 @@ ReactDOM.render(<App />, document.getElementById("root"));
           ),
         }
       ),
-      configurations: [
-        {
-          description: tct(
-            'You have the option to manually construct a transaction using [link:custom instrumentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/custom-instrumentation/" />
-              ),
-            }
-          ),
-          language: 'javascript',
-          code: `
-const transaction = Sentry.startTransaction({ name: "test-transaction" });
-const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
-// exampleFunctionCall();
-span.finish(); // Remember that only finished spans will be sent with the transaction
-transaction.finish(); // Finishing the transaction will send it to Sentry`,
-        },
-        {
-          description: tct(
-            'In addition, [code:@sentry/react] exports a [code:withProfiler] higher order component that can be used to capture React-related spans for specific React components:',
-            {code: <code />}
-          ),
-          language: 'javascript',
-          code: `
-import * as Sentry from "@sentry/react";
-
-function App(props) {
-  return <div />;
-}
-
-export default Sentry.withProfiler(App);
-`,
-          additionalInfo: tct(
-            'Learn more about the profiler in [link:React Component Tracking].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/features/component-tracking/" />
-              ),
-            }
-          ),
-        },
-      ],
     },
   ],
   nextSteps: () => [],
@@ -427,7 +420,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,

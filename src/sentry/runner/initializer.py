@@ -29,7 +29,7 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
 
     # entry_points={
     #    'sentry.plugins': [
-    #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
+    #         'example = sentry_plugins.example.plugin:ExamplePlugin'
     #     ],
     # },
     entry_points = {
@@ -355,9 +355,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
 
-    if getattr(settings, "SENTRY_DEBUGGER", None) is None:
-        settings.SENTRY_DEBUGGER = settings.DEBUG
-
     monkeypatch_drf_listfield_serializer_errors()
 
     import django
@@ -464,11 +461,10 @@ def validate_options(settings: Any) -> None:
 def validate_regions(settings: Any) -> None:
     from sentry.types.region import load_from_config
 
-    region_config = getattr(settings, "SENTRY_REGION_CONFIG", None)
-    if not region_config:
+    if not settings.SENTRY_REGION_CONFIG:
         return
 
-    load_from_config(region_config).validate_all()
+    load_from_config(settings.SENTRY_REGION_CONFIG).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:

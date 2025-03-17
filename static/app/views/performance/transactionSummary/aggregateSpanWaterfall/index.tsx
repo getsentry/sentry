@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -22,7 +22,9 @@ import PageLayout from '../pageLayout';
 function renderNoAccess() {
   return (
     <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
     </Layout.Page>
   );
 }

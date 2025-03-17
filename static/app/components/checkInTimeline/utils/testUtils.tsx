@@ -19,14 +19,14 @@ export function generateTestStats(counts: TestStatusCounts): StatsBucket<string>
   };
 }
 
-export const testStatusPrecedent = ['in_progress', 'ok', 'missed', 'timeout', 'error'];
+export const testStatusPrecedent = ['error', 'timeout', 'missed', 'ok', 'in_progress'];
 
 export const testStatusLabel = {
-  in_progress: 'In Progress',
-  ok: 'Okay',
-  missed: 'Missed',
-  timeout: 'Timed Out',
   error: 'Failed',
+  timeout: 'Timed Out',
+  missed: 'Missed',
+  ok: 'Okay',
+  in_progress: 'In Progress',
 };
 
 export const testStatusStyle: Record<string, TickStyle> = {

@@ -14,8 +14,6 @@ describe('filterSupportedTasks', function () {
       actionType: 'app',
       location: '',
       display: true,
-      requisites: [],
-      requisiteTasks: [],
       status: 'pending',
     },
     {
@@ -23,11 +21,9 @@ describe('filterSupportedTasks', function () {
       title: '',
       description: '',
       skippable: true,
-      requisites: [],
       actionType: 'app',
       location: '',
       display: true,
-      requisiteTasks: [],
       status: 'pending',
     },
     {
@@ -35,11 +31,9 @@ describe('filterSupportedTasks', function () {
       title: '',
       description: '',
       skippable: true,
-      requisites: [],
       actionType: 'app',
       location: '',
       display: true,
-      requisiteTasks: [],
       status: 'pending',
     },
   ];

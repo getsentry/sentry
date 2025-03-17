@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 
-import Alert from 'sentry/components/alert';
 import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -32,7 +32,6 @@ import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTr
 
 type Props = RouteComponentProps<
   {replaySlug: string},
-  {},
   any,
   TimeOffsetLocationQueryParams
 >;
@@ -121,12 +120,14 @@ function ReplayDetails({params: {replaySlug}}: Props) {
         replayErrors={replayErrors}
       >
         <Layout.Page>
-          <Alert system type="warning" data-test-id="replay-deleted">
-            <Flex gap={space(0.5)}>
-              <IconDelete color="gray500" size="sm" />
-              {t('This replay has been deleted.')}
-            </Flex>
-          </Alert>
+          <Alert.Container>
+            <Alert system type="warning" data-test-id="replay-deleted">
+              <Flex gap={space(0.5)}>
+                <IconDelete color="gray500" size="sm" />
+                {t('This replay has been deleted.')}
+              </Flex>
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       </Page>
     );

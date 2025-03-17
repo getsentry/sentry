@@ -18,6 +18,7 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
+  SOLUTION = 'solution',
 }
 
 export enum AutofixCodebaseIndexingStatus {
@@ -46,12 +47,21 @@ export type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+export type AutofixUpdateEndpointResponse = {
+  run_id: number;
+  message?: string;
+  status?: 'success' | 'error';
+};
+
 export type AutofixRepository = {
   default_branch: string;
   external_id: string;
+  integration_id: string;
   name: string;
   provider: string;
   url: string;
+  is_readable?: boolean;
+  is_writeable?: boolean;
 };
 
 export type AutofixData = {
@@ -65,6 +75,7 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
+  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -77,7 +88,11 @@ export type AutofixProgressItem = {
   data?: any;
 };
 
-export type AutofixStep = AutofixDefaultStep | AutofixRootCauseStep | AutofixChangesStep;
+export type AutofixStep =
+  | AutofixDefaultStep
+  | AutofixRootCauseStep
+  | AutofixSolutionStep
+  | AutofixChangesStep;
 
 interface BaseStep {
   id: string;
@@ -87,7 +102,9 @@ interface BaseStep {
   title: string;
   type: AutofixStepType;
   active_comment_thread?: CommentThread | null;
+  agent_comment_thread?: CommentThread | null;
   completedMessage?: string;
+  key?: string;
   output_stream?: string | null;
 }
 
@@ -135,6 +152,14 @@ export interface AutofixRootCauseStep extends BaseStep {
   termination_reason?: string;
 }
 
+export interface AutofixSolutionStep extends BaseStep {
+  solution: AutofixSolutionTimelineEvent[];
+  solution_selected: boolean;
+  type: AutofixStepType.SOLUTION;
+  custom_solution?: string;
+  description?: string;
+}
+
 export type AutofixCodebaseChange = {
   description: string;
   diff: FilePatch[];
@@ -152,26 +177,32 @@ export interface AutofixChangesStep extends BaseStep {
   type: AutofixStepType.CHANGES;
 }
 
-export type AutofixRootCauseCodeContext = {
-  description: string;
-  id: string;
-  title: string;
-  snippet?: CodeSnippetContext;
+export type AutofixRelevantCodeFile = {
+  file_path: string;
+  repo_name: string;
 };
 
-export type AutofixRootCauseUnitTest = {
-  description: string;
-  file_path: string;
-  snippet: string;
+export type AutofixTimelineEvent = {
+  code_snippet_and_analysis: string;
+  relevant_code_file: AutofixRelevantCodeFile;
+  timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
+  title: string;
+  is_most_important_event?: boolean;
+};
+
+export type AutofixSolutionTimelineEvent = {
+  timeline_item_type: 'internal_code' | 'human_instruction';
+  title: string;
+  code_snippet_and_analysis?: string;
+  is_active?: boolean;
+  is_most_important_event?: boolean;
+  relevant_code_file?: AutofixRelevantCodeFile;
 };
 
 export type AutofixRootCauseData = {
-  code_context: AutofixRootCauseCodeContext[];
-  description: string;
   id: string;
-  title: string;
-  reproduction?: string;
-  unit_test?: AutofixRootCauseUnitTest;
+  description?: string; // TODO: this is for backwards compatibility with old runs, we should remove it soon
+  root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {
@@ -180,6 +211,11 @@ export type EventMetadataWithAutofix = EventMetadata & {
 
 export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
+};
+
+export type AutofixFeedback = {
+  root_cause_thumbs_down?: boolean;
+  root_cause_thumbs_up?: boolean;
 };
 
 export type FilePatch = {

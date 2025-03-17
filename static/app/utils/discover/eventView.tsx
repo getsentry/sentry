@@ -13,7 +13,7 @@ import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import toArray from 'sentry/utils/array/toArray';
@@ -41,6 +41,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -154,7 +155,7 @@ const decodeFields = (location: Location): Field[] => {
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     const w = Number(widths[i]);
-    const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
+    const width = isNaN(w) ? COL_WIDTH_UNDEFINED : w;
 
     parsed.push({field, width});
   });
@@ -778,7 +779,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): Array<TableColumn<React.ReactText>> {
+  getColumns(): Array<TableColumn<string | number>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1075,7 +1076,7 @@ class EventView {
     return newEventView;
   }
 
-  getSorts(): Array<TableColumnSort<React.ReactText>> {
+  getSorts(): Array<TableColumnSort<string | number>> {
     return this.sorts.map(
       sort =>
         ({
@@ -1231,8 +1232,8 @@ class EventView {
   }
 
   getResultsViewUrlTarget(
-    slug: string,
-    isHomepage: boolean = false,
+    organization: Organization,
+    isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
@@ -1241,12 +1242,18 @@ class EventView {
       query.queryDataset = queryDataset;
     }
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
+      pathname: makeDiscoverPathname({
+        path: `/${target}/`,
+        organization,
+      }),
       query,
     };
   }
 
-  getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewShortUrlTarget(organization: Organization): {
+    pathname: string;
+    query: Query;
+  } {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1259,13 +1266,16 @@ class EventView {
     stringifyQueryParams(output);
 
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
-      query: cloneDeep(output as any),
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
+      query: cloneDeep(output),
     };
   }
 
   getPerformanceTransactionEventsViewUrlTarget(
-    slug: string,
+    organization: Organization,
     options: {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
@@ -1297,7 +1307,7 @@ class EventView {
     const query = cloneDeep(output as any);
     return {
       pathname: normalizeUrl(
-        `${getTransactionSummaryBaseUrl(slug, options.view)}/events/`
+        `${getTransactionSummaryBaseUrl(organization, options.view)}/events/`
       ),
       query,
     };

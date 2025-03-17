@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import time
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
+from django.views.generic import View
 from packaging.version import Version
 from rest_framework.request import Request
 
@@ -14,7 +15,7 @@ from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynami
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
-from sentry.web.frontend.base import BaseView, region_silo_view
+from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response
 
 CACHE_CONTROL = (
@@ -46,19 +47,7 @@ class LoaderContext(TypedDict):
 
 
 @region_silo_view
-class JavaScriptSdkLoader(BaseView):
-    auth_required = False
-
-    # Do not let an organization load trigger session, breaking Vary header.
-    # TODO: This view should probably not be a subclass of BaseView if it doesn't actually use the
-    # large amount of organization related support utilities, but that ends up being a large refactor.
-    def determine_active_organization(self, request: HttpRequest, organization_slug=None) -> None:
-        pass
-
-    # Same as above
-    def get_context_data(self, request: HttpRequest, **kwargs) -> dict[str, Any]:
-        return {}
-
+class JavaScriptSdkLoader(View):
     def _get_loader_config(
         self, key: ProjectKey | None, sdk_version: Version | None
     ) -> LoaderInternalConfig:

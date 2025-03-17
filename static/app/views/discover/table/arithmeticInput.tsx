@@ -2,8 +2,8 @@ import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
+import type {InputProps} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -171,13 +171,13 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       }
 
       let newSelection: any;
-      if (!startedSelection) {
-        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
-      } else {
+      if (startedSelection) {
         newSelection =
           key === 'ArrowUp'
             ? (activeSelection - 1 + flattenedOptions.length) % flattenedOptions.length
             : (activeSelection + 1) % flattenedOptions.length;
+      } else {
+        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       }
       // This is modifying the `active` value of the references so make sure to
       // use `newOptionGroups` at the end.
@@ -329,9 +329,11 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
                       // prevent the blur event on the input from firing
                       onMouseDown={event => event.preventDefault()}
                       // scroll into view if it is the active element
-                      ref={element =>
-                        option.active && element?.scrollIntoView?.({block: 'nearest'})
-                      }
+                      ref={element => {
+                        if (option.active) {
+                          element?.scrollIntoView?.({block: 'nearest'});
+                        }
+                      }}
                       aria-label={option.value}
                     >
                       <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>

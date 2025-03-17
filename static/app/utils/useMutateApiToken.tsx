@@ -34,7 +34,7 @@ export default function useMutateApiToken({
 }: UseMutateApiTokenProps) {
   const api = useApi();
   const queryClient = useQueryClient();
-  return useMutation<{}, RequestError, UpdateTokenQueryVariables>({
+  return useMutation<unknown, RequestError, UpdateTokenQueryVariables>({
     mutationFn: ({name}) =>
       api.requestPromise(`/api-tokens/${token.id}/`, {
         method: 'PUT',

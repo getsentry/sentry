@@ -23,6 +23,9 @@ describe('getDuration()', () => {
     expect(getDuration(604800 * 4)).toBe('4 weeks');
     expect(getDuration(2629800)).toBe('1 month');
     expect(getDuration(604800 * 12)).toBe('3 months');
+    expect(getDuration(2629800 * 12)).toBe('1 year');
+    expect(getDuration(2629800 * 25)).toBe('2 years');
+    expect(getDuration(2629800 * 61)).toBe('5 years');
   });
 
   it('should format negative durations', () => {
@@ -44,6 +47,9 @@ describe('getDuration()', () => {
     expect(getDuration(-604800 * 4)).toBe('-4 weeks');
     expect(getDuration(-2629800)).toBe('-1 month');
     expect(getDuration(-604800 * 12)).toBe('-3 months');
+    expect(getDuration(-2629800 * 12)).toBe('-1 year');
+    expect(getDuration(-2629800 * 25)).toBe('-2 years');
+    expect(getDuration(-2629800 * 61)).toBe('-5 years');
   });
 
   it('should format numbers and abbreviate units', () => {
@@ -61,6 +67,9 @@ describe('getDuration()', () => {
     expect(getDuration(604800 * 2, 0, true)).toBe('2wk');
     expect(getDuration(2629800, 0, true)).toBe('1mo');
     expect(getDuration(604800 * 12, 0, true)).toBe('3mo');
+    expect(getDuration(2629800 * 12, 0, true)).toBe('1yr');
+    expect(getDuration(2629800 * 25, 0, true)).toBe('2yr');
+    expect(getDuration(2629800 * 61, 0, true)).toBe('5yr');
   });
 
   it('should format numbers and abbreviate units with one letter', () => {
@@ -76,8 +85,11 @@ describe('getDuration()', () => {
     expect(getDuration(86400 * 2, 0, false, true)).toBe('2d');
     expect(getDuration(604800, 0, false, true)).toBe('1w');
     expect(getDuration(604800 * 2, 0, false, true)).toBe('2w');
-    expect(getDuration(2629800, 0, false, true)).toBe('4w');
-    expect(getDuration(604800 * 12, 0, false, true)).toBe('12w');
+    expect(getDuration(2629800, 0, false, true)).toBe('1m');
+    expect(getDuration(604800 * 12, 0, false, true)).toBe('3m');
+    expect(getDuration(2629800 * 12, 0, false, true)).toBe('1y');
+    expect(getDuration(2629800 * 25, 0, false, true)).toBe('2y');
+    expect(getDuration(2629800 * 61, 0, false, true)).toBe('5y');
   });
 
   it('should format negative durations with absolute', () => {
@@ -95,5 +107,8 @@ describe('getDuration()', () => {
     expect(getDuration(-604800 * 4, 0, false, false, true)).toBe('4 weeks');
     expect(getDuration(-2629800, 0, false, false, true)).toBe('1 month');
     expect(getDuration(-604800 * 12, 0, false, false, true)).toBe('3 months');
+    expect(getDuration(-2629800 * 12, 0, false, false, true)).toBe('1 year');
+    expect(getDuration(-2629800 * 25, 0, false, false, true)).toBe('2 years');
+    expect(getDuration(-2629800 * 61, 0, false, false, true)).toBe('5 years');
   });
 });

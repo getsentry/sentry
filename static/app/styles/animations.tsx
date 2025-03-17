@@ -126,7 +126,7 @@ export const alertHighlight = (
   }
 `;
 
-export const makeShake = (distance: number = 3) => keyframes`
+export const makeShake = (distance = 3) => keyframes`
 ${new Array(50)
   .fill(0)
   .map(

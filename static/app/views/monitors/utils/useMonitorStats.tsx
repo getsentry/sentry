@@ -14,21 +14,22 @@ interface Options {
    * The window configuration object
    */
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * Do not query stats when set to false
+   */
+  enabled?: boolean;
 }
 
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats({monitors, timeWindowConfig}: Options) {
-  const {start, end, elapsedMinutes, timelineWidth} = timeWindowConfig;
-
-  // Minimum rollup is 1 second
-  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth) || 1;
+export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Options) {
+  const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
     until: Math.floor(end.getTime() / 1000),
-    resolution: `${rollup}s`,
+    resolution: `${rollupConfig.interval}s`,
   };
 
   const organization = useOrganization();
@@ -42,14 +43,15 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
       {
         query: {
           monitor: monitors,
+          project: location.query.project,
+          environment: location.query.environment,
           ...selectionQuery,
-          ...location.query,
         },
       },
     ],
     {
       staleTime: 0,
-      enabled: timelineWidth > 0,
+      enabled: enabled && rollupConfig.totalBuckets > 0,
     }
   );
 }

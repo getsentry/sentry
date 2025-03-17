@@ -1,35 +1,34 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconArrow, IconDocs} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
+import {SolutionsHubNotices} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubNotices';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -80,7 +79,10 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 transform: 'rotate(30deg)',
               }}
             />
-            Need help digging deeper?
+            <StartTextRow>
+              <StyledSeerWaitingIcon size="lg" />
+              <Fragment>Need help digging deeper?</Fragment>
+            </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
             <StyledInput
@@ -131,8 +133,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
   });
-
-  const config = getConfigForIssueType(group, project);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
@@ -189,57 +189,43 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         />
       </SolutionsDrawerHeader>
       <SolutionsDrawerNavigator>
-        <Header>{t('Solutions Hub')}</Header>
-        {autofixData && (
-          <ButtonBarWrapper>
+        <Header>
+          <SeerIcon size="lg" />
+          {t('Autofix')}
+          <StyledFeatureBadge
+            type="beta"
+            tooltipProps={{
+              title: tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {email: <a href="mailto:autofix@sentry.io" />}
+              ),
+              isHoverable: true,
+            }}
+          />
+        </Header>
+        {!aiConfig.needsGenAIConsent && (
+          <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
               <AutofixFeedback />
-              <Button
-                size="xs"
-                onClick={reset}
-                title={
-                  autofixData.created_at
-                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                    : null
-                }
-              >
-                {t('Start Over')}
-              </Button>
+              {aiConfig.hasAutofix && (
+                <Button
+                  size="xs"
+                  onClick={reset}
+                  title={
+                    autofixData?.created_at
+                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                      : null
+                  }
+                  disabled={!autofixData}
+                >
+                  {t('Start Over')}
+                </Button>
+              )}
             </ButtonBar>
           </ButtonBarWrapper>
         )}
       </SolutionsDrawerNavigator>
       <SolutionsDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
-        {config.resources && (
-          <ResourcesContainer>
-            <ResourcesHeader>
-              <IconDocs size="md" />
-              {t('Resources')}
-            </ResourcesHeader>
-            <ResourcesBody>
-              <Resources
-                eventPlatform={event?.platform}
-                group={group}
-                configResources={config.resources}
-              />
-            </ResourcesBody>
-          </ResourcesContainer>
-        )}
-        <HeaderText>
-          <HeaderContainer>
-            <SeerIcon size="lg" />
-            {t('Sentry AI')}
-            <StyledFeatureBadge
-              type="beta"
-              title={tct(
-                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-                {
-                  email: <a href="mailto:autofix@sentry.io" />,
-                }
-              )}
-            />
-          </HeaderContainer>
-        </HeaderText>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
@@ -248,6 +234,10 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
+            <SolutionsHubNotices
+              hasGithubIntegration={aiConfig.hasGithubIntegration}
+              autofixRepositories={autofixData?.repositories ?? []}
+            />
             {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary group={group} event={event} project={project} />
@@ -255,17 +245,14 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {aiConfig.hasAutofix && (
               <Fragment>
-                {aiConfig.needsAutofixSetup ? (
-                  <AutofixSetupContent groupId={group.id} projectId={project.id} />
-                ) : !autofixData ? (
-                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-                ) : (
+                {autofixData ? (
                   <AutofixSteps
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
-                    onRetry={reset}
                   />
+                ) : (
+                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
               </Fragment>
             )}
@@ -276,12 +263,68 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   );
 }
 
-const ResourcesContainer = styled('div')``;
-const ResourcesBody = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(2)};
-`;
+export const useOpenSolutionsDrawer = (
+  group: Group,
+  project: Project,
+  event: Event | undefined,
+  buttonRef?: React.RefObject<HTMLButtonElement | null>
+) => {
+  const {openDrawer} = useDrawer();
+
+  return useCallback(() => {
+    if (!event) {
+      return;
+    }
+
+    openDrawer(
+      () => <SolutionsHubDrawer group={group} project={project} event={event} />,
+      {
+        ariaLabel: t('Solutions drawer'),
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = buttonRef?.current;
+
+          // Check if the element is inside any autofix input element
+          const isInsideAutofixInput = () => {
+            const rethinkInputs = document.querySelectorAll(
+              '[data-autofix-input-type="rethink"]'
+            );
+            const agentCommentInputs = document.querySelectorAll(
+              '[data-autofix-input-type="agent-comment"]'
+            );
+
+            // Check if element is inside any rethink input
+            for (const input of rethinkInputs) {
+              if (input.contains(element)) {
+                return true;
+              }
+            }
+
+            // Check if element is inside any agent comment input
+            for (const input of agentCommentInputs) {
+              if (input.contains(element)) {
+                return true;
+              }
+            }
+
+            return false;
+          };
+
+          if (
+            viewAllButton?.contains(element) ||
+            document.getElementById('sentry-feedback')?.contains(element) ||
+            isInsideAutofixInput() ||
+            document.getElementById('autofix-output-stream')?.contains(element) ||
+            document.getElementById('autofix-write-access-modal')?.contains(element) ||
+            element.closest('[data-overlay="true"]')
+          ) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  }, [openDrawer, buttonRef, event, group, project]);
+};
 
 const Wrapper = styled('div')`
   display: flex;
@@ -307,16 +350,28 @@ const Container = styled('div')`
     linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   overflow: hidden;
   padding: ${space(0.5)};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const AutofixStartText = styled('div')`
   margin: 0;
-  padding: ${space(2)};
-  padding-bottom: ${space(1)};
+  padding: ${space(1)};
   white-space: pre-wrap;
   word-break: break-word;
   font-size: ${p => p.theme.fontSizeLarge};
   position: relative;
+`;
+
+const StartTextRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
+  color: ${p => p.theme.purple400};
+  opacity: 0.9;
+  filter: brightness(0.6);
 `;
 
 const BackgroundStar = styled('img')`
@@ -355,33 +410,15 @@ const StyledButton = styled(Button)`
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: hidden;
-  border: 2px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
-`;
-
-const HeaderText = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  padding-bottom: ${space(2)};
-  justify-content: space-between;
+  padding: ${space(2)} ${space(3)};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: ${space(0.25)};
   padding-bottom: 3px;
-`;
-
-const ResourcesHeader = styled('div')`
-  gap: ${space(1)};
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
-  display: flex;
-  align-items: center;
-  padding-bottom: ${space(2)};
 `;
 
 const SolutionsDrawerContainer = styled('div')`
@@ -401,7 +438,7 @@ const SolutionsDrawerHeader = styled(DrawerHeader)`
 const SolutionsDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} 24px;
+  padding: ${space(0.75)} ${space(3)};
   background: ${p => p.theme.background};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
@@ -421,10 +458,12 @@ const SolutionsDrawerBody = styled(DrawerBody)`
 `;
 
 const Header = styled('h3')`
-  display: block;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
@@ -442,12 +481,6 @@ const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const ButtonBarWrapper = styled('div')`

@@ -61,7 +61,7 @@ export class VirtualizedViewManager {
   list: VirtualizedList | null = null;
 
   scrolling_source: 'list' | 'fake scrollbar' | null = null;
-  start_virtualized_index: number = 0;
+  start_virtualized_index = 0;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -102,9 +102,9 @@ export class VirtualizedViewManager {
     {ref: HTMLElement; space: [number, number]; text: string} | undefined
   > = [];
 
-  row_depth_padding: number = 22;
+  row_depth_padding = 22;
 
-  private scrollbar_width: number = 0;
+  private scrollbar_width = 0;
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
@@ -335,7 +335,7 @@ export class VirtualizedViewManager {
   ) {
     if (ref) {
       this.span_text[index] = {ref, text, space};
-      this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
+      this.drawSpanText(this.span_text[index], this.columns.list.column_nodes[index]);
     }
   }
 
@@ -369,7 +369,7 @@ export class VirtualizedViewManager {
 
       if (scrollableElement) {
         scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-        this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
+        this.row_measurer.enqueueMeasure(node, scrollableElement);
         ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
       }
     }
@@ -391,13 +391,13 @@ export class VirtualizedViewManager {
     index: number,
     indicator: TraceTree['indicators'][0]
   ) {
-    if (!ref) {
+    if (ref) {
+      this.indicators[index] = {ref, indicator};
+    } else {
       const element = this.indicators[index]?.ref;
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-    } else {
-      this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
@@ -577,7 +577,7 @@ export class VirtualizedViewManager {
     const distance_width = this.view.trace_view.width - final_width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    const p = max_distance === 0 ? 1 : Math.log10(max_distance);
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
     const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
@@ -643,8 +643,7 @@ export class VirtualizedViewManager {
       }
     }
 
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'none';
       }
@@ -665,8 +664,7 @@ export class VirtualizedViewManager {
         span_text.ref.style.pointerEvents = 'auto';
       }
     }
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'auto';
       }
@@ -773,8 +771,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -832,8 +830,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = newTransform;
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -992,8 +990,8 @@ export class VirtualizedViewManager {
 
   scrollRowIntoViewHorizontally(
     node: TraceTreeNode<any>,
-    duration: number = 600,
-    offset_px: number = 0,
+    duration = 600,
+    offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
     const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
@@ -1008,8 +1006,8 @@ export class VirtualizedViewManager {
       this.columns.list.translate[0] = x;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1034,8 +1032,8 @@ export class VirtualizedViewManager {
       const pos = startPosition + distance * eased;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1758,8 +1756,8 @@ function computeTimelineIntervals(
 export class VirtualizedList {
   container: HTMLElement | null = null;
 
-  scrollHeight: number = 0;
-  scrollTop: number = 0;
+  scrollHeight = 0;
+  scrollTop = 0;
 
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.container) {

@@ -18,7 +18,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.fields import DateArg
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -114,9 +114,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     all_tag_keys=all_tag_keys,
                     tag_key=tag_key,
                 )
-
-                if not results:
-                    return {"data": []}
 
                 for row in results["data"]:
                     row["tags_value"] = tagstore.backend.get_tag_value_label(
@@ -379,7 +376,7 @@ def query_facet_performance(
     all_tag_keys: bool | None = None,
     tag_key: bool | None = None,
     include_count_delta: bool | None = None,
-) -> dict:
+) -> EventsResponse:
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
     transaction_count = tag_data["count"]

@@ -7,6 +7,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -31,7 +32,6 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
@@ -41,6 +41,8 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -75,7 +77,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
 }, {});
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -124,7 +126,6 @@ export const SpansConfig: DatasetConfig<
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
-  filterTableOptions,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
@@ -164,7 +165,7 @@ function getPrimaryFieldOptions(
   return {...baseFieldOptions, ...spanTags};
 }
 
-function filterTableOptions(option: FieldValueOption) {
+function _isNotNumericTag(option: FieldValueOption) {
   // Filter out numeric tags from primary options, they only show up in
   // the parameter fields for aggregate functions
   if ('dataType' in option.value.meta) {
@@ -219,6 +220,11 @@ function getEventsRequest(
     params.sort = toArray(query.orderby);
   }
 
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  eventView.query = `${eventView.query} !transaction.span_id:00`;
+
   return doDiscoverQuery<EventsTableData>(
     api,
     url,
@@ -251,7 +257,7 @@ function getGroupByFieldOptions(
   // The only options that should be returned as valid group by options
   // are string tags
   const filterGroupByOptions = (option: FieldValueOption) =>
-    filterTableOptions(option) && !yAxisFilter(option);
+    _isNotNumericTag(option) && !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }
@@ -277,6 +283,11 @@ function getSeriesRequest(
 
   requestData.useRpc = true;
   requestData.interval = getInterval(pageFilters.datetime, 'spans');
+
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  requestData.query = `${requestData.query} !transaction.span_id:00`;
 
   return doEventsRequest<true>(api, requestData);
 }

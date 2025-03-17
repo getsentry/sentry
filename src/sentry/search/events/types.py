@@ -29,13 +29,13 @@ WhereType = Union[Condition, BooleanCondition]
 
 # Replaced by SnubaParams
 class ParamsType(TypedDict, total=False):
-    project_id: list[int]
+    project_id: Sequence[int]
     projects: list[Project]
     project_objects: list[Project]
     start: datetime
     end: datetime
     environment: NotRequired[str | list[str]]
-    organization_id: NotRequired[int]
+    organization_id: NotRequired[int | None]
     use_case_id: NotRequired[str]
     team_id: NotRequired[list[int]]
     environment_objects: NotRequired[list[Environment]]
@@ -224,7 +224,7 @@ class QueryBuilderConfig:
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False
-    parser_config_overrides: Mapping[str, Any] | None = None
+    parser_config_overrides: Mapping[str, Any] = field(default_factory=dict)
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
     use_metrics_layer: bool = False

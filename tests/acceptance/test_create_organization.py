@@ -15,6 +15,7 @@ class CreateOrganizationTest(AcceptanceTestCase):
         settings.PRIVACY_URL = "https://sentry.io/privacy/"
         settings.TERMS_URL = "https://sentry.io/terms/"
         self.browser.get("/organizations/new/")
+        assert self.browser.wait_until('input[name="name"]')
         assert self.browser.element_exists('input[name="name"]')
         assert self.browser.element_exists('input[name="agreeTerms"]')
         self.browser.element('input[name="name"]').send_keys("new org")

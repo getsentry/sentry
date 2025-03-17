@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationTeams from './organizationTeams';
 
-export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
+export function OrganizationTeamsContainer(props: RouteComponentProps) {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();

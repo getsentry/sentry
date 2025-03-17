@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
@@ -95,10 +95,11 @@ export function IssueDetailsEventNavigation({
     [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
     [EventNavOptions.LATEST]: t('Last'),
+    [EventNavOptions.CUSTOM]: t('Custom'),
   };
 
   const EventNavTooltips = {
-    [EventNavOptions.RECOMMENDED]: t('Recommended event matching filters'),
+    [EventNavOptions.RECOMMENDED]: t('Recent event with richer content'),
     [EventNavOptions.OLDEST]: t('First event matching filters'),
     [EventNavOptions.LATEST]: t('Last event matching filters'),
   };

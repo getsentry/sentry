@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -93,11 +93,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
                   <TraceView
                     organization={organization}
                     waterfallModel={
-                      new WaterfallModel(
-                        event as EventTransaction,
-                        affectedSpanIds,
-                        focusedSpanIds
-                      )
+                      new WaterfallModel(event, affectedSpanIds, focusedSpanIds)
                     }
                     isEmbedded
                   />
@@ -110,13 +106,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         <TraceViewWrapper>
           <TraceView
             organization={organization}
-            waterfallModel={
-              new WaterfallModel(
-                event as EventTransaction,
-                affectedSpanIds,
-                focusedSpanIds
-              )
-            }
+            waterfallModel={new WaterfallModel(event, affectedSpanIds, focusedSpanIds)}
             isEmbedded
           />
         </TraceViewWrapper>

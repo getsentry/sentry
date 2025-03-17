@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,6 +11,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
   const organization = useOrganization();
   const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
+
   return (
     <ToggleContainer
       sidebarOpen={isSidebarOpen ?? true}
@@ -27,8 +28,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
           org_streamline_only: organization.streamlineOnly ?? undefined,
         }}
       >
-        <LeftChevron direction={direction} />
-        <RightChevron direction={direction} />
+        <Chevron direction={direction} isDouble size="xs" />
       </ToggleButton>
     </ToggleContainer>
   );
@@ -44,7 +44,7 @@ const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
 
 // The extra 1px on width is to display above the sidebar border
 const ToggleButton = styled(Button)`
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   border-right-color: ${p => p.theme.background} !important;
   box-shadow: none;
   position: absolute;
@@ -53,16 +53,10 @@ const ToggleButton = styled(Button)`
   width: calc(100% - ${space(0.5)} + 1px);
   outline: 0;
   min-height: unset;
-`;
-
-const LeftChevron = styled(IconChevron)`
-  position: absolute;
   color: ${p => p.theme.subText};
-  height: 10px;
-  width: 10px;
-  left: ${space(0.75)};
 `;
 
-const RightChevron = styled(LeftChevron)`
-  left: ${space(1.5)};
+const Chevron = styled(IconChevron)`
+  position: absolute;
+  left: ${space(0.75)};
 `;

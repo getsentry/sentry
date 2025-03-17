@@ -11,16 +11,26 @@ import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from google.protobuf.message import Message as ProtobufMessage
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
 )
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
     TraceItemAttributeValuesResponse,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
+    TraceItemDetailsRequest,
+    TraceItemDetailsResponse,
+)
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    TraceItemStatsRequest,
+    TraceItemStatsResponse,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
@@ -80,6 +90,14 @@ def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse
     return _make_rpc_requests(timeseries_requests=requests).timeseries_response
 
 
+def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
+    resp = _make_rpc_request("EndpointGetTrace", "v1", referrer=request.meta.referrer, req=request)
+    response = GetTraceResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+@sentry_sdk.trace
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
@@ -148,6 +166,25 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
     return response
 
 
+def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
+    resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
+    response = TraceItemStatsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResponse:
+    """
+    An RPC which requests all of the details about a specific trace item.
+    For example, you might say "give me all of the attributes for the log with id 1234" or
+    "give me all of the attributes for the span with id 12345 and trace_id 34567"
+    """
+    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
+    response = TraceItemDetailsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
 def rpc(
     req: SnubaRPCRequest,
     resp_type: type[RPCResponseType],
@@ -193,6 +230,7 @@ def rpc(
     return resp
 
 
+@sentry_sdk.trace
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,
@@ -242,6 +280,8 @@ def _make_rpc_request(
                     error.ParseFromString(http_resp.data)
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
+                    if http_resp.status == 404:
+                        raise NotFound() from SnubaRPCError(error)
                     raise SnubaRPCError(error)
                 return http_resp
 

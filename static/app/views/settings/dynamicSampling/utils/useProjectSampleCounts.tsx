@@ -1,16 +1,29 @@
 import {useMemo} from 'react';
 
-import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
+
+interface MetricsQueryApiResponse {
+  data: Array<
+    Array<{
+      by: Record<string, string>;
+      series: Array<number | null>;
+      totals: number;
+    }>
+  >;
+  end: string;
+  intervals: string[];
+  start: string;
+}
 
 export interface ProjectSampleCount {
   count: number;
   ownCount: number;
   project: Project;
-  subProjects: Array<{count: number; slug: string}>;
+  subProjects: Array<{count: number; project: Project}>;
 }
 
 export type ProjectionSamplePeriod = '24h' | '30d';
@@ -37,38 +50,26 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
 
   const projectBySlug = useMemo(
     () =>
-      projects.reduce(
-        (acc, project) => {
-          acc[project.slug] = project;
-          return acc;
-        },
-        {} as Record<string, Project>
-      ),
+      mapArrayToObject({
+        array: projects,
+        keySelector: project => project.slug,
+        valueSelector: project => project,
+      }),
     [projects]
   );
 
   const projectById = useMemo(
     () =>
-      projects.reduce(
-        (acc, project) => {
-          acc[project.id] = project;
-          return acc;
-        },
-        {} as Record<string, Project>
-      ),
+      mapArrayToObject({
+        array: projects,
+        keySelector: project => project.id,
+        valueSelector: project => project,
+      }),
     [projects]
   );
 
-  const projectEntries = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        count: number;
-        ownCount: number;
-        slug: string;
-        subProjects: Array<{count: number; slug: string}>;
-      }
-    >();
+  const items = useMemo(() => {
+    const map = new Map<string, ProjectSampleCount>();
 
     for (const row of queryResult ?? []) {
       const project = row.by.project && projectBySlug[row.by.project];
@@ -80,42 +81,40 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
         continue;
       }
 
-      const existingEntry = map.get(project.slug) ?? {
-        count: 0,
-        ownCount: 0,
-        slug: project.slug,
-        subProjects: [],
-      };
-
-      existingEntry.count += rowValue;
-
-      if (subProject && subProject.id === project.id) {
-        existingEntry.ownCount = rowValue;
-      } else {
-        existingEntry.subProjects.push({
-          count: rowValue,
-          slug: subProject.slug,
+      // Initialize the map with the project slug if needed
+      if (!map.has(project.slug)) {
+        map.set(project.slug, {
+          project,
+          count: 0,
+          ownCount: 0,
+          subProjects: [],
         });
       }
 
-      map.set(project.slug, existingEntry);
+      const entry = map.get(project.slug)!;
+      // Increment the total count for the project
+      entry.count += rowValue;
+
+      // Depending on if the value is from the project or a subproject, we need to set the ownCount
+      // or add the subproject to the subProjects array
+      if (subProject.id === project.id) {
+        entry.ownCount = rowValue;
+      } else {
+        entry.subProjects.push({
+          count: rowValue,
+          project: subProject,
+        });
+      }
     }
 
-    return map;
+    // Sort the subprojects by count
+    return Array.from(map.values()).map<ProjectSampleCount>(value => {
+      return {
+        ...value,
+        subProjects: value.subProjects.toSorted((a: any, b: any) => b.count - a.count),
+      };
+    });
   }, [projectById, projectBySlug, queryResult]);
-
-  const items = useMemo(
-    () =>
-      Array.from(projectEntries.entries()).map<ProjectSampleCount>(([key, value]) => {
-        return {
-          project: projectBySlug[key]!,
-          count: value.count,
-          ownCount: value.ownCount,
-          subProjects: value.subProjects.toSorted((a: any, b: any) => b.count - a.count),
-        };
-      }),
-    [projectBySlug, projectEntries]
-  );
 
   return {data: items, isPending: fetching || isPending, isError, refetch};
 }

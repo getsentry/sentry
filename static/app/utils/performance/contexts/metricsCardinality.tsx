@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
@@ -70,6 +71,7 @@ export function MetricsCardinalityProvider(props: {
   };
   const eventView = EventView.fromLocation(props.location);
   eventView.fields = [{field: 'tpm()'}];
+  eventView.dataset = DiscoverDatasets.TRANSACTIONS;
   const _eventView = adjustEventViewTime(eventView);
 
   if (
@@ -305,17 +307,17 @@ function adjustEventViewTime(eventView: EventView) {
   const _eventView = eventView.clone();
 
   if (!_eventView.start && !_eventView.end) {
-    if (!_eventView.statsPeriod) {
-      _eventView.statsPeriod = '1h';
-      _eventView.start = undefined;
-      _eventView.end = undefined;
-    } else {
+    if (_eventView.statsPeriod) {
       const periodHours = parsePeriodToHours(_eventView.statsPeriod);
       if (periodHours > 1) {
         _eventView.statsPeriod = '1h';
         _eventView.start = undefined;
         _eventView.end = undefined;
       }
+    } else {
+      _eventView.statsPeriod = '1h';
+      _eventView.start = undefined;
+      _eventView.end = undefined;
     }
   }
   return _eventView;

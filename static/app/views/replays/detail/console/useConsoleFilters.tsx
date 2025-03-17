@@ -37,7 +37,7 @@ type Return = {
 
 function getFilterableField(frame: BreadcrumbFrame) {
   if (isConsoleFrame(frame)) {
-    const consoleFrame = frame as ConsoleFrame;
+    const consoleFrame = frame;
     return consoleFrame.level;
   }
   return undefined;

@@ -23,7 +23,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -66,9 +65,10 @@ import {
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import TraceActionsMenu from './traceActionsMenu';
-import {traceAnalytics} from './traceAnalytics';
+import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
 import {
   isAutogroupedNode,
+  isEAPTraceNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isTraceNode,
@@ -104,7 +104,7 @@ export interface TraceWaterfallProps {
   replay: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
+  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string | undefined;
   tree: TraceTree;
@@ -325,7 +325,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       if (node) {
         // The new ui has the trace info and web vitals in the bottom drawer and
         // we don't treat the trace node as a clickable node
-        if (isTraceNode(node) && hasTraceNewUi) {
+        if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
           return;
         }
 
@@ -383,7 +383,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // The new ui has the trace info and web vitals in the bottom drawer and
       // we don't treat the trace node as a clickable node
-      if (isTraceNode(node) && hasTraceNewUi) {
+      if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',
@@ -521,6 +521,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
+  const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -530,7 +532,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        source
       );
     }
     // The tree has the data fetched, but does not yet respect the user preferences.
@@ -607,7 +610,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
         viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
         if (viewManager.isOutsideOfView(node)) {
-          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         }
       }
       viewManager.scrollToRow(index, 'center');
@@ -633,6 +636,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    source,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -736,7 +740,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;
 
-    if (!value) {
+    if (value) {
+      let autogroupCount = 0;
+      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+      addSuccessMessage(
+        autogroupCount > 0
+          ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
+              count: autogroupCount,
+            })
+          : t('Autogrouping enabled')
+      );
+    } else {
       let removeCount = 0;
       removeCount += TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
       removeCount += TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
@@ -747,17 +762,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               count: removeCount,
             })
           : t('Autogrouping disabled')
-      );
-    } else {
-      let autogroupCount = 0;
-      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
-      autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
-      addSuccessMessage(
-        autogroupCount > 0
-          ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
-              count: autogroupCount,
-            })
-          : t('Autogrouping enabled')
       );
     }
 
@@ -771,19 +775,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const onMissingInstrumentationChange = useCallback(() => {
     const value = !traceState.preferences.missing_instrumentation;
-    if (!value) {
-      const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
-      addSuccessMessage(
-        removeCount > 0
-          ? tct(
-              'Missing instrumentation disabled, removed [count] missing instrumentation spans',
-              {
-                count: removeCount,
-              }
-            )
-          : t('Missing instrumentation disabled')
-      );
-    } else {
+    if (value) {
       const missingInstrumentationCount = TraceTree.DetectMissingInstrumentation(
         props.tree.root
       );
@@ -796,6 +788,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               }
             )
           : t('Missing instrumentation enabled')
+      );
+    } else {
+      const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
+      addSuccessMessage(
+        removeCount > 0
+          ? tct(
+              'Missing instrumentation disabled, removed [count] missing instrumentation spans',
+              {
+                count: removeCount,
+              }
+            )
+          : t('Missing instrumentation disabled')
       );
     }
 
@@ -827,6 +831,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
         <TraceShortcuts />
         <TraceActionsMenu
+          traceSlug={props.traceSlug}
           rootEventResults={props.rootEvent}
           traceEventView={props.traceEventView}
         />
@@ -846,6 +851,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         hideBottomBorder={hasTraceNewUi}
       >
         <Trace
+          metaQueryResults={props.meta}
           trace={props.tree}
           rerender={rerender}
           trace_id={props.traceSlug}

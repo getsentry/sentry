@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -87,7 +87,7 @@ export function PagePerformanceTable() {
     isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
-    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
+    transaction: query === '' ? undefined : `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,
@@ -96,7 +96,7 @@ export function PagePerformanceTable() {
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
+    opportunity: (row.opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -262,13 +262,11 @@ export function PagePerformanceTable() {
           </AlignRight>
         );
       }
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return <AlignRight>{Math.round(row[key] * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
       if (row.opportunity !== undefined) {
-        return (
-          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
-        );
+        return <AlignRight>{Math.round(row.opportunity * 100) / 100}</AlignRight>;
       }
       return null;
     }

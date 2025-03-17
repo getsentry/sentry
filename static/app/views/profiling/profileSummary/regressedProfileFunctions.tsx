@@ -191,15 +191,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         <RegressedFunctionsQueryState>
           {t('Failed to fetch regressed functions')}
         </RegressedFunctionsQueryState>
-      ) : !trends.length ? (
-        <RegressedFunctionsQueryState>
-          {trendType === 'regression' ? (
-            <p>{t('No regressed functions detected')}</p>
-          ) : (
-            <p>{t('No improved functions detected')}</p>
-          )}
-        </RegressedFunctionsQueryState>
-      ) : (
+      ) : trends.length ? (
         trends.map((fn, i) => {
           const {before, after} = findWorstProfileIDBeforeAndAfter(fn);
           return (
@@ -252,6 +244,14 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
             </RegressedFunctionRow>
           );
         })
+      ) : (
+        <RegressedFunctionsQueryState>
+          {trendType === 'regression' ? (
+            <p>{t('No regressed functions detected')}</p>
+          ) : (
+            <p>{t('No improved functions detected')}</p>
+          )}
+        </RegressedFunctionsQueryState>
       )}
     </RegressedFunctionsContainer>
   );
@@ -275,7 +275,7 @@ function RegressedFunctionDifferentialFlamegraph(
   }, [props.organization]);
 
   const differentialFlamegraphLink = generateProfileDifferentialFlamegraphRouteWithQuery({
-    orgSlug: props.organization.slug,
+    organization: props.organization,
     projectSlug: props.project?.slug ?? '',
     transaction: props.transaction,
     fingerprint: props.fn.fingerprint,
@@ -283,8 +283,8 @@ function RegressedFunctionDifferentialFlamegraph(
     query: {
       // specify the frame to focus, the flamegraph will switch
       // to the appropriate thread when these are specified
-      frameName: props.fn.function as string,
-      framePackage: props.fn.package as string,
+      frameName: props.fn.function,
+      framePackage: props.fn.package,
     },
   });
 
@@ -297,15 +297,9 @@ function RegressedFunctionDifferentialFlamegraph(
       </div>
       <div>
         <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_1 as number}
-          />
+          <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
           <ChangeArrow>{' \u2192 '}</ChangeArrow>
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_2 as number}
-          />
+          <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
         </Link>
       </div>
     </RegressedFunctionMainRow>
@@ -338,13 +332,13 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: example,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {rendered}
@@ -353,23 +347,20 @@ function RegressedFunctionBeforeAfterFlamechart(
   }
 
   let before = (
-    <PerformanceDuration
-      abbreviation
-      nanoseconds={props.fn.aggregate_range_1 as number}
-    />
+    <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
   );
   if (props.before) {
     before = (
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: props.before,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {before}
@@ -378,23 +369,20 @@ function RegressedFunctionBeforeAfterFlamechart(
   }
 
   let after = (
-    <PerformanceDuration
-      abbreviation
-      nanoseconds={props.fn.aggregate_range_2 as number}
-    />
+    <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
   );
   if (props.after) {
     after = (
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: props.after,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {after}

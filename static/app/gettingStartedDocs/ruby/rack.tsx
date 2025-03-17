@@ -6,7 +6,6 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getRubyMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -18,7 +17,11 @@ const getConfigureSnippet = (params: Params) => `
 require 'sentry-ruby'
 
 Sentry.init do |config|
-  config.dsn = '${params.dsn.public}'${
+  config.dsn = '${params.dsn.public}'
+
+  # Add data like request headers and IP for users,
+  # see https://docs.sentry.io/platforms/ruby/data-management/data-collected/ for more info
+  config.send_default_pii = true${
     params.isPerformanceSelected
       ? `
 
@@ -129,7 +132,6 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getRubyMetricsOnboarding(),
   crashReportOnboarding: CrashReportWebApiOnboarding,
 };
 

@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
@@ -10,6 +10,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {Monitor, MonitorEnvironment} from '../types';
@@ -27,7 +28,6 @@ const ISSUE_TYPES = [
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgSlug: string;
 };
 
 function MonitorIssuesEmptyMessage() {
@@ -42,7 +42,8 @@ function MonitorIssuesEmptyMessage() {
   );
 }
 
-export function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
+export function MonitorIssues({monitor, monitorEnvs}: Props) {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
   const timeProps =
@@ -63,7 +64,7 @@ export function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
   const issueQuery = `${monitorFilter} ${envFilter} ${issueTypeFilter}`;
 
   const issueSearchLocation = {
-    pathname: `/organizations/${orgSlug}/issues/`,
+    pathname: `/organizations/${organization.slug}/issues/`,
     query: {
       query: issueQuery,
       project: monitor.project.id,
@@ -92,7 +93,6 @@ export function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
         </LinkButton>
       </ControlsWrapper>
       <GroupList
-        orgSlug={orgSlug}
         queryParams={{
           query: issueQuery,
           project: monitor.project.id,

@@ -35,7 +35,7 @@ class PagerDutyClientTest(APITestCase):
 
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -122,11 +122,12 @@ class PagerDutyClientTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "pagerduty"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "pagerduty", "status": 200},
-            )
+            ),
         ]
         assert self.metrics.incr.mock_calls == calls
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
@@ -176,10 +177,11 @@ class PagerDutyClientTest(APITestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "pagerduty"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "pagerduty", "status": 200},
-            )
+            ),
         ]
         assert self.metrics.incr.mock_calls == calls

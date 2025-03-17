@@ -26,6 +26,9 @@ export function updateLocationWithMode(
 ) {
   if (defined(mode)) {
     location.query.mode = mode;
+
+    // make sure to clear the cursor every time the query is updated
+    delete location.query.cursor;
   } else if (mode === null) {
     delete location.query.mode;
   }

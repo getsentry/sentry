@@ -1,14 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.refresher import Refresher
+from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -43,30 +44,80 @@ class TestRefresher(TestCase):
         assert not ApiToken.objects.filter(id=self.token.id).exists()
 
     def test_validates_token_belongs_to_sentry_app(self):
-        refresh_token = ApiToken.objects.create(
-            user=self.user,
-            application=ApiApplication.objects.create(owner_id=self.create_user().id),
-        ).refresh_token
+        new_install = self.create_sentry_app_installation()
+        refresh_token = new_install.api_token.refresh_token
+
         assert refresh_token is not None
         self.refresher.refresh_token = refresh_token
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.refresher.run()
+
+        assert e.value.message == "Token does not belong to the application"
+        assert e.value.webhook_context == {
+            "client_id_installation_uuid": self.install.uuid,
+            "client_id": self.client_id,
+            "token_installation": new_install.uuid,
+        }
+        assert e.value.public_context == {}
+
+    def test_validates_token_belongs_to_sentry_app_random_token(self):
+        new_application = ApiApplication.objects.create(owner_id=self.create_user().id)
+        refresh_token = ApiToken.objects.create(
+            user=self.user,
+            application=new_application,
+        ).refresh_token
+
+        assert refresh_token is not None
+        self.refresher.refresh_token = refresh_token
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            self.refresher.run()
+
+        assert e.value.message == "Token does not belong to the application"
+        assert e.value.webhook_context == {
+            "client_id_installation_uuid": self.install.uuid,
+            "client_id": self.client_id,
+        }
+        assert e.value.public_context == {}
 
     @patch("sentry.models.ApiToken.objects.get", side_effect=ApiToken.DoesNotExist)
     def test_token_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.refresher.run()
+
+        assert e.value.message == "Given refresh token does not exist"
+        assert e.value.webhook_context == {
+            "installation_uuid": self.install.uuid,
+        }
+        assert e.value.public_context == {}
 
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
     def test_api_application_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError) as e:
             self.refresher.run()
 
-    @patch("sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist)
-    def test_sentry_app_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        assert e.value.message == "Could not find matching Application for given client_id"
+        assert e.value.webhook_context == {
+            "client_id": self.client_id,
+            "installation_uuid": self.install.uuid,
+        }
+        assert e.value.public_context == {}
+
+    @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
+    @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
+    def test_sentry_app_must_exist(self, sentry_app, validate):
+        sentry_app.side_effect = SentryApp.DoesNotExist()
+        with pytest.raises(SentryAppSentryError) as e:
             self.refresher.run()
+
+        assert e.value.message == "Sentry App does not exist on attached Application"
+        assert e.value.webhook_context == {
+            "application_id": self.orm_install.sentry_app.application.id,
+            "installation_uuid": self.install.uuid,
+            "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
+        }
+        assert e.value.public_context == {}
 
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):

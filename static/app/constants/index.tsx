@@ -14,12 +14,12 @@ import type {OrgRole} from 'sentry/types/organization';
 export const ROOT_ELEMENT = 'blk_router';
 
 export const USING_CUSTOMER_DOMAIN =
-  typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
+  typeof window === 'undefined' ? false : Boolean(window?.__initialData?.customerDomain);
 
 export const CUSTOMER_DOMAIN =
-  typeof window !== 'undefined'
-    ? window?.__initialData?.customerDomain?.subdomain
-    : undefined;
+  typeof window === 'undefined'
+    ? undefined
+    : window?.__initialData?.customerDomain?.subdomain;
 
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
@@ -377,6 +377,16 @@ export const DATA_CATEGORY_INFO = {
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
+  [DataCategoryExact.UPTIME]: {
+    name: DataCategoryExact.UPTIME,
+    apiName: 'uptime',
+    plural: 'uptime',
+    displayName: 'uptime monitor',
+    titleName: t('Uptime Monitors'),
+    productName: t('Uptime Monitoring'),
+    uid: 21,
+    isBilledCategory: true,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
@@ -424,12 +434,15 @@ export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
+export const LOGS_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/logs/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
+export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

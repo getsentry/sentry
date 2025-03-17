@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
@@ -15,6 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {StepProps} from './types';
 
@@ -50,6 +51,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
+  const {activateSidebar} = useOnboardingSidebar();
 
   const source = 'targeted_onboarding';
 
@@ -79,7 +81,9 @@ function TargetedOnboardingWelcome(props: StepProps) {
       organization,
       source,
     });
-  }, [organization, source]);
+
+    activateSidebar({userClicked: false, source: 'targeted_onboarding_welcome_skip'});
+  }, [organization, source, activateSidebar]);
 
   return (
     <FallingError>

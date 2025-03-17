@@ -222,10 +222,12 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             new_config.setdefault("project_issue_defaults", {}).setdefault(
                 str(project.id), {}
             ).update(project_defaults)
-            self.org_integration = integration_service.update_organization_integration(
+            org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.org_integration.id,
                 config=new_config,
             )
+            if org_integration is not None:
+                self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
@@ -405,13 +407,8 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
 
     @abstractmethod
     def sync_status_outbound(
-        self,
-        external_issue,
-        is_resolved,
-        project_id,
-        assignment_source: AssignmentSource | None = None,
-        **kwargs,
-    ):
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """

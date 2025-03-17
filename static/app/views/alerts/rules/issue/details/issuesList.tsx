@@ -19,6 +19,7 @@ import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type GroupHistory = {
   count: number;
@@ -85,7 +86,10 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
           const path =
             (issue as unknown as FeedbackIssue).issueType === 'feedback'
               ? {
-                  pathname: `/organizations/${organization.slug}/feedback/`,
+                  pathname: makeFeedbackPathname({
+                    path: '/',
+                    organization,
+                  }),
                   query: {feedbackSlug: `${issue.project.slug}:${issue.id}`},
                 }
               : {

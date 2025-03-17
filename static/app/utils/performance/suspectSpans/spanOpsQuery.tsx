@@ -8,6 +8,7 @@ import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
 import type {SpanOps} from './types';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type SpanOpsProps = {};
 
 type RequestProps = DiscoverQueryProps & SpanOpsProps;

@@ -143,9 +143,12 @@ class TempestTasksTest(TestCase):
 
         poll_tempest()
 
-        # Should call fetch_latest_item_id.delay() and not poll_tempest_crashes
-        mock_fetch_latest.delay.assert_called_once_with(self.credentials.id)
-        mock_poll_crashes.delay.assert_not_called()
+        # Should call fetch_latest_item_id and not poll_tempest_crashes
+        mock_fetch_latest.apply_async.assert_called_once_with(
+            kwargs={"credentials_id": self.credentials.id},
+            headers={"sentry-propagate-traces": False},
+        )
+        mock_poll_crashes.apply_async.assert_not_called()
 
     @patch("sentry.tempest.tasks.fetch_latest_item_id")
     @patch("sentry.tempest.tasks.poll_tempest_crashes")
@@ -156,9 +159,12 @@ class TempestTasksTest(TestCase):
 
         poll_tempest()
 
-        # Should call poll_tempest_crashes.delay() and not fetch_latest_item_id
-        mock_poll_crashes.delay.assert_called_once_with(self.credentials.id)
-        mock_fetch_latest.delay.assert_not_called()
+        # Should call poll_tempest_crashes and not fetch_latest_item_id
+        mock_poll_crashes.apply_async.assert_called_once_with(
+            kwargs={"credentials_id": self.credentials.id},
+            headers={"sentry-propagate-traces": False},
+        )
+        mock_fetch_latest.apply_async.assert_not_called()
 
     def test_tempest_project_key(self):
         project = self.create_project()
@@ -184,6 +190,16 @@ class TempestTasksTest(TestCase):
 
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+
+    def test_tempest_dump_option(self):
+        # Default should be False
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+
+        self.project.update_option("sentry:tempest_fetch_dumps", True)
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
+        self.project.update_option("sentry:tempest_fetch_dumps", False)
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
 
     @patch("sentry.tempest.tasks.schedule_invalidate_project_config")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")

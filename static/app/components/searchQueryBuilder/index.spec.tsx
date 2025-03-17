@@ -612,6 +612,11 @@ describe('SearchQueryBuilder', function () {
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
 
+      // Focus should be at the beginning of the query
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'})[0]
+      ).toHaveFocus();
+
       // Custom tag token should still be present
       expect(screen.getByRole('row', {name: 'custom_tag_name:123'})).toBeInTheDocument();
     });
@@ -826,12 +831,12 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
+      expect(screen.getByLabelText('browser.name:""')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
+      await userEvent.click(await screen.findByLabelText('Firefox'));
 
       // New token should have a value
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(screen.getByLabelText('browser.name:Firefox')).toBeInTheDocument();
     });
 
     it('can add free text by typing', async function () {
@@ -863,7 +868,7 @@ describe('SearchQueryBuilder', function () {
       jest.restoreAllMocks();
 
       // Filter value should have focus
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       await userEvent.keyboard('foo{enter}');
 
       // Should have a free text token "some free text"
@@ -872,7 +877,7 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
+      expect(screen.getByLabelText('browser.name:foo')).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -2072,9 +2077,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(
-          await screen.findByRole('row', {name: 'duration:>10ms'})
-        ).toBeInTheDocument();
+        expect(await screen.findByLabelText('duration:>10ms')).toBeInTheDocument();
       });
 
       it('duration filters have the correct operator options', async function () {
@@ -2183,6 +2186,139 @@ describe('SearchQueryBuilder', function () {
       });
     });
 
+    describe('size', function () {
+      const sizeFilterKeys: TagCollection = {
+        size: {
+          key: 'size',
+          name: 'Size',
+        },
+      };
+
+      const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
+        valueType: FieldValueType.SIZE,
+        kind: FieldKind.FIELD,
+      });
+
+      const sizeProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: sizeFilterKeys,
+        filterKeySections: [],
+        fieldDefinitionGetter,
+      };
+
+      it('new size filters start with greater than operator and default value', async function () {
+        render(<SearchQueryBuilder {...sizeProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'size'}));
+
+        // Should start with the > operator and a value of 10ms
+        expect(await screen.findByLabelText('size:>10bytes')).toBeInTheDocument();
+      });
+
+      it('size filters have the correct operator options', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>100bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: size'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<='})).toBeInTheDocument();
+      });
+
+      it('size filters have the correct value suggestions', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>100bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        // Default suggestions
+        expect(await screen.findByRole('option', {name: '10bytes'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '10kib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '10mib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '10gib'})).toBeInTheDocument();
+
+        // Entering a number will show unit suggestions for that value
+        await userEvent.keyboard('7');
+        expect(await screen.findByRole('option', {name: '7bytes'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7kib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7mib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7gib'})).toBeInTheDocument();
+      });
+
+      it('size filters can change operator', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>10bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: size'})
+        );
+
+        await userEvent.click(await screen.findByRole('option', {name: '<='}));
+
+        expect(
+          await screen.findByRole('row', {name: 'size:<=10bytes'})
+        ).toBeInTheDocument();
+      });
+
+      it('size filters do not allow invalid values', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>10bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'size:>10bytes'})).toBeInTheDocument();
+
+        await userEvent.keyboard('{Backspace}7kib{Enter}');
+
+        // Should accept "7kib" as a valid value
+        expect(await screen.findByRole('row', {name: 'size:>7kib'})).toBeInTheDocument();
+      });
+
+      it('size filters will add a default unit to entered numbers', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>10bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        await userEvent.keyboard('7{Enter}');
+
+        // Should accept "7" and add "bytes" as the default unit
+        expect(
+          await screen.findByRole('row', {name: 'size:>7bytes'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...sizeProps}
+            onChange={mockOnChange}
+            initialQuery="size:>10bytes"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(
+          await screen.findByRole('row', {name: 'size:>10bytes'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+    });
+
     describe('percentage', function () {
       const percentageFilterKeys: TagCollection = {
         rate: {
@@ -2209,7 +2345,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
         // Should start with the > operator and a value of 50%
-        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
+        expect(await screen.findByLabelText('rate:>0.5')).toBeInTheDocument();
       });
 
       it('percentage filters have the correct operator options', async function () {
@@ -2686,9 +2822,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
-          await screen.findByRole('row', {
-            name: 'count_if(transaction.duration,greater,300ms):>100',
-          })
+          await screen.findByLabelText(
+            'count_if(transaction.duration,greater,300ms):>100'
+          )
         ).toBeInTheDocument();
       });
 
@@ -2706,7 +2842,17 @@ describe('SearchQueryBuilder', function () {
           name: 'Edit function parameters',
         });
         expect(input).toHaveFocus();
-        expect(input).toHaveValue('transaction.duration,');
+        expect(input).toHaveAttribute('placeholder', 'transaction.duration,');
+        expect(input).toHaveValue('');
+
+        await userEvent.click(
+          await screen.findByRole('option', {name: 'transaction.duration'})
+        );
+        await waitFor(() => {
+          expect(input).toHaveValue('transaction.duration');
+        });
+
+        await userEvent.keyboard(',');
 
         await userEvent.click(await screen.findByRole('option', {name: 'less'}));
         await waitFor(() => {
@@ -2759,11 +2905,6 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
         );
-        const input = await screen.findByRole('combobox', {
-          name: 'Edit function parameters',
-        });
-
-        await userEvent.clear(input);
         await userEvent.keyboard('a,b,c{enter}');
 
         expect(

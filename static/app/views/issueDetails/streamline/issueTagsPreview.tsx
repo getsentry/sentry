@@ -4,8 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -17,8 +16,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -26,6 +28,7 @@ import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroup
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -40,41 +43,12 @@ const BACKEND_TAGS = [
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 const RTL_TAGS = ['transaction', 'url'];
 
-type TagSort = 'date' | 'count';
-const DEFAULT_SORT: TagSort = 'count';
-
 type Segment = {
   count: number;
   name: string | React.ReactNode;
   percentage: number;
   color?: string;
 };
-
-function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
-  const organization = useOrganization();
-  const location = useLocation();
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
-  useFetchIssueTagValues(
-    {
-      orgSlug: organization.slug,
-      groupId,
-      tagKey,
-      sort,
-      cursor: location.query.tagDrawerCursor as string | undefined,
-    },
-    {enabled}
-  );
-
-  useFetchIssueTag(
-    {
-      orgSlug: organization.slug,
-      groupId,
-      tagKey,
-    },
-    {enabled}
-  );
-}
 
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
@@ -128,9 +102,12 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   }
 
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
-  const otherPercentage = segments.reduce((sum, s) => sum - s.percentage, 100);
-  const otherPercentageString =
-    otherPercentage === 0 ? null : getRoundedPercentage(otherPercentage);
+  const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+  const otherPercentage = Math.floor(
+    percent(tag.totalValues - totalVisible, tag.totalValues)
+  );
+  const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
     <TooltipLegend>
@@ -147,7 +124,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
             </LegendPercentage>
           </Fragment>
         ))}
-        {otherPercentageString && (
+        {hasOther && (
           <Fragment>
             <LegendColor style={{backgroundColor: theme.gray200}} />
             <LegendText>{t('Other')}</LegendText>
@@ -170,6 +147,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
           setPrefetchTagValue(tag.key);
         }}
       >
+        <TagKey>{tag.key}</TagKey>
         <TagBarPlaceholder>
           <SegmentedBar segments={segments} />
         </TagBarPlaceholder>
@@ -182,40 +160,51 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({tags}: {tags: GroupTag[]}) {
+function IssueTagButton({
+  tags,
+  searchQuery,
+  isScreenSmall,
+}: {
+  tags: GroupTag[];
+  isScreenSmall?: boolean;
+  searchQuery?: string;
+}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  if (tags.length === 0) {
+  const organization = useOrganization();
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
+
+  if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
-      <HorizontalIssueTagsButton
+      <VerticalIssueTagsButton
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
           query: location.query,
-          replace: true,
         }}
-        disabled
+        replace
+        disabled={tags.length === 0}
       >
-        {t('All Tags')}
-      </HorizontalIssueTagsButton>
+        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
+      </VerticalIssueTagsButton>
     );
   }
 
   return (
-    <IssueTagsButton
-      aria-label={t('View issue tag distributions')}
-      size="xs"
+    <IssueTagsLink
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
         query: location.query,
-        replace: true,
       }}
-      analyticsEventKey="issue_details.issue_tags_clicked"
-      analyticsEventName="Issue Details: Issue Tags Clicked"
+      onClick={() => {
+        trackAnalytics('issue_details.issue_tags_click', {organization});
+      }}
     >
-      {t('All Tags')}
-    </IssueTagsButton>
+      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
+    </IssueTagsLink>
   );
 }
 
@@ -229,6 +218,21 @@ export default function IssueTagsPreview({
   project: Project;
 }) {
   const searchQuery = useEventQuery({groupId});
+  const organization = useOrganization();
+  const theme = useTheme();
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
+  const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+    const highlightDefaults =
+      detailedProject?.highlightPreset?.tags ?? project?.highlightPreset?.tags ?? [];
+    return tagKeys.filter(tag => !highlightDefaults.includes(tag));
+  }, [detailedProject, project]);
 
   const {
     isError,
@@ -238,10 +242,15 @@ export default function IssueTagsPreview({
     groupId,
     environment: environments,
   });
+
   const tagsToPreview = useMemo(() => {
     if (!tags) {
       return [];
     }
+
+    const highlightTags = tags
+      .filter(tag => highlightTagKeys.includes(tag.key))
+      .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
 
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
@@ -255,34 +264,49 @@ export default function IssueTagsPreview({
       .filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
-    return sortedTags.slice(0, 4);
-  }, [tags, project?.platform]);
+    const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
+    const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
+    const uniqueTags = [...new Set(orderedTags)];
+    return uniqueTags.slice(0, 4);
+  }, [tags, project?.platform, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightPending) {
     return (
-      <IssueTagPreviewSection>
-        <Placeholder width="240px" height="100px" />
-      </IssueTagPreviewSection>
+      <Fragment>
+        <SectionDivider />
+        <IssueTagPreviewSection>
+          <Placeholder width="340px" height="90px" />
+        </IssueTagPreviewSection>
+      </Fragment>
     );
   }
 
-  if (isError || searchQuery) {
+  if (isError) {
     return null;
   }
 
-  if (tagsToPreview.length === 0) {
-    return <IssueTagButton tags={tagsToPreview} />;
+  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
   }
 
   return (
-    <IssueTagPreviewSection>
-      <TagsPreview>
-        {tagsToPreview.map(tag => (
-          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-        ))}
-      </TagsPreview>
-      <IssueTagButton tags={tagsToPreview} />
-    </IssueTagPreviewSection>
+    <Fragment>
+      <SectionDivider />
+      <IssueTagPreviewSection>
+        <TagsPreview>
+          {tagsToPreview.map(tag => (
+            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+          ))}
+        </TagsPreview>
+        <IssueTagButton tags={tagsToPreview} />
+      </IssueTagPreviewSection>
+    </Fragment>
   );
 }
 
@@ -295,9 +319,9 @@ const IssueTagPreviewSection = styled('div')`
 `;
 
 const TagsPreview = styled('div')`
-  width: 240px;
+  width: 340px;
   display: grid;
-  grid-template-columns: 45% min-content auto;
+  grid-template-columns: auto 30% min-content auto;
   align-items: center;
   align-content: center;
   gap: 1px;
@@ -367,7 +391,7 @@ const TagPreviewGrid = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.backgroundTertiary};
     color: ${p => p.theme.textColor};
   }
 `;
@@ -389,17 +413,16 @@ const LegendTitle = styled('div')`
   margin-bottom: ${space(0.75)};
 `;
 
-const IssueTagsButton = styled(LinkButton)`
-  display: block;
-  flex: 0;
-  height: unset;
-  text-align: center;
-  span {
-    white-space: unset;
+const IssueTagsLink = styled(Link)`
+  color: ${p => p.theme.purple300};
+  align-self: flex-start;
+
+  &:hover {
+    color: ${p => p.theme.purple400};
   }
 `;
 
-const HorizontalIssueTagsButton = styled(LinkButton)`
+const VerticalIssueTagsButton = styled(LinkButton)`
   display: block;
   flex: 0;
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
@@ -410,4 +433,15 @@ const HorizontalIssueTagsButton = styled(LinkButton)`
   span {
     white-space: unset;
   }
+`;
+
+const SectionDivider = styled('div')`
+  border-left: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  align-items: center;
+  margin: ${space(1)};
+`;
+
+const TagKey = styled(TextOverflow)`
+  font-weight: bold;
 `;

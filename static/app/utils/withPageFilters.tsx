@@ -25,7 +25,8 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
       isGlobalSelectionReady,
     };
 
-    return <WrappedComponent {...selectionProps} {...(props as P)} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent {...selectionProps} {...(props as P as any)} />;
   }
 
   const displayName = getDisplayName(WrappedComponent);

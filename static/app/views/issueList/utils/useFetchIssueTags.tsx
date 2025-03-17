@@ -32,12 +32,14 @@ import {
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
   enabled?: boolean;
   end?: string;
+  includeFeatureFlags?: boolean;
   keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
@@ -91,6 +93,7 @@ export const useFetchIssueTags = ({
   keepPreviousData = false,
   useCache = true,
   enabled = true,
+  includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
   const {teams} = useLegacyStore(TeamStore);
@@ -116,6 +119,20 @@ export const useFetchIssueTags = ({
       dataset: Dataset.ISSUE_PLATFORM,
       useCache,
       enabled,
+      keepPreviousData,
+      ...statsPeriodParams,
+    },
+    {}
+  );
+
+  // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
+  // with query param useFlagsBackend=1. This is used for issue stream search suggestions.
+  const featureFlagTagsQuery = useFetchOrganizationFeatureFlags(
+    {
+      orgSlug: org.slug,
+      projectIds,
+      useCache,
+      enabled: enabled && includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -151,6 +168,7 @@ export const useFetchIssueTags = ({
 
     const eventsTags: Tag[] = eventsTagsQuery.data || [];
     const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
+    const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
 
     const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
       (acc, tag) => {
@@ -169,6 +187,21 @@ export const useFetchIssueTags = ({
       }
     });
 
+    featureFlagTags.forEach(tag => {
+      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
+      const key = `flags["${tag.key}"]`;
+      if (allTagsCollection[key]) {
+        allTagsCollection[key]!.totalValues =
+          (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+      } else {
+        allTagsCollection[key] = {
+          ...tag,
+          kind: FieldKind.FEATURE_FLAG,
+          key, // Update with wrapped key.
+        };
+      }
+    });
+
     for (const excludedTag of EXCLUDED_TAGS) {
       delete allTagsCollection[excludedTag];
     }
@@ -184,12 +217,24 @@ export const useFetchIssueTags = ({
       ...renamedTags,
       ...additionalTags,
     };
-  }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, teams]);
+  }, [
+    eventsTagsQuery.data,
+    issuePlatformTagsQuery.data,
+    featureFlagTagsQuery.data,
+    members,
+    teams,
+  ]);
 
   return {
     tags: allTags,
-    isLoading: eventsTagsQuery.isPending || issuePlatformTagsQuery.isPending,
-    isError: eventsTagsQuery.isError || issuePlatformTagsQuery.isError,
+    isLoading:
+      eventsTagsQuery.isPending ||
+      issuePlatformTagsQuery.isPending ||
+      featureFlagTagsQuery.isPending,
+    isError:
+      eventsTagsQuery.isError ||
+      issuePlatformTagsQuery.isError ||
+      featureFlagTagsQuery.isError,
   };
 };
 

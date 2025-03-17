@@ -8,10 +8,12 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.dispatch import receiver
 
+from sentry import options
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
 from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
@@ -29,6 +31,8 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.types.region import get_local_region
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -77,12 +81,24 @@ def process_disable_auth_provider(object_identifier: int, shard_identifier: int,
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_region_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
 def process_relocation_reply_with_export(payload: Any, **kwds):
     uuid = payload["relocation_uuid"]
     slug = payload["org_slug"]
+
+    killswitch_orgs = options.get("relocation.outbox-orgslug.killswitch")
+    if slug in killswitch_orgs:
+        logger.info(
+            "relocation.killswitch.org",
+            extra={
+                "org_slug": slug,
+                "relocation_uuid": uuid,
+            },
+        )
+        return
+
     relocation_storage = get_relocation_storage()
     path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
     try:

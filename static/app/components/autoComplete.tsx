@@ -177,7 +177,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     window.clearTimeout(this.cancelCloseTimeout);
   }
 
-  private _mounted: boolean = false;
+  private _mounted = false;
   private _id = `autocomplete-${uniqueId()}`;
 
   /**
@@ -446,7 +446,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     }
 
     this.setState(state => ({
-      isOpen: !this.isOpenIsControlled ? false : state.isOpen,
+      isOpen: this.isOpenIsControlled ? state.isOpen : false,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
   };

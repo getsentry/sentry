@@ -1,3 +1,7 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
+import startCase from 'lodash/startCase';
+
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -5,10 +9,10 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
@@ -16,47 +20,63 @@ type Props = {
   project: Project;
 };
 
-function formatData(rawData: UsageSeries | undefined) {
+const known_categories = [
+  'browser-extensions',
+  'cors',
+  'error-message',
+  'discarded-hash',
+  'invalid-csp',
+  'ip-address',
+  'legacy-browsers',
+  'localhost',
+  'release-version',
+  'web-crawlers',
+  'filtered-transaction',
+  'crash-report-limit',
+  'react-hydration-errors',
+  'chunk-load-error',
+];
+
+function makeStatOPColors(fallbackColor: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const colors = CHART_PALETTE[known_categories.length - 1];
+
+  known_categories.forEach((category, index) => {
+    const color = colors?.[index % colors.length] ?? fallbackColor;
+    if (color) {
+      result[category] = color;
+    }
+  });
+
+  return result;
+}
+
+function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData || !rawData.groups?.length) {
     return [];
   }
 
-  const formattedData = rawData.groups
-    .filter(group => STAT_OPS[group.by.reason as keyof typeof STAT_OPS])
-    .map(group => {
-      const {title, color} = STAT_OPS[group.by.reason as keyof typeof STAT_OPS];
-      return {
-        seriesName: title,
-        color,
-        data: rawData.intervals
-          .map((interval, index) => ({
-            name: interval,
-            value: group.series['sum(quantity)']![index]!,
-          }))
-          .filter(dataPoint => !!dataPoint.value),
-      };
-    });
+  const fallbackColor = theme.gray200;
+  const statOpsColors = makeStatOPColors(fallbackColor);
+
+  const formattedData = rawData.groups.map(group => {
+    const reason = String(group.by.reason!);
+    return {
+      seriesName: startCase(reason),
+      color: statOpsColors[reason] ?? fallbackColor,
+      data: rawData.intervals.map((interval, index) => ({
+        name: interval,
+        value: group.series['sum(quantity)']![index]!,
+      })),
+    };
+  });
 
   return formattedData;
 }
-const STAT_OPS = {
-  'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
-  cors: {title: 'CORS', color: theme.yellow300},
-  'error-message': {title: t('Error Message'), color: theme.purple300},
-  'discarded-hash': {title: t('Discarded Issue'), color: theme.gray200},
-  'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},
-  'ip-address': {title: t('IP Address'), color: theme.red200},
-  'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray200},
-  localhost: {title: t('Localhost'), color: theme.blue300},
-  'release-version': {title: t('Release'), color: theme.purple200},
-  'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
-  'filtered-transaction': {title: t('Health Check'), color: theme.yellow400},
-  'react-hydration-errors': {title: t('Hydration Errors'), color: theme.outcome.filtered},
-  'chunk-load-error': {title: t('Chunk Load Errors'), color: theme.outcome.filtered},
-};
 
 export function ProjectFiltersChart({project}: Props) {
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
     [
@@ -78,9 +98,9 @@ export function ProjectFiltersChart({project}: Props) {
     }
   );
 
-  const formattedData = formatData(data);
+  const formattedData = formatData(data, theme);
   const hasLoaded = !isPending && !isError;
-  const colors = formattedData.map(series => series.color || theme.gray200);
+  const colors = formattedData.map(series => series.color);
   const blankStats = !formattedData.length;
 
   return (
@@ -98,6 +118,8 @@ export function ProjectFiltersChart({project}: Props) {
             isGroupedByDate
             stacked
             labelYAxisExtents
+            hideZeros
+            showXAxisLine
           />
         )}
         {hasLoaded && blankStats && (

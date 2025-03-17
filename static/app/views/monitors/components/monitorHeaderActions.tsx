@@ -1,14 +1,18 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
-import {Button, LinkButton} from 'sentry/components/button';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import Link from 'sentry/components/links/link';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import type {Monitor} from '../types';
 
@@ -26,6 +30,7 @@ type Props = {
 
 function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
   const api = useApi();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const endpointOptions = {
@@ -55,6 +60,20 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
     }
   };
 
+  const canEdit = hasEveryAccess(['alerts:write'], {
+    organization,
+    project: monitor.project,
+  });
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
+  const disableProps = {
+    disabled: !canEdit,
+    title: canEdit ? undefined : permissionTooltipText,
+  };
+
   return (
     <ButtonBar gap={1}>
       <FeedbackWidgetButton />
@@ -62,6 +81,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
         onClick={() => handleUpdate({isMuted: !monitor.isMuted})}
+        {...disableProps}
       >
         {monitor.isMuted ? t('Unmute') : t('Mute')}
       </Button>
@@ -69,19 +89,29 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
         size="sm"
         monitor={monitor}
         onToggleStatus={status => handleUpdate({status})}
+        {...disableProps}
       />
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
+        disabled={!canEdit}
       >
-        <Button size="sm" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
+        <Button
+          size="sm"
+          icon={<IconDelete size="xs" />}
+          aria-label={t('Delete')}
+          title={canEdit ? undefined : permissionTooltipText}
+        />
       </Confirm>
       <LinkButton
         size="sm"
         icon={<IconEdit />}
         to={{
           pathname: linkToAlerts
-            ? `/organizations/${orgSlug}/alerts/crons-rules/${monitor.project.slug}/${monitor.slug}/`
+            ? makeAlertsPathname({
+                path: `/crons-rules/${monitor.project.slug}/${monitor.slug}/`,
+                organization,
+              })
             : `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment
           // through the URL so that when we save the monitor and are
@@ -92,6 +122,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
             project: selection.projects,
           },
         }}
+        {...disableProps}
       >
         {t('Edit Monitor')}
       </LinkButton>

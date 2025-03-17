@@ -254,8 +254,7 @@ def update_groups_with_search_fn(
     group_list = []
     if group_ids:
         group_list = get_group_list(organization_id, projects, group_ids)
-
-    if not group_list:
+    else:
         try:
             # It can raise ValidationError
             cursor_result, _ = search_fn(

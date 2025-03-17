@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -18,9 +19,9 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export function ExploreContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = limitMaxPickableDays(
-    organization!
-  );
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,8 +39,8 @@ export function ExploreContent() {
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('Traces')}
                 <PageHeadingQuestionTooltip
@@ -50,9 +51,11 @@ export function ExploreContent() {
                   linkLabel={t('Read the Discussion')}
                 />
                 <FeatureBadge
-                  title={t(
-                    'This feature is available for early adopters and the UX may change'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'This feature is available for early adopters and the UX may change'
+                    ),
+                  }}
                   type="beta"
                 />
               </Layout.Title>

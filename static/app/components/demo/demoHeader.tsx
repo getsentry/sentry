@@ -1,33 +1,31 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import LogoSentry from 'sentry/components/logoSentry';
+import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
-  isDemoModeEnabled,
+  isDemoModeActive,
   openDemoEmailModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
-export default function DemoHeader() {
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
+export const DEMO_HEADER_HEIGHT_PX = 70;
 
+export default function DemoHeader() {
   useEffect(() => {
     openDemoEmailModal();
   }, []);
 
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return null;
   }
 
-  // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
 
   const docsBtn = (
@@ -56,6 +54,7 @@ export default function DemoHeader() {
 
   const signUpBtn = (
     <FreeTrial
+      priority="primary"
       onClick={() => {
         const url = urlAttachQueryParams(
           'https://sentry.io/signup/',
@@ -78,7 +77,7 @@ export default function DemoHeader() {
   );
 
   return (
-    <Wrapper collapsed={collapsed}>
+    <Wrapper>
       <StyledLogoSentry />
       {docsBtn}
       {reqDemoBtn}
@@ -88,30 +87,26 @@ export default function DemoHeader() {
 }
 
 // Note many of the colors don't come from the theme as they come from the marketing site
-const Wrapper = styled('div')<{collapsed: boolean}>`
-  padding-right: ${space(3)};
-  background-color: ${p => p.theme.white};
-  height: ${p => p.theme.demo.headerSize};
+const Wrapper = styled('div')`
   display: flex;
+  height: ${DEMO_HEADER_HEIGHT_PX}px;
   justify-content: space-between;
   text-transform: uppercase;
   align-items: center;
-  white-space: nowrap;
+  padding-right: ${space(3)};
   gap: ${space(4)};
+  background-color: ${p => p.theme.backgroundElevated};
+  white-space: nowrap;
 
-  margin-left: calc(
-    -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}
-  );
-
-  position: fixed;
-  width: 100%;
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    height: ${p => p.theme.sidebar.mobileHeight};
+    height: ${SIDEBAR_MOBILE_HEIGHT};
     margin-left: 0;
   }
+
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
 `;
 
 const StyledLogoSentry = styled(LogoSentry)`
@@ -121,7 +116,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-right: auto;
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  fill: ${p => p.theme.textColor};
 `;
 
 const FreeTrialTextShort = styled('span')`
@@ -146,9 +141,7 @@ const DocsDemoBtn = styled(LinkButton)`
 
 const FreeTrial = styled(Button)`
   text-transform: uppercase;
-  border-color: transparent;
-  background-color: #6c5fc7;
-  color: #fff;
+
   .short-text {
     display: none;
   }

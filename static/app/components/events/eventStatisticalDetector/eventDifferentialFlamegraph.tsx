@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -155,7 +155,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
       return (
         generateProfileRouteFromProfileReference({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: props.project.slug,
           reference: profile,
           framePackage: frame.frame.package,
@@ -163,7 +163,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         }) ?? ''
       );
     },
-    [organization.slug, props.project]
+    [organization, props.project]
   );
 
   return (

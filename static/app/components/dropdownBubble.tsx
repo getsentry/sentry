@@ -44,7 +44,7 @@ const getMenuBorderRadius = ({
   width,
   theme,
 }: DropdownBubbleProps & {theme: Theme}) => {
-  const radius = theme.panelBorderRadius;
+  const radius = theme.borderRadius;
   if (!blendCorner || detached) {
     return css`
       border-radius: ${radius};

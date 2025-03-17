@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http.response import HttpResponseBase
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -19,8 +19,10 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -30,21 +32,22 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import RepoTree
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
@@ -167,7 +170,9 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration):
+class GitHubIntegration(
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -227,31 +232,24 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
 
-        kwargs:
-        * fetch_max_pages - fetch as many repos as possible using pagination (slow)
-
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
-        It uses page_size from the base class to specify how many items per page (max 100; default 30).
-        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
         if not query:
-            repos = self.get_client().get_repos(fetch_max_pages)
+            all_repos = self.get_client().get_repos()
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in [repo for repo in repos if not repo.get("archived")]
+                for i in all_repos
+                if not i.get("archived")
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -287,29 +285,6 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
             return False
         return True
 
-    # for derive code mappings - TODO(cathy): define in an ABC
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
-        trees: dict[str, RepoTree] = {}
-        domain_name = self.model.metadata["domain_name"]
-        extra = {"metadata": self.model.metadata}
-        if domain_name.find("github.com/") == -1:
-            logger.warning("We currently only support github.com domains.", extra=extra)
-            return trees
-
-        gh_org = domain_name.split("github.com/")[1]
-        extra.update({"gh_org": gh_org})
-        org_exists = organization_service.check_organization_by_id(
-            id=self.org_integration.organization_id, only_visible=False
-        )
-        if not org_exists:
-            logger.error(
-                "No organization information was found. Continuing execution.", extra=extra
-            )
-        else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
-
-        return trees
-
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
@@ -320,7 +295,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
-    integration_cls = GitHubIntegration
+    integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
@@ -341,8 +316,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Mapping[str, Any] | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -367,7 +343,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -375,7 +351,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
-    def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         try:
             installation = self.get_installation_info(state["installation_id"])
         except ApiError as api_error:
@@ -383,7 +359,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 raise IntegrationError("The GitHub installation could not be found.")
             raise
 
-        integration = {
+        integration: IntegrationData = {
             "name": installation["account"]["login"],
             # TODO(adhiraj): This should be a constant representing the entire github cloud.
             "external_id": installation["id"],
@@ -430,9 +406,9 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -452,7 +428,7 @@ class OAuthLoginView(PipelineView):
                 redirect_uri = absolute_uri(
                     reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
                 )
-                return self.redirect(
+                return HttpResponseRedirect(
                     f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
                 )
 
@@ -507,16 +483,16 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
             if installation_id is None:
-                return self.redirect(self.get_app_url())
+                return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,

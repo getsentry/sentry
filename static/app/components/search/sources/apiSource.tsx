@@ -263,7 +263,7 @@ async function createEventIdLookupResult(
   };
 }
 
-type Props = WithRouterProps<{}> & {
+type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term

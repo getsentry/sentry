@@ -22,7 +22,7 @@ export interface RangeFieldProps
     > {
   disabled?: boolean | ((props: Omit<RangeFieldProps, 'formatMessageValue'>) => boolean);
   disabledReason?: React.ReactNode;
-  formatMessageValue?: false | Function;
+  formatMessageValue?: false | typeof defaultFormatMessageValue;
 }
 
 function defaultFormatMessageValue(value: number | '', {formatLabel}: RangeFieldProps) {

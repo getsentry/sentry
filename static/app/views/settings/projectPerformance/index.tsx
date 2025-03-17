@@ -5,7 +5,7 @@ import type {Project} from 'sentry/types/project';
 
 import ProjectPerformance from './projectPerformance';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };

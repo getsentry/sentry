@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,15 +19,17 @@ function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Pro
   };
 
   return (
-    <Alert type="info" showIcon>
-      {tct(
-        'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
-        {
-          attachmentsLink: <Link to={attachmentsUrl} />,
-          settingsLink: <Link to={settingsUrl} />,
-        }
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info" showIcon>
+        {tct(
+          'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
+          {
+            attachmentsLink: <Link to={attachmentsUrl} />,
+            settingsLink: <Link to={settingsUrl} />,
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

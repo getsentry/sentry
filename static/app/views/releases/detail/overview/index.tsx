@@ -78,7 +78,7 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   api: Client;
   organization: Organization;
   selection: PageFilters;
@@ -196,7 +196,7 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
   ): EventView {
     const eventView =
       performanceType === ProjectPerformanceType.FRONTEND
-        ? (EventView.fromSavedQuery({
+        ? EventView.fromSavedQuery({
             ...baseQuery,
             fields: [
               ...baseQuery.fields,
@@ -208,9 +208,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
               `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
               `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
-          }) as EventView)
+          })
         : performanceType === ProjectPerformanceType.BACKEND
-          ? (EventView.fromSavedQuery({
+          ? EventView.fromSavedQuery({
               ...baseQuery,
               fields: [
                 ...baseQuery.fields,
@@ -218,9 +218,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                 'p75(spans.http)',
                 'p75(spans.db)',
               ],
-            }) as EventView)
+            })
           : performanceType === ProjectPerformanceType.MOBILE
-            ? (EventView.fromSavedQuery({
+            ? EventView.fromSavedQuery({
                 ...baseQuery,
                 fields: [
                   ...baseQuery.fields,
@@ -229,10 +229,10 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                   `p75(${MobileVital.FRAMES_SLOW})`,
                   `p75(${MobileVital.FRAMES_FROZEN})`,
                 ],
-              }) as EventView)
-            : (EventView.fromSavedQuery({
+              })
+            : EventView.fromSavedQuery({
                 ...baseQuery,
-              }) as EventView);
+              });
 
     return eventView;
   }
@@ -392,9 +392,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
             releaseBounds
           );
           const titles =
-            selectedSort.value !== TransactionsListOption.SLOW_LCP
-              ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')]
-              : [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')];
+            selectedSort.value === TransactionsListOption.SLOW_LCP
+              ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')]
+              : [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
           const releaseTrendView = this.getReleaseTrendView(
             version,
             project.id,
@@ -487,8 +487,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                                 defaultDateTimeSelected ? releaseBoundsLabel : null
                               }
                               relativeOptions={({defaultOptions, arbitraryOptions}) =>
-                                releaseBounds.type !== 'ancient'
-                                  ? {
+                                releaseBounds.type === 'ancient'
+                                  ? {...defaultOptions, ...arbitraryOptions}
+                                  : {
                                       [RELEASE_PERIOD_KEY]: (
                                         <Fragment>
                                           {releaseBoundsLabel}
@@ -504,12 +505,11 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                                       ...defaultOptions,
                                       ...arbitraryOptions,
                                     }
-                                  : {...defaultOptions, ...arbitraryOptions}
                               }
                               defaultPeriod={
-                                releaseBounds.type !== 'ancient'
-                                  ? RELEASE_PERIOD_KEY
-                                  : '90d'
+                                releaseBounds.type === 'ancient'
+                                  ? '90d'
+                                  : RELEASE_PERIOD_KEY
                               }
                               defaultAbsolute={{
                                 start: moment(releaseBounds.releaseStart)
@@ -662,7 +662,7 @@ function generateTransactionLink(
     const {start, end, period} = datetime;
 
     return transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transaction! as string,
       query: {
         query: trendTransaction ? '' : `release:${version}`,

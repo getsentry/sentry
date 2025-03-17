@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Literal, NotRequired, TypedDict, overload
+from typing import Literal, NotRequired, TypedDict, TypeIs, overload
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -15,7 +15,6 @@ __all__ = (
     "TS_COL_GROUP",
     "TAG_REGEX",
     "MetricOperationType",
-    "MetricUnit",
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
@@ -27,7 +26,6 @@ __all__ = (
     "Tag",
     "TagValue",
     "MetricMeta",
-    "MetricMetaWithTagKeys",
     "OPERATIONS",
     "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
@@ -94,31 +92,6 @@ MetricOperationType = Literal[
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 ]
-MetricUnit = Literal[
-    "nanosecond",
-    "microsecond",
-    "millisecond",
-    "second",
-    "minute",
-    "hour",
-    "day",
-    "week",
-    "bit",
-    "byte",
-    "kibibyte",
-    "mebibyte",
-    "gibibyte",
-    "tebibyte",
-    "pebibyte",
-    "exbibyte",
-    "kilobyte",
-    "megabyte",
-    "gigabyte",
-    "terabyte",
-    "petabyte",
-    "exabyte",
-    "none",
-]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal[
     "counter",
@@ -140,6 +113,19 @@ MetricEntity = Literal[
     "generic_metrics_distributions",
     "generic_metrics_gauges",
 ]
+
+
+def is_metric_entity(s: str) -> TypeIs[MetricEntity]:
+    return s in {
+        "metrics_counters",
+        "metrics_sets",
+        "metrics_distributions",
+        "generic_metrics_counters",
+        "generic_metrics_sets",
+        "generic_metrics_distributions",
+        "generic_metrics_gauges",
+    }
+
 
 OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {
     "metrics_counters": {
@@ -206,12 +192,6 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
     },
-    UseCaseID.CUSTOM: {
-        EntityKey.GenericMetricsCounters,
-        EntityKey.GenericMetricsSets,
-        EntityKey.GenericMetricsDistributions,
-        EntityKey.GenericMetricsGauges,
-    },
     UseCaseID.METRIC_STATS: {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsGauges,
@@ -276,14 +256,17 @@ OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
 
+METRIC_TYPE_TO_METRIC_ENTITY: dict[MetricType, MetricEntity] = {
+    "counter": "metrics_counters",
+    "set": "metrics_sets",
+    "distribution": "metrics_distributions",
+    "generic_counter": "generic_metrics_counters",
+    "generic_set": "generic_metrics_sets",
+    "generic_distribution": "generic_metrics_distributions",
+    "generic_gauge": "generic_metrics_gauges",
+}
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
-    "counter": EntityKey.MetricsCounters,
-    "set": EntityKey.MetricsSets,
-    "distribution": EntityKey.MetricsDistributions,
-    "generic_counter": EntityKey.GenericMetricsCounters,
-    "generic_set": EntityKey.GenericMetricsSets,
-    "generic_distribution": EntityKey.GenericMetricsDistributions,
-    "generic_gauge": EntityKey.GenericMetricsGauges,
+    k: EntityKey(v) for k, v in METRIC_TYPE_TO_METRIC_ENTITY.items()
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
@@ -328,25 +311,14 @@ class TagValue(TypedDict):
     value: str
 
 
-class BlockedMetric(TypedDict):
-    isBlocked: bool
-    blockedTags: Sequence[str]
-    projectId: int
-
-
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
-    unit: MetricUnit | None
+    unit: str | None
     metric_id: NotRequired[int]
     mri: str
-    projectIds: Sequence[int]
-    blockingStatus: Sequence[BlockedMetric] | None
-
-
-class MetricMetaWithTagKeys(MetricMeta):
-    tags: Sequence[Tag]
+    projectIds: NotRequired[Sequence[int]]
 
 
 OPERATIONS_PERCENTILES = (
@@ -399,7 +371,7 @@ DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] =
     "percentage": None,
     "last": None,
 }
-UNIT_TO_TYPE = {
+UNIT_TO_TYPE: dict[str, MetricOperationType] = {
     "sessions": "count",
     "percentage": "percentage",
     "users": "count",
@@ -408,7 +380,7 @@ UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
 
 # Custom measurements are always extracted as a distribution
-CUSTOM_MEASUREMENT_DATASETS = {"generic_distribution"}
+CUSTOM_MEASUREMENT_DATASETS: frozenset[MetricType] = frozenset(("generic_distribution",))
 
 
 def combine_dictionary_of_list_values(main_dict, other_dict):

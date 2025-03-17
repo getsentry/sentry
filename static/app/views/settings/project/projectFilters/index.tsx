@@ -10,15 +10,15 @@ import type {Project} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{filterType: string; projectId: string}, {}>;
+} & RouteComponentProps<{filterType: string; projectId: string}>;
 
 function ProjectFilters(props: Props) {
   const {project, params} = props;
@@ -39,7 +39,7 @@ function ProjectFilters(props: Props) {
         )}
       </TextBlock>
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <div>
         <ProjectFiltersChart project={project} />

@@ -1,9 +1,15 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+
+const organization = OrganizationFixture({
+  features: ['dashboards-widget-builder-redesign'],
+});
 
 describe('WidgetBuilderGroupBySelector', function () {
   beforeEach(function () {
@@ -19,12 +25,15 @@ describe('WidgetBuilderGroupBySelector', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
         </SpanTagsProvider>
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
     expect(await screen.findByText('Select group')).toBeInTheDocument();
-    expect(await screen.findByText('Add Group')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
   it('renders the group by field and can function', async function () {
@@ -33,17 +42,20 @@ describe('WidgetBuilderGroupBySelector', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
         </SpanTagsProvider>
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
     expect(await screen.findByText('Select group')).toBeInTheDocument();
-    expect(await screen.findByText('Add Group')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
 
     await userEvent.click(await screen.findByText('Select group'));
     await userEvent.click(await screen.findByText('timestamp'));
 
-    await userEvent.click(await screen.findByText('Add Group'));
+    await userEvent.click(await screen.findByText('+ Add Group'));
     await userEvent.click(await screen.findByText('Select group'));
     await userEvent.click(await screen.findByText('id'));
 

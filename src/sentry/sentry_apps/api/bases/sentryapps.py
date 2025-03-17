@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
-import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,7 +16,6 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.integrations.api.bases.integration import PARANOID_GET
-from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
@@ -75,15 +73,6 @@ def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | N
     return any(request.access.has_scope(s) for s in set(allowed_scopes))
 
 
-def add_integration_platform_metric_tag(func):
-    @wraps(func)
-    def wrapped(self, *args, **kwargs):
-        add_request_metric_tags(self.request, integration_platform=True)
-        return func(self, *args, **kwargs)
-
-    return wrapped
-
-
 class SentryAppsPermission(SentryPermission):
     scope_map = {
         "GET": PARANOID_GET,
@@ -117,32 +106,22 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
-    def dispatch(self, request, *args, **kwargs):
-        add_request_metric_tags(request, integration_platform=True)
-        return super().dispatch(request, *args, **kwargs)
-
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
         return self._handle_sentry_app_exception(
             exception=exc
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def _handle_sentry_app_exception(self, exception: Exception):
-        if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response_body: dict[str, Any] = {"detail": exception.message}
-
-            if public_context := exception.public_context:
-                response_body.update({"context": public_context})
+        if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
+            response_body = exception.to_public_dict()
 
             response = Response(response_body, status=exception.status_code)
             response.exception = True
             return response
 
         elif isinstance(exception, SentryAppSentryError):
-            error_id = sentry_sdk.capture_exception(exception)
             return Response(
-                {
-                    "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
-                },
+                exception.to_public_dict(),
                 status=500,
             )
         # If not an audited sentry app error then default to using default error handler
@@ -403,14 +382,9 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request: Request, *args, **kwargs):
+    def has_permission(self, request: Request, *args, **kwargs) -> bool:
         # To let the app mark the installation as installed, we don't care about permissions
-        if (
-            hasattr(request, "user")
-            and hasattr(request.user, "is_sentry_app")
-            and request.user.is_sentry_app
-            and request.method == "PUT"
-        ):
+        if request.user.is_authenticated and request.user.is_sentry_app and request.method == "PUT":
             return True
         return super().has_permission(request, *args, **kwargs)
 

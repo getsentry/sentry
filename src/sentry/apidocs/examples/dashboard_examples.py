@@ -61,7 +61,7 @@ DASHBOARD_OBJECT = {
                 }
             ],
             "limit": None,
-            "widgetType": "discover",
+            "widgetType": "transaction-like",
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
         }
     ],

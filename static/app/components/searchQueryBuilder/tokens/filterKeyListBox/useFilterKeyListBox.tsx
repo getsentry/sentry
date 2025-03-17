@@ -263,9 +263,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       // If we are at a non-recent filter key and going up, skip to the first recent filter key
       e.preventDefault();
       e.stopPropagation();
-      state.selectionManager.setFocusedKey(
-        createRecentFilterOptionKey(recentFilters[0]!)
-      );
+      state.selectionManager.setFocusedKey(createRecentFilterOptionKey(recentFilters[0]));
 
       return;
     },

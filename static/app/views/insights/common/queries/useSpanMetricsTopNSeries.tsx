@@ -73,7 +73,7 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
       };
 
       if (seriesByKey[key]) {
-        seriesByKey[key]!.data.push(value);
+        seriesByKey[key].data.push(value);
       } else {
         seriesByKey[key] = {
           seriesName: key,

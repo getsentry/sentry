@@ -6,7 +6,7 @@ import {CellMeasurerCache} from 'react-virtualized';
 type Opts = {
   cellMeasurer: CellMeasurerCacheParams;
   deps: DependencyList;
-  ref: RefObject<List>;
+  ref: RefObject<List | null>;
 };
 function useVirtualizedList({cellMeasurer, deps, ref}: Opts) {
   const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);

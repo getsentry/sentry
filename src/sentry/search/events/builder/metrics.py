@@ -185,7 +185,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # are passed as aliased expressions to the MQB query transformer.
         if self.use_metrics_layer:
             first_column = self.columns[0]
-            return self.columns and (
+            return bool(self.columns) and (
                 isinstance(first_column, Function) or isinstance(first_column, AliasedExpression)
             )
 
@@ -1861,7 +1861,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         }
 
         seen_metrics_metas = {}
-        time_data_map = defaultdict(dict)
+        time_data_map: dict[str, dict[str, dict[str, str]]] = defaultdict(dict)
 
         for metrics_data in metrics_data_list:
             for meta in metrics_data["meta"]:
@@ -1906,11 +1906,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
 
 class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
-    # Kept for building on demand specs
-    timeseries_columns = []
-    # Needs to be kept for rebuilding where clause for on-demand metrics.
-    top_events = []
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1975,7 +1970,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         return sorted(translated)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 

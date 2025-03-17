@@ -66,6 +66,9 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool
+    prefersSpecializedProjectOverview: dict[str, bool]
+    prefersStackedNavigation: bool
+    quickStartDisplay: dict[str, int]
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -198,6 +201,11 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui", False
                 ),
+                "prefersSpecializedProjectOverview": options.get(
+                    "prefers_specialized_project_overview", {}
+                ),
+                "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
+                "quickStartDisplay": options.get("quick_start_display") or {},
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}

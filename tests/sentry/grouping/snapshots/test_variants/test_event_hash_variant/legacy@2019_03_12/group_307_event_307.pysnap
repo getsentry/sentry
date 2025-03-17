@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.622136+00:00'
+created: '2025-02-26T00:33:46.905819+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -73,10 +73,10 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "thread_start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_pthread_start"
           frame
@@ -115,7 +115,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__dynamic_cast"
         type*

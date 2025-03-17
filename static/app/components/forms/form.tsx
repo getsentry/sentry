@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import FormContext from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
 import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
@@ -228,7 +228,7 @@ function Form({
     ]
   );
 
-  const shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
+  const shouldShowFooter = typeof hideFooter === 'undefined' ? !saveOnBlur : !hideFooter;
 
   return (
     <FormContext.Provider value={contextData}>
@@ -237,9 +237,7 @@ function Form({
         className={className ?? 'form-stacked'}
         data-test-id={dataTestId}
       >
-        <div>
-          {isRenderFunc<RenderFunc>(children) ? children({model: formModel}) : children}
-        </div>
+        <div>{isRenderFunc(children) ? children({model: formModel}) : children}</div>
 
         {shouldShowFooter && (
           <StyledFooter

@@ -4,9 +4,9 @@ import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -193,11 +193,13 @@ export function ProjectInstallPlatform({
                 return null;
               }
               return (
-                <StyledAlert type="info" showIcon>
-                  {t(
-                    `Your selected platform supports performance, but your organization does not have performance enabled.`
-                  )}
-                </StyledAlert>
+                <Alert.Container>
+                  <StyledAlert type="info" showIcon>
+                    {t(
+                      `Your selected platform supports performance, but your organization does not have performance enabled.`
+                    )}
+                  </StyledAlert>
+                </Alert.Container>
               );
             }}
           </Feature>
@@ -215,7 +217,6 @@ export function ProjectInstallPlatform({
               });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
-                hash: '#welcome',
               });
             }}
           >

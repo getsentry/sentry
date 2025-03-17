@@ -3,14 +3,11 @@ from datetime import timedelta
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.integrations.models.integration import Integration
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -71,12 +68,11 @@ class TestDetectorSerializer(TestCase):
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
         data_source.detectors.set([detector])
 
         result = serialize(detector)
-        # print("result: ", result)
         assert result == {
             "id": str(detector.id),
             "projectId": str(detector.project_id),
@@ -89,7 +85,7 @@ class TestDetectorSerializer(TestCase):
                     "id": str(data_source.id),
                     "organizationId": str(self.organization.id),
                     "type": type_name,
-                    "queryId": str(subscription.id),
+                    "sourceId": str(subscription.id),
                     "queryObj": {
                         "id": str(subscription.id),
                         "snubaQuery": {
@@ -108,13 +104,13 @@ class TestDetectorSerializer(TestCase):
             "conditionGroup": {
                 "id": str(condition_group.id),
                 "organizationId": str(self.organization.id),
-                "logicType": DataConditionGroup.Type.ANY,
+                "logicType": DataConditionGroup.Type.ANY.value,
                 "conditions": [
                     {
                         "id": str(condition.id),
                         "condition": Condition.GREATER.value,
                         "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH,
+                        "result": DetectorPriorityLevel.HIGH.value,
                     }
                 ],
                 "actions": [
@@ -122,6 +118,8 @@ class TestDetectorSerializer(TestCase):
                         "id": str(action.id),
                         "type": "email",
                         "data": '{"foo":"bar"}',
+                        "integration_id": None,
+                        "config": "{}",
                     }
                 ],
             },
@@ -159,10 +157,11 @@ class TestDataSourceSerializer(TestCase):
         subscription = create_snuba_subscription(
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
+
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
 
         result = serialize(data_source)
@@ -171,7 +170,7 @@ class TestDataSourceSerializer(TestCase):
             "id": str(data_source.id),
             "organizationId": str(self.organization.id),
             "type": type_name,
-            "queryId": str(subscription.id),
+            "sourceId": str(subscription.id),
             "queryObj": {
                 "id": str(subscription.id),
                 "snubaQuery": {
@@ -240,12 +239,24 @@ class TestDataConditionGroupSerializer(TestCase):
                     "id": str(action.id),
                     "type": "email",
                     "data": '{"foo":"bar"}',
+                    "integration_id": None,
+                    "config": "{}",
                 }
             ],
         }
 
 
 class TestActionSerializer(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.integration = self.create_integration(
+            provider="slack",
+            name="example-integration",
+            external_id="123-id",
+            metadata={},
+            organization=self.organization,
+        )
+
     def test_serialize_simple(self):
         action = self.create_action(
             type=Action.Type.EMAIL,
@@ -254,27 +265,54 @@ class TestActionSerializer(TestCase):
 
         result = serialize(action)
 
-        assert result == {"id": str(action.id), "type": "email", "data": '{"foo":"bar"}'}
+        assert result == {
+            "id": str(action.id),
+            "type": "email",
+            "data": '{"foo":"bar"}',
+            "integration_id": None,
+            "config": "{}",
+        }
 
-    def test_serialize_with_legacy_fields(self):
-        """
-        Legacy fields should not be serialized.
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="slack", name="example-integration", external_id="123-id", metadata={}
-            )
+    def test_serialize_with_integration(self):
+
         action = self.create_action(
-            type=Action.Type.SLACK,
+            type=Action.Type.EMAIL,
             data={"foo": "bar"},
-            integration_id=integration.id,
-            target_display="freddy frog",
-            target_type=ActionTarget.USER,
+            integration_id=self.integration.id,
         )
 
         result = serialize(action)
 
-        assert result == {"id": str(action.id), "type": "slack", "data": '{"foo":"bar"}'}
+        assert result == {
+            "id": str(action.id),
+            "type": "email",
+            "data": '{"foo":"bar"}',
+            "integration_id": self.integration.id,
+            "config": "{}",
+        }
+
+    def test_serialize_with_integration_and_config(self):
+
+        action2 = self.create_action(
+            type=Action.Type.SLACK,
+            data={"foo": "bar"},
+            integration_id=self.integration.id,
+            config={
+                "target_type": ActionTarget.USER,
+                "target_display": "freddy frog",
+                "target_identifier": "123-id",
+            },
+        )
+
+        result2 = serialize(action2)
+
+        assert result2 == {
+            "id": str(action2.id),
+            "type": "slack",
+            "data": '{"foo":"bar"}',
+            "integration_id": self.integration.id,
+            "config": '{"target_type":1,"target_display":"freddy frog","target_identifier":"123-id"}',
+        }
 
 
 class TestWorkflowSerializer(TestCase):
@@ -375,6 +413,8 @@ class TestWorkflowSerializer(TestCase):
                             "id": str(action.id),
                             "type": "email",
                             "data": '{"foo":"bar"}',
+                            "integration_id": None,
+                            "config": "{}",
                         }
                     ],
                 },

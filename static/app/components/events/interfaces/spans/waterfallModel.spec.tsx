@@ -722,11 +722,11 @@ describe('WaterfallModel', () => {
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10]!.spanNestedGrouping![0]!.span,
+        span: fullWaterfall[10]!.spanNestedGrouping[0]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10]!.spanNestedGrouping![1]!.span,
+        span: fullWaterfall[10]!.spanNestedGrouping[1]!.span,
       },
       {
         type: 'filtered_out',

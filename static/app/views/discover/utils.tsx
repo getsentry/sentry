@@ -1,4 +1,3 @@
-import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
@@ -15,7 +14,7 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined, urlEncode} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -412,10 +411,9 @@ function generateAdditionalConditions(
  * hit the Transactions dataset.
  */
 export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
-  let usesTransactions: boolean = false;
+  let usesTransactions = false;
   const parsedQuery = new MutableSearch(eventView.query);
-  for (let index = 0; index < yAxisValue.length; index++) {
-    const yAxis = yAxisValue[index]!;
+  for (const yAxis of yAxisValue) {
     const aggregateArg = getAggregateArg(yAxis) ?? '';
     if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
       usesTransactions = true;
@@ -655,16 +653,16 @@ export function eventViewToWidgetQuery({
   const fields = eventView.fields.map(({field}) => field);
   const {columns, aggregates} = getColumnsAndAggregates(fields);
   const sort = eventView.sorts[0];
-  const queryYAxis = typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'];
+  const queryYAxis = typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']);
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
   if (sort) {
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
-    for (let i = 0; i < aggregateFields.length; i++) {
-      if (sort.field === getAggregateAlias(aggregateFields[i]!)) {
-        orderbyFunction = aggregateFields[i]!;
+    for (const field of aggregateFields) {
+      if (sort.field === getAggregateAlias(field)) {
+        orderbyFunction = field;
         break;
       }
     }
@@ -710,7 +708,10 @@ export function handleAddQueryToDashboard({
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
-  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType =
+    widgetType === WidgetType.SPANS
+      ? (eventView.display as DisplayType)
+      : displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -742,12 +743,14 @@ export function handleAddQueryToDashboard({
       },
     },
     widget: {
-      title: (query?.name ?? eventView.name)!,
+      // We need the event view name for when we're adding from a saved query page
+      title: (query?.name ??
+        (eventView.name === 'All Errors' ? t('Custom Widget') : eventView.name))!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
           ...defaultWidgetQuery,
-          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
           ...(organization.features.includes('dashboards-widget-builder-redesign')
             ? {
                 // The widget query params filters out aggregate fields
@@ -794,7 +797,7 @@ export function getTargetForTransactionSummaryLink(
   }
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(dataRow.transaction),
     projectID,
     query: nextView?.getPageFiltersQuery() || {},
@@ -826,7 +829,10 @@ export function constructAddQueryToDashboardLink({
   widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
-  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const displayType =
+    widgetType === WidgetType.SPANS
+      ? (eventView.display as DisplayType)
+      : displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultTableFields = eventView.fields.map(({field}) => field);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
@@ -835,7 +841,7 @@ export function constructAddQueryToDashboardLink({
   });
 
   const defaultTitle =
-    query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+    query?.name ?? (eventView.name === 'All Events' ? undefined : eventView.name);
 
   const limit =
     displayType === DisplayType.TOP_N || eventView.display === DisplayModes.DAILYTOP5
@@ -852,7 +858,7 @@ export function constructAddQueryToDashboardLink({
       queries: [
         {
           ...defaultWidgetQuery,
-          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
           fields: eventView.getFields(),
           columns:
             widgetType === WidgetType.SPANS ||

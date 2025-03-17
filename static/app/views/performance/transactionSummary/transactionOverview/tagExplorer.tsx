@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button';
 import type {GridColumn, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -288,7 +288,7 @@ export class TagExplorer extends Component<Props> {
 
   handleCellAction = (
     column: TableColumn<ColumnKeys>,
-    tagValue: React.ReactText,
+    tagValue: string | number,
     actionRow: any
   ) => {
     return (action: Actions) => {
@@ -330,7 +330,7 @@ export class TagExplorer extends Component<Props> {
 
     if (column.key === 'key') {
       const target = tagsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: decodeScalar(location.query.project),
         query: {...location.query, tagKey: dataRow.tags_key},
@@ -501,7 +501,7 @@ function TagsHeader(props: HeaderProps) {
   };
 
   const viewAllTarget = tagsRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: transactionName,
     projectID: decodeScalar(location.query.project),
     query: {...location.query},

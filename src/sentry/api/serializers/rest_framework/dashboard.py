@@ -397,6 +397,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate(self, data):
         query_errors = []
         all_columns: set[str] = set()
+        has_columns = False
         has_query_error = False
         self.query_warnings = {"queries": [], "columns": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
@@ -410,6 +411,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
+                if len(query.get("columns")) > 0:
+                    has_columns = True
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
                     and "issue_query_error" in query
@@ -478,6 +481,16 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     {"displayType": "displayType is required during creation."}
                 )
 
+        # Validate limit on chart widgets with group-by columns:
+        # if there are too many groups the server cannot serve the
+        # request to get widget data and hence the chart fails to load.
+        if (
+            data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
+            and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
+            and data.get("limit") is None
+            and has_columns
+        ):
+            raise serializers.ValidationError({"limit": "limit is required."})
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:
@@ -835,7 +848,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 ).values()
             )
             set_or_create_on_demand_state(
-                new_query, organization, query_cardinality, ondemand_feature, current_widget_specs
+                new_query,
+                organization,
+                query_cardinality,
+                ondemand_feature,
+                current_widget_specs,
             )
 
     def update_widget(self, widget, data, order):

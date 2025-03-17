@@ -257,7 +257,7 @@ class SourceField extends Component<Props, State> {
   getNewFieldValues(
     suggestion: SourceSuggestion
   ): Array<SourceSuggestion | SourceSuggestion[]> {
-    const fieldValues = [...this.state.fieldValues]!;
+    const fieldValues = [...this.state.fieldValues];
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
     if (!defined(lastFieldValue)) {
@@ -296,7 +296,7 @@ class SourceField extends Component<Props, State> {
       return;
     }
 
-    const isMaybeRegExp = RegExp('^/.*/g?$').test(value);
+    const isMaybeRegExp = new RegExp('^/.*/g?$').test(value);
 
     if (help) {
       if (!isMaybeRegExp) {

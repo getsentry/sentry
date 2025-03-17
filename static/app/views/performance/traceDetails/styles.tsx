@@ -100,7 +100,6 @@ export function Tags({
     return null;
   }
 
-  const orgSlug = organization.slug;
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   return (
@@ -114,7 +113,7 @@ export function Tags({
 
             if (isTraceTransaction(event)) {
               const route = transactionSummaryRouteWithQuery({
-                orgSlug,
+                organization,
                 transaction: event.transaction,
                 projectID: String(event.project_id),
                 query: {
@@ -134,7 +133,7 @@ export function Tags({
 
             return (
               <EventTagsPill
-                key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+                key={defined(tag.key) ? tag.key : `tag-pill-${index}`}
                 tag={tag}
                 projectSlug={event.project_slug}
                 projectId={event.project_id.toString()}

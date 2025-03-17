@@ -2,8 +2,8 @@ import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {LinkButton} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';
@@ -51,8 +51,8 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       size="xs"
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-        replace: true,
       }}
+      replace
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >

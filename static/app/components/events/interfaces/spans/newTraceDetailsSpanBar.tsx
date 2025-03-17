@@ -72,7 +72,7 @@ import {withScrollbarManager} from './scrollbarManager';
 import type {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import type {AggregateSpanType, GapSpanType, ProcessedSpanType} from './types';
+import type {AggregateSpanType, GapSpanType} from './types';
 import {GroupType} from './types';
 import type {SpanGeneratedBoundsType, SpanViewBoundsType, VerticalMark} from './utils';
 import {
@@ -204,10 +204,10 @@ export class NewTraceDetailsSpanBar extends Component<
 
   spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
-  zoomLevel: number = 1; // assume initial zoomLevel is 100%
-  _mounted: boolean = false;
+  zoomLevel = 1; // assume initial zoomLevel is 100%
+  _mounted = false;
   hashSpanId: string | undefined = undefined;
-  isHighlighted: boolean = false;
+  isHighlighted = false;
 
   updateHighlightedState = () => {
     const hashValues = parseTraceDetailsURLHash(this.props.location.hash);
@@ -440,7 +440,7 @@ export class NewTraceDetailsSpanBar extends Component<
       );
     }
 
-    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
+    const chevronElement = isRoot ? null : <div>{chevron}</div>;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -618,6 +618,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     return (
       <DividerLine
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -799,7 +800,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const transactions = this.getChildTransactions(quickTrace);
 
     return {
-      span: span as ProcessedSpanType,
+      span,
       organization,
       event: event as EventTransaction,
       isRoot: !!isRoot,
@@ -882,6 +883,7 @@ export class NewTraceDetailsSpanBar extends Component<
             }}
           >
             <DividerLine
+              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,

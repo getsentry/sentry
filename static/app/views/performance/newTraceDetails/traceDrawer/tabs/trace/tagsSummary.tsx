@@ -28,7 +28,7 @@ const getTagTarget = (
   organization: Organization
 ) => {
   const url = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

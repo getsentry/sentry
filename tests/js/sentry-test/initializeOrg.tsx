@@ -64,9 +64,9 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
    * initializeOrg({router: {params: {alertId: '123'}}})
    * ```
    */
-  const routerProps: RouteComponentProps<RouterParams, {}> = {
+  const routerProps: RouteComponentProps<RouterParams> = {
     params: router.params as any,
-    routeParams: router.params,
+    routeParams: router.params as any,
     router,
     route: router.routes[0]!,
     routes: router.routes,

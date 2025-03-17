@@ -135,14 +135,14 @@ export function EventCustomPerformanceMetric({
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+        return eventView.getResultsViewUrlTarget(organization, isHomepage);
     }
   }
 
@@ -231,14 +231,14 @@ export function TraceEventCustomPerformanceMetric({
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+        return eventView.getResultsViewUrlTarget(organization, isHomepage);
     }
   }
 

@@ -70,6 +70,7 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_SPANS.value,
     Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
@@ -174,6 +175,9 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_EXPLORE_SPANS_EXTRAPOLATION_META.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
+    Referrer.API_EXPLORE_COMPARE_TABLE.value,
+    Referrer.API_EXPLORE_LOGS_TABLE.value,
+    Referrer.API_EXPLORE_LOGS_TABLE_ROW.value,
 }
 
 
@@ -274,7 +278,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    snuba_methods = ["GET"]
 
     enforce_rate_limit = True
 

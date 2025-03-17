@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from collections.abc import Generator
+
+import pytest
+
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.repository import Repository
@@ -12,10 +18,13 @@ class ExamplePlugin(IssuePlugin2):
     slug = "example"
 
 
-plugins.register(ExamplePlugin)
-
-
 class MigratorTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def _register_example_plugin(self) -> Generator[None]:
+        plugins.register(ExamplePlugin)
+        yield
+        plugins.unregister(ExamplePlugin)
+
     def setUp(self):
         super().setUp()
 

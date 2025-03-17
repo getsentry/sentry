@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping
 from typing import Any, Literal, Self, TypedDict, overload
 
@@ -25,7 +26,6 @@ from ..exceptions import (
     ApiTimeoutError,
 )
 from ..response.base import BaseApiResponse
-from ..track_response import TrackResponseMixin
 
 
 class SessionSettings(TypedDict):
@@ -38,14 +38,14 @@ class SessionSettings(TypedDict):
     cert: Any
 
 
-class BaseApiClient(TrackResponseMixin):
-    base_url: str | None = None
+class BaseApiClient:
+    base_url: str = ""
 
     allow_redirects: bool | None = None
 
-    integration_type: str | None = None
+    integration_type: str  # abstract
 
-    log_path: str | None = None
+    logger = logging.getLogger(__name__)
 
     metrics_prefix: str | None = None
 
@@ -60,6 +60,10 @@ class BaseApiClient(TrackResponseMixin):
     # Timeout for both the connect and the read timeouts.
     # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
     timeout: int = 30
+
+    @property
+    def name(self) -> str:
+        return getattr(self, f"{self.integration_type}_name")
 
     def __init__(
         self,
@@ -80,6 +84,30 @@ class BaseApiClient(TrackResponseMixin):
         #  machinery + how we override it, possibly do this along with urllib3
         #  upgrade.
         pass
+
+    def track_response_data(
+        self,
+        code: str | int,
+        error: Exception | None = None,
+        resp: Response | None = None,
+        extra: Mapping[str, str] | None = None,
+    ) -> None:
+        metrics.incr(
+            f"{self.metrics_prefix}.http_response",
+            sample_rate=1.0,
+            tags={self.integration_type: self.name, "status": code},
+        )
+
+        log_params = {
+            **(extra or {}),
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
+        }
+        if self.integration_type:
+            log_params[self.integration_type] = self.name
+
+        log_params.update(getattr(self, "logging_context", None) or {})
+        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
 
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"
@@ -199,7 +227,7 @@ class BaseApiClient(TrackResponseMixin):
         metrics.incr(
             f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
-            tags={str(self.integration_type): self.name},
+            tags={self.integration_type: self.name},
         )
 
         if self.integration_type:

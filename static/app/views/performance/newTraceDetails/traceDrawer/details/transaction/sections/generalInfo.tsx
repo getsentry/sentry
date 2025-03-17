@@ -238,7 +238,7 @@ function LegacyGeneralInfo({
       <TraceDrawerComponents.CopyableCardValueWithLink
         value={node.value.transaction}
         linkTarget={transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: node.value.transaction,
           // Omit the query from the target url, as we dont know where it may have came from
           // and if its syntax is supported on the target page. In this example, txn search does

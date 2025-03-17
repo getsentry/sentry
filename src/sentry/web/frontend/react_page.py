@@ -78,13 +78,11 @@ class ReactMixin:
 
     def dns_prefetch(self) -> list[str]:
         regions = find_all_multitenant_region_names()
-        domains = []
         if len(regions) < 2:
-            return domains
-        for region_name in regions:
-            region = get_region_by_name(region_name)
-            domains.append(generate_region_url(region.name))
-        return domains
+            return []
+        return [
+            generate_region_url(get_region_by_name(region_name).name) for region_name in regions
+        ]
 
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
         org_context = getattr(self, "active_organization", None)

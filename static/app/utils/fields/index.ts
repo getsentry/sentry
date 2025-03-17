@@ -7,6 +7,7 @@ import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from '../discover/types';
 
 export enum FieldKind {
   TAG = 'tag',
+  FEATURE_FLAG = 'feature_flag',
   MEASUREMENT = 'measurement',
   BREAKDOWN = 'breakdown',
   FIELD = 'field',
@@ -119,6 +120,7 @@ export enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  TYPE = 'type',
   UNREAL_CRASH_TYPE = 'unreal.crash_type',
   USER = 'user',
   USER_DISPLAY = 'user.display',
@@ -201,6 +203,12 @@ export enum SpanOpBreakdown {
   SPANS_HTTP = 'spans.http',
   SPANS_RESOURCE = 'spans.resource',
   SPANS_UI = 'spans.ui',
+}
+
+export enum SpanHttpField {
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
 }
 
 export enum AggregationKey {
@@ -1163,22 +1171,31 @@ type TraceFields =
   | SpanIndexedField.SPAN_GROUP
   | SpanIndexedField.SPAN_MODULE
   | SpanIndexedField.SPAN_OP
+  | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
   | SpanIndexedField.SPAN_SELF_TIME
   | SpanIndexedField.SPAN_STATUS
-  | SpanIndexedField.RESPONSE_CODE;
+  | SpanIndexedField.RESPONSE_CODE
+  | SpanIndexedField.CACHE_HIT;
 
 export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
-      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
+      'The Sentry Insights span action, e.g `SELECT` for a SQL span or `POST` for an HTTP client span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_DESCRIPTION]: {
-    desc: t('Parameterized and scrubbed description of the span'),
+    desc: t('Description of the span’s operation'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.NORMALIZED_DESCRIPTION]: {
+    desc: t(
+      'Parameterized and normalized description of the span, commonly used for grouping within insights'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1228,6 +1245,11 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   },
   [SpanIndexedField.IS_TRANSACTION]: {
     desc: t('The span is also a transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [SpanIndexedField.CACHE_HIT]: {
+    desc: t('`true` if the  cache was hit, `false` otherwise'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -1746,6 +1768,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TYPE]: {
+    desc: t('Type of event (Errors, transactions, csp and default)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.UNREAL_CRASH_TYPE]: {
     desc: t('Crash type of an Unreal event'),
     kind: FieldKind.FIELD,
@@ -1798,9 +1825,28 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
+const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
+  [SpanHttpField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
+    desc: t('Content length of the decoded response'),
+    kind: FieldKind.MEASUREMENT,
+    valueType: FieldValueType.SIZE,
+  },
+  [SpanHttpField.HTTP_RESPONSE_CONTENT_LENGTH]: {
+    desc: t('Content length of the response'),
+    kind: FieldKind.MEASUREMENT,
+    valueType: FieldValueType.SIZE,
+  },
+  [SpanHttpField.HTTP_RESPONSE_TRANSFER_SIZE]: {
+    desc: t('Transfer size of the response'),
+    kind: FieldKind.MEASUREMENT,
+    valueType: FieldValueType.SIZE,
+  },
+};
+
 const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
+  ...SPAN_HTTP_FIELD_DEFINITIONS,
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [

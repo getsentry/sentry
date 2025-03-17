@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -17,7 +18,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -32,67 +32,84 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/gatsby";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-        Sentry.browserTracingIntegration(),`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-          Sentry.browserProfilingIntegration(),`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-      : ''
+const getIntegrations = (params: Params): string[] => {
+  const integrations = [];
+  if (params.isPerformanceSelected) {
+    integrations.push(`Sentry.browserTracingIntegration()`);
   }
-],${
-  params.isPerformanceSelected
-    ? `
+
+  if (params.isProfilingSelected) {
+    integrations.push(`Sentry.browserProfilingIntegration()`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      }),`);
+  }
+
+  return integrations;
+};
+
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-    : ''
-}${
-  params.isReplaySelected
-    ? `
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isProfilingSelected) {
+    dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
         // Since profilesSampleRate is relative to tracesSampleRate,
         // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
         // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
         // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
-    : ''
-}
+        profilesSampleRate: 1.0`);
+  }
+
+  return dynamicParts;
+};
+
+const getSdkSetupSnippet = (params: Params) => {
+  const config = buildSdkConfig({
+    params,
+    staticParts: [`dsn: "${params.dsn.public}"`],
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  return `
+import * as Sentry from "@sentry/gatsby";
+
+Sentry.init({
+  ${config}
 });
 
 const container = document.getElementById(“app”);
 const root = createRoot(container);
 root.render(<App />);
 `;
+};
 
 const getVerifySnippet = () => `
 myUndefinedFunction();`;
@@ -120,14 +137,16 @@ const getConfigureStep = (params: Params) => {
         ],
       },
       {
-        description: tct('Then, configure your [codeSentry:Sentry.init:]', {
-          codeSentry: <code />,
-        }),
+        description: tct(
+          'Then, configure your [codeSentry:Sentry.init:]. For this, create a new file called [codeSentry:sentry.config.js] in the root of your project and add the following code:',
+          {codeSentry: <code />}
+        ),
         code: [
           {
             label: 'JavaScript',
             value: 'javascript',
             language: 'javascript',
+            filename: 'sentry.config.js',
             code: getSdkSetupSnippet(params),
           },
         ],
@@ -149,12 +168,7 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'npm install --save @sentry/gatsby',
       },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/gatsby',
-      },
+      {label: 'yarn', value: 'yarn', language: 'bash', code: 'yarn add @sentry/gatsby'},
     ],
   },
 ];
@@ -175,9 +189,7 @@ const onboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       description: tct(
         'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -218,9 +230,7 @@ const replayOnboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       description: tct(
         'You need a minimum version 7.27.0 of [code:@sentry/gatsby] in order to use Session Replay. You do not need to install any additional packages.',
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -237,9 +247,7 @@ const replayOnboarding: OnboardingConfig = {
           <TracePropagationMessage />
           {tct(
             'Note: If [code:gatsby-config.js] has any settings for the [code:@sentry/gatsby] plugin, they need to be moved into [code:sentry.config.js]. The [code:gatsby-config.js] file does not support non-serializable options, like [code:new Replay()].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           )}
         </Fragment>
       ),
@@ -255,9 +263,7 @@ const feedbackOnboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       description: tct(
         'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/gatsby]) installed, minimum version 7.85.0.',
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -319,7 +325,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

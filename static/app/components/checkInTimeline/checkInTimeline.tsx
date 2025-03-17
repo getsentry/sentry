@@ -25,6 +25,8 @@ interface CheckInTimelineConfig<Status extends string> {
    */
   statusStyle: Record<Status, TickStyle>;
   timeWindowConfig: TimeWindowConfig;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export interface CheckInTimelineProps<Status extends string>
@@ -50,20 +52,20 @@ export function CheckInTimeline<Status extends string>({
   statusLabel,
   statusStyle,
   statusPrecedent,
+  className,
+  style,
 }: CheckInTimelineProps<Status>) {
-  const {start, end, timelineWidth} = timeWindowConfig;
-
-  const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / timelineWidth;
-
-  const jobTicks = mergeBuckets(statusPrecedent, bucketedData);
+  const jobTicks = mergeBuckets(
+    statusPrecedent,
+    timeWindowConfig.rollupConfig,
+    bucketedData
+  );
 
   return (
-    <TimelineContainer>
+    <TimelineContainer role="figure" className={className} style={style}>
       {jobTicks.map(jobTick => {
-        const {startTs, width: tickWidth, stats, roundedLeft, roundedRight} = jobTick;
-        const timestampMs = startTs * 1000;
-        const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+        const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
+
         const status = getAggregateStatus(statusPrecedent, stats)!;
 
         return (
@@ -76,10 +78,10 @@ export function CheckInTimeline<Status extends string>({
             key={startTs}
           >
             <JobTick
-              style={{left, width: tickWidth}}
+              style={{left, width}}
               css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={roundedLeft}
-              roundedRight={roundedRight}
+              roundedLeft={isStarting && left !== 0}
+              roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
@@ -138,7 +140,9 @@ export function MockCheckInTimeline<Status extends string>({
 
 const TimelineContainer = styled('div')`
   position: relative;
-  height: 100%;
+  height: 14px;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const JobTick = styled('div')<{
@@ -146,10 +150,8 @@ const JobTick = styled('div')<{
   roundedRight: boolean;
 }>`
   position: absolute;
-  top: calc(50% + 1px);
   width: 4px;
   height: 14px;
-  transform: translateY(-50%);
   opacity: 0.7;
 
   ${p =>

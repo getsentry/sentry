@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -37,6 +37,7 @@ type FiltersBarProps = {
   dashboardPermissions?: DashboardPermissions;
   onCancel?: () => void;
   onSave?: () => void;
+  shouldBusySaveButton?: boolean;
 };
 
 export default function FiltersBar({
@@ -50,6 +51,7 @@ export default function FiltersBar({
   onCancel,
   onDashboardFilterChange,
   onSave,
+  shouldBusySaveButton,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -124,6 +126,7 @@ export default function FiltersBar({
               priority="primary"
               onClick={onSave}
               disabled={!hasEditAccess}
+              busy={shouldBusySaveButton}
             >
               {t('Save')}
             </Button>

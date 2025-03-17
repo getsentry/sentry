@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TimeSince from 'sentry/components/timeSince';
@@ -161,14 +161,14 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       label: t('Oldest'),
       details: t('First seen event in this issue'),
     },
-    ...(!selectedValue
-      ? [
+    ...(selectedValue
+      ? []
+      : [
           {
             value: EventNavDropdownOption.CUSTOM,
             label: t('Custom Selection'),
           },
-        ]
-      : []),
+        ]),
     {
       options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
     },
@@ -179,16 +179,18 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       size="sm"
       disabled={isDisabled}
       options={eventNavDropdownOptions}
-      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+      value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
       triggerLabel={
-        !selectedValue ? (
+        selectedValue ? (
+          selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
+        ) : (
           <TimeSince
             date={event.dateCreated ?? event.dateReceived}
             disabledAbsoluteTooltip
           />
-        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-          t('Recommended')
-        ) : undefined
+        )
       }
       menuWidth={232}
       onChange={selectedOption => {
@@ -211,7 +213,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: {...location.query, referrer: `${selectedOption.value}-event`},
             });
             break;
-          case EventNavDropdownOption.ALL:
+          case EventNavDropdownOption.ALL: {
             const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
@@ -220,6 +222,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: searchTermWithoutQuery,
             });
             break;
+          }
           default:
             break;
         }
@@ -315,7 +318,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
             hidden: !organization.features.includes('discover-basic'),
             to: eventDetailsRoute({
               eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              orgSlug: organization.slug,
+              organization,
             }),
             onAction: () => {
               trackAnalytics('issue_details.event_details_clicked', {
@@ -389,6 +392,13 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <strong>Event ID:</strong>
               <Button
                 aria-label={t('Copy')}
+                analyticsEventKey="issue_details.copy_event_id_clicked"
+                analyticsEventName="Issue Details: Copy Event ID Clicked"
+                analyticsParams={{
+                  ...getAnalyticsDataForGroup(group),
+                  ...getAnalyticsDataForEvent(event),
+                  streamline: false,
+                }}
                 borderless
                 onClick={copyEventId}
                 size="zero"

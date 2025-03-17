@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from functools import reduce
 from typing import Any, TypedDict, Union
 
 import orjson
@@ -54,8 +53,8 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 
 class FilterConvertParams(TypedDict, total=False):
     organization_id: int
-    project_id: list[int]
-    environment: list[str]
+    project_id: Sequence[int]
+    environment: Sequence[str] | None
     environment_id: list[int] | None
 
 
@@ -719,19 +718,16 @@ def format_search_filter(term, params):
         and params
         and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
-        value = reduce(
-            lambda x, y: x + y,
-            [
-                parse_release(
-                    v,
-                    params["project_id"],
-                    params.get("environment_objects"),
-                    params.get("organization_id"),
-                )
-                for v in to_list(value)
-            ],
-            [],
-        )
+        value = [
+            part
+            for v in to_list(value)
+            for part in parse_release(
+                v,
+                params["project_id"],
+                params.get("environment_objects"),
+                params.get("organization_id"),
+            )
+        ]
 
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
         operator = operator_conversions.get(term.operator, term.operator)

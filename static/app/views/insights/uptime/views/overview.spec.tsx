@@ -1,4 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
@@ -75,8 +77,12 @@ describe('Uptime Overview', function () {
           'insights-initial-modules',
           'insights-entry-points',
           'insights-uptime',
+          'uptime',
         ],
       },
+      router: RouterFixture({
+        location: LocationFixture({pathname: '/insights/backend/uptime'}),
+      }),
     });
     OrganizationStore.onUpdate(organization);
 
@@ -84,7 +90,7 @@ describe('Uptime Overview', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Uptime Monitors');
     const tab = screen.getByRole('tab', {name: 'Uptime Monitors'});
     expect(tab).toBeInTheDocument();
     expect(tab).toHaveAttribute('aria-selected', 'true');

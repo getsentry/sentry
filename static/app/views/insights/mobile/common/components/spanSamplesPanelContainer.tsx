@@ -70,9 +70,9 @@ export function SpanSamplesContainer({
   const {selection} = usePageFilters();
 
   const searchQuery =
-    searchQueryKey !== undefined
-      ? decodeScalar(location.query[searchQueryKey])
-      : undefined;
+    searchQueryKey === undefined
+      ? undefined
+      : decodeScalar(location.query[searchQueryKey]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -250,7 +250,10 @@ const StyledReadoutRibbon = styled(ReadoutRibbon)`
 `;
 
 const SectionTitle = styled('div')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const PaddedTitle = styled('div')`

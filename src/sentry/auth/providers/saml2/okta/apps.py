@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import OktaSAML2Provider
 
-        register("okta", OktaSAML2Provider)
+        register(OktaSAML2Provider)

@@ -18,7 +18,7 @@ const callbackWithArgs = function (context: any, callback: any, ...args: any) {
 
 type GenericFieldProps = Parameters<typeof GenericField>[0];
 
-type Props = {};
+type Props = Record<string, unknown>;
 
 type State = {state: FormState};
 

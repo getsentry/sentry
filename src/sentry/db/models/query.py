@@ -11,6 +11,8 @@ from django.db.models.expressions import BaseExpression, CombinedExpression, Val
 from django.db.models.fields import Field
 from django.db.models.signals import post_save
 
+from sentry.utils import metrics
+
 if TYPE_CHECKING:
     from sentry.db.models.base import BaseModel
 
@@ -164,6 +166,11 @@ def update_or_create(
         with transaction.atomic(using=using):
             return objects.create(**create_kwargs), True
     except IntegrityError:
+        metrics.incr(
+            "db.models.query.update_or_create.integrity_error",
+            tags={"model": model.__name__},
+            sample_rate=1,
+        )
         pass
 
     # Retrying the update() here to preserve behavior in a race condition with a concurrent create().
@@ -218,6 +225,11 @@ def create_or_update(
         with transaction.atomic(using=using):
             return objects.create(**create_kwargs), True
     except IntegrityError:
+        metrics.incr(
+            "db.models.query.create_or_update.integrity_error",
+            tags={"model": model.__name__},
+            sample_rate=1,
+        )
         affected = objects.filter(**kwargs).update(**values)
 
     return affected, False

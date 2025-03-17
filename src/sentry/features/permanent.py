@@ -119,6 +119,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
+        # Enable Vercel integration - there is a custom handler in getsentry
+        "organizations:integrations-vercel": True,
     }
 
     permanent_project_features = {

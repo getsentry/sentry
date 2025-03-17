@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
-import {truncate} from '@sentry/utils';
+import {truncate} from '@sentry/core';
 import type {VisualMapComponentOption} from 'echarts';
 import type {Location} from 'history';
 import memoize from 'lodash/memoize';
@@ -339,7 +339,7 @@ function TagsHeatMap(
                 }
 
                 const moreEventsTarget = eventsRouteWithQuery({
-                  orgSlug: organization.slug,
+                  organization,
                   transaction: transactionName,
                   projectID: decodeScalar(location.query.project),
                   query: {
@@ -350,7 +350,7 @@ function TagsHeatMap(
 
                 return (
                   <div>
-                    {!transactionTableData?.data.length ? <Placeholder /> : null}
+                    {transactionTableData?.data.length ? null : <Placeholder />}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
                       const target = generateLinkToEventInTraceView({
                         eventId: row.id,

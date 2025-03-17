@@ -3,14 +3,14 @@ import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {
   type AutofixChangesStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/components/button', () => ({
+jest.mock('sentry/components/core/button', () => ({
   Button: jest.fn(props => {
     // Forward the click handler while allowing us to inspect props
     return <button onClick={props.onClick}>{props.children}</button>;
@@ -149,34 +149,6 @@ describe('AutofixChanges', () => {
         analyticsParams: {
           group_id: '123',
         },
-      })
-    );
-  });
-
-  it('passes correct analytics props for Add Tests button', () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
-      method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
-        },
-      },
-    });
-
-    render(<AutofixChanges {...defaultProps} />);
-    screen.getByText('Add Tests').click();
-
-    const addTestsButtonCall = mockButton.mock.calls.find(
-      call => call[0]?.analyticsEventKey === 'autofix.add_tests_clicked'
-    );
-    expect(addTestsButtonCall?.[0]).toEqual(
-      expect.objectContaining({
-        analyticsEventKey: 'autofix.add_tests_clicked',
-        analyticsEventName: 'Autofix: Add Tests Clicked',
-        analyticsParams: {group_id: '123'},
       })
     );
   });

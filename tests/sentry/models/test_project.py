@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
@@ -31,6 +32,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.workflow_engine.models import Detector
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -408,6 +410,14 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule.refresh_from_db()
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
+
+    def test_project_detector(self):
+        project = self.create_project()
+        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+
+        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
+            project = self.create_project()
+            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
 
 
 class ProjectOptionsTests(TestCase):

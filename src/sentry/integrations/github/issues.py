@@ -296,7 +296,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         except Exception as e:
             self.raise_error(e)
 
-        def natural_sort_pair(pair: tuple[str, str]) -> str | int:
+        def natural_sort_pair(pair: tuple[str, str]) -> list[str | int]:
             return [
                 int(text) if text.isdecimal() else text for text in re.split("([0-9]+)", pair[0])
             ]

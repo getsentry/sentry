@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -91,13 +91,13 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     },
   ];
   const rest = {...props, eventView};
-  if (!withBreakpoint) {
+  if (withBreakpoint) {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
+  } else {
     eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
     eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
     eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
     eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
-  } else {
-    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
   }
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -165,7 +165,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       });
 
       const transactionTarget = transactionSummaryRouteWithQuery({
-        orgSlug: props.organization.slug,
+        organization: props.organization,
         projectID: getProjectID(listItem, projects),
         transaction: listItem.transaction,
         query: trendsTarget.query,

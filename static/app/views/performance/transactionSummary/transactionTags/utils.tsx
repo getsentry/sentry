@@ -7,13 +7,13 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export function generateTagsRoute({
-  orgSlug,
+  organization,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   view?: DomainView;
 }): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/tags/`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/tags/`;
 }
 
 export function decodeSelectedTagKey(location: Location): string | undefined {
@@ -25,20 +25,20 @@ export function trackTagPageInteraction(organization: Organization) {
 }
 
 export function tagsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
   const pathname = generateTagsRoute({
-    orgSlug,
+    organization,
     view,
   });
 
@@ -69,7 +69,7 @@ export function getTagSortForTagsPage(location: Location) {
 }
 
 // TODO(k-fish): Improve meta of backend response to return these directly
-export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) {
+export function parseHistogramBucketInfo(row: {[key: string]: string | number}) {
   const field = Object.keys(row).find(f => f.includes('histogram'));
   if (!field) {
     return undefined;

@@ -1,7 +1,8 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -10,7 +11,7 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 type Props = React.ComponentProps<typeof SettingsLayout> & {
   api: Client;
-  organization: Organization;
+  organization?: Organization;
 };
 
 class AccountSettingsLayout extends Component<Props> {
@@ -33,6 +34,15 @@ class AccountSettingsLayout extends Component<Props> {
 
   render() {
     const {organization} = this.props;
+
+    if (prefersStackedNav()) {
+      return (
+        <Fragment>
+          <AccountSettingsNavigation organization={organization} />
+          <SettingsLayout {...this.props}>{this.props.children}</SettingsLayout>
+        </Fragment>
+      );
+    }
 
     return (
       <SettingsLayout

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -155,6 +155,10 @@ const CheckIns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const Schedule = styled('div')`

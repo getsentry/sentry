@@ -52,7 +52,7 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 interface MetaProps {
   meta: TraceMeta | undefined;
   organization: Organization;
-  representativeTransaction: TraceTree.Transaction | null;
+  representativeTransaction: TraceTree.Transaction | TraceTree.EAPSpan | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 }
@@ -117,8 +117,8 @@ export function Meta(props: MetaProps) {
         }
       />
       <MetaSection
-        headingText={t('Events')}
-        bodyText={(props.meta?.transactions ?? 0) + (props.meta?.errors ?? 0)}
+        headingText={t('Spans')}
+        bodyText={props.meta?.span_count ?? '\u2014'}
       />
       {traceNode ? (
         <MetaSection
@@ -140,7 +140,9 @@ export function Meta(props: MetaProps) {
           bodyText={
             props.representativeTransaction
               ? getDuration(
-                  props.representativeTransaction.timestamp -
+                  ('timestamp' in props.representativeTransaction
+                    ? props.representativeTransaction.timestamp
+                    : props.representativeTransaction.end_timestamp) -
                     props.representativeTransaction.start_timestamp,
                   2,
                   true
