@@ -23,6 +23,16 @@ export function isSpanNode(
   );
 }
 
+export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value && value.is_transaction);
+}
+
+export function isEAPTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPTransaction(node.value);
+}
+
 export function isEAPSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.EAPSpan> {
