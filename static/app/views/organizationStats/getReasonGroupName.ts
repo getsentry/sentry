@@ -148,7 +148,6 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   too_large_otel_traces_data: [DiscardReason.TOO_LARGE_OTEL_TRACES_DATA],
   too_large_user_report_v2: [DiscardReason.TOO_LARGE_USER_REPORT_V2],
   too_large_profile_chunk: [DiscardReason.TOO_LARGE_PROFILE_CHUNK],
-
   minidump: [DiscardReason.MISSING_MINIDUMP_UPLOAD, DiscardReason.INVALID_MINIDUMP],
   security_report: [DiscardReason.SECURITY_REPORT, DiscardReason.SECURITY_REPORT_TYPE],
   unreal: [DiscardReason.PROCESS_UNREAL],
