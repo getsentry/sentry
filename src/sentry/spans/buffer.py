@@ -274,6 +274,11 @@ class SpansBuffer:
             metrics.timing("sentry.spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
                 val = rapidjson.loads(payload)
+                old_segment_id = val.get("segment_id")
+                if old_segment_id:
+                    val_data = val.setdefault("data", {})
+                    if isinstance(val_data, dict):
+                        val_data["__sentry_internal_old_segment_id"] = old_segment_id
                 val["segment_id"] = segment_span_id
                 val["is_segment"] = segment_span_id == val["span_id"]
                 return_segment.append(OutputSpan(payload=val))
