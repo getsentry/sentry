@@ -51,9 +51,7 @@ class FlamegraphTextRenderer extends TextRenderer {
       (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
       window.devicePixelRatio;
 
-    const HIGHLIGHT_BACKGROUND_COLOR = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
-      ', '
-    )})`;
+    const HIGHLIGHT_BACKGROUND_COLOR = this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR;
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;

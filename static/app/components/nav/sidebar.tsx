@@ -37,7 +37,9 @@ export function Sidebar() {
         <SidebarHeader isSuperuser={showSuperuserWarning}>
           <OrgDropdown />
           {showSuperuserWarning && (
-            <Hook name="component:superuser-warning" organization={organization} />
+            <SuperuserBadgeContainer>
+              <Hook name="component:superuser-warning" organization={organization} />
+            </SuperuserBadgeContainer>
           )}
         </SidebarHeader>
         <PrimaryNavigationItems />
@@ -98,4 +100,13 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
         background: ${p.theme.sidebar.superuser};
       }
     `}
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -8px;
+  left: 2px;
+  right: 2px;
+  font-size: 12px;
+  margin: 0;
 `;

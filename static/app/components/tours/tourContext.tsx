@@ -27,6 +27,10 @@ type TourSetStepAction<T extends TourEnumType> = {
 type TourEndAction = {
   type: 'END_TOUR';
 };
+type TourSetAvailabilityAction = {
+  isAvailable: boolean;
+  type: 'SET_AVAILABILITY';
+};
 type TourSetRegistrationAction = {
   isRegistered: boolean;
   type: 'SET_REGISTRATION';
@@ -42,6 +46,7 @@ export type TourAction<T extends TourEnumType> =
   | TourPreviousStepAction
   | TourSetStepAction<T>
   | TourEndAction
+  | TourSetAvailabilityAction
   | TourSetRegistrationAction
   | TourSetCompletionAction;
 
@@ -152,6 +157,8 @@ function tourReducer<T extends TourEnumType>(
       return {...state, isCompleted: action.isCompleted};
     case 'SET_REGISTRATION':
       return {...state, isRegistered: action.isRegistered};
+    case 'SET_AVAILABILITY':
+      return {...state, isAvailable: action.isAvailable};
     default:
       return state;
   }

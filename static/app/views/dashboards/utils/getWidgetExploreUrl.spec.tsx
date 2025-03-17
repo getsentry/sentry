@@ -37,7 +37,7 @@ describe('getWidgetExploreUrl', () => {
       displayType: DisplayType.AREA,
       queries: [
         {
-          fields: ['span.description', 'avg(span.duration)'],
+          fields: [],
           aggregates: ['avg(span.duration)'],
           columns: ['span.description'],
           conditions: '',
@@ -53,6 +53,30 @@ describe('getWidgetExploreUrl', () => {
     // The chart type is set to 1 for area charts
     expect(url).toBe(
       '/organizations/org-slug/traces/?dataset=spansRpc&field=span.description&field=avg%28span.duration%29&groupBy=span.description&interval=30m&mode=aggregate&statsPeriod=14d&visualize=%7B%22chartType%22%3A2%2C%22yAxes%22%3A%5B%22avg%28span.duration%29%22%5D%7D'
+    );
+  });
+
+  it('returns the correct url for timeseries widgets without grouping', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.AREA,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, selection, organization);
+
+    // Note: for line widgets the mode is set to aggregate
+    // The chart type is set to 1 for area charts
+    expect(url).toBe(
+      '/organizations/org-slug/traces/?dataset=spansRpc&field=avg%28span.duration%29&groupBy=&interval=30m&mode=aggregate&statsPeriod=14d&visualize=%7B%22chartType%22%3A2%2C%22yAxes%22%3A%5B%22avg%28span.duration%29%22%5D%7D'
     );
   });
 });
