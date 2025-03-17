@@ -215,6 +215,7 @@ function BaseButton({
   translucentBorder,
   priority,
   disabled,
+  type = 'button',
   tooltipProps,
   onClick,
   analyticsEventName,
@@ -296,6 +297,7 @@ function BaseButton({
         priority={priority}
         borderless={borderless}
         translucentBorder={translucentBorder}
+        type={type}
         {...buttonProps}
         onClick={handleClick}
         role="button"
@@ -465,6 +467,7 @@ export const StyledButton = styled(
         forwardRef,
         size: _size,
         title: _title,
+        type,
         external,
         to,
         replace,
@@ -505,12 +508,7 @@ export const StyledButton = styled(
         return <a {...props} ref={ref} href={href} aria-disabled={disabled} />;
       }
 
-      // The default `type` of a native button element is `submit` when inside
-      // of a form. This is typically not what we want, and if we do want it we
-      // should explicitly set type submit.
-      props.type ??= 'button';
-
-      return <button {...props} ref={ref} disabled={disabled} />;
+      return <button {...props} type={type} ref={ref} disabled={disabled} />;
     }
   ),
   {
