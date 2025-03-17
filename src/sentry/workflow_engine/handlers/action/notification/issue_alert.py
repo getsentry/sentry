@@ -393,7 +393,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                     filter=dict(app_ids=[target_identifier], organization_id=organization_id)
                 )
 
-            if len(sentry_app_installations) != 1:
+            if sentry_app_installations is None or len(sentry_app_installations) != 1:
                 raise ValueError(
                     f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
                 )
