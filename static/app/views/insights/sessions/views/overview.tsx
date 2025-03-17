@@ -1,10 +1,7 @@
 import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -60,14 +57,15 @@ export function SessionsOverview() {
         <SessionHealthCountChart view={view} />
       </ModuleLayout.Third>
       <ModuleLayout.Third>
+        <UserHealthCountChart view={view} />
+      </ModuleLayout.Third>
+      <ModuleLayout.Third />
+      <ModuleLayout.Third>
         <SessionHealthRateChart view={view} />
       </ModuleLayout.Third>
-      <ModuleLayout.Half>
-        <UserHealthCountChart view={view} />
-      </ModuleLayout.Half>
-      <ModuleLayout.Half>
+      <ModuleLayout.Third>
         <UserHealthRateChart view={view} />
-      </ModuleLayout.Half>
+      </ModuleLayout.Third>
     </Fragment>
   );
 
@@ -88,11 +86,6 @@ export function SessionsOverview() {
                     setFilters(['']);
                   }}
                 />
-                <Alert type="info" icon={<IconInfo />} showIcon>
-                  {t(
-                    `This page is a temporary spot to put experimental release charts and tables currently in development. We will move things around eventually, but for now, it's a spot where we can put everything and get quick feedback.`
-                  )}
-                </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
             {showOnboarding ? (
