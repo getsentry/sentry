@@ -244,7 +244,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                     response = trigger_autofix(
                         group=group, event_id=event.event_id, user=request.user
                     )
-                    
+
                     # Only check response status when response is definitely assigned
                     if response.status_code != 202:
                         # If autofix trigger fails, we don't cache to let it error and we can run again
