@@ -316,11 +316,12 @@ function AutofixHighlightPopupContent({
   );
 }
 
-function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect, spacing = 36) {
+function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
   const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
 
-  // Try positioning to the left first (default)
-  const left = referenceRect.left - popupRect.width - spacing;
+  // Fixed position from the right edge of the viewport
+  const left = viewportWidth / 2 - popupRect.width + 8;
   let top = referenceRect.top;
 
   // Ensure the popup stays within the viewport vertically

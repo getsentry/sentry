@@ -218,9 +218,9 @@ function SolutionEventList({
       return [];
     }
 
-    // For 3 or fewer items, find the first highlighted item or default to first item
+    // For 3 or fewer items, find the first highlighted and active item or default to first item
     const firstHighlightedIndex = events.findIndex(
-      event => event.is_most_important_event
+      event => event.is_most_important_event && event.is_active !== false
     );
     return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
   });
@@ -230,6 +230,20 @@ function SolutionEventList({
       current.includes(index) ? current.filter(i => i !== index) : [...current, index]
     );
   }, []);
+
+  // Wrap onToggleActive to also handle expanded state
+  const handleToggleActive = useCallback(
+    (index: number) => {
+      onToggleActive(index);
+      // If we're disabling an item (toggling from active to inactive),
+      // we need to remove it from expanded items
+      const event = events[index];
+      if (event && event.is_active !== false) {
+        setExpandedItems(current => current.filter(i => i !== index));
+      }
+    },
+    [events, onToggleActive]
+  );
 
   if (!events?.length) {
     return null;
@@ -243,12 +257,23 @@ function SolutionEventList({
         const isExpanded = expandedItems.includes(index);
         const isHumanAction = event.timeline_item_type === 'human_instruction';
 
+        const handleItemClick = () => {
+          if (!isSelected) {
+            // If item is disabled, re-enable it instead of toggling expansion
+            handleToggleActive(index);
+            return;
+          }
+          if (!isHumanAction && event.code_snippet_and_analysis) {
+            toggleItem(index);
+          }
+        };
+
         return (
           <Timeline.Item
             key={index}
             title={
               <StyledTimelineHeader
-                onClick={() => toggleItem(index)}
+                onClick={handleItemClick}
                 isActive={isActive}
                 isSelected={isSelected}
                 data-test-id={`autofix-solution-timeline-item-${index}`}
@@ -259,7 +284,7 @@ function SolutionEventList({
                   }}
                 />
                 <IconWrapper>
-                  {!isHumanAction && event.code_snippet_and_analysis && (
+                  {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
                     <StyledIconChevron
                       direction={isExpanded ? 'down' : 'right'}
                       size="xs"
@@ -272,7 +297,7 @@ function SolutionEventList({
                         if (isHumanAction) {
                           onDeleteItem(index);
                         } else {
-                          onToggleActive(index);
+                          handleToggleActive(index);
                         }
                       }}
                       aria-label={isSelected ? t('Deselect item') : t('Select item')}
