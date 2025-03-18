@@ -241,11 +241,6 @@ def test_flatten(value: _RecursiveList[int], expected: list[int]) -> None:
     assert flatten(value) == expected
 
 
-def test_flatten_with_primitive() -> None:
-    # flatten sometimes gets called with just bare `Node` so this tests that
-    assert flatten(1) == [1]
-
-
 class ParseSearchQueryBackendTest(SimpleTestCase):
     """
     These test cases cannot be represented by the test data used to drive the
@@ -387,6 +382,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 operator="<",
                 value=SearchValue(3 * 1000**5),
             ),
+        ]
+
+    def test_aggregate_empty_quoted_arg(self):
+        assert parse_search_query('p50(""):5') == [
+            AggregateFilter(
+                key=AggregateKey(name='p50("")'), operator="=", value=SearchValue(raw_value=5.0)
+            )
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")

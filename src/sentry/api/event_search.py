@@ -297,7 +297,7 @@ def translate_escape_sequences(string: str) -> str:
 type _RecursiveList[T] = list[T] | list[_RecursiveList[T]]
 
 
-def flatten[T](children: T | _RecursiveList[T]) -> list[T]:
+def flatten[T](children: _RecursiveList[T]) -> list[T]:
     def _flatten(seq: _RecursiveList[T]) -> Generator[T]:
         # there is a list from search_term and one from free_text, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
@@ -306,9 +306,6 @@ def flatten[T](children: T | _RecursiveList[T]) -> list[T]:
                 yield from _flatten(item)
             else:
                 yield item
-
-    if not isinstance(children, list):
-        return [children]
 
     return [_f for _f in _flatten(children) if _f]
 
@@ -725,8 +722,15 @@ class SearchVisitor(NodeVisitor):
     def is_boolean_key(self, key):
         return key in self.config.boolean_keys
 
-    def visit_search(self, node, children):
-        return remove_optional_nodes(flatten(children[1]))
+    def visit_search(
+        self,
+        node: Node,
+        children: tuple[str, Node | _RecursiveList[QueryToken]],
+    ) -> list[QueryToken]:
+        if isinstance(children[1], Node):  # empty search
+            return []
+        else:
+            return remove_optional_nodes(flatten(children[1]))
 
     def visit_term(self, node, children):
         return remove_optional_nodes(flatten(children[0]))
@@ -1189,8 +1193,19 @@ class SearchVisitor(NodeVisitor):
     def visit_raw_aggregate_param(self, node, children):
         return node.text
 
-    def visit_quoted_aggregate_param(self, node, children):
-        value = "".join(node.text for node in flatten(children[1]))
+    def visit_quoted_aggregate_param(
+        self,
+        node: Node,
+        children: tuple[
+            Node,  # "
+            Node | _RecursiveList[Node],  # content
+            Node,  # "
+        ],
+    ) -> str:
+        if isinstance(children[1], Node):  # empty string
+            value = ""
+        else:
+            value = "".join(node.text for node in flatten(children[1]))
 
         return f'"{value}"'
 
@@ -1230,8 +1245,19 @@ class SearchVisitor(NodeVisitor):
 
         return node.text.replace('\\"', '"')
 
-    def visit_quoted_value(self, node, children):
-        value = "".join(node.text for node in flatten(children[1]))
+    def visit_quoted_value(
+        self,
+        node: Node,
+        children: tuple[
+            Node,  # "
+            Node | _RecursiveList[Node],  # content
+            Node,  # "
+        ],
+    ) -> str:
+        if isinstance(children[1], Node):  # empty string
+            value = ""
+        else:
+            value = "".join(node.text for node in flatten(children[1]))
         value = value.replace('\\"', '"')
 
         return value
