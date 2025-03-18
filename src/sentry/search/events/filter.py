@@ -527,7 +527,7 @@ key_conversion_map: dict[
 
 
 def convert_search_filter_to_snuba_query(
-    search_filter: SearchFilter,
+    search_filter: AggregateFilter | SearchFilter,
     key: str | None = None,
     params: FilterConvertParams | None = None,
 ) -> Sequence[Any] | None:

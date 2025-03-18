@@ -5,7 +5,7 @@ import logging
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from sentry.api.event_search import SearchFilter, parse_search_query
+from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.post_process import generate_normalized_output
@@ -61,7 +61,7 @@ def delete_replays(
             delete_replay_ids(project_id, replay_ids=[r["id"] for r in replays])
 
 
-def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[SearchFilter]:
+def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:
     return parse_search_query(" AND ".join(tags), config=replay_url_parser_config)
 
 

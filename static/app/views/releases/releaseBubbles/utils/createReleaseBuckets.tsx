@@ -1,5 +1,5 @@
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 
 //
 // Note: You probably don't want to use this directly, use `useReleaseBubbles`
@@ -22,6 +22,7 @@ import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/rele
 export function createReleaseBuckets(
   minTime: number | undefined,
   maxTime: number | undefined,
+  finalTime: number,
   releases: ReleaseMetaBasic[],
   desiredBuckets = 10
 ): Bucket[] {
@@ -46,8 +47,15 @@ export function createReleaseBuckets(
     const bucketStartTs = minTime + i * interval;
     // Ending timestamp will clump in the remaining bits if it's not
     // evenly distributed
-    const bucketEndTs = i === desiredBuckets - 1 ? maxTime : bucketStartTs + interval;
-    buckets.push({start: bucketStartTs, end: bucketEndTs, releases: []});
+    const isLastBucket = i === desiredBuckets - 1;
+    const bucketEndTs = isLastBucket ? maxTime : bucketStartTs + interval;
+    const item: Bucket = {start: bucketStartTs, end: bucketEndTs, releases: []};
+
+    if (isLastBucket) {
+      item.final = finalTime;
+    }
+
+    buckets.push(item);
   }
 
   // Loop through releases and update its bucket's counters
@@ -56,19 +64,34 @@ export function createReleaseBuckets(
       break;
     }
 
-    // We can determine the releaase's bucket location by using its timestamp
+    // We can determine the release's bucket location by using its timestamp
     // relative to the series starting timestamp.
     const releaseTs = new Date(release.date).getTime();
     const bucketIndex = Math.floor((releaseTs - minTime) / interval);
     const currentBucket = buckets[bucketIndex];
     const bucketEndTs = currentBucket?.end;
 
-    // Note we need to check that the release ts is within the ending bounds, solely for
-    // the last bucket, as the last buckets width can be less than the
-    // others. (i.e. if the total time difference is not perfectly divible by
-    // `desiredBuckets`, the last bucket will be the remainder)
-    if (bucketEndTs && releaseTs <= bucketEndTs) {
+    // Note that `maxTime` represents the position on the xaxis (time) of the
+    // last data point. That timestamp corresponds to data at "timestamp" +
+    // "interval", (e.g. if tooltip says 1:00 and interval between points is
+    // 30 minutes, the data collected is between 1:00 and 1:30).
+    //
+    // The release buckets are different because it has a start and end range
+    // and for its last bucket, it's ending boundary is `maxTime` to
+    // correspond to the chart. We cannot change `maxTime` for the buckets
+    // otherwise we will draw bubbles past the chart data and it would look
+    // broken.
+    //
+    // For now we're going to assume that releases will always fall inbounds
+    // and stick any releases with timestamp > `maxLife` into the last
+    // bucket. The tooltip will be slightly wrong because it will leave out
+    // the last interval.
+    if (bucketEndTs) {
       currentBucket.releases.push(release);
+    } else if (releaseTs > maxTime) {
+      // If we couldn't find a bucket, add release to latest bucket
+      const lastBucket = buckets.at(-1);
+      lastBucket?.releases.push(release);
     }
   }
 

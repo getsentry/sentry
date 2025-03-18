@@ -66,14 +66,21 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 
 # TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    score_column = cast(str, args[0])
-    ratio_column_name = score_column.replace("measurements.score", "score.ratio")
-    if ratio_column_name == "score.ratio.total":
-        ratio_column_name = "score.total"
-    attribute_key = AttributeKey(name=ratio_column_name, type=AttributeKey.TYPE_DOUBLE)
-    filter = TraceItemFilter(exists_filter=ExistsFilter(key=attribute_key))
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
 
-    return (attribute_key, filter)
+    return (ratio_attribute, filter)
+
+
+def transform_vital_score_to_ratio(args: ResolvedArguments) -> AttributeKey:
+    score_attribute = cast(AttributeKey, args[0])
+    score_name = score_attribute.name
+
+    ratio_score_name = score_name.replace("score", "score.ratio")
+    if ratio_score_name == "score.ratio.total":
+        ratio_score_name = "score.total"
+    return AttributeKey(name=ratio_score_name, type=AttributeKey.TYPE_DOUBLE)
 
 
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
@@ -113,9 +120,14 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             ArgumentDefinition(
-                argument_types={"string"},
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
-                is_attribute=False,
             )
         ],
         aggregate_resolver=resolve_count_scores,
@@ -354,5 +366,22 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 argument_types={"string"},
             )
         ],
+    ),
+    "performance_score": AggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        attribute_resolver=transform_vital_score_to_ratio,
     ),
 }

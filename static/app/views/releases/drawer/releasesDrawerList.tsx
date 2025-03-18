@@ -5,8 +5,8 @@ import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
