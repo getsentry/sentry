@@ -211,6 +211,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         ? FALLBACK_TYPE
         : undefined;
 
+  if (leftYAxisType === FALLBACK_TYPE && rightYAxisType !== FALLBACK_TYPE) {
+    warn(
+      '`TimeSeriesWidgetVisualization` assigned fallback to left Y axis instead of right Y axis',
+      {
+        labels: props.plottables.map(plottable => plottable.label),
+        leftYAxisType,
+        rightYAxisType,
+      }
+    );
+  }
+
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>
     uniq(plottables.map(plottable => plottable.dataUnit))
