@@ -486,6 +486,7 @@ def _respond_with_error(reason: str, status: int):
 
 
 def _call_autofix(
+    *,
     user: User | AnonymousUser,
     group: Group,
     repos: list[dict],
@@ -495,6 +496,7 @@ def _call_autofix(
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
+    auto_run_source: str | None = None,
 ):
     path = "/v1/automation/autofix/start"
     body = orjson.dumps(
@@ -523,6 +525,7 @@ def _call_autofix(
             ),
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
+                "auto_run_source": auto_run_source,
             },
         },
         option=orjson.OPT_NON_STR_KEYS,
@@ -549,6 +552,7 @@ def trigger_autofix(
     user: User | AnonymousUser,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
+    auto_run_source: str | None = None,
 ):
     if event_id is None:
         event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
@@ -602,15 +606,16 @@ def trigger_autofix(
 
     try:
         run_id = _call_autofix(
-            user,
-            group,
-            repos,
-            serialized_event,
-            profile,
-            trace_tree,
-            instruction,
-            TIMEOUT_SECONDS,
-            pr_to_comment_on_url,
+            user=user,
+            group=group,
+            repos=repos,
+            serialized_event=serialized_event,
+            profile=profile,
+            trace_tree=trace_tree,
+            instruction=instruction,
+            timeout_secs=TIMEOUT_SECONDS,
+            pr_to_comment_on_url=pr_to_comment_on_url,
+            auto_run_source=auto_run_source,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")

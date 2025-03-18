@@ -1008,14 +1008,14 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify the function calls
         mock_call.assert_called_once()
-        call_args = mock_call.call_args[0]
-        assert call_args[0] == test_user  # user
-        assert call_args[1] == group  # group
-        assert call_args[4] == {"profile_data": "test"}  # profile
-        assert call_args[5] == {"trace_data": "test"}  # trace tree
-        assert call_args[6] == "Test instruction"  # instruction
-        assert call_args[7] == TIMEOUT_SECONDS  # timeout
-        assert call_args[8] == "https://github.com/getsentry/sentry/pull/123"  # PR URL
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["user"] == test_user
+        assert call_kwargs["group"] == group
+        assert call_kwargs["profile"] == {"profile_data": "test"}
+        assert call_kwargs["trace_tree"] == {"trace_data": "test"}
+        assert call_kwargs["instruction"] == "Test instruction"
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
+        assert call_kwargs["pr_to_comment_on_url"] == "https://github.com/getsentry/sentry/pull/123"
 
         # Verify check_autofix_status was scheduled
         mock_check_autofix_status.assert_called_once_with(
@@ -1093,17 +1093,17 @@ class TestCallAutofix(TestCase):
         trace_tree = {"trace_data": "test"}
         instruction = "Test instruction"
 
-        # Call the function
+        # Call the function with keyword arguments
         run_id = _call_autofix(
-            user,
-            group,
-            repos,
-            serialized_event,
-            profile,
-            trace_tree,
-            instruction,
-            TIMEOUT_SECONDS,
-            "https://github.com/getsentry/sentry/pull/123",
+            user=user,
+            group=group,
+            repos=repos,
+            serialized_event=serialized_event,
+            profile=profile,
+            trace_tree=trace_tree,
+            instruction=instruction,
+            timeout_secs=TIMEOUT_SECONDS,
+            pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
         )
 
         # Verify the result
