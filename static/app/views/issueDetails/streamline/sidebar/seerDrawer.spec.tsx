@@ -15,9 +15,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
-import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
+import {SeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
-describe('SolutionsHubDrawer', () => {
+describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
     genAIConsent: true,
     hideAiFeatures: false,
@@ -120,10 +120,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
 
@@ -144,10 +143,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
 
@@ -176,10 +174,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -204,10 +201,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
 
@@ -235,10 +231,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -274,10 +269,9 @@ describe('SolutionsHubDrawer', () => {
         resources: null,
       }));
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -306,10 +300,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -337,10 +330,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -359,10 +351,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
@@ -373,10 +364,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
     expect(
@@ -391,10 +381,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     const startOverButton = await screen.findByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
@@ -423,10 +412,9 @@ describe('SolutionsHubDrawer', () => {
       body: [],
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
 
@@ -442,7 +430,7 @@ describe('SolutionsHubDrawer', () => {
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
   });
 
-  it('does not render SolutionsHubNotices when all repositories are readable', async () => {
+  it('does not render SeerNotices when all repositories are readable', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
@@ -456,10 +444,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: mockAutofixWithReadableRepos},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -483,10 +470,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: mockAutofixWithUnreadableGithubRepos},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -511,10 +497,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: mockAutofixWithUnreadableNonGithubRepos},
     });
 
-    render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
-      {organization}
-    );
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')

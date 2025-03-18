@@ -10,11 +10,11 @@ import {EntryType} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import * as RegionUtils from 'sentry/utils/regions';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
+import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 
 jest.mock('sentry/utils/regions');
 
-describe('SolutionsSection', () => {
+describe('SeerSection', () => {
   const mockEvent = EventFixture({
     entries: [
       {
@@ -46,9 +46,7 @@ describe('SolutionsSection', () => {
 
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
-      body: {
-        steps: [],
-      },
+      body: {steps: []},
     });
   });
 
@@ -57,17 +55,12 @@ describe('SolutionsSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
-      body: {
-        whatsWrong: mockSummary,
-      },
+      body: {whatsWrong: mockSummary},
     });
 
-    render(
-      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-      {
-        organization,
-      }
-    );
+    render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(screen.getByText(mockSummary)).toBeInTheDocument();
@@ -88,20 +81,15 @@ describe('SolutionsSection', () => {
       platform: 'javascript',
     };
 
-    const javascriptProject: Project = {
-      ...mockProject,
-      platform: 'javascript',
-    };
+    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
 
     render(
-      <SolutionsSection
+      <SeerSection
         event={mockEvent}
         group={disabledIssueSummaryGroup}
         project={javascriptProject}
       />,
-      {
-        organization: customOrganization,
-      }
+      {organization: customOrganization}
     );
 
     expect(screen.getByText('How to fix ChunkLoadErrors')).toBeInTheDocument();
@@ -121,20 +109,15 @@ describe('SolutionsSection', () => {
       platform: 'javascript',
     };
 
-    const javascriptProject: Project = {
-      ...mockProject,
-      platform: 'javascript',
-    };
+    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
 
     render(
-      <SolutionsSection
+      <SeerSection
         event={mockEvent}
         group={disabledIssueSummaryGroup}
         project={javascriptProject}
       />,
-      {
-        organization: customOrganization,
-      }
+      {organization: customOrganization}
     );
 
     const readMoreButton = screen.getByRole('button', {name: 'READ MORE'});
@@ -149,7 +132,7 @@ describe('SolutionsSection', () => {
     expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
   });
 
-  describe('Solutions Hub button text', () => {
+  describe('Seer button text', () => {
     it('shows "Set Up Autofix" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
@@ -166,12 +149,9 @@ describe('SolutionsSection', () => {
         },
       });
 
-      render(
-        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-        {
-          organization: customOrganization,
-        }
-      );
+      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+        organization: customOrganization,
+      });
 
       await waitFor(() => {
         expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
@@ -196,17 +176,12 @@ describe('SolutionsSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
         method: 'POST',
-        body: {
-          whatsWrong: 'Test summary',
-        },
+        body: {whatsWrong: 'Test summary'},
       });
 
-      render(
-        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-        {
-          organization,
-        }
-      );
+      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+        organization,
+      });
 
       await waitFor(() => {
         expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
@@ -229,17 +204,12 @@ describe('SolutionsSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
         method: 'POST',
-        body: {
-          whatsWrong: 'Test summary',
-        },
+        body: {whatsWrong: 'Test summary'},
       });
 
-      render(
-        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-        {
-          organization,
-        }
-      );
+      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+        organization,
+      });
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
@@ -254,10 +224,7 @@ describe('SolutionsSection', () => {
         platform: 'javascript',
       };
 
-      const javascriptProject: Project = {
-        ...mockProject,
-        platform: 'javascript',
-      };
+      const javascriptProject: Project = {...mockProject, platform: 'javascript'};
 
       // Mock config with autofix disabled
       MockApiClient.addMockResponse({
@@ -270,14 +237,12 @@ describe('SolutionsSection', () => {
       });
 
       render(
-        <SolutionsSection
+        <SeerSection
           event={mockEvent}
           group={disabledIssueSummaryGroup}
           project={javascriptProject}
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(await screen.findByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
@@ -303,17 +268,12 @@ describe('SolutionsSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
         method: 'POST',
-        body: {
-          whatsWrong: 'Test summary',
-        },
+        body: {whatsWrong: 'Test summary'},
       });
 
-      render(
-        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-        {
-          organization,
-        }
-      );
+      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+        organization,
+      });
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       expect(
