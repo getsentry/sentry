@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
@@ -26,8 +25,6 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
 
-  const theme = useTheme();
-
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedFilterKeys = useMemo(() => {
@@ -49,18 +46,10 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       return sortedHints;
     }
 
-    const searchFor = JSON.stringify(searchQuery)
-      // it replaces double backslash generate by JSON.stringify with single backslash
-      .replace(/((^")|("$))/g, '')
-      .toLocaleLowerCase()
-      .trim();
+    const searchFor = searchQuery.toLocaleLowerCase().trim();
 
     return sortedHints.filter(hint =>
-      JSON.stringify(prettifyTagKey(hint.key))
-        .replace(/((^")|("$))/g, '')
-        .toLocaleLowerCase()
-        .trim()
-        .includes(searchFor)
+      prettifyTagKey(hint.key).toLocaleLowerCase().trim().includes(searchFor)
     );
   }, [sortedHints, searchQuery]);
 
@@ -90,19 +79,48 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       <p>{t('No attributes found.')}</p>
     </NoAttributesMessage>
   );
+
+  const HintItem = memo(
+    ({hint}: {hint: Tag}) => {
+      const hintFieldDefinition = useMemo(
+        () => getFieldDefinition(hint.key, 'span', hint.kind),
+        [hint.key, hint.kind]
+      );
+
+      const hintType = useMemo(
+        () =>
+          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
+            ? t('boolean')
+            : hint.kind === FieldKind.MEASUREMENT
+              ? t('number')
+              : t('string'),
+        [hintFieldDefinition?.valueType, hint.kind]
+      );
+      return (
+        <StyledMultipleCheckboxItem
+          key={hint.key}
+          value={hint.key}
+          onChange={() => handleCheckboxChange(hint)}
+        >
+          <CheckboxLabelContainer>
+            <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+            <Badge>{hintType}</Badge>
+          </CheckboxLabelContainer>
+        </StyledMultipleCheckboxItem>
+      );
+    },
+    (prevProps, nextProps) => {
+      return prevProps.hint.key === nextProps.hint.key;
+    }
+  );
+
   return (
     <Fragment>
       <DrawerHeader hideBar />
       <DrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
-          <InputGroup
-            css={css`
-              @media (max-width: ${theme.breakpoints.medium}) {
-                max-width: 175px;
-              }
-            `}
-          >
+          <StyledInputGroup>
             <SearchInput
               size="sm"
               value={searchQuery}
@@ -112,36 +130,12 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
             <InputGroup.TrailingItems disablePointerEvents>
               <IconSearch size="md" />
             </InputGroup.TrailingItems>
-          </InputGroup>
+          </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
           {sortedAndFilteredHints.length === 0
             ? noAttributesMessage
-            : sortedAndFilteredHints.map(hint => {
-                const hintFieldDefinition = getFieldDefinition(
-                  hint.key,
-                  'span',
-                  hint.kind
-                );
-                const hintType =
-                  hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-                    ? t('boolean')
-                    : hint.kind === FieldKind.MEASUREMENT
-                      ? t('number')
-                      : t('string');
-                return (
-                  <StyledMultipleCheckboxItem
-                    key={hint.key}
-                    value={hint.key}
-                    onChange={() => handleCheckboxChange(hint)}
-                  >
-                    <CheckboxLabelContainer>
-                      <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
-                      <Badge>{hintType}</Badge>
-                    </CheckboxLabelContainer>
-                  </StyledMultipleCheckboxItem>
-                );
-              })}
+            : sortedAndFilteredHints.map(hint => <HintItem key={hint.key} hint={hint} />)}
         </StyledMultipleCheckbox>
       </DrawerBody>
     </Fragment>
@@ -217,4 +211,10 @@ const NoAttributesMessage = styled('div')`
   align-items: center;
   margin-top: ${space(4)};
   color: ${p => p.theme.subText};
+`;
+
+const StyledInputGroup = styled(InputGroup)`
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    max-width: 175px;
+  }
 `;
