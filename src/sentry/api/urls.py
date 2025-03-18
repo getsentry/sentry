@@ -27,6 +27,10 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_trace_item_attributes import (
+    OrganizationTraceItemAttributesEndpoint,
+    OrganizationTraceItemAttributeValuesEndpoint,
+)
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
@@ -1443,6 +1447,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-traces-stats",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/$",
+        OrganizationTraceItemAttributesEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",
+        OrganizationTraceItemAttributeValuesEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attribute-values",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/$",
         OrganizationSpansFieldsEndpoint.as_view(),
         name="sentry-api-0-organization-spans-fields",
@@ -2495,7 +2509,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rules",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$",
         ProjectReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-details",
     ),

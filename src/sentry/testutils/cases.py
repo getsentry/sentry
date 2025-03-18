@@ -3424,6 +3424,8 @@ class OurLogTestCase(BaseTestCase):
         # Add all extra data fields
         log.update(extra_data)
 
+        print(log)
+
         return log
 
 

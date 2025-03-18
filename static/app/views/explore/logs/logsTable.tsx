@@ -28,6 +28,7 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
@@ -51,6 +52,11 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const highlightTerms = getLogBodySearchTerms(search);
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
+
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
+
+  console.log(numberTags, stringTags);
 
   return (
     <Fragment>
