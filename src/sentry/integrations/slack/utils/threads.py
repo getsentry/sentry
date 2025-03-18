@@ -1,14 +1,14 @@
 import logging
 from datetime import datetime
 
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_notification_action_repository
+from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
     NotificationActionNotificationMessageRepository,
-    NotificationMessageValidationError,
 )
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.models.group import GroupEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models.action import Action
