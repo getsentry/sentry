@@ -92,11 +92,7 @@ export function TourContextProvider<T extends TourEnumType>({
           if (tourKey) {
             mutate({guide: tourKey, status: 'dismissed'});
           }
-          trackAnalytics('tour-guide.close', {
-            organization,
-            id: `${currentStepId}`,
-            mechanism: 'esc_key',
-          });
+          trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
           dispatch({type: 'END_TOUR'});
         },
       },
@@ -326,11 +322,7 @@ export function TourGuide({
                           {isDismissVisible && (
                             <TourCloseButton
                               onClick={e => {
-                                trackAnalytics('tour-guide.close', {
-                                  organization,
-                                  id,
-                                  mechanism: 'close_button',
-                                });
+                                trackAnalytics('tour-guide.dismiss', {organization, id});
                                 handleDismiss(e);
                               }}
                               icon={<IconClose style={{color: darkTheme.textColor}} />}
