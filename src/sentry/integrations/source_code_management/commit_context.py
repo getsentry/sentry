@@ -200,7 +200,7 @@ class CommitContextIntegration(ABC):
             try:
                 client = self.get_client()
                 merge_commit_sha = client.get_merge_commit_sha_from_commit(
-                    repo=repo.name, sha=commit.key
+                    repo=repo, sha=commit.key
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
@@ -395,5 +395,5 @@ class CommitContextClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+    def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise NotImplementedError
