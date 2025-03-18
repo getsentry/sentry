@@ -38,6 +38,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     get_action_filter,
     get_detector_trigger,
     get_resolve_threshold,
+    get_workflow_name,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -70,7 +71,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
 
     workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-    assert workflow.name == alert_rule.name
+    assert workflow.name == get_workflow_name(alert_rule)
     assert workflow.organization_id == alert_rule.organization.id
     detector = Detector.objects.get(id=alert_rule_detector.detector.id)
     assert detector.name == alert_rule.name
