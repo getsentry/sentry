@@ -200,15 +200,17 @@ class FrameMatch(EnhancementMatch):
 
     def _to_config_structure(self, version):
         if self.key == "family":
-            arg = "".join(
+            value_to_match = "".join(
                 _f for _f in [FAMILIES.get(family) for family in self.pattern.split(",")] if _f
             )
         elif self.key == "app":
             boolified_pattern = bool_from_string(self.pattern)
-            arg = "1" if boolified_pattern is True else "0" if boolified_pattern is False else ""
+            value_to_match = (
+                "1" if boolified_pattern is True else "0" if boolified_pattern is False else ""
+            )
         else:
-            arg = self.pattern
-        return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
+            value_to_match = self.pattern
+        return ("!" if self.negated else "") + MATCH_KEYS[self.key] + value_to_match
 
 
 def path_like_match(pattern, value):
