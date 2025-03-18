@@ -47,7 +47,7 @@ class EnhancementRule:
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [str(x) for x in self.actions]}
+        return {"match": matchers, "actions": [str(action) for action in self.actions]}
 
     def get_matching_frame_actions(
         self,
