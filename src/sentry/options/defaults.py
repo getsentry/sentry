@@ -989,7 +989,7 @@ register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 33250,
+        "error_limit": 33250,  # 95% error rate * avg volume of ~35K events with new hashes/10 min
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
