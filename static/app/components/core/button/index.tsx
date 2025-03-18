@@ -322,7 +322,7 @@ function BaseButton({
   }
 
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
+    <Tooltip skipWrapper {...tooltipProps} title={title}>
       {button}
     </Tooltip>
   );
