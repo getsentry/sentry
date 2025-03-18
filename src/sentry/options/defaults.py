@@ -985,15 +985,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Note: This is based on US volume. Since other regions are lower-traffic, this effectively means
+# the circuit breaker is disabled for any region without its own values configured (you can hardly
+# have 33K Seer errors if you don't even have 33K events, so the breaker will never be tripped in
+# smaller regions relying on the default).
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 33250,
+        "error_limit": 33250,  # 95% error rate * avg volume of ~35K events with new hashes/10 min
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
