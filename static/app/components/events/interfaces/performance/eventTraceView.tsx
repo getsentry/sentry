@@ -179,7 +179,12 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
 
-  if (!traceId) {
+  // Performance issues have a Span Evidence section that contains the trace view
+  const isHiddenForPerformanceIssues =
+    group.issueCategory === IssueCategory.PERFORMANCE &&
+    organization.features.includes('issue-details-new-performance-trace-view');
+
+  if (!traceId || isHiddenForPerformanceIssues) {
     return null;
   }
 
