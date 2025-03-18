@@ -60,17 +60,19 @@ x-sentry-service-config:
       description: Messaging and streaming broker
     memcached:
       description: Memcached used for caching
+    spotlight:
+      description: Spotlight server for local debugging
 
   modes:
-    default: [snuba, postgres, relay]
+    default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
-    taskbroker: [snuba, postgres, relay, taskbroker]
+    taskbroker: [snuba, postgres, relay, taskbroker, spotlight]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
-    rabbitmq: [postgres, snuba, rabbitmq]
-    symbolicator: [postgres, snuba, symbolicator]
-    memcached: [postgres, snuba, memcached]
-    profiling: [postgres, snuba, vroom]
+    rabbitmq: [postgres, snuba, rabbitmq, spotlight]
+    symbolicator: [postgres, snuba, symbolicator, spotlight]
+    memcached: [postgres, snuba, memcached, spotlight]
+    profiling: [postgres, snuba, vroom, spotlight]
     minimal: [postgres, snuba]
     full:
       [
@@ -83,6 +85,7 @@ x-sentry-service-config:
         taskbroker,
         rabbitmq,
         vroom,
+        spotlight,
       ]
 
 services:
@@ -159,6 +162,15 @@ services:
       - devservices
     extra_hosts:
       - host.docker.internal:host-gateway
+  spotlight:
+    image: ghcr.io/getsentry/spotlight:latest
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8969:8969/tcp'
+    networks:
+      - devservices
+    labels:
+      - orchestrator=devservices
 
 networks:
   devservices:
