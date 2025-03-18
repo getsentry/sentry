@@ -5,6 +5,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NavTabs from 'sentry/components/navTabs';
+import ConfigStore from 'sentry/stores/configStore';
 
 import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 import PlanList from 'admin/components/planList';
@@ -74,6 +75,10 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       ['am2BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am2`],
       ['am3BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am3`],
     ];
+  }
+
+  hasProvisionPermission() {
+    return ConfigStore.get('user')?.permissions?.has?.('billing.provision');
   }
 
   handleConfirm = async () => {
@@ -340,21 +345,23 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
               MM2
             </a>
           </li>
-          <li className={activeTier === PlanTier.TEST ? 'active' : ''}>
-            <a
-              data-test-id="test-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.TEST,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              TEST
-            </a>
-          </li>
+          {this.hasProvisionPermission() && (
+            <li className={activeTier === PlanTier.TEST ? 'active' : ''}>
+              <a
+                data-test-id="test-tier"
+                onClick={() =>
+                  this.setState({
+                    activeTier: PlanTier.TEST,
+                    billingInterval: MONTHLY,
+                    contractInterval: MONTHLY,
+                    plan: null,
+                  })
+                }
+              >
+                TEST
+              </a>
+            </li>
+          )}
         </NavTabs>
         <ul className="nav nav-pills">
           <li
