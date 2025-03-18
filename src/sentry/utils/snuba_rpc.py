@@ -256,6 +256,7 @@ def _make_rpc_request(
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
             with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
+                print(str(req))
                 if referrer:
                     span.set_tag("snuba.referrer", referrer)
                     span.set_data("snuba.query", req)

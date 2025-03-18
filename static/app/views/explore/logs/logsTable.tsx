@@ -28,9 +28,10 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
@@ -53,8 +54,14 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {attributes: numberTags} = useTraceItemAttributeKeys({
+    dataset: TraceItemDataset.LOGS,
+    type: 'number',
+  });
+  const {attributes: stringTags} = useTraceItemAttributeKeys({
+    dataset: TraceItemDataset.LOGS,
+    type: 'string',
+  });
 
   console.log(numberTags, stringTags);
 

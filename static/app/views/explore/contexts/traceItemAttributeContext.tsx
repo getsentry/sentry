@@ -6,7 +6,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import {SENTRY_SPAN_NUMBER_TAGS, SENTRY_SPAN_STRING_TAGS} from '../constants';
-import {useTypedTraceItemAttributes} from '../hooks/useTypedTraceItemAttributes';
+import {useTraceItemAttributeKeys} from '../hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from '../types';
 
 type TypedTraceItemAttributes = {number: TagCollection; string: TagCollection};
@@ -39,14 +39,14 @@ export function TraceItemAttributeProvider({
   });
 
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useTypedTraceItemAttributes({
+    useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       dataset,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useTypedTraceItemAttributes({
+    useTraceItemAttributeKeys({
       enabled,
       type: 'string',
       dataset,

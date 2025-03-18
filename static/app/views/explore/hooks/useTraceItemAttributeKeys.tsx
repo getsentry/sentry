@@ -9,7 +9,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export function useTypedTraceItemAttributes({
+export function useTraceItemAttributeKeys({
   enabled,
   type,
   dataset,
@@ -28,7 +28,7 @@ export function useTypedTraceItemAttributes({
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
       dataset,
-      type,
+      attribute_type: type,
     },
   };
 
