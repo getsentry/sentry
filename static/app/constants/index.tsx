@@ -256,7 +256,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
 };
 
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
-export const DATA_CATEGORY_INFO = {
+export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
@@ -375,7 +375,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
-    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    isBilledCategory: true,
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
@@ -385,7 +385,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('UI Profile Hours'),
     productName: t('UI Profiling'),
     uid: 25,
-    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    isBilledCategory: true,
   },
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
