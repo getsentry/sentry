@@ -13,7 +13,6 @@ class GroupSearchViewSerializerResponse(TypedDict):
     name: str
     query: str
     querySort: SORT_LITERALS
-    position: int
     projects: list[int]
     isAllProjects: bool
     environments: list[str]
@@ -21,6 +20,10 @@ class GroupSearchViewSerializerResponse(TypedDict):
     lastVisited: str | None
     dateCreated: str
     dateUpdated: str
+
+
+class GroupSearchViewStarredSerializerResponse(GroupSearchViewSerializerResponse):
+    position: int
 
 
 @register(GroupSearchView)
@@ -67,7 +70,6 @@ class GroupSearchViewSerializer(Serializer):
             "name": obj.name,
             "query": obj.query,
             "querySort": obj.query_sort,
-            "position": obj.position,
             "projects": projects,
             "isAllProjects": is_all_projects,
             "environments": obj.environments,
@@ -86,7 +88,7 @@ class GroupSearchViewStarredSerializer(Serializer):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewStarredSerializerResponse:
         serialized_view: GroupSearchViewSerializerResponse = serialize(
             obj.group_search_view,
             user,

@@ -50,10 +50,13 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/`} end>
+            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
               {t('Feed')}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/feedback/`}
+              analyticsItemName="issues_feedback"
+            >
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
@@ -98,6 +101,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
             <SecondaryNav.Item
               to={`${baseUrl}/alerts/rules/`}
               activeTo={`${baseUrl}/alerts/`}
+              analyticsItemName="issues_alerts"
             >
               {t('Alerts')}
             </SecondaryNav.Item>
