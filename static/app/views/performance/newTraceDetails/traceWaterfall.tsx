@@ -836,7 +836,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   );
 
   useEffect(() => {
-    const loadedHeight = preferences.drawer.sizes['trace context height'];
+    const loadedHeight = preferences.drawer.sizes['trace grid height'];
 
     if (traceGridRef && typeof loadedHeight !== 'undefined') {
       setHeight(loadedHeight);

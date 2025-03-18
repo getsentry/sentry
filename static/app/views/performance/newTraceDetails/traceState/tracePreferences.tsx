@@ -22,7 +22,7 @@ type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
   sizes: {
-    [key in TraceLayoutPreferences | 'trace context height']: number;
+    [key in TraceLayoutPreferences | 'trace grid height']: number;
   };
 };
 
@@ -43,7 +43,7 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer left': 0.33,
   'drawer right': 0.33,
   'drawer bottom': 0.5,
-  'trace context height': 150,
+  'trace grid height': 150,
 };
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
@@ -53,7 +53,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.5,
-      'trace context height': 150,
+      'trace grid height': 150,
     },
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
