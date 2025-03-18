@@ -1,24 +1,16 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
 
-export default function UserHealthRateChart({view}: {view: string}) {
-  const {series, isPending, error} = useUserHealthBreakdown({
-    type: 'rate',
-  });
-  const frontendPath = view === FRONTEND_LANDING_SUB_PATH;
+export default function UserHealthRateChart() {
+  const {series, isPending, error} = useUserHealthBreakdown({type: 'rate'});
 
   const aliases = {
-    healthy_user_rate: t('Healthy user rate'),
-    crashed_user_rate: frontendPath
-      ? t('Unhandled error user rate')
-      : t('Crashed user rate'),
-    errored_user_rate: frontendPath
-      ? t('Handled error user rate')
-      : t('Errored user rate'),
-    abnormal_user_rate: t('Abnormal user rate'),
+    healthy_user_rate: 'rate_healthy(user)',
+    crashed_user_rate: 'rate_crashed(user)',
+    errored_user_rate: 'rate_errored(user)',
+    abnormal_user_rate: 'rate_abnormal(user)',
   };
 
   return (
@@ -39,6 +31,9 @@ export default function UserHealthRateChart({view}: {view: string}) {
       series={series}
       isLoading={isPending}
       error={error}
+      legendSelection={{
+        [aliases.healthy_user_rate]: false,
+      }}
     />
   );
 }

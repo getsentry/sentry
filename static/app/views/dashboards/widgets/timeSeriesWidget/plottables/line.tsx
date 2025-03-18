@@ -25,7 +25,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
 
     const plottableSeries: LineSeriesOption[] = [];
 
-    const commonOptions = {
+    const commonOptions: LineSeriesOption = {
       name: this.label,
       color,
       animation: false,
