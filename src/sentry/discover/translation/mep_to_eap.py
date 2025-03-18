@@ -4,6 +4,7 @@ from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
 from sentry.search.events import fields
+from sentry.snuba.metrics import parse_mri
 
 
 class QueryParts(TypedDict):
@@ -20,6 +21,10 @@ def apply_is_segment_condition(query: str) -> str:
 
 
 def column_switcheroo(term):
+    parsed_mri = parse_mri(term)
+    if parsed_mri:
+        term = parsed_mri.name
+
     if term == "transaction.duration":
         return "span.duration"
 

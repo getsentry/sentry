@@ -30,6 +30,10 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "count(   ):<10",
             "(count(span.duration):<10) AND is_transaction:1",
         ),
+        pytest.param(
+            "sum(c:spans/ai.total_cost@usd):<10",
+            "(sum(ai.total_cost):<10) AND is_transaction:1",
+        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str):
