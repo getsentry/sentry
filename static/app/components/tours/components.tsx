@@ -67,6 +67,7 @@ export function TourContextProvider<T extends TourEnumType>({
   omitBlur,
   orderedStepIds,
 }: TourContextProviderProps<T>) {
+  const organization = useOrganization();
   const {mutate} = useMutateAssistant();
   const tourContextValue = useTourReducer<T>({
     isAvailable,
@@ -91,13 +92,18 @@ export function TourContextProvider<T extends TourEnumType>({
           if (tourKey) {
             mutate({guide: tourKey, status: 'dismissed'});
           }
+          trackAnalytics('tour-guide.close', {
+            organization,
+            id: `${currentStepId}`,
+            mechanism: 'esc_key',
+          });
           dispatch({type: 'END_TOUR'});
         },
       },
       {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
       {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
     ];
-  }, [dispatch, mutate, tourKey, isTourActive]);
+  }, [dispatch, mutate, tourKey, isTourActive, organization, currentStepId]);
 
   useHotkeys(tourHotkeys);
 
@@ -320,7 +326,11 @@ export function TourGuide({
                           {isDismissVisible && (
                             <TourCloseButton
                               onClick={e => {
-                                trackAnalytics('tour-guide.close', {organization, id});
+                                trackAnalytics('tour-guide.close', {
+                                  organization,
+                                  id,
+                                  mechanism: 'close_button',
+                                });
                                 handleDismiss(e);
                               }}
                               icon={<IconClose style={{color: darkTheme.textColor}} />}
