@@ -429,6 +429,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
+    def test_invalid_duration(self):
+        with pytest.raises(InvalidSearchQuery) as excinfo:
+            parse_search_query("transaction.duration:>1111111111w")
+        (msg,) = excinfo.value.args
+        assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
+
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
@@ -448,6 +454,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 value=SearchValue(3 * 1000 * 60),
             ),
         ]
+
+    def test_invalid_aggregate_duration(self):
+        with pytest.raises(InvalidSearchQuery) as excinfo:
+            parse_search_query("trend_difference():>1111111111w")
+        (msg,) = excinfo.value.args
+        assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_numeric_measurement_filter(self, mock_type):
