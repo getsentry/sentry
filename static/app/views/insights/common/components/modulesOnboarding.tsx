@@ -277,7 +277,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   ai: {
-    heading: t('Find out what your LLM model is actually saying'),
+    heading: t('Find out what your LLM is actually saying'),
     description: tct(
       'Get insights into critical [dataType] metrics, like token usage, to monitor and fix issues with AI pipelines.',
       {
