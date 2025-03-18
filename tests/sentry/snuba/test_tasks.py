@@ -306,11 +306,11 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                 == "http.client"
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.aggregate
                 == FUNCTION_COUNT
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.key.name
                 == "sentry.duration_ms"
             )
             # Validate that the spm function uses the correct time window
