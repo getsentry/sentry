@@ -1153,7 +1153,7 @@ class TestRespondWithError(TestCase):
 class TestBuildSpansTree(TestCase):
     def test_build_spans_tree_basic(self):
         """Test that a simple list of spans is correctly converted to a tree."""
-        spans_data = [
+        spans_data: list[dict] = [
             {
                 "span_id": "root-span",
                 "parent_span_id": None,
@@ -1200,7 +1200,7 @@ class TestBuildSpansTree(TestCase):
 
     def test_build_spans_tree_multiple_roots(self):
         """Test that spans with multiple roots are correctly handled."""
-        spans_data = [
+        spans_data: list[dict] = [
             {
                 "span_id": "root1",
                 "parent_span_id": None,
@@ -1243,7 +1243,7 @@ class TestBuildSpansTree(TestCase):
 
     def test_build_spans_tree_orphaned_parent(self):
         """Test that spans with parent_span_id not in the data are treated as roots."""
-        spans_data = [
+        spans_data: list[dict] = [
             {
                 "span_id": "span1",
                 "parent_span_id": "non-existent-parent",
@@ -1274,7 +1274,7 @@ class TestBuildSpansTree(TestCase):
 
     def test_build_spans_tree_missing_span_ids(self):
         """Test that spans without span_ids are ignored."""
-        spans_data = [
+        spans_data: list[dict] = [
             {
                 "span_id": "valid-span",
                 "parent_span_id": None,
@@ -1305,7 +1305,7 @@ class TestBuildSpansTree(TestCase):
 
     def test_build_spans_tree_duration_sorting(self):
         """Test that spans are correctly sorted by duration."""
-        spans_data = [
+        spans_data: list[dict] = [
             {
                 "span_id": "root",
                 "parent_span_id": None,
