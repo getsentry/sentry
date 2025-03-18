@@ -22,7 +22,7 @@ from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import options
-from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
+from sentry.api.event_search import ParenExpression, QueryToken, SearchConfig, SearchFilter
 from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
@@ -57,7 +57,7 @@ def query_replays_collection_paginated(
     sort: str | None,
     limit: int,
     offset: int,
-    search_filters: Sequence[SearchFilter],
+    search_filters: Sequence[QueryToken],
     preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
     actor: Any | None = None,
