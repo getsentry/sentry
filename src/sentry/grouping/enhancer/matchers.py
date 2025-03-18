@@ -199,6 +199,16 @@ class FrameMatch(EnhancementMatch):
         raise NotImplementedError
 
     def _to_config_structure(self, version):
+        """
+        Convert the matcher into a string of the form
+            <match_type><match_pattern>
+        where
+            match_type is a single letter code for the match type (see MATCH_KEYS)
+            match_pattern is the value to match against
+
+        This will be preceded by a `!` if the match is negated. Families against which to match are
+        also converted to single-letter abbreviations, and in-app booleans are converted to 0 or 1.
+        """
         if self.key == "family":
             value_to_match = "".join(
                 abbreviation
