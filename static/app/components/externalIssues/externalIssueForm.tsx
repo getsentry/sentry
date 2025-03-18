@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
@@ -82,7 +82,7 @@ export default function ExternalIssueForm({
   Body,
 }: ExternalIssueFormProps) {
   const api = useApi({persistInFlight: true});
-  const modelRef = useRef(new FormModel());
+  const [model] = useState(() => new FormModel());
   const organization = useOrganization();
   const endpointString = makeIntegrationIssueConfigQueryKey({
     orgSlug: organization.slug,
@@ -268,12 +268,12 @@ export default function ExternalIssueForm({
             field,
             input,
             dynamicFieldValues,
-            model: modelRef.current,
+            model,
             successCallback: updateCache,
           }),
       });
     },
-    [updateCache, dynamicFieldValues]
+    [updateCache, dynamicFieldValues, model]
   );
 
   const formFields = useMemo(() => {
@@ -320,10 +320,10 @@ export default function ExternalIssueForm({
       isLoading={isPending || isDynamicallyRefetching}
       formProps={{
         initialData,
-        footerClass: 'modal-footer',
         onFieldChange,
+        model,
+        footerClass: 'modal-footer',
         submitDisabled: isPending || hasFormErrors,
-        model: modelRef.current,
         submitLabel: SUBMIT_LABEL_BY_ACTION[action],
         apiEndpoint: endpointString,
         apiMethod: action === 'create' ? 'POST' : 'PUT',
