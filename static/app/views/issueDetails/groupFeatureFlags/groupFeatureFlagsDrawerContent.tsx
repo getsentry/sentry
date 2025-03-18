@@ -77,7 +77,7 @@ export default function GroupFeatureFlagsDrawerContent({
   ) : (
     <Container>
       {displayTags.map((tag, tagIdx) => (
-        <FlagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
+        <FlagDetailsLink tag={tag} key={tagIdx}>
           <TagDistribution tag={tag} key={tagIdx} />
         </FlagDetailsLink>
       ))}

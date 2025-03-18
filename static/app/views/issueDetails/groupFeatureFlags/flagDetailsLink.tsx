@@ -9,7 +9,6 @@ export default function FlagDetailsLink({
   children,
 }: {
   children: React.ReactNode;
-  groupId: string;
   tag: GroupTag;
 }) {
   const location = useLocation();
