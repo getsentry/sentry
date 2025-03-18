@@ -1,6 +1,6 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -13,6 +13,17 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
+
+/**
+ * Default sizes to use for SVGIcon
+ */
+const ICON_SIZES: Partial<
+  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
+> = {
+  xs: 'xs',
+  sm: 'sm',
+  md: 'sm',
+};
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -190,17 +201,6 @@ export type LinkButtonProps =
   | HrefLinkButtonPropsWithChildren
   | HrefLinkButtonPropsWithAriaLabel;
 
-/**
- * Default sizes to use for SVGIcon
- */
-const ICON_SIZES: Partial<
-  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
-> = {
-  xs: 'xs',
-  sm: 'sm',
-  md: 'sm',
-};
-
 function BaseButton({
   size = 'md',
   to,
@@ -345,122 +345,6 @@ type StyledButtonProps =
   | StyledButtonPropsWithAriaLabel
   | StyledButtonPropsWithoutAriaLabel;
 
-const getBoxShadow = ({
-  priority,
-  borderless,
-  translucentBorder,
-  disabled,
-  size,
-  theme,
-}: StyledButtonProps) => {
-  if (disabled || borderless || priority === 'link') {
-    return 'box-shadow: none';
-  }
-
-  const themeName = disabled ? 'disabled' : priority || 'default';
-  const {borderTranslucent} = theme.button[themeName];
-  const translucentBorderString = translucentBorder
-    ? `0 0 0 1px ${borderTranslucent},`
-    : '';
-  const dropShadow = size === 'xs' ? theme.dropShadowLight : theme.dropShadowMedium;
-
-  return `
-      box-shadow: ${translucentBorderString} ${dropShadow};
-      &:active {
-        box-shadow: ${translucentBorderString} inset ${dropShadow};
-      }
-    `;
-};
-
-const getColors = ({
-  size,
-  priority,
-  disabled,
-  borderless,
-  translucentBorder,
-  theme,
-}: StyledButtonProps) => {
-  const themeName = disabled ? 'disabled' : priority || 'default';
-  const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
-    theme.button[themeName];
-
-  const getFocusState = () => {
-    switch (priority) {
-      case 'primary':
-      case 'danger':
-        return `
-          border-color: ${focusBorder};
-          box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;`;
-      default:
-        if (translucentBorder) {
-          return `
-            border-color: ${focusBorder};
-            box-shadow: ${focusBorder} 0 0 0 2px;`;
-        }
-        return `
-          border-color: ${focusBorder};
-          box-shadow: ${focusBorder} 0 0 0 1px;`;
-    }
-  };
-
-  return css`
-    color: ${color};
-    background-color: ${priority === 'primary' || priority === 'danger'
-      ? background
-      : borderless
-        ? 'transparent'
-        : background};
-
-    border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
-
-    ${translucentBorder && `border-width: 0;`}
-
-    &:hover {
-      color: ${color};
-    }
-
-    ${size !== 'zero' &&
-    `
-      &:hover,
-      &:active,
-      &[aria-expanded="true"] {
-        color: ${colorActive || color};
-        border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
-      }
-
-      &:focus-visible {
-        color: ${colorActive || color};
-        border-color: ${borderActive};
-      }
-    `}
-
-    &:focus-visible {
-      ${getFocusState()}
-      z-index: 1;
-    }
-  `;
-};
-
-const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProps) => {
-  const buttonSize = size === 'zero' ? 'md' : size;
-  const formStyles = theme.form[buttonSize];
-  const buttonPadding = theme.buttonPadding[buttonSize];
-
-  // If using translucent borders, rewrite size styles to
-  // prevent layout shifts
-  const borderStyles = translucentBorder
-    ? {
-        height: `calc(${formStyles.height} - 2px)`,
-        minHeight: `calc(${formStyles.minHeight} - 2px)`,
-        paddingTop: buttonPadding.paddingTop - 1,
-        paddingBottom: buttonPadding.paddingBottom - 1,
-        margin: 1,
-      }
-    : {};
-
-  return {...formStyles, ...buttonPadding, ...borderStyles};
-};
-
 export const StyledButton = styled(
   reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     (
@@ -513,39 +397,189 @@ export const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  position: relative;
-  display: inline-block;
-  border-radius: ${p => p.theme.borderRadius};
-  text-transform: none;
-  font-weight: ${p => p.theme.fontWeightBold};
-  ${getColors};
-  ${getSizeStyles};
-  ${getBoxShadow};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition:
-    background 0.1s,
-    border 0.1s,
-    box-shadow 0.1s;
-
-  ${p =>
-    p.priority === 'link' &&
-    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
-  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
-
-  &:focus {
-    outline: none;
-  }
+  ${getButtonStyles}
 `;
 
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
+const getBoxShadow = ({
+  priority,
+  borderless,
+  translucentBorder,
+  disabled,
+  size,
+  theme,
+}: StyledButtonProps): SerializedStyles => {
+  if (disabled || borderless || priority === 'link') {
+    return css`
+      box-shadow: none;
+    `;
+  }
+
+  const themeName = disabled ? 'disabled' : priority || 'default';
+  const {borderTranslucent} = theme.button[themeName];
+  const translucentBorderString = translucentBorder
+    ? `0 0 0 1px ${borderTranslucent},`
+    : '';
+  const dropShadow = size === 'xs' ? theme.dropShadowLight : theme.dropShadowMedium;
+
+  return css`
+    box-shadow: ${translucentBorderString} ${dropShadow};
+    &:active {
+      box-shadow: ${translucentBorderString} inset ${dropShadow};
+    }
+  `;
+};
+
+const getColors = ({
+  size,
+  priority,
+  disabled,
+  borderless,
+  translucentBorder,
+  theme,
+}: StyledButtonProps): SerializedStyles => {
+  const themeName = disabled ? 'disabled' : priority || 'default';
+  const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
+    theme.button[themeName];
+
+  const getFocusState = (): SerializedStyles => {
+    switch (priority) {
+      case 'primary':
+      case 'danger':
+        return css`
+          border-color: ${focusBorder};
+          box-shadow:
+            ${focusBorder} 0 0 0 1px,
+            ${focusShadow} 0 0 0 4px;
+        `;
+      default:
+        if (translucentBorder) {
+          return css`
+            border-color: ${focusBorder};
+            box-shadow: ${focusBorder} 0 0 0 2px;
+          `;
+        }
+        return css`
+          border-color: ${focusBorder};
+          box-shadow: ${focusBorder} 0 0 0 1px;
+        `;
+    }
+  };
+
+  return css`
+    color: ${color};
+    background-color: ${priority === 'primary' || priority === 'danger'
+      ? background
+      : borderless
+        ? 'transparent'
+        : background};
+
+    border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
+
+    ${translucentBorder &&
+    css`
+      border-width: 0;
+    `}
+
+    &:hover {
+      color: ${color};
+    }
+
+    ${size !== 'zero' &&
+    css`
+      &:hover,
+      &:active,
+      &[aria-expanded='true'] {
+        color: ${colorActive || color};
+        border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
+      }
+
+      &:focus-visible {
+        color: ${colorActive || color};
+        border-color: ${borderActive};
+      }
+    `}
+
+    &:focus-visible {
+      ${getFocusState()}
+      z-index: 1;
+    }
+  `;
+};
+
+const getSizeStyles = ({
+  size = 'md',
+  translucentBorder,
+  theme,
+}: StyledButtonProps): SerializedStyles => {
+  const buttonSize = size === 'zero' ? 'md' : size;
+  const formStyles = theme.form[buttonSize];
+  const buttonPadding = theme.buttonPadding[buttonSize];
+
+  // If using translucent borders, rewrite size styles to
+  // prevent layout shifts
+  const borderStyles = translucentBorder
+    ? {
+        height: `calc(${formStyles.height} - 2px)`,
+        minHeight: `calc(${formStyles.minHeight} - 2px)`,
+        paddingTop: buttonPadding.paddingTop - 1,
+        paddingBottom: buttonPadding.paddingBottom - 1,
+        margin: 1,
+      }
+    : {};
+
+  return css`
+    ${formStyles}
+    ${buttonPadding}
+    ${borderStyles}
+  `;
+};
+
+function getButtonStyles(p: StyledButtonProps & {theme: Theme}): SerializedStyles {
+  return css`
+    position: relative;
+    display: inline-block;
+    border-radius: ${p.theme.borderRadius};
+    text-transform: none;
+    font-weight: ${p.theme.fontWeightBold};
+    cursor: ${p.disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${(p.busy || p.disabled) && '0.65'};
+
+    ${getColors(p)}
+    ${getSizeStyles(p)}
+    ${getBoxShadow(p)}
+
+    transition:
+      background 0.1s,
+      border 0.1s,
+      box-shadow 0.1s;
+
+    ${p.priority === 'link' &&
+    css`
+      font-size: inherit;
+      font-weight: inherit;
+      padding: 0;
+      height: auto;
+      min-height: auto;
+    `}
+    ${p.size === 'zero' &&
+    css`
+      height: auto;
+      min-height: auto;
+      padding: ${space(0.25)};
+    `}
+
+  &:focus {
+      outline: none;
+    }
+  `;
+}
 
 export const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
-})<ButtonLabelProps>`
+})<Pick<ButtonProps, 'size' | 'borderless'>>`
   height: 100%;
   display: flex;
   align-items: center;
@@ -553,12 +587,7 @@ export const ButtonLabel = styled('span', {
   white-space: nowrap;
 `;
 
-interface IconProps extends Omit<StyledButtonProps, 'theme'> {
-  hasChildren?: boolean;
-  size?: ButtonProps['size'];
-}
-
-const Icon = styled('span')<IconProps>`
+const Icon = styled('span')<{hasChildren?: boolean; size?: ButtonProps['size']}>`
   display: flex;
   align-items: center;
   margin-right: ${p =>
