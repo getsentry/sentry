@@ -173,6 +173,7 @@ export function GroupTagsDrawer({
   const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
+  // XXX: tagKey param is re-used for feature flag details drawer
   const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
@@ -346,7 +347,7 @@ export function GroupTagsDrawer({
                       to: tagKey
                         ? {
                             pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-                            query: {tab: FEATURE_FLAGS_TAB, ...location.query},
+                            query: {...location.query, tab: FEATURE_FLAGS_TAB},
                           }
                         : undefined,
                     },

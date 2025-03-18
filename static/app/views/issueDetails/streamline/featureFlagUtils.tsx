@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 
 export type RawFlag = {
@@ -45,11 +47,15 @@ export function getFlagActionLabel(action: string) {
   const labelType =
     action === 'created' ? 'info' : action === 'deleted' ? 'error' : undefined;
 
-  const capitalized = action.toUpperCase();
+  const capitalized = action.charAt(0).toUpperCase() + action.slice(1);
 
   return (
-    <div style={{alignSelf: 'flex-start'}}>
+    <ActionLabel>
       <Tag type={labelType}>{capitalized}</Tag>
-    </div>
+    </ActionLabel>
   );
 }
+
+const ActionLabel = styled('div')`
+  align-self: flex-start;
+`;

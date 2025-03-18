@@ -112,7 +112,7 @@ describe('FlagDetailsDrawerContent', () => {
     render(<FlagDetailsDrawerContent />, {router});
 
     expect(
-      await screen.findByText('No audit log events were found for this flag.')
+      await screen.findByText('No audit logs were found for this feature flag.')
     ).toBeInTheDocument();
   });
 });

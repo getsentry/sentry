@@ -76,7 +76,7 @@ export function FlagDetailsDrawerContent() {
   if (!flagLog.data.length) {
     return (
       <EmptyStateWarning withIcon={false} small>
-        {t('No audit log events were found for this flag.')}
+        {t('No audit logs were found for this feature flag.')}
       </EmptyStateWarning>
     );
   }
