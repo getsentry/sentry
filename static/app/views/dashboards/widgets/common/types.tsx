@@ -3,9 +3,23 @@ import type {DataUnit} from 'sentry/utils/discover/fields';
 
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
+export type TimeSeriesValueType =
+  | 'number'
+  | 'integer'
+  | 'date'
+  | 'duration'
+  | 'percentage'
+  | 'percent_change'
+  | 'string'
+  | 'size'
+  | 'rate'
+  | null;
+
+export type TimeSeriesValueUnit = DataUnit | null;
+
 export type Meta = {
-  type: string | null; // TODO: This can probably be `AggregationOutputType`
-  unit: DataUnit | null;
+  type: TimeSeriesValueType;
+  unit: TimeSeriesValueUnit;
   isOther?: boolean;
 };
 
