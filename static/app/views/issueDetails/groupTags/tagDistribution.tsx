@@ -21,9 +21,8 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       (sum, value) => sum + Math.round(percent(value.count, tag.totalValues)),
       0
     );
-  const otherDisplayPercentage = otherPercentage
-    ? `${otherPercentage.toFixed(0)}%`
-    : '<1%';
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
 
   return (
     <TagPanel>
@@ -35,7 +34,9 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       <TagValueContent>
         {visibleTagValues.map((tagValue, tagValueIdx) => {
           const percentage = Math.round(percent(tagValue.count, tag.totalValues));
-          const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+          const isZero = tagValue.count === 0;
+          const displayPercentage =
+            percentage < 1 && !isZero ? '<1%' : `${percentage.toFixed(0)}%`;
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={tagValue.name} skipWrapper>
