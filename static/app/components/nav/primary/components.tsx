@@ -1,4 +1,4 @@
-import {type MouseEventHandler, useCallback} from 'react';
+import type {MouseEventHandler} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,6 +12,7 @@ import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,6 +44,13 @@ interface SidebarButtonProps {
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
+function recordPrimaryItemClick(analyticsKey: string, organization: Organization) {
+  trackAnalytics('navigation.primary_item_clicked', {
+    item: analyticsKey,
+    organization,
+  });
+}
+
 export function SidebarItem({
   children,
   ...props
@@ -63,10 +71,6 @@ export function SidebarMenu({
   forceLabel,
 }: SidebarItemDropdownProps) {
   const organization = useOrganization();
-  const recordAnalytics = useCallback(
-    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
-    [organization, analyticsKey]
-  );
   const {layout} = useNavContext();
 
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
@@ -82,7 +86,7 @@ export function SidebarMenu({
               {...props}
               aria-label={showLabel ? undefined : label}
               onClick={event => {
-                recordAnalytics();
+                recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
@@ -115,17 +119,12 @@ export function SidebarLink({
   const {layout} = useNavContext();
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
-  const recordAnalytics = useCallback(
-    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
-    [organization, analyticsKey]
-  );
-
   return (
     <SidebarItem>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper>
         <NavLink
           {...linkProps}
-          onClick={recordAnalytics}
+          onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
           aria-selected={isActive}
           aria-current={isActive ? 'page' : undefined}
           aria-label={showLabel ? undefined : label}
@@ -157,7 +156,7 @@ export function SidebarButton({
       isMobile={layout === NavLayout.MOBILE}
       aria-label={showLabel ? undefined : label}
       onClick={(e: React.MouseEvent<HTMLElement>) => {
-        trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization});
+        recordPrimaryItemClick(analyticsKey, organization);
         buttonProps.onClick?.(e);
         onClick?.(e);
       }}
