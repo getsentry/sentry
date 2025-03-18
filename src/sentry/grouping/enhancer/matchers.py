@@ -272,13 +272,13 @@ class InAppMatch(FrameMatch):
 
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        field = match_frame[self.field]
-        if field is None:
+        value = match_frame[self.field]
+        if value is None:
             return False
-        if field == self._encoded_pattern:
+        if value == self._encoded_pattern:
             return True
 
-        return _cached(cache, glob_match, field, self._encoded_pattern)
+        return _cached(cache, glob_match, value, self._encoded_pattern)
 
 
 class FunctionMatch(FrameFieldMatch):
