@@ -159,7 +159,7 @@ export function useTraceItemAttributeValues({
           {
             query: {
               dataset,
-              type,
+              attribute_type: type,
               query: queryString,
               project: (projectIds ?? selection.projects).map(String),
               ...normalizeDateTimeParams(datetime ?? selection.datetime),

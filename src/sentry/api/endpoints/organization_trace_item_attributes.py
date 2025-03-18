@@ -197,8 +197,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
 @region_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
-    def get(self, request: Request, organization: Organization, attribute_key: str) -> Response:
-        print("GOT A REQUEST", attribute_key)
+    def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not features.has(self.feature_flag, organization, actor=request.user):
             return Response(status=404)
 
@@ -214,12 +213,12 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
                 paginator=ChainPaginator([]),
             )
 
-        sentry_sdk.set_tag("query.attribute_key", attribute_key)
+        sentry_sdk.set_tag("query.attribute_key", key)
 
         max_attribute_values = options.get("performance.spans-tags-values.max")
 
         serialized = serializer.validated_data
-        prefix_match = serialized.get("prefix_match")
+        prefix_match = serialized.get("prefix_match", "")
 
         dataset_type = TraceItemType(serialized["dataset"])
         referrer = resolve_attribute_values_referrer(dataset_type)
@@ -255,7 +254,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         # Create a basic attribute key
         attribute_key_obj = AttributeKey(
-            name=attribute_key,
+            name=key,
             type=attr_type,
         )
 
@@ -270,7 +269,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         tag_values = [
             TagValue(
-                key=attribute_key,
+                key=key,
                 value=value,
                 times_seen=None,
                 first_seen=None,
@@ -313,8 +312,6 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         self, key: str, _: SnubaParams
     ) -> tuple[constants.SearchType, AttributeKey]:
         resolved = self.resolver.resolve_attribute(key)
-        if resolved is None:
-            raise ValueError(f"Attribute key {key} not found")
         return resolved.search_type, resolved.proto_definition
 
     def execute(self) -> list[TagValue]:
