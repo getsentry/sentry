@@ -44,9 +44,9 @@ def build_spans_tree(spans_data: list[dict]) -> list[dict]:
     The tree is sorted by duration (longest spans first) at each level.
     """
     # Maps for quick lookup
-    spans_by_id = {}
-    children_by_parent_id = {}
-    root_spans = []
+    spans_by_id: dict[str, dict] = {}
+    children_by_parent_id: dict[str, list[dict]] = {}
+    root_spans: list[dict] = []
 
     # First pass: organize spans by ID and parent_id
     for span in spans_data:
