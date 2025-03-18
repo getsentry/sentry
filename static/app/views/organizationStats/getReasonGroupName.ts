@@ -107,20 +107,23 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
 };
 
 function getInvalidReasonGroupName(reason: string): string {
-  // The reason for too large will be of the form too_large:<reason> this unless
-  // it is too_large:unknown in which case we just want too_large.
+  // The reason for 'too large' are of the from 'too_large:reason'
+  // We want to convert this to 'too_large:_reason' as we later apply
+  // the following logic to the reason: startCase(reason.replace(/-|_/g, ' '))
+  // That is, we want to 'too_large:attachment' to be displayed as
+  // 'Too Large: Attachment' in the UI. The one exception to that
+  // is 'too_large:unknown' which should just be 'Too Large'
   if (reason.startsWith('too_large:')) {
     if (reason === 'too_large:unknown') {
       return DiscardReason.TOO_LARGE;
     }
-    return reason.replace(':', ':_');
+    return reason.replace('too_large:', 'too_large:_');
   }
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
     if (reasons.includes(reason as DiscardReason)) {
       return group;
     }
   }
-
   return 'internal';
 }
 
