@@ -471,7 +471,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
-      'p99(span.duration)': false,
+      p99: false,
     });
 
     return (
@@ -495,6 +495,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           like "p99(span.duration)" are truncated, and the p99 series is hidden by
           default.
         </p>
+
+        <code>{JSON.stringify(legendSelection)}</code>
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
