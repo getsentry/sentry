@@ -64,7 +64,7 @@ MATCHERS = {
     "value": "value",
     "mechanism": "mechanism",
     "category": "category",
-    # fingerprinting specific fields
+    # fingerprinting-specific fields
     "family": "family",
     "app": "app",
 }
