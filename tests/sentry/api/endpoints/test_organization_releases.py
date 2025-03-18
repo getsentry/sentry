@@ -66,6 +66,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     def assert_expected_versions(self, response, expected):
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
+    def create_release(self, *args, **kwargs):
+        if "environments" not in kwargs:
+            # Ensures a ReleaseProjectEnvironment is created
+            kwargs["environments"] = [self.environment]
+        return super().create_release(*args, **kwargs)
+
     def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -84,34 +90,30 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         self.login_as(user=user)
 
-        release1 = Release.objects.create(
-            organization_id=org.id,
+        release1 = self.create_release(
+            project=project1,
             version="1",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release1.add_project(project1)
 
-        release2 = Release.objects.create(
-            organization_id=org2.id,
+        self.create_release(
+            project=project2,
             version="2",
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release2.add_project(project2)
 
-        release3 = Release.objects.create(
-            organization_id=org.id,
+        release3 = self.create_release(
+            project=project3,
             version="3",
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release3.add_project(project3)
 
-        release4 = Release.objects.create(
-            organization_id=org.id,
+        release4 = self.create_release(
+            project=project3,
             version="4",
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release4.add_project(project3)
 
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release4, release1, release3])
@@ -135,29 +137,26 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         self.login_as(user=user)
 
-        release6 = Release.objects.create(
-            organization_id=org.id,
+        release6 = self.create_release(
+            project=project,
             version="6",
             date_added=datetime(2013, 8, 10, 3, 8, 24, 880386, tzinfo=UTC),
             date_released=datetime(2013, 8, 20, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release6.add_project(project)
 
-        release7 = Release.objects.create(
-            organization_id=org.id,
+        release7 = self.create_release(
+            project=project,
             version="7",
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
             date_released=datetime(2013, 8, 18, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release7.add_project(project)
 
-        release8 = Release.objects.create(
-            organization_id=org.id,
+        release8 = self.create_release(
+            project=project,
             version="8",
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
             date_released=datetime(2013, 8, 16, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release8.add_project(project)
 
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release8, release7, release6])
@@ -296,19 +295,17 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         self.login_as(user=user)
 
-        release = Release.objects.create(
-            organization_id=org.id,
+        release = self.create_release(
+            project=project,
             version="foobar",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release.add_project(project)
 
-        release2 = Release.objects.create(
-            organization_id=org.id,
+        self.create_release(
+            project=project,
             version="sdfsdfsdf",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release2.add_project(project)
 
         response = self.get_success_response(org.slug, query="oob")
         self.assert_expected_versions(response, [release])
@@ -330,19 +327,17 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         self.login_as(user=user)
 
-        release = Release.objects.create(
-            organization_id=org.id,
+        release = self.create_release(
+            project=project,
             version="foobar",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release.add_project(project)
 
-        release2 = Release.objects.create(
-            organization_id=org.id,
+        release2 = self.create_release(
+            project=project,
             version="release2",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release2.add_project(project)
 
         response = self.get_success_response(
             self.organization.slug, query=f"{RELEASE_ALIAS}:foobar"
@@ -418,12 +413,11 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         self.login_as(user=user)
 
-        release = Release.objects.create(
-            organization_id=org.id,
+        release = self.create_release(
+            project=project,
             version="com.foo.BarApp@1.0+1234",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release.add_project(project)
 
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
@@ -519,24 +513,19 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         replaced_release = self.create_release(version="replaced_release")
         adopted_release = self.create_release(version="adopted_release")
         not_adopted_release = self.create_release(version="not_adopted_release")
-        adopted_rpe = ReleaseProjectEnvironment.objects.create(
+
+        adopted_rpe = ReleaseProjectEnvironment.objects.get(
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
+        adopted_rpe.update(adopted=timezone.now())
+
+        ReleaseProjectEnvironment.objects.get(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now() - timedelta(minutes=5),
-            unadopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
-        )
+        ).update(adopted=timezone.now() - timedelta(minutes=5), unadopted=timezone.now())
 
         response = self.get_success_response(
             self.organization.slug,
@@ -675,27 +664,24 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
 
-        release1 = Release.objects.create(
-            organization_id=org.id,
+        release1 = self.create_release(
+            project=project1,
             version="1",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release1.add_project(project1)
 
-        release2 = Release.objects.create(
-            organization_id=org.id,
+        self.create_release(
+            project=project2,
             version="2",
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release2.add_project(project2)
 
-        release3 = Release.objects.create(
-            organization_id=org.id,
+        release3 = self.create_release(
+            project=project1,
             version="3",
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release3.add_project(project1)
 
         ax = access.from_user(user, org)
         assert ax.has_projects_access([project1])
@@ -720,27 +706,24 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
 
-        release1 = Release.objects.create(
-            organization_id=org.id,
+        release1 = self.create_release(
+            project=project1,
             version="1",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release1.add_project(project1)
 
-        release2 = Release.objects.create(
-            organization_id=org.id,
+        self.create_release(
+            project=project2,
             version="2",
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release2.add_project(project2)
 
-        release3 = Release.objects.create(
-            organization_id=org.id,
+        release3 = self.create_release(
+            project=project1,
             version="3",
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release3.add_project(project1)
 
         ax = access.from_user(user, org)
         assert ax.has_projects_access([project1, project2])
@@ -765,15 +748,14 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
 
-        release1 = Release.objects.create(
-            organization_id=org.id,
+        release1 = self.create_release(
+            project=project1,
             version="1",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release1.add_project(project1)
 
-        release2 = Release.objects.create(
-            organization_id=org.id,
+        release2 = self.create_release(
+            project=project2,
             version="2",
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
@@ -872,7 +854,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             },
         )
         assert response.status_code == 400
-        assert b"You do not have permission to one of the projects: bar" in response.content
+        assert b"You do not have permission to one of the projects: foo" in response.content
 
     def test_disallow_projects_update_for_release_when_no_open_membership(self):
         team1 = self.create_team(organization=self.organization)
@@ -1026,12 +1008,17 @@ class OrganizationReleasesStatsTest(APITestCase):
         project1 = self.create_project(teams=[team1], organization=org)
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
-        release1 = Release.objects.create(
-            organization_id=org.id,
+        release1 = self.create_release(
+            project=project1,
             version="1",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        release1.add_project(project1)
+        ReleaseProjectEnvironment.objects.get_or_create(
+            project=project1,
+            release=release1,
+            environment=self.environment,
+            adopted=timezone.now(),
+        )
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
         )
@@ -2301,6 +2288,10 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
         release4 = Release.objects.create(organization_id=org.id, version="4")
         release4.add_project(project2)
+        empty_env = self.make_environment("", project2)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id, release_id=release4.id, environment_id=empty_env.id
+        )
 
         release5 = Release.objects.create(organization_id=org.id, version="5")
         release5.add_project(project1)
@@ -2351,10 +2342,6 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def test_empty_environment(self):
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
-        env = self.make_environment("", self.project2)
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project2.id, release_id=self.release4.id, environment_id=env.id
         )
         response = self.client.get(url + "?environment=", format="json")
         self.assert_releases(response, [self.release4])

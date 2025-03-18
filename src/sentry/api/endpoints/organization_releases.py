@@ -30,6 +30,7 @@ from sentry.models.activity import Activity
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import SemverFilter
@@ -287,14 +288,19 @@ class OrganizationReleasesEndpoint(
         # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        project_releases = (
-            ReleaseProject.objects.filter(
+        filtered_releases = (
+            ReleaseProjectEnvironment.objects.filter(
                 project_id__in=filter_params["project_id"],
+                **(
+                    {"environment__name__in": filter_params.get("environment")}
+                    if "environment" in filter_params
+                    else {}
+                ),
             )
             .values_list("release", flat=True)
             .distinct()
         )
-        queryset = Release.objects.filter(id__in=project_releases)
+        queryset = Release.objects.filter(id__in=filtered_releases)
 
         if status_filter:
             try:
@@ -309,7 +315,6 @@ class OrganizationReleasesEndpoint(
 
         queryset = queryset.annotate(date=F("date_added"))
 
-        queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
