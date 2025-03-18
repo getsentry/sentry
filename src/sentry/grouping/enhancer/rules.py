@@ -93,5 +93,8 @@ class EnhancementRule:
                 EnhancementMatch._from_config_structure(matcher, version)
                 for matcher in matcher_abbreviations
             ],
-            [EnhancementAction._from_config_structure(x, version) for x in encoded_actions],
+            [
+                EnhancementAction._from_config_structure(action, version)
+                for action in encoded_actions
+            ],
         )
