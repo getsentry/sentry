@@ -14,6 +14,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
+from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import timeseries_query
 from sentry.snuba.models import SnubaQuery
@@ -147,6 +148,14 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     if snuba_query.aggregate in ["failure_rate()", "apdex()"]:
         logger.info(
             "Skipping alert %s, %s aggregate not yet supported by RPC",
+            alert_rule.id,
+            snuba_query.aggregate,
+        )
+        return {"skipped": True, "is_close": False}
+
+    if parse_mri_field(snuba_query.aggregate):
+        logger.info(
+            "Skipping alert %s, %s, MRI fields not supported in aggregates",
             alert_rule.id,
             snuba_query.aggregate,
         )
