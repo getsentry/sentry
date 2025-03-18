@@ -361,7 +361,13 @@ export function useReleaseBubbles({
       releases?.length &&
       minTime &&
       maxTime &&
-      createReleaseBuckets(minTime, maxTime, releasesMaxTime, releases)) ||
+      createReleaseBuckets({
+        minTime,
+        maxTime,
+        finalTime: releasesMaxTime,
+        releases,
+        desiredBuckets,
+      })) ||
     [];
 
   if (!releases || !buckets.length) {
