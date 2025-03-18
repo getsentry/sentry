@@ -1,5 +1,3 @@
-from unittest import mock
-
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -95,10 +93,9 @@ class WorkflowNameTest(APITestCase):
             == f"Critical - Email {self.rpc_user.email}, Warning - Email {self.rpc_user.email}"
         )
 
-    @mock.patch("sentry.workflow_engine.migration_helpers.utils.MAX_CHARS", 50)
     def test_many_actions(self):
         """
-        Test that if we have so many actions we exceed the char limit we format the name as expected
+        Test that if we have more than 3 actions we format the name as expected
         """
         user2 = self.create_user(email="meow@woof.com")
         user3 = self.create_user(email="bark@meow.com")
@@ -124,7 +121,10 @@ class WorkflowNameTest(APITestCase):
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
-        assert workflow.name == f"Email {self.rpc_user.email}, Email {user2.email}...(+2)"
+        assert (
+            workflow.name
+            == f"Email {self.rpc_user.email}, Email {user2.email}, Email {user3.email}...(+1)"
+        )
 
     def test_with_integrations(self):
         """
@@ -169,5 +169,5 @@ class WorkflowNameTest(APITestCase):
         assert self.rpc_user
         assert (
             workflow.name
-            == f"Critical - Email {self.rpc_user.email}, Opsgenie to {self.og_team_table["team"]}, Warning - Email #{self.og_team.slug}, Notify {self.sentry_app.name}, Slack {slack_channel_name}"
+            == f"Critical - Email {self.rpc_user.email}, Notify {self.og_team_table["team"]} via {self.opsgenie_integration.provider.title()}, Warning - Email #{self.og_team.slug}...(+2)"
         )

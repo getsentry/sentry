@@ -4,18 +4,18 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, Aler
 from sentry.models.team import Team
 from sentry.users.services.user import RpcUser
 
-MAX_CHARS = 248  # (256 minus space for '...(+3_)')
+MAX_ACTIONS = 3
 
 
 def get_action_description(action: AlertRuleTriggerAction) -> str:
     """
     Returns a human readable action description
     """
-    action_type_to_string = {
-        AlertRuleTriggerAction.Type.PAGERDUTY.value: f"PagerDuty to {action.target_display}",
-        AlertRuleTriggerAction.Type.SLACK.value: f"Slack {action.target_display}",
-        AlertRuleTriggerAction.Type.MSTEAMS.value: f"Microsoft Teams {action.target_display}",
-        AlertRuleTriggerAction.Type.SENTRY_APP.value: f"Notify {action.target_display}",
+    ACTION_TYPE_TO_STRING = {
+        AlertRuleTriggerAction.Type.PAGERDUTY.value: "PagerDuty",
+        AlertRuleTriggerAction.Type.SLACK.value: "Slack",
+        AlertRuleTriggerAction.Type.MSTEAMS.value: "Microsoft Teams",
+        AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
     }
 
     if action.type == AlertRuleTriggerAction.Type.EMAIL.value:
@@ -26,13 +26,10 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
             elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 action_target_team = cast(Team, action.target)
                 return "Email #" + action_target_team.slug
-    elif action.type == AlertRuleTriggerAction.Type.OPSGENIE.value:
-        return f"Opsgenie to {action.target_display}"
-    elif action.type == AlertRuleTriggerAction.Type.DISCORD.value:
-        return f"Discord to {action.target_display}"
-    else:
-        return action_type_to_string[action.type]
-    return ""
+    elif action.type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
+        return f"Notify {action.target_display}"
+
+    return f"Notify {action.target_display} via {ACTION_TYPE_TO_STRING[action.type]}"
 
 
 def get_workflow_name(alert_rule: AlertRule) -> str:
@@ -54,7 +51,7 @@ def get_workflow_name(alert_rule: AlertRule) -> str:
         for action in actions.filter(alert_rule_trigger_id=trigger.id):
             description = get_action_description(action) + ", "
 
-            if len(name) + len(description) <= MAX_CHARS:
+            if actions_counter < MAX_ACTIONS:
                 name += description
                 actions_counter += 1
             else:
