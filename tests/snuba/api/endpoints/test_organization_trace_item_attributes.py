@@ -19,8 +19,8 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
             query = {}
         if "dataset" not in query:
             query["dataset"] = "logs"
-        if "type" not in query:
-            query["type"] = "string"
+        if "attribute_type" not in query:
+            query["attribute_type"] = "string"
         if features is None:
             features = self.features
         with self.feature(features):
@@ -34,12 +34,59 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert "detail" in response.data
-        assert response.data["detail"] == "Invalid dataset"
+        assert response.data["detail"] == {"dataset": ['"invalid" is not a valid choice.']}
 
     def test_no_projects(self):
         response = self.do_request(query={"dataset": "logs"})
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def test_prefix_matching(self):
+        logs = [
+            self.create_ourlog(
+                extra_data={"body": "log message 1"},
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "test.attribute1": {"string_value": "value1"},
+                    "test.attribute2": {"string_value": "value2"},
+                    "another.attribute": {"string_value": "value3"},
+                },
+            ),
+            self.create_ourlog(
+                extra_data={"body": "log message 2"},
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "test.attribute3": {"string_value": "value4"},
+                    "different.attr": {"string_value": "value5"},
+                },
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        # Test with empty prefix (should return all attributes)
+        response = self.do_request(query={"prefix_match": ""})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 6
+        assert "test.attribute1" in keys
+        assert "test.attribute2" in keys
+        assert "test.attribute3" in keys
+        assert "another.attribute" in keys
+        assert "different.attr" in keys
+        assert "sentry.severity_text" in keys
+
+        response = self.do_request(query={"prefix_match": "tes"})
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 3
+        assert "test.attribute1" in keys
+        assert "test.attribute2" in keys
+        assert "test.attribute3" in keys
+        assert "another.attribute" not in keys
+        assert "different.attr" not in keys
 
     @pytest.mark.skip(
         reason="This should eventually work once TraceItemAttributeNamesRequest is fixed"
@@ -80,8 +127,8 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
             query = {}
         if "dataset" not in query:
             query["dataset"] = "logs"
-        if "type" not in query:
-            query["type"] = "string"
+        if "attribute_type" not in query:
+            query["attribute_type"] = "string"
         if features is None:
             features = self.features
         with self.feature(features):
