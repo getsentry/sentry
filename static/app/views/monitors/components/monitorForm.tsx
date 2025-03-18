@@ -260,7 +260,6 @@ function MonitorForm({
           <TextField
             name="name"
             label={t('Name')}
-            hideLabel
             placeholder={t('My Cron Job')}
             required
             stacked
@@ -270,7 +269,6 @@ function MonitorForm({
             <TextField
               name="slug"
               label={t('Slug')}
-              hideLabel
               help={tct(
                 'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
                 {strong: <strong />}
@@ -285,7 +283,6 @@ function MonitorForm({
           <SentryProjectSelectorField
             name="project"
             label={t('Project')}
-            hideLabel
             groupProjects={project =>
               platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
             }
