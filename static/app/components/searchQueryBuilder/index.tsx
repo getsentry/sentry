@@ -1,4 +1,5 @@
 import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -151,33 +152,43 @@ function SearchIndicator({
   );
 }
 
-const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
-  ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+const ActionButtons = forwardRef<
+  HTMLDivElement,
+  {initialQuery: string; trailingItems?: React.ReactNode}
+>(({trailingItems = null, initialQuery}, ref) => {
+  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+  const unsubmittedChanges = query !== initialQuery;
 
-    if (disabled) {
-      return null;
-    }
-
-    return (
-      <ButtonsWrapper ref={ref}>
-        {trailingItems}
-        {query === '' ? null : (
-          <ActionButton
-            aria-label={t('Clear search query')}
-            size="zero"
-            icon={<IconClose />}
-            borderless
-            onClick={() => {
-              dispatch({type: 'CLEAR'});
-              handleSearch('');
-            }}
-          />
-        )}
-      </ButtonsWrapper>
-    );
+  if (disabled) {
+    return null;
   }
-);
+
+  return (
+    <ButtonsWrapper ref={ref}>
+      {trailingItems}
+      {query === '' ? null : (
+        <ActionButton
+          aria-label={t('Clear search query')}
+          size="zero"
+          icon={<IconClose size="sm" />}
+          borderless
+          onClick={() => {
+            dispatch({type: 'CLEAR'});
+            handleSearch('');
+          }}
+        />
+      )}
+      <ActionButton
+        aria-label={t('Submit search query')}
+        size="zero"
+        icon={<IconSearch size="sm" />}
+        borderless
+        priority={unsubmittedChanges ? 'primary' : 'default'}
+        onClick={() => handleSearch(query)}
+      />
+    </ButtonsWrapper>
+  );
+});
 
 export function SearchQueryBuilder({
   className,
@@ -312,18 +323,20 @@ export function SearchQueryBuilder({
         data-test-id="search-query-builder"
       >
         <PanelProvider>
-          <SearchIndicator
+          {/* <SearchIndicator
             initialQuery={initialQuery}
             showUnsubmittedIndicator={showUnsubmittedIndicator}
-          />
+          /> */}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
             <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
           )}
-          {size !== 'small' && (
-            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
-          )}
+          <ActionButtons
+            ref={actionBarRef}
+            trailingItems={trailingItems}
+            initialQuery={initialQuery}
+          />
         </PanelProvider>
       </Wrapper>
     </SearchQueryBuilderContext.Provider>
@@ -342,15 +355,22 @@ const Wrapper = styled(Input.withComponent('div'))`
 
 const ButtonsWrapper = styled('div')`
   position: absolute;
-  right: 9px;
-  top: 9px;
+  right: 3px;
+  top: 3px;
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
 `;
 
 const ActionButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  ${p =>
+    p.priority !== 'primary' &&
+    css`
+      color: ${p.theme.subText};
+    `}
+
+  height: 30px;
+  width: 30px;
 `;
 
 const PositionedSearchIconContainer = styled('div')`
