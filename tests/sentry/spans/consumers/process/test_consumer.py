@@ -20,6 +20,7 @@ def test_basic(monkeypatch, request):
         max_flush_segments=10,
         input_block_size=None,
         output_block_size=None,
+        enable_multiprocessing=False,
     )
 
     produced_messages = []
