@@ -547,7 +547,6 @@ function GraphButton({
 const GraphWrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  min-height: 100px;
 `;
 
 const SummaryContainer = styled('div')`
