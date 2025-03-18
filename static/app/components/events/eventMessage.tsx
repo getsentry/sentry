@@ -84,7 +84,7 @@ const NoMessage = styled(Message)`
 `;
 
 const ErrorLevelWithMargin = styled(ErrorLevel)<{hasDivider: boolean}>`
-  margin-right: ${p => (p.hasDivider ? 0 : space(0.5))};
+  margin-right: ${p => (p.hasDivider ? 0 : space(0.25))};
 `;
 
 export default EventMessage;
