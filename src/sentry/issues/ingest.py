@@ -189,11 +189,11 @@ def save_issue_from_occurrence(
             break
 
     if not primary_grouphash:
-        primary_fingerprint = occurrence.fingerprint[0]
+        primary_hash = occurrence.fingerprint[0]
 
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
-        if not should_create_group(occurrence.type, client, primary_fingerprint, project):
+        if not should_create_group(occurrence.type, client, primary_hash, project):
             metrics.incr("issues.issue.dropped.noise_reduction")
             return None
 
@@ -222,7 +222,7 @@ def save_issue_from_occurrence(
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
             group, is_new, primary_grouphash = save_grouphash_and_group(
-                project, event, primary_fingerprint, **issue_kwargs
+                project, event, primary_hash, **issue_kwargs
             )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
