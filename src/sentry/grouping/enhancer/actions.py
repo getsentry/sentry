@@ -9,7 +9,9 @@ from .exceptions import InvalidEnhancerConfig
 
 ACTIONS = ["group", "app"]
 ACTION_BITSIZE = 8
-assert len(ACTIONS) < 1 << ACTION_BITSIZE
+# Ensure that the number of possible actions is smaller than the number of numbers which can be
+# represented with `ACTION_BITSIZE` bits
+assert len(ACTIONS) < 1 << ACTION_BITSIZE  # This is 2^ACTION_BITSIZE
 ACTION_FLAGS = {
     (True, None): 0,
     (True, "up"): 1,
