@@ -1,12 +1,27 @@
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
+import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {
+  getRootCauseCopyText,
+  getSolutionCopyText,
+} from 'sentry/components/events/autofix/utils';
+import {
+  type GroupSummaryData,
+  useGroupSummaryData,
+} from 'sentry/components/group/groupSummary';
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-const issueAndEventToMarkdown = (group: Group, event: Event): string => {
+const issueAndEventToMarkdown = (
+  group: Group,
+  event: Event,
+  groupSummaryData: GroupSummaryData | null | undefined,
+  autofixData: AutofixData | null | undefined
+): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
@@ -19,6 +34,29 @@ const issueAndEventToMarkdown = (group: Group, event: Event): string => {
     markdownText += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
   }
 
+  if (groupSummaryData) {
+    markdownText += `## Issue Summary\n${groupSummaryData.headline}\n`;
+    markdownText += `**What's wrong:** ${groupSummaryData.whatsWrong}\n`;
+    if (groupSummaryData.trace) {
+      markdownText += `**In the trace:** ${groupSummaryData.trace}\n`;
+    }
+    if (groupSummaryData.possibleCause && !autofixData) {
+      markdownText += `**Possible cause:** ${groupSummaryData.possibleCause}\n`;
+    }
+  }
+
+  if (autofixData) {
+    const rootCauseCopyText = getRootCauseCopyText(autofixData);
+    const solutionCopyText = getSolutionCopyText(autofixData);
+
+    if (rootCauseCopyText) {
+      markdownText += `\n## Root Cause\n\`\`\`\n${rootCauseCopyText}\n\`\`\`\n`;
+    }
+    if (solutionCopyText) {
+      markdownText += `\n## Solution\n\`\`\`\n${solutionCopyText}\n\`\`\`\n`;
+    }
+  }
+
   if (Array.isArray(event.tags) && event.tags.length > 0) {
     markdownText += `\n## Tags\n\n`;
     event.tags.forEach(tag => {
@@ -29,10 +67,10 @@ const issueAndEventToMarkdown = (group: Group, event: Event): string => {
   }
 
   event.entries.forEach(entry => {
-    if (entry.type === EntryType.EXCEPTION) {
-      markdownText += `\n## Exception\n\n`;
+    if (entry.type === EntryType.EXCEPTION && entry.data.values) {
+      markdownText += `\n## Exception${entry.data.values.length > 1 ? 's' : ''}\n\n`;
 
-      entry.data.values?.forEach((exception, index) => {
+      entry.data.values.forEach((exception, index, arr) => {
         if (exception.type || exception.value) {
           markdownText += `### Exception ${index + 1}\n`;
           if (exception.type) {
@@ -76,7 +114,9 @@ const issueAndEventToMarkdown = (group: Group, event: Event): string => {
                 markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
               }
 
-              markdownText += `------\n`;
+              if (index < arr.length - 1) {
+                markdownText += `------\n`;
+              }
             });
 
             markdownText += `\`\`\`\n`;
@@ -89,14 +129,19 @@ const issueAndEventToMarkdown = (group: Group, event: Event): string => {
   return markdownText;
 };
 
-export const useCopyIssueDetails = (group?: Group, event?: Event) => {
+export const useCopyIssueDetails = (group: Group, event?: Event) => {
+  // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
+  const {data: groupSummaryData} = useGroupSummaryData(group, event);
+  const {data: autofixData} = useAutofixData({groupId: group.id});
+
   const copyIssueDetails = () => {
-    if (!group || !event) {
+    if (!event) {
       addErrorMessage(t('Could not copy issue to clipboard'));
       return;
     }
 
-    const text = issueAndEventToMarkdown(group, event);
+    const text = issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
+
     navigator.clipboard
       .writeText(text)
       .then(() => {

@@ -398,6 +398,7 @@ export function formatSolutionText(
 
   parts.push(
     solution
+      .filter(event => event.is_active)
       .map(event => {
         const eventParts = [`### ${event.title}`];
 
@@ -430,7 +431,14 @@ function CopySolutionButton({
     return null;
   }
   const text = formatSolutionText(solution, customSolution);
-  return <CopyToClipboardButton size="sm" text={text} borderless />;
+  return (
+    <CopyToClipboardButton
+      size="sm"
+      text={text}
+      borderless
+      title="Copy solution as Markdown"
+    />
+  );
 }
 
 function AutofixSolutionDisplay({
