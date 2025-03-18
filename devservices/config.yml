@@ -65,7 +65,7 @@ x-sentry-service-config:
 
   modes:
     default: [snuba, postgres, relay, spotlight]
-    migrations: [postgres, redis, spotlight]
+    migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     taskbroker: [snuba, postgres, relay, taskbroker, spotlight]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
@@ -73,7 +73,7 @@ x-sentry-service-config:
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     profiling: [postgres, snuba, vroom, spotlight]
-    minimal: [postgres, snuba, spotlight]
+    minimal: [postgres, snuba]
     full:
       [
         postgres,
