@@ -412,7 +412,7 @@ class EntitySubscriptionTestCase(TestCase):
 
         assert rpc_timeseries_request.granularity_secs == 3600
         assert rpc_timeseries_request.filter.comparison_filter.value.val_str == "http.client"
-        assert rpc_timeseries_request.aggregations[0].label == "count(span.duration)"
+        assert rpc_timeseries_request.expressions[0].aggregation.label == "count(span.duration)"
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
