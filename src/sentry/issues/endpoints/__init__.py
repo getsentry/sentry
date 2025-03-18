@@ -54,6 +54,7 @@ __all__ = (
     "OrganizationGroupSearchViewsEndpoint",
     "OrganizationGroupSearchViewDetailsEndpoint",
     "OrganizationGroupSearchViewVisitEndpoint",
+    "OrganizationGroupSearchViewStarredOrderEndpoint",
     "OrganizationIssuesCountEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",
