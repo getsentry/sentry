@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
+
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {useDrawerContentContext} from 'sentry/components/globalDrawer/components';
@@ -28,24 +30,27 @@ export default function FlagDrawerCTA() {
 
   return (
     <BannerWrapper>
-      <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
-      <BannerDescription>
-        {t(
-          'Want to know which feature flags were associated with this error? Set up your feature flag integration.'
-        )}
-      </BannerDescription>
-      <ActionButton>
-        <Button onClick={handleSetupButtonClick} priority="primary">
-          {t('Set Up Now')}
-        </Button>
-        <LinkButton
-          priority="default"
-          href="https://docs.sentry.io/product/explore/feature-flags/"
-          external
-        >
-          {t('Read More')}
-        </LinkButton>
-      </ActionButton>
+      <CardContent>
+        <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
+        <BannerDescription>
+          {t(
+            'Want to know which feature flags were associated with this error? Set up your feature flag integration.'
+          )}
+        </BannerDescription>
+        <ActionButton>
+          <Button onClick={handleSetupButtonClick} priority="primary">
+            {t('Set Up Now')}
+          </Button>
+          <LinkButton
+            priority="default"
+            href="https://docs.sentry.io/product/explore/feature-flags/"
+            external
+          >
+            {t('Read More')}
+          </LinkButton>
+        </ActionButton>
+      </CardContent>
+      <BannerIllustration src={onboardingInstall} alt="Install" />
     </BannerWrapper>
   );
 }
@@ -58,6 +63,7 @@ const BannerTitle = styled('div')`
 
 const BannerDescription = styled('div')`
   margin-bottom: ${space(1.5)};
+  max-width: 340px;
 `;
 
 const ActionButton = styled('div')`
@@ -67,10 +73,8 @@ const ActionButton = styled('div')`
 
 const BannerWrapper = styled('div')`
   position: relative;
-  max-width: 600px;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
   margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
@@ -78,4 +82,26 @@ const BannerWrapper = styled('div')`
     ${p => p.theme.backgroundSecondary}FF 70%,
     ${p => p.theme.backgroundSecondary}FF 100%
   );
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
+
+const BannerIllustration = styled('img')`
+  height: 100%;
+  object-fit: contain;
+  max-width: 30%;
+  margin-right: 10px;
+  margin-bottom: -${space(2)};
+  padding: ${space(2)};
+`;
+
+const CardContent = styled('div')`
+  padding: ${space(2)};
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
