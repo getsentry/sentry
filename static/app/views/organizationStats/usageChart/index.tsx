@@ -86,6 +86,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.profileDurationUI.titleName,
+    value: DATA_CATEGORY_INFO.profileDurationUI.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {

@@ -23,6 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -108,7 +109,11 @@ function SuggestProjectModal(props: Props) {
       category: 'mobile',
     });
 
-    const newProjectLink = `/organizations/${organization.slug}/projects/new/?${paramString}`;
+    const newProjectLink =
+      makeProjectsPathname({
+        path: '/new/',
+        orgSlug: organization.slug,
+      }) + `?${paramString}`;
 
     return (
       <Fragment>
