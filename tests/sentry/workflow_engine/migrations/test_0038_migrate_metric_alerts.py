@@ -40,8 +40,8 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class MigrateMetricAlertTest(TestMigrations):
-    migrate_from = "0034_action_cleanup_1"
-    migrate_to = "0035_migrate_metric_alerts"
+    migrate_from = "0037_rm_workflow_name_unique_constraint"
+    migrate_to = "0038_migrate_metric_alerts"
     app = "workflow_engine"
 
     def setUp(self):

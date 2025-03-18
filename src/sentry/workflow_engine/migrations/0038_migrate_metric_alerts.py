@@ -570,7 +570,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0034_action_cleanup_1"),
+        ("workflow_engine", "0037_rm_workflow_name_unique_constraint"),
     ]
 
     operations = [
