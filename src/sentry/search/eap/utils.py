@@ -51,7 +51,6 @@ def transform_binary_formula_to_expression(
     )
 
 
-# Remove when https://github.com/getsentry/eap-planning/issues/206 is merged
 def transform_column_to_expression(column: Column) -> Expression:
     """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
     if column.formula.op != Column.BinaryFormula.OP_UNSPECIFIED:
