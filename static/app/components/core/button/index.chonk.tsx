@@ -1,0 +1,153 @@
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+
+import type {ButtonProps} from 'sentry/components/core/button';
+import {space} from 'sentry/styles/space';
+import type {StrictCSSObject} from 'sentry/utils/theme';
+
+type ChonkButtonType = 'default' | 'transparent' | 'accent' | 'warning' | 'danger';
+type ChonkButtonSize = 'mini' | 'small' | 'medium' | 'large';
+
+function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType {
+  switch (priority) {
+    case 'primary':
+      return 'accent';
+    case 'danger':
+      return 'danger';
+    // @ts-expect-error the previous button did not have this variant, but we still want to
+    // forward it so that we can write the stories for it
+    case 'warning':
+      return 'warning';
+    // @ts-expect-error the previous button did not have this variant, but we still want to
+    // forward it so that we can write the stories for it
+    case 'transparent':
+      return 'transparent';
+    default:
+      return 'default';
+  }
+}
+
+function chonkSizeMapping(size: ButtonProps['size']): ChonkButtonSize {
+  switch (size) {
+    case 'zero':
+      return 'mini';
+    case 'xs':
+      return 'small';
+    case 'sm':
+      return 'medium';
+    case 'md':
+      return 'large';
+    default:
+      return 'medium';
+  }
+}
+
+export function getChonkButtonStyles(
+  p: ButtonProps & {theme: DO_NOT_USE_ChonkTheme}
+): StrictCSSObject {
+  const type = chonkPriorityToType(p.priority);
+  const size = chonkSizeMapping(p.size);
+
+  return {
+    position: 'relative',
+    display: 'inline-block',
+    fontWeight: p.theme.fontWeightBold,
+
+    cursor: p.disabled ? 'not-allowed' : 'pointer',
+    opacity: p.busy || p.disabled ? 0.6 : undefined,
+
+    ...getChonkButtonSizeTheme(size, p.theme),
+    ...getChonkButtonTheme(type, p.theme),
+
+    ...(p.borderless && {
+      border: 'none',
+    }),
+
+    '&:focus': {
+      outline: 'none',
+    },
+
+    ...(p.priority === 'link' && {
+      fontSize: 'inherit',
+      fontWeight: 'inherit',
+      padding: 0,
+      height: 'auto',
+      minHeight: 'auto',
+    }),
+
+    ...(p.size === 'zero' && {
+      height: 'auto',
+      minHeight: 'auto',
+      padding: space(0.25),
+    }),
+  };
+}
+
+function getChonkButtonTheme(
+  type: ChonkButtonType,
+  theme: DO_NOT_USE_ChonkTheme
+): StrictCSSObject {
+  switch (type) {
+    case 'default':
+      return {
+        border: `1px solid ${theme.colors.surface100}`,
+        background: theme.colors.surface500,
+        color: theme.colors.gray800,
+      };
+    case 'accent':
+      return {
+        border: `1px solid ${theme.colors.chonk.blue100}`,
+        background: theme.colors.chonk.blue400,
+        color: theme.colors.white,
+      };
+    case 'warning':
+      return {
+        border: `1px solid ${theme.colors.chonk.yellow100}`,
+        background: theme.colors.chonk.yellow400,
+        color: theme.colors.black,
+      };
+    case 'danger':
+      return {
+        border: `1px solid ${theme.colors.chonk.red100}`,
+        background: theme.colors.chonk.red400,
+        color: theme.colors.white,
+      };
+    case 'transparent':
+      return {
+        border: `1px solid transparent`,
+        background: 'transparent',
+        color: theme.colors.gray800,
+      };
+    default:
+      return {};
+  }
+}
+
+function getChonkButtonSizeTheme(
+  size: ChonkButtonSize,
+  theme: DO_NOT_USE_ChonkTheme
+): StrictCSSObject {
+  switch (size) {
+    case 'mini':
+      return {
+        borderRadius: theme.radius.mini,
+        padding: `${theme.space.micro} ${theme.space.mini}`,
+      };
+    case 'small':
+      return {
+        borderRadius: theme.radius.sm,
+        padding: `${theme.space.mini} ${theme.space.sm}`,
+      };
+    case 'medium':
+      return {
+        borderRadius: theme.radius.md,
+        padding: `${theme.space.sm} ${theme.space.md}`,
+      };
+    case 'large':
+      return {
+        borderRadius: theme.radius.lg,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
+    default:
+      return {};
+  }
+}
