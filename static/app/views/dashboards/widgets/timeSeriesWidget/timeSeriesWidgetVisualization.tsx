@@ -106,13 +106,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const latestTimeStamp = allBoundaries.at(-1);
 
   const {
-    createReleaseBubbleHighlighter,
+    connectReleaseBubbleChartRef,
     releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRef,
     chartRenderer: ({start: trimStart, end: trimEnd}) => {
       return (
         <TimeSeriesWidgetVisualization
@@ -167,14 +166,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       registerWithWidgetSyncContext(echartsInstance);
 
       if (hasReleaseBubblesSeries) {
-        createReleaseBubbleHighlighter(echartsInstance);
+        connectReleaseBubbleChartRef(e);
       }
     },
-    [
-      hasReleaseBubblesSeries,
-      createReleaseBubbleHighlighter,
-      registerWithWidgetSyncContext,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
   );
 
   const chartZoomProps = useChartZoom({
