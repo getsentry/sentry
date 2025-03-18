@@ -86,8 +86,8 @@ class EnhancementRule:
         ]
 
     @classmethod
-    def _from_config_structure(cls, tuple, version):
+    def _from_config_structure(cls, config_structure, version):
         return EnhancementRule(
-            [EnhancementMatch._from_config_structure(x, version) for x in tuple[0]],
-            [EnhancementAction._from_config_structure(x, version) for x in tuple[1]],
+            [EnhancementMatch._from_config_structure(x, version) for x in config_structure[0]],
+            [EnhancementAction._from_config_structure(x, version) for x in config_structure[1]],
         )
