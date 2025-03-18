@@ -6,7 +6,7 @@ from collections import namedtuple
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -574,8 +574,8 @@ else:  # real implementation here!
             return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
-@dataclass
-class SearchConfig:
+@dataclass  # pycqa/pycodestyle#1277
+class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True]]:  # noqa: E251
     """
     Configures how the search parser interprets a search query
     """
@@ -604,7 +604,7 @@ class SearchConfig:
     is_filter_translation: Mapping[str, tuple[str, Any]] = field(default_factory=dict)
 
     # Enables boolean filtering (AND / OR)
-    allow_boolean = True
+    allow_boolean: TAllowBoolean = True  # type: ignore[assignment]  # python/mypy#18812
 
     # Allows us to specify an allowlist of keys we will accept for this search.
     # If empty, allow all keys.
@@ -619,8 +619,32 @@ class SearchConfig:
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
+    @overload
     @classmethod
-    def create_from(cls, search_config: SearchConfig, **overrides):
+    def create_from[
+        TBool: (Literal[True], Literal[False])
+    ](
+        cls: type[SearchConfig[Any]],
+        search_config: SearchConfig[Any],
+        *,
+        allow_boolean: TBool,
+        **overrides: Any,
+    ) -> SearchConfig[TBool]: ...
+
+    @overload
+    @classmethod
+    def create_from[
+        TBool: (Literal[True], Literal[False])
+    ](
+        cls: type[SearchConfig[Any]],
+        search_config: SearchConfig[TBool],
+        **overrides: Any,
+    ) -> SearchConfig[TBool]: ...
+
+    @classmethod
+    def create_from(
+        cls: type[SearchConfig[Any]], search_config: SearchConfig[Any], **overrides: Any
+    ) -> SearchConfig[Any]:
         config = cls(**asdict(search_config))
         for key, val in overrides.items():
             setattr(config, key, val)
@@ -632,7 +656,7 @@ class SearchVisitor(NodeVisitor):
 
     def __init__(
         self,
-        config: SearchConfig,
+        config: SearchConfig[Any],
         params: ParamsType | None = None,
         get_field_type: Callable[[str], str | None] | None = None,
         get_function_result_type: Callable[[str], str | None] | None = None,
@@ -1333,7 +1357,7 @@ QueryToken = Union[SearchFilter, AggregateFilter, QueryOp, ParenExpression]
 def parse_search_query(
     query: str,
     *,
-    config: SearchConfig | None = None,
+    config: SearchConfig[Any] | None = None,
     params=None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
