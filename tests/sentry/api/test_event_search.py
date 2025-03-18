@@ -301,7 +301,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     def test_paren_expression_to_query_string(self):
         (val,) = parse_search_query("(has:1 random():<5)")
         assert isinstance(val, ParenExpression)
-        assert val.to_query_string() == "(has:=1 random():<5.0)"  # type: ignore[unreachable]  # will be fixed once parse_search_query is fixed!
+        assert val.to_query_string() == "(has:=1 random():<5.0)"
 
     def test_bool_operator_with_bool_disabled(self):
         config = SearchConfig.create_from(default_config, allow_boolean=False)
@@ -852,6 +852,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == "a*b"
 
         # the first and last asterisks arent escaped with a preceding backslash, so they're
@@ -861,6 +862,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"*\**"))
         ]
         search_filter = search_filters[0]
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == r"^.*\*.*$"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
@@ -871,6 +873,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the extra slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == r"a\b"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
@@ -881,6 +884,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the extra slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == "a\\"
 
     def test_escaping_quotes(self):
@@ -890,6 +894,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == 'a"b'
 
 
@@ -941,6 +946,7 @@ def test_search_filter_to_query_string(query):
 
     filters = parse_search_query(query)
     assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
     actual = filters[0].to_query_string()
     assert actual == query
 
