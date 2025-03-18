@@ -59,10 +59,20 @@ export function getChonkButtonStyles(
     borderRadius: getChonkButtonSizeTheme(size, p.theme).borderRadius,
     color: getChonkButtonTheme(type, p.theme).color,
 
-    border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
-    // borderTop: `3px solid transparent`,
-    background: getChonkButtonTheme(type, p.theme).background,
-    marginTop: '2px',
+    border: '1px solid transparent',
+    borderTopWidth: `3px`,
+    background: 'none',
+
+    '&::before': {
+      content: '""',
+      display: 'block',
+      position: 'absolute',
+      inset: '-1px',
+      bottom: '2px',
+      boxShadow: `0 3px 0 0px ${getChonkButtonTheme(type, p.theme).background}, inset 0px -1px 0 0px ${getChonkButtonTheme(type, p.theme).background}`,
+      // background: getChonkButtonTheme(type, p.theme).background,
+      borderRadius: 'inherit',
+    },
 
     '&::after': {
       content: '""',
@@ -77,6 +87,10 @@ export function getChonkButtonStyles(
       border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
       transform: 'translateY(-2px)',
       transition: 'transform 0.1s ease-in-out',
+    },
+
+    '> span:first-child': {
+      display: 'none',
     },
 
     '> span:last-child': {
