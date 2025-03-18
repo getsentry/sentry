@@ -62,7 +62,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     query_sort = models.CharField(
         max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices()
     )
-    position = models.PositiveSmallIntegerField()
+    position = models.PositiveSmallIntegerField(null=True)
 
     # Projects = [] maps to "My Projects" (This is so when a project is deleted, it correctly defaults to "My Projects")
     projects = models.ManyToManyField("sentry.Project", through="sentry.GroupSearchViewProject")
