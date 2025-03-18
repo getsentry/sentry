@@ -408,14 +408,14 @@ class SearchValue(NamedTuple):
     raw_value: str | float | datetime | Sequence[float] | Sequence[str]
 
     @property
-    def value(self):
+    def value(self) -> Any:
         if _is_wildcard(self.raw_value):
             return translate_wildcard(self.raw_value)
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
 
-    def to_query_string(self):
+    def to_query_string(self) -> str:
         # for any sequence (but not string) we want to iterate over the items
         # we do that because a simple str() would not be usable for strings
         # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
@@ -508,7 +508,7 @@ class SearchFilter(NamedTuple):
     operator: str
     value: SearchValue
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
     def to_query_string(self) -> str:
@@ -687,14 +687,14 @@ class SearchVisitor(NodeVisitor):
             self.get_function_result_type = _get_fallback_builder().get_function_result_type
 
     @cached_property
-    def key_mappings_lookup(self):
-        lookup = {}
-        for target_field, source_fields in self.config.key_mappings.items():
-            for source_field in source_fields:
-                lookup[source_field] = target_field
-        return lookup
+    def key_mappings_lookup(self) -> dict[str, str]:
+        return {
+            source_field: target_field
+            for target_field, source_fields in self.config.key_mappings.items()
+            for source_field in source_fields
+        }
 
-    def is_numeric_key(self, key):
+    def is_numeric_key(self, key: str) -> bool:
         return (
             key in self.config.numeric_keys
             or is_measurement(key)
@@ -704,7 +704,7 @@ class SearchVisitor(NodeVisitor):
             or self.is_size_key(key)
         )
 
-    def is_duration_key(self, key):
+    def is_duration_key(self, key: str) -> bool:
         duration_types = [*DURATION_UNITS, "duration"]
         return (
             key in self.config.duration_keys
@@ -713,13 +713,13 @@ class SearchVisitor(NodeVisitor):
             or self.get_field_type(key) in duration_types
         )
 
-    def is_size_key(self, key):
+    def is_size_key(self, key: str) -> bool:
         return self.get_field_type(key) in SIZE_UNITS
 
-    def is_date_key(self, key):
+    def is_date_key(self, key: str) -> bool:
         return key in self.config.date_keys
 
-    def is_boolean_key(self, key):
+    def is_boolean_key(self, key: str) -> bool:
         return key in self.config.boolean_keys
 
     def visit_search(
@@ -735,7 +735,7 @@ class SearchVisitor(NodeVisitor):
     def visit_term(self, node, children):
         return remove_optional_nodes(flatten(children[0]))
 
-    def visit_boolean_operator(self, node, children):
+    def visit_boolean_operator(self, node: Node, children: tuple[QueryOp]) -> QueryOp:
         if not self.config.allow_boolean:
             raise InvalidSearchQuery(
                 'Boolean statements containing "OR" or "AND" are not supported in this search'
@@ -743,10 +743,10 @@ class SearchVisitor(NodeVisitor):
 
         return children[0]
 
-    def visit_free_text_unquoted(self, node, children):
+    def visit_free_text_unquoted(self, node: Node, children: object) -> str | None:
         return node.text.strip(" ") or None
 
-    def visit_free_text(self, node, children):
+    def visit_free_text(self, node: Node, children: tuple[str]) -> SearchFilter | None:
         if not children[0]:
             return None
         # Free text searches need to be treated like they were wildcards
@@ -1221,10 +1221,10 @@ class SearchVisitor(NodeVisitor):
             return key
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
-    def visit_text_key(self, node, children):
+    def visit_text_key(self, node: Node, children: tuple[SearchKey]) -> SearchKey:
         return children[0]
 
-    def visit_value(self, node, children):
+    def visit_value(self, node: Node, children: object) -> str:
         # A properly quoted value will match the quoted value regex, so any unescaped
         # quotes are errors.
         value = node.text
@@ -1262,13 +1262,13 @@ class SearchVisitor(NodeVisitor):
 
         return value
 
-    def visit_in_value(self, node, children):
+    def visit_in_value(self, node: Node, children: object) -> str:
         return node.text.replace('\\"', '"')
 
-    def visit_text_in_value(self, node, children):
+    def visit_text_in_value(self, node: Node, children: tuple[str]) -> str:
         return children[0]
 
-    def visit_search_value(self, node, children):
+    def visit_search_value(self, node: Node, children: tuple[str]) -> SearchValue:
         return SearchValue(children[0])
 
     def visit_numeric_value(self, node, children):
@@ -1278,7 +1278,7 @@ class SearchVisitor(NodeVisitor):
 
         return [f"{sign}{value}", suffix]
 
-    def visit_boolean_value(self, node, children):
+    def visit_boolean_value(self, node: Node, children: object) -> Node:
         return node
 
     def visit_text_in_list(self, node, children):
@@ -1287,58 +1287,60 @@ class SearchVisitor(NodeVisitor):
     def visit_numeric_in_list(self, node, children):
         return process_list(children[1], children[2])
 
-    def visit_iso_8601_date_format(self, node, children):
+    def visit_iso_8601_date_format(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_rel_date_format(self, node, children):
+    def visit_rel_date_format(self, node: Node, children: object) -> Node:
         return node
 
-    def visit_duration_format(self, node, children):
+    def visit_duration_format(
+        self, node: Node, children: tuple[str, tuple[Node], Node]
+    ) -> list[str]:
         return [children[0], children[1][0].text]
 
-    def visit_size_format(self, node, children):
+    def visit_size_format(self, node: Node, children: tuple[str, tuple[Node]]) -> list[str]:
         return [children[0], children[1][0].text]
 
-    def visit_percentage_format(self, node, children):
+    def visit_percentage_format(self, node: Node, children: tuple[str, Node]) -> str:
         return children[0]
 
-    def visit_operator(self, node, children):
+    def visit_operator(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_or_operator(self, node, children):
+    def visit_or_operator(self, node: Node, children: object) -> str:
         return node.text.upper()
 
-    def visit_and_operator(self, node, children):
+    def visit_and_operator(self, node: Node, children: object) -> str:
         return node.text.upper()
 
-    def visit_numeric(self, node, children):
+    def visit_numeric(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_open_paren(self, node, children):
+    def visit_open_paren(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_closed_paren(self, node, children):
+    def visit_closed_paren(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_open_bracket(self, node, children):
+    def visit_open_bracket(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_closed_bracket(self, node, children):
+    def visit_closed_bracket(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_sep(self, node, children):
+    def visit_sep(self, node: Node, children: object) -> Node:
         return node
 
-    def visit_negation(self, node, children):
+    def visit_negation(self, node: Node, children: object) -> Node:
         return node
 
-    def visit_comma(self, node, children):
+    def visit_comma(self, node: Node, children: object) -> Node:
         return node
 
-    def visit_spaces(self, node, children):
+    def visit_spaces(self, node: Node, children: object) -> str:
         return " "
 
-    def generic_visit(self, node, children):
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node
 
 
@@ -1384,7 +1386,7 @@ def parse_search_query(
     query: str,
     *,
     config: SearchConfig[Literal[False]],
-    params=None,
+    params: ParamsType | None = None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> Sequence[SearchFilter | AggregateFilter]: ...
@@ -1395,7 +1397,7 @@ def parse_search_query(
     query: str,
     *,
     config: SearchConfig[Literal[True]] | None = None,
-    params=None,
+    params: ParamsType | None = None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> Sequence[QueryToken]: ...
@@ -1405,7 +1407,7 @@ def parse_search_query(
     query: str,
     *,
     config: SearchConfig[Any] | None = None,
-    params=None,
+    params: ParamsType | None = None,
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> Sequence[QueryToken]:
