@@ -38,10 +38,14 @@ class Email(Model):
 
         # `Sentry.Email` models don't have any explicit dependencies on `Sentry.User`, so we need to
         # find them manually via `UserEmail`.
-        emails = UserEmail.objects.filter(
-            user_id__in=pk_map.get_pks(get_model_name(User))
-        ).values_list("email", flat=True)
+        emails = (
+            UserEmail.objects.filter(user_id__in=pk_map.get_pks(get_model_name(User)))
+            .annotate(email_lower=models.Func(models.F("email"), function="LOWER"))
+            .values_list("email_lower", flat=True)
+        )
 
+        # Use case-insensitive matching as useremail and email are case-insensitive
+        # This doesn't handle upper case Email records, with lowercase Useremail records.
         return q & models.Q(email__in=emails)
 
     def write_relocation_import(
