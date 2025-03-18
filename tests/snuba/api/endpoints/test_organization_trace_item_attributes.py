@@ -132,27 +132,23 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
             kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
         )
 
-    def do_request(
-        self,
-        key="test.attribute",
-        item_type=TraceItemType.LOGS.value,
-        query=None,
-        features=None,
-        **kwargs,
-    ):
+    def do_request(self, query=None, features=None, key=None, **kwargs):
         if query is None:
             query = {}
+
         if "item_type" not in query:
-            query["item_type"] = item_type
+            query["item_type"] = self.item_type
         if "attribute_type" not in query:
             query["attribute_type"] = "string"
+
         if features is None:
             features = self.features
+
         with self.feature(features):
             return self.client_get(self.reverse_url(key=key), query, format="json", **kwargs)
 
     def test_no_feature(self):
-        response = self.do_request(key="test.attribute", features={})
+        response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
     @pytest.mark.skip(reason="This should work once snuba #6970 lands")

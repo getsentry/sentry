@@ -132,12 +132,12 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
-        value_substring_match = translate_escape_sequences(substring_match)
         query_string = serialized.get("query")
         attribute_type = serialized.get("attribute_type")
         item_type = serialized.get("item_type")
-        max_attributes = options.get("performance.spans-tags-key.max")
 
+        max_attributes = options.get("performance.spans-tags-key.max")
+        value_substring_match = translate_escape_sequences(substring_match)
         item_type_type = TraceItemType(item_type)
         referrer = resolve_attribute_referrer(item_type_type, attribute_type)
         resolver = SearchResolver(
@@ -213,11 +213,11 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         sentry_sdk.set_tag("query.attribute_key", key)
 
-        max_attribute_values = options.get("performance.spans-tags-values.max")
-
         serialized = serializer.validated_data
         item_type = serialized.get("item_type")
         substring_match = serialized.get("substring_match", "")
+
+        max_attribute_values = options.get("performance.spans-tags-values.max")
 
         definitions = (
             SPAN_DEFINITIONS if item_type == TraceItemType.SPANS.value else OURLOG_DEFINITIONS
