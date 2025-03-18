@@ -155,14 +155,15 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
         response = self.do_request(key="test.attribute")
         assert response.status_code == 404, response.content
 
-    def test_attribute_values_for_logs(self):
+    def test_attribute_values(self):
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "test.attribute": "value1",
+                    "test.attribute1": {"string_value": "value1"},
+                    "another.attribute": {"string_value": "value3"},
                 },
             ),
             self.create_ourlog(
@@ -170,17 +171,18 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "test.attribute": "value2",
+                    "test.attribute1": {"string_value": "value2"},
+                    "different.attr": {"string_value": "value5"},
                 },
             ),
         ]
         self.store_ourlogs(logs)
 
-        response = self.do_request(key="test.attribute")
+        response = self.do_request(key="test.attribute1")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         values = {item["value"] for item in response.data}
         assert "value1" in values
         assert "value2" in values
-        assert all(item["key"] == "test.attribute" for item in response.data)
+        assert all(item["key"] == "test.attribute1" for item in response.data)
