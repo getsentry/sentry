@@ -1,5 +1,5 @@
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 
 //
 // Note: You probably don't want to use this directly, use `useReleaseBubbles`
