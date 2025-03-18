@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -126,18 +127,19 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     ...props.defaultOptions,
                   };
                 }}
-                onChange={selection => {
-                  const {relative, ...rest} = selection;
+                onChange={({relative, start, end, utc}) => {
                   navigate({
                     ...location,
                     query: {
                       ...location.query,
-                      ...rest,
                       // If selecting the issue open period, remove the stats period query param
                       statsPeriod:
                         relative === defaultStatsPeriod?.statsPeriod
                           ? undefined
                           : relative,
+                      start: start ? getUtcDateString(start) : undefined,
+                      end: end ? getUtcDateString(end) : undefined,
+                      utc: utc ? 'true' : undefined,
                     },
                   });
                 }}
