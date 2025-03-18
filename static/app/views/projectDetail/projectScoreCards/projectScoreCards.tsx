@@ -68,6 +68,7 @@ function ProjectScoreCards({
           isProjectStabilized={isProjectStabilized}
           query={query}
           location={location}
+          platform={project?.platform}
         />
       ) : (
         <ProjectApdexScoreCard

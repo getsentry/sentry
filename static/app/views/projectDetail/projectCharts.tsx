@@ -38,6 +38,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {
+  getANRRateText,
   isPlatformANRCompatible,
   isPlatformForegroundANRCompatible,
 } from 'sentry/views/projectDetail/utils';
@@ -225,7 +226,7 @@ class ProjectCharts extends Component<Props, State> {
       const anrRateOptions = [
         {
           value: DisplayModes.ANR_RATE,
-          label: t('ANR Rate'),
+          label: getANRRateText(project?.platform),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.ANR_RATE) || !hasSessions,
           tooltip: hasSessions ? undefined : noHealthTooltip,
@@ -449,8 +450,11 @@ class ProjectCharts extends Component<Props, State> {
               )}
               {hasAnrRateFeature && displayMode === DisplayModes.ANR_RATE && (
                 <ProjectBaseSessionsChart
-                  title={t('ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+                  title={getANRRateText(project?.platform)}
+                  help={getSessionTermDescription(
+                    SessionTerm.ANR_RATE,
+                    project?.platform || null
+                  )}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
