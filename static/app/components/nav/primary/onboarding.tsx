@@ -73,7 +73,7 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <SidebarItem>
+      <SidebarItem label={label} showLabel={showLabel}>
         <NavButton
           {...overlayTriggerProps}
           isMobile={layout === NavLayout.MOBILE}
