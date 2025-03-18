@@ -88,7 +88,7 @@ class TestSpansTask(TestCase):
         assert child_tags["transaction"] == segment_tags["transaction"]
         assert child_tags["transaction.method"] == segment_tags["transaction.method"]
         assert child_tags["transaction.op"] == segment_tags["transaction.op"]
-        assert child_tags["user"] == segment_tags["user"]
+        assert child_tags["user"] == segment_tags["user"]  # type: ignore[typeddict-item]
 
     def test_enrich_spans_no_segment(self):
         spans = self.generate_basic_spans()
