@@ -76,10 +76,12 @@ export default function GroupFeatureFlagsDrawerContent({
     </StyledEmptyStateWarning>
   ) : (
     <Container>
-      {displayTags.map((tag, tagIdx) => (
-        <FlagDetailsLink tag={tag} key={tagIdx}>
-          <TagDistribution tag={tag} key={tagIdx} />
-        </FlagDetailsLink>
+      {displayTags.map(tag => (
+        <div key={tag.name}>
+          <FlagDetailsLink tag={tag} key={tag.name}>
+            <TagDistribution tag={tag} key={tag.name} />
+          </FlagDetailsLink>
+        </div>
       ))}
     </Container>
   );
