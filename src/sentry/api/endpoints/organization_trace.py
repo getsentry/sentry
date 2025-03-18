@@ -168,10 +168,10 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             else:
                 result.append(span)
             if span["id"] in id_to_error:
-                error = id_to_error[span["id"]]
+                error = id_to_error.pop(span["id"])
                 span["errors"].append(error)
-            else:
-                result.append(error)
+        for error in id_to_error.values():
+            result.append(error)
         return [self.serialize_rpc_event(root) for root in result]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
