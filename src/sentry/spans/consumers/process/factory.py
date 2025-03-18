@@ -11,7 +11,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import Span, SpansBuffer
@@ -50,7 +50,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_flush_segments = max_flush_segments
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        self.__pool = MultiprocessingPool(num_processes)
+        self.num_processes = num_processes
+
+        if self.num_processes != 1:
+            self.__pool = MultiprocessingPool(num_processes)
 
         cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
@@ -70,6 +73,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
 
         # patch onto self just for testing
+        flusher: ProcessingStrategy[FilteredPayload | int]
+
         flusher = self._flusher = SpanFlusher(
             buffer,
             self.producer,
@@ -78,15 +83,21 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=committer,
         )
 
-        run_task = run_task_with_multiprocessing(
-            function=partial(process_batch, buffer),
-            next_step=flusher,
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            pool=self.__pool,
-            input_block_size=self.input_block_size,
-            output_block_size=self.output_block_size,
-        )
+        if self.num_processes != 1:
+            run_task = run_task_with_multiprocessing(
+                function=partial(process_batch, buffer),
+                next_step=flusher,
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                pool=self.__pool,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
+            )
+        else:
+            run_task = RunTask(
+                function=partial(process_batch, buffer),
+                next_step=flusher,
+            )
 
         batch = BatchStep(
             max_batch_size=self.max_batch_size,
@@ -114,7 +125,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def shutdown(self) -> None:
         self.producer.close()
-        self.__pool.close()
+        if self.num_processes != 1:
+            self.__pool.close()
 
 
 def process_batch(

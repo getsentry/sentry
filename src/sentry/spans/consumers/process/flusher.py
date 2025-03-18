@@ -6,13 +6,13 @@ import rapidjson
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.processing.strategies.abstract import ProcessingStrategy
-from arroyo.types import Message
+from arroyo.types import FilteredPayload, Message
 
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 
 
-class SpanFlusher(ProcessingStrategy[int]):
+class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     """
     A background thread that polls Redis for new segments to flush and to produce to Kafka.
 
@@ -34,7 +34,7 @@ class SpanFlusher(ProcessingStrategy[int]):
         producer: KafkaProducer,
         topic: ArroyoTopic,
         max_flush_segments: int,
-        next_step: ProcessingStrategy[int],
+        next_step: ProcessingStrategy[FilteredPayload | int],
     ):
         self.buffer = buffer
         self.producer = producer
@@ -87,8 +87,9 @@ class SpanFlusher(ProcessingStrategy[int]):
     def poll(self) -> None:
         self.next_step.poll()
 
-    def submit(self, message: Message[int]) -> None:
-        self.current_drift = message.payload - int(time.time())
+    def submit(self, message: Message[FilteredPayload | int]) -> None:
+        if isinstance(message.payload, int):
+            self.current_drift = message.payload - int(time.time())
         self.next_step.submit(message)
 
     def terminate(self) -> None:
