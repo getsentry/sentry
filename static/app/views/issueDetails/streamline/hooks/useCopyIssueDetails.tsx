@@ -1,7 +1,6 @@
-import {useCallback} from 'react';
-import * as Sentry from '@sentry/react';
+import {useMemo} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
@@ -15,6 +14,7 @@ import {
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const issueAndEventToMarkdown = (
@@ -135,35 +135,28 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const {data: groupSummaryData} = useGroupSummaryData(group);
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
-  const copyIssueDetails = useCallback(() => {
+  const text = useMemo(() => {
     if (!event) {
       addErrorMessage(t('Could not copy issue to clipboard'));
-      return;
+      return '';
     }
 
-    const text = issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        addSuccessMessage(t('Copied issue to clipboard as Markdown'));
-      })
-      .catch(err => {
-        Sentry.captureException(err);
-        addErrorMessage(t('Could not copy issue to clipboard'));
-      });
+    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
   }, [group, event, groupSummaryData, autofixData]);
+
+  const {onClick} = useCopyToClipboard({
+    text,
+    successMessage: t('Copied issue to clipboard as Markdown'),
+  });
 
   useHotkeys([
     {
       match: 'command+alt+c',
-      callback: copyIssueDetails,
+      callback: onClick,
     },
     {
       match: 'ctrl+alt+c',
-      callback: copyIssueDetails,
+      callback: onClick,
     },
   ]);
-
-  return {copyIssueDetails};
 };

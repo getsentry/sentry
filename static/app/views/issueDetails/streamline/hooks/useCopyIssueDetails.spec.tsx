@@ -1,7 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
@@ -78,6 +78,19 @@ jest.mock('sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails', () =
 const issueAndEventToMarkdown = jest.requireMock(
   'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails'
 ).__mocks__.issueAndEventToMarkdown;
+
+// Mock useCopyToClipboard
+jest.mock('sentry/utils/useCopyToClipboard', () => {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      onClick: jest.fn(),
+    })),
+  };
+});
+
+// Get access to the mocked useCopyToClipboard
+const useCopyToClipboard = jest.requireMock('sentry/utils/useCopyToClipboard').default;
 
 describe('issueAndEventToMarkdown', () => {
   const group = GroupFixture();
@@ -223,6 +236,21 @@ describe('useCopyIssueDetails', () => {
       writable: true,
     });
 
+    // Mock the onClick implementation for each test
+    useCopyToClipboard.mockImplementation(
+      ({text, successMessage}: {successMessage: string; text: string}) => ({
+        onClick: jest.fn().mockImplementation(() => {
+          if (text) {
+            mockClipboard.writeText(text);
+            indicators.addSuccessMessage(successMessage);
+            return Promise.resolve();
+          }
+          indicators.addErrorMessage('Could not copy issue to clipboard');
+          return Promise.reject();
+        }),
+      })
+    );
+
     // Mock the hook with the proper return structure
     jest.spyOn(groupSummaryHooks, 'useGroupSummaryData').mockReturnValue({
       data: {
@@ -284,47 +312,53 @@ describe('useCopyIssueDetails', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
   });
 
-  it('returns copyIssueDetails function', () => {
-    const {result} = renderHook(() => useCopyIssueDetails(group, event));
+  it('sets up useCopyToClipboard with the correct parameters', () => {
+    renderHook(() => useCopyIssueDetails(group, event));
 
-    expect(result.current).toHaveProperty('copyIssueDetails');
-    expect(typeof result.current.copyIssueDetails).toBe('function');
-  });
-
-  it('copies markdown text to clipboard when copyIssueDetails is called', async () => {
-    mockClipboard.writeText.mockResolvedValue(undefined);
-
-    const {result} = renderHook(() => useCopyIssueDetails(group, event));
-    result.current.copyIssueDetails();
-
-    expect(mockClipboard.writeText).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-        'Copied issue to clipboard as Markdown'
-      );
+    expect(useCopyToClipboard).toHaveBeenCalledWith({
+      text: expect.any(String),
+      successMessage: 'Copied issue to clipboard as Markdown',
     });
   });
 
-  it('shows error message when clipboard API fails', async () => {
-    mockClipboard.writeText.mockRejectedValue(new Error('Clipboard error'));
+  it('sets up hotkeys with the correct callbacks', () => {
+    const mockOnClick = jest.fn();
+    useCopyToClipboard.mockReturnValueOnce({onClick: mockOnClick});
 
-    const {result} = renderHook(() => useCopyIssueDetails(group, event));
-    result.current.copyIssueDetails();
+    const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
 
-    await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Could not copy issue to clipboard'
-      );
-    });
+    renderHook(() => useCopyIssueDetails(group, event));
+
+    expect(useHotkeysMock).toHaveBeenCalledWith([
+      {
+        match: 'command+alt+c',
+        callback: mockOnClick,
+      },
+      {
+        match: 'ctrl+alt+c',
+        callback: mockOnClick,
+      },
+    ]);
   });
 
-  it('shows error message when event is undefined', () => {
-    const {result} = renderHook(() => useCopyIssueDetails(group, undefined));
-    result.current.copyIssueDetails();
+  it('provides empty text and shows error message when event is undefined', () => {
+    renderHook(() => useCopyIssueDetails(group, undefined));
+
+    expect(useCopyToClipboard).toHaveBeenCalledWith({
+      text: '',
+      successMessage: 'Copied issue to clipboard as Markdown',
+    });
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith(
       'Could not copy issue to clipboard'
     );
-    expect(mockClipboard.writeText).not.toHaveBeenCalled();
+  });
+
+  it('generates markdown with the correct data when event is provided', () => {
+    renderHook(() => useCopyIssueDetails(group, event));
+
+    const useCopyToClipboardCall = useCopyToClipboard.mock.calls[0][0];
+    expect(useCopyToClipboardCall.text).toContain(`# ${group.title}`);
+    expect(useCopyToClipboardCall.text).toContain(`**Issue ID:** ${group.id}`);
   });
 });
