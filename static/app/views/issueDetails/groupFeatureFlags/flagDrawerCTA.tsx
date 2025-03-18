@@ -14,7 +14,10 @@ export default function FlagDrawerCTA() {
   const {onClose: closeDrawer} = useDrawerContentContext();
 
   function handleSetupButtonClick(e: any) {
-    trackAnalytics('flags.setup_modal_opened', {organization});
+    trackAnalytics('flags.setup_sidebar_opened', {
+      organization,
+      surface: 'issue_details.flags_drawer',
+    });
     trackAnalytics('flags.cta_setup_button_clicked', {organization});
     closeDrawer?.();
     setTimeout(() => {
@@ -55,7 +58,6 @@ const BannerTitle = styled('div')`
 
 const BannerDescription = styled('div')`
   margin-bottom: ${space(1.5)};
-  max-width: 340px;
 `;
 
 const ActionButton = styled('div')`
@@ -65,6 +67,7 @@ const ActionButton = styled('div')`
 
 const BannerWrapper = styled('div')`
   position: relative;
+  max-width: 600px;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)};
