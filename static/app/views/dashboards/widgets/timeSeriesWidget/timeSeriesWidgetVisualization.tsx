@@ -195,7 +195,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
 
   // Assign most popular field type to left axis
-  const leftYAxisType = axisTypes.at(0) ?? FALLBACK_TYPE;
+  const leftYAxisType = axisTypes.at(0)!;
 
   // Assign the rest of the field types to right
   const rightYAxisTypes = axisTypes.slice(1);
@@ -375,7 +375,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     if (plottable.dataType === leftYAxisType) {
       // This plottable matches the left axis
       yAxisPosition = 'left';
-    } else if (rightYAxisTypes.includes(plottable.dataType ?? FALLBACK_TYPE)) {
+    } else if (rightYAxisTypes.includes(plottable.dataType)) {
       // This plottable matches the right axis
       yAxisPosition = 'right';
     } else {
@@ -393,8 +393,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           rightAxisType: rightYAxisType,
         });
       });
-
-      yAxisPosition = leftYAxisType === FALLBACK_TYPE ? 'left' : 'right';
     }
 
     // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
