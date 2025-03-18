@@ -8,7 +8,6 @@ import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/us
 import {
   Container,
   StyledEmptyStateWarning,
-  Wrapper,
 } from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
@@ -76,14 +75,12 @@ export default function GroupFeatureFlagsDrawerContent({
         : t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Wrapper>
-      <Container>
-        {displayTags.map((tag, tagIdx) => (
-          <TagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
-            <TagDistribution tag={tag} key={tagIdx} />
-          </TagDetailsLink>
-        ))}
-      </Container>
-    </Wrapper>
+    <Container>
+      {displayTags.map((tag, tagIdx) => (
+        <TagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
+          <TagDistribution tag={tag} key={tagIdx} />
+        </TagDetailsLink>
+      ))}
+    </Container>
   );
 }

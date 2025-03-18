@@ -148,17 +148,15 @@ function DrawerContent({
   }
 
   return (
-    <Wrapper>
-      <Container>
-        {displayTags.map(tag => (
-          <div key={tag.name}>
-            <TagDetailsLink tag={tag} groupId={group.id}>
-              <TagDistribution tag={tag} />
-            </TagDetailsLink>
-          </div>
-        ))}
-      </Container>
-    </Wrapper>
+    <Container>
+      {displayTags.map(tag => (
+        <div key={tag.name}>
+          <TagDetailsLink tag={tag} groupId={group.id}>
+            <TagDistribution tag={tag} />
+          </TagDetailsLink>
+        </div>
+      ))}
+    </Container>
   );
 }
 
@@ -381,12 +379,6 @@ export function GroupTagsDrawer({
     </EventDrawerContainer>
   );
 }
-
-export const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 export const Container = styled('div')`
   display: grid;
