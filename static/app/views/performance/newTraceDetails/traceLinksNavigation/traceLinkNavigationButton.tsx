@@ -68,7 +68,9 @@ export function TraceLinkNavigationButton({
   const isLinkedTraceAvailable = useIsTraceAvailable(traceLink);
 
   if (isLoading) {
-    return <TraceLinkSkeleton>{t('Fetching previous trace...')}</TraceLinkSkeleton>;
+    // We don't show a placeholder/skeleton here as it would cause layout shifts most of the time.
+    // Most traces don't have a next/previous trace and the hard to avoid layout shift should only occur if the actual button can be shown.
+    return null;
   }
 
   if (!traceLink || !isLinkedTraceAvailable) {
@@ -109,25 +111,6 @@ const StyledTooltip = styled(Tooltip)`
   padding: ${space(0.5)} ${space(1)};
   text-decoration: underline dotted
     ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
-`;
-
-const TraceLinkSkeleton = styled('div')`
-  background: ${p => p.theme.gray100};
-  border-radius: 4px;
-  animation: pulse 2s ease-out infinite;
-  padding: ${space(0.5)} ${space(1)};
-
-  @keyframes pulse {
-    0% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 0.9;
-    }
-    100% {
-      opacity: 0.4;
-    }
-  }
 `;
 
 const TraceLink = styled(Link)`
