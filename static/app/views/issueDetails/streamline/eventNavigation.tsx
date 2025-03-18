@@ -67,7 +67,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({
@@ -112,7 +114,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.DETAILS],
-              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`},
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+              },
             },
             {
               key: Tab.REPLAYS,
@@ -127,7 +132,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.REPLAYS],
-              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`},
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+              },
               hidden: !issueTypeConfig.pages.replays.enabled,
             },
             {
@@ -141,7 +149,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.ATTACHMENTS],
-              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`},
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+              },
               hidden: !issueTypeConfig.pages.attachments.enabled,
             },
             {
@@ -152,7 +163,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.USER_FEEDBACK],
-              to: {...location, pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`},
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+              },
               hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },
           ]}

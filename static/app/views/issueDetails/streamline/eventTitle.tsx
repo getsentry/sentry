@@ -190,7 +190,10 @@ function EventNavigationLink({
   );
   return (
     <LinkButton
-      to={{...location, hash: `#${config.key}`}}
+      to={{
+        ...location,
+        hash: `#${config.key}`,
+      }}
       onClick={event => {
         // If command click do nothing, assume user wants to open in new tab
         if (event.metaKey || event.ctrlKey) {
