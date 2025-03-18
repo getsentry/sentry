@@ -1,6 +1,6 @@
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 
-MAX_CHARS = 249  # (256 minus space for '...(+3)')
+MAX_CHARS = 248  # (256 minus space for '...(+3_)')
 
 
 def get_action_description(action: AlertRuleTriggerAction) -> str:
@@ -33,7 +33,6 @@ def get_workflow_name(alert_rule: AlertRule) -> str:
     Generate a workflow name like 'Slack @michelle.fu, Email michelle.fu@sentry.io...(+3)' if there is only a critical trigger
     or with priority label: 'Critical - Slack @michelle.fu, Warning email michelle.fu@sentry.io...(+3)''
     """
-    # we have to read from the old tables because at this point we may not have written to the new ones
     name = ""
     triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id).order_by("label")
     include_label = False if triggers.count() == 1 else True
