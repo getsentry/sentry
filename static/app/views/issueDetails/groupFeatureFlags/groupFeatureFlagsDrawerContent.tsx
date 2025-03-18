@@ -7,13 +7,13 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {
   Container,
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
-import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -87,10 +87,12 @@ export default function GroupFeatureFlagsDrawerContent({
     </StyledEmptyStateWarning>
   ) : (
     <Container>
-      {displayTags.map((tag, tagIdx) => (
-        <TagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
-          <TagDistribution tag={tag} key={tagIdx} />
-        </TagDetailsLink>
+      {displayTags.map(tag => (
+        <div key={tag.name}>
+          <FlagDetailsLink tag={tag} key={tag.name}>
+            <TagDistribution tag={tag} key={tag.name} />
+          </FlagDetailsLink>
+        </div>
       ))}
     </Container>
   );
