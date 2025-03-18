@@ -137,7 +137,7 @@ export interface BaseChartProps {
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
-  additionalSeries?: LineSeriesOption[];
+  additionalSeries?: SeriesOption[];
   /**
    * If true, ignores height value and auto-scales chart to fit container height.
    */
