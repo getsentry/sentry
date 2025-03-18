@@ -21,7 +21,7 @@ from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.utils import json
 
-FAILURE_REASON_BASE = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.%s"
+FAILURE_REASON_BASE = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{{}}"
 
 
 class SelectRequesterResult(TypedDict, total=False):
