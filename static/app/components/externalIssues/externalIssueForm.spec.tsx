@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {vi} from 'vitest';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -24,7 +25,7 @@ vi.mock('lodash/debounce', () => {
         }, timeout)
       );
     };
-  return mockDebounce;
+  return {default: mockDebounce};
 });
 
 describe('ExternalIssueForm', () => {

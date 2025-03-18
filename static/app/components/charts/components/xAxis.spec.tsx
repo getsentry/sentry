@@ -2,8 +2,8 @@ import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import {lightTheme} from 'sentry/utils/theme';
 
-vi.mock('moment-timezone', () => {
-  const moment = vi.importActual('moment-timezone');
+vi.mock('moment-timezone', async () => {
+  const moment = await vi.importActual('moment-timezone');
   moment.tz.setDefault('America/Los_Angeles'); // Whatever timezone you want
   return moment;
 });

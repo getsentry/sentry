@@ -46,10 +46,13 @@ const organization = OrganizationFixture({
   slug: 'org',
 });
 
-vi.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
-  ...vi.importActual('sentry/views/issueDetails/issueDetailsTour'),
-  useIssueDetailsTour: () => mockTour(),
-}));
+vi.mock('sentry/views/issueDetails/issueDetailsTour', async () => {
+  const actual = await vi.importActual('sentry/views/issueDetails/issueDetailsTour');
+  return {
+    ...actual,
+    useIssueDetailsTour: () => mockTour(),
+  };
+});
 
 describe('GroupActions', function () {
   const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');

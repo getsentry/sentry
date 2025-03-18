@@ -1,5 +1,5 @@
 /* global process */
-import failOnConsole from 'jest-fail-on-console';
+import failOnConsole from 'vitest-fail-on-console';
 
 process.on('unhandledRejection', reason => {
   // eslint-disable-next-line no-console

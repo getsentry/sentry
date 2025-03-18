@@ -7,8 +7,8 @@ import {resolveRoute} from './resolveRoute';
 
 const mockDeployPreviewConfig = vi.fn();
 
-vi.mock('sentry/constants', () => {
-  const sentryConstants = vi.importActual('sentry/constants');
+vi.mock('sentry/constants', async () => {
+  const sentryConstants = await vi.importActual('sentry/constants');
   return {
     ...sentryConstants,
     get DEPLOY_PREVIEW_CONFIG() {

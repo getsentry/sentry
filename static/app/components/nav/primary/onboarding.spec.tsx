@@ -11,10 +11,13 @@ import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSide
 
 const userMock = UserFixture();
 
-vi.mock('framer-motion', () => ({
-  ...vi.importActual('framer-motion'),
-  AnimatePresence: vi.fn(({children}) => children),
-}));
+vi.mock('framer-motion', async () => {
+  const actual = await vi.importActual('framer-motion');
+  return {
+    ...actual,
+    AnimatePresence: vi.fn(({children}) => children),
+  };
+});
 
 function renderMockRequests(organization: Organization) {
   const getOnboardingTasksMock = MockApiClient.addMockResponse({

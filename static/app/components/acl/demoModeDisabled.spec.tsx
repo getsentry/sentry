@@ -8,13 +8,9 @@ vi.mock('sentry/utils/demoMode', () => ({
   isDemoModeActive: vi.fn(),
 }));
 
-vi.mock('sentry/locale', () => ({
-  t: vi.fn(key => key), // Mock translation function
-}));
-
 describe('DisableInDemoMode', () => {
   it('renders children when demo mode is disabled', () => {
-    (isDemoModeActive as vi.Mock).mockReturnValue(false);
+    vi.mocked(isDemoModeActive).mockReturnValue(false);
 
     render(
       <DisableInDemoMode>
@@ -27,7 +23,7 @@ describe('DisableInDemoMode', () => {
   });
 
   it('renders a tooltip when demo mode is enabled', () => {
-    (isDemoModeActive as vi.Mock).mockReturnValue(true);
+    vi.mocked(isDemoModeActive).mockReturnValue(true);
 
     render(
       <DisableInDemoMode>

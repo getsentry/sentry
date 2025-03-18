@@ -39,7 +39,7 @@ export default defineConfig({
     // https://v0.vitest.dev/config/#globals
     globals: true,
     environment: 'jsdom',
-    setupFiles: './tests/js/setupVitest.ts',
+    setupFiles: ['./tests/js/setupVitest.ts', './tests/js/setupFramework.ts'],
     pool: 'threads',
     poolOptions: {
       threads: {
@@ -62,10 +62,10 @@ export default defineConfig({
       '**/cypress/**',
       '**/.{idea,git,cache,output,temp}/**',
     ],
-    silent: true, // Suppress console logs from tests
     outputFile: {
       json: '.vitest-results.json', // Save full results to a file instead
     },
+    clearMocks: true,
   },
   resolve: {
     alias: [

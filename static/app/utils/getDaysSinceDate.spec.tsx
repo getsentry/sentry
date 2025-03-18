@@ -1,7 +1,7 @@
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
-vi.mock('moment-timezone', () => {
-  const moment = vi.importActual('moment-timezone');
+vi.mock('moment-timezone', async () => {
+  const moment = await vi.importActual('moment-timezone');
   // Jun 06 2022
   moment.now = vi.fn().mockReturnValue(1654492173000);
   return moment;

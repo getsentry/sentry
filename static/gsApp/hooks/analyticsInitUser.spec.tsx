@@ -31,8 +31,6 @@ vi.mock('@amplitude/analytics-browser', () => {
 });
 vi.mock('getsentry/utils/trackMarketingEvent');
 
-console.log({Amplitude});
-
 describe('analyticsInitUser', function () {
   const user = UserFixture({});
   const _identifyInstance = new Amplitude.Identify();

@@ -6,7 +6,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import theme from 'sentry/utils/theme';
 
 vi.mock('echarts-for-react/lib/core', () => {
-  return vi.fn(() => null);
+  return {default: vi.fn(() => null)};
 });
 
 describe('BaseChart', function () {

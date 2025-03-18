@@ -10,8 +10,8 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 const mockUsingCustomerDomain = vi.fn();
 const mockCustomerDomain = vi.fn();
 
-vi.mock('sentry/constants', () => {
-  const sentryConstant = vi.importActual('sentry/constants');
+vi.mock('sentry/constants', async () => {
+  const sentryConstant = await vi.importActual('sentry/constants');
   return {
     ...sentryConstant,
 

@@ -23,10 +23,10 @@ window.ResizeObserver =
 Element.prototype.scrollTo = () => {};
 
 // Replace the webgl renderer with a dom renderer for tests
-vi.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', () => {
-  const {
-    FlamegraphRendererDOM,
-  } = require('sentry/utils/profiling/renderers/flamegraphRendererDOM');
+vi.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', async () => {
+  const {FlamegraphRendererDOM} = await vi.importActual(
+    'sentry/utils/profiling/renderers/flamegraphRendererDOM'
+  );
 
   return {
     FlamegraphRendererWebGL: FlamegraphRendererDOM,

@@ -258,7 +258,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
 
   renderBody() {
     const {data, organization} = this.state;
-    console.log(data);
     const {orgId} = this.props.params;
     const regionMap = ConfigStore.get('regions').reduce(
       (acc: any, region: any) => {

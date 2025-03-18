@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -10,6 +9,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate} from 'sentry-test/utils';
 
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -862,7 +862,7 @@ describe('trace view', () => {
   beforeEach(() => {
     globalThis.ResizeObserver = MockResizeObserver as any;
     mockQueryString('');
-    MockDate.reset();
+    resetMockDate();
   });
   afterEach(() => {
     mockQueryString('');

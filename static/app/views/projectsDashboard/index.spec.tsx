@@ -36,7 +36,7 @@ vi.mock('lodash/debounce', () => {
         }, timeout)
       );
     };
-  return mockDebounce;
+  return {default: mockDebounce};
 });
 
 describe('ProjectsDashboard', function () {

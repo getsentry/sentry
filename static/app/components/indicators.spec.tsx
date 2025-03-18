@@ -12,10 +12,13 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 
 // Make sure we use `duration: null` to test add/remove
 
-vi.mock('framer-motion', () => ({
-  ...vi.importActual('framer-motion'),
-  AnimatePresence: vi.fn(({children}) => children),
-}));
+vi.mock('framer-motion', async () => {
+  const actual = await vi.importActual('framer-motion');
+  return {
+    ...actual,
+    AnimatePresence: vi.fn(({children}) => children),
+  };
+});
 
 describe('Indicators', function () {
   beforeEach(function () {

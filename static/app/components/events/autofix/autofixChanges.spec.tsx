@@ -6,22 +6,37 @@ import {AutofixChanges} from './autofixChanges';
 import {AutofixStatus, AutofixStepType} from './types';
 
 const mockUseAutofix = vi.fn();
-vi.mock('sentry/components/events/autofix/useAutofix', () => ({
-  ...vi.importActual('sentry/components/events/autofix/useAutofix'),
-  useAutofixData: () => mockUseAutofix(),
-}));
+vi.mock('sentry/components/events/autofix/useAutofix', async () => {
+  const actual = await vi.importActual('sentry/components/events/autofix/useAutofix');
+  return {
+    ...actual,
+    useAutofixData: () => mockUseAutofix(),
+  };
+});
 
 const mockUseAutofixSetup = vi.fn();
-vi.mock('sentry/components/events/autofix/useAutofixSetup', () => ({
-  useAutofixSetup: () => mockUseAutofixSetup(),
-}));
+vi.mock('sentry/components/events/autofix/useAutofixSetup', async () => {
+  const actual = await vi.importActual(
+    'sentry/components/events/autofix/useAutofixSetup'
+  );
+  return {
+    ...actual,
+    useAutofixSetup: () => mockUseAutofixSetup(),
+  };
+});
 
 const mockUpdateInsightCard = vi.fn();
-vi.mock('sentry/components/events/autofix/autofixInsightCards', () => ({
-  useUpdateInsightCard: () => ({
-    mutate: mockUpdateInsightCard,
-  }),
-}));
+vi.mock('sentry/components/events/autofix/autofixInsightCards', async () => {
+  const actual = await vi.importActual(
+    'sentry/components/events/autofix/autofixInsightCards'
+  );
+  return {
+    ...actual,
+    useUpdateInsightCard: () => ({
+      mutate: mockUpdateInsightCard,
+    }),
+  };
+});
 
 describe('AutofixChanges', () => {
   const defaultProps = {

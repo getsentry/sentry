@@ -1,3 +1,5 @@
+import {vi} from 'vitest';
+
 import ConfigStore from 'sentry/stores/configStore';
 
 import {
@@ -11,8 +13,6 @@ describe('Demo Mode Functions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    vi.useRealTimers();
-    vi.useFakeTimers();
   });
 
   describe('extraQueryParameter', () => {
@@ -64,19 +64,17 @@ describe('Demo Mode Functions', () => {
   describe('isDemoModeActive', () => {
     it('returns true if demoMode is enabled and user is not a superuser', () => {
       vi.spyOn(ConfigStore, 'get').mockReturnValue(true);
-      vi.spyOn(
-        require('sentry/utils/isActiveSuperuser'),
-        'isActiveSuperuser'
-      ).mockReturnValue(false);
+      vi.mock('sentry/utils/isActiveSuperuser', () => ({
+        isActiveSuperuser: vi.fn().mockReturnValue(false),
+      }));
       expect(isDemoModeActive()).toBe(true);
     });
 
     it('returns false if demoMode is enabled but user is a superuser', () => {
       vi.spyOn(ConfigStore, 'get').mockReturnValue(true);
-      vi.spyOn(
-        require('sentry/utils/isActiveSuperuser'),
-        'isActiveSuperuser'
-      ).mockReturnValue(true);
+      vi.mock('sentry/utils/isActiveSuperuser', () => ({
+        isActiveSuperuser: vi.fn().mockReturnValue(true),
+      }));
       expect(isDemoModeActive()).toBe(false);
     });
 

@@ -4,10 +4,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
 
-vi.mock('@sentry/core', () => ({
-  ...vi.importActual('@sentry/core'),
-  generateSentryTraceHeader: vi.fn(() => 'sentry-trace-value'),
-}));
+vi.mock('@sentry/core', async () => {
+  const actual = await vi.importActual('@sentry/core');
+  return {
+    ...actual,
+    generateSentryTraceHeader: vi.fn(() => 'sentry-trace-value'),
+  };
+});
 
 describe('HTTPSnippet', function () {
   it('renders', function () {

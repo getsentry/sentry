@@ -66,7 +66,7 @@ describe('FeatureFeedback', function () {
         expect(feedbackClient.captureEvent).toHaveBeenCalledWith(
           expect.objectContaining({
             request: {
-              url: 'http://localhost/',
+              url: 'http://localhost:3000/',
             },
           })
         )

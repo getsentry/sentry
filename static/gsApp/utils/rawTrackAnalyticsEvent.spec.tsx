@@ -83,7 +83,7 @@ describe('rawTrackAnalyticsEvent', function () {
         role: 'owner',
         project_id: 456,
         analytics_session_id: '789',
-        url: 'http://localhost/',
+        url: 'http://localhost:3000/',
       }),
       {time: undefined}
     );

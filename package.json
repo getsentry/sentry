@@ -225,6 +225,8 @@
     "tsconfig-paths": "^4.2.0",
     "typescript-eslint": "^8.26.0",
     "vitest": "^3.0.9",
+    "vitest-canvas-mock": "^0.3.3",
+    "vitest-fail-on-console": "^0.7.1",
     "vitest-fetch-mock": "^0.4.5",
     "webpack-dev-server": "5.2.0"
   },

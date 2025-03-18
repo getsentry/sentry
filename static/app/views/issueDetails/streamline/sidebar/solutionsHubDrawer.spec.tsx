@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+import * as issueTypeConfigModule from 'sentry/utils/issueTypeConfig';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 
 describe('SolutionsHubDrawer', () => {
@@ -265,7 +266,6 @@ describe('SolutionsHubDrawer', () => {
     });
 
     // Use vi.spyOn instead of vi.mock inside the test
-    const issueTypeConfigModule = require('sentry/utils/issueTypeConfig');
     const spy = vi
       .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
       .mockImplementation(() => ({

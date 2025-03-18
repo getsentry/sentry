@@ -8,8 +8,8 @@ import ConfigStore from 'sentry/stores/configStore';
 
 const mockUsingCustomerDomain = vi.fn();
 
-vi.mock('sentry/constants', () => {
-  const sentryConstant = vi.importActual('sentry/constants');
+vi.mock('sentry/constants', async () => {
+  const sentryConstant = await vi.importActual('sentry/constants');
   return {
     ...sentryConstant,
 

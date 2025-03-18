@@ -10,10 +10,13 @@ import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlig
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
-vi.mock('sentry/components/events/contexts/contextIcon', () => ({
-  ...vi.importActual('sentry/components/events/contexts/contextIcon'),
-  getLogoImage: () => 'data:image/test',
-}));
+vi.mock('sentry/components/events/contexts/contextIcon', async () => {
+  const actual = await vi.importActual('sentry/components/events/contexts/contextIcon');
+  return {
+    ...actual,
+    getLogoImage: () => 'data:image/test',
+  };
+});
 
 describe('HighlightsIconSummary', function () {
   const organization = OrganizationFixture();

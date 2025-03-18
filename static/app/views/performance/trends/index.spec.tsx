@@ -34,8 +34,8 @@ vi.mock('sentry/utils/useLocation');
 
 const mockUseLocation = vi.mocked(useLocation);
 
-vi.mock('moment-timezone', () => {
-  const moment = vi.importActual('moment-timezone');
+vi.mock('moment-timezone', async () => {
+  const moment = await vi.importActual('moment-timezone');
   moment.now = vi.fn().mockReturnValue(1601251200000);
   return moment;
 });

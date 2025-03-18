@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {vi} from 'vitest';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import {BillingType} from 'getsentry/types';
 
@@ -14,10 +19,9 @@ vi.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: vi.fn(),
 }));
 
-const mockUseOrganization = vi.importMock('sentry/utils/useOrganization').default;
-const mockUseUser = vi.importMock('sentry/utils/useUser').useUser;
-const mockGetRegionData =
-  vi.importMock('sentry/utils/regions').getRegionDataFromOrganization;
+const mockUseOrganization = jest.mocked(useOrganization);
+const mockUseUser = jest.mocked(useUser);
+const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
 describe('useGenAiConsentButtonAccess', function () {
   // Reset all mocks before each test
