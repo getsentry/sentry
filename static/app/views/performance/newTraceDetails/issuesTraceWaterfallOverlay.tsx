@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import type {LocationDescriptor} from 'history';
@@ -115,39 +115,34 @@ export function IssueTraceWaterfallOverlay({
     };
   }, [viewManager, containerRef, tree]);
 
+  const handleLinkClick = useCallback(() => {
+    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
+      organization,
+    });
+  }, [organization]);
+
   const baseLink = getTraceLinkForIssue(traceTarget);
 
   return (
-    <OverlayWrapper to={baseLink}>
-      {rowPositions?.length ? (
-        rowPositions.map(pos => (
-          <IssuesTraceOverlayContainer
-            key={pos.pathToNode[0]!}
-            to={getTraceLinkForIssue(traceTarget, pos.pathToNode)}
-            onClick={() => {
-              trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
-                organization,
-              });
-            }}
-            style={{
-              top: `${pos.top}px`,
-              left: `${pos.left}px`,
-              width: '100%',
-              height: `${pos.height}px`,
-            }}
-          />
-        ))
-      ) : (
+    <OverlayWrapper>
+      <FallbackOverlayContainer
+        to={baseLink}
+        onClick={handleLinkClick}
+        style={{inset: 0}}
+      />
+      {rowPositions?.map(pos => (
         <IssuesTraceOverlayContainer
-          to={baseLink}
-          onClick={() => {
-            trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
-              organization,
-            });
+          key={pos.pathToNode[0]!}
+          to={getTraceLinkForIssue(traceTarget, pos.pathToNode)}
+          onClick={handleLinkClick}
+          style={{
+            top: `${pos.top}px`,
+            left: `${pos.left}px`,
+            width: '100%',
+            height: `${pos.height}px`,
           }}
-          style={{inset: 0}}
         />
-      )}
+      ))}
     </OverlayWrapper>
   );
 }
@@ -175,11 +170,17 @@ export function getTraceLinkForIssue(
   return `${traceTarget.pathname}?${qs.stringify(searchParams)}`;
 }
 
-const OverlayWrapper = styled(Link)`
+const OverlayWrapper = styled('div')`
   position: absolute;
   inset: 0;
   z-index: 10;
   overflow: hidden;
+`;
+
+const FallbackOverlayContainer = styled(Link)`
+  position: absolute;
+  display: block;
+  pointer-events: auto;
 `;
 
 const IssuesTraceOverlayContainer = styled(Link)`
