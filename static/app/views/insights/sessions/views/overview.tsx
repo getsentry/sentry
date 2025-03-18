@@ -104,7 +104,7 @@ function ViewSpecificCharts({
             <UserHealthCountChart />
           </ModuleLayout.Third>
 
-          <ModuleLayout.Third>Coming soon: New Issues over time</ModuleLayout.Third>
+          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
@@ -119,8 +119,8 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <CrashFreeSessionsChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New Issues over time</ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New Issues Per release</ModuleLayout.Third>
+          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
+          <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
 
           <ModuleLayout.Third>
             <ReleaseSessionCountChart />
