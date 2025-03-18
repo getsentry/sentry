@@ -142,5 +142,5 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         )
 
     def test_compare_simple(self):
-        mismatches = compare_timeseries_for_alert_rule(self.alert_rule)
-        assert mismatches == {}
+        result = compare_timeseries_for_alert_rule(self.alert_rule)
+        assert result["mismatches"] == {}
