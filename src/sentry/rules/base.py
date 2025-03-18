@@ -60,8 +60,8 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
+        rule: Rule,
         data: MutableMapping[str, Any] | None = None,
-        rule: Rule | None = None,
         rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
         self.project = project
