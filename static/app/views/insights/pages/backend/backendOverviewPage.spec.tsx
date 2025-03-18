@@ -36,7 +36,7 @@ const projects = [
 
 let mainTableApiCall: jest.Mock;
 
-describe('Backend', () => {
+describe('BackendOverviewPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setupMocks();
