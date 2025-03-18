@@ -111,8 +111,8 @@ class MetricIssueContext:
     id: int
     open_period_identifier: int  # Used for link building
     snuba_query: SnubaQuery
-    subscription: QuerySubscription
     new_status: IncidentStatus
+    subscription: QuerySubscription | None
     metric_value: float | None
 
     @classmethod
@@ -136,15 +136,8 @@ class MetricIssueContext:
         return query
 
     @classmethod
-    def _get_subscription(cls, occurrence: IssueOccurrence) -> QuerySubscription:
-        subscription_id = occurrence.evidence_data.get("subscription_id")
-        if not subscription_id:
-            raise ValueError("Subscription ID is required for alert context")
-        try:
-            subscription = QuerySubscription.objects.get(id=subscription_id)
-        except QuerySubscription.DoesNotExist as e:
-            raise ValueError("Subscription does not exist") from e
-        return subscription
+    def _get_subscription(cls, occurrence: IssueOccurrence) -> QuerySubscription | None:
+        return occurrence.evidence_data.get("subscription_id")
 
     @classmethod
     def _get_metric_value(cls, occurrence: IssueOccurrence) -> float:
