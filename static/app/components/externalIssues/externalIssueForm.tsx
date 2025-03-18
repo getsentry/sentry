@@ -13,6 +13,7 @@ import {
   getDynamicFields,
   getFieldProps,
   getOptions,
+  hasErrorInFields,
   loadAsyncThenFetchAllFields,
 } from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/model';
@@ -266,12 +267,13 @@ export default function ExternalIssueForm({
           getOptions({
             field,
             input,
+            dynamicFieldValues,
             model: modelRef.current,
             successCallback: updateCache,
           }),
       });
     },
-    [updateCache]
+    [updateCache, dynamicFieldValues]
   );
 
   const formFields = useMemo(() => {
@@ -284,6 +286,18 @@ export default function ExternalIssueForm({
       fetchedFieldOptionsCache: cache,
     });
   }, [integrationDetails, action, cache]);
+
+  const initialData = formFields.reduce<Record<string, FieldValue>>(
+    (accumulator, field: IssueConfigField) => {
+      accumulator[field.name] = field.default;
+      return accumulator;
+    },
+    {}
+  );
+
+  const hasFormErrors = useMemo(() => {
+    return hasErrorInFields({fields: formFields});
+  }, [formFields]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -305,9 +319,10 @@ export default function ExternalIssueForm({
       formFields={formFields}
       isLoading={isPending || isDynamicallyRefetching}
       formProps={{
+        initialData,
         footerClass: 'modal-footer',
         onFieldChange,
-        submitDisabled: isPending,
+        submitDisabled: isPending || hasFormErrors,
         model: modelRef.current,
         submitLabel: SUBMIT_LABEL_BY_ACTION[action],
         apiEndpoint: endpointString,
