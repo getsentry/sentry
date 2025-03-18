@@ -95,5 +95,3 @@ def _update_view_positions(organization: Organization, user_id: int, view_positi
                     group_search_view_id=view_id,
                     position=idx,
                 )
-            except IntegrityError as e:
-                raise IntegrityError(e)
