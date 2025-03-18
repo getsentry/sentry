@@ -64,11 +64,11 @@ class EnhancementAction:
 
 class FlagAction(EnhancementAction):
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
-        self.key = key
+        self.key = key  # The type of change (`app` or `group`)
         self._is_updater = key in {"group", "app"}
         self._is_modifier = key == "app"
-        self.flag = flag
-        self.range = range  # e.g. None, "up", "down"
+        self.flag = flag  # True for `+app/+group` rules, False for `-app/-group` rules
+        self.range = range  # None (apply the action to this frame), "up", or "down"
 
     def __str__(self) -> str:
         return "{}{}{}".format(
