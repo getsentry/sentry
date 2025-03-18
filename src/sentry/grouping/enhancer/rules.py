@@ -89,6 +89,9 @@ class EnhancementRule:
     def _from_config_structure(cls, config_structure, version):
         matcher_abbreviations, encoded_actions = config_structure
         return EnhancementRule(
-            [EnhancementMatch._from_config_structure(x, version) for x in matcher_abbreviations],
+            [
+                EnhancementMatch._from_config_structure(matcher, version)
+                for matcher in matcher_abbreviations
+            ],
             [EnhancementAction._from_config_structure(x, version) for x in encoded_actions],
         )
