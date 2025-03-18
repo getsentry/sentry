@@ -31,6 +31,77 @@ logger = logging.getLogger(__name__)
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
+def build_spans_tree(spans_data: list[dict]) -> list[dict]:
+    """
+    Builds a hierarchical tree structure from a flat list of spans.
+
+    Handles multiple potential roots and preserves parent-child relationships.
+    A span is considered a root if:
+    1. It has no parent_span_id, or
+    2. Its parent_span_id doesn't match any span_id in the provided data
+
+    Each node in the tree contains the span data and a list of children.
+    The tree is sorted by duration (longest spans first) at each level.
+    """
+    # Maps for quick lookup
+    spans_by_id: dict[str, dict] = {}
+    children_by_parent_id: dict[str, list[dict]] = {}
+    root_spans: list[dict] = []
+
+    # First pass: organize spans by ID and parent_id
+    for span in spans_data:
+        span_id = span.get("span_id")
+        if not span_id:
+            continue
+
+        # Deep copy the span to avoid modifying the original
+        span_with_children = span.copy()
+        span_with_children["children"] = []
+        spans_by_id[span_id] = span_with_children
+
+        parent_id = span.get("parent_span_id")
+        if parent_id:
+            if parent_id not in children_by_parent_id:
+                children_by_parent_id[parent_id] = []
+            children_by_parent_id[parent_id].append(span_with_children)
+
+    # Second pass: identify root spans
+    # A root span is either:
+    # 1. A span without a parent_span_id
+    # 2. A span whose parent_span_id doesn't match any span_id in our data
+    for span_id, span in spans_by_id.items():
+        parent_id = span.get("parent_span_id")
+        if not parent_id or parent_id not in spans_by_id:
+            root_spans.append(span)
+
+    # Third pass: build the tree by connecting children to parents
+    for parent_id, children in children_by_parent_id.items():
+        if parent_id in spans_by_id:
+            parent = spans_by_id[parent_id]
+            for child in children:
+                # Only add if not already a child
+                if child not in parent["children"]:
+                    parent["children"].append(child)
+
+    # Function to sort children in each node by duration
+    def sort_span_tree(node):
+        if node["children"]:
+            # Sort children by duration (in descending order to show longest spans first)
+            node["children"].sort(
+                key=lambda x: float(x.get("duration", "0").split("s")[0]), reverse=True
+            )
+            # Recursively sort each child's children
+            for child in node["children"]:
+                sort_span_tree(child)
+        del node["parent_span_id"]
+        return node
+
+    # Sort the root spans by duration
+    root_spans.sort(key=lambda x: float(x.get("duration", "0").split("s")[0]), reverse=True)
+    # Apply sorting to the whole tree
+    return [sort_span_tree(root) for root in root_spans]
+
+
 def _get_serialized_event(
     event_id: str, group: Group, user: User | RpcUser | AnonymousUser
 ) -> tuple[dict[str, Any] | None, Event | GroupEvent | None]:
@@ -65,6 +136,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
         conditions=[
             ["trace_id", "=", trace_id],
         ],
+        organization_id=project.organization_id,
         start=start,
         end=end,
     )
@@ -79,6 +151,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
         conditions=[
             ["trace", "=", trace_id],
         ],
+        organization_id=project.organization_id,
         start=start,
         end=end,
     )
@@ -111,6 +184,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
             "is_error": is_error,
+            "is_current_project": event.project_id == project.id,
+            "project_slug": event.project.slug,
+            "project_id": event.project_id,
             "children": [],
         }
 
@@ -132,14 +208,26 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             spans = event_data.get("spans", [])
             span_ids = [span.get("span_id") for span in spans if span.get("span_id")]
 
+            spans_selected_data = [
+                {
+                    "span_id": span.get("span_id"),
+                    "parent_span_id": span.get("parent_span_id"),
+                    "title": f"{span.get('op', '')} - {span.get('description', '')}",
+                    "data": span.get("data"),
+                    "duration": f"{span.get('timestamp', 0) - span.get('start_timestamp', 0)}s",
+                }
+                for span in spans
+            ]
+            selected_spans_tree = build_spans_tree(spans_selected_data)
+
             event_node.update(
                 {
                     "title": f"{op} - {transaction_title}" if op else transaction_title,
                     "platform": event.platform,
-                    "is_current_project": event.project_id == project.id,
                     "duration": duration_str,
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
+                    "spans": selected_spans_tree,
                 }
             )
 
@@ -162,7 +250,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 {
                     "title": error_title,
                     "platform": event.platform,
-                    "is_current_project": event.project_id == project.id,
                 }
             )
 
@@ -269,7 +356,11 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
     cleaned_tree = [cleanup_node(root) for root in sorted_tree]
 
-    return {"trace_id": event.trace_id, "events": cleaned_tree}
+    return {
+        "trace_id": event.trace_id,
+        "org_id": project.organization_id,
+        "events": cleaned_tree,
+    }
 
 
 def _get_profile_from_trace_tree(

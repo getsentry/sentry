@@ -12,6 +12,7 @@ from sentry.seer.autofix import (
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _respond_with_error,
+    build_spans_tree,
     trigger_autofix,
 )
 from sentry.snuba.dataset import Dataset
@@ -1147,3 +1148,198 @@ class TestRespondWithError(TestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Test error message"
+
+
+class TestBuildSpansTree(TestCase):
+    def test_build_spans_tree_basic(self):
+        """Test that a simple list of spans is correctly converted to a tree."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "root-span",
+                "parent_span_id": None,
+                "title": "Root Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "child1",
+                "parent_span_id": "root-span",
+                "title": "Child 1",
+                "duration": "5.0s",
+            },
+            {
+                "span_id": "child2",
+                "parent_span_id": "root-span",
+                "title": "Child 2",
+                "duration": "3.0s",
+            },
+            {
+                "span_id": "grandchild",
+                "parent_span_id": "child1",
+                "title": "Grandchild",
+                "duration": "2.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Should have one root
+        assert len(tree) == 1
+        root = tree[0]
+        assert root["span_id"] == "root-span"
+        assert root["title"] == "Root Span"
+
+        # Root should have two children, sorted by duration (child1 first)
+        assert len(root["children"]) == 2
+        assert root["children"][0]["span_id"] == "child1"
+        assert root["children"][1]["span_id"] == "child2"
+
+        # Child1 should have one child
+        assert len(root["children"][0]["children"]) == 1
+        grandchild = root["children"][0]["children"][0]
+        assert grandchild["span_id"] == "grandchild"
+
+    def test_build_spans_tree_multiple_roots(self):
+        """Test that spans with multiple roots are correctly handled."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "root1",
+                "parent_span_id": None,
+                "title": "Root 1",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "root2",
+                "parent_span_id": None,
+                "title": "Root 2",
+                "duration": "15.0s",
+            },
+            {
+                "span_id": "child1",
+                "parent_span_id": "root1",
+                "title": "Child of Root 1",
+                "duration": "5.0s",
+            },
+            {
+                "span_id": "child2",
+                "parent_span_id": "root2",
+                "title": "Child of Root 2",
+                "duration": "7.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Should have two roots, sorted by duration (root2 first)
+        assert len(tree) == 2
+        assert tree[0]["span_id"] == "root2"
+        assert tree[1]["span_id"] == "root1"
+
+        # Each root should have one child
+        assert len(tree[0]["children"]) == 1
+        assert tree[0]["children"][0]["span_id"] == "child2"
+
+        assert len(tree[1]["children"]) == 1
+        assert tree[1]["children"][0]["span_id"] == "child1"
+
+    def test_build_spans_tree_orphaned_parent(self):
+        """Test that spans with parent_span_id not in the data are treated as roots."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "span1",
+                "parent_span_id": "non-existent-parent",
+                "title": "Orphaned Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "span2",
+                "parent_span_id": "span1",
+                "title": "Child of Orphaned Span",
+                "duration": "5.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # span1 should be treated as a root even though it has a parent_span_id
+        assert len(tree) == 1
+        assert tree[0]["span_id"] == "span1"
+
+        # span2 should be a child of span1
+        assert len(tree[0]["children"]) == 1
+        assert tree[0]["children"][0]["span_id"] == "span2"
+
+    def test_build_spans_tree_empty_input(self):
+        """Test handling of empty input."""
+        assert build_spans_tree([]) == []
+
+    def test_build_spans_tree_missing_span_ids(self):
+        """Test that spans without span_ids are ignored."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "valid-span",
+                "parent_span_id": None,
+                "title": "Valid Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": None,  # Missing span_id
+                "parent_span_id": "valid-span",
+                "title": "Invalid Span",
+                "duration": "5.0s",
+            },
+            {
+                # No span_id key
+                "parent_span_id": "valid-span",
+                "title": "Another Invalid Span",
+                "duration": "3.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Only the valid span should be in the tree
+        assert len(tree) == 1
+        assert tree[0]["span_id"] == "valid-span"
+        # No children since the other spans had invalid/missing span_ids
+        assert len(tree[0]["children"]) == 0
+
+    def test_build_spans_tree_duration_sorting(self):
+        """Test that spans are correctly sorted by duration."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "root",
+                "parent_span_id": None,
+                "title": "Root Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "fast-child",
+                "parent_span_id": "root",
+                "title": "Fast Child",
+                "duration": "1.0s",
+            },
+            {
+                "span_id": "medium-child",
+                "parent_span_id": "root",
+                "title": "Medium Child",
+                "duration": "5.0s",
+            },
+            {
+                "span_id": "slow-child",
+                "parent_span_id": "root",
+                "title": "Slow Child",
+                "duration": "9.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Should have one root
+        assert len(tree) == 1
+        root = tree[0]
+
+        # Root should have three children, sorted by duration (slow-child first)
+        assert len(root["children"]) == 3
+        assert root["children"][0]["span_id"] == "slow-child"
+        assert root["children"][1]["span_id"] == "medium-child"
+        assert root["children"][2]["span_id"] == "fast-child"
