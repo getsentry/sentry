@@ -51,7 +51,7 @@ function TraceEmpty() {
   // and be navigated to a trace that doesn't contain any data yet. We add a 2
   // minute buffer to account for this.
   const message =
-    timestamp && new Date(timestamp * 1000) > new Date(Date.now() - 2 * 60 * 1000)
+    timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - 2 * 60 * 1000)
       ? t(
           'We could still be ingesting this trace. Please wait a few seconds and refresh.'
         )
