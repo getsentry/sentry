@@ -78,6 +78,7 @@ def filter_recently_fired_workflow_actions(
             for action in actions_without_statuses
         ],
         batch_size=1000,
+        ignore_conflicts=True,
     )
 
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
