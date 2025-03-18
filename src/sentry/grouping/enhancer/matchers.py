@@ -209,6 +209,8 @@ class FrameMatch(EnhancementMatch):
         This will be preceded by a `!` if the match is negated. Families against which to match are
         also converted to single-letter abbreviations, and in-app booleans are converted to 0 or 1.
         """
+        # Convert the families to match into a string of single letter abbreviations (so
+        # `javascript,native` becomes `JN`, for example)
         if self.key == "family":
             value_to_match = "".join(
                 abbreviation
