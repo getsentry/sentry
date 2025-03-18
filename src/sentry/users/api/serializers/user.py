@@ -65,7 +65,7 @@ class _UserOptions(TypedDict):
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
-    prefersIssueDetailsStreamlinedUI: bool
+    prefersIssueDetailsStreamlinedUI: bool | None
     prefersSpecializedProjectOverview: dict[str, bool]
     prefersStackedNavigation: bool
     quickStartDisplay: dict[str, int]
