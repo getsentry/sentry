@@ -29,6 +29,11 @@ class TestSpansTask(TestCase):
             start_timestamp_precise=1707953018.867,
         )
 
+        del child_span["sentry_tags"]["transaction"]
+        del child_span["sentry_tags"]["transaction.method"]
+        del child_span["sentry_tags"]["transaction.op"]
+        del child_span["sentry_tags"]["user"]
+
         return [child_span, segment_span]
 
     def generate_n_plus_one_spans(self):
@@ -71,6 +76,33 @@ class TestSpansTask(TestCase):
 
         return spans
 
+    def test_enrich_spans(self):
+        spans = self.generate_basic_spans()
+        processed_spans = process_segment(spans)
+
+        assert len(processed_spans) == len(spans)
+        child_span, segment_span = processed_spans
+        child_tags = child_span["sentry_tags"]
+        segment_tags = segment_span["sentry_tags"]
+
+        assert child_tags["transaction"] == segment_tags["transaction"]
+        assert child_tags["transaction.method"] == segment_tags["transaction.method"]
+        assert child_tags["transaction.op"] == segment_tags["transaction.op"]
+        assert child_tags["user"] == segment_tags["user"]  # type: ignore[typeddict-item]
+
+    def test_enrich_spans_no_segment(self):
+        spans = self.generate_basic_spans()
+        for span in spans:
+            span["is_segment"] = False
+            del span["sentry_tags"]
+
+        processed_spans = process_segment(spans)
+        assert len(processed_spans) == len(spans)
+        for i, span in enumerate(processed_spans):
+            assert span["span_id"] == spans[i]["span_id"]
+            assert span["op"]
+            assert span["hash"]
+
     def test_create_models(self):
         spans = self.generate_basic_spans()
         assert process_segment(spans)
@@ -85,20 +117,6 @@ class TestSpansTask(TestCase):
             version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
         )
         assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
-
-    def test_empty_defaults(self):
-        spans = self.generate_basic_spans()
-        for span in spans:
-            del span["sentry_tags"]
-
-        processed_spans = process_segment(spans)
-        assert len(processed_spans) == len(spans)
-        assert processed_spans[0]["span_id"] == spans[0]["span_id"]
-        assert processed_spans[1]["span_id"] == spans[1]["span_id"]
-
-        # double-check that we actually ran through processing. The "op"
-        # attribute does not exist in the original spans.
-        assert processed_spans[0]["op"]
 
     @override_options(
         {
