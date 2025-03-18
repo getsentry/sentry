@@ -29,10 +29,10 @@ describe('useChartInterval', function () {
       {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
     ]);
-    expect(chartInterval).toBe('3h'); // default
+    expect(chartInterval).toBe('1d'); // default
 
-    await act(() => setChartInterval('1d'));
-    expect(chartInterval).toBe('1d');
+    await act(() => setChartInterval('3h'));
+    expect(chartInterval).toBe('3h');
 
     // Update page filters to change interval options
     await act(() =>

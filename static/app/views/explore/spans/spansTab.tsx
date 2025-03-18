@@ -44,6 +44,7 @@ import {
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -140,6 +141,7 @@ export function SpansTabContentImpl({
   );
 
   const [expanded, setExpanded] = useState(true);
+  const [interval] = useChartInterval();
 
   useAnalytics({
     queryType,
@@ -147,6 +149,7 @@ export function SpansTabContentImpl({
     spansTableResult,
     tracesTableResult,
     timeseriesResult,
+    interval,
   });
 
   const resultsLength =
