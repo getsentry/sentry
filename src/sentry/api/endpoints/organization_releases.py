@@ -63,7 +63,6 @@ def add_environment_to_queryset(queryset, filter_params):
     if "environment" in filter_params:
         return queryset.filter(
             releaseprojectenvironment__environment__name__in=filter_params["environment"],
-            releaseprojectenvironment__project_id__in=filter_params["project_id"],
         )
     return queryset
 
@@ -302,7 +301,9 @@ class OrganizationReleasesEndpoint(
 
         queryset = queryset.annotate(date=F("date_added"))
 
+        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
         queryset = add_environment_to_queryset(queryset, filter_params)
+
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
@@ -317,8 +318,6 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.distinct()
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
-
-        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
