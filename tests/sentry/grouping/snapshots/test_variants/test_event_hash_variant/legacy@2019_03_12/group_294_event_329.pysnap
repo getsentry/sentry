@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.571107+00:00'
+created: '2025-02-26T00:33:46.818271+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -166,22 +166,22 @@ system:
     system*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_root_queues_init_once"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "start_wqthread"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_pthread_wqthread"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_worker_thread2"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_root_queue_drain"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_dispatch_client_callout"
           frame
@@ -289,25 +289,25 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "std::terminate"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "std::__terminate"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "demangling_terminate_handler"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort_message"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__pthread_kill"
         type*

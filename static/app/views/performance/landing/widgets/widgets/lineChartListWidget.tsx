@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -692,7 +692,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           const cacheMissRate = listItem[fieldString] as any;
 
           const target = normalizeUrl(
-            `/${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
+            `${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
 
           return (

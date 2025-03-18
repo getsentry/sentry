@@ -14,7 +14,15 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'interaction',
 ];
 
-export const MODULES = [ModuleName.VITAL, ModuleName.HTTP, ModuleName.RESOURCE];
+export const OVERVIEW_PAGE_DISALLOWED_OPS = ['http.server'];
+
+export const MODULES = [
+  ModuleName.VITAL,
+  ModuleName.HTTP,
+  ModuleName.RESOURCE,
+  ModuleName.SESSIONS,
+  ModuleName.UPTIME,
+];
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py, except shared platforms are removed
 export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(

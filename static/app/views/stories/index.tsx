@@ -1,11 +1,12 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {InputGroup} from 'sentry/components/inputGroup';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {IconSettings} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -15,10 +16,11 @@ import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import {StoryExports} from 'sentry/views/stories/storyExports';
 import {StoryHeader} from 'sentry/views/stories/storyHeader';
-import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
 import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
+
+import {useLocalStorageState} from '../../utils/useLocalStorageState';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
@@ -38,7 +40,14 @@ export default function Stories() {
   }, [files, location.query.name]);
 
   const story = useStoriesLoader({files: storyFiles});
-  const nodes = useStoryTree(files, location.query.query ?? '');
+  const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
+    'category' | 'filesystem'
+  >('story-representation', 'category');
+
+  const nodes = useStoryTree(files, {
+    query: location.query.query ?? '',
+    representation: storyRepresentation,
+  });
 
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
@@ -50,7 +59,10 @@ export default function Stories() {
     [location.query, navigate]
   );
 
-  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
+  const storiesSearchHotkeys = useMemo(() => {
+    return [{match: '/', callback: () => searchInput.current?.focus()}];
+  }, []);
+  useHotkeys(storiesSearchHotkeys);
 
   return (
     <RouteAnalyticsContextProvider>
@@ -71,6 +83,12 @@ export default function Stories() {
                 defaultValue={location.query.query ?? ''}
                 onChange={onSearchInputChange}
               />
+              <InputGroup.TrailingItems>
+                <StoryRepresentationToggle
+                  storyRepresentation={storyRepresentation}
+                  setStoryRepresentation={setStoryRepresentation}
+                />
+              </InputGroup.TrailingItems>
               {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
             </InputGroup>
             <StoryTreeContainer>
@@ -84,24 +102,15 @@ export default function Stories() {
             </VerticalScroll>
           ) : story.isError ? (
             <VerticalScroll style={{gridArea: 'body'}}>
-              <Alert type="error" showIcon>
-                <strong>{story.error.name}:</strong> {story.error.message}
-              </Alert>
+              <Alert.Container>
+                <Alert type="error" showIcon>
+                  <strong>{story.error.name}:</strong> {story.error.message}
+                </Alert>
+              </Alert.Container>
             </VerticalScroll>
           ) : story.isSuccess ? (
             <StoryMainContainer>
-              {story.data.map((s, _i, arr) => {
-                // We render extra information if this is the only story that is being rendered
-                if (arr.length === 1) {
-                  <Fragment key={s.filename}>
-                    <TextOverflow>{s.filename}</TextOverflow>
-                    <CopyToClipboardButton size="xs" iconSize="xs" text={s.filename} />
-                    <StorySourceLinks story={s} />
-                    <StoryExports story={s} />
-                  </Fragment>;
-                }
-
-                // Render just the story exports in case of multiple stories being rendered
+              {story.data.map(s => {
                 return <StoryExports key={s.filename} story={s} />;
               })}
             </StoryMainContainer>
@@ -116,6 +125,31 @@ export default function Stories() {
         </Layout>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>
+  );
+}
+
+function StoryRepresentationToggle(props: {
+  setStoryRepresentation: (value: 'category' | 'filesystem') => void;
+  storyRepresentation: 'category' | 'filesystem';
+}) {
+  return (
+    <CompactSelect
+      trigger={triggerProps => (
+        <Button
+          borderless
+          icon={<IconSettings />}
+          size="xs"
+          aria-label="Toggle story representation"
+          {...triggerProps}
+        />
+      )}
+      defaultValue={props.storyRepresentation}
+      options={[
+        {label: 'Filesystem', value: 'filesystem'},
+        {label: 'Category', value: 'category'},
+      ]}
+      onChange={option => props.setStoryRepresentation(option.value)}
+    />
   );
 }
 
@@ -143,6 +177,8 @@ const SidebarContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   min-height: 0;
+  position: relative;
+  z-index: 10;
 `;
 
 const StoryTreeContainer = styled('div')`
@@ -166,7 +202,7 @@ const VerticalScroll = styled('main')`
  */
 const StoryMainContainer = styled(VerticalScroll)`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.panelBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
 
   grid-area: body;
@@ -175,8 +211,6 @@ const StoryMainContainer = styled(VerticalScroll)`
   padding-top: 0;
   overflow-x: hidden;
   overflow-y: auto;
-
-  position: relative;
 
   h1,
   h2,

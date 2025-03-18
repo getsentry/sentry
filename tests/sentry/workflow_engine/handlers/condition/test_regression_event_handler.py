@@ -10,7 +10,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestRegressionEventCondition(ConditionTestCase):
     condition = Condition.REGRESSION_EVENT
-    rule_cls = RegressionEventCondition
     payload = {"id": RegressionEventCondition.id}
 
     def test_dual_write(self):

@@ -10,16 +10,18 @@ from sentry.features.flagpole_context import (
     user_context_transformer,
 )
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
 
 
 class TestSentryFlagpoleContext(TestCase):
     def test_sentry_flagpole_context_builder(self):
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, platform="php")
         sentry_flagpole_builder = get_sentry_flagpole_context_builder()
 
         sentry_context = sentry_flagpole_builder.build(
@@ -30,6 +32,7 @@ class TestSentryFlagpoleContext(TestCase):
         assert sentry_context.get("organization_slug") == org.slug
         assert sentry_context.get("project_slug") == project.slug
         assert sentry_context.get("project_id") == project.id
+        assert sentry_context.get("project_platform") == project.platform
 
 
 class TestSentryOrganizationContextTransformer(TestCase):
@@ -42,7 +45,9 @@ class TestSentryOrganizationContextTransformer(TestCase):
             organization_context_transformer(SentryContextData(organization=1234))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(SentryContextData(organization=self.create_project()))  # type: ignore[arg-type]
+            organization_context_transformer(
+                SentryContextData(organization=self.create_project())  # type: ignore[arg-type]
+            )
 
     def test_with_valid_organization(self):
         org = self.create_organization(slug="foobar", name="Foo Bar")
@@ -97,6 +102,20 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_is-early-adopter": False,
         }
 
+    def test_with_organization_mapping(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org = self.create_organization(slug="foobar", name="Foo Bar")
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+            context_data = organization_context_transformer(
+                SentryContextData(organization=org_mapping)
+            )
+            assert context_data == {
+                "organization_slug": "foobar",
+                "organization_id": org.id,
+                "organization_name": "Foo Bar",
+                "organization_is-early-adopter": False,
+            }
+
 
 class TestProjectContextTransformer(TestCase):
     def test_without_project_passed(self):
@@ -111,13 +130,14 @@ class TestProjectContextTransformer(TestCase):
             project_context_transformer(SentryContextData(project=self.create_organization()))
 
     def test_with_valid_project(self):
-        project = self.create_project(slug="foobar", name="Foo Bar")
+        project = self.create_project(slug="foobar", name="Foo Bar", platform="php")
 
         context_data = project_context_transformer(SentryContextData(project=project))
         assert context_data == {
             "project_slug": "foobar",
             "project_name": "Foo Bar",
             "project_id": project.id,
+            "project_platform": "php",
         }
 
 

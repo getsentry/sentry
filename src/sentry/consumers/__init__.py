@@ -40,8 +40,7 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: int | None = None,
-    default_max_batch_time_ms: int | None = 1000,
+    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
 ) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -83,35 +82,13 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     return options
 
 
-def ingest_replay_recordings_buffered_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings-buffered options."""
-    options = [
-        click.Option(
-            ["--max-buffer-message-count", "max_buffer_message_count"],
-            type=int,
-            default=100,
-        ),
-        click.Option(
-            ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"],
-            type=int,
-            default=2_500_000,
-        ),
-        click.Option(
-            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
-            type=int,
-            default=1,
-        ),
-    ]
-    return options
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel"]),
-            default="parallel",
+            type=click.Choice(["serial", "batched-parallel"]),
+            default="batched-parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
@@ -141,7 +118,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),
@@ -163,6 +140,9 @@ def uptime_options() -> list[click.Option]:
             default=None,
             help="The maximum number of threads to spawn in parallel mode.",
         ),
+        click.Option(["--processes", "num_processes"], default=1, type=int),
+        click.Option(["--input-block-size"], type=int, default=None),
+        click.Option(["--output-block-size"], type=int, default=None),
     ]
     return options
 
@@ -216,9 +196,7 @@ _METRICS_INDEXER_OPTIONS = [
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
     click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
     click.Option(
-        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"],
-        type=int,
-        default=10000,
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
     ),
     click.Option(
         ["--processes"],
@@ -266,17 +244,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
         "topic": Topic.PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     "ingest-replay-recordings": {
         "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
-    },
-    "ingest-replay-recordings-buffered": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
-        "click_options": ingest_replay_recordings_buffered_options(),
     },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
@@ -351,7 +323,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": ConsumerType.Events,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
-        "stale_topic": Topic.INGEST_EVENTS_DLQ,
+        "stale_topic": Topic.INGEST_EVENTS_BACKLOG,
     },
     "ingest-feedback-events": {
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
@@ -443,15 +415,29 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "process-spans": {
-        "topic": Topic.SNUBA_SPANS,
+        "topic": Topic.INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--max-flush-segments", "max_flush_segments"],
+                type=int,
+                default=100,
+                help="The number of segments to download from redis at once. Defaults to 100.",
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
-    "detect-performance-issues": {
+    "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
-        "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
+        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
+        "click_options": [
+            click.Option(
+                ["--skip-produce", "skip_produce"],
+                is_flag=True,
+                default=False,
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -511,9 +497,7 @@ def get_stream_processor(
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
     strategy_factory = cmd_context.invoke(
-        strategy_factory_cls,
-        **cmd_context.params,
-        **consumer_definition.get("static_args") or {},
+        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
 
     def build_consumer_config(group_id: str):

@@ -32,7 +32,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {MetricsRemovedAlertsWidgetsAlert} from '../../../metrics/metricsRemovedAlertsWidgetsAlert';
 import FilterBar from '../../filterBar';
 import type {CombinedAlerts} from '../../types';
 import {AlertRuleType, CombinedAlertType} from '../../types';
@@ -205,7 +204,6 @@ function AlertRulesList() {
         <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricsRemovedAlertsWidgetsAlert organization={organization} />
             <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}
@@ -223,7 +221,11 @@ function AlertRulesList() {
                   key="name"
                   role="columnheader"
                   aria-sort={
-                    sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    sort.field === 'name'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -241,7 +243,7 @@ function AlertRulesList() {
                   key="status"
                   role="columnheader"
                   aria-sort={
-                    !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    isAlertRuleSort ? (sort.asc ? 'ascending' : 'descending') : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -286,7 +288,7 @@ function AlertRulesList() {
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
-                          orgId={organization.slug}
+                          organization={organization}
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}

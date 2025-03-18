@@ -44,7 +44,8 @@ export function AutogroupNodeDetails(
               {t('Autogroup')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              text={`ID: ${node.value.span_id}`}
+              subTitle={`ID: ${node.value.span_id}`}
+              clipboardText={node.value.span_id}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
@@ -55,37 +56,21 @@ export function AutogroupNodeDetails(
         />
       </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
-        <TextBlock>
-          {t(
-            'This block represents autogrouped spans. We do this to reduce noise whenever it fits one of the following criteria:'
-          )}
-        </TextBlock>
+        {t(
+          'This block represents autogrouped spans. We do this to reduce noise whenever it fits one of the following criteria:'
+        )}
         <BulletList>
           <li>{t('5 or more siblings with the same operation and description')}</li>
           <li>{t('2 or more descendants with the same operation')}</li>
         </BulletList>
-        <TextBlock>
-          {t(
-            'You can either open this autogroup using the chevron on the span or turn this functionality off using the settings dropdown above.'
-          )}
-        </TextBlock>
+        {t(
+          'You can either open this autogroup using the chevron on the span or turn this functionality off using the settings dropdown above.'
+        )}
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
 
-const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  line-height: 1.5;
-  margin-bottom: ${space(2)};
-`;
-
 const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: ${space(1)};
-  }
+  margin: ${space(1)} 0;
 `;

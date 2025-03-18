@@ -19,14 +19,17 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
+from .constants import METRIC_PREFIX
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
     get_installation,
 )
-from .stacktraces import identify_stacktrace_paths
+from .stacktraces import get_frames_to_process
+from .utils import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,7 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_event(project_id: int, group_id: int, event_id: str) -> None:
+def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMapping]:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -60,24 +63,31 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
     event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
-        return
+        return []
 
-    stacktrace_paths = identify_stacktrace_paths(event.data)
-    if not stacktrace_paths:
-        return
+    platform = event.platform
+    assert platform is not None
 
+    platform_config = PlatformConfig(platform)
+    if not platform_config.is_supported():
+        return []
+
+    frames_to_process = get_frames_to_process(event.data, platform)
+    if not frames_to_process:
+        return []
+
+    code_mappings = []
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
-        code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-        set_project_codemappings(code_mappings, installation, project)
-    except InstallationNotFoundError:
-        logger.info("No installation or organization integration found.", extra=extra)
-        return
-    except InstallationCannotGetTreesError:
-        logger.info("Installation does not have required method get_trees_for_org", extra=extra)
-        return
+        code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
+        dry_run = platform_config.is_dry_run_platform()
+        create_repos_and_code_mappings(code_mappings, installation, project, platform, dry_run)
+    except (InstallationNotFoundError, InstallationCannotGetTreesError):
+        pass
+
+    return code_mappings
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -125,18 +135,14 @@ def get_trees_for_org(
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
     if not hasattr(installation, "get_trees_for_org"):
-        # XXX: We should not get to this point, thus, report it as an error
-        logger.error(
-            "Installation does not have required method get_trees_for_org",
-            extra={"installation_type": type(installation).__name__, **extra},
-        )
         return trees
 
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
     with SCMIntegrationInteractionEvent(
-        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS, provider_key=installation.model.provider
+        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+        provider_key=installation.model.provider,
     ).capture() as lifecycle:
         try:
             with lock.acquire():
@@ -147,18 +153,19 @@ def get_trees_for_org(
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
         except UnableToAcquireLock as error:
-            extra["error"] = str(error)
-            lifecycle.record_failure(error, extra)
+            lifecycle.record_halt(error, extra)
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
 
         return trees
 
 
-def set_project_codemappings(
+def create_repos_and_code_mappings(
     code_mappings: list[CodeMapping],
     installation: IntegrationInstallation,
     project: Project,
+    platform: str,
+    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
@@ -177,32 +184,50 @@ def set_project_codemappings(
         )
 
         if not repository:
-            repository = Repository.objects.create(
-                name=code_mapping.repo.name,
-                organization_id=organization_id,
-                integration_id=organization_integration.integration_id,
+            if not dry_run:
+                repository = Repository.objects.create(
+                    name=code_mapping.repo.name,
+                    organization_id=organization_id,
+                    integration_id=organization_integration.integration_id,
+                )
+            metrics.incr(
+                key=f"{METRIC_PREFIX}.repository.created",
+                tags={"platform": platform, "dry_run": dry_run},
+                sample_rate=1.0,
             )
 
-        cm, created = RepositoryProjectPathConfig.objects.get_or_create(
-            project=project,
-            stack_root=code_mapping.stacktrace_root,
-            defaults={
-                "repository": repository,
-                "organization_integration_id": organization_integration.id,
-                "integration_id": organization_integration.integration_id,
-                "organization_id": organization_integration.organization_id,
-                "source_root": code_mapping.source_path,
-                "default_branch": code_mapping.repo.branch,
-                "automatically_generated": True,
-            },
+        extra = {
+            "project_id": project.id,
+            "stack_root": code_mapping.stacktrace_root,
+            "repository_name": code_mapping.repo.name,
+        }
+        # The project and stack_root are unique together
+        existing_code_mappings = RepositoryProjectPathConfig.objects.filter(
+            project=project, stack_root=code_mapping.stacktrace_root
         )
-        if not created:
-            logger.info(
-                "Code mapping already exists",
-                extra={
-                    "project": project,
-                    "stacktrace_root": code_mapping.stacktrace_root,
-                    "new_code_mapping": code_mapping,
-                    "existing_code_mapping": cm,
-                },
+        if existing_code_mappings.exists():
+            logger.warning("Investigate.", extra=extra)
+            continue
+
+        if not dry_run:
+            if repository is None:  # This is mostly to appease the type checker
+                logger.warning("Investigate.", extra=extra)
+                continue
+
+            RepositoryProjectPathConfig.objects.create(
+                project=project,
+                stack_root=code_mapping.stacktrace_root,
+                repository=repository,
+                organization_integration_id=organization_integration.id,
+                integration_id=organization_integration.integration_id,
+                organization_id=organization_integration.organization_id,
+                source_root=code_mapping.source_path,
+                default_branch=code_mapping.repo.branch,
+                automatically_generated=True,
             )
+
+        metrics.incr(
+            key=f"{METRIC_PREFIX}.code_mapping.created",
+            tags={"platform": platform, "dry_run": dry_run},
+            sample_rate=1.0,
+        )

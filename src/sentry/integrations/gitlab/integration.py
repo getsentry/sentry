@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
-from django.http import HttpResponse
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -21,7 +23,7 @@ from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
-from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -251,7 +253,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -293,7 +295,7 @@ class InstallationConfigView(PipelineView):
 
 
 class InstallationGuideView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
@@ -382,14 +384,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 f"The requested GitLab group {requested_group} could not be found."
             )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [
             InstallationGuideView(),
             InstallationConfigView(),
             lambda: self._make_identity_pipeline_view(),
         ]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
 
         # Gitlab requires the client_id and client_secret for refreshing the access tokens
@@ -419,7 +421,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         # rotate secrets.
         secret = sha1_text("".join([hostname, state["installation_data"]["client_id"]]))
 
-        integration = {
+        return {
             "name": group.get("full_name", hostname),
             # Splice the gitlab host and project together to
             # act as unique link between a gitlab instance, group + sentry.
@@ -450,7 +452,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 ),
             },
         }
-        return integration
 
     def setup(self):
         from sentry.plugins.base import bindings

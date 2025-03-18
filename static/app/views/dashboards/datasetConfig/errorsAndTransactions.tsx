@@ -369,7 +369,7 @@ export function renderEventIdAsLinkable(
   const eventSlug = generateEventSlug(data);
 
   const target = eventDetailsRouteWithEventView({
-    orgSlug: organization.slug,
+    organization,
     eventSlug,
     eventView,
   });

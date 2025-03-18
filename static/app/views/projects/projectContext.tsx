@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {setActiveProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -253,9 +253,11 @@ class ProjectContextProvider extends Component<Props, State> {
         // TODO(chrissy): use scale for margin values
         return (
           <Layout.Page withPadding>
-            <Alert type="warning">
-              {t('The project you were looking for was not found.')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {t('The project you were looking for was not found.')}
+              </Alert>
+            </Alert.Container>
           </Layout.Page>
         );
       case ErrorTypes.MISSING_MEMBERSHIP:

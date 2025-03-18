@@ -80,7 +80,6 @@ export function useSamplesDrawer({
     openDrawer(() => <FullHeightWrapper>{Component}</FullHeightWrapper>, {
       ariaLabel: t('Samples'),
       onClose: onCloseAction,
-      transitionProps: {stiffness: 1000},
       shouldCloseOnLocationChange,
       shouldCloseOnInteractOutside: () => false,
     });

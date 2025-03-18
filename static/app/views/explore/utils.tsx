@@ -3,19 +3,20 @@ import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import type {TimeSeries} from '../dashboards/widgets/common/types';
 
 export function getExploreUrl({
-  orgSlug,
+  organization,
   selection,
   interval,
   mode,
@@ -26,7 +27,7 @@ export function getExploreUrl({
   field,
 }: {
   interval: string;
-  orgSlug: string;
+  organization: Organization;
   selection: PageFilters;
   visualize: Array<Omit<Visualize, 'label'>>;
   field?: string[];
@@ -53,12 +54,18 @@ export function getExploreUrl({
     field,
     utc,
   };
-  return normalizeUrl(
-    `/organizations/${orgSlug}/traces/?${qs.stringify(queryParams, {skipNull: true})}`
+
+  return (
+    makeTracesPathname({
+      organization,
+      path: '/',
+    }) + `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 
-export function combineConfidenceForSeries(series: Series[]): Confidence {
+export function combineConfidenceForSeries(
+  series: Array<Pick<TimeSeries, 'confidence'>>
+): Confidence {
   let lows = 0;
   let highs = 0;
   let nulls = 0;
@@ -159,4 +166,11 @@ export function limitMaxPickableDays(organization: Organization): {
       ...Object.fromEntries(enabledOptions),
     },
   };
+}
+
+export function showConfidence(isSampled: boolean | null | undefined) {
+  if (defined(isSampled) && isSampled === false) {
+    return false;
+  }
+  return true;
 }

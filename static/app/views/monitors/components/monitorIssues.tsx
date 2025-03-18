@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
@@ -93,7 +93,6 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
         </LinkButton>
       </ControlsWrapper>
       <GroupList
-        orgSlug={organization.slug}
         queryParams={{
           query: issueQuery,
           project: monitor.project.id,

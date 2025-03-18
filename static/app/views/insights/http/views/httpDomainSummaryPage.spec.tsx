@@ -13,11 +13,17 @@ import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomain
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+
+jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let domainChartsRequestMock: jest.Mock;
+  let throughputRequestMock!: jest.Mock;
+  let durationRequestMock!: jest.Mock;
+  let statusRequestMock!: jest.Mock;
+
   let domainTransactionsListRequestMock: jest.Mock;
   let domainMetricsRibbonRequestMock: jest.Mock;
   let regionFilterRequestMock: jest.Mock;
@@ -47,6 +53,14 @@ describe('HTTPSummaryPage', function () {
     state: undefined,
     action: 'PUSH',
     key: '',
+  });
+
+  jest.mocked(useReleaseStats).mockReturnValue({
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    error: null,
+    releases: [],
   });
 
   beforeEach(function () {
@@ -97,15 +111,89 @@ describe('HTTPSummaryPage', function () {
       ],
     });
 
-    domainChartsRequestMock = MockApiClient.addMockResponse({
+    throughputRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-throughput-chart',
+        }),
+      ],
       body: {
-        'spm()': {
-          data: [
-            [1699907700, [{count: 7810.2}]],
-            [1699908000, [{count: 1216.8}]],
-          ],
+        data: [
+          [1699907700, [{count: 7810.2}]],
+          [1699908000, [{count: 1216.8}]],
+        ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/second',
+          },
+        },
+      },
+    });
+
+    durationRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-duration-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [1699907700, [{count: 710.2}]],
+          [1699908000, [{count: 116.8}]],
+        ],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'rate',
+          },
+          units: {
+            'avg(span.duration)': '1/second',
+          },
+        },
+      },
+    });
+
+    statusRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-response-code-chart',
+        }),
+      ],
+      body: {
+        'http_response_rate(3)': {
+          data: [[1699908000, [{count: 0.2}]]],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'percentage',
+            },
+            units: {},
+          },
+        },
+        'http_response_rate(4)': {
+          data: [[1699908000, [{count: 0.1}]]],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'percentage',
+            },
+            units: {},
+          },
+        },
+        'http_response_rate(5)': {
+          data: [[1699908000, [{count: 0.3}]]],
+          meta: {
+            fields: {
+              'http_response_rate(5)': 'percentage',
+            },
+            units: {},
+          },
         },
       },
     });
@@ -119,7 +207,7 @@ describe('HTTPSummaryPage', function () {
     render(<HTTPDomainSummaryPage />, {organization});
 
     await waitFor(() => {
-      expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
+      expect(throughputRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events-stats/`,
         expect.objectContaining({
@@ -146,8 +234,8 @@ describe('HTTPSummaryPage', function () {
       );
     });
 
-    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
-      2,
+    expect(durationRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',
@@ -172,8 +260,8 @@ describe('HTTPSummaryPage', function () {
       })
     );
 
-    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
-      3,
+    expect(statusRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',

@@ -8,7 +8,6 @@ from typing import Any
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -53,7 +52,6 @@ _default_logger: Logger = getLogger(__name__)
 
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
-    form_cls = SlackNotifyServiceForm
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -131,12 +129,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
 
             open_period_start: datetime | None = None
-            if (
-                features.has(
-                    "organizations:slack-threads-refactor-uptime", self.project.organization
-                )
-                and event.group.issue_category == GroupCategory.UPTIME
-            ):
+            if event.group.issue_category == GroupCategory.UPTIME:
                 open_period_start = open_period_start_for_group(event.group)
                 new_notification_message_object.open_period_start = open_period_start
 
@@ -335,8 +328,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(
+    def get_form_instance(self) -> SlackNotifyServiceForm:
+        return SlackNotifyServiceForm(
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 

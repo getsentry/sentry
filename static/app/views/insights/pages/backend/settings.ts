@@ -13,3 +13,5 @@ export const MODULES = [
   ModuleName.CRONS,
   ModuleName.UPTIME,
 ];
+
+export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];

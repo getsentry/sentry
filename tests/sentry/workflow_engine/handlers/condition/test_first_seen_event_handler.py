@@ -11,7 +11,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestFirstSeenEventCondition(ConditionTestCase):
     condition = Condition.FIRST_SEEN_EVENT
-    rule_cls = FirstSeenEventCondition
     payload = {"id": FirstSeenEventCondition.id}
 
     def setUp(self):

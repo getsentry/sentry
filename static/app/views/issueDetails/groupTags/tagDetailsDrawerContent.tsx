@@ -4,7 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -158,7 +158,12 @@ function TagDetailsRow({
   const organization = useOrganization();
 
   const key = tagValue.key ?? tag.key;
-  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const query =
+    key === 'environment'
+      ? {
+          environment: tagValue.value,
+        }
+      : {query: tagValue.query || `${key}:"${tagValue.value}"`};
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,
@@ -264,7 +269,7 @@ function TagValueActionsMenu({
           key: 'open-in-discover',
           label: t('Open in Discover'),
           to: eventView.getResultsViewUrlTarget(
-            organization.slug,
+            organization,
             false,
             hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
           ),

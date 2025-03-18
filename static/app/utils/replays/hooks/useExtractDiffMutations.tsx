@@ -229,7 +229,7 @@ function getNameForElem(element: HTMLElement) {
 function getSelectorForElem(element: HTMLElement): string {
   const parts: string[] = [];
   let elem: HTMLElement | null =
-    element.nodeType !== Node.ELEMENT_NODE ? element.parentElement : element;
+    element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
 
   while (elem) {
     parts.unshift(getNameForElem(elem));

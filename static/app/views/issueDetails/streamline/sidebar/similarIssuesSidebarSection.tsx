@@ -18,8 +18,8 @@ export function SimilarIssuesSidebarSection() {
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.SIMILAR_ISSUES]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
       >
         {t('View')}
       </ViewButton>

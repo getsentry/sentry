@@ -40,6 +40,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
@@ -2373,13 +2374,19 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             owner_id=self.user.id,
             visibility=Visibility.OWNER_PINNED,
         )
-        GroupSearchView.objects.create(
+        default_view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
             position=0,
             name="Default View",
             query="ZeroDivisionError",
             query_sort="date",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=0,
+            group_search_view=default_view,
         )
         event = self.store_event(
             data={
@@ -4043,45 +4050,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": True,
-                "organizations:issue-search-snuba": True,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 1, "test:flag:true on"
-            response = self.get_success_response(query='"test:flag":false')
-            assert len(json.loads(response.content)) == 0, '"test:flag":false on'
+        with self.feature({"organizations:issue-search-snuba": False}):
+            response = self.get_success_response(query='flags["test:flag"]:true')
+            assert len(json.loads(response.content)) == 1
+            response = self.get_success_response(query='flags["test:flag"]:false')
+            assert len(json.loads(response.content)) == 0
 
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": True,
-                "organizations:issue-search-snuba": False,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 1, '"test:flag":true on legacy'
-            response = self.get_success_response(query='"test:flag":false')
-            assert len(json.loads(response.content)) == 0, '"test:flag":false on legacy'
-
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": False,
-                "organizations:issue-search-snuba": False,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 0, '"test:flag":true off'
-
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": False,
-                "organizations:issue-search-snuba": True,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 0, '"test:flag":true off legacy'
+        with self.feature({"organizations:issue-search-snuba": True}):
+            response = self.get_success_response(query='flags["test:flag"]:true')
+            assert len(json.loads(response.content)) == 1
+            response = self.get_success_response(query='flags["test:flag"]:false')
+            assert len(json.loads(response.content)) == 0
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

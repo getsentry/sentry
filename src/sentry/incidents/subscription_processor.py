@@ -390,7 +390,7 @@ class SubscriptionProcessor:
             self.subscription.project.organization,
         ):
             data_packet = DataPacket[QuerySubscriptionUpdate](
-                query_id=str(self.subscription.id), packet=subscription_update
+                source_id=str(self.subscription.id), packet=subscription_update
             )
             process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
@@ -411,18 +411,6 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
-        if features.has(
-            "organizations:failure-rate-metric-alert-logging",
-            self.subscription.project.organization,
-        ):
-            logger.info(
-                "Update value in subscription processor",
-                extra={
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                    "rule_id": self.alert_rule.id,
-                },
-            )
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization

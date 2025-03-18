@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {LinkButton} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -38,7 +38,7 @@ function TransactionToProfileButton({
   }
 
   const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectSlug,
     profileId,
     query,

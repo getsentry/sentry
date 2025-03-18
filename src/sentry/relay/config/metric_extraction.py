@@ -155,8 +155,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     return enabled_features
 
 
-@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
-def _get_alert_metric_specs(
+def get_all_alert_metric_specs(
     project: Project, enabled_features: set[str], prefilling: bool
 ) -> list[HashedMetricSpec]:
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
@@ -197,6 +196,23 @@ def _get_alert_metric_specs(
                         tags={"prefilling": prefilling},
                     )
                     specs.append(spec)
+    return specs
+
+
+def get_default_version_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs_per_version = get_specs_per_version(specs)
+    default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    return specs_per_version.get(default_extraction_version, [])
+
+
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
+def _get_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
 
     max_alert_specs = options.get("on_demand.max_alert_specs")
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")

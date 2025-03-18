@@ -20,7 +20,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -151,7 +150,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: t(
-        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
+        'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
       ),
     },
   ],
@@ -258,7 +257,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   featureFlagOnboarding,
 };

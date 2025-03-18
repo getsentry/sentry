@@ -4,7 +4,7 @@ import Redirect from 'sentry/components/redirect';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   children: React.ReactNode;
 };
 

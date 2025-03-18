@@ -1,7 +1,7 @@
 import contextlib
 import uuid
 from collections.abc import Generator, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
 
@@ -74,6 +74,7 @@ class MonitorConsumerTest(TestCase):
         monitor_slug: str,
         guid: str | None = None,
         ts: datetime | None = None,
+        item_ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
         expected_error: ProcessingErrorsException | ExpectNoProcessingError | None = None,
         expected_monitor_slug: str | None = None,
@@ -81,6 +82,8 @@ class MonitorConsumerTest(TestCase):
     ) -> None:
         if ts is None:
             ts = datetime.now()
+        if item_ts is None:
+            item_ts = ts
         if consumer is None:
             consumer = self.create_consumer()
 
@@ -112,7 +115,7 @@ class MonitorConsumerTest(TestCase):
                         KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
                         self.partition,
                         1,
-                        ts,
+                        item_ts,
                     )
                 )
             )
@@ -210,7 +213,7 @@ class MonitorConsumerTest(TestCase):
         into groups by their monitor slug / environment
         """
         factory = StoreMonitorCheckInStrategyFactory(
-            mode="parallel",
+            mode="batched-parallel",
             max_batch_size=4,
             max_workers=1,
         )
@@ -308,6 +311,17 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
             checkin.date_added
         )
+
+    def test_check_in_date_clock(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        item_ts = now
+        ts = now + timedelta(seconds=5)
+
+        self.send_checkin(monitor.slug, ts=ts, item_ts=item_ts)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.date_added == ts.replace(tzinfo=UTC)
+        assert checkin.date_clock == item_ts.replace(tzinfo=UTC)
 
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -1035,7 +1049,7 @@ class MonitorConsumerTest(TestCase):
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
     def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
@@ -1063,7 +1077,7 @@ class MonitorConsumerTest(TestCase):
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
     def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 

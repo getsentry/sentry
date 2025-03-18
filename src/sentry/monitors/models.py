@@ -501,6 +501,25 @@ class MonitorCheckIn(Model):
     Represents the time the checkin was made. This CAN BE back-dated in some
     cases, and does not necessarily represent the insertion time of the row in
     the database.
+
+    This date comes from the time relay reiceved the envelope containing the
+    check-in.
+    """
+
+    date_clock = models.DateTimeField(null=True)
+    """
+    Represents the "clock time" that this check in was recorded at. Since the
+    stream of check-ins is processed within the context of a clock that only
+    moves forward as we process kafka messages, this time represents the time
+    at which we processed this check-in, in relation to all other tasks (such
+    as detecting misses)
+    """
+
+    date_created = models.DateTimeField(default=timezone.now, null=True)
+    """
+    Represents when the check-in was actually recorded into the database. This
+    is a real wall-clock time and is not tied to the "clock" time that
+    check-ins are processed in the contenxt of.
     """
 
     date_updated = models.DateTimeField(default=timezone.now)

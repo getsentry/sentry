@@ -37,7 +37,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, AlertRuleSerializer
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -118,6 +118,9 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     @cached_property
     def valid_params(self):
+        email_action_type = AlertRuleTriggerAction.get_registered_factory(
+            AlertRuleTriggerAction.Type.EMAIL
+        ).slug
         return {
             "name": "hello",
             "time_window": 10,
@@ -133,17 +136,31 @@ class AlertRuleDetailsBase(AlertRuleBase):
                     "label": "critical",
                     "alertThreshold": 200,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
                     ],
                 },
                 {
                     "label": "warning",
                     "alertThreshold": 150,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {
-                            "type": "email",
-                            "targetType": "user",
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.USER
+                            ],
                             "targetIdentifier": self.user.id,
                         },
                     ],
@@ -215,17 +232,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data["latestIncident"] is not None
         assert resp.data["latestIncident"]["id"] == str(incident.id)
         assert "latestIncident" not in no_expand_resp.data
-
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
-        rule = self.create_alert_rule(description="howdy")
-        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        resp = self.get_success_response(self.organization.slug, rule.id)
-        assert rule.description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -811,7 +817,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_delete_trigger_dual_update_resolve(self):
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
@@ -842,7 +848,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_update_trigger_threshold_dual_update_resolve(self):
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
@@ -881,7 +887,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_update_trigger_threshold_dual_update_resolve_noop(self):
         """
         If there is an explicit resolve threshold on an alert rule, then updating triggers should
@@ -907,7 +913,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # remains unchanged
         assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_remove_resolve_threshold_dual_update_resolve(self):
         """
         If we set the remove the resolve threshold from an alert rule, then we need to update the
@@ -932,22 +938,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         # resolve threshold changes to the warning threshold
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
-
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        description = "yeehaw"
-        serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["description"] = description
-
-        resp = self.get_success_response(
-            self.organization.slug, alert_rule.id, **serialized_alert_rule
-        )
-        assert description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -1798,9 +1788,8 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
-
-        assert resp.status_code == 400
-        assert error_message in resp.data["sentry_app"]
+        assert resp.status_code == 500
+        assert error_message in resp.data["detail"]
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):

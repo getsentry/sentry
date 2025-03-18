@@ -112,8 +112,8 @@ const getMavenInstallSnippet = (params: Params) => `
       <version>${
         params.sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
+          : (params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']
+              ?.version ?? '0.0.4')
       }</version>
       <extensions>true</extensions>
       <configuration>
@@ -160,7 +160,12 @@ import io.sentry.spring${
   params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
 }.EnableSentry;
 
-@EnableSentry(dsn = "${params.dsn.public}")
+@EnableSentry(
+  dsn = "${params.dsn.public}",
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/guides/spring/data-management/data-collected/ for more info
+  sendDefaultPii = true
+)
 @Configuration
 class SentryConfiguration {
 }`;
@@ -173,6 +178,9 @@ import org.springframework.core.Ordered
 
 @EnableSentry(
   dsn = "${params.dsn.public}",
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/guides/spring/data-management/data-collected/ for more info
+  sendDefaultPii = true,
   exceptionResolverOrder = Ordered.LOWEST_PRECEDENCE
 )`;
 

@@ -4,7 +4,7 @@ import {TraceTreeNode} from './traceTreeNode';
 export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
-  groupCount: number = 0;
+  groupCount = 0;
   profiles: TraceTree.Profile[] = [];
 
   private _autogroupedSegments: Array<[number, number]> | undefined;

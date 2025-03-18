@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -32,7 +32,7 @@ type Props = {
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   organization: Organization;
   requestList: AccessRequest[];
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 function OrganizationTeams({
   organization,
@@ -55,9 +55,7 @@ function OrganizationTeams({
       priority="primary"
       size="sm"
       disabled={!canCreateTeams}
-      title={
-        !canCreateTeams ? t('You do not have permission to create teams') : undefined
-      }
+      title={canCreateTeams ? undefined : t('You do not have permission to create teams')}
       onClick={() =>
         openCreateTeamModal({
           organization,

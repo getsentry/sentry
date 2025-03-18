@@ -13,7 +13,7 @@ type Row = {
   status: string;
 };
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 const getRow = (row: Row) => [
   <td key="name">

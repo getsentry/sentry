@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoGuides, getTourTask} from 'sentry/utils/demoMode/guides';
 
 import {demoEndModal} from './modal';
@@ -16,7 +16,7 @@ const api = new Client();
 
 export async function fetchGuides() {
   try {
-    if (isDemoModeEnabled()) {
+    if (isDemoModeActive()) {
       GuideStore.fetchSucceeded(getDemoGuides());
       return;
     }
@@ -64,7 +64,7 @@ export function recordFinish(
   orgSlug: string | null,
   org: Organization | null
 ) {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     api.requestPromise('/assistant/', {
       method: 'PUT',
       data: {
@@ -76,10 +76,10 @@ export function recordFinish(
 
   const tourTask = getTourTask(guide);
 
-  if (isDemoModeEnabled() && tourTask && org) {
+  if (isDemoModeActive() && tourTask && org) {
     const {tour, task} = tourTask;
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
-    fetchOrganizationDetails(api, org.slug, true, false);
+    fetchOrganizationDetails(api, org.slug);
     demoEndModal({tour, orgSlug});
   }
 
@@ -95,7 +95,7 @@ export function recordFinish(
 }
 
 export function recordDismiss(guide: string, step: number, orgId: string | null) {
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     api.requestPromise('/assistant/', {
       method: 'PUT',
       data: {

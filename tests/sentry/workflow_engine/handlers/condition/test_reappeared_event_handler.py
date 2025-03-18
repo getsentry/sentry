@@ -9,7 +9,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestReappearedEventCondition(ConditionTestCase):
     condition = Condition.REAPPEARED_EVENT
-    rule_cls = ReappearedEventCondition
     payload = {"id": ReappearedEventCondition.id}
 
     def test_dual_write(self):

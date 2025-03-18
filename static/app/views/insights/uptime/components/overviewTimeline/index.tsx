@@ -55,6 +55,7 @@ export function OverviewTimeline({uptimeRules}: Props) {
         stickyCursor
         allowZoom
         showCursor
+        cursorOffsets={{right: 40}}
         timeWindowConfig={timeWindowConfig}
       />
       <UptimeAlertRow>
@@ -77,8 +78,8 @@ const Header = styled(Sticky)`
 
   z-index: 1;
   background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
@@ -101,6 +102,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
   grid-row: 1;
   grid-column: 2/-1;
 `;

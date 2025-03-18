@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -12,9 +14,9 @@ type Props = {
 
 export default function ExploreNavigation({children}: Props) {
   const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!hasNavigationV2) {
+  if (!prefersStackedNav) {
     return children;
   }
 
@@ -24,6 +26,9 @@ export default function ExploreNavigation({children}: Props) {
   return (
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.EXPLORE}>
+        <SecondaryNav.Header>
+          {NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+        </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <Feature features="performance-trace-explorer">
@@ -45,7 +50,10 @@ export default function ExploreNavigation({children}: Props) {
               </SecondaryNav.Item>
             </Feature>
             <Feature features="discover-basic">
-              <SecondaryNav.Item to={`${baseUrl}/discover/`}>
+              <SecondaryNav.Item
+                to={`${baseUrl}/discover/homepage/`}
+                activeTo={`${baseUrl}/discover/`}
+              >
                 {t('Discover')}
               </SecondaryNav.Item>
             </Feature>

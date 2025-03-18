@@ -344,19 +344,19 @@ describe('Dashboards > Dashboard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(await screen.findByText('Duplicate Widget'));
 
-    // The new widget is inserted before the duplicated widget
+    // The new widget is inserted after the duplicated widget
     const expectedWidgets = [
-      // New Widget
-      expect.objectContaining(
-        WidgetFixture({
-          id: undefined,
-          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 0, minH: 1}),
-        })
-      ),
       // Duplicated Widget
       expect.objectContaining(
         WidgetFixture({
           id: '1',
+          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 0, minH: 1}),
+        })
+      ),
+      // New Widget is appended at the end
+      expect.objectContaining(
+        WidgetFixture({
+          id: undefined,
           layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 1, minH: 1}),
         })
       ),
@@ -512,7 +512,7 @@ describe('Dashboards > Dashboard', () => {
     it('does not show the add widget button if dashboard is in preview mode', async function () {
       const testData = initializeOrg({
         organization: {
-          features: ['dashboards-basic', 'dashboards-edit', 'custom-metrics'],
+          features: ['dashboards-basic', 'dashboards-edit'],
         },
       });
       const dashboardWithOneWidget = {

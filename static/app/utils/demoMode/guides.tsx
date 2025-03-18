@@ -53,7 +53,7 @@ export function getTourTask(
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
     case 'release-details_v2':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
-    case 'transaction_details_v2':
+    case 'performance':
       return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
     default:
       return undefined;
@@ -65,7 +65,7 @@ export function getDemoGuides() {
     {guide: 'sidebar_v2', seen: false},
     {guide: 'issues_v3', seen: false},
     {guide: 'releases_v2', seen: false},
-    {guide: 'react-native-release', seen: false},
+    {guide: 'react-release', seen: false},
     {guide: 'release-details_v2', seen: false},
     {guide: 'performance', seen: false},
     {guide: 'transaction_summary', seen: false},
@@ -172,13 +172,13 @@ export function getDemoModeGuides(): GuidesContent {
           title: t('Compare releases'),
           target: 'release_projects',
           description: t(
-            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
+            `Click here and select the "react" project to see how the release is trending compared to previous releases.`
           ),
         },
       ],
     },
     {
-      guide: 'react-native-release',
+      guide: 'react-release',
       requiredTargets: ['release_version'],
       steps: [
         {
@@ -213,6 +213,7 @@ export function getDemoModeGuides(): GuidesContent {
           description: t(
             `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select a transaction to see more details.`
           ),
+          hasNextGuide: true,
         },
       ],
     },
@@ -234,6 +235,7 @@ export function getDemoModeGuides(): GuidesContent {
             'Select an Event ID from a list of slow transactions to uncover slow spans.'
           ),
           nextText: t('Got it'),
+          hasNextGuide: true,
         },
       ],
     },

@@ -19,6 +19,7 @@ export enum ModuleName {
   SCREEN_RENDERING = 'screen-rendering',
   CRONS = 'crons',
   UPTIME = 'uptime',
+  SESSIONS = 'sessions',
   OTHER = 'other',
 }
 
@@ -62,6 +63,8 @@ export enum SpanMetricsField {
   CLIENT_ADDRESS = 'client.address',
   BROWSER_NAME = 'browser.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  PRECISE_START_TS = 'precise.start_ts',
+  PRECISE_FINISH_TS = 'precise.finish_ts',
 }
 
 export type SpanNumberFields =
@@ -73,7 +76,9 @@ export type SpanNumberFields =
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
   | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
-  | SpanMetricsField.CACHE_ITEM_SIZE;
+  | SpanMetricsField.CACHE_ITEM_SIZE
+  | SpanMetricsField.PRECISE_START_TS
+  | SpanMetricsField.PRECISE_FINISH_TS;
 
 export type SpanStringFields =
   | 'span_id'
@@ -95,7 +100,16 @@ export type SpanStringFields =
   | 'span.ai.pipeline.group'
   | 'project'
   | 'messaging.destination.name'
-  | 'user';
+  | 'user'
+  | 'user.display'
+  | 'user.id'
+  | 'user.email'
+  | 'user.username'
+  | 'user.ip'
+  | 'replayId'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -226,7 +240,8 @@ export enum SpanIndexedField {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
-  ID = 'span_id',
+  ID = 'id',
+  SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
@@ -246,21 +261,30 @@ export enum SpanIndexedField {
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
   REPLAY_ID = 'replay.id',
+  REPLAY = 'replay', // Field alias that coalesces `replay.id` and `replayId`
   BROWSER_NAME = 'browser.name',
   USER = 'user',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_EMAIL = 'user.email',
   USER_USERNAME = 'user.username',
+  USER_DISPLAY = 'user.display', // Field alias that coalesces `user.id`, `user.email`, `user.username`, `user.ip`, and `user`
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
+  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   LCP = 'measurements.lcp',
   LCP_SCORE = 'measurements.score.lcp',
+  LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
   CLS = 'measurements.cls',
   CLS_SCORE = 'measurements.score.cls',
+  CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   TTFB = 'measurements.ttfb',
+  TTFB_SCORE = 'measurements.score.ttfb',
+  TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
   FCP = 'measurements.fcp',
+  FCP_SCORE = 'measurements.score.fcp',
+  FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
@@ -273,9 +297,14 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
   IS_TRANSACTION = 'is_transaction',
+  LCP_ELEMENT = 'lcp.element',
+  CLS_SOURCE = 'cls.source.1',
+  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
 }
 
 export type SpanIndexedResponse = {
+  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
@@ -306,7 +335,7 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
@@ -323,19 +352,30 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
   [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.REPLAY]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
   [SpanIndexedField.USER_ID]: string;
   [SpanIndexedField.USER_EMAIL]: string;
   [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.USER_IP]: string;
+  [SpanIndexedField.USER_DISPLAY]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.INP_SCORE_RATIO]: number;
   [SpanIndexedField.LCP]: number;
   [SpanIndexedField.LCP_SCORE]: number;
+  [SpanIndexedField.LCP_SCORE_RATIO]: number;
   [SpanIndexedField.CLS]: number;
   [SpanIndexedField.CLS_SCORE]: number;
+  [SpanIndexedField.CLS_SCORE_RATIO]: number;
+  [SpanIndexedField.TTFB]: number;
+  [SpanIndexedField.TTFB_SCORE]: number;
+  [SpanIndexedField.TTFB_SCORE_RATIO]: number;
+  [SpanIndexedField.FCP]: number;
+  [SpanIndexedField.FCP_SCORE]: number;
+  [SpanIndexedField.FCP_SCORE_RATIO]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
@@ -347,6 +387,8 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
+  [SpanIndexedField.LCP_ELEMENT]: string;
+  [SpanIndexedField.CLS_SOURCE]: string;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
@@ -426,9 +468,3 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
-
-export type OurlogsFields = {
-  'sentry.body': string;
-  'sentry.severity_text': string;
-  'sentry.timestamp': string;
-};

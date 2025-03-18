@@ -26,6 +26,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.types import IncidentStatus
 from sentry.utils.snuba_rpc import timeseries_rpc
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def get(self, request: Request, organization: Organization) -> Response:
         timerange_args = self._parse_args(request, restrict_rollups=False)
-        projects = self.get_projects(request, organization)
+        projects = self.get_projects(request, organization, include_all_accessible=True)
 
         project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
 
@@ -177,6 +178,10 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                     name="check_status",
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
+                AttributeKey(
+                    name="incident_status",
+                    type=AttributeKey.Type.TYPE_INT,
+                ),
             ],
             granularity_secs=timerange_args["rollup"],
             filter=TraceItemFilter(
@@ -206,10 +211,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         for timeseries in response.result_timeseries:
             subscription_id = timeseries.group_by_attributes["uptime_subscription_id"]
             status = timeseries.group_by_attributes["check_status"]
+            incident_status = timeseries.group_by_attributes["incident_status"]
+
+            if status == "failure" and incident_status == str(IncidentStatus.IN_INCIDENT.value):
+                status = "failure_incident"
 
             if subscription_id not in formatted_data:
                 formatted_data[subscription_id] = defaultdict(
-                    lambda: {"failure": 0, "success": 0, "missed_window": 0}
+                    lambda: {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0}
                 )
 
             for bucket, data_point in zip(timeseries.buckets, timeseries.data_points):
@@ -277,7 +286,9 @@ def add_extra_buckets_for_epoch_cutoff(
         missing_buckets = []
         for i in range(num_missing):
             ts = int(start.timestamp()) + (i * rollup_secs)
-            missing_buckets.append((ts, {"failure": 0, "success": 0, "missed_window": 0}))
+            missing_buckets.append(
+                (ts, {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0})
+            )
 
         result[subscription_id] = missing_buckets + data
 

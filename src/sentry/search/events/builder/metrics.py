@@ -1861,7 +1861,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         }
 
         seen_metrics_metas = {}
-        time_data_map = defaultdict(dict)
+        time_data_map: dict[str, dict[str, dict[str, str]]] = defaultdict(dict)
 
         for metrics_data in metrics_data_list:
             for meta in metrics_data["meta"]:
@@ -1906,11 +1906,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
 
 class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
-    # Kept for building on demand specs
-    timeseries_columns = []
-    # Needs to be kept for rebuilding where clause for on-demand metrics.
-    top_events = []
-
     def __init__(
         self,
         dataset: Dataset,

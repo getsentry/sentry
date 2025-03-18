@@ -1,6 +1,6 @@
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import metric_alert_attachment_info
+from sentry.integrations.metric_alerts import metric_alert_unfurl_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import (
     INCIDENT_COLOR_MAPPING,
@@ -36,7 +36,7 @@ class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
         self.chart_url = chart_url
 
     def build(self) -> SlackBody:
-        data = metric_alert_attachment_info(
+        data = metric_alert_unfurl_attachment_info(
             self.alert_rule, self.incident, self.new_status, self.metric_value
         )
 

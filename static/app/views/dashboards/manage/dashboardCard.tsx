@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
@@ -134,9 +134,13 @@ const CardWithoutMargin = styled(Card)`
 `;
 
 const Title = styled('div')`
-  ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  line-height: 1.2;
+  /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 

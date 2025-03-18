@@ -13,12 +13,16 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
+from sentry.api.serializers.models.groupsearchview import (
+    GroupSearchViewSerializer,
+    GroupSearchViewStarredSerializer,
+)
 from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
 from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
@@ -106,15 +110,21 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=organization, user_id=request.user.id
+        )
+
         return self.paginate(
             request=request,
-            queryset=query,
+            queryset=starred_views,
             order_by="position",
             on_results=lambda x: serialize(
                 x,
                 request.user,
-                serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views, default_project=default_project
+                serializer=GroupSearchViewStarredSerializer(
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
                 ),
             ),
         )
@@ -239,6 +249,12 @@ def _update_existing_view(
             gsv.time_filters = view["timeFilters"]
 
         gsv.save()
+        GroupSearchViewStarred.objects.update_or_create(
+            organization=org,
+            user_id=user_id,
+            group_search_view=gsv,
+            defaults={"position": position},
+        )
     except GroupSearchView.DoesNotExist:
         # It is possible – though unlikely under normal circumstances – for a view to come in that
         # doesn't exist anymore. If, for example, the user has the issue stream open in separate
@@ -263,3 +279,10 @@ def _create_view(
     )
     if "projects" in view:
         gsv.projects.set(view["projects"] or [])
+
+    GroupSearchViewStarred.objects.create(
+        organization=org,
+        user_id=user_id,
+        group_search_view=gsv,
+        position=position,
+    )

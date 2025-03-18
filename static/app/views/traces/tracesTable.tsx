@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -164,8 +164,8 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded: any; trace: TraceR
     const leadingProjects: string[] = [];
     const trailingProjects: string[] = [];
 
-    for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i]!.project;
+    for (const breakdown of trace.breakdowns) {
+      const project = breakdown.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -16,12 +16,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -248,9 +246,9 @@ function Controls({
               icon={<IconEdit />}
               disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
               title={
-                !hasEditAccess
-                  ? t('You do not have permission to edit this dashboard')
-                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                hasEditAccess
+                  ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                  : t('You do not have permission to edit this dashboard')
               }
               priority="default"
               size="sm"
@@ -264,17 +262,7 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                {hasCustomMetrics(organization) ? (
-                  <AddWidgetButton
-                    onAddWidget={onAddWidget}
-                    aria-label={t('Add Widget')}
-                    priority="primary"
-                    data-test-id="add-widget-library"
-                    disabled={widgetLimitReached}
-                  />
-                ) : organization.features.includes(
-                    'dashboards-widget-builder-redesign'
-                  ) ? (
+                {organization.features.includes('dashboards-widget-builder-redesign') ? (
                   <DropdownMenu
                     items={addWidgetDropdownItems}
                     isDisabled={widgetLimitReached || !hasEditAccess}

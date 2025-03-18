@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -26,7 +26,9 @@ function DiscoverContainer({organization, children}: Props) {
   function renderNoAccess() {
     return (
       <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }

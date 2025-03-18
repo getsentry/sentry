@@ -1,6 +1,4 @@
-import styled from '@emotion/styled';
-
-import Tag, {Background} from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import Highlight from 'sentry/components/highlight';
 import {t} from 'sentry/locale';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
@@ -14,45 +12,35 @@ export function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
-        <LevelTag type="error">
+        <Tag type="error">
           <Highlight text={searchTerm}>{t('Fatal')}</Highlight>
-        </LevelTag>
+        </Tag>
       );
     case BreadcrumbLevelType.ERROR:
       return (
-        <LevelTag type="error">
+        <Tag type="error">
           <Highlight text={searchTerm}>{t('Error')}</Highlight>
-        </LevelTag>
+        </Tag>
       );
     case BreadcrumbLevelType.INFO:
       return (
-        <LevelTag type="info">
+        <Tag type="info">
           <Highlight text={searchTerm}>{t('Info')}</Highlight>
-        </LevelTag>
+        </Tag>
       );
     case BreadcrumbLevelType.WARNING:
       return (
-        <LevelTag type="warning">
+        <Tag type="warning">
           <Highlight text={searchTerm}>{t('Warning')}</Highlight>
-        </LevelTag>
+        </Tag>
       );
     default:
       return (
-        <LevelTag>
+        <Tag>
           <Highlight text={searchTerm}>{level || t('Undefined')}</Highlight>
-        </LevelTag>
+        </Tag>
       );
   }
 }
 
 export default Level;
-
-const LevelTag = styled(Tag)`
-  display: flex;
-  align-items: center;
-  ${Background} {
-    /** Same height as menu item labels, to prevent vertical cropping */
-    height: calc(${p => p.theme.fontSizeMedium} * 1.4);
-    overflow: hidden;
-  }
-`;

@@ -2,9 +2,9 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
@@ -710,7 +710,7 @@ function ProfileDigest(props: ProfileDigestProps) {
   const flamegraphTarget =
     project && profile
       ? generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profileId: profile?.['profile.id'] as string,
         })

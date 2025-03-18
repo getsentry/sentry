@@ -1,13 +1,18 @@
 import isEqual from 'lodash/isEqual';
 
 import type * as ApiNamespace from 'sentry/api';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
+const respond = (
+  asyncDelay: AsyncDelay,
+  fn: FunctionCallback | undefined,
+  ...args: any[]
+): void => {
   if (!fn) {
     return;
   }
@@ -189,7 +194,7 @@ class Client implements ApiNamespace.Client {
   wrapCallback<T extends any[]>(
     _id: string,
     func: FunctionCallback<T> | undefined,
-    _cleanup: boolean = false
+    _cleanup = false
   ) {
     const asyncDelay = Client.asyncDelay;
 
@@ -259,6 +264,7 @@ class Client implements ApiNamespace.Client {
         response.callCount++;
 
         const errorResponse = Object.assign(
+          new RequestError(options.method || 'GET', url, new Error('Request failed')),
           {
             status: response.statusCode,
             responseText: JSON.stringify(body),

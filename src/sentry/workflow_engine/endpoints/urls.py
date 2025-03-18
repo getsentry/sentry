@@ -9,8 +9,6 @@ from .project_detector_index import ProjectDetectorIndexEndpoint
 
 # Remaining Detector Endpoints
 #   - GET /detector w/ filters
-#   - PUT /detector/:id
-#   - DELETE /detector/:id
 
 # Remaining Workflows Endpoints
 # - GET /workflow w/ filters

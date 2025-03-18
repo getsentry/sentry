@@ -19,9 +19,10 @@ export type Action = keyof typeof ActionMetadata;
 
 type ActionCellProps = {
   actions: Action[];
+  disabled?: boolean;
 };
 
-export function ActionCell({actions}: ActionCellProps) {
+export function ActionCell({actions, disabled}: ActionCellProps) {
   if (!actions || actions.length === 0) {
     return <EmptyCell />;
   }
@@ -35,20 +36,29 @@ export function ActionCell({actions}: ActionCellProps) {
   }
   const actionsList = actions.map(action => ActionMetadata[action].name).join(', ');
   return (
-    <Flex align="center" gap={space(0.75)}>
+    <ActionContainer align="center" gap={space(0.75)}>
       <IconContainer>
         <IconCircledNumber number={actions.length} />
       </IconContainer>
-      <Tooltip title={actionsList}>
+      <Tooltip title={actionsList} disabled={disabled}>
         <ActionsList>{actionsList}</ActionsList>
       </Tooltip>
-    </Flex>
+    </ActionContainer>
   );
 }
+
+const ActionContainer = styled(Flex)`
+  /* overflow: hidden;
+  white-space: nowrap; */
+`;
 
 const ActionsList = styled('span')`
   ${p => p.theme.tooltipUnderline()};
   text-overflow: ellipsis;
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 100%;
 `;
 
 const IconContainer = styled('div')`

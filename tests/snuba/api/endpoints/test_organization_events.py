@@ -30,6 +30,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.testutils.cases import (
     APITransactionTestCase,
+    OurLogTestCase,
     PerformanceIssueTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
@@ -48,7 +49,9 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+class OrganizationEventsEndpointTestBase(
+    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -5053,8 +5056,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["measurements.frames_slow_rate"] == "percentage"
         assert meta["measurements.frames_frozen_rate"] == "percentage"
         assert meta["measurements.stall_count"] == "number"
-        assert meta["measurements.stall_total_time"] == "number"
-        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_total_time"] == "duration"
+        assert meta["measurements.stall_longest_time"] == "duration"
         assert meta["measurements.stall_percentage"] == "percentage"
 
         query = {

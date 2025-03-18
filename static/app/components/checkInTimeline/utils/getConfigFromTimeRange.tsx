@@ -1,3 +1,5 @@
+import moment from 'moment-timezone';
+
 import {getFormat} from 'sentry/utils/dates';
 
 import type {RollupConfig, TimeWindowConfig} from '../types';
@@ -17,12 +19,6 @@ const TIMELABEL_WIDTH_DATE = 110;
  * The minimum pixels to allocate to each time label when it's a timestamp.
  */
 const TIMELABEL_WIDTH_TIME = 100;
-
-/**
- * How big must the underscan be in order for the underscan info bubble label to
- * be displayed?
- */
-const MIN_UNDERSCAN_FOR_LABEL = 140;
 
 /**
  * Acceptable minute durations between time labels. These will be used to
@@ -96,7 +92,8 @@ const EMPTY_ROLLUP: RollupConfig = {
   bucketPixels: 0,
   totalBuckets: 0,
   timelineUnderscanWidth: 0,
-  underscanPeriod: 0,
+  underscanBuckets: 0,
+  underscanStartOffset: 0,
 };
 
 /**
@@ -139,8 +136,12 @@ function computeRollup(elapsedSeconds: number, timelineWidth: number) {
     // fractional pixels (0.5, 0.25, 0.125 etc)
     const bucketPixels = clampedTimelineWidth / totalBuckets;
 
-    const underscanBuckets = Math.floor(timelineUnderscanWidth / bucketPixels);
-    const underscanPeriod = underscanBuckets * interval;
+    const underscanBuckets = Math.ceil(timelineUnderscanWidth / bucketPixels);
+
+    // Because the underscan size will not always precisely fit the bucket size
+    // in pixels, we may need to apply a pixel offset to the ticks since the
+    // underscan is at the start of the timeline.
+    const underscanStartOffset = bucketPixels * underscanBuckets - timelineUnderscanWidth;
 
     return {
       interval,
@@ -148,8 +149,8 @@ function computeRollup(elapsedSeconds: number, timelineWidth: number) {
       totalBuckets,
       timelineUnderscanWidth,
       underscanPct,
-      underscanPeriod,
       underscanBuckets,
+      underscanStartOffset,
     };
   })
     // There is a maximum number of bucekts we can request.
@@ -201,6 +202,15 @@ export function getConfigFromTimeRange(
   const rollupConfig = computeRollup(elapsedSeconds, containerWidth);
   const timelineWidth = containerWidth - rollupConfig.timelineUnderscanWidth;
 
+  // Compute the start time including the underscan period. This may not align
+  // exactly to the start of the container (sice the undercan size may not fit
+  // buckets evenly). Calculations coorelating the container position should be
+  // relative to the periodStart, which will be aligned at the pixel value of
+  // the underscanWidth.
+  const underscanStart = moment(start)
+    .subtract(rollupConfig.underscanBuckets * rollupConfig.interval, 'seconds')
+    .toDate();
+
   // Display only the time (no date) when the start and end times are the same day
   const timeOnly =
     elapsedMinutes <= ONE_HOUR_SECS * 24 && start.getDate() === end.getDate();
@@ -213,8 +223,6 @@ export function getConfigFromTimeRange(
     const minutesPerPixel = elapsedMinutes / timelineWidth;
     return minutesPerPixel * pixels;
   }
-
-  const showUnderscanHelp = rollupConfig.timelineUnderscanWidth > MIN_UNDERSCAN_FOR_LABEL;
 
   // This is smallest minute value that we are willing to space our ticks
   const minMarkerWidth = timeOnly ? TIMELABEL_WIDTH_TIME : TIMELABEL_WIDTH_DATE;
@@ -230,12 +238,12 @@ export function getConfigFromTimeRange(
     }
 
     return {
-      start,
+      start: underscanStart,
+      periodStart: start,
       end,
       elapsedMinutes,
       timelineWidth,
       rollupConfig,
-      showUnderscanHelp,
       intervals: {...intervals, normalMarkerInterval: minutes},
       dateTimeProps: {timeOnly},
       dateLabelFormat: getFormat({timeOnly, seconds: displaySeconds}),
@@ -246,12 +254,12 @@ export function getConfigFromTimeRange(
   const normalMarkerInterval = Math.ceil(minimumMarkerInterval / (60 * 24)) * 60 * 24;
 
   return {
-    start,
+    start: underscanStart,
+    periodStart: start,
     end,
     elapsedMinutes,
     timelineWidth,
     rollupConfig,
-    showUnderscanHelp,
     intervals: {...intervals, normalMarkerInterval},
     dateTimeProps: {dateOnly: true},
     dateLabelFormat: getFormat(),

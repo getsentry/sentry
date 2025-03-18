@@ -29,7 +29,7 @@ export function useScopeAndClient() {
     // using console log for now, will change this when moving to dev tool bar repo
     // eslint-disable-next-line no-console
     console.log(
-      "Couldn't find a Sentry SDK scope or client. Make sure you're using a Sentry SDK with version 7.x or 8.x"
+      "Couldn't find a Sentry SDK scope or client. Make sure you're using a Sentry SDK with version 7.x or above"
     );
   }
 

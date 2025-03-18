@@ -1,7 +1,7 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -49,8 +49,7 @@ export function PerformanceScoreBreakdownChart({
   browserTypes,
   subregions,
 }: Props) {
-  const theme = useTheme();
-  const segmentColors = [...(theme.charts.getColorPalette(3) ?? []).slice(0, 5)];
+  const segmentColors = getChartColorPalette(3).slice(0, 5);
 
   const pageFilters = usePageFilters();
 
@@ -111,12 +110,12 @@ export function PerformanceScoreBreakdownChart({
             // nameFormatter expects a string an will wrap the output in an html string.
             // Kind of a hack, but we can inject some html to escape styling for the subLabel.
             const subLabel =
-              weights !== undefined
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              weights === undefined
+                ? ''
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   ` </strong>(${weights[name.toLocaleLowerCase()].toFixed(
                     0
-                  )}% of Perf Score)<strong>`
-                : '';
+                  )}% of Perf Score)<strong>`;
             return `${name} Score${subLabel}`;
           },
           valueFormatter: (_value, _label, seriesParams: any) => {

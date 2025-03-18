@@ -13,15 +13,15 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -37,6 +37,7 @@ interface Props {
   runId: string;
   selectedText: string;
   stepIndex: number;
+  isAgentComment?: boolean;
 }
 
 interface OptimisticMessage extends CommentThreadMessage {
@@ -49,6 +50,7 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
 
   return useMutation({
     mutationFn: (params: {
+      is_agent_comment: boolean;
       message: string;
       retain_insight_card_index: number | null;
       selected_text: string;
@@ -66,6 +68,7 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
             selected_text: params.selected_text,
             step_index: params.step_index,
             retain_insight_card_index: params.retain_insight_card_index,
+            is_agent_comment: params.is_agent_comment,
           },
         },
       });
@@ -79,41 +82,118 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   });
 }
 
+function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      is_agent_comment: boolean;
+      step_index: number;
+      thread_id: string;
+    }) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'resolve_comment_thread',
+            thread_id: params.thread_id,
+            step_index: params.step_index,
+            is_agent_comment: params.is_agent_comment,
+          },
+        },
+      });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when resolving the thread.'));
+    },
+  });
+}
+
 function AutofixHighlightPopupContent({
   selectedText,
   groupId,
   runId,
   stepIndex,
   retainInsightCardIndex,
-}: Omit<Props, 'referenceElement'>) {
+  isAgentComment,
+}: Props) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
+  const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
+
   const [comment, setComment] = useState('');
   const [threadId] = useState(() => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
     return `thread-${timestamp}-${random}`;
   });
-  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const [pendingUserMessage, setPendingUserMessage] = useState<OptimisticMessage | null>(
+    null
+  );
+  const [showLoadingAssistant, setShowLoadingAssistant] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const autofixData = useAutofixData({groupId});
-  const currentStep = autofixData?.steps?.[stepIndex];
-  const commentThread =
-    currentStep?.active_comment_thread?.id === threadId
+  const {data: autofixData} = useAutofixData({groupId});
+  const currentStep = isAgentComment
+    ? autofixData?.steps?.[stepIndex + 1]
+    : autofixData?.steps?.[stepIndex];
+
+  const commentThread = isAgentComment
+    ? currentStep?.agent_comment_thread
+    : currentStep?.active_comment_thread?.id === threadId
       ? currentStep.active_comment_thread
       : null;
-  const messages = useMemo(
+
+  const serverMessages = useMemo(
     () => commentThread?.messages ?? [],
     [commentThread?.messages]
   );
 
+  // Effect to clear pending messages when server data updates
+  useEffect(() => {
+    if (serverMessages.length > 0) {
+      const lastServerMessage = serverMessages[serverMessages.length - 1];
+
+      // If the last server message is from the assistant, clear all pending messages
+      if (lastServerMessage && lastServerMessage.role === 'assistant') {
+        setPendingUserMessage(null);
+        setShowLoadingAssistant(false);
+      }
+
+      // If the last server message is from the user, keep loading assistant state
+      // but clear the pending user message
+      if (lastServerMessage && lastServerMessage.role === 'user') {
+        setPendingUserMessage(null);
+        setShowLoadingAssistant(true);
+      }
+    }
+  }, [serverMessages]);
+
   // Combine server messages with optimistic ones
   const allMessages = useMemo(() => {
-    const serverMessageCount = messages.length;
-    const relevantOptimisticMessages = optimisticMessages.slice(serverMessageCount);
-    return [...messages, ...relevantOptimisticMessages];
-  }, [messages, optimisticMessages]);
+    const result = [...serverMessages];
+
+    // Add pending user message if it exists
+    if (pendingUserMessage) {
+      result.push(pendingUserMessage);
+    }
+
+    // Add loading assistant message if needed
+    if (showLoadingAssistant) {
+      result.push({
+        role: 'assistant' as const,
+        content: '',
+        isLoading: true,
+      });
+    }
+
+    return result;
+  }, [serverMessages, pendingUserMessage, showLoadingAssistant]);
 
   const truncatedText =
     selectedText.length > 70
@@ -135,12 +215,9 @@ function AutofixHighlightPopupContent({
       return;
     }
 
-    // Add user message and loading assistant message immediately
-    setOptimisticMessages(prev => [
-      ...prev,
-      {role: 'user', content: comment},
-      {role: 'assistant', content: '', isLoading: true},
-    ]);
+    // Add optimistic user message and show loading assistant
+    setPendingUserMessage({role: 'user', content: comment});
+    setShowLoadingAssistant(true);
 
     submitComment({
       message: comment,
@@ -148,6 +225,7 @@ function AutofixHighlightPopupContent({
       selected_text: selectedText,
       step_index: stepIndex,
       retain_insight_card_index: retainInsightCardIndex,
+      is_agent_comment: isAgentComment ?? false,
     });
     setComment('');
   };
@@ -165,12 +243,28 @@ function AutofixHighlightPopupContent({
     scrollToBottom();
   }, [allMessages]);
 
+  const handleResolve = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    closeCommentThread({
+      thread_id: threadId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
+  };
+
   return (
     <Container onClick={handleContainerClick}>
       <Header>
-        <SelectedText>
-          <span>"{truncatedText}"</span>
-        </SelectedText>
+        <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
+        {allMessages.length > 0 && (
+          <ResolveButton
+            size="zero"
+            borderless
+            aria-label={t('Resolve thread')}
+            onClick={handleResolve}
+            icon={<IconClose size="xs" />}
+          />
+        )}
       </Header>
 
       {allMessages.length > 0 && (
@@ -222,10 +316,36 @@ function AutofixHighlightPopupContent({
   );
 }
 
+function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+
+  // Fixed position from the right edge of the viewport
+  const left = viewportWidth / 2 - popupRect.width + 8;
+  let top = referenceRect.top;
+
+  // Ensure the popup stays within the viewport vertically
+  if (top + popupRect.height > viewportHeight) {
+    top = viewportHeight - popupRect.height;
+  }
+  if (top < 0) {
+    top = 0;
+  }
+
+  return {left, top};
+}
+
 function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({left: 0, top: 0});
+  const [position, setPosition] = useState<{
+    left: number;
+    top: number;
+  }>({
+    left: 0,
+    top: 0,
+  });
+  const [isFocused, setIsFocused] = useState(false);
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
@@ -233,21 +353,23 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
-      const rect = referenceElement.getBoundingClientRect();
+      const referenceRect = referenceElement.getBoundingClientRect();
+      const popupRect = popupRef.current!.getBoundingClientRect();
+
       startTransition(() => {
-        setPosition({
-          left: rect.left - 340,
-          top: rect.top,
-        });
+        setPosition(getOptimalPosition(referenceRect, popupRect));
       });
     };
 
     // Initial position
     updatePosition();
 
-    // Create observer to track reference element changes
-    const resizeObserver = new ResizeObserver(updatePosition);
-    resizeObserver.observe(referenceElement);
+    // Create observers to track both elements
+    const referenceObserver = new ResizeObserver(updatePosition);
+    const popupObserver = new ResizeObserver(updatePosition);
+
+    referenceObserver.observe(referenceElement);
+    popupObserver.observe(popupRef.current);
 
     // Track scroll events
     const scrollElements = [window, ...getScrollParents(referenceElement)];
@@ -255,30 +377,46 @@ function AutofixHighlightPopup(props: Props) {
       element.addEventListener('scroll', updatePosition, {passive: true});
     });
 
+    // Track window resize
+    window.addEventListener('resize', updatePosition, {passive: true});
+
     return () => {
-      resizeObserver.disconnect();
+      referenceObserver.disconnect();
+      popupObserver.disconnect();
       scrollElements.forEach(element => {
         element.removeEventListener('scroll', updatePosition);
       });
+      window.removeEventListener('resize', updatePosition);
     };
   }, [referenceElement]);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
 
   return createPortal(
     <Wrapper
       ref={popupRef}
-      id="autofix-rethink-input"
       data-popup="autofix-highlight"
-      initial={{opacity: 0, x: -10}}
+      data-autofix-input-type={props.isAgentComment ? 'agent-comment' : 'rethink'}
+      initial={{opacity: 0, x: 10}}
       animate={{opacity: 1, x: 0}}
-      exit={{opacity: 0, x: -10}}
+      exit={{opacity: 0, x: 10}}
       transition={testableTransition({
         duration: 0.2,
       })}
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
-        transform: 'none',
       }}
+      isFocused={isFocused}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={-1}
     >
       <Arrow />
       <ScaleContainer>
@@ -289,8 +427,8 @@ function AutofixHighlightPopup(props: Props) {
   );
 }
 
-const Wrapper = styled(motion.div)`
-  z-index: ${p => p.theme.zIndex.tooltip};
+const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
+  z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -368,8 +506,8 @@ const StyledButton = styled(Button)`
 const Header = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  padding: ${space(1)};
+  justify-content: space-between;
+  padding: ${space(1)} ${space(1.5)};
   background: ${p => p.theme.backgroundSecondary};
   word-break: break-word;
   overflow-wrap: break-word;
@@ -391,7 +529,7 @@ const Arrow = styled('div')`
   position: absolute;
   width: 12px;
   height: 12px;
-  background: ${p => p.theme.active}01;
+  background: ${p => p.theme.backgroundSecondary};
   border: 1px dashed ${p => p.theme.border};
   border-right: none;
   border-bottom: none;
@@ -448,6 +586,10 @@ const LoadingWrapper = styled('div')`
   align-items: center;
   height: 24px;
   margin-top: ${space(0.25)};
+`;
+
+const ResolveButton = styled(Button)`
+  margin-left: ${space(1)};
 `;
 
 function getScrollParents(element: HTMLElement): Element[] {

@@ -117,4 +117,27 @@ describe('Thresholds', () => {
     expect(await screen.findByText('error on max 1')).toBeInTheDocument();
     expect(await screen.findByText('error on max 2')).toBeInTheDocument();
   });
+
+  it('accepts decimal values', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="millisecond" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.type(screen.getByLabelText('First Maximum'), '0.5');
+    await userEvent.type(screen.getByLabelText('Second Maximum'), '100.5456');
+
+    expect((await screen.findAllByDisplayValue('0.5'))[0]).toBeInTheDocument();
+    expect((await screen.findAllByDisplayValue('100.5456'))[0]).toBeInTheDocument();
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
+        }),
+      }),
+      {replace: true}
+    );
+  });
 });

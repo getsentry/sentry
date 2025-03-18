@@ -89,6 +89,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "go-iris",
     "go-martini",
     "go-negroni",
+    "godot",
     "ionic",
     "java",
     "java-log4j2",
@@ -107,6 +108,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-tanstackstart-react",
     "javascript-nuxt",
     "javascript-vue",
     "kotlin",
@@ -253,6 +255,9 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
+    # external_id for the projects managed/provisioned through the 3rd party
+    external_id = models.CharField(max_length=256, null=True)
+
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
         # bitfield flags are dependent on their order and inserting/removing
@@ -347,7 +352,7 @@ class Project(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_project"
-        unique_together = (("organization", "slug"),)
+        unique_together = (("organization", "slug"), ("organization", "external_id"))
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 

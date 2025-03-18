@@ -1,11 +1,16 @@
-import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import theme from 'sentry/utils/theme';
+import type {Theme} from '@emotion/react';
 
-export const getDefaultLayout = (collapsed: boolean): LayoutKey => {
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+} from 'sentry/components/sidebar/constants';
+import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+
+export const getDefaultLayout = (collapsed: boolean, theme: Theme): LayoutKey => {
   const {innerWidth, innerHeight} = window;
 
   const sidebarWidth = parseInt(
-    collapsed ? theme.sidebar.collapsedWidth : theme.sidebar.expandedWidth,
+    collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
     10
   );
 

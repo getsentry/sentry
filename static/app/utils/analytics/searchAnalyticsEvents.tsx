@@ -8,7 +8,7 @@ type SearchEventBase = {
   search_source?: string;
 };
 
-type OpenEvent = {};
+type OpenEvent = Record<string, unknown>;
 type SelectEvent = {result_type: string; source_type: string; query?: string};
 type QueryEvent = {query: string};
 type ProjectSelectorEvent = {path: string};
@@ -17,7 +17,7 @@ export type SearchEventParameters = {
   'command_palette.open': OpenEvent;
   'command_palette.query': QueryEvent;
   'command_palette.select': SelectEvent;
-  'omnisearch.open': {};
+  'omnisearch.open': Record<string, unknown>;
   'organization_saved_search.selected': {
     id: number;
     is_global: boolean;

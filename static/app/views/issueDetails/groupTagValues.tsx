@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -193,7 +193,7 @@ export function GroupTagValues() {
         id: undefined,
         name: key ?? '',
         fields: [
-          ...(key !== undefined ? [key] : []),
+          ...(key === undefined ? [] : [key]),
           ...discoverFields.filter(field => field !== key),
         ],
         orderby: '-timestamp',
@@ -261,7 +261,7 @@ export function GroupTagValues() {
                   key: 'open-in-discover',
                   label: t('Open in Discover'),
                   to: discoverView.getResultsViewUrlTarget(
-                    orgId,
+                    organization,
                     false,
                     hasDatasetSelector(organization)
                       ? SavedQueryDatasets.ERRORS

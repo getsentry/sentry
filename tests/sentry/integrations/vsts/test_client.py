@@ -29,7 +29,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 class VstsApiClientTest(VstsIntegrationTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
     def test_refreshes_expired_token(self):
@@ -210,32 +210,13 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Check if metrics is generated properly
         calls = [
+            call("integrations.http_request", sample_rate=1.0, tags={"integration": "vsts"}),
             call(
                 "integrations.http_response",
                 sample_rate=1.0,
                 tags={"integration": "vsts", "status": 200},
             ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
-        ]
+        ] * 5
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate

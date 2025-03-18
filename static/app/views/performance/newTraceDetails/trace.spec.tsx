@@ -50,8 +50,7 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
 function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
@@ -111,6 +110,8 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
       },
     }),
   });
@@ -158,7 +159,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -182,7 +183,7 @@ function mockSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -196,7 +197,7 @@ function mockTransactionSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -205,17 +206,6 @@ const {router} = initializeOrg({
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
   },
 });
-
-function mockMetricsResponse() {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/metrics/query/',
-    method: 'POST',
-    body: {
-      data: [],
-      queries: [],
-    },
-  });
-}
 
 function mockEventsResponse() {
   MockApiClient.addMockResponse({
@@ -282,12 +272,13 @@ async function keyboardNavigationTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -340,12 +331,13 @@ async function pageloadTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -404,7 +396,6 @@ async function nestedTransactionsTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -455,13 +446,14 @@ async function searchTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
 
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -517,12 +509,13 @@ async function simpleTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -621,12 +614,13 @@ async function completeTestSetup() {
           count: 2,
         },
       ],
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   MockApiClient.addMockResponse({
@@ -823,12 +817,12 @@ function printVirtualizedList(container: HTMLElement) {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join('\n'));
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
@@ -842,7 +836,7 @@ function printTabs() {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join(' | '));
 }
 
@@ -1628,7 +1622,7 @@ describe('trace view', () => {
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
-      mockMetricsResponse();
+
       mockEventsResponse();
 
       mockTraceResponse({
@@ -1691,6 +1685,8 @@ describe('trace view', () => {
               count: 5,
             },
           ],
+          span_count: 0,
+          span_count_map: {},
         },
       });
 

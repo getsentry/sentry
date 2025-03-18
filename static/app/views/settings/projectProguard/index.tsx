@@ -20,7 +20,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 
-export type ProjectProguardProps = RouteComponentProps<{projectId: string}, {}> & {
+export type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
@@ -159,9 +159,8 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
         isEmpty={mappings?.length === 0}
         isLoading={isLoading}
       >
-        {!mappings?.length
-          ? null
-          : mappings.map((mapping, index) => {
+        {mappings?.length
+          ? mappings.map((mapping, index) => {
               const downloadUrl = `${api.baseUrl}/projects/${
                 organization.slug
               }/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
@@ -176,7 +175,8 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
                   orgSlug={organization.slug}
                 />
               );
-            })}
+            })
+          : null}
       </StyledPanelTable>
       <Pagination pageLinks={mappingsPageLinks} />
     </Fragment>

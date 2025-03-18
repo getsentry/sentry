@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import Link from 'sentry/components/links/link';
@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 const formatDist = (dist: string | string[] | null) => {
   if (Array.isArray(dist)) {
@@ -50,7 +51,10 @@ export function DebugIdBundleDetails({
               {visibleAssociations.map(association => (
                 <Fragment key={association.release}>
                   <Link
-                    to={`/organizations/${organization.slug}/releases/${association.release}/`}
+                    to={makeReleasesPathname({
+                      organization,
+                      path: `/${association.release}/`,
+                    })}
                   >
                     {association.release}
                   </Link>
@@ -73,7 +77,13 @@ export function DebugIdBundleDetails({
         ),
       },
     ];
-  }, [debugIdBundle, organization.slug, showAll]);
+  }, [
+    debugIdBundle.associations,
+    debugIdBundle.date,
+    debugIdBundle.fileCount,
+    organization,
+    showAll,
+  ]);
 
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }

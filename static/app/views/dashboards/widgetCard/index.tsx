@@ -4,7 +4,6 @@ import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import type {BadgeProps} from 'sentry/components/badge/badge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -15,7 +14,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -32,21 +30,17 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
-import type {Meta} from '../widgets/common/types';
-import {WidgetFrame} from '../widgets/common/widgetFrame';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
-import {WidgetCardDataLoader} from './widgetCardDataLoader';
+import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
@@ -99,7 +93,9 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
+  isSampled?: boolean | null;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -165,26 +161,6 @@ function WidgetCard(props: Props) {
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
-  if (widget.widgetType === WidgetType.METRICS) {
-    return (
-      <MetricWidgetCard
-        index={props.index}
-        isEditingDashboard={props.isEditingDashboard}
-        onEdit={props.onEdit}
-        onDelete={props.onDelete}
-        onDuplicate={props.onDuplicate}
-        router={props.router}
-        location={props.location}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        dashboardFilters={dashboardFilters}
-        renderErrorMessage={renderErrorMessage}
-        showContextMenu={props.showContextMenu}
-      />
-    );
-  }
-
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
       setWidgetViewerData({
@@ -194,6 +170,8 @@ function WidgetCard(props: Props) {
         seriesResultsType: data?.timeseriesResultsTypes,
         totalIssuesCount: data?.totalIssuesCount,
         confidence: data?.confidence,
+        sampleCount: data?.sampleCount,
+        isSampled: data?.isSampled,
       });
 
       props.router.push({
@@ -205,26 +183,18 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge: BadgeProps | undefined =
+  const onDemandExtractionBadge: string | undefined =
     extractionStatus === 'extracted'
-      ? {
-          text: t('Extracted'),
-        }
+      ? t('Extracted')
       : extractionStatus === 'not-extracted'
-        ? {
-            text: t('Not Extracted'),
-          }
+        ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge: BadgeProps | undefined = indexedEventsWarning
-    ? {
-        text: t('Indexed'),
-      }
+  const indexedDataBadge: string | undefined = indexedEventsWarning
+    ? t('Indexed')
     : undefined;
 
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(
-    Boolean
-  ) as BadgeProps[];
+  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,
@@ -258,7 +228,7 @@ function WidgetCard(props: Props) {
 
   return (
     <ErrorBoundary
-      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
@@ -267,97 +237,42 @@ function WidgetCard(props: Props) {
         }
         disabled={Number(props.index) !== 0}
       >
-        {widget.displayType === DisplayType.BIG_NUMBER ? (
-          <WidgetCardDataLoader
-            widget={widget}
+        <WidgetFrame
+          title={widget.title}
+          description={widget.description}
+          badgeProps={badges}
+          warnings={warnings}
+          actionsDisabled={actionsDisabled}
+          error={widgetQueryError}
+          actionsMessage={actionsMessage}
+          actions={actions}
+          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          borderless={props.borderless}
+          revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+          noVisualizationPadding
+        >
+          <WidgetCardChartContainer
+            location={location}
+            api={api}
+            organization={organization}
             selection={selection}
-            dashboardFilters={dashboardFilters}
-            onDataFetched={onDataFetched}
-            onWidgetSplitDecision={onWidgetSplitDecision}
+            widget={widget}
+            isMobile={isMobile}
+            renderErrorMessage={renderErrorMessage}
             tableItemLimit={tableItemLimit}
-          >
-            {({loading, errorMessage, tableResults}) => {
-              // Big Number widgets only support one query, so we take the first query's results and meta
-              const tableData = tableResults?.[0]?.data;
-              const tableMeta = tableResults?.[0]?.meta as Meta | undefined;
-              const fields = Object.keys(tableMeta?.fields ?? {});
-
-              let field = fields[0]!;
-              let selectedField = field;
-
-              if (defined(widget.queries[0]!.selectedAggregate)) {
-                const index = widget.queries[0]!.selectedAggregate;
-                selectedField = widget.queries[0]!.aggregates[index]!;
-                if (fields.includes(selectedField)) {
-                  field = selectedField;
-                }
-              }
-
-              const value = tableData?.[0]?.[selectedField];
-
-              return (
-                <BigNumberWidget
-                  title={widget.title}
-                  description={widget.description}
-                  badgeProps={badges}
-                  warnings={warnings}
-                  actionsDisabled={actionsDisabled}
-                  actionsMessage={actionsMessage}
-                  actions={actions}
-                  onFullScreenViewClick={
-                    disableFullscreen ? undefined : onFullScreenViewClick
-                  }
-                  isLoading={loading}
-                  thresholds={widget.thresholds ?? undefined}
-                  value={value}
-                  field={field}
-                  meta={tableMeta}
-                  error={widgetQueryError || errorMessage || undefined}
-                  preferredPolarity="-"
-                  borderless={props.borderless}
-                  forceDescriptionTooltip={props.forceDescriptionTooltip}
-                />
-              );
-            }}
-          </WidgetCardDataLoader>
-        ) : (
-          <WidgetFrame
-            title={widget.title}
-            description={widget.description}
-            badgeProps={badges}
-            warnings={warnings}
-            actionsDisabled={actionsDisabled}
-            error={widgetQueryError}
-            actionsMessage={actionsMessage}
-            actions={actions}
-            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
-            borderless={props.borderless}
-            forceDescriptionTooltip={props.forceDescriptionTooltip}
-            noVisualizationPadding
-          >
-            <WidgetCardChartContainer
-              location={location}
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              isMobile={isMobile}
-              renderErrorMessage={renderErrorMessage}
-              tableItemLimit={tableItemLimit}
-              windowWidth={windowWidth}
-              onDataFetched={onDataFetched}
-              dashboardFilters={dashboardFilters}
-              chartGroup={DASHBOARD_CHART_GROUP}
-              onWidgetSplitDecision={onWidgetSplitDecision}
-              shouldResize={shouldResize}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
-              widgetLegendState={widgetLegendState}
-              showConfidenceWarning={showConfidenceWarning}
-              minTableColumnWidth={minTableColumnWidth}
-            />
-          </WidgetFrame>
-        )}
+            windowWidth={windowWidth}
+            onDataFetched={onDataFetched}
+            dashboardFilters={dashboardFilters}
+            chartGroup={DASHBOARD_CHART_GROUP}
+            onWidgetSplitDecision={onWidgetSplitDecision}
+            shouldResize={shouldResize}
+            onLegendSelectChanged={onLegendSelectChanged}
+            legendOptions={legendOptions}
+            widgetLegendState={widgetLegendState}
+            showConfidenceWarning={showConfidenceWarning}
+            minTableColumnWidth={minTableColumnWidth}
+          />
+        </WidgetFrame>
       </VisuallyCompleteWithData>
     </ErrorBoundary>
   );

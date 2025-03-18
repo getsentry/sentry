@@ -48,9 +48,9 @@ export function useRefChildrenVisibility({
             // have passed a threshold will be included in the entries list.
             // This is why we fallback to the currentThreshold value if there
             // was no entry for the child.
-            return entry !== undefined
-              ? entry.intersectionRatio > visibleRatio
-              : currentVisibility[idx] ?? false;
+            return entry === undefined
+              ? (currentVisibility[idx] ?? false)
+              : entry.intersectionRatio > visibleRatio;
           })
         ),
       {

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from rest_framework import serializers
 
@@ -106,7 +106,7 @@ def find_channel_id_for_alert_rule(
     )
     if serializer.is_valid():
         try:
-            alert_rule = serializer.save()
+            alert_rule = cast(AlertRule, serializer.save())
             redis_rule_status.set_value("success", alert_rule.id)
             return
         # we can still get a validation error for the channel not existing

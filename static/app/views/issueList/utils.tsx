@@ -185,10 +185,12 @@ export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: 
   return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
-export function getSortLabel(key: string) {
+export function getSortLabel(key: string, organization: Organization) {
   switch (key) {
     case IssueSortOptions.NEW:
-      return t('First Seen');
+      return organization.features.includes('issue-stream-table-layout')
+        ? t('Age')
+        : t('First Seen');
     case IssueSortOptions.TRENDS:
       return t('Trends');
     case IssueSortOptions.FREQ:
@@ -273,7 +275,7 @@ export function createIssueLink({
   referrer?: string;
   streamIndex?: number;
 }): LocationDescriptorObject {
-  const {id} = data as Group;
+  const {id, project} = data as Group;
   const {eventID: latestEventId, groupID} = data as Event;
 
   // If we have passed in a custom event ID, use it; otherwise use default
@@ -287,16 +289,21 @@ export function createIssueLink({
       referrer: referrer || 'event-or-group-header',
       stream_index: streamIndex,
       query,
+      // Add environment to the query if it was selected
+      ...(location.query.environment === undefined
+        ? {}
+        : {environment: location.query.environment}),
       // This adds sort to the query if one was selected from the
       // issues list page
-      ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
+      ...(location.query.sort === undefined ? {} : {sort: location.query.sort}),
       // This appends _allp to the URL parameters if they have no
       // project selected ("all" projects included in results). This is
       // so that when we enter the issue details page and lock them to
       // a project, we can properly take them back to the issue list
       // page with no project selected (and not the locked project
       // selected)
-      ...(location.query.project !== undefined ? {} : {_allp: 1}),
+      ...(location.query.project === undefined ? {_allp: 1} : {}),
+      ...(project ? {project: project.id} : {}),
     },
   };
 }

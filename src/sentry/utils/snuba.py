@@ -23,11 +23,9 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import Column, Condition, DeleteQuery, Function, MetricsQuery, Query, Request
-from snuba_sdk.conditions import Or
+from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
-from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -172,6 +170,8 @@ SPAN_COLUMN_MAP = {
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
     "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "messaging.operation.name": "sentry_tags[messaging.operation.name]",
+    "messaging.operation.type": "sentry_tags[messaging.operation.type]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
     "user.geo.subregion": "sentry_tags[user.geo.subregion]",
@@ -504,21 +504,40 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
-        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
-            raise error.with_traceback(_stacktrace)
+        with sentry_sdk.start_span(op="snuba_pool.retry.increment") as span:
+            # This next block is all debugging to try to track down a bug where we're seeing duplicate snuba requests
+            # Wrapping the entire thing in a try/except to be safe cause none of it actually needs to run
+            try:
+                if error:
+                    error_class = error.__class__
+                    module = error_class.__module__
+                    name = error_class.__name__
+                    span.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+                else:
+                    span.set_tag("snuba_pool.retry.error", "None")
+                span.set_tag("snuba_pool.retry.total", self.total)
+                span.set_tag("snuba_pool.response.status", "unknown")
+                if response:
+                    if response.status:
+                        span.set_tag("snuba_pool.response.status", response.status)
+            except Exception:
+                pass
 
-        metrics.incr(
-            "snuba.client.retry",
-            tags={"method": method, "path": urlparse(url).path if url else None},
-        )
-        return super().increment(
-            method=method,
-            url=url,
-            response=response,
-            error=error,
-            _pool=_pool,
-            _stacktrace=_stacktrace,
-        )
+            if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+                raise error.with_traceback(_stacktrace)
+
+            metrics.incr(
+                "snuba.client.retry",
+                tags={"method": method, "path": urlparse(url).path if url else None},
+            )
+            return super().increment(
+                method=method,
+                url=url,
+                response=response,
+                error=error,
+                _pool=_pool,
+                _stacktrace=_stacktrace,
+            )
 
 
 _snuba_pool = connection_from_url(
@@ -566,6 +585,15 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
+
+    if name.startswith("flags["):
+        # Flags queries are valid for the events dataset only. For other datasets we
+        # query the tags expecting to find nothing. We can't return `None` or otherwise
+        # short-circuit a query or filter that wouldn't be valid in its context.
+        if dataset == Dataset.Events:
+            return name
+        else:
+            return f"tags[{name.replace("[", "").replace("]", "").replace('"', "")}]"
 
     measurement_name = get_measurement_name(name)
     span_op_breakdown_name = get_span_op_breakdown_name(name)
@@ -1178,6 +1206,9 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
+            bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
+            if bytes_scanned is not None:
+                span.set_measurement(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
@@ -1486,6 +1517,16 @@ def resolve_column(dataset) -> Callable:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
         if dataset == Dataset.EventsAnalyticsPlatform:
             return f"attr_str[{col}]"
+
+        if col.startswith("flags["):
+            # Flags queries are valid for the events dataset only. For other datasets we
+            # query the tags expecting to find nothing. We can't return `None` or otherwise
+            # short-circuit a query or filter that wouldn't be valid in its context.
+            if dataset == Dataset.Events:
+                return col
+            else:
+                return f"tags[{col.replace("[", "").replace("]", "").replace('"', "")}]"
+
         return f"tags[{col}]"
 
     return _resolve_column
@@ -1942,6 +1983,8 @@ def is_duration_measurement(key):
         "measurements.time_to_initial_display",
         "measurements.inp",
         "measurements.messaging.message.receive.latency",
+        "measurements.stall_longest_time",
+        "measurements.stall_total_time",
     ]
 
 
@@ -2016,100 +2059,3 @@ def process_value(value: None | str | int | float | list[str] | list[int] | list
         return value
 
     return value
-
-
-# FLAGS/TAGS QUERY REWRITES.
-#
-# This is legacy code that I've overridden to rewrite tags queries. Flags are queried
-# identically to tags but they live on a different column. So we "OR" conditions where
-# a tag is present with a flag query.
-#
-# There is a more modern version of this code when the "organizations:issue-search-snuba"
-# flag is enabled. Everything below this comment can be removed when its permanently on.
-# No one else should be depending on these functions.
-
-
-def bulk_raw_query_with_override(
-    snuba_param_list: Sequence[SnubaQueryParams],
-    organization: Organization,
-    referrer: str | None = None,
-    use_cache: bool | None = False,
-) -> ResultSet:
-    """
-    Duplicate of bulk_raw_query except we re-write tags conditions on the events dataset. If the
-    search-issues-snuba flag is ever flipped to true then this can be removed.
-    """
-    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    snuba_requests = [
-        SnubaRequest(
-            request=json_to_snql(query, query["dataset"]),
-            referrer=referrer,
-            forward=forward,
-            reverse=reverse,
-        )
-        for query, forward, reverse in params
-    ]
-
-    for req in snuba_requests:
-        # Only requests to the errors table (events dataset) are re-written.
-        if req.request.dataset == "events":
-            old_query = req.request.query
-            new_conditions = []
-            for condition in old_query.where:
-                if features.has(
-                    "organizations:feature-flag-autocomplete", organization
-                ) and _has_tags_filter(condition.lhs):
-                    feature_condition = Condition(
-                        lhs=_substitute_tags_filter(condition.lhs),
-                        op=condition.op,
-                        rhs=condition.rhs,
-                    )
-                    condition = Or(conditions=[condition, feature_condition])
-                new_conditions.append(condition)
-
-            # A new query needs to be instatiated because the old-query is immutable.
-            new_query = Query(
-                match=old_query.match,
-                select=old_query.select,
-                groupby=old_query.groupby,
-                array_join=old_query.array_join,
-                where=new_conditions,
-                having=old_query.having,
-                orderby=old_query.orderby,
-                limitby=old_query.limitby,
-                limit=old_query.limit,
-                offset=old_query.offset,
-                granularity=old_query.granularity,
-                totals=old_query.totals,
-            )
-            req.request.query = new_query
-
-    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
-
-
-def _has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column) and condition.name.startswith("tags["):
-        return True
-    elif isinstance(condition, Function):
-        for param in condition.parameters:
-            if isinstance(param, (Column, Function)):
-                return _has_tags_filter(param)
-        return False
-    else:
-        return False
-
-
-def _substitute_tags_filter(condition: Any) -> Any:
-    if isinstance(condition, Column) and condition.name.startswith("tags["):
-        return Column(
-            name=condition.name.replace("tags[", "flags["),
-            entity=condition.entity,
-        )
-    elif isinstance(condition, Function):
-        return Function(
-            condition.function,
-            [_substitute_tags_filter(param) for param in condition.parameters],
-            condition.alias,
-        )
-    else:
-        return condition

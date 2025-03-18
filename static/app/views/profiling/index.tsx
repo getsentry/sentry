@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -32,7 +32,9 @@ function ProfilingContainer({children}: Props) {
       organization={organization}
       renderDisabled={() => (
         <Layout.Page withPadding>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert.Container>
+            <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          </Alert.Container>
         </Layout.Page>
       )}
     >

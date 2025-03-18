@@ -4,6 +4,7 @@ from rest_framework import serializers
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.loader.browsersdkversion import get_all_browser_sdk_version_choices
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
+from sentry.models.projectkey import UseCase
 
 
 class RateLimitSerializer(serializers.Serializer):
@@ -76,6 +77,11 @@ class ProjectKeyPostSerializer(serializers.Serializer):
     )
     public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
     secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
+    useCase = serializers.ChoiceField(
+        choices=[(v.value, v.value) for v in UseCase],
+        default=UseCase.USER.value,
+        required=False,
+    )
 
 
 class ProjectKeyPutSerializer(serializers.Serializer):

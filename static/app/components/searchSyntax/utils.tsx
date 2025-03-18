@@ -7,11 +7,12 @@ import {allOperators, Token} from './parser';
  * Used internally within treeResultLocator to stop recursion once we've
  * located a matched result.
  */
-class TokenResultFound extends Error {
+class TokenResultFoundError extends Error {
   result: any;
 
   constructor(result: any) {
     super();
+    this.name = 'TokenResultFoundError';
     this.result = result;
   }
 }
@@ -25,7 +26,7 @@ type VisitorFn = (opts: {
   /**
    * Call this to return the provided value as the result of treeResultLocator
    */
-  returnResult: (result: any) => TokenResultFound;
+  returnResult: (result: any) => TokenResultFoundError;
   /**
    * Return this to skip visiting any inner tokens
    */
@@ -34,7 +35,7 @@ type VisitorFn = (opts: {
    * The token being visited
    */
   token: TokenResult<Token>;
-}) => null | TokenResultFound | typeof skipTokenMarker;
+}) => null | TokenResultFoundError | typeof skipTokenMarker;
 
 type TreeResultLocatorOpts = {
   /**
@@ -68,7 +69,7 @@ export function treeResultLocator<T>({
   visitorTest,
   noResultValue,
 }: TreeResultLocatorOpts): T {
-  const returnResult = (result: any) => new TokenResultFound(result);
+  const returnResult = (result: any) => new TokenResultFoundError(result);
 
   const nodeVisitor = (token: TokenResult<Token> | null) => {
     if (token === null) {
@@ -81,7 +82,7 @@ export function treeResultLocator<T>({
     //
     // XXX: Using a throw here is a bit easier than threading the return value
     // back up through the recursive call tree.
-    if (result instanceof TokenResultFound) {
+    if (result instanceof TokenResultFoundError) {
       throw result;
     }
 
@@ -98,6 +99,9 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_FLAG:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
         if (token.args) {
@@ -110,6 +114,12 @@ export function treeResultLocator<T>({
         nodeVisitor(token.key);
         break;
       case Token.KEY_EXPLICIT_STRING_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_NUMBER_FLAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_STRING_FLAG:
         nodeVisitor(token.key);
         break;
       case Token.LOGIC_GROUP:
@@ -129,7 +139,7 @@ export function treeResultLocator<T>({
   try {
     tree.forEach(nodeVisitor);
   } catch (error) {
-    if (error instanceof TokenResultFound) {
+    if (error instanceof TokenResultFoundError) {
       return error.result;
     }
 
@@ -236,6 +246,9 @@ export const getKeyName = (
     | Token.KEY_AGGREGATE
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
   >,
   options: GetKeyNameOpts = {}
 ) => {
@@ -261,6 +274,12 @@ export const getKeyName = (
         return key.text;
       }
       return key.key.value;
+    case Token.KEY_EXPLICIT_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return key.text;
     default:
       return '';
   }
@@ -333,6 +352,12 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `${token.prefix}[${token.key.value},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return `${token.prefix}[${token.key.value},string]`;
+    case Token.KEY_EXPLICIT_FLAG:
+      return `flags[${token.key.value}]`;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return `flags[${token.key.value},number]`;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return `flags[${token.key.value},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
     case Token.VALUE_RELATIVE_DATE:

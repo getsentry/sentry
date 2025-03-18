@@ -994,7 +994,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             **payload,
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=500,
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]

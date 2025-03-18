@@ -22,6 +22,7 @@ const formGroups: JsonFormObject[] = [
           'Enable to require and enforce two-factor authentication for all members'
         ),
         confirm: {
+          isDangerous: true,
           true: t(
             'This will remove all members without two-factor authentication from your organization. It will also send them an email to setup 2FA and reinstate their access and settings. Do you want to continue?'
           ),
@@ -37,6 +38,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Allow Shared Issues'),
         help: t('Enable sharing of limited details on issues to anonymous users'),
         confirm: {
+          isDangerous: true,
           true: t('Are you sure you want to allow sharing issues to anonymous users?'),
         },
       },
@@ -49,6 +51,7 @@ const formGroups: JsonFormObject[] = [
           'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications'
         ),
         confirm: {
+          isDangerous: true,
           false: t(
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
           ),
@@ -58,6 +61,7 @@ const formGroups: JsonFormObject[] = [
         name: 'scrapeJavaScript',
         type: 'boolean',
         confirm: {
+          isDangerous: true,
           false: t(
             "Are you sure you want to disable sourcecode fetching for JavaScript events? This will affect Sentry's ability to aggregate issues if you're not already uploading sourcemaps as artifacts."
           ),
@@ -90,6 +94,7 @@ const formGroups: JsonFormObject[] = [
         help: t('Allow users to request to join your organization'),
         'aria-label': t('Enable to allow users to request to join your organization'),
         confirm: {
+          isDangerous: true,
           true: t(
             'Are you sure you want to allow users to request to join your organization?'
           ),
@@ -108,6 +113,7 @@ const formGroups: JsonFormObject[] = [
         help: t('Require server-side data scrubbing be enabled for all projects'),
         'aria-label': t('Enable server-side data scrubbing'),
         confirm: {
+          isDangerous: true,
           false: t(
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
           ),
@@ -124,6 +130,7 @@ const formGroups: JsonFormObject[] = [
           'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored'
         ),
         confirm: {
+          isDangerous: true,
           false: t(
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
           ),
@@ -182,6 +189,7 @@ const formGroups: JsonFormObject[] = [
           'Enable to prevent IP addresses from being stored for new events'
         ),
         confirm: {
+          isDangerous: true,
           false: t(
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
           ),

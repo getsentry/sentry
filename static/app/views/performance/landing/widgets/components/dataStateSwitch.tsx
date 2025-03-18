@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
 export function DataStateSwitch(props: {
-  dataComponents: JSX.Element[];
-  emptyComponent: JSX.Element;
-  errorComponent: JSX.Element;
+  dataComponents: React.JSX.Element[];
+  emptyComponent: React.JSX.Element;
+  errorComponent: React.JSX.Element;
 
   hasData: boolean;
   isErrored: boolean;
   isLoading: boolean;
-  loadingComponent?: JSX.Element;
-}): JSX.Element {
+  loadingComponent?: React.JSX.Element;
+}): React.JSX.Element {
   if (props.isErrored) {
     return props.errorComponent;
   }

@@ -42,6 +42,9 @@ export enum Token {
   LOGIC_GROUP = 'logicGroup',
   LOGIC_BOOLEAN = 'logicBoolean',
   KEY_SIMPLE = 'keySimple',
+  KEY_EXPLICIT_FLAG = 'keyExplicitFlag',
+  KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
+  KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
@@ -133,6 +136,8 @@ const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
   Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_FLAG,
+  Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
 
 /**
@@ -484,6 +489,36 @@ export class TokenConverter {
     quoted,
   });
 
+  tokenKeyExplicitFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitStringFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_STRING_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitNumberFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_NUMBER_FLAG as const,
+    prefix,
+    key,
+  });
+
   tokenKeyExplicitTag = (
     prefix: string,
     key: ReturnType<TokenConverter['tokenKeySimple']>
@@ -805,6 +840,9 @@ export class TokenConverter {
         Token.KEY_AGGREGATE,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_FLAG,
+        Token.KEY_EXPLICIT_NUMBER_FLAG,
+        Token.KEY_EXPLICIT_STRING_FLAG,
       ].includes(key.type)
     ) {
       return null;
@@ -814,9 +852,12 @@ export class TokenConverter {
       key as TokenResult<
         | Token.KEY_SIMPLE
         | Token.KEY_EXPLICIT_TAG
+        | Token.KEY_EXPLICIT_FLAG
         | Token.KEY_AGGREGATE
         | Token.KEY_EXPLICIT_NUMBER_TAG
+        | Token.KEY_EXPLICIT_NUMBER_FLAG
         | Token.KEY_EXPLICIT_STRING_TAG
+        | Token.KEY_EXPLICIT_STRING_FLAG
       >
     );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
@@ -880,7 +921,9 @@ export class TokenConverter {
     // Explicit tag keys will always be treated as text filters
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
-      key.type === Token.KEY_EXPLICIT_STRING_TAG
+      key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_FLAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {
       return this.checkInvalidTextValue(value);
     }

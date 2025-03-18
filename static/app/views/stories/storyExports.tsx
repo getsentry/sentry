@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
 
 import type {StoryDescriptor} from './useStoriesLoader';
 
@@ -10,6 +11,9 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 
   return (
     <Fragment>
+      <StorySourceLinksContainer>
+        <StorySourceLinks story={props.story} />
+      </StorySourceLinksContainer>
       {/* Render default export first */}
       {DefaultExport ? (
         <Story key="default">
@@ -32,6 +36,14 @@ export function StoryExports(props: {story: StoryDescriptor}) {
     </Fragment>
   );
 }
+
+const StorySourceLinksContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: ${space(1.5)};
+`;
 
 const Story = styled('section')`
   padding-top: ${space(2)};

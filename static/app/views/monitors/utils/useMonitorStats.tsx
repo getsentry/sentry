@@ -14,25 +14,21 @@ interface Options {
    * The window configuration object
    */
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * Do not query stats when set to false
+   */
+  enabled?: boolean;
 }
 
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats({monitors, timeWindowConfig}: Options) {
+export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
-
-  const until =
-    Math.floor(end.getTime() / 1000) +
-    rollupConfig.underscanPeriod -
-    // XXX(epurkhiser): We are dropping 1 bucket worth of data on the right
-    // side to account for the fact that this bucket is actually over-scan
-    // becauase the query on the backend is inclusive.
-    rollupConfig.interval;
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
-    until,
+    until: Math.floor(end.getTime() / 1000),
     resolution: `${rollupConfig.interval}s`,
   };
 
@@ -55,7 +51,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
     ],
     {
       staleTime: 0,
-      enabled: rollupConfig.totalBuckets > 0,
+      enabled: enabled && rollupConfig.totalBuckets > 0,
     }
   );
 }

@@ -2,9 +2,9 @@ import type {MouseEvent} from 'react';
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -536,8 +536,8 @@ const RowHeader = styled('span')<{
       : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(1)};
-  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
-  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

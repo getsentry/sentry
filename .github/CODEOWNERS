@@ -79,33 +79,32 @@ Makefile                                                 @getsentry/owners-sentr
 /tests/tools/mypy_helpers                                @getsentry/python-typing
 
 ## GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
-/.github/labels.yml                                      @getsentry/open-source
-/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
-/bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
-/bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
-/static/app/components/sidebar/index.tsx                 @getsentry/open-source
+/.github/labels.yml                                      @getsentry/dev-infra
+/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/dev-infra
+/bin/react-to-product-owners-yml-changes.py              @getsentry/dev-infra
+/bin/react-to-product-owners-yml-changes.sh              @getsentry/dev-infra
 
 ## Backup - getsentry/team-ospo#153
-/src/sentry/backup/                                      @getsentry/open-source
-/src/sentry/runner/commands/backup.py                    @getsentry/open-source
-/src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
-/tests/sentry/backup/                                    @getsentry/open-source
-/tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
+/src/sentry/backup/                                      @getsentry/hybrid-cloud
+/src/sentry/runner/commands/backup.py                    @getsentry/hybrid-cloud
+/src/sentry/testutils/helpers/backups.py                 @getsentry/hybrid-cloud
+/tests/sentry/backup/                                    @getsentry/hybrid-cloud
+/tests/sentry/runner/commands/test_backup.py             @getsentry/hybrid-cloud
 
 ## Relocation - getsentry/team-ospo#153
-/src/sentry/analytics/events/relocation_*.py             @getsentry/open-source
-/src/sentry/api/endpoints/organization_fork.py           @getsentry/open-source
-/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
-/src/sentry/api/serializers/models/relocation/           @getsentry/open-source
-/src/sentry/models/relocation/                           @getsentry/open-source
-/src/sentry/relocation/                                  @getsentry/open-source
-/src/sentry/tasks/relocation.py                          @getsentry/open-source
-/src/sentry/utils/relocation.py                          @getsentry/open-source
-/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
-/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/open-source
-/tests/sentry/api/serializer/test_relocation.py          @getsentry/open-source
-/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
-/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
+/src/sentry/analytics/events/relocation_*.py             @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/organization_fork.py           @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/relocation/                    @getsentry/hybrid-cloud
+/src/sentry/api/serializers/models/relocation/           @getsentry/hybrid-cloud
+/src/sentry/models/relocation/                           @getsentry/hybrid-cloud
+/src/sentry/relocation/                                  @getsentry/hybrid-cloud
+/src/sentry/tasks/relocation.py                          @getsentry/hybrid-cloud
+/src/sentry/utils/relocation.py                          @getsentry/hybrid-cloud
+/tests/sentry/api/endpoints/relocation                   @getsentry/hybrid-cloud
+/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/hybrid-cloud
+/tests/sentry/api/serializer/test_relocation.py          @getsentry/hybrid-cloud
+/tests/sentry/tasks/test_relocation.py                   @getsentry/hybrid-cloud
+/tests/sentry/utils/test_relocation.py                   @getsentry/hybrid-cloud
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -476,7 +475,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience
@@ -490,20 +488,15 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
-/src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 
-/static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
 /static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
-/static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
-/static/app/utils/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/metrics/                                                       @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
@@ -511,7 +504,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 /static/app/components/metrics/                                                  @getsentry/telemetry-experience
 /static/app/components/modals/metricWidgetViewerModal*                           @getsentry/telemetry-experience
-/static/app/views/dashboards/metrics/                                            @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
@@ -522,35 +514,35 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/helpers/group_index/                        @getsentry/issues
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issues
 /src/sentry/api/issue_search.py                             @getsentry/issues
-/src/sentry/deletions/defaults/group.py                     @getsentry/issues
-/src/sentry/deletions/tasks/groups.py                       @getsentry/issues
-/src/sentry/event_manager.py                                @getsentry/issues
-/src/sentry/eventstore/models.py                            @getsentry/issues
-/src/sentry/grouping/                                       @getsentry/issues
+/src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
+/src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
+/src/sentry/event_manager.py                                @getsentry/issue-detection-backend
+/src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
+/src/sentry/grouping/                                       @getsentry/issue-detection-backend
 /src/sentry/mediators/                                      @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
 /src/sentry/search/events/builder/issue_platform.py         @getsentry/issues
 /src/sentry/search/events/builder/errors.py                 @getsentry/issues
 /src/sentry/search/snuba/                                   @getsentry/issues
-/src/sentry/seer/similarity/                                @getsentry/issues
-/src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issues
-/src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues
-/src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issues
-/src/sentry/tasks/auto_source_code_config.py                @getsentry/issues
-/src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issues
-/src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issues
-/src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issues
-/src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issues
-/src/sentry/tasks/codeowners/                               @getsentry/issues
-/src/sentry/tasks/commit_context.py                         @getsentry/issues
+/src/sentry/seer/similarity/                                @getsentry/issue-detection-backend
+/src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issue-detection-backend
+/src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issue-detection-backend
+/src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issue-detection-backend
+/src/sentry/tasks/auto_source_code_config.py                @getsentry/issue-detection-backend
+/src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issue-detection-backend
+/src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issue-detection-backend
+/src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
+/src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
+/src/sentry/tasks/codeowners/                               @getsentry/issue-detection-backend
+/src/sentry/tasks/commit_context.py                         @getsentry/issue-detection-backend
 /src/sentry/tasks/commits.py                                @getsentry/issues
-/src/sentry/tasks/delete_seer_grouping_records.py           @getsentry/issues
-/src/sentry/tasks/embeddings_grouping/                      @getsentry/issues
-/src/sentry/tasks/groupowner.py                             @getsentry/issues
-/src/sentry/tasks/merge.py                                  @getsentry/issues
-/src/sentry/tasks/post_process.py                           @getsentry/issues
-/src/sentry/tasks/unmerge.py                                @getsentry/issues
-/src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issues
+/src/sentry/tasks/delete_seer_grouping_records.py           @getsentry/issue-detection-backend
+/src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
+/src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
+/src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
+/src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
+/src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
+/src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issues
 /static/app/components/events/eventTags/                    @getsentry/issues
 /static/app/components/events/highlights/                   @getsentry/issues
@@ -564,32 +556,54 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/utils/analytics.tsx                             @getsentry/issues
 /static/app/utils/routeAnalytics/                           @getsentry/issues
 /tests/sentry/api/test_issue_search.py                      @getsentry/issues
-/tests/sentry/deletions/test_group.py                       @getsentry/issues
-/tests/sentry/event_manager/                                @getsentry/issues
-/tests/sentry/grouping/                                     @getsentry/issues
+/tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
+/tests/sentry/event_manager/                                @getsentry/issue-detection-backend
+/tests/sentry/grouping/                                     @getsentry/issue-detection-backend
 /tests/sentry/search/                                       @getsentry/issues
-/tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
-/tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issues
-/tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issues
-/tests/sentry/tasks/test_auto_source_code_config.py         @getsentry/issues
-/tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issues
-/tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issues
-/tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issues
-/tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issues
-/tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issues
-/tests/sentry/tasks/test_code_owners.py                     @getsentry/issues
-/tests/sentry/tasks/test_commit_context.py                  @getsentry/issues
+/tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_auto_source_code_config.py         @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_code_owners.py                     @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_commit_context.py                  @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_commits.py                         @getsentry/issues
-/tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issues
-/tests/sentry/tasks/test_groupowner.py                      @getsentry/issues
-/tests/sentry/tasks/test_merge.py                           @getsentry/issues
-/tests/sentry/tasks/test_post_process.py                    @getsentry/issues
-/tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issues
+/tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_groupowner.py                      @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issues
 ## End of Issues
 
 ## Billing
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
+
+## gsApp
+/static/gsApp/*                               @getsentry/revenue
+/static/gsApp/components/gsBanner.tsx         @getsentry/revenue
+/static/gsApp/hooks/useAM2*                   @getsentry/revenue
+/static/gsApp/views/checkout/                 @getsentry/revenue
+/static/gsApp/views/amCheckout/               @getsentry/revenue
+/static/gsApp/views/subscriptionPage/         @getsentry/revenue
+/static/gsApp/hooks/spendVisibility/          @getsentry/revenue
+/static/gsApp/views/spendAllocations/         @getsentry/revenue
+/static/gsApp/views/spikeProtection/          @getsentry/revenue
+/static/gsApp/hooks/superuser*                @getsentry/enterprise
+/static/gsApp/hooks/integration*              @getsentry/ecosystem
+/static/gsApp/hooks/issue*                    @getsentry/issues
+/static/gsApp/components/crons/               @getsentry/crons
+/static/gsApp/components/replay*              @getsentry/replay-frontend
+
+## gsAdmin
+# /static/gsAdmin/*                          unowned
+/static/gsAdmin/components/forkCustomer.tsx  @getsentry/hybrid-cloud
+/static/gsAdmin/components/relocation*       @getsentry/hybrid-cloud
+/static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
 
 ## ML & AI
 *autofix*.py                                                @getsentry/machine-learning-ai
@@ -598,6 +612,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /static/app/components/modals/autofixSetupModal.spec.tsx    @getsentry/machine-learning-ai
 /static/app/components/modals/autofixSetupModal.tsx         @getsentry/machine-learning-ai
+/src/sentry/seer/                                           @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Processing
@@ -652,3 +667,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## Migrations
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
+
+
+## Frontend Platform (keep last as we want highest specificity)
+/static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/components/core/                          @getsentry/design-engineering
+## End of Frontend Platform
