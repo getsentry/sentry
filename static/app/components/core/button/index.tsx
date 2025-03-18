@@ -14,7 +14,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
-import {getChonkButtonStyles} from './index.chonk';
+import {getChonkButtonLabelStyles, getChonkButtonStyles} from './index.chonk';
 
 /**
  * Default sizes to use for SVGIcon
@@ -582,12 +582,21 @@ export const ButtonLabel = styled('span', {
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
 })<Pick<ButtonProps, 'size' | 'borderless'>>`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
+  ${p =>
+    p.theme.isChonk ? getChonkButtonLabelStyles(p as any) : getButtonLabelStyles(p)}
 `;
+
+function getButtonLabelStyles(
+  _p: Pick<ButtonProps, 'size' | 'borderless'> & {theme: Theme}
+): SerializedStyles {
+  return css`
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  `;
+}
 
 const Icon = styled('span')<{hasChildren?: boolean; size?: ButtonProps['size']}>`
   display: flex;

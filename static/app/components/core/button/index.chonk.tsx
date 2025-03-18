@@ -55,8 +55,68 @@ export function getChonkButtonStyles(
     cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
-    ...getChonkButtonSizeTheme(size, p.theme),
-    ...getChonkButtonTheme(type, p.theme),
+    padding: getChonkButtonSizeTheme(size, p.theme).padding,
+    borderRadius: getChonkButtonSizeTheme(size, p.theme).borderRadius,
+    color: getChonkButtonTheme(type, p.theme).color,
+
+    border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
+    // borderTop: `3px solid transparent`,
+    background: getChonkButtonTheme(type, p.theme).background,
+    marginTop: '2px',
+
+    '&::after': {
+      content: '""',
+      display: 'block',
+      position: 'absolute',
+      top: '-1px',
+      left: '-1px',
+      right: '-1px',
+      bottom: '-1px',
+      background: getChonkButtonTheme(type, p.theme).surface,
+      borderRadius: 'inherit',
+      border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
+      transform: 'translateY(-2px)',
+      transition: 'transform 0.1s ease-in-out',
+    },
+
+    '> span:last-child': {
+      position: 'relative',
+      zIndex: 1,
+      height: 'auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      whiteSpace: 'nowrap',
+      transform: 'translateY(-2px)',
+      transition: 'transform 0.1s ease-in-out',
+    },
+
+    '&:hover': {
+      '&::after': {
+        transform: 'translateY(-3px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(-3px)',
+      },
+    },
+
+    '&:active': {
+      '&::after': {
+        transform: 'translateY(0px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+    },
+
+    '&:disabled': {
+      '&::after': {
+        transform: 'translateY(0px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+    },
 
     ...(p.borderless && {
       border: 'none',
@@ -82,38 +142,50 @@ export function getChonkButtonStyles(
   };
 }
 
-function getChonkButtonTheme(
-  type: ChonkButtonType,
-  theme: DO_NOT_USE_ChonkTheme
+export function getChonkButtonLabelStyles(
+  p: ButtonProps & {theme: DO_NOT_USE_ChonkTheme}
 ): StrictCSSObject {
+  const type = chonkPriorityToType(p.priority);
+  const size = chonkSizeMapping(p.size);
+
+  return {
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+  };
+}
+
+function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme) {
   switch (type) {
     case 'default':
       return {
-        border: `1px solid ${theme.colors.surface100}`,
-        background: theme.colors.surface500,
+        surface: theme.colors.surface500,
+        background: theme.colors.surface100,
         color: theme.colors.gray800,
       };
     case 'accent':
       return {
-        border: `1px solid ${theme.colors.chonk.blue100}`,
-        background: theme.colors.chonk.blue400,
+        surface: theme.colors.chonk.blue400,
+        background: theme.colors.chonk.blue100,
         color: theme.colors.white,
       };
     case 'warning':
       return {
-        border: `1px solid ${theme.colors.chonk.yellow100}`,
-        background: theme.colors.chonk.yellow400,
+        surface: theme.colors.chonk.yellow400,
+        background: theme.colors.chonk.yellow100,
         color: theme.colors.black,
       };
     case 'danger':
       return {
-        border: `1px solid ${theme.colors.chonk.red100}`,
-        background: theme.colors.chonk.red400,
+        surface: theme.colors.chonk.red400,
+        background: theme.colors.chonk.red100,
         color: theme.colors.white,
       };
     case 'transparent':
       return {
-        border: `1px solid transparent`,
+        surface: 'transparent',
         background: 'transparent',
         color: theme.colors.gray800,
       };
