@@ -1,20 +1,23 @@
 import * as React from 'react';
+import {vi} from 'vitest';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AutoplayVideo} from 'sentry/components/autoplayVideo';
 
-jest.mock('react', () => {
+vi.mock('react', async () => {
+  const actual = await vi.importActual('react');
   return {
-    ...jest.requireActual('react'),
-    useRef: jest.fn(),
+    ...actual,
+    useRef: vi.fn(),
   };
 });
 // XXX: Mocking useRef throws an error for AnimatePrecense, so it must be mocked as well
-jest.mock('framer-motion', () => {
+vi.mock('framer-motion', async () => {
+  const actual = await vi.importActual('framer-motion');
   return {
-    ...jest.requireActual('framer-motion'),
-    AnimatePresence: jest.fn().mockImplementation(({children}) => <div>{children}</div>),
+    ...actual,
+    AnimatePresence: vi.fn().mockImplementation(({children}) => <div>{children}</div>),
   };
 });
 
@@ -37,7 +40,7 @@ describe('autoplayVideo', () => {
   it('sets mute and calls play', () => {
     const mock = makeProxyMock({
       muted: false,
-      play: jest.fn().mockReturnValue(Promise.resolve()),
+      play: vi.fn().mockReturnValue(Promise.resolve()),
     });
 
     // @ts-expect-error we are mocking useRef
@@ -53,7 +56,7 @@ describe('autoplayVideo', () => {
   it('handles non promise-like return from play', () => {
     const mock = makeProxyMock({
       muted: false,
-      play: jest.fn().mockReturnValue(null),
+      play: vi.fn().mockReturnValue(null),
     });
 
     // @ts-expect-error we are mocking useRef

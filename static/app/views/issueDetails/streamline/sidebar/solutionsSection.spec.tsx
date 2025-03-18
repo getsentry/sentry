@@ -12,7 +12,7 @@ import type {Project} from 'sentry/types/project';
 import * as RegionUtils from 'sentry/utils/regions';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 
-jest.mock('sentry/utils/regions');
+vi.mock('sentry/utils/regions');
 
 describe('SolutionsSection', () => {
   const mockEvent = EventFixture({
@@ -284,8 +284,8 @@ describe('SolutionsSection', () => {
     });
 
     it('does not show CTA button when region is de', () => {
-      jest.mock('sentry/utils/regions');
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+      vi.mock('sentry/utils/regions');
+      vi.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
         name: 'de',
         displayName: 'Europe (Frankfurt)',
         url: 'https://sentry.de.example.com',

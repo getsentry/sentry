@@ -6,14 +6,14 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('throughputChart', () => {
   const organization = OrganizationFixture();
 
-  let eventsStatsMock!: jest.Mock;
+  let eventsStatsMock!: vi.Mock;
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,

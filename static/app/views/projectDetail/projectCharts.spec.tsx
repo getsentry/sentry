@@ -40,7 +40,7 @@ function renderProjectCharts(
 }
 
 describe('ProjectDetail > ProjectCharts', () => {
-  let mockSessions: jest.Mock;
+  let mockSessions: vi.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/stats/`,
@@ -55,7 +55,7 @@ describe('ProjectDetail > ProjectCharts', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders ANR options for android projects', async () => {

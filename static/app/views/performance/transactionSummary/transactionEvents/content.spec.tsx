@@ -19,9 +19,9 @@ import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transaction
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 function initializeData() {
   const organization = OrganizationFixture({
@@ -188,7 +188,7 @@ describe('Performance Transaction Events Content', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('basic rendering', async function () {

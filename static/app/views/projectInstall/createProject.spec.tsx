@@ -18,7 +18,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 function renderFrameworkModalMockRequests({
   organization,

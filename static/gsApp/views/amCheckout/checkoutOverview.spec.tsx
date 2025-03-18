@@ -51,7 +51,7 @@ describe('CheckoutOverview', function () {
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />
     );
@@ -71,7 +71,7 @@ describe('CheckoutOverview', function () {
         activePlan={teamPlanAnnual}
         billingConfig={billingConfig}
         formData={formData}
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         organization={organization}
         subscription={subscription}
       />
@@ -85,7 +85,7 @@ describe('CheckoutOverview', function () {
         api={api}
         checkoutTier={PlanTier.AM1}
         location={LocationFixture({hash: '#step3'})}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />
     );
@@ -113,7 +113,7 @@ describe('CheckoutOverview', function () {
         activePlan={teamPlanMonthly}
         billingConfig={billingConfig}
         formData={formData}
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         organization={organization}
         subscription={subscription}
       />
@@ -139,7 +139,7 @@ describe('CheckoutOverview', function () {
         activePlan={teamPlanAnnual}
         billingConfig={billingConfig}
         formData={formData}
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         organization={organization}
         subscription={subscription}
       />
@@ -165,7 +165,7 @@ describe('CheckoutOverview', function () {
         activePlan={teamPlanMonthly}
         billingConfig={billingConfig}
         formData={formData}
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         organization={organization}
         subscription={subscription}
       />

@@ -15,7 +15,7 @@ describe('Register', function () {
     vstsLoginLink: '',
   };
 
-  async function doLogin(apiRequest: jest.Mock) {
+  async function doLogin(apiRequest: vi.Mock) {
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe');
     await userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'test@test.com');
     await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');

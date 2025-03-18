@@ -5,13 +5,13 @@ import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 describe('ScrollCarousel', function () {
   let intersectionOnbserverCb: (
     entries: Array<Partial<IntersectionObserverEntry>>
-  ) => void = jest.fn();
+  ) => void = vi.fn();
 
   window.IntersectionObserver = class IntersectionObserver {
     root = null;
     rootMargin = '';
     thresholds = [];
-    takeRecords = jest.fn();
+    takeRecords = vi.fn();
 
     constructor(cb: IntersectionObserverCallback) {
       // @ts-expect-error The callback wants just way too much stuff for our simple mock
@@ -69,7 +69,7 @@ describe('ScrollCarousel', function () {
     expect(screen.queryByRole('button', {name: 'Scroll left'})).not.toBeInTheDocument();
 
     // Test scroll into view, the last element should have its 'scrollTo' called
-    scrollContainer.scrollTo = jest.fn();
+    scrollContainer.scrollTo = vi.fn();
     await userEvent.click(rightButton);
     expect(scrollContainer.scrollTo).toHaveBeenCalled();
   });
@@ -103,7 +103,7 @@ describe('ScrollCarousel', function () {
     expect(screen.queryByRole('button', {name: 'Scroll right'})).not.toBeInTheDocument();
 
     // Test scroll into view, the 1st element should have its 'scrollTo' called
-    scrollContainer.scrollTo = jest.fn();
+    scrollContainer.scrollTo = vi.fn();
     await userEvent.click(leftButton);
     expect(scrollContainer.scrollTo).toHaveBeenCalled();
   });

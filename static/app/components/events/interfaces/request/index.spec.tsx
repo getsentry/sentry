@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {EntryRequest} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
-jest.unmock('prismjs');
+vi.unmock('prismjs');
 
 describe('Request entry', function () {
   beforeEach(() => {

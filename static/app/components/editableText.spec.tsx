@@ -4,7 +4,7 @@ import EditableText from 'sentry/components/editableText';
 
 describe('EditableText', function () {
   it('edit value and click outside of the component', async function () {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(<EditableText value="foo" onChange={handleChange} />);
 
@@ -28,7 +28,7 @@ describe('EditableText', function () {
   });
 
   it('clear value and show error message', async function () {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(<EditableText value="foo" onChange={handleChange} />);
 
@@ -45,7 +45,7 @@ describe('EditableText', function () {
   });
 
   it('displays a disabled value', async function () {
-    render(<EditableText value="foo" onChange={jest.fn()} isDisabled />);
+    render(<EditableText value="foo" onChange={vi.fn()} isDisabled />);
 
     // Click on the input
     await userEvent.click(screen.getByText('foo'));
@@ -54,7 +54,7 @@ describe('EditableText', function () {
   });
 
   it('edit value and press escape', async function () {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(<EditableText value="foo" onChange={handleChange} />);
 
@@ -73,7 +73,7 @@ describe('EditableText', function () {
   });
 
   it('enforces a max length if provided', async function () {
-    render(<EditableText value="foo" onChange={jest.fn()} maxLength={4} />);
+    render(<EditableText value="foo" onChange={vi.fn()} maxLength={4} />);
 
     // Click on the input
     await userEvent.click(screen.getByText('foo'));

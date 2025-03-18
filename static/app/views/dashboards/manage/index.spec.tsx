@@ -12,7 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-jest.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/localStorage');
 
 const FEATURES = [
   'global-views',
@@ -21,11 +21,11 @@ const FEATURES = [
   'discover-query',
 ];
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseNavigate = vi.mocked(useNavigate);
 
 describe('Dashboards > Detail', function () {
   const mockUnauthorizedOrg = OrganizationFixture({
@@ -112,7 +112,7 @@ describe('Dashboards > Detail', function () {
 
   it('creates new dashboard', async function () {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(<ManageDashboards />, {
@@ -130,7 +130,7 @@ describe('Dashboards > Detail', function () {
 
   it('can sort', async function () {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(<ManageDashboards />, {
@@ -150,7 +150,7 @@ describe('Dashboards > Detail', function () {
 
   it('can search', async function () {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(<ManageDashboards />, {
@@ -168,7 +168,7 @@ describe('Dashboards > Detail', function () {
   });
 
   it('uses pagination correctly', async function () {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
@@ -195,7 +195,7 @@ describe('Dashboards > Detail', function () {
   });
 
   it('disables pagination correctly', async function () {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({

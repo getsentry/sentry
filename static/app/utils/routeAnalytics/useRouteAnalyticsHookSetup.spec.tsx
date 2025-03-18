@@ -15,14 +15,14 @@ function TestComponent() {
 describe('useRouteAnalyticsHookSetup', function () {
   it('registers callback', function () {
     const {organization} = initializeOrg();
-    const setOrganization = jest.fn();
+    const setOrganization = vi.fn();
     render(
       <RouteAnalyticsContext.Provider
         value={{
           setOrganization,
-          setDisableRouteAnalytics: jest.fn(),
-          setRouteAnalyticsParams: jest.fn(),
-          setEventNames: jest.fn(),
+          setDisableRouteAnalytics: vi.fn(),
+          setRouteAnalyticsParams: vi.fn(),
+          setEventNames: vi.fn(),
           previousUrl: '',
         }}
       >

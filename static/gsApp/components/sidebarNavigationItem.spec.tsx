@@ -11,7 +11,7 @@ import {PlanTier} from 'getsentry/types';
 describe('SidebarNavigationItem', function () {
   let billingConfigMock: any;
 
-  const renderFunc = jest.fn().mockImplementation(function simpleRenderFunction({
+  const renderFunc = vi.fn().mockImplementation(function simpleRenderFunction({
     additionalContent,
     Wrapper,
     disabled,

@@ -9,7 +9,7 @@ describe('TagStore', function () {
 
   describe('loadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
-      jest.spyOn(TagStore, 'trigger');
+      vi.spyOn(TagStore, 'trigger');
 
       TagStore.loadTagsSuccess([
         {

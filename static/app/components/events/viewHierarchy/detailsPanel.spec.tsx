@@ -40,7 +40,7 @@ describe('View Hierarchy Details Panel', function () {
   });
 
   it('accepts a custom title renderer', function () {
-    const testGetTitle = jest.fn().mockImplementation(data => {
+    const testGetTitle = vi.fn().mockImplementation(data => {
       return `${data.type} - ${data.identifier}`;
     });
     render(<DetailsPanel data={MOCK_DATA} getTitle={testGetTitle} />);

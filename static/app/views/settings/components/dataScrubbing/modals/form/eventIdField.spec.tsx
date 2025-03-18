@@ -7,7 +7,7 @@ const eventIdValue = '887ab369df634e74aea708bcafe1a175';
 
 describe('EventIdField', function () {
   it('default render', async function () {
-    const handleUpdateEventId = jest.fn();
+    const handleUpdateEventId = vi.fn();
 
     render(
       <EventIdField
@@ -39,7 +39,7 @@ describe('EventIdField', function () {
   it('LOADING status', function () {
     render(
       <EventIdField
-        onUpdateEventId={jest.fn()}
+        onUpdateEventId={vi.fn()}
         eventId={{value: eventIdValue, status: EventIdStatus.LOADING}}
       />
     );
@@ -52,7 +52,7 @@ describe('EventIdField', function () {
   it('LOADED status', function () {
     render(
       <EventIdField
-        onUpdateEventId={jest.fn()}
+        onUpdateEventId={vi.fn()}
         eventId={{value: eventIdValue, status: EventIdStatus.LOADED}}
       />
     );
@@ -67,7 +67,7 @@ describe('EventIdField', function () {
   it('ERROR status', async function () {
     render(
       <EventIdField
-        onUpdateEventId={jest.fn()}
+        onUpdateEventId={vi.fn()}
         eventId={{value: eventIdValue, status: EventIdStatus.ERROR}}
       />
     );
@@ -88,7 +88,7 @@ describe('EventIdField', function () {
   it('INVALID status', async function () {
     render(
       <EventIdField
-        onUpdateEventId={jest.fn()}
+        onUpdateEventId={vi.fn()}
         eventId={{value: eventIdValue, status: EventIdStatus.INVALID}}
       />
     );
@@ -101,7 +101,7 @@ describe('EventIdField', function () {
   it('NOTFOUND status', async function () {
     render(
       <EventIdField
-        onUpdateEventId={jest.fn()}
+        onUpdateEventId={vi.fn()}
         eventId={{value: eventIdValue, status: EventIdStatus.NOT_FOUND}}
       />
     );

@@ -8,7 +8,7 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 
-jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
+vi.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
@@ -22,9 +22,11 @@ const [MOCK_ITEM] = hydrateSpans(ReplayRecordFixture(), [
 ]);
 
 describe('Setup', () => {
-  jest
-    .mocked(useProjectSdkNeedsUpdate)
-    .mockReturnValue({isError: false, isFetching: false, needsUpdate: false});
+  vi.mocked(useProjectSdkNeedsUpdate).mockReturnValue({
+    isError: false,
+    isFetching: false,
+    needsUpdate: false,
+  });
 
   describe('Setup is not complete', () => {
     it('should render the full snippet when no setup is done yet', () => {

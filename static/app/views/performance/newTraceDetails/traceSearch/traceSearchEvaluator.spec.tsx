@@ -115,7 +115,7 @@ describe('TraceSearchEvaluator', () => {
       makeTransaction({'transaction.op': 'other'}),
     ]);
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     search('', list, cb);
     await waitFor(() => {
       expect(cb).toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe('TraceSearchEvaluator', () => {
       makeTransaction({'transaction.op': 'other'}),
     ]);
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     search(query, list, cb);
     await waitFor(() => {
       expect(cb).toHaveBeenCalled();
@@ -156,7 +156,7 @@ describe('TraceSearchEvaluator', () => {
       makeTransaction({'transaction.op': 'other'}),
     ]);
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     search('transaction.op:operation AND transaction:something', tree, cb);
     await waitFor(() => {
       expect(cb).toHaveBeenCalled();
@@ -172,7 +172,7 @@ describe('TraceSearchEvaluator', () => {
       makeTransaction({'transaction.op': 'other'}),
     ]);
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     search('transaction.op:operation OR transaction.op:other', tree, cb);
     await waitFor(() => {
       expect(cb).toHaveBeenCalled();
@@ -191,7 +191,7 @@ describe('TraceSearchEvaluator', () => {
       makeTransaction({'transaction.op': 'other', transaction: ''}),
     ]);
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     search(
       'transaction.op:operation AND transaction:something OR transaction.op:other',
       tree,
@@ -215,7 +215,7 @@ describe('TraceSearchEvaluator', () => {
         makeTransaction({'transaction.op': 'other'}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('transaction.op:operation', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -226,7 +226,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter with prefix', async () => {
       const tree = makeTree([makeTransaction({transaction: 'operation'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('transaction.transaction:operation', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -240,7 +240,7 @@ describe('TraceSearchEvaluator', () => {
         makeTransaction({'transaction.duration': 500}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('transaction.duration:>500ms', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -254,7 +254,7 @@ describe('TraceSearchEvaluator', () => {
         makeTransaction({'transaction.duration': 500}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('transaction.duration:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -268,7 +268,7 @@ describe('TraceSearchEvaluator', () => {
         makeTransaction({start_timestamp: 0, timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('transaction.total_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -283,7 +283,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter', async () => {
       const tree = makeTree([makeSpan({op: 'db'}), makeSpan({op: 'http'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('op:db', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -294,7 +294,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter with prefix', async () => {
       const tree = makeTree([makeSpan({op: 'db'}), makeSpan({op: 'http'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.op:db', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -308,7 +308,7 @@ describe('TraceSearchEvaluator', () => {
         makeSpan({start_timestamp: 0, timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.duration:>500ms', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -322,7 +322,7 @@ describe('TraceSearchEvaluator', () => {
         makeSpan({start_timestamp: 0, timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.duration:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -336,7 +336,7 @@ describe('TraceSearchEvaluator', () => {
         makeSpan({start_timestamp: 0, timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.total_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -349,7 +349,7 @@ describe('TraceSearchEvaluator', () => {
         makeSpan({exclusive_time: 500}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.self_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -362,7 +362,7 @@ describe('TraceSearchEvaluator', () => {
         makeSpan({exclusive_time: 500}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.exclusive_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -375,7 +375,7 @@ describe('TraceSearchEvaluator', () => {
         makeSpan({exclusive_time: 500}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('exclusive_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -389,7 +389,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter', async () => {
       const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('op:db', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -400,7 +400,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter with prefix', async () => {
       const tree = makeTree([makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.op:db', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -414,7 +414,7 @@ describe('TraceSearchEvaluator', () => {
         makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.duration:>500ms', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -428,7 +428,7 @@ describe('TraceSearchEvaluator', () => {
         makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.duration:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -442,7 +442,7 @@ describe('TraceSearchEvaluator', () => {
         makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
       ]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('span.total_time:>0.5s', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -461,7 +461,7 @@ describe('TraceSearchEvaluator', () => {
           makeTransaction({errors: []}),
         ]);
 
-        const cb = jest.fn();
+        const cb = vi.fn();
         search(`has:${key}`, tree, cb);
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -476,7 +476,7 @@ describe('TraceSearchEvaluator', () => {
           makeTransaction({errors: []}),
         ]);
 
-        const cb = jest.fn();
+        const cb = vi.fn();
         search(`has:${key}`, tree, cb);
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -492,7 +492,7 @@ describe('TraceSearchEvaluator', () => {
           makeTransaction({errors: []}),
         ]);
 
-        const cb = jest.fn();
+        const cb = vi.fn();
         search(`has:${key}`, tree, cb);
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -507,7 +507,7 @@ describe('TraceSearchEvaluator', () => {
           makeTransaction({errors: []}),
         ]);
 
-        const cb = jest.fn();
+        const cb = vi.fn();
         search(`has:${key}`, tree, cb);
         await waitFor(() => expect(cb).toHaveBeenCalled());
         expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -521,7 +521,7 @@ describe('TraceSearchEvaluator', () => {
     it('project -> project_slug', async () => {
       const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('project:test_project', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
@@ -531,7 +531,7 @@ describe('TraceSearchEvaluator', () => {
     it('project.name -> project_slug', async () => {
       const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
 
-      const cb = jest.fn();
+      const cb = vi.fn();
       search('project.name:test_project', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);

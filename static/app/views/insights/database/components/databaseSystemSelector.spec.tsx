@@ -9,32 +9,32 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
-  useSpanMetrics: jest.fn(),
+vi.mock('sentry/views/insights/common/queries/useDiscover', () => ({
+  useSpanMetrics: vi.fn(),
 }));
 
-jest.mock('sentry/utils/useLocalStorageState', () => ({
-  useLocalStorageState: jest.fn(),
+vi.mock('sentry/utils/useLocalStorageState', () => ({
+  useLocalStorageState: vi.fn(),
 }));
 
-jest.mock('sentry/utils/useLocation', () => ({
-  useLocation: jest.fn(),
+vi.mock('sentry/utils/useLocation', () => ({
+  useLocation: vi.fn(),
 }));
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
-const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
-const mockUseSpanMetrics = jest.mocked(useSpanMetrics);
-const mockUseLocation = jest.mocked(useLocation);
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseLocalStorageState = vi.mocked(useLocalStorageState);
+const mockUseSpanMetrics = vi.mocked(useSpanMetrics);
+const mockUseLocation = vi.mocked(useLocation);
+const mockUseNavigate = vi.mocked(useNavigate);
 
 describe('DatabaseSystemSelector', function () {
   const organization = OrganizationFixture();
 
   afterAll(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   beforeEach(() => {
@@ -50,7 +50,7 @@ describe('DatabaseSystemSelector', function () {
   });
 
   it('is disabled and does not select a system if there are none available', async function () {
-    const mockSetState = jest.fn();
+    const mockSetState = vi.fn();
     mockUseLocalStorageState.mockReturnValue(['', mockSetState]);
     mockUseSpanMetrics.mockReturnValue({
       data: [],
@@ -67,7 +67,7 @@ describe('DatabaseSystemSelector', function () {
   });
 
   it('is disabled when only one database system is present and shows that system as selected', async function () {
-    const mockSetState = jest.fn();
+    const mockSetState = vi.fn();
     mockUseLocalStorageState.mockReturnValue(['', mockSetState]);
     mockUseSpanMetrics.mockReturnValue({
       data: [
@@ -152,7 +152,7 @@ describe('DatabaseSystemSelector', function () {
   });
 
   it('does not set the value from localStorage if the value is invalid', async function () {
-    const mockSetState = jest.fn();
+    const mockSetState = vi.fn();
     mockUseLocalStorageState.mockReturnValue(['chungusdb', mockSetState]);
     mockUseSpanMetrics.mockReturnValue({
       data: [
@@ -174,7 +174,7 @@ describe('DatabaseSystemSelector', function () {
 
   it('prioritizes the system set in query parameters but does not replace localStorage value until an option is clicked', async function () {
     const {SPAN_SYSTEM} = SpanMetricsField;
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     mockUseLocation.mockReturnValue({
@@ -202,7 +202,7 @@ describe('DatabaseSystemSelector', function () {
       isError: false,
     } as any);
 
-    const mockSetState = jest.fn();
+    const mockSetState = vi.fn();
     mockUseLocalStorageState.mockReturnValue(['postgresql', mockSetState]);
 
     render(<DatabaseSystemSelector />, {organization});

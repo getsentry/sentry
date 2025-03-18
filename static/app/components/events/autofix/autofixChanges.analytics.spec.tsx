@@ -10,17 +10,17 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/components/core/button', () => ({
-  Button: jest.fn(props => {
+vi.mock('sentry/components/core/button', () => ({
+  Button: vi.fn(props => {
     // Forward the click handler while allowing us to inspect props
     return <button onClick={props.onClick}>{props.children}</button>;
   }),
-  LinkButton: jest.fn(props => {
+  LinkButton: vi.fn(props => {
     return <a href={props.href}>{props.children}</a>;
   }),
 }));
 
-const mockButton = Button as jest.MockedFunction<typeof Button>;
+const mockButton = Button as vi.MockedFunction<typeof Button>;
 
 describe('AutofixChanges', () => {
   const defaultProps = {

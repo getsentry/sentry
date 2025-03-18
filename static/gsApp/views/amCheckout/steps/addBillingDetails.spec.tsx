@@ -11,7 +11,7 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-jest.mock('getsentry/utils/stripe', () => {
+vi.mock('getsentry/utils/stripe', () => {
   return {
     loadStripe: (cb: any) => {
       if (!cb) {
@@ -19,13 +19,13 @@ jest.mock('getsentry/utils/stripe', () => {
       }
       cb(() => {
         return {
-          elements: jest.fn(() => ({
-            create: jest.fn(() => ({
-              mount: jest.fn(),
+          elements: vi.fn(() => ({
+            create: vi.fn(() => ({
+              mount: vi.fn(),
               on(_name: any, handler: any) {
                 handler();
               },
-              update: jest.fn(),
+              update: vi.fn(),
             })),
           })),
         };
@@ -53,9 +53,9 @@ describe('Billing Details Step', function () {
   const stepProps: StepProps = {
     isActive: true,
     stepNumber,
-    onUpdate: jest.fn(),
-    onCompleteStep: jest.fn(),
-    onEdit: jest.fn(),
+    onUpdate: vi.fn(),
+    onCompleteStep: vi.fn(),
+    onEdit: vi.fn(),
     billingConfig,
     formData: {
       plan: billingConfig.defaultPlan,
@@ -121,7 +121,7 @@ describe('Billing Details Step', function () {
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />,
       {router}
@@ -409,7 +409,7 @@ describe('Billing Details Step', function () {
       },
     });
 
-    const onCompleteStep = jest.fn();
+    const onCompleteStep = vi.fn();
     const props = {...stepProps, onCompleteStep};
     render(
       <AddBillingDetails

@@ -9,7 +9,7 @@ import ArchivedBox from './archivedBox';
 
 describe('ArchivedBox', function () {
   const organization = OrganizationFixture();
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   it('handles ignoreUntil', function () {
     render(

@@ -42,7 +42,7 @@ describe('hookIntegrationFeatures', function () {
       },
     ];
 
-    const renderCallback = jest.fn(() => <Fragment />);
+    const renderCallback = vi.fn(() => <Fragment />);
 
     render(
       <IntegrationFeatures {...{organization, features}}>
@@ -75,7 +75,7 @@ describe('hookIntegrationFeatures', function () {
       },
     ];
 
-    const renderCallback = jest.fn(() => <Fragment />);
+    const renderCallback = vi.fn(() => <Fragment />);
 
     render(
       <IntegrationFeatures {...{organization, features}}>
@@ -139,7 +139,7 @@ describe('hookIntegrationFeatures', function () {
     ];
 
     it('renders with the correct callback', async function () {
-      const renderCallback = jest.fn(() => <Fragment />);
+      const renderCallback = vi.fn(() => <Fragment />);
 
       render(
         <IntegrationFeatures {...{organization, features}}>

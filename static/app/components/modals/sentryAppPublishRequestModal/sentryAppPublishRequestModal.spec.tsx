@@ -11,7 +11,7 @@ import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPu
 describe('SentryAppDetailsModal', function () {
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const sentryApp = SentryAppFixture();
-  const onPublishSubmission = jest.fn();
+  const onPublishSubmission = vi.fn();
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -19,7 +19,7 @@ describe('SentryAppDetailsModal', function () {
   it('renders the modal', async function () {
     render(
       <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         Header={p => <span>{p.children}</span>}
         Footer={styledWrapper()}
         Body={styledWrapper()}
@@ -91,7 +91,7 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         Header={p => <span>{p.children}</span>}
         Footer={styledWrapper()}
         Body={styledWrapper()}
@@ -197,7 +197,7 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         Header={p => <span>{p.children}</span>}
         Footer={styledWrapper()}
         Body={styledWrapper()}
@@ -229,7 +229,7 @@ describe('SentryAppDetailsModal', function () {
       statusCode: 400,
       body: {detail: errorMessage},
     });
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
 
     render(
       <SentryAppPublishRequestModal
@@ -240,7 +240,7 @@ describe('SentryAppDetailsModal', function () {
         CloseButton={makeCloseButton(() => {})}
         organization={OrganizationFixture()}
         app={sentryApp}
-        onPublishSubmission={jest.fn()}
+        onPublishSubmission={vi.fn()}
       />
     );
 
@@ -302,7 +302,7 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         Header={p => <span>{p.children}</span>}
         Footer={styledWrapper()}
         Body={styledWrapper()}

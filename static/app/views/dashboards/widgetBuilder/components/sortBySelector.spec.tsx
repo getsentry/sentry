@@ -9,8 +9,8 @@ import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/c
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
 const {organization, router} = initializeOrg({
@@ -29,7 +29,7 @@ const {organization, router} = initializeOrg({
   },
 });
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseNavigate = vi.mocked(useNavigate);
 
 describe('WidgetBuilderSortBySelector', function () {
   beforeEach(function () {
@@ -85,7 +85,7 @@ describe('WidgetBuilderSortBySelector', function () {
   });
 
   it('renders and functions correctly', async function () {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(
@@ -162,7 +162,7 @@ describe('WidgetBuilderSortBySelector', function () {
   });
 
   it('correctly handles limit changes', async function () {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(

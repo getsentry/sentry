@@ -33,8 +33,8 @@ const {organization, projects, router} = initializeOrg({
 });
 
 describe('NewWidgetBuiler', function () {
-  const onCloseMock = jest.fn();
-  const onSaveMock = jest.fn();
+  const onCloseMock = vi.fn();
+  const onSaveMock = vi.fn();
 
   beforeEach(function () {
     OrganizationStore.init();
@@ -108,7 +108,7 @@ describe('NewWidgetBuiler', function () {
         dashboardFilters={{}}
         onSave={onSaveMock}
         openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
+        setOpenWidgetTemplates={vi.fn()}
       />,
       {
         router,
@@ -174,7 +174,7 @@ describe('NewWidgetBuiler', function () {
         dashboardFilters={{}}
         onSave={onSaveMock}
         openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
+        setOpenWidgetTemplates={vi.fn()}
       />,
       {
         router: chartsRouter,
@@ -202,7 +202,7 @@ describe('NewWidgetBuiler', function () {
         dashboardFilters={{}}
         onSave={onSaveMock}
         openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
+        setOpenWidgetTemplates={vi.fn()}
       />,
       {
         router,
@@ -235,7 +235,7 @@ describe('NewWidgetBuiler', function () {
         dashboardFilters={{}}
         onSave={onSaveMock}
         openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
+        setOpenWidgetTemplates={vi.fn()}
       />,
       {
         router: chartsRouter,
@@ -257,7 +257,7 @@ describe('NewWidgetBuiler', function () {
         dashboardFilters={{}}
         onSave={onSaveMock}
         openWidgetTemplates
-        setOpenWidgetTemplates={jest.fn()}
+        setOpenWidgetTemplates={vi.fn()}
       />,
       {router, organization}
     );

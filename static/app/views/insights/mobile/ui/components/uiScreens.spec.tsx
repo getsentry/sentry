@@ -8,10 +8,10 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {UIScreens} from 'sentry/views/insights/mobile/ui/components/uiScreens';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/queries/useReleases');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/views/insights/common/queries/useReleases');
 
-jest.mocked(useReleaseSelection).mockReturnValue({
+vi.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5',
   isLoading: false,
   secondaryRelease: 'com.example.vu.android@2.10.3+42',
@@ -42,7 +42,7 @@ describe('Performance Mobile UI Screens', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),

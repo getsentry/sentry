@@ -51,7 +51,7 @@ describe('SuspectSpans', function () {
     });
 
     afterEach(function () {
-      jest.resetAllMocks();
+      vi.resetAllMocks();
     });
 
     it('renders basic UI elements', async function () {

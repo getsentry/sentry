@@ -12,7 +12,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import Relocation from 'sentry/views/relocation/relocation';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';
@@ -39,8 +39,8 @@ const fakeRegions: {[key: string]: FakeRegion} = {
 
 describe('Relocation', function () {
   let router: InjectedRouter;
-  let fetchExistingRelocations: jest.Mock;
-  let fetchPublicKeys: jest.Mock;
+  let fetchExistingRelocations: vi.Mock;
+  let fetchPublicKeys: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -73,7 +73,7 @@ describe('Relocation', function () {
     // library.
     //
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
   });
 
   afterEach(function () {

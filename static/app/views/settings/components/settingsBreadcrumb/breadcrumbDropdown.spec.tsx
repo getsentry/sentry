@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import BreadcrumbDropdown from './breadcrumbDropdown';
 
 describe('Settings Breadcrumb Dropdown', () => {
-  const selectMock = jest.fn();
+  const selectMock = vi.fn();
   const items = [
     {index: 0, value: '1', label: 'foo'},
     {index: 1, value: '2', label: 'bar'},

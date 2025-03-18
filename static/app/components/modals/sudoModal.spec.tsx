@@ -68,8 +68,8 @@ describe('Sudo Modal', function () {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
-    const successCb = jest.fn();
-    const errorCb = jest.fn();
+    const successCb = vi.fn();
+    const errorCb = vi.fn();
 
     // Should return w/ `sudoRequired`
     new MockApiClient().request('/organizations/org-slug/', {

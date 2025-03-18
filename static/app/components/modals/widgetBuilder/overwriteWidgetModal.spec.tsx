@@ -24,7 +24,7 @@ describe('widget builder overwrite modal', () => {
         closeModal={() => undefined}
         iconColor="white"
         widget={widget}
-        onConfirm={jest.fn()}
+        onConfirm={vi.fn()}
       />
     );
 
@@ -41,8 +41,8 @@ describe('widget builder overwrite modal', () => {
       interval: '5m',
       queries: [],
     };
-    const mockOnConfirm = jest.fn();
-    const mockCloseModal = jest.fn();
+    const mockOnConfirm = vi.fn();
+    const mockCloseModal = vi.fn();
     render(
       <OverwriteWidgetModal
         Header={stubEl}

@@ -14,8 +14,8 @@ import IntegrationExternalMappings from './integrationExternalMappings';
 describe('IntegrationExternalMappings', function () {
   const {organization, router} = initializeOrg();
 
-  const onCreateMock = jest.fn();
-  const onDeleteMock = jest.fn();
+  const onCreateMock = vi.fn();
+  const onDeleteMock = vi.fn();
 
   const MOCK_USER_SUGGESTIONS = ['@peter', '@ned', '@mj'];
   const MOCK_TEAM_SUGGESTIONS = [

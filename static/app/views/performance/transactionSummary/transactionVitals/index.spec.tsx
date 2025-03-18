@@ -22,12 +22,12 @@ import {
   ZOOM_KEYS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
-jest.mock('sentry/utils/useNavigate');
+const mockUseLocation = vi.mocked(useLocation);
+vi.mock('sentry/utils/useNavigate');
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseNavigate = vi.mocked(useNavigate);
 
 interface HistogramData {
   count: number;
@@ -104,7 +104,7 @@ describe('Performance > Web Vitals', function () {
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
     );
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -185,7 +185,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('render no access without feature', function () {
@@ -302,7 +302,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     it('resets view properly', async function () {
-      const mockNavigate = jest.fn();
+      const mockNavigate = vi.fn();
       mockUseNavigate.mockReturnValue(mockNavigate);
       const {organization, router} = initialize({
         query: {

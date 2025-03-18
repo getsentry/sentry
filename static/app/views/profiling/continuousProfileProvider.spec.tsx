@@ -27,7 +27,7 @@ describe('ContinuousProfileProvider', () => {
     });
     ProjectsStore.loadInitialData([project]);
 
-    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const captureMessage = vi.spyOn(Sentry, 'captureMessage');
     const chunkRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/profiling/chunks/`,
       body: {},
@@ -70,7 +70,7 @@ describe('ContinuousProfileProvider', () => {
         url: `/projects/${organization.slug}/${project.slug}/events/1/`,
         body: {},
       });
-      const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+      const captureMessage = vi.spyOn(Sentry, 'captureMessage');
       render(<ContinuosProfileProvider>{null}</ContinuosProfileProvider>, {
         router,
         organization,

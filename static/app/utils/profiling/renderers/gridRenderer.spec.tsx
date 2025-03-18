@@ -156,19 +156,19 @@ describe('gridRenderer', () => {
     const WIDTH = 20;
 
     const context: Partial<CanvasRenderingContext2D> = {
-      fillText: jest.fn(),
-      fillRect: jest.fn(),
-      strokeRect: jest.fn(),
-      measureText: jest.fn().mockReturnValue({width: WIDTH}),
+      fillText: vi.fn(),
+      fillRect: vi.fn(),
+      strokeRect: vi.fn(),
+      measureText: vi.fn().mockReturnValue({width: WIDTH}),
     };
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const renderer = new GridRenderer(
       canvas as HTMLCanvasElement,
       theme,
-      jest.fn().mockImplementation(n => n + 'ms')
+      vi.fn().mockImplementation(n => n + 'ms')
     );
 
     const configView = new Rect(0, 0, 10, 100);

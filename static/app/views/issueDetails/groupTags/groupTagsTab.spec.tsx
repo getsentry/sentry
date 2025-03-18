@@ -21,7 +21,7 @@ describe('GroupTagsTab', function () {
       },
     },
   });
-  let tagsMock: jest.Mock;
+  let tagsMock: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

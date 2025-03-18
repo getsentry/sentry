@@ -12,7 +12,7 @@ import {
 import DataConsentModal from 'getsentry/components/dataConsentModal';
 
 describe('Data Consent Modal', function () {
-  const closeModal = jest.fn();
+  const closeModal = vi.fn();
   const organization = OrganizationFixture();
 
   it('renders modal', async function () {
@@ -20,8 +20,8 @@ describe('Data Consent Modal', function () {
       <DataConsentModal
         closeModal={closeModal}
         Body={ModalBody}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
       />
     );
@@ -42,8 +42,8 @@ describe('Data Consent Modal', function () {
       <DataConsentModal
         closeModal={closeModal}
         Body={ModalBody}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
       />
     );
@@ -60,8 +60,8 @@ describe('Data Consent Modal', function () {
       <DataConsentModal
         closeModal={closeModal}
         Body={ModalBody}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
       />
     );

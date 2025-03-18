@@ -17,8 +17,8 @@ import type {
 } from './traceTimeline/useTraceTimelineEvents';
 import {TraceDataSection} from './traceDataSection';
 
-jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
+vi.mock('sentry/utils/analytics');
 
 describe('TraceDataSection', () => {
   // Paid plans have global-views enabled
@@ -97,7 +97,7 @@ describe('TraceDataSection', () => {
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders items and highlights the current event', async () => {

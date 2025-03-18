@@ -14,7 +14,7 @@ describe('SsoForm', function () {
     vstsLoginLink: '',
   };
 
-  async function doSso(apiRequest: jest.Mock) {
+  async function doSso(apiRequest: vi.Mock) {
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Organization ID'}),
       'org123'

@@ -19,9 +19,9 @@ import {
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 function initializeData(options: {
   query: Record<string, unknown>;
@@ -51,9 +51,9 @@ function initializeData(options: {
 }
 
 describe('Performance > Transaction Spans', function () {
-  let eventsMock: jest.Mock;
-  let eventsSpanOpsMock: jest.Mock;
-  let eventsSpansPerformanceMock: jest.Mock;
+  let eventsMock: vi.Mock;
+  let eventsSpanOpsMock: vi.Mock;
+  let eventsSpansPerformanceMock: vi.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})

@@ -6,7 +6,7 @@ import withExperiment from 'sentry/utils/withExperiment';
 
 describe('withConfig HoC', function () {
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   function MyComponent(props: any) {

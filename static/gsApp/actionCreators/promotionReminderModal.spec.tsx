@@ -6,7 +6,7 @@ import {openPromotionReminderModal} from 'getsentry/actionCreators/modal';
 import type {PromotionClaimed} from 'getsentry/types';
 
 describe('Promotion Reminder Modal', function () {
-  const cancelFn = jest.fn();
+  const cancelFn = vi.fn();
 
   const promotionClaimed: PromotionClaimed = {
     promotion: PromotionFixture({

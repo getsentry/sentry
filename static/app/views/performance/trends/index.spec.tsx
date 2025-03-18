@@ -30,13 +30,13 @@ import {
 const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  moment.now = jest.fn().mockReturnValue(1601251200000);
+vi.mock('moment-timezone', () => {
+  const moment = vi.importActual('moment-timezone');
+  moment.now = vi.fn().mockReturnValue(1601251200000);
   return moment;
 });
 
@@ -163,7 +163,7 @@ function initializeTrendsData(
 }
 
 describe('Performance > Trends', function () {
-  let trendsStatsMock: jest.Mock;
+  let trendsStatsMock: vi.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue({
       pathname: '/organizations/org-slug/performance/trends/',
@@ -745,7 +745,7 @@ describe('Performance > Trends', function () {
       }
     );
 
-    jest.mocked(data.router.push).mockReset();
+    vi.mocked(data.router.push).mockReset();
 
     const byTransactionLink = await screen.findByTestId('breadcrumb-link');
 

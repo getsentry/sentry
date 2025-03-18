@@ -7,13 +7,13 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
-jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/views/insights/common/queries/useHasFirstSpan');
+vi.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
 
 describe('ModulePageProviders', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -32,11 +32,11 @@ describe('ModulePageProviders', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders without module feature', async () => {
-    jest.mocked(useHasFirstSpan).mockReturnValue(true);
+    vi.mocked(useHasFirstSpan).mockReturnValue(true);
 
     render(
       <ModulePageProviders moduleName={ModuleName.DB}>

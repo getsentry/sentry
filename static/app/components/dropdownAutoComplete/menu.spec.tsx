@@ -54,7 +54,7 @@ describe('DropdownAutoCompleteMenu', function () {
   });
 
   it('can select an item by clicking', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     const countries = [
       {
         value: 'new zealand',

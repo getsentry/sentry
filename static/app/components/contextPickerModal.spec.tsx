@@ -25,7 +25,7 @@ describe('ContextPickerModal', function () {
   let project4!: Project;
   let org!: Organization;
   let org2!: Organization;
-  const onFinish = jest.fn();
+  const onFinish = vi.fn();
 
   beforeEach(function () {
     ProjectsStore.reset();
@@ -43,7 +43,7 @@ describe('ContextPickerModal', function () {
     OrganizationsStore.load([]);
     OrganizationStore.reset();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const getComponent = (props = {}) => (
@@ -56,7 +56,7 @@ describe('ContextPickerModal', function () {
       needProject={false}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
-      closeModal={jest.fn()}
+      closeModal={vi.fn()}
       {...props}
     />
   );

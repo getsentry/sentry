@@ -1074,11 +1074,11 @@ describe('trace view', () => {
       mockQueryString(path);
 
       const sentryScopeMock = {
-        setFingerprint: jest.fn(),
-        captureMessage: jest.fn(),
+        setFingerprint: vi.fn(),
+        captureMessage: vi.fn(),
       } as any;
 
-      jest.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
+      vi.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
       await pageloadTestSetup();
 
       await waitFor(() => {

@@ -3,7 +3,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
-jest.unmock('prismjs');
+vi.unmock('prismjs');
 
 const JS_CODE = `function foo() {
   // Returns 'bar'
@@ -71,7 +71,7 @@ describe('usePrismTokens', () => {
   });
 
   it('falls back when no grammar is available', () => {
-    jest.spyOn(console, 'warn').mockImplementation();
+    vi.spyOn(console, 'warn').mockImplementation();
 
     const {result} = renderHook(usePrismTokens, {
       initialProps: {code: JS_CODE, language: 'not-a-language'},

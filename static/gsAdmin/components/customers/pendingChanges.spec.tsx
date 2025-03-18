@@ -244,9 +244,10 @@ describe('PendingChanges', function () {
       cohortId: CohortId.TENTH,
       effectiveAt: migrationDate,
     });
-    jest
-      .spyOn(usePlanMigrations, 'usePlanMigrations')
-      .mockReturnValue({planMigrations: [migration], isLoading: false});
+    vi.spyOn(usePlanMigrations, 'usePlanMigrations').mockReturnValue({
+      planMigrations: [migration],
+      isLoading: false,
+    });
 
     const {container} = render(<PendingChanges subscription={subscription} />);
 

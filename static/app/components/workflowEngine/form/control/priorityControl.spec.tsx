@@ -12,14 +12,14 @@ describe('PriorityControl', function () {
     expect(await screen.findByTestId('priority-control-high')).toBeInTheDocument();
   });
   it('allows configuring priority', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(<PriorityControl onPriorityChange={mock} name="priority" />);
     await userEvent.click(await screen.findByRole('button'));
     await userEvent.click(await screen.findByRole('option', {name: 'High'}));
     expect(mock).toHaveBeenCalledWith(PriorityLevel.HIGH);
   });
   it('allows configuring medium threshold', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(<PriorityControl onThresholdChange={mock} name="priority" />);
     const medium = await screen.findByTestId('priority-control-medium');
     await userEvent.type(medium, '12');
@@ -27,7 +27,7 @@ describe('PriorityControl', function () {
   });
 
   it('allows configuring high value', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(<PriorityControl onThresholdChange={mock} name="priority" />);
     const high = await screen.findByTestId('priority-control-high');
     await userEvent.type(high, '12');

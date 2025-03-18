@@ -11,7 +11,7 @@ import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples'
 import {SpanIndexedField, type SpanIndexedProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('useSpanSamples', () => {
   const organization = OrganizationFixture();
@@ -26,7 +26,7 @@ describe('useSpanSamples', () => {
     );
   }
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -44,7 +44,7 @@ describe('useSpanSamples', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('respects the `enabled` prop', () => {

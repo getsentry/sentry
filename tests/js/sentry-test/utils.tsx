@@ -1,4 +1,4 @@
-import MockDate from 'mockdate';
+import {vi} from 'vitest';
 
 // Taken from https://stackoverflow.com/a/56859650/1015027
 function findTextWithMarkup(contentNode: null | Element, textMatch: string | RegExp) {
@@ -31,7 +31,7 @@ export function textWithMarkupMatcher(textMatch: string | RegExp) {
 }
 
 export function setMockDate(date: Date | number) {
-  MockDate.set(date);
+  vi.setSystemTime(date);
 }
 
 /**
@@ -40,5 +40,5 @@ export function setMockDate(date: Date | number) {
  */
 export function resetMockDate() {
   const constantDate = new Date(1508208080000);
-  MockDate.set(constantDate);
+  vi.setSystemTime(constantDate);
 }

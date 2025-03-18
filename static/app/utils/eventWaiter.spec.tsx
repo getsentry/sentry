@@ -5,7 +5,8 @@ import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import EventWaiter from 'sentry/utils/eventWaiter';
 
-jest.useFakeTimers();
+vi.useRealTimers();
+vi.useFakeTimers();
 
 describe('EventWaiter', function () {
   it('waits for the first projet event', async function () {
@@ -21,7 +22,7 @@ describe('EventWaiter', function () {
       body: project,
     });
 
-    const child = jest.fn().mockReturnValue(null);
+    const child = vi.fn().mockReturnValue(null);
 
     render(
       <EventWaiter
@@ -58,7 +59,7 @@ describe('EventWaiter', function () {
     child.mockClear();
 
     // Advanced time for the first setInterval tick to occur
-    act(() => jest.advanceTimersByTime(1));
+    act(() => vi.advanceTimersByTime(1));
 
     // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
@@ -70,7 +71,7 @@ describe('EventWaiter', function () {
     // Check that the polling has stopped
     projectApiMock.mockClear();
 
-    act(() => jest.advanceTimersByTime(10));
+    act(() => vi.advanceTimersByTime(10));
     expect(projectApiMock).not.toHaveBeenCalled();
   });
 
@@ -93,7 +94,7 @@ describe('EventWaiter', function () {
       body: [],
     });
 
-    const child = jest.fn().mockReturnValue(null);
+    const child = vi.fn().mockReturnValue(null);
 
     render(
       <EventWaiter
@@ -132,7 +133,7 @@ describe('EventWaiter', function () {
       body: [],
     });
 
-    const child = jest.fn().mockReturnValue(null);
+    const child = vi.fn().mockReturnValue(null);
 
     render(
       <EventWaiter
@@ -151,7 +152,7 @@ describe('EventWaiter', function () {
 
     // Ensure we do not call it again
     projectApiMock.mockClear();
-    jest.advanceTimersByTime(10);
+    vi.advanceTimersByTime(10);
     expect(projectApiMock).not.toHaveBeenCalled();
   });
 });

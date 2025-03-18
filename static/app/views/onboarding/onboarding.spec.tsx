@@ -115,14 +115,14 @@ describe('Onboarding', function () {
       body: [ProjectKeysFixture()[0]],
     });
 
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => {
+    vi.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockImplementation(
+      () => {
         return {
           project: nextJsProject,
           isProjectActive: false,
         };
-      });
+      }
+    );
 
     render(
       <OnboardingContextProvider
@@ -197,14 +197,14 @@ describe('Onboarding', function () {
       body: [],
     });
 
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => {
+    vi.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockImplementation(
+      () => {
         return {
           project: reactProject,
           isProjectActive: false,
         };
-      });
+      }
+    );
 
     render(
       <OnboardingContextProvider
@@ -289,14 +289,14 @@ describe('Onboarding', function () {
       body: [],
     });
 
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => {
+    vi.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockImplementation(
+      () => {
         return {
           project: reactProject,
           isProjectActive: true,
         };
-      });
+      }
+    );
 
     render(
       <OnboardingContextProvider
@@ -445,14 +445,14 @@ describe('Onboarding', function () {
       body: [],
     });
 
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => {
+    vi.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockImplementation(
+      () => {
         return {
           project: reactProject,
           isProjectActive: true,
         };
-      });
+      }
+    );
 
     render(
       <OnboardingContextProvider
@@ -503,10 +503,10 @@ describe('Onboarding', function () {
       slug: 'javascript-nextjs',
     });
 
-    jest.spyOn(useProjects, 'default').mockReturnValue({
+    vi.spyOn(useProjects, 'default').mockReturnValue({
       projects: [nextJsProject],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,

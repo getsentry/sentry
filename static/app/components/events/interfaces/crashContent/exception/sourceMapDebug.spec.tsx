@@ -15,7 +15,7 @@ import {
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
   const organization = OrganizationFixture();

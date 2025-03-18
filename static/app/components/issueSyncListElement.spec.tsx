@@ -8,7 +8,7 @@ describe('IssueSyncListElement', function () {
   });
 
   it('can open', async function () {
-    const onOpen = jest.fn();
+    const onOpen = vi.fn();
     render(<IssueSyncListElement integrationType="github" onOpen={onOpen} />);
     expect(onOpen).not.toHaveBeenCalled();
     await userEvent.click(screen.getByText('GitHub Issue'));
@@ -16,8 +16,8 @@ describe('IssueSyncListElement', function () {
   });
 
   it('can close', async function () {
-    const onClose = jest.fn();
-    const onOpen = jest.fn();
+    const onClose = vi.fn();
+    const onOpen = vi.fn();
 
     render(
       <IssueSyncListElement

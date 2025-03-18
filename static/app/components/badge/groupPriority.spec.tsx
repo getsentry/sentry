@@ -19,7 +19,7 @@ describe('GroupPriority', () => {
   describe('GroupPriorityDropdown', () => {
     const defaultProps = {
       groupId: '1',
-      onChange: jest.fn(),
+      onChange: vi.fn(),
       value: PriorityLevel.HIGH,
     };
 

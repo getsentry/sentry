@@ -37,7 +37,7 @@ describe('PageUpsellOverlay', function () {
         customSecondaryCTA="My Text"
         features={[]}
         name=""
-        positioningStrategy={jest.fn()}
+        positioningStrategy={vi.fn()}
         description=""
         requiredPlan=""
         source=""
@@ -60,7 +60,7 @@ describe('PageUpsellOverlay', function () {
         organization={org}
         features={[]}
         name=""
-        positioningStrategy={jest.fn()}
+        positioningStrategy={vi.fn()}
         description=""
         requiredPlan=""
         source=""
@@ -82,7 +82,7 @@ describe('PageUpsellOverlay', function () {
         organization={org}
         features={[]}
         name=""
-        positioningStrategy={jest.fn()}
+        positioningStrategy={vi.fn()}
         description=""
         requiredPlan=""
         source=""

@@ -40,7 +40,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       render(
-        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={vi.fn()} />
       );
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
 
@@ -59,7 +59,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       render(
-        <LegacyPlanToggle organization={org} checkoutTier="am1" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am1" onClick={vi.fn()} />
       );
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
 
@@ -76,7 +76,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       const {container} = render(
-        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={vi.fn()} />
       );
 
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
@@ -94,7 +94,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       const {container} = render(
-        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={vi.fn()} />
       );
 
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
@@ -111,7 +111,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       const {container} = render(
-        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am2" onClick={vi.fn()} />
       );
 
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
@@ -128,7 +128,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       const {container} = render(
-        <LegacyPlanToggle organization={org} checkoutTier="am3" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am3" onClick={vi.fn()} />
       );
 
       expect(container).toBeEmptyDOMElement();
@@ -144,7 +144,7 @@ describe('LegacyPlanToggle', function () {
       SubscriptionStore.set(org.slug, subscription);
 
       const {container} = render(
-        <LegacyPlanToggle organization={org} checkoutTier="am3" onClick={jest.fn()} />
+        <LegacyPlanToggle organization={org} checkoutTier="am3" onClick={vi.fn()} />
       );
 
       expect(container).toBeEmptyDOMElement();
@@ -162,7 +162,7 @@ describe('LegacyPlanToggle', function () {
         <LegacyPlanToggle
           organization={organization}
           checkoutTier="am2"
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       );
 
@@ -188,7 +188,7 @@ describe('LegacyPlanToggle', function () {
         <LegacyPlanToggle
           organization={organization}
           checkoutTier="am2"
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       );
 
@@ -209,7 +209,7 @@ describe('LegacyPlanToggle', function () {
         <LegacyPlanToggle
           organization={organization}
           checkoutTier="am2"
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       );
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
@@ -229,7 +229,7 @@ describe('LegacyPlanToggle', function () {
         <LegacyPlanToggle
           organization={organization}
           checkoutTier="am2"
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       );
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
@@ -249,7 +249,7 @@ describe('LegacyPlanToggle', function () {
         <LegacyPlanToggle
           organization={organization}
           checkoutTier="am2"
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       );
       await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));

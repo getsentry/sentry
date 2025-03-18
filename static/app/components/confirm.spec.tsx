@@ -16,7 +16,7 @@ describe('Confirm', function () {
   });
 
   it('renders', function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
@@ -25,7 +25,7 @@ describe('Confirm', function () {
   });
 
   it('renders custom confirm button & callbacks work', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Confirm
         message="Are you sure?"
@@ -50,7 +50,7 @@ describe('Confirm', function () {
     expect(mock).toHaveBeenCalled();
   });
   it('renders custom cancel button & callbacks work', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Confirm
         message="Are you sure?"
@@ -75,7 +75,7 @@ describe('Confirm', function () {
     expect(mock).toHaveBeenCalled();
   });
   it('clicking action button opens Modal', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
@@ -89,7 +89,7 @@ describe('Confirm', function () {
   });
 
   it('clicks Confirm in modal and calls `onConfirm` callback', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
@@ -110,7 +110,7 @@ describe('Confirm', function () {
   });
 
   it('can stop propagation on the event', function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
         <button>Confirm?</button>
@@ -121,7 +121,7 @@ describe('Confirm', function () {
 
     const button = screen.getByRole('button');
     const clickEvent = createEvent.click(button);
-    clickEvent.stopPropagation = jest.fn();
+    clickEvent.stopPropagation = vi.fn();
 
     fireEvent(button, clickEvent);
     expect(clickEvent.stopPropagation).toHaveBeenCalled();

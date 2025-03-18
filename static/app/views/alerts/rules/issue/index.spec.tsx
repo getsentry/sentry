@@ -30,24 +30,24 @@ import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
-jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/onboardingTasks');
-jest.mock('sentry/actionCreators/indicator', () => ({
-  addSuccessMessage: jest.fn(),
-  addErrorMessage: jest.fn(),
-  addLoadingMessage: jest.fn(),
+vi.unmock('sentry/utils/recreateRoute');
+vi.mock('sentry/actionCreators/onboardingTasks');
+vi.mock('sentry/actionCreators/indicator', () => ({
+  addSuccessMessage: vi.fn(),
+  addErrorMessage: vi.fn(),
+  addLoadingMessage: vi.fn(),
 }));
-jest.mock('sentry/utils/analytics', () => ({
+vi.mock('sentry/utils/analytics', () => ({
   metric: {
-    startSpan: jest.fn(() => ({
-      setTag: jest.fn(),
-      setData: jest.fn(),
+    startSpan: vi.fn(() => ({
+      setTag: vi.fn(),
+      setData: vi.fn(),
     })),
-    endSpan: jest.fn(),
-    mark: jest.fn(),
-    measure: jest.fn(),
+    endSpan: vi.fn(),
+    mark: vi.fn(),
+    measure: vi.fn(),
   },
-  trackAnalytics: jest.fn(),
+  trackAnalytics: vi.fn(),
 }));
 
 const projectAlertRuleDetailsRoutes: Array<PlainRoute<any>> = [
@@ -87,7 +87,7 @@ const createWrapper = (props = {}) => {
     organizationId: organization.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };
-  const onChangeTitleMock = jest.fn();
+  const onChangeTitleMock = vi.fn();
   const wrapper = render(
     <ProjectAlerts
       {...RouteComponentPropsFixture()}
@@ -159,7 +159,7 @@ describe('IssueRuleEditor', function () {
   });
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     ProjectsStore.reset();
   });
 
@@ -432,11 +432,12 @@ describe('IssueRuleEditor', function () {
     const uuid = 'xxxx-xxxx-xxxx';
 
     beforeEach(function () {
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(function () {
-      jest.clearAllTimers();
+      vi.clearAllTimers();
     });
 
     it('success status updates the rule', async function () {
@@ -455,7 +456,7 @@ describe('IssueRuleEditor', function () {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      act(() => vi.advanceTimersByTime(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
@@ -480,7 +481,7 @@ describe('IssueRuleEditor', function () {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      act(() => vi.advanceTimersByTime(1000));
       expect(addLoadingMessage).toHaveBeenCalledTimes(2);
       expect(pollingMock).toHaveBeenCalledTimes(1);
       expect(await screen.findByTestId('loading-mask')).toBeInTheDocument();
@@ -502,7 +503,7 @@ describe('IssueRuleEditor', function () {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      act(() => vi.advanceTimersByTime(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledTimes(1);

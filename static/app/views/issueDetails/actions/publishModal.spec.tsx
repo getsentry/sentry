@@ -12,7 +12,7 @@ import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
 describe('shareModal', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
-  const onToggle = jest.fn();
+  const onToggle = vi.fn();
 
   beforeEach(() => {
     GroupStore.init();
@@ -21,7 +21,7 @@ describe('shareModal', () => {
     ModalStore.reset();
     GroupStore.reset();
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should share', async () => {

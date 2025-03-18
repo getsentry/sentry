@@ -30,7 +30,7 @@ describe('TimelineCursor', function () {
     const body = screen.getByTestId('body');
     const container = screen.getByTestId('container');
 
-    container.getBoundingClientRect = jest.fn(() => ({
+    container.getBoundingClientRect = vi.fn(() => ({
       x: 10,
       y: 10,
       width: 100,
@@ -39,7 +39,7 @@ describe('TimelineCursor', function () {
       top: 10,
       right: 110,
       bottom: 110,
-      toJSON: jest.fn(),
+      toJSON: vi.fn(),
     }));
 
     // Cursor has not appeared

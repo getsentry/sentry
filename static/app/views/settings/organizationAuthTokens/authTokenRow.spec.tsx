@@ -16,7 +16,7 @@ import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organiza
 describe('OrganizationAuthTokensAuthTokenRow', function () {
   const {organization, router} = initializeOrg();
 
-  const revokeToken = jest.fn();
+  const revokeToken = vi.fn();
   const token: OrgAuthToken = {
     id: '1',
     name: 'My Token',

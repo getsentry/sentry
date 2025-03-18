@@ -20,8 +20,8 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openInviteMembersModal: jest.fn(),
+vi.mock('sentry/actionCreators/modal', () => ({
+  openInviteMembersModal: vi.fn(),
 }));
 
 describe('AssigneeSelectorDropdown', () => {
@@ -108,8 +108,8 @@ describe('AssigneeSelectorDropdown', () => {
     GroupStore.reset();
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
-    jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
+    vi.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
+    vi.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     MemberListStore.reset();
 
@@ -127,7 +127,7 @@ describe('AssigneeSelectorDropdown', () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
-  const updateGroupSpy = jest.fn();
+  const updateGroupSpy = vi.fn();
 
   const updateGroup = async (group: Group, newAssignee: AssignableEntity | null) => {
     updateGroupSpy(group, newAssignee);
@@ -535,7 +535,7 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully shows suggested assignees and suggestion reason', async () => {
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    vi.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
 
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
 
@@ -607,7 +607,7 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('shows the suggested assignee even if they would be cut off by the size limit', async () => {
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_3);
+    vi.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_3);
 
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
 
@@ -643,14 +643,14 @@ describe('AssigneeSelectorDropdown', () => {
         onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
+    vi.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
-    jest.mocked(ConfigStore.get).mockRestore();
+    vi.mocked(ConfigStore.get).mockRestore();
   });
 
   it('renders unassigned', async () => {

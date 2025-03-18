@@ -21,7 +21,7 @@ describe('ExceptionGroupContext', function () {
     allExceptions: entry.data.values ?? [],
     mechanism: exceptionGroup1Mechanism,
     newestFirst: true,
-    onExceptionClick: jest.fn(),
+    onExceptionClick: vi.fn(),
   };
 
   it('renders tree with exception group', function () {

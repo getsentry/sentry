@@ -3,8 +3,8 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import {setActiveProject} from 'sentry/actionCreators/projects';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 
-jest.mock('sentry/actionCreators/projects', () => ({
-  setActiveProject: jest.fn(),
+vi.mock('sentry/actionCreators/projects', () => ({
+  setActiveProject: vi.fn(),
 }));
 
 describe('OrganizationRoot', function () {

@@ -7,9 +7,9 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 
-jest.mock('sentry/views/replays/detail/trace/replayTransactionContext');
+vi.mock('sentry/views/replays/detail/trace/replayTransactionContext');
 
-const mockUseTransactionData = jest.mocked(useTransactionData);
+const mockUseTransactionData = vi.mocked(useTransactionData);
 
 function setMockTransactionState({
   didInit = false,

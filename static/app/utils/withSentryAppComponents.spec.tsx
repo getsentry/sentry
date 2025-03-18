@@ -9,7 +9,7 @@ describe('withSentryAppComponents HoC', function () {
   });
 
   it('handles components without a type', function () {
-    const MyComponent = jest.fn(() => null);
+    const MyComponent = vi.fn(() => null);
     const Container = withSentryAppComponents(MyComponent);
     render(<Container />);
 
@@ -43,7 +43,7 @@ describe('withSentryAppComponents HoC', function () {
   });
 
   it('handles components of a certain type', function () {
-    const MyComponent = jest.fn(() => null);
+    const MyComponent = vi.fn(() => null);
     const Container = withSentryAppComponents(MyComponent, {
       componentType: 'issue-link',
     });

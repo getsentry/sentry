@@ -18,8 +18,8 @@ describe('OrganizationApiKeysList', function () {
         keys={[DeprecatedApiKeyFixture()]}
         busy={false}
         loading={false}
-        onRemove={jest.fn()}
-        onAddApiKey={jest.fn()}
+        onRemove={vi.fn()}
+        onAddApiKey={vi.fn()}
       />
     );
     renderGlobalModal();

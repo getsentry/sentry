@@ -9,7 +9,7 @@ describe('DemoEndModal', function () {
   const organization = OrganizationFixture();
 
   it('closes on close button click', async function () {
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
 
     renderGlobalModal();
 

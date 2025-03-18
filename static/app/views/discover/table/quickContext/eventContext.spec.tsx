@@ -104,7 +104,7 @@ describe('Quick Context Content: Event ID Column', function () {
   });
 
   it('Renders NO stack trace message for error events without stackTraces', async () => {
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+    vi.spyOn(ConfigStore, 'get').mockImplementation(() => null);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
       body: EventFixture({type: EventOrGroupType.ERROR, entries: []}),

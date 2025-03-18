@@ -37,7 +37,7 @@ describe('GroupEventAttachments', function () {
     },
   });
   let project: Project;
-  let getAttachmentsMock: jest.Mock;
+  let getAttachmentsMock: vi.Mock;
 
   beforeEach(function () {
     project = ProjectFixture({platform: 'apple-ios'});

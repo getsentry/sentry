@@ -63,10 +63,10 @@ const options: NonNullable<
 ];
 
 describe('SearchBarAction', () => {
-  let handleFilter!: jest.Mock;
+  let handleFilter!: vi.Mock;
 
   beforeEach(() => {
-    handleFilter = jest.fn();
+    handleFilter = vi.fn();
   });
 
   it('default render', async () => {

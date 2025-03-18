@@ -15,8 +15,8 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
-const mockUseNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
+const mockUseNavigate = vi.fn();
+vi.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockUseNavigate,
 }));
 

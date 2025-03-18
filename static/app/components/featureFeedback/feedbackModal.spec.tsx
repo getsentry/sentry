@@ -17,7 +17,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 describe('FeatureFeedback', function () {
   describe('default', function () {
     it('submits modal on click', async function () {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      vi.spyOn(indicators, 'addSuccessMessage');
 
       const feedbackClient = new Sentry.BrowserClient({
         transport: Sentry.makeFetchTransport,
@@ -125,10 +125,10 @@ describe('FeatureFeedback', function () {
 
   describe('custom', function () {
     it('renders custom feedback form', async function () {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      vi.spyOn(indicators, 'addSuccessMessage');
 
       // Mock implementation of the Sentry Browser SDK
-      Sentry.BrowserClient.prototype.captureEvent = jest.fn();
+      Sentry.BrowserClient.prototype.captureEvent = vi.fn();
 
       renderGlobalModal();
 

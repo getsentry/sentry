@@ -11,9 +11,9 @@ describe('RuleNode', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
   const index = 0;
-  const onDelete = jest.fn();
-  const onReset = jest.fn();
-  const onPropertyChange = jest.fn();
+  const onDelete = vi.fn();
+  const onReset = vi.fn();
+  const onPropertyChange = vi.fn();
 
   const simpleNode = {
     id: 'sentry.rules.simple_mock',
@@ -135,7 +135,7 @@ describe('RuleNode', () => {
   };
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('handles being deleted', async () => {
@@ -228,7 +228,7 @@ describe('RuleNode', () => {
 
   it('renders sentry apps with schema forms correctly', async () => {
     renderRuleNode(sentryAppNode);
-    const openModal = jest.spyOn(ModalStore, 'openModal');
+    const openModal = vi.spyOn(ModalStore, 'openModal');
 
     expect(screen.getByText(sentryAppNode.label)).toBeInTheDocument();
     const settingsButton = screen.getByLabelText('Settings');

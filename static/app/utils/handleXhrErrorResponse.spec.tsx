@@ -21,7 +21,7 @@ describe('handleXhrErrorResponse', function () {
   });
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('does nothing if we have invalid response', function () {
@@ -79,10 +79,10 @@ describe('handleXhrErrorResponse', function () {
     });
 
     const mockScope = new Sentry.Scope();
-    const setExtrasSpy = jest.spyOn(mockScope, 'setExtras');
-    const setTagsSpy = jest.spyOn(mockScope, 'setTags');
+    const setExtrasSpy = vi.spyOn(mockScope, 'setExtras');
+    const setTagsSpy = vi.spyOn(mockScope, 'setTags');
     // @ts-expect-error this is fine...
-    jest.spyOn(Sentry, 'withScope').mockImplementation(function (
+    vi.spyOn(Sentry, 'withScope').mockImplementation(function (
       callback: (scope: Sentry.Scope) => any
     ) {
       return callback(mockScope);

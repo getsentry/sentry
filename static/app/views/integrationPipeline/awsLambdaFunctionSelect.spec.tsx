@@ -22,7 +22,7 @@ describe('AwsLambdaFunctionSelect', () => {
 
     const {promise, resolve} = Promise.withResolvers<FormData>();
 
-    const submitForm = jest.fn((e: SubmitEvent) => {
+    const submitForm = vi.fn((e: SubmitEvent) => {
       e.preventDefault();
       if (e.target instanceof HTMLFormElement) {
         resolve(new FormData(e.target));

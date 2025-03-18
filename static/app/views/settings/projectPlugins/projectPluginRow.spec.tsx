@@ -13,7 +13,7 @@ describe('ProjectPluginRow', function () {
   const params = {orgId: org.slug, projectId: project.slug};
 
   it('calls `onChange` when clicked', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     render(
       <ProjectPluginRow
@@ -32,7 +32,7 @@ describe('ProjectPluginRow', function () {
   });
 
   it('can not enable/disable or configure plugin without `project:write`', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     render(
       <ProjectPluginRow

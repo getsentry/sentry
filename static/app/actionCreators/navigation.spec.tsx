@@ -7,7 +7,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('navigation ActionCreator', () => {
   let router: InjectedRouter;
@@ -18,7 +18,7 @@ describe('navigation ActionCreator', () => {
     const initialData = initializeOrg({
       router: {
         location: {query: {}, search: ''},
-        push: jest.fn(),
+        push: vi.fn(),
       },
     });
     router = initialData.router;
@@ -28,7 +28,7 @@ describe('navigation ActionCreator', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     ConfigStore.loadInitialData(configState);
   });
 

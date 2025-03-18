@@ -12,7 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('AutofixDiff', function () {
   const defaultProps = {
@@ -24,7 +24,7 @@ describe('AutofixDiff', function () {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    (addErrorMessage as jest.Mock).mockClear();
+    (addErrorMessage as vi.Mock).mockClear();
   });
 
   it('displays a modified file diff correctly', function () {

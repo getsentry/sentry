@@ -12,8 +12,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
-jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+vi.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...vi.importActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
 }));
 

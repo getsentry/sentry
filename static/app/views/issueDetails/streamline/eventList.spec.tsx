@@ -22,8 +22,8 @@ describe('EventList', () => {
   const persistantQuery = `issue:${group.shortId}`;
   const totalCount = 100;
 
-  let mockEventList: jest.Mock;
-  let mockEventListMeta: jest.Mock;
+  let mockEventList: vi.Mock;
+  let mockEventListMeta: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

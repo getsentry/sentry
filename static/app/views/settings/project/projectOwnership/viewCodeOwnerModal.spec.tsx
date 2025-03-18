@@ -14,7 +14,7 @@ describe('ViewCodeOwnerModal', () => {
     render(
       <ViewCodeOwnerModal
         codeowner={CodeOwnerFixture({ownershipSyntax})}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         Header={mockComponent}
         Footer={mockComponent}
         Body={mockComponent}

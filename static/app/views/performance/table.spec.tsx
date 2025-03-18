@@ -14,9 +14,9 @@ import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
@@ -38,7 +38,7 @@ function WrappedComponent({data, ...rest}: any) {
         <Table
           organization={data.organization}
           location={data.router.location}
-          setError={jest.fn()}
+          setError={vi.fn()}
           summaryConditions=""
           {...data}
           {...rest}
@@ -106,7 +106,7 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
 }
 
 describe('Performance > Table', function () {
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
@@ -205,7 +205,7 @@ describe('Performance > Table', function () {
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
-          setError={jest.fn()}
+          setError={vi.fn()}
           summaryConditions=""
           projects={data.projects}
         />,
@@ -261,7 +261,7 @@ describe('Performance > Table', function () {
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
-          setError={jest.fn()}
+          setError={vi.fn()}
           summaryConditions=""
           projects={data.projects}
           withStaticFilters
@@ -290,7 +290,7 @@ describe('Performance > Table', function () {
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
-          setError={jest.fn()}
+          setError={vi.fn()}
           summaryConditions=""
           projects={data.projects}
         />
@@ -321,7 +321,7 @@ describe('Performance > Table', function () {
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
-          setError={jest.fn()}
+          setError={vi.fn()}
           summaryConditions=""
           projects={data.projects}
         />
@@ -344,7 +344,7 @@ describe('Performance > Table', function () {
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
-          setError={jest.fn()}
+          setError={vi.fn()}
           summaryConditions=""
           projects={data.projects}
           isMEPEnabled

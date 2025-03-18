@@ -6,7 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import type {Organization} from 'sentry/types/organization';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 const mockUnauthorizedOrg = OrganizationFixture({
   features: [],

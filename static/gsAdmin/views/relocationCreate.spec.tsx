@@ -6,7 +6,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 
 import RelocationCreate from 'admin/views/relocationCreate';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('Relocation Create', function () {
   beforeEach(function () {

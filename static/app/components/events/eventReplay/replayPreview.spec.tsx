@@ -13,9 +13,9 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 
 import ReplayPreview from './replayPreview';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+vi.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 
-const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
+const mockUseLoadReplayReader = vi.mocked(useLoadReplayReader);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -46,7 +46,7 @@ mockUseLoadReplayReader.mockImplementation(() => {
     errors: [],
     fetchError: undefined,
     fetching: false,
-    onRetry: jest.fn(),
+    onRetry: vi.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
@@ -91,7 +91,7 @@ describe('ReplayPreview', () => {
         errors: [],
         fetchError: undefined,
         fetching: true,
-        onRetry: jest.fn(),
+        onRetry: vi.fn(),
         projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
@@ -112,7 +112,7 @@ describe('ReplayPreview', () => {
         errors: [],
         fetchError: {status: 400} as RequestError,
         fetching: false,
-        onRetry: jest.fn(),
+        onRetry: vi.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,

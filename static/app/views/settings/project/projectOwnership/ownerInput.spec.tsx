@@ -9,7 +9,7 @@ import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInpu
 
 describe('Project Ownership Input', function () {
   const {organization, project} = initializeOrg();
-  let put: jest.Mock;
+  let put: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({

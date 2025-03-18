@@ -16,8 +16,8 @@ import {
 import CommandPaletteModal from 'sentry/components/modals/commandPalette';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 
-jest.mock('sentry/actionCreators/formSearch');
-jest.mock('sentry/actionCreators/navigation');
+vi.mock('sentry/actionCreators/formSearch');
+vi.mock('sentry/actionCreators/navigation');
 
 function renderMockRequests() {
   FormSearchStore.loadSearchMap([]);
@@ -82,9 +82,9 @@ describe('Command Palette Modal', function () {
     render(
       <CommandPaletteModal
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
       />,
       {

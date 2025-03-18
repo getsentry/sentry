@@ -46,20 +46,20 @@ const organization = OrganizationFixture({
   slug: 'org',
 });
 
-jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+vi.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...vi.importActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
 }));
 
 describe('GroupActions', function () {
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(function () {
     ConfigStore.init();
   });
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('render()', function () {
@@ -156,7 +156,7 @@ describe('GroupActions', function () {
         {organization}
       );
 
-      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
+      const onReprocessEventFunc = vi.spyOn(ModalStore, 'openModal');
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 

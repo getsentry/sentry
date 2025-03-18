@@ -14,7 +14,7 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import ModalStore from 'sentry/stores/modalStore';
 
 describe('ResolveActions', function () {
-  const spy = jest.fn();
+  const spy = vi.fn();
   beforeEach(() => {
     ModalStore.reset();
   });
@@ -139,7 +139,7 @@ describe('ResolveActions', function () {
   });
 
   it('can resolve in "another version"', async function () {
-    const onUpdate = jest.fn();
+    const onUpdate = vi.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
       body: [ReleaseFixture()],
@@ -232,7 +232,7 @@ describe('ResolveActions', function () {
   });
 
   it('does render next release option with subtitle', async function () {
-    const onUpdate = jest.fn();
+    const onUpdate = vi.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
       body: [ReleaseFixture()],
@@ -250,7 +250,7 @@ describe('ResolveActions', function () {
     const organization = OrganizationFixture({
       features: ['resolve-in-upcoming-release'],
     });
-    const onUpdate = jest.fn();
+    const onUpdate = vi.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
       body: [ReleaseFixture()],

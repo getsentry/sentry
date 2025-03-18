@@ -14,15 +14,15 @@ import {
 } from 'sentry/components/tours/testUtils';
 import {useTourReducer} from 'sentry/components/tours/tourContext';
 
-jest.mock('sentry/components/tours/tourContext', () => ({
-  useTourReducer: jest.fn(),
+vi.mock('sentry/components/tours/tourContext', () => ({
+  useTourReducer: vi.fn(),
 }));
 
-const mockUseTourReducer = jest.mocked(useTourReducer);
+const mockUseTourReducer = vi.mocked(useTourReducer);
 
 describe('Tour Components', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('TourContextProvider', () => {
@@ -283,7 +283,7 @@ describe('Tour Components', () => {
     });
 
     it('handles registration of the tour steps', () => {
-      const mockHandleStepRegistration = jest.fn();
+      const mockHandleStepRegistration = vi.fn();
       mockUseTourReducer.mockReturnValue({
         ...emptyTourContext,
         handleStepRegistration: mockHandleStepRegistration,
@@ -368,7 +368,7 @@ describe('Tour Components', () => {
 
   describe('TourGuide', () => {
     it('just renders the children when closed', () => {
-      const mockScrollIntoView = jest.fn();
+      const mockScrollIntoView = vi.fn();
       Element.prototype.scrollIntoView = mockScrollIntoView;
 
       render(
@@ -377,7 +377,7 @@ describe('Tour Components', () => {
           title="Test Title"
           description="Test Description"
           actions={<TourAction>Test Action</TourAction>}
-          handleDismiss={jest.fn()}
+          handleDismiss={vi.fn()}
           stepCount={50}
           stepTotal={100}
           id={'test-id'}
@@ -392,8 +392,8 @@ describe('Tour Components', () => {
     });
 
     it('renders the content of the tour guide', async () => {
-      const mockScrollIntoView = jest.fn();
-      const mockHandleDismiss = jest.fn();
+      const mockScrollIntoView = vi.fn();
+      const mockHandleDismiss = vi.fn();
       Element.prototype.scrollIntoView = mockScrollIntoView;
 
       render(

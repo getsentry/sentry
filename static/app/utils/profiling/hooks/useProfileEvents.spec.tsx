@@ -72,7 +72,7 @@ describe('useProfileEvents', function () {
   });
 
   it('handles api errors', async function () {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

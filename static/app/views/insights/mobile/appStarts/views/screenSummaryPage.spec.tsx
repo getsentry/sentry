@@ -9,14 +9,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenSummary} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
 
 describe('Screen Summary', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -31,7 +31,7 @@ describe('Screen Summary', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -49,7 +49,7 @@ describe('Screen Summary', function () {
   });
 
   describe('Native Project', function () {
-    let eventsMock: jest.Mock;
+    let eventsMock: vi.Mock;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -77,11 +77,11 @@ describe('Screen Summary', function () {
 
     afterEach(() => {
       MockApiClient.clearMockResponses();
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('renders the top level metrics data correctly', async function () {
-      jest.mocked(useLocation).mockReturnValue({
+      vi.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
         key: '',

@@ -7,15 +7,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('ScreenLoadSpansTable', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -25,7 +25,7 @@ describe('ScreenLoadSpansTable', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -42,7 +42,7 @@ describe('ScreenLoadSpansTable', function () {
     },
   });
 
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
@@ -59,7 +59,7 @@ describe('ScreenLoadSpansTable', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders table with the right columns', async function () {
@@ -136,7 +136,7 @@ describe('ScreenLoadSpansTable', function () {
   });
 
   it('sorts ttfd contribution', async function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       action: 'PUSH',
       hash: '',
       key: '',

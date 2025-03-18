@@ -8,8 +8,9 @@ import {EvidencePreview} from './evidencePreview';
 
 describe('EvidencePreview', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    vi.restoreAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/',
@@ -18,12 +19,12 @@ describe('EvidencePreview', () => {
 
   it('does not fetch before hover', () => {
     const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    const spy = jest.spyOn(api, 'requestPromise');
+    vi.spyOn(useApi, 'default').mockReturnValue(api);
+    const spy = vi.spyOn(api, 'requestPromise');
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     expect(spy).not.toHaveBeenCalled();
   });

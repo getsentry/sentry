@@ -26,13 +26,13 @@ describe('AutoComplete', function () {
   let input: HTMLInputElement;
   let autoCompleteState: any[] = [];
   const mocks = {
-    onSelect: jest.fn(),
-    onClose: jest.fn(),
-    onOpen: jest.fn(),
+    onSelect: vi.fn(),
+    onClose: vi.fn(),
+    onOpen: vi.fn(),
   };
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     autoCompleteState = [];
   });
 
@@ -135,24 +135,26 @@ describe('AutoComplete', function () {
 
     it('only tries to close once if input is blurred and click outside occurs', async function () {
       createWrapper();
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       fireEvent.focus(input);
       fireEvent.blur(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       // Click outside dropdown
       fireEvent.click(document.body);
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       await waitFor(() => expect(mocks.onClose).toHaveBeenCalledTimes(1));
     });
 
     it('only calls onClose dropdown menu when input is blurred', function () {
       createWrapper();
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       fireEvent.focus(input);
       fireEvent.blur(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
-      act(() => jest.runAllTimers());
+      act(() => vi.runAllTimers());
 
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
@@ -320,7 +322,8 @@ describe('AutoComplete', function () {
 
     it('can reset input when menu closes', function () {
       const wrapper = createWrapper();
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       wrapper.rerender(createComponent({resetInputOnClose: true}));
       fireEvent.focus(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
@@ -329,7 +332,7 @@ describe('AutoComplete', function () {
       expect(input).toHaveValue('a');
 
       fireEvent.blur(input);
-      act(() => jest.runAllTimers());
+      act(() => vi.runAllTimers());
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(input).toHaveValue('');
     });
@@ -353,12 +356,13 @@ describe('AutoComplete', function () {
 
     it('remains closed when input is focused, but calls `onOpen`', function () {
       createWrapper({isOpen: false});
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
 
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
 
       fireEvent.focus(input);
-      jest.runAllTimers();
+      vi.runAllTimers();
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(screen.queryByRole('option')).not.toBeInTheDocument();
 
@@ -367,10 +371,11 @@ describe('AutoComplete', function () {
 
     it('remains open when input focus/blur events occur, but calls `onClose`', function () {
       createWrapper({isOpen: true});
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       fireEvent.focus(input);
       fireEvent.blur(input);
-      act(() => jest.runAllTimers());
+      act(() => vi.runAllTimers());
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       // This still gets called even though menu is open
@@ -522,7 +527,7 @@ describe('AutoComplete', function () {
     });
 
     it('only scrolls highlighted item into view on keyboard events', function () {
-      const scrollIntoViewMock = jest.fn();
+      const scrollIntoViewMock = vi.fn();
       Element.prototype.scrollIntoView = scrollIntoViewMock;
 
       createWrapper({isOpen: true});
@@ -537,7 +542,8 @@ describe('AutoComplete', function () {
 
     it('can reset input value when menu closes', function () {
       const wrapper = createWrapper({isOpen: true});
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       wrapper.rerender(createComponent({resetInputOnClose: true}));
       fireEvent.focus(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
@@ -546,7 +552,7 @@ describe('AutoComplete', function () {
       expect(input).toHaveValue('a');
 
       fireEvent.blur(input);
-      act(() => jest.runAllTimers());
+      act(() => vi.runAllTimers());
       expect(input).toHaveValue('');
     });
   });
@@ -563,7 +569,7 @@ describe('AutoComplete', function () {
 
     it('calls onInputValueChange on input', () => {
       const wrapper = createWrapper({inputValue: 'initial value'});
-      const onInputValueChange = jest.fn();
+      const onInputValueChange = vi.fn();
       wrapper.rerender(createComponent({onInputValueChange}));
       fireEvent.focus(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
@@ -676,7 +682,8 @@ describe('AutoComplete', function () {
 
   it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function () {
     createWrapper({closeOnSelect: false});
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     fireEvent.focus(input);
     expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 

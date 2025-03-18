@@ -5,26 +5,27 @@ import {useDispatchingReducer} from 'sentry/utils/useDispatchingReducer';
 
 describe('useDispatchingReducer', () => {
   beforeEach(() => {
-    window.requestAnimationFrame = jest.fn().mockImplementation(cb => {
+    window.requestAnimationFrame = vi.fn().mockImplementation(cb => {
       return setTimeout(cb, 0);
     });
-    window.cancelAnimationFrame = jest.fn().mockImplementation(id => {
+    window.cancelAnimationFrame = vi.fn().mockImplementation(id => {
       return clearTimeout(id);
     });
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
   });
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
   it('initializes state with initializer', () => {
-    const reducer = jest.fn().mockImplementation(s => s);
+    const reducer = vi.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     expect(result.current[0]).toBe(initialState);
   });
   it('initializes state with fn initializer arg', () => {
-    const reducer = jest.fn().mockImplementation(s => s);
+    const reducer = vi.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() =>
       useDispatchingReducer(reducer, undefined, () => initialState)
@@ -33,7 +34,7 @@ describe('useDispatchingReducer', () => {
     expect(result.current[0]).toBe(initialState);
   });
   describe('action dispatching', () => {
-    const reducer = jest.fn().mockImplementation((_s, action: string) => {
+    const reducer = vi.fn().mockImplementation((_s, action: string) => {
       switch (action) {
         case 'action':
           return {type: 'action'};
@@ -47,7 +48,7 @@ describe('useDispatchingReducer', () => {
 
       act(() => result.current[1]('action'));
       act(() => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       await waitFor(() => {
@@ -59,12 +60,12 @@ describe('useDispatchingReducer', () => {
       const initialState = {type: 'initial'};
       const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
-      const beforeAction = jest.fn();
+      const beforeAction = vi.fn();
       result.current[2].on('before action', beforeAction);
 
       act(() => result.current[1]('action'));
       act(() => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(beforeAction).toHaveBeenCalledTimes(1);
@@ -74,12 +75,12 @@ describe('useDispatchingReducer', () => {
       const initialState = {type: 'initial'};
       const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
-      const beforeNextState = jest.fn();
+      const beforeNextState = vi.fn();
       result.current[2].on('before next state', beforeNextState);
 
       act(() => result.current[1]('action'));
       act(() => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(beforeNextState).toHaveBeenCalledTimes(1);
@@ -92,7 +93,7 @@ describe('useDispatchingReducer', () => {
 
     it('updates to final state if multiple calls', () => {
       const initialState = {};
-      const action_storing_reducer = jest
+      const action_storing_reducer = vi
         .fn()
         .mockImplementation((state, action: string) => {
           switch (action) {
@@ -113,7 +114,7 @@ describe('useDispatchingReducer', () => {
       });
 
       act(() => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current[0]).toEqual({action: 1, another: 1});
@@ -148,14 +149,14 @@ describe('useDispatchingReducer', () => {
     });
 
     act(() => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(result.current[0]).toEqual({a: {a: 1}, b: {b: 1}});
   });
 
   it('emitter supports side effect dispatching', () => {
-    const reducer = jest.fn().mockImplementation(function reducer(
+    const reducer = vi.fn().mockImplementation(function reducer(
       state: Record<any, any>,
       action: string
     ) {
@@ -174,7 +175,7 @@ describe('useDispatchingReducer', () => {
 
     act(() => result.current[1]('a'));
     act(() => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(reducer).toHaveBeenCalledTimes(2);

@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
 
 describe('ProjectDetail > ProjectApdex', function () {
-  let currentDataEndpointMock: jest.Mock;
-  let previousDataEndpointMock: jest.Mock;
+  let currentDataEndpointMock: vi.Mock;
+  let previousDataEndpointMock: vi.Mock;
   const organization = OrganizationFixture();
 
   const selection = {

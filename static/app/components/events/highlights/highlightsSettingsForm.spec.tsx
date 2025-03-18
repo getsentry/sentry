@@ -14,7 +14,7 @@ describe('HighlightsSettingForm', function () {
     browser: ['name', 'version'],
   };
   const project = ProjectFixture({highlightContext, highlightTags});
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(function () {
     MockApiClient.addMockResponse({

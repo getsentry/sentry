@@ -8,8 +8,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenDetailsPage} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
 
 describe('ScreenDetailsPage', function () {
   const organization = OrganizationFixture({
@@ -17,7 +17,7 @@ describe('ScreenDetailsPage', function () {
   });
   const project = ProjectFixture();
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -30,7 +30,7 @@ describe('ScreenDetailsPage', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -64,11 +64,11 @@ describe('ScreenDetailsPage', function () {
 
     afterEach(() => {
       MockApiClient.clearMockResponses();
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('renders the tabs correctly', async function () {
-      jest.mocked(useLocation).mockReturnValue({
+      vi.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
         key: '',

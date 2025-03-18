@@ -10,7 +10,7 @@ import DisabledSelectorItems from 'getsentry/components/features/disabledSelecto
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledSelectorItems', function () {
-  const handleSelectRelative = jest.fn();
+  const handleSelectRelative = vi.fn();
 
   it('renders extended relative periods without sub', function () {
     const organization = OrganizationFixture();

@@ -5,11 +5,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('ModulePageProviders', () => {
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders no feature if module is not enabled', async () => {

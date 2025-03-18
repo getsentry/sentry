@@ -6,11 +6,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
-jest.mock('sentry/utils/analytics', () => ({
-  trackAdhocEvent: jest.fn(),
+vi.mock('sentry/utils/analytics', () => ({
+  trackAdhocEvent: vi.fn(),
 }));
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
   const org = OrganizationFixture({slug: 'test-org'});
@@ -90,7 +90,7 @@ describe('OrganizationJoinRequest', function () {
   });
 
   it('cancels', async function () {
-    const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+    const spy = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
     render(
       <OrganizationJoinRequest
         {...RouteComponentPropsFixture()}

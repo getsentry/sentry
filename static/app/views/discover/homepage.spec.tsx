@@ -23,8 +23,8 @@ describe('Discover > Homepage', () => {
   const features = ['global-views', 'discover-query'];
   let initialData: ReturnType<typeof initializeOrg>;
   let organization: ReturnType<typeof OrganizationFixture>;
-  let mockHomepage: jest.Mock;
-  let measurementsMetaMock: jest.Mock;
+  let mockHomepage: vi.Mock;
+  let measurementsMetaMock: vi.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -106,7 +106,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -141,7 +141,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -160,7 +160,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -191,7 +191,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -238,7 +238,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -271,7 +271,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -307,7 +307,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -345,7 +345,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -371,7 +371,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={rerenderData.router.location}
         router={rerenderData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />
     );
@@ -401,7 +401,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -427,7 +427,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={rerenderData.router.location}
         router={rerenderData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />
     );
@@ -440,7 +440,7 @@ describe('Discover > Homepage', () => {
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
-    jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
+    vi.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {
         project: [2],
@@ -457,7 +457,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -492,7 +492,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -558,7 +558,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}
@@ -639,7 +639,7 @@ describe('Discover > Homepage', () => {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        setSavedQuery={jest.fn()}
+        setSavedQuery={vi.fn()}
         loading={false}
       />,
       {router: initialData.router, organization: initialData.organization}

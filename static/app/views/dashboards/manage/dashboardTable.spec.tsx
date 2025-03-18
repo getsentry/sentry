@@ -18,9 +18,9 @@ import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types
 
 describe('Dashboards - DashboardTable', function () {
   let dashboards: DashboardListItem[];
-  let deleteMock: jest.Mock;
-  let dashboardUpdateMock: jest.Mock;
-  let createMock: jest.Mock;
+  let deleteMock: vi.Mock;
+  let dashboardUpdateMock: vi.Mock;
+  let createMock: vi.Mock;
   const organization = OrganizationFixture({
     features: [
       'global-views',
@@ -108,13 +108,13 @@ describe('Dashboards - DashboardTable', function () {
       method: 'POST',
       statusCode: 200,
     });
-    dashboardUpdateMock = jest.fn();
+    dashboardUpdateMock = vi.fn();
   });
 
   it('renders an empty list', async function () {
     render(
       <DashboardTable
-        onDashboardsChange={jest.fn()}
+        onDashboardsChange={vi.fn()}
         organization={organization}
         dashboards={[]}
         location={router.location}
@@ -130,7 +130,7 @@ describe('Dashboards - DashboardTable', function () {
   it('renders dashboard list', async function () {
     render(
       <DashboardTable
-        onDashboardsChange={jest.fn()}
+        onDashboardsChange={vi.fn()}
         organization={organization}
         dashboards={dashboards}
         location={router.location}
@@ -144,7 +144,7 @@ describe('Dashboards - DashboardTable', function () {
   it('returns landing page url for dashboards', async function () {
     render(
       <DashboardTable
-        onDashboardsChange={jest.fn()}
+        onDashboardsChange={vi.fn()}
         organization={organization}
         dashboards={dashboards}
         location={router.location}
@@ -165,7 +165,7 @@ describe('Dashboards - DashboardTable', function () {
   it('persists global selection headers', async function () {
     render(
       <DashboardTable
-        onDashboardsChange={jest.fn()}
+        onDashboardsChange={vi.fn()}
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
@@ -300,7 +300,7 @@ describe('Dashboards - DashboardTable', function () {
 
     render(
       <DashboardTable
-        onDashboardsChange={jest.fn()}
+        onDashboardsChange={vi.fn()}
         organization={organizationWithEditAccess}
         dashboards={dashboards}
         location={router.location}
@@ -333,7 +333,7 @@ describe('Dashboards - DashboardTable', function () {
 
     render(
       <DashboardTable
-        onDashboardsChange={jest.fn()}
+        onDashboardsChange={vi.fn()}
         organization={organizationWithFavorite}
         dashboards={dashboards}
         location={router.location}

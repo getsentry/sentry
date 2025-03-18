@@ -11,8 +11,8 @@ describe('TransactionsConfig', function () {
   describe('getEventsRequest', function () {
     let api!: Client;
     let organization!: ReturnType<typeof OrganizationFixture>;
-    let mockEventsRequest!: jest.Mock;
-    let mockEventsStatsRequest!: jest.Mock;
+    let mockEventsRequest!: vi.Mock;
+    let mockEventsStatsRequest!: vi.Mock;
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();

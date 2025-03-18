@@ -10,11 +10,11 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('sentry/actionCreators/formSearch');
-jest.mock('sentry/actionCreators/navigation');
+vi.mock('sentry/actionCreators/formSearch');
+vi.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
-  let orgsMock: jest.Mock;
+  let orgsMock: vi.Mock;
 
   beforeEach(function () {
     FormSearchStore.loadSearchMap([]);

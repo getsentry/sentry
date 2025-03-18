@@ -9,24 +9,24 @@ import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {DatabaseLandingPage} from 'sentry/views/insights/database/views/databaseLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let spanListRequestMock: jest.Mock;
-  let spanChartsRequestMock: jest.Mock;
+  let spanListRequestMock: vi.Mock;
+  let spanChartsRequestMock: vi.Mock;
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects: [ProjectFixture({hasInsightsDb: true})],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -34,9 +34,9 @@ describe('DatabaseLandingPage', function () {
     initiallyLoaded: false,
   });
 
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  vi.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -53,7 +53,7 @@ describe('DatabaseLandingPage', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d'},
@@ -63,7 +63,7 @@ describe('DatabaseLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -137,11 +137,11 @@ describe('DatabaseLandingPage', function () {
   });
 
   afterAll(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('fetches module data', async function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+    vi.spyOn(console, 'error').mockImplementation(vi.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});
 
@@ -228,7 +228,7 @@ describe('DatabaseLandingPage', function () {
   });
 
   it('renders a list of queries', async function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+    vi.spyOn(console, 'error').mockImplementation(vi.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});
 
@@ -241,7 +241,7 @@ describe('DatabaseLandingPage', function () {
   });
 
   it('filters by category and action', async function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {
@@ -255,7 +255,7 @@ describe('DatabaseLandingPage', function () {
       key: '',
     });
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+    vi.spyOn(console, 'error').mockImplementation(vi.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});
 
@@ -345,7 +345,7 @@ describe('DatabaseLandingPage', function () {
   });
 
   it('displays the correct domain label for SQL systems', async function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {
@@ -358,7 +358,7 @@ describe('DatabaseLandingPage', function () {
       key: '',
     });
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+    vi.spyOn(console, 'error').mockImplementation(vi.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});
 
@@ -369,7 +369,7 @@ describe('DatabaseLandingPage', function () {
   });
 
   it('displays the correct domain label for NoSQL systems', async function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {
@@ -382,7 +382,7 @@ describe('DatabaseLandingPage', function () {
       key: '',
     });
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+    vi.spyOn(console, 'error').mockImplementation(vi.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});
 

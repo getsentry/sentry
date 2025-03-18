@@ -1303,7 +1303,7 @@ function SectionCard({
 
 // This is trace-view specific styling. The card is rendered in a number of different places
 // with tests failing otherwise, since @container queries are not supported by the version of
-// jsdom currently used by jest.
+// jsdom currently used by vi.
 const CardWrapper = styled('div')`
   ${CardPanel} {
     container-type: inline-size;

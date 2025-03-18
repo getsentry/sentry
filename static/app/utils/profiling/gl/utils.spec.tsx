@@ -29,11 +29,11 @@ describe('getContext', () => {
   it('throws if it cannot retrieve context', () => {
     expect(() =>
       // @ts-expect-error partial canvas mock
-      getContext({getContext: jest.fn().mockImplementationOnce(() => null)}, 'webgl')
+      getContext({getContext: vi.fn().mockImplementationOnce(() => null)}, 'webgl')
     ).toThrow();
     expect(() =>
       // @ts-expect-error partial canvas mock
-      getContext({getContext: jest.fn().mockImplementationOnce(() => null)}, '2d')
+      getContext({getContext: vi.fn().mockImplementationOnce(() => null)}, '2d')
     ).toThrow();
   });
 
@@ -41,7 +41,7 @@ describe('getContext', () => {
     const ctx = {};
     expect(
       // @ts-expect-error partial canvas mock
-      getContext({getContext: jest.fn().mockImplementationOnce(() => ctx)}, 'webgl')
+      getContext({getContext: vi.fn().mockImplementationOnce(() => ctx)}, 'webgl')
     ).toBe(ctx);
   });
 });
@@ -101,7 +101,7 @@ describe('lowerBound', () => {
 describe('createProgram', () => {
   it('throws if it fails to create a program', () => {
     const ctx: Partial<WebGLRenderingContext> = {
-      createProgram: jest.fn().mockImplementation(() => {
+      createProgram: vi.fn().mockImplementation(() => {
         return null;
       }),
     };
@@ -112,12 +112,12 @@ describe('createProgram', () => {
   it('attaches both shaders and links program', () => {
     const program = {};
     const ctx: Partial<WebGLRenderingContext> = {
-      createProgram: jest.fn().mockImplementation(() => {
+      createProgram: vi.fn().mockImplementation(() => {
         return program;
       }),
-      getProgramParameter: jest.fn().mockImplementation(() => program),
-      linkProgram: jest.fn(),
-      attachShader: jest.fn(),
+      getProgramParameter: vi.fn().mockImplementation(() => program),
+      linkProgram: vi.fn(),
+      attachShader: vi.fn(),
     };
 
     const vertexShader = {};
@@ -134,13 +134,13 @@ describe('createProgram', () => {
   it('deletes the program if compiling fails', () => {
     const program = {};
     const ctx: Partial<WebGLRenderingContext> = {
-      createProgram: jest.fn().mockImplementation(() => {
+      createProgram: vi.fn().mockImplementation(() => {
         return program;
       }),
-      deleteProgram: jest.fn(),
-      getProgramParameter: jest.fn().mockImplementation(() => 0),
-      linkProgram: jest.fn(),
-      attachShader: jest.fn(),
+      deleteProgram: vi.fn(),
+      getProgramParameter: vi.fn().mockImplementation(() => 0),
+      linkProgram: vi.fn(),
+      attachShader: vi.fn(),
     };
 
     const vertexShader = {};
@@ -161,7 +161,7 @@ describe('createProgram', () => {
 describe('createShader', () => {
   it('fails to create', () => {
     const ctx: Partial<WebGLRenderingContext> = {
-      createShader: jest.fn().mockImplementationOnce(() => null),
+      createShader: vi.fn().mockImplementationOnce(() => null),
     };
 
     const type = 0;
@@ -176,10 +176,10 @@ describe('createShader', () => {
     const shaderSource = `vec4(1.0, 0.0, 0.0, 1.0)`;
 
     const ctx: Partial<WebGLRenderingContext> = {
-      createShader: jest.fn().mockImplementation(() => shader),
-      shaderSource: jest.fn(),
-      compileShader: jest.fn(),
-      getShaderParameter: jest.fn().mockImplementation(() => 1),
+      createShader: vi.fn().mockImplementation(() => shader),
+      shaderSource: vi.fn(),
+      compileShader: vi.fn(),
+      getShaderParameter: vi.fn().mockImplementation(() => 1),
       COMPILE_STATUS: 1 as any,
     };
 
@@ -197,11 +197,11 @@ describe('createShader', () => {
     const shaderSource = `vec4(1.0, 0.0, 0.0, 1.0)`;
 
     const ctx: Partial<WebGLRenderingContext> = {
-      createShader: jest.fn().mockImplementation(() => shader),
-      shaderSource: jest.fn(),
-      compileShader: jest.fn(),
-      getShaderParameter: jest.fn().mockImplementation(() => 0),
-      deleteShader: jest.fn(),
+      createShader: vi.fn().mockImplementation(() => shader),
+      shaderSource: vi.fn(),
+      compileShader: vi.fn(),
+      getShaderParameter: vi.fn().mockImplementation(() => 0),
+      deleteShader: vi.fn(),
       COMPILE_STATUS: 0 as any,
     };
 
@@ -366,7 +366,7 @@ describe('findRangeBinarySearch', () => {
       .map((_, i) => String.fromCharCode(i + 97))
       .join('');
 
-    const fn = jest.fn().mockImplementation(n => {
+    const fn = vi.fn().mockImplementation(n => {
       return text.substring(0, n).length;
     });
 
@@ -387,7 +387,7 @@ describe('findRangeBinarySearch', () => {
       .map((_, i) => String.fromCharCode(i + 97))
       .join('');
 
-    const fn = jest.fn().mockImplementation(n => {
+    const fn = vi.fn().mockImplementation(n => {
       return text.substring(0, n).length;
     });
 

@@ -25,9 +25,9 @@ function mountModal(
   render(
     <TransactionThresholdModal
       Body={ModalBody}
-      closeModal={jest.fn()}
-      CloseButton={makeCloseButton(jest.fn())}
-      Header={makeClosableHeader(jest.fn())}
+      closeModal={vi.fn()}
+      CloseButton={makeCloseButton(vi.fn())}
+      Header={makeClosableHeader(vi.fn())}
       Footer={ModalFooter}
       eventView={eventView}
       organization={organization}
@@ -55,7 +55,7 @@ describe('TransactionThresholdModal', function () {
     environment: [],
   });
 
-  const onApply = jest.fn();
+  const onApply = vi.fn();
   let postTransactionThresholdMock: any;
 
   beforeEach(function () {

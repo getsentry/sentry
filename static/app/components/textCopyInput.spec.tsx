@@ -6,7 +6,7 @@ describe('TextCopyInput', function () {
   beforeEach(() => {
     Object.assign(navigator, {
       clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
+        writeText: vi.fn().mockResolvedValue(''),
       },
     });
   });
@@ -25,7 +25,7 @@ describe('TextCopyInput', function () {
     render(<TextCopyInput>Text to Copy</TextCopyInput>);
     const input = screen.getByRole<HTMLInputElement>('textbox');
     expect(input).toHaveValue('Text to Copy');
-    const selectSpy = jest.spyOn(input, 'select');
+    const selectSpy = vi.spyOn(input, 'select');
 
     await userEvent.click(input);
 
@@ -35,7 +35,7 @@ describe('TextCopyInput', function () {
   it('handles RTL text selection', async function () {
     render(<TextCopyInput rtl>Text to Copy</TextCopyInput>);
     const input = screen.getByRole<HTMLInputElement>('textbox');
-    const setSelectionRangeSpy = jest.spyOn(input, 'setSelectionRange');
+    const setSelectionRangeSpy = vi.spyOn(input, 'setSelectionRange');
 
     await userEvent.click(input);
     expect(setSelectionRangeSpy).toHaveBeenCalledWith(1, input.value.length - 1);

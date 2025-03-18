@@ -10,14 +10,14 @@ function MockAwsLambdaProjectSelect() {
   return <div>mock_AwsLambdaProjectSelect</div>;
 }
 
-jest.mock(
+vi.mock(
   'sentry/views/integrationPipeline/awsLambdaProjectSelect',
   () => MockAwsLambdaProjectSelect
 );
 
 describe('PipelineView', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders awsLambdaProjectSelect', () => {
@@ -29,7 +29,7 @@ describe('PipelineView', () => {
   });
 
   it('errros on invalid pipelineName', () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() => render(<PipelineView pipelineName="other" />)).toThrow(
       'Invalid pipeline name other'

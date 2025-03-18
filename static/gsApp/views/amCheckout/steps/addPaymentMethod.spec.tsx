@@ -13,7 +13,7 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-jest.mock('getsentry/utils/stripe', () => {
+vi.mock('getsentry/utils/stripe', () => {
   return {
     loadStripe: (cb: (fn: () => {elements: any}) => void) => {
       if (!cb) {
@@ -21,13 +21,13 @@ jest.mock('getsentry/utils/stripe', () => {
       }
       cb(() => {
         return {
-          elements: jest.fn(() => ({
-            create: jest.fn(() => ({
-              mount: jest.fn(),
+          elements: vi.fn(() => ({
+            create: vi.fn(() => ({
+              mount: vi.fn(),
               on(_name: any, handler: any) {
                 handler();
               },
-              update: jest.fn(),
+              update: vi.fn(),
             })),
           })),
         };
@@ -42,7 +42,7 @@ describe('AddPaymentMethod', function () {
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
-  let setupIntent!: jest.Mock;
+  let setupIntent!: vi.Mock;
   const stepNumber = 5;
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
@@ -50,9 +50,9 @@ describe('AddPaymentMethod', function () {
   const stepProps: StepProps = {
     isActive: true,
     stepNumber,
-    onUpdate: jest.fn(),
-    onCompleteStep: jest.fn(),
-    onEdit: jest.fn(),
+    onUpdate: vi.fn(),
+    onCompleteStep: vi.fn(),
+    onEdit: vi.fn(),
     billingConfig,
     formData: {
       plan: billingConfig.defaultPlan,
@@ -107,7 +107,7 @@ describe('AddPaymentMethod', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={subscription.planTier as PlanTier}
       />,
       {organization}
@@ -202,7 +202,7 @@ describe('AddPaymentMethod', function () {
   });
 
   it('can complete step', async function () {
-    const onCompleteStep = jest.fn();
+    const onCompleteStep = vi.fn();
     const props = {...stepProps, onCompleteStep};
 
     render(<AddPaymentMethod {...props} />);

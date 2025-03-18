@@ -17,8 +17,8 @@ export const emptyTourContext = {
   isCompleted: false,
   isRegistered: false,
   orderedStepIds: [],
-  dispatch: jest.fn(),
-  handleStepRegistration: jest.fn(),
+  dispatch: vi.fn(),
+  handleStepRegistration: vi.fn(),
 };
 
 export const mockTour = () => emptyTourContext;

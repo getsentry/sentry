@@ -17,14 +17,14 @@ const WrappedComponent = withRouteAnalytics(TestComponent);
 
 describe('withRouteAnalytics', function () {
   it('passes context to children as props', function () {
-    const setRouteAnalyticsParams = jest.fn();
+    const setRouteAnalyticsParams = vi.fn();
     render(
       <RouteAnalyticsContext.Provider
         value={{
           setRouteAnalyticsParams,
-          setDisableRouteAnalytics: jest.fn(),
-          setOrganization: jest.fn(),
-          setEventNames: jest.fn(),
+          setDisableRouteAnalytics: vi.fn(),
+          setOrganization: vi.fn(),
+          setEventNames: vi.fn(),
           previousUrl: '',
         }}
       >

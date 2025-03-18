@@ -11,7 +11,7 @@ import {
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
 const mockLocation: Location = {
   key: '',
@@ -25,7 +25,7 @@ const mockLocation: Location = {
 
 describe('useLocationQuery', () => {
   it('should read query values from the url', () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       ...mockLocation,
       query: {
         name: 'Adam',
@@ -53,7 +53,7 @@ describe('useLocationQuery', () => {
   });
 
   it('should return undefined if the url does not contain a requested field', () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       ...mockLocation,
       query: {},
     } as Location);
@@ -76,7 +76,7 @@ describe('useLocationQuery', () => {
   });
 
   it('allows custom typed decoders', () => {
-    jest.mocked(useLocation).mockReturnValueOnce({
+    vi.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
       query: {
         titles: ['Mx', 'Dr'],
@@ -109,7 +109,7 @@ describe('useLocationQuery', () => {
   });
 
   it('should pass-through static values along with decoded ones', () => {
-    jest.mocked(useLocation).mockReturnValueOnce({
+    vi.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
       query: {
         name: 'Adam',
@@ -138,7 +138,7 @@ describe('useLocationQuery', () => {
 
   it('should only change return object identity when values change', () => {
     // 1st render:
-    jest.mocked(useLocation).mockReturnValueOnce({
+    vi.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
       query: {
         name: 'Adam',
@@ -146,7 +146,7 @@ describe('useLocationQuery', () => {
       },
     } as Location);
     // 2nd render, same values (but the array is re-built, new object ref):
-    jest.mocked(useLocation).mockReturnValueOnce({
+    vi.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
       query: {
         name: 'Adam',
@@ -154,7 +154,7 @@ describe('useLocationQuery', () => {
       },
     } as Location);
     // 3rd render, name is changed.
-    jest.mocked(useLocation).mockReturnValueOnce({
+    vi.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
       query: {
         name: 'Betty',

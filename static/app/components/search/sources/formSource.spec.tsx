@@ -32,17 +32,17 @@ describe('FormSource', function () {
   ];
 
   beforeEach(function () {
-    jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
+    vi.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
 
     FormSearchStore.loadSearchMap(searchMap);
   });
 
   afterEach(function () {
-    jest.mocked(ActionCreators.loadSearchMap).mockRestore();
+    vi.mocked(ActionCreators.loadSearchMap).mockRestore();
   });
 
   it('can find a form field', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     render(<FormSource query="te">{mock}</FormSource>);
 
     await waitFor(() =>
@@ -72,7 +72,7 @@ describe('FormSource', function () {
   });
 
   it('does not find any form field', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     render(<FormSource query="invalid">{mock}</FormSource>);
 
     await waitFor(() =>

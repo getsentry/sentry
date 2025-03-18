@@ -8,15 +8,15 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
-const usePageFilters = jest.mocked(importedUsePageFilters);
+const usePageFilters = vi.mocked(importedUsePageFilters);
 
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 describe('NoDataMessage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
     usePageFilters.mockClear();
 

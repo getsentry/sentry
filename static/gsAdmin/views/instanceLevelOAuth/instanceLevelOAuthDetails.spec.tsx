@@ -62,9 +62,9 @@ describe('instance level OAuth client details', function () {
     router: initRouter,
   });
 
-  let mockGetDetailsCall: jest.Mock;
-  let mockDeleteCall: jest.Mock;
-  let mockPutCall: jest.Mock;
+  let mockGetDetailsCall: vi.Mock;
+  let mockDeleteCall: vi.Mock;
+  let mockPutCall: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

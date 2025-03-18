@@ -34,7 +34,7 @@ describe('uptime/edit', function () {
 
     const uptimeRule = UptimeRuleFixture();
 
-    const handleChangeTitle = jest.fn();
+    const handleChangeTitle = vi.fn();
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
@@ -71,7 +71,7 @@ describe('uptime/edit', function () {
 
     const uptimeRule = UptimeRuleFixture();
 
-    const handleChangeTitle = jest.fn();
+    const handleChangeTitle = vi.fn();
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,

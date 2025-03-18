@@ -9,7 +9,7 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 function renderMockRequests({
   orgSlug,
@@ -41,8 +41,8 @@ describe('Broadcasts', function () {
         orientation="left"
         collapsed={false}
         currentPanel={SidebarPanelKey.BROADCASTS}
-        onShowPanel={() => jest.fn()}
-        hidePanel={jest.fn()}
+        onShowPanel={() => vi.fn()}
+        hidePanel={vi.fn()}
       />
     );
 
@@ -64,8 +64,8 @@ describe('Broadcasts', function () {
         orientation="left"
         collapsed={false}
         currentPanel={SidebarPanelKey.BROADCASTS}
-        onShowPanel={() => jest.fn()}
-        hidePanel={jest.fn()}
+        onShowPanel={() => vi.fn()}
+        hidePanel={vi.fn()}
       />
     );
 

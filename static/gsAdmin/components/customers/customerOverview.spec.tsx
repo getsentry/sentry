@@ -20,7 +20,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -49,7 +49,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -91,7 +91,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -147,7 +147,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -220,7 +220,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={partnerSubscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -250,7 +250,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={partnerSubscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -269,7 +269,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -311,7 +311,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={mm2_subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -335,7 +335,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={enterprise_subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -358,7 +358,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={am1_subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -381,7 +381,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={am2_subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -404,7 +404,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={am3_subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );
@@ -430,7 +430,7 @@ describe('CustomerOverview', function () {
     render(
       <CustomerOverview
         customer={am3_subscription}
-        onAction={jest.fn()}
+        onAction={vi.fn()}
         organization={organization}
       />
     );

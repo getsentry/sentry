@@ -36,13 +36,13 @@ describe('GroupEventCarousel', () => {
   const singleEventProps = {...defaultProps, event: singleTestEvent};
 
   beforeEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     Object.assign(navigator, {
       clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
+        writeText: vi.fn().mockResolvedValue(''),
       },
     });
-    window.open = jest.fn();
+    window.open = vi.fn();
   });
 
   describe('recommended event ui', () => {
@@ -66,7 +66,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the oldest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...defaultProps} />, {router});
 
@@ -80,7 +80,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the latest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...defaultProps} />, {router});
 
@@ -95,7 +95,7 @@ describe('GroupEventCarousel', () => {
 
     it('can navigate to the recommended event', async () => {
       const newRouter = RouterFixture({params: {eventId: 'latest'}});
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...defaultProps} />, {router: newRouter});
 
@@ -109,7 +109,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('will disable the dropdown if there is only one event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -118,7 +118,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is recommended, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -129,7 +129,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is latest, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -138,7 +138,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is oldest, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 

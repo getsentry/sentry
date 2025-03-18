@@ -8,8 +8,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalMeters', function () {
   const organization = OrganizationFixture();
@@ -25,7 +25,7 @@ describe('WebVitalMeters', function () {
   };
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {},
@@ -34,7 +34,7 @@ describe('WebVitalMeters', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),

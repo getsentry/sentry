@@ -7,7 +7,7 @@ import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import ModalStore from 'sentry/stores/modalStore';
 
 describe('FeatureTourModal', function () {
-  const onCloseModal = jest.fn();
+  const onCloseModal = vi.fn();
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const renderComponent = (
     props: Partial<ComponentProps<typeof FeatureDisabledModal>> = {}
@@ -27,7 +27,7 @@ describe('FeatureTourModal', function () {
 
   beforeEach(function () {
     ModalStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders', function () {

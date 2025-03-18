@@ -4,14 +4,14 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 export function RouterFixture(params = {}): InjectedRouter {
   return {
-    push: jest.fn(),
-    replace: jest.fn(),
-    go: jest.fn(),
-    goBack: jest.fn(),
-    goForward: jest.fn(),
-    setRouteLeaveHook: jest.fn(),
-    isActive: jest.fn(),
-    createHref: jest.fn().mockImplementation(to => {
+    push: vi.fn(),
+    replace: vi.fn(),
+    go: vi.fn(),
+    goBack: vi.fn(),
+    goForward: vi.fn(),
+    setRouteLeaveHook: vi.fn(),
+    isActive: vi.fn(),
+    createHref: vi.fn().mockImplementation(to => {
       if (typeof to === 'string') {
         return to;
       }
@@ -27,7 +27,7 @@ export function RouterFixture(params = {}): InjectedRouter {
       return '';
     }),
     location: LocationFixture(),
-    createPath: jest.fn(),
+    createPath: vi.fn(),
     routes: [],
     params: {},
     ...params,

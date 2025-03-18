@@ -21,27 +21,27 @@ function TestComponent({onSelect}: TestProps) {
 }
 
 beforeEach(() => {
-  jest
-    .spyOn(window, 'requestAnimationFrame')
-    .mockImplementation((callback: FrameRequestCallback): number => {
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation(
+    (callback: FrameRequestCallback): number => {
       callback(0);
       return 0;
-    });
+    }
+  );
 });
 
 afterEach(() => {
-  jest.mocked(window.requestAnimationFrame).mockRestore();
+  vi.mocked(window.requestAnimationFrame).mockRestore();
 });
 
 function setupTestComponent() {
-  const handleSelect = jest.fn();
+  const handleSelect = vi.fn();
 
   render(<TestComponent onSelect={handleSelect} />);
 
   const body = screen.getByTestId('body');
   const container = screen.getByTestId('container');
 
-  container.getBoundingClientRect = jest.fn(() => ({
+  container.getBoundingClientRect = vi.fn(() => ({
     x: 10,
     y: 10,
     width: 100,
@@ -50,7 +50,7 @@ function setupTestComponent() {
     top: 10,
     right: 110,
     bottom: 110,
-    toJSON: jest.fn(),
+    toJSON: vi.fn(),
   }));
 
   return {handleSelect, body, container};

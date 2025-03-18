@@ -9,13 +9,13 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {lightTheme} from 'sentry/utils/theme';
 
 describe('ReleaseSeries', function () {
-  const renderFunc = jest.fn(() => null);
+  const renderFunc = vi.fn(() => null);
   const organization = OrganizationFixture();
   let releases: any;
   let releasesMock: any;
 
   beforeEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
 
     releases = [
       {

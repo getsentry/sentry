@@ -8,15 +8,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SystemApplicationBreakdown from 'sentry/views/insights/mobile/appStarts/components/systemApplicationBreakdown';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('SystemApplicationBreakdown', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       action: 'PUSH',
       hash: '',
       key: '',
@@ -31,7 +31,7 @@ describe('SystemApplicationBreakdown', function () {
       state: undefined,
     } as Location);
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),

@@ -17,9 +17,9 @@ describe('TrialStarter', function () {
   SubscriptionStore.set(org.slug, sub);
 
   it('starts a trial', async function () {
-    const handleTrialStarted = jest.fn();
+    const handleTrialStarted = vi.fn();
     // eslint-disable-next-line no-empty-pattern
-    const renderer = jest.fn(({}: RendererProps) => <div>render text</div>);
+    const renderer = vi.fn(({}: RendererProps) => <div>render text</div>);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
       body: org,
@@ -73,9 +73,9 @@ describe('TrialStarter', function () {
   });
 
   it('handles failing to start a trial', async function () {
-    const handleTrialFailed = jest.fn();
+    const handleTrialFailed = vi.fn();
     // eslint-disable-next-line no-empty-pattern
-    const renderer = jest.fn(({}: RendererProps) => null);
+    const renderer = vi.fn(({}: RendererProps) => null);
 
     render(
       <TrialStarter

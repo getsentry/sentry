@@ -12,8 +12,8 @@ class ResizeObserver {
 }
 
 window.ResizeObserver = ResizeObserver;
-window.Element.prototype.scrollTo = jest.fn();
-window.Element.prototype.scrollIntoView = jest.fn();
+window.Element.prototype.scrollTo = vi.fn();
+window.Element.prototype.scrollIntoView = vi.fn();
 
 const DEFAULT_VALUES = {alpha: 1, height: 1, width: 1, x: 1, y: 1, visible: true};
 const DEFAULT_MOCK_DATA = {

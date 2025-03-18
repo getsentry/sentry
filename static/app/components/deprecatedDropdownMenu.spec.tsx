@@ -81,9 +81,9 @@ describe('dropdownMenuDeprecated', function () {
   });
 
   it('render prop getters all extend props and call original onClick handlers', async function () {
-    const rootClick = jest.fn();
-    const actorClick = jest.fn();
-    const menuClick = jest.fn();
+    const rootClick = vi.fn();
+    const actorClick = vi.fn();
+    const menuClick = vi.fn();
 
     render(
       <DeprecatedDropdownMenu keepMenuOpen>
@@ -117,8 +117,8 @@ describe('dropdownMenuDeprecated', function () {
   });
 
   it('always rendered menus should attach document event listeners only when opened', async function () {
-    const addSpy = jest.spyOn(document, 'addEventListener');
-    const removeSpy = jest.spyOn(document, 'removeEventListener');
+    const addSpy = vi.spyOn(document, 'addEventListener');
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
 
     render(
       <DeprecatedDropdownMenu alwaysRenderMenu>

@@ -14,8 +14,8 @@ import {
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-jest.mock('sentry/views/performance/newTraceDetails/traceState/traceStateProvider');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/views/performance/newTraceDetails/traceState/traceStateProvider');
+vi.mock('sentry/utils/useLocation');
 
 const baseProps: Partial<TraceMetadataHeaderProps> = {
   metaResults: {
@@ -45,11 +45,11 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
 };
 let organization: Organization;
 
-const useLocationMock = jest.mocked(useLocation);
+const useLocationMock = vi.mocked(useLocation);
 
 describe('TraceMetaDataHeader', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     organization = OrganizationFixture();
   });
 

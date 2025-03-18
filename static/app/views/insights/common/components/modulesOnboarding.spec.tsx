@@ -9,13 +9,13 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 import {ModulesOnboarding} from './modulesOnboarding';
 
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('ModulesOnboarding', () => {
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders children correctly', () => {
@@ -23,10 +23,10 @@ describe('ModulesOnboarding', () => {
     project.firstTransactionEvent = true;
     project.hasInsightsCaches = true;
 
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects: [project],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -34,9 +34,9 @@ describe('ModulesOnboarding', () => {
       initiallyLoaded: false,
     });
 
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+    vi.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -64,10 +64,10 @@ describe('ModulesOnboarding', () => {
 
   it('renders onboarding content correctly', async () => {
     const project = ProjectFixture();
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects: [project],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -75,7 +75,7 @@ describe('ModulesOnboarding', () => {
       initiallyLoaded: false,
     });
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -103,11 +103,11 @@ describe('ModulesOnboarding', () => {
 
   it('renders performance onboarding if onboardingProject', async () => {
     const project = ProjectFixture();
-    jest.mocked(useOnboardingProject).mockReturnValue(project);
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useOnboardingProject).mockReturnValue(project);
+    vi.mocked(useProjects).mockReturnValue({
       projects: [project],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -115,7 +115,7 @@ describe('ModulesOnboarding', () => {
       initiallyLoaded: false,
     });
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),

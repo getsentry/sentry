@@ -12,7 +12,7 @@ describe('useApi', function () {
   it('cancels pending API requests when unmounted', function () {
     const {result, unmount} = renderHook(useApi);
 
-    jest.spyOn(result.current, 'clear');
+    vi.spyOn(result.current, 'clear');
     unmount();
 
     expect(result.current.clear).toHaveBeenCalled();
@@ -23,7 +23,7 @@ describe('useApi', function () {
       initialProps: {persistInFlight: true},
     });
 
-    jest.spyOn(result.current, 'clear');
+    vi.spyOn(result.current, 'clear');
     unmount();
 
     expect(result.current.clear).not.toHaveBeenCalled();
@@ -33,7 +33,7 @@ describe('useApi', function () {
     const myClient = new MockApiClient();
     const {unmount} = renderHook(useApi, {initialProps: {api: myClient}});
 
-    jest.spyOn(myClient, 'clear');
+    vi.spyOn(myClient, 'clear');
     unmount();
 
     expect(myClient.clear).toHaveBeenCalled();

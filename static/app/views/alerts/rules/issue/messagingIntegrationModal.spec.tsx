@@ -12,7 +12,7 @@ import {
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('MessagingIntegrationModal', function () {
   const organization = OrganizationFixture();
@@ -21,7 +21,7 @@ describe('MessagingIntegrationModal', function () {
     GitHubIntegrationProviderFixture({key: providerKey})
   );
 
-  const getComponent = (closeModal = jest.fn(), props = {}) => (
+  const getComponent = (closeModal = vi.fn(), props = {}) => (
     <MessagingIntegrationModal
       closeModal={closeModal}
       Header={makeClosableHeader(() => {})}

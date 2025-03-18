@@ -16,7 +16,7 @@ function makeWrapper(queryClient: QueryClient) {
 
 const MOCK_API_ENDPOINT = '/api/test/';
 function queryKeyFactory() {
-  return jest.fn().mockImplementation(query => [MOCK_API_ENDPOINT, {query}]);
+  return vi.fn().mockImplementation(query => [MOCK_API_ENDPOINT, {query}]);
 }
 
 describe('useFetchSequentialPages', () => {

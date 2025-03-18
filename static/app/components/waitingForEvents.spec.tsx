@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import WaitingForEvents from 'sentry/components/waitingForEvents';
 
 describe('WaitingForEvents', function () {
-  let getIssues: jest.Func;
+  let getIssues: vi.Func;
   let router: any;
 
   beforeEach(function () {
@@ -20,7 +20,7 @@ describe('WaitingForEvents', function () {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
 

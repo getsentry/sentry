@@ -8,10 +8,10 @@ import AwsLambdaProjectSelect from 'sentry/views/integrationPipeline/awsLambdaPr
 
 describe('AwsLambdaProjectSelect', () => {
   let projects: Project[];
-  let windowAssignMock: jest.Mock;
+  let windowAssignMock: vi.Mock;
 
   beforeEach(() => {
-    windowAssignMock = jest.fn();
+    windowAssignMock = vi.fn();
     window.location.assign = windowAssignMock;
     projects = [
       ProjectFixture(),

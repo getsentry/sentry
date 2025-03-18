@@ -9,9 +9,10 @@ import {
 
 describe('Demo Mode Functions', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
   });
 
   describe('extraQueryParameter', () => {
@@ -62,23 +63,25 @@ describe('Demo Mode Functions', () => {
 
   describe('isDemoModeActive', () => {
     it('returns true if demoMode is enabled and user is not a superuser', () => {
-      jest.spyOn(ConfigStore, 'get').mockReturnValue(true);
-      jest
-        .spyOn(require('sentry/utils/isActiveSuperuser'), 'isActiveSuperuser')
-        .mockReturnValue(false);
+      vi.spyOn(ConfigStore, 'get').mockReturnValue(true);
+      vi.spyOn(
+        require('sentry/utils/isActiveSuperuser'),
+        'isActiveSuperuser'
+      ).mockReturnValue(false);
       expect(isDemoModeActive()).toBe(true);
     });
 
     it('returns false if demoMode is enabled but user is a superuser', () => {
-      jest.spyOn(ConfigStore, 'get').mockReturnValue(true);
-      jest
-        .spyOn(require('sentry/utils/isActiveSuperuser'), 'isActiveSuperuser')
-        .mockReturnValue(true);
+      vi.spyOn(ConfigStore, 'get').mockReturnValue(true);
+      vi.spyOn(
+        require('sentry/utils/isActiveSuperuser'),
+        'isActiveSuperuser'
+      ).mockReturnValue(true);
       expect(isDemoModeActive()).toBe(false);
     });
 
     it('returns false if demoMode is not enabled', () => {
-      jest.spyOn(ConfigStore, 'get').mockReturnValue(false);
+      vi.spyOn(ConfigStore, 'get').mockReturnValue(false);
       expect(isDemoModeActive()).toBe(false);
     });
   });

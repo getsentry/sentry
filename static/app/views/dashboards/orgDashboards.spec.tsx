@@ -50,7 +50,7 @@ describe('OrgDashboards', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('redirects to add query params for page filters if any are saved', async () => {

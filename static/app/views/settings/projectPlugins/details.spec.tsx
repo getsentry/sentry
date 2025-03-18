@@ -18,7 +18,7 @@ describe('ProjectPluginDetails', function () {
   const plugin = PluginFixture();
 
   beforeAll(function () {
-    jest.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
   });
 
   beforeEach(function () {
@@ -61,7 +61,7 @@ describe('ProjectPluginDetails', function () {
   });
 
   it('resets plugin', async function () {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
     const router = RouterFixture({
       params: {projectId: project.slug, pluginId: plugin.id},
     });
@@ -85,7 +85,7 @@ describe('ProjectPluginDetails', function () {
   });
 
   it('enables/disables plugin', async function () {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
     const router = RouterFixture({
       params: {projectId: project.slug, pluginId: plugin.id},
     });

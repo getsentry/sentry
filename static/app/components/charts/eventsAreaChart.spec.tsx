@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import BaseChart from 'sentry/components/charts/baseChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div data-test-id="area-chart" />);
+vi.mock('sentry/components/charts/baseChart', () => {
+  return vi.fn().mockImplementation(() => <div data-test-id="area-chart" />);
 });
 
 describe('EventsChart with legend', function () {
@@ -52,6 +52,6 @@ describe('EventsChart with legend', function () {
       />
     );
     expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
-    expect(jest.mocked(BaseChart).mock.calls[0]![0].legend).toHaveProperty('data');
+    expect(vi.mocked(BaseChart).mock.calls[0]![0].legend).toHaveProperty('data');
   });
 });

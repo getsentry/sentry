@@ -5,14 +5,14 @@ import * as useFeedback from 'sentry/components/feedback/widget/useFeedback';
 import {GlobalFeedbackForm, useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 const mockForm = {
-  appendToDom: jest.fn(),
-  open: jest.fn(),
-  close: jest.fn(),
-  removeFromDom: jest.fn(),
+  appendToDom: vi.fn(),
+  open: vi.fn(),
+  close: vi.fn(),
+  removeFromDom: vi.fn(),
 };
 
 const mockFeedback = {
-  createForm: jest.fn().mockResolvedValue(mockForm),
+  createForm: vi.fn().mockResolvedValue(mockForm),
 } as unknown as FeedbackIntegration;
 
 const defaultOptions = {
@@ -26,10 +26,11 @@ const defaultOptions = {
 
 describe('useFeedbackForm', function () {
   beforeEach(() => {
-    jest
-      .spyOn(useFeedback, 'useFeedback')
-      .mockReturnValue({feedback: mockFeedback, options: defaultOptions});
-    jest.clearAllMocks();
+    vi.spyOn(useFeedback, 'useFeedback').mockReturnValue({
+      feedback: mockFeedback,
+      options: defaultOptions,
+    });
+    vi.clearAllMocks();
   });
 
   it('can open the form using useFeedbackForm', async function () {

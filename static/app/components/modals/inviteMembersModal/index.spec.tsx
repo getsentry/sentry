@@ -21,7 +21,7 @@ describe('InviteMembersModal', function () {
     client: typeof MockApiClient,
     orgSlug: string,
     roles?: Array<Record<PropertyKey, unknown>>
-  ) => jest.Mock;
+  ) => vi.Mock;
   const defaultMockOrganizationRoles: MockApiResponseFn = (client, orgSlug, roles) => {
     return client.addMockResponse({
       url: `/organizations/${orgSlug}/members/me/`,
@@ -78,7 +78,7 @@ describe('InviteMembersModal', function () {
     TeamStore.loadInitialData(orgTeams);
 
     MockApiClient.clearMockResponses();
-    const mocks: jest.Mock[] = [];
+    const mocks: vi.Mock[] = [];
     mockApiResponses.forEach(mockApiResponse => {
       mocks.push(mockApiResponse(MockApiClient, org.slug, roles));
     });
@@ -115,8 +115,8 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders for superuser', async function () {
-    jest.mock('sentry/utils/isActiveSuperuser', () => ({
-      isActiveSuperuser: jest.fn(),
+    vi.mock('sentry/utils/isActiveSuperuser', () => ({
+      isActiveSuperuser: vi.fn(),
     }));
 
     const errorResponse: MockApiResponseFn = (client, orgSlug, _) => {

@@ -353,8 +353,8 @@ describe('SpanTreeModel', () => {
 
     expect(spans).toEqual(fullWaterfall);
 
-    let mockAddTraceBounds = jest.fn();
-    let mockRemoveTraceBounds = jest.fn();
+    let mockAddTraceBounds = vi.fn();
+    let mockRemoveTraceBounds = vi.fn();
 
     // embed a child transaction
     const eventSlug = generateEventSlug({
@@ -463,8 +463,8 @@ describe('SpanTreeModel', () => {
 
     expect(spans).toEqual(fullWaterfallExpected);
 
-    mockAddTraceBounds = jest.fn();
-    mockRemoveTraceBounds = jest.fn();
+    mockAddTraceBounds = vi.fn();
+    mockRemoveTraceBounds = vi.fn();
 
     // un-embed a child transaction
     promise = spanTreeModel.makeToggleEmbeddedChildren({

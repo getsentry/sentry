@@ -7,12 +7,12 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import Monitors from 'sentry/views/monitors/overview';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockNavigate = jest.fn();
+const mockUseNavigate = vi.mocked(useNavigate);
+const mockNavigate = vi.fn();
 mockUseNavigate.mockReturnValue(mockNavigate);
 
 describe('Monitors Overview', function () {

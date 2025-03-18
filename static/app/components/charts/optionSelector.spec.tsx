@@ -15,13 +15,13 @@ describe('Charts > OptionSelector (Multiple)', function () {
     {label: 'count_unique(user)', value: 'count_unique(user)'},
     {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
-  const onChangeStub = jest.fn();
+  const onChangeStub = vi.fn();
   const organization = OrganizationFixture({
     features: [...features],
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   function TestComponent() {

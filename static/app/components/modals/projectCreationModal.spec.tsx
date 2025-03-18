@@ -16,7 +16,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('Project Creation Modal', function () {
-  const closeModal = jest.fn();
+  const closeModal = vi.fn();
   const organization = OrganizationFixture();
 
   it('renders modal', async function () {
@@ -24,9 +24,9 @@ describe('Project Creation Modal', function () {
       <ProjectCreationModal
         defaultCategory="browser"
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
       />
     );

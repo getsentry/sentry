@@ -6,7 +6,7 @@ import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew'
 import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('WhatsNew', function () {
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe('WhatsNew', function () {
       url: `/organizations/org-slug/broadcasts/`,
       body: [],
     });
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('renders empty state', async function () {
@@ -31,7 +31,8 @@ describe('WhatsNew', function () {
   });
 
   it('displays unseen broadcasts indicator', async function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -77,7 +78,7 @@ describe('WhatsNew', function () {
     await screen.findByText('Test Broadcast 1');
 
     // Advance by 1 second to trigger the mark as seen delay
-    act(() => jest.advanceTimersByTime(1000));
+    act(() => vi.advanceTimersByTime(1000));
 
     await waitFor(() => {
       expect(screen.queryByTestId('whats-new-badge')).not.toBeInTheDocument();

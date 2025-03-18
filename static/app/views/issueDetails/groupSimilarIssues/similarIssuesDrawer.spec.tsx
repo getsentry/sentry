@@ -16,7 +16,7 @@ describe('SimilarIssuesDrawer', function () {
   const router = RouterFixture({
     params: {groupId: group.id},
   });
-  let mockSimilarIssues: jest.Mock;
+  let mockSimilarIssues: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

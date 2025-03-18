@@ -7,13 +7,13 @@ import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequ
 
 const SAMPLE_RATE = 0.5;
 
-jest.mock('sentry/actionCreators/events', () => ({
-  doEventsRequest: jest.fn(),
+vi.mock('sentry/actionCreators/events', () => ({
+  doEventsRequest: vi.fn(),
 }));
 
 describe('OnDemandMetricRequest', function () {
   const organization = OrganizationFixture();
-  const mock = jest.fn(() => null);
+  const mock = vi.fn(() => null);
 
   const DEFAULTS = {
     api: new MockApiClient(),
@@ -31,7 +31,7 @@ describe('OnDemandMetricRequest', function () {
 
   describe('with props changes', function () {
     beforeAll(function () {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
+      vi.mocked(doEventsRequest).mockImplementation(() =>
         Promise.resolve({
           isMetricsData: true,
           data: [],

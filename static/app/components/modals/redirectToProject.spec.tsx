@@ -4,10 +4,11 @@ import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 import {openModal} from 'sentry/actionCreators/modal';
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
 
-jest.unmock('sentry/utils/recreateRoute');
+vi.unmock('sentry/utils/recreateRoute');
 
 describe('RedirectToProjectModal', function () {
-  jest.useFakeTimers();
+  vi.useRealTimers();
+  vi.useFakeTimers();
 
   it('has timer to redirect to new slug after mounting', function () {
     const {routerProps} = initializeOrg({
@@ -21,7 +22,7 @@ describe('RedirectToProjectModal', function () {
       },
     });
 
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+    vi.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     renderGlobalModal();
 
@@ -31,10 +32,10 @@ describe('RedirectToProjectModal', function () {
       ))
     );
 
-    act(() => jest.advanceTimersByTime(4900));
+    act(() => vi.advanceTimersByTime(4900));
     expect(window.location.assign).not.toHaveBeenCalled();
 
-    act(() => jest.advanceTimersByTime(200));
+    act(() => vi.advanceTimersByTime(200));
     expect(window.location.assign).toHaveBeenCalledTimes(1);
     expect(window.location.assign).toHaveBeenCalledWith('/org-slug/new-slug/');
   });

@@ -17,12 +17,12 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError} from 'sentry/views/replays/types';
 
-jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
+vi.mock('sentry/utils/replays/hooks/useReplayOnboarding');
+vi.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 // Replay clip preview is very heavy, mock it out
-jest.mock(
+vi.mock(
   'sentry/components/events/eventReplay/replayClipPreview',
   () =>
     function () {
@@ -70,13 +70,13 @@ const mockReplay = ReplayReader.factory({
   }),
 });
 
-jest.mocked(useLoadReplayReader).mockImplementation(() => {
+vi.mocked(useLoadReplayReader).mockImplementation(() => {
   return {
     attachments: [],
     errors: mockErrors,
     fetchError: undefined,
     fetching: false,
-    onRetry: jest.fn(),
+    onRetry: vi.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
@@ -85,11 +85,9 @@ jest.mocked(useLoadReplayReader).mockImplementation(() => {
 });
 
 describe('EventReplay', function () {
-  const MockUseReplayOnboardingSidebarPanel = jest.mocked(
-    useReplayOnboardingSidebarPanel
-  );
+  const MockUseReplayOnboardingSidebarPanel = vi.mocked(useReplayOnboardingSidebarPanel);
 
-  const MockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
+  const MockUseHaveSelectedProjectsSentAnyReplayEvents = vi.mocked(
     useHaveSelectedProjectsSentAnyReplayEvents
   );
 
@@ -117,18 +115,18 @@ describe('EventReplay', function () {
       body: {},
     });
 
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
-      reloadProjects: jest.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       projects: [project],
     });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
+      activateSidebar: vi.fn(),
     });
     MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       hasSentOneReplay: false,
@@ -138,7 +136,7 @@ describe('EventReplay', function () {
 
   it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
+      activateSidebar: vi.fn(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -153,7 +151,7 @@ describe('EventReplay', function () {
 
   it('should render a replay when there is a replayId from tags', async function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
+      activateSidebar: vi.fn(),
     });
     render(
       <EventReplay
@@ -172,7 +170,7 @@ describe('EventReplay', function () {
 
   it('should render a replay when there is a replay_id from contexts', async function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
+      activateSidebar: vi.fn(),
     });
     render(
       <EventReplay

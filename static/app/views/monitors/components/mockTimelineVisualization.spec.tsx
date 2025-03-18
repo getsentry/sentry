@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MockTimelineVisualization} from 'sentry/views/monitors/components/mockTimelineVisualization';
 
-jest.mock('sentry/utils/useDimensions', () => ({
+vi.mock('sentry/utils/useDimensions', () => ({
   useDimensions: () => ({width: 800}),
 }));
 

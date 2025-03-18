@@ -5,7 +5,7 @@ import BreadcrumbTitle from './breadcrumbTitle';
 import {BreadcrumbProvider} from './context';
 import SettingsBreadcrumb from '.';
 
-jest.unmock('sentry/utils/recreateRoute');
+vi.unmock('sentry/utils/recreateRoute');
 
 describe('BreadcrumbTitle', function () {
   const testRoutes = [

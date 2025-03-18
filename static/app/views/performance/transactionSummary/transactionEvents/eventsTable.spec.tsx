@@ -128,7 +128,7 @@ describe('Performance GridEditable Table', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async function () {

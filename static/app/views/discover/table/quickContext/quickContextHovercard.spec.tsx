@@ -77,7 +77,7 @@ describe('Quick Context', function () {
       await userEvent.hover(screen.getByText('Text from Child'));
 
       // Error is expected, do not fail when calling console.error
-      jest.spyOn(console, 'error').mockImplementation();
+      vi.spyOn(console, 'error').mockImplementation();
       expect(
         await screen.findByText(/Failed to load context for column./i)
       ).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe('Quick Context', function () {
     });
 
     it('Renders event id header', async () => {
-      jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
+      vi.spyOn(ConfigStore, 'get').mockImplementation(() => null);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
         body: EventFixture({type: EventOrGroupType.ERROR, entries: []}),

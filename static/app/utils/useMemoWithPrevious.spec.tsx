@@ -6,7 +6,7 @@ describe('useMemoWithPrevious', () => {
   it('calls factory with null', () => {
     const dep = {};
 
-    const factory = jest.fn().mockImplementation(() => 'foo');
+    const factory = vi.fn().mockImplementation(() => 'foo');
 
     const {result} = renderHook(() => useMemoWithPrevious(factory, [dep]));
     expect(factory).toHaveBeenCalledWith(null);
@@ -14,7 +14,7 @@ describe('useMemoWithPrevious', () => {
   });
 
   it('calls factory with previous value', () => {
-    const factory = jest.fn().mockReturnValueOnce('foo').mockReturnValueOnce('bar');
+    const factory = vi.fn().mockReturnValueOnce('foo').mockReturnValueOnce('bar');
 
     // New reference will trigger a rerender
     const firstDependency: unknown[] = [];

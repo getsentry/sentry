@@ -28,16 +28,16 @@ describe('IssueViewNavEllipsisMenu', () => {
 
   const defaultProps: IssueViewNavEllipsisMenuProps = {
     baseUrl: '/organizations/sentry/issues',
-    onDeleteView: jest.fn(),
-    onDuplicateView: jest.fn(),
-    onUpdateView: jest.fn(),
-    setIsEditing: jest.fn(),
+    onDeleteView: vi.fn(),
+    onDuplicateView: vi.fn(),
+    onUpdateView: vi.fn(),
+    setIsEditing: vi.fn(),
     view: mockView,
     isLastView: false,
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders ellipsis menu trigger', () => {
@@ -58,7 +58,7 @@ describe('IssueViewNavEllipsisMenu', () => {
 
   it('handles rename action', async () => {
     const user = userEvent.setup();
-    const setIsEditing = jest.fn();
+    const setIsEditing = vi.fn();
     render(<IssueViewNavEllipsisMenu {...defaultProps} setIsEditing={setIsEditing} />);
 
     await user.click(screen.getByRole('button'));

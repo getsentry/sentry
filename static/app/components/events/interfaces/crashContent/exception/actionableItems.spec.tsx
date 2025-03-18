@@ -20,7 +20,7 @@ describe('Actionable Items', () => {
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     MockApiClient.clearMockResponses();
   });
 

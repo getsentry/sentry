@@ -50,7 +50,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders a list', async function () {

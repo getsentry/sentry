@@ -23,7 +23,7 @@ describe('EventGroupingInfo', function () {
     group,
   };
 
-  let groupingInfoRequest!: jest.Mock;
+  let groupingInfoRequest!: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

@@ -75,7 +75,7 @@ describe('group', () => {
 
   describe('bulkUpdate()', function () {
     beforeEach(function () {
-      jest.spyOn(GroupStore, 'onUpdate'); // stub GroupStore.onUpdate call from update
+      vi.spyOn(GroupStore, 'onUpdate'); // stub GroupStore.onUpdate call from update
     });
 
     it('should use itemIds as query if provided', function () {
@@ -157,7 +157,7 @@ describe('group', () => {
     // TODO: this is totally copypasta from the test above. We need to refactor
     //       these API methods/tests.
     beforeEach(function () {
-      jest.spyOn(GroupStore, 'onMerge'); // stub GroupStore.onMerge call from mergeGroups
+      vi.spyOn(GroupStore, 'onMerge'); // stub GroupStore.onMerge call from mergeGroups
     });
 
     it('should use itemIds as query if provided', function () {

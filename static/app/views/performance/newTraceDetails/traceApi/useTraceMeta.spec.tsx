@@ -30,8 +30,8 @@ const mockedReplayTraces: ReplayTrace[] = [
 describe('useTraceMeta', () => {
   beforeEach(function () {
     queryClient.clear();
-    jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    vi.clearAllMocks();
+    vi.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Returns merged meta results', async () => {

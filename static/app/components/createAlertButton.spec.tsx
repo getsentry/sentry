@@ -13,19 +13,19 @@ import EventView from 'sentry/utils/discover/eventView';
 import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
-const onClickMock = jest.fn();
+const onClickMock = vi.fn();
 
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/actionCreators/navigation');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects: [],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -35,7 +35,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('should trigger onClick callback', async () => {
@@ -70,10 +70,10 @@ describe('CreateAlertFromViewButton', () => {
         access: [],
       },
     ];
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -106,10 +106,10 @@ describe('CreateAlertFromViewButton', () => {
         access: [],
       },
     ];
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -155,10 +155,10 @@ describe('CreateAlertFromViewButton', () => {
       },
     ];
 
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -258,10 +258,10 @@ describe('CreateAlertFromViewButton', () => {
     const router = RouterFixture();
 
     const projects = [ProjectFixture()];
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,

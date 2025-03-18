@@ -8,7 +8,7 @@ describe('Button', function () {
   });
 
   it('calls `onClick` callback', async function () {
-    const spy = jest.fn();
+    const spy = vi.fn();
     render(<Button onClick={spy}>Click me</Button>);
     await userEvent.click(screen.getByText('Click me'));
 
@@ -16,7 +16,7 @@ describe('Button', function () {
   });
 
   it('does not call `onClick` on disabled buttons', async function () {
-    const spy = jest.fn();
+    const spy = vi.fn();
     render(
       <Button onClick={spy} disabled>
         Click me

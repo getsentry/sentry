@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import localStorage from 'sentry/utils/localStorage';
 
-jest.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/localStorage');
 
 async function changeReactMentionsInput(value: string) {
   const textbox = screen.getByRole('textbox');
@@ -14,7 +14,7 @@ async function changeReactMentionsInput(value: string) {
 
 describe('NoteInputWithStorage', function () {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const defaultProps = {
@@ -26,9 +26,9 @@ describe('NoteInputWithStorage', function () {
   };
 
   it('loads draft item from local storage when mounting', function () {
-    jest
-      .mocked(localStorage.getItem)
-      .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
+    vi.mocked(localStorage.getItem).mockImplementation(() =>
+      JSON.stringify({item1: 'saved item'})
+    );
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
@@ -49,11 +49,9 @@ describe('NoteInputWithStorage', function () {
   });
 
   it('removes draft item after submitting', async function () {
-    jest
-      .mocked(localStorage.getItem)
-      .mockImplementation(() =>
-        JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
-      );
+    vi.mocked(localStorage.getItem).mockImplementation(() =>
+      JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
+    );
 
     render(<NoteInputWithStorage {...defaultProps} />);
 

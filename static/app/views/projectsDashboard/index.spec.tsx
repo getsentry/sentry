@@ -19,8 +19,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
 
-jest.unmock('lodash/debounce');
-jest.mock('lodash/debounce', () => {
+vi.unmock('lodash/debounce');
+vi.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
     (fn: (...args: any[]) => void, timeout: number) =>
@@ -554,11 +554,12 @@ describe('ProjectsDashboard', function () {
     it('uses ProjectsStatsStore to load stats', async function () {
       ProjectsStore.loadInitialData(projects);
 
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       ProjectsStatsStore.onStatsLoadSuccess([
         {...projects[0]!, stats: [[1517281200, 2]]},
       ]);
-      const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
+      const loadStatsSpy = vi.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: projects.map(project => ({
@@ -595,7 +596,7 @@ describe('ProjectsDashboard', function () {
       ).toBeInTheDocument();
 
       // Advance timers so that batched request fires
-      act(() => jest.advanceTimersByTime(51));
+      act(() => vi.advanceTimersByTime(51));
       expect(mock).toHaveBeenCalledTimes(1);
       // query ids = 3, 2, 4 = bookmarked
       // 1 - already loaded in store so shouldn't be in query
@@ -607,7 +608,7 @@ describe('ProjectsDashboard', function () {
           }),
         })
       );
-      jest.useRealTimers();
+      vi.useRealTimers();
 
       // All cards have loaded
       await waitFor(() => {

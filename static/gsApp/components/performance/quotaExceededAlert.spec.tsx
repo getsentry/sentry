@@ -7,8 +7,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {QuotaExceededAlert} from './quotaExceededAlert';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('Renders QuotaExceededAlert correctly', function () {
   const {organization} = initializeOrg();
@@ -26,9 +26,10 @@ describe('Renders QuotaExceededAlert correctly', function () {
     } as any,
   });
   beforeEach(function () {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-12-14'));
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-12-14'));
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -45,7 +46,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
       },
     });
 
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {statsPeriod: '7d'},

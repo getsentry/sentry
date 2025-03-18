@@ -10,7 +10,7 @@ import type {Config} from 'sentry/types/system';
 import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName} from './types';
 
-jest.unmock('sentry/utils/recreateRoute');
+vi.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
   let initialData: Config;
@@ -28,7 +28,7 @@ describe('OrganizationCrumb', function () {
     OrganizationsStore.load(organizations);
 
     initialData = ConfigStore.getState();
-    jest.mocked(window.location.assign).mockReset();
+    vi.mocked(window.location.assign).mockReset();
   });
 
   const switchOrganization = async () => {

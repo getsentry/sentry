@@ -7,7 +7,7 @@ import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import ConfigStore from './stores/configStore';
 import OrganizationStore from './stores/organizationStore';
 
-jest.unmock('sentry/api');
+vi.unmock('sentry/api');
 
 describe('api', function () {
   let api: Client;
@@ -19,8 +19,8 @@ describe('api', function () {
   describe('Client', function () {
     describe('cancel()', function () {
       it('should abort any open XHR requests', function () {
-        const abort1 = jest.fn();
-        const abort2 = jest.fn();
+        const abort1 = vi.fn();
+        const abort2 = vi.fn();
 
         const req1 = new Request(new Promise(() => null), {
           abort: abort1,
@@ -41,9 +41,9 @@ describe('api', function () {
   });
 
   it('does not call success callback if 302 was returned because of a project slug change', function () {
-    const successCb = jest.fn();
+    const successCb = vi.fn();
     api.activeRequests = {
-      id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
+      id: {alive: true, requestPromise: new Promise(() => null), cancel: vi.fn()},
     };
     api.wrapCallback(
       'id',
@@ -63,8 +63,8 @@ describe('api', function () {
   });
 
   it('handles error callback', function () {
-    jest.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
-    const errorCb = jest.fn();
+    vi.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
+    const errorCb = vi.fn();
     const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];
     api.handleRequestError(
       {

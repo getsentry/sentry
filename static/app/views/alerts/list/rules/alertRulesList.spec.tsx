@@ -24,7 +24,7 @@ import {CombinedAlertType, IncidentStatus} from 'sentry/views/alerts/types';
 
 import AlertRulesList from './alertRulesList';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
   const defaultOrg = OrganizationFixture({
@@ -32,8 +32,8 @@ describe('AlertRulesList', () => {
   });
 
   TeamStore.loadInitialData([TeamFixture()], false, null);
-  let rulesMock!: jest.Mock;
-  let projectMock!: jest.Mock;
+  let rulesMock!: vi.Mock;
+  let projectMock!: vi.Mock;
   const pageLinks =
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
@@ -91,7 +91,7 @@ describe('AlertRulesList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('displays list', async () => {

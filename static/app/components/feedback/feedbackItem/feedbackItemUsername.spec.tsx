@@ -8,7 +8,7 @@ describe('FeedbackItemUsername', () => {
   beforeEach(() => {
     Object.assign(navigator, {
       clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
+        writeText: vi.fn().mockResolvedValue(''),
       },
     });
   });

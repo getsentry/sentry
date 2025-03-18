@@ -16,7 +16,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
 import * as analytics from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
   const org = OrganizationFixture();
@@ -33,9 +33,9 @@ describe('StacktraceLinkModal', () => {
     repositoryId: repo.id,
     defaultBranch: 'master',
   };
-  const onSubmit = jest.fn();
-  const closeModal = jest.fn();
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const onSubmit = vi.fn();
+  const closeModal = vi.fn();
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -53,7 +53,7 @@ describe('StacktraceLinkModal', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('links to source code with one GitHub integration', () => {

@@ -105,7 +105,7 @@ describe('IssueViewsHeader', () => {
 
   const defaultProps = {
     organization,
-    onRealtimeChange: jest.fn(),
+    onRealtimeChange: vi.fn(),
     realtimeActive: false,
     router: defaultRouter,
     selectedProjectIds: [],

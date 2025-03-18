@@ -113,11 +113,11 @@ describe('GroupStore', function () {
     const stats: Record<string, TimeseriesValue[]> = {auto: [[1611576000, 10]]};
 
     beforeEach(function () {
-      jest.spyOn(GroupStore, 'trigger');
+      vi.spyOn(GroupStore, 'trigger');
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should merge stats into existing groups', function () {
@@ -174,11 +174,11 @@ describe('GroupStore', function () {
 
   describe('update methods', function () {
     beforeEach(function () {
-      jest.spyOn(GroupStore, 'trigger');
+      vi.spyOn(GroupStore, 'trigger');
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     describe('onUpdate()', function () {

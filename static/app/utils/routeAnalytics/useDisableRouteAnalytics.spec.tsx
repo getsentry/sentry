@@ -5,15 +5,15 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 import useDisableRouteAnalytics from './useDisableRouteAnalytics';
 
 describe('useDisableRouteAnalytics', function () {
-  const setDisableRouteAnalytics = jest.fn();
+  const setDisableRouteAnalytics = vi.fn();
   const otherFns = {
-    setRouteAnalyticsParams: jest.fn(),
-    setOrganization: jest.fn(),
-    setEventNames: jest.fn(),
+    setRouteAnalyticsParams: vi.fn(),
+    setOrganization: vi.fn(),
+    setEventNames: vi.fn(),
   };
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('disables analytics', function () {

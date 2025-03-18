@@ -13,7 +13,7 @@ import {getAllViews} from 'sentry/views/discover/data';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 function mount(
   location: ReturnType<typeof LocationFixture>,
@@ -23,7 +23,7 @@ function mount(
   savedQuery: SavedQuery | NewQuery | undefined,
   yAxis: string[],
   disabled = false,
-  setSavedQuery = jest.fn()
+  setSavedQuery = vi.fn()
 ) {
   return render(
     <SavedQueryButtonGroup
@@ -37,7 +37,7 @@ function mount(
       router={router}
       queryDataLoading={false}
       setSavedQuery={setSavedQuery}
-      setHomepageQuery={jest.fn()}
+      setHomepageQuery={vi.fn()}
     />
   );
 }
@@ -90,11 +90,11 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('building on a new query', () => {
-    const mockUtils = jest
+    const mockUtils = vi
       .spyOn(utils, 'handleCreateQuery')
       .mockImplementation(() => Promise.resolve(savedQuery));
 
@@ -255,10 +255,10 @@ describe('Discover > SaveQueryButtonGroup', function () {
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils: jest.SpyInstance;
+    let mockUtils: vi.SpyInstance;
 
     beforeEach(() => {
-      mockUtils = jest
+      mockUtils = vi
         .spyOn(utils, 'handleDeleteQuery')
         .mockImplementation(() => Promise.resolve());
     });
@@ -345,7 +345,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils: jest.SpyInstance;
+    let mockUtils: vi.SpyInstance;
 
     it('renders the correct set of buttons', async () => {
       mount(
@@ -368,7 +368,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
     describe('updates the saved query', () => {
       beforeEach(() => {
-        mockUtils = jest
+        mockUtils = vi
           .spyOn(utils, 'handleUpdateQuery')
           .mockImplementation(() => Promise.resolve(savedQuery));
       });
@@ -378,7 +378,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       });
 
       it('accepts a well-formed query', async () => {
-        const mockSetSavedQuery = jest.fn();
+        const mockSetSavedQuery = vi.fn();
         mount(
           location,
           organization,
@@ -409,7 +409,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
     describe('creates a separate query', () => {
       beforeEach(() => {
-        mockUtils = jest
+        mockUtils = vi
           .spyOn(utils, 'handleCreateQuery')
           .mockImplementation(() => Promise.resolve(savedQuery));
       });

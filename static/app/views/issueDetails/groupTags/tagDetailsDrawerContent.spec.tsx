@@ -14,8 +14,8 @@ import {
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
+const mockNavigate = vi.fn();
+vi.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
 

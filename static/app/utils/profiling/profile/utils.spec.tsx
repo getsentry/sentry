@@ -35,7 +35,7 @@ describe('createSentrySampleProfileFrameIndex', () => {
 
 describe('memoizeByReference', () => {
   it('doesnt crash w/o args', () => {
-    const spy = jest.fn().mockImplementation(() => 1);
+    const spy = vi.fn().mockImplementation(() => 1);
     const fn = memoizeByReference(spy);
 
     // @ts-expect-error this shouldnt happen, but just in case it somehow gets passed
@@ -48,7 +48,7 @@ describe('memoizeByReference', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
   it('memoizes when values match by reference', () => {
-    const fn = jest.fn().mockImplementation(v => v);
+    const fn = vi.fn().mockImplementation(v => v);
 
     const val = Math.random();
     const memoized = memoizeByReference(fn);
@@ -62,7 +62,7 @@ describe('memoizeByReference', () => {
   });
 
   it('re-evaluates when values do not match by reference', () => {
-    const fn = jest.fn().mockImplementation(v => v);
+    const fn = vi.fn().mockImplementation(v => v);
 
     const memoized = memoizeByReference(fn);
 
@@ -77,7 +77,7 @@ describe('memoizeByReference', () => {
 
 describe('memoizeVariadicByReference', () => {
   it('doesnt crash w/o args', () => {
-    const spy = jest.fn().mockImplementation(() => 1);
+    const spy = vi.fn().mockImplementation(() => 1);
     const fn = memoizeVariadicByReference(spy);
 
     // this shouldnt happen, but just in case it somehow gets passed
@@ -89,7 +89,7 @@ describe('memoizeVariadicByReference', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
   it('memoizes when args match by reference', () => {
-    const fn = jest.fn().mockImplementation((a, b) => a + b);
+    const fn = vi.fn().mockImplementation((a, b) => a + b);
 
     const memoized = memoizeVariadicByReference(fn);
     const a = 1;
@@ -104,7 +104,7 @@ describe('memoizeVariadicByReference', () => {
   });
 
   it('re-evaluates when values do not match by reference', () => {
-    const fn = jest.fn().mockImplementation((a, b) => a + b);
+    const fn = vi.fn().mockImplementation((a, b) => a + b);
 
     const memoized = memoizeVariadicByReference(fn);
     const a = 1;

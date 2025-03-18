@@ -36,7 +36,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );
@@ -62,7 +62,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );
@@ -96,7 +96,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );
@@ -154,7 +154,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );
@@ -176,7 +176,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );
@@ -200,7 +200,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );
@@ -222,7 +222,7 @@ describe('ArithmeticInput', function () {
         type="text"
         required
         value=""
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         options={columns}
       />
     );

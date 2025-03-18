@@ -8,11 +8,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {useTestRouteContext} from 'sentry/utils/useRouteContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
-const mockUsingCustomerDomain = jest.fn();
-const mockCustomerDomain = jest.fn();
+const mockUsingCustomerDomain = vi.fn();
+const mockCustomerDomain = vi.fn();
 
-jest.mock('sentry/constants', () => {
-  const sentryConstant = jest.requireActual('sentry/constants');
+vi.mock('sentry/constants', () => {
+  const sentryConstant = vi.importActual('sentry/constants');
   return {
     ...sentryConstant,
 
@@ -78,7 +78,7 @@ describe('useParams', () => {
 
   describe('customer domains', function () {
     afterEach(function () {
-      jest.resetAllMocks();
+      vi.resetAllMocks();
     });
 
     it('populates orgId when customer domain is being used', function () {

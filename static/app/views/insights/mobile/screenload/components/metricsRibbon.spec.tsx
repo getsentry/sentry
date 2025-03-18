@@ -8,13 +8,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('MetricsRibbon', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),

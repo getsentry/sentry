@@ -12,9 +12,9 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 
 // Make sure we use `duration: null` to test add/remove
 
-jest.mock('framer-motion', () => ({
-  ...jest.requireActual('framer-motion'),
-  AnimatePresence: jest.fn(({children}) => children),
+vi.mock('framer-motion', () => ({
+  ...vi.importActual('framer-motion'),
+  AnimatePresence: vi.fn(({children}) => children),
 }));
 
 describe('Indicators', function () {
@@ -157,20 +157,21 @@ describe('Indicators', function () {
   });
 
   it('hides after 10s', function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Duration', '', {append: true, duration: 10000}));
-    act(() => jest.advanceTimersByTime(9000));
+    act(() => vi.advanceTimersByTime(9000));
     expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
     // Still visible
-    act(() => jest.advanceTimersByTime(999));
+    act(() => vi.advanceTimersByTime(999));
     expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
-    act(() => jest.advanceTimersByTime(2));
+    act(() => vi.advanceTimersByTime(2));
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

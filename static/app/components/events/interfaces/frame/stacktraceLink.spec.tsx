@@ -32,10 +32,10 @@ describe('StacktraceLink', function () {
   const frame = {filename: '/sentry/app.py', lineNo: 233, inApp: true} as Frame;
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     HookStore.init?.();

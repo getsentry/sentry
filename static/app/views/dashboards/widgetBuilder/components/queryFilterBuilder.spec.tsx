@@ -11,8 +11,8 @@ import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuild
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+vi.mock('sentry/utils/useCustomMeasurements');
+vi.mock('sentry/views/explore/contexts/spanTagsContext');
 
 describe('QueryFilterBuilder', () => {
   let organization: Organization;
@@ -20,8 +20,8 @@ describe('QueryFilterBuilder', () => {
     organization = OrganizationFixture({
       features: ['dashboards-widget-builder-redesign'],
     });
-    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
-    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
+    vi.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
+    vi.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
     MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
   });

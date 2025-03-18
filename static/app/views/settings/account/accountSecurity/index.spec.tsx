@@ -23,7 +23,7 @@ const AUTH_ENDPOINT = '/auth/';
 describe('AccountSecurity', function () {
   const router = RouterFixture();
   beforeEach(function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+    vi.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -37,7 +37,7 @@ describe('AccountSecurity', function () {
   });
 
   afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
+    vi.mocked(window.location.assign).mockRestore();
   });
 
   function renderComponent() {
@@ -48,8 +48,8 @@ describe('AccountSecurity', function () {
           authenticators={[]}
           hasVerifiedEmail
           countEnrolled={0}
-          handleRefresh={jest.fn()}
-          onDisable={jest.fn()}
+          handleRefresh={vi.fn()}
+          onDisable={vi.fn()}
           orgsRequire2fa={[]}
           location={router.location}
           route={router.routes[0]!}
@@ -238,7 +238,7 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
+    const openEmailModalFunc = vi.spyOn(ModalStore, 'openModal');
 
     expect(
       await screen.findByRole('status', {name: 'Authentication Method Inactive'})

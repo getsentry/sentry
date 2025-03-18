@@ -6,18 +6,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock: jest.Mock;
-  let eventsStatsRequestMock: jest.Mock;
-  let samplesRequestMock: jest.Mock;
-  let spanFieldTagsMock: jest.Mock;
+  let eventsRequestMock: vi.Mock;
+  let eventsStatsRequestMock: vi.Mock;
+  let samplesRequestMock: vi.Mock;
+  let spanFieldTagsMock: vi.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -34,7 +34,7 @@ describe('messageSpanSamplesPanel', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {transaction: 'sentry.tasks.store.save_event', destination: 'event-queue'},
@@ -136,11 +136,11 @@ describe('messageSpanSamplesPanel', () => {
   });
 
   afterAll(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders consumer panel', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {
@@ -236,7 +236,7 @@ describe('messageSpanSamplesPanel', () => {
   });
 
   it('renders producer panel', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {

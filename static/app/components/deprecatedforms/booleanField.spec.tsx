@@ -17,7 +17,7 @@ describe('BooleanField', function () {
   });
 
   it('toggles', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<BooleanField name="fieldName" onChange={onChange} />);
 
     await userEvent.click(screen.getByRole('checkbox'));

@@ -22,7 +22,7 @@ describe('PlanFeature', function () {
   });
 
   it('provides the plan required for a feature', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
     SubscriptionStore.set(organization.slug, sub);
@@ -42,7 +42,7 @@ describe('PlanFeature', function () {
   });
 
   it('provides the business plan', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
     SubscriptionStore.set(organization.slug, sub);
@@ -62,7 +62,7 @@ describe('PlanFeature', function () {
   });
 
   it('provides no plan if the feature is not on a plan', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
     SubscriptionStore.set(organization.slug, sub);
@@ -79,7 +79,7 @@ describe('PlanFeature', function () {
   });
 
   it('provides a plan when the tiers mismatch', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
 
     const sub = SubscriptionFixture({
       organization,
@@ -103,7 +103,7 @@ describe('PlanFeature', function () {
   });
 
   it('reports tier change as null when no tier change is required', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: 'am2'});
     SubscriptionStore.set(organization.slug, sub);
@@ -123,7 +123,7 @@ describe('PlanFeature', function () {
   });
 
   it('provides the business plan for am3', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'am3'},
@@ -148,7 +148,7 @@ describe('PlanFeature', function () {
   });
 
   it('offers business upgrade if on sponsored plan', async function () {
-    const mockFn = jest.fn(() => null);
+    const mockFn = vi.fn(() => null);
 
     const sub = SubscriptionFixture({
       organization,

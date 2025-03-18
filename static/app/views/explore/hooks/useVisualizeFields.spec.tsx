@@ -13,8 +13,8 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
+vi.mock('sentry/utils/useLocation');
+const mockedUsedLocation = vi.mocked(useLocation);
 
 function createWrapper(organization: Organization) {
   return function ({children}: {children?: React.ReactNode}) {

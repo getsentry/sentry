@@ -20,7 +20,7 @@ import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';

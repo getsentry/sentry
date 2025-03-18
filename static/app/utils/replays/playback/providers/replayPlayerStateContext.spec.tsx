@@ -52,14 +52,10 @@ describe('replayPlayerStateContext', () => {
   let replayerPauseMock: any;
 
   beforeEach(() => {
-    replayerOnMock = jest.spyOn(Replayer.prototype, 'on').mockImplementation(jest.fn());
-    replayerOffMock = jest.spyOn(Replayer.prototype, 'off').mockImplementation(jest.fn());
-    replayerPlayMock = jest
-      .spyOn(Replayer.prototype, 'play')
-      .mockImplementation(jest.fn());
-    replayerPauseMock = jest
-      .spyOn(Replayer.prototype, 'pause')
-      .mockImplementation(jest.fn());
+    replayerOnMock = vi.spyOn(Replayer.prototype, 'on').mockImplementation(vi.fn());
+    replayerOffMock = vi.spyOn(Replayer.prototype, 'off').mockImplementation(vi.fn());
+    replayerPlayMock = vi.spyOn(Replayer.prototype, 'play').mockImplementation(vi.fn());
+    replayerPauseMock = vi.spyOn(Replayer.prototype, 'pause').mockImplementation(vi.fn());
   });
 
   afterEach(() => {

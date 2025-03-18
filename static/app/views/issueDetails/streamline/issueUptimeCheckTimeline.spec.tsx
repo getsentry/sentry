@@ -16,17 +16,11 @@ import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/use
 
 const startTime = new Date('2025-01-01T11:00:00Z');
 
-jest.mock('sentry/views/issueDetails/streamline/useIssueTimeWindowConfig');
+vi.mock('sentry/views/issueDetails/streamline/useIssueTimeWindowConfig');
 
-jest
-  .mocked(useIssueTimeWindowConfig)
-  .mockReturnValue(
-    getConfigFromTimeRange(
-      startTime,
-      new Date(startTime.getTime() + 1000 * 60 * 60),
-      1000
-    )
-  );
+vi.mocked(useIssueTimeWindowConfig).mockReturnValue(
+  getConfigFromTimeRange(startTime, new Date(startTime.getTime() + 1000 * 60 * 60), 1000)
+);
 
 describe('IssueUptimeCheckTimeline', () => {
   const uptimeRuleId = '123';

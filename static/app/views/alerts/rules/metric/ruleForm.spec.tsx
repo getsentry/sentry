@@ -17,16 +17,16 @@ import {
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/utils/analytics', () => ({
+vi.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/utils/analytics', () => ({
   metric: {
-    startSpan: jest.fn(() => ({
-      setTag: jest.fn(),
-      setData: jest.fn(),
+    startSpan: vi.fn(() => ({
+      setTag: vi.fn(),
+      setData: vi.fn(),
     })),
-    endSpan: jest.fn(),
+    endSpan: vi.fn(),
   },
-  trackAnalytics: jest.fn(),
+  trackAnalytics: vi.fn(),
 }));
 
 describe('Incident Rules Form', () => {
@@ -112,7 +112,7 @@ describe('Incident Rules Form', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Viewing the rule', () => {
@@ -560,7 +560,7 @@ describe('Incident Rules Form', () => {
         query: 'transaction.duration:<1s',
       });
 
-      const onSubmitSuccess = jest.fn();
+      const onSubmitSuccess = vi.fn();
 
       createWrapper({
         ruleId: validOnDemandMetricRule.id,
@@ -582,7 +582,7 @@ describe('Incident Rules Form', () => {
       });
       location = {...location, query: {migration: '1'}};
 
-      const onSubmitSuccess = jest.fn();
+      const onSubmitSuccess = vi.fn();
 
       createWrapper({
         ruleId: errorAlert.id,
@@ -624,7 +624,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      const onSubmitSuccess = jest.fn();
+      const onSubmitSuccess = vi.fn();
       createWrapper({
         ruleId: alertRule.id,
         rule: alertRule,
@@ -670,7 +670,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      const onSubmitSuccess = jest.fn();
+      const onSubmitSuccess = vi.fn();
       createWrapper({
         ruleId: alertRule.id,
         rule: alertRule,
@@ -697,7 +697,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      const onSubmitSuccess = jest.fn();
+      const onSubmitSuccess = vi.fn();
       createWrapper({
         ruleId: alertRule.id,
         rule: alertRule,

@@ -123,7 +123,7 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <PlatformOptionsControl

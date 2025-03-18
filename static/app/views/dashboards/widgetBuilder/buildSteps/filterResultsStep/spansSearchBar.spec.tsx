@@ -106,14 +106,14 @@ describe('SpansSearchBar', () => {
 
     renderWithProvider({
       widgetQuery: WidgetQueryFixture({conditions: 'span.op:function'}),
-      onSearch: jest.fn(),
+      onSearch: vi.fn(),
     });
 
     await screen.findByLabelText('span.op:function');
   });
 
   it('calls onSearch with the correct query', async () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
 
     renderWithProvider({widgetQuery: WidgetQueryFixture({conditions: ''}), onSearch});
 

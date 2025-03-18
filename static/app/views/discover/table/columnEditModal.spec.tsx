@@ -39,7 +39,7 @@ function mountModal(
       organization={initialData.organization}
       columns={columns}
       onApply={onApply}
-      closeModal={jest.fn()}
+      closeModal={vi.fn()}
       measurementKeys={null}
       customMeasurements={customMeasurements}
       dataset={dataset}
@@ -137,7 +137,7 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns,
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -175,7 +175,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
             {kind: 'field', field: 'user-def'},
           ],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -208,7 +208,7 @@ describe('Discover -> ColumnEditModal', function () {
             {kind: 'field', field: 'tags[project]'},
             {kind: 'field', field: 'tags[count]'},
           ],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -227,7 +227,7 @@ describe('Discover -> ColumnEditModal', function () {
             {kind: 'field', field: 'tags[project]'},
             {kind: 'field', field: 'tags[count]'},
           ],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -252,7 +252,7 @@ describe('Discover -> ColumnEditModal', function () {
               function: ['percentile', 'transaction.duration', '0.66', undefined],
             },
           ],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -280,9 +280,9 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('function & column selection', function () {
-    let onApply!: jest.Mock;
+    let onApply!: vi.Mock;
     beforeEach(function () {
-      onApply = jest.fn();
+      onApply = vi.fn();
     });
 
     it('restricts column choices', async function () {
@@ -635,9 +635,9 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('equation automatic update', function () {
-    let onApply!: jest.Mock;
+    let onApply!: vi.Mock;
     beforeEach(function () {
-      onApply = jest.fn();
+      onApply = vi.fn();
     });
     it('update simple equation columns when they change', async function () {
       mountModal(
@@ -818,7 +818,7 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [columns[0]!],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -839,7 +839,7 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [columns[0]!, columns[1]!],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -868,7 +868,7 @@ describe('Discover -> ColumnEditModal', function () {
               field: '5 + 5',
             },
           ],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -892,7 +892,7 @@ describe('Discover -> ColumnEditModal', function () {
             columns[0]!,
             columns[1]!,
           ],
-          onApply: jest.fn(),
+          onApply: vi.fn(),
           customMeasurements: {},
         },
         initialData
@@ -909,7 +909,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('apply action', function () {
-    const onApply = jest.fn();
+    const onApply = vi.fn();
     it('reflects added and removed columns', async function () {
       mountModal(
         {

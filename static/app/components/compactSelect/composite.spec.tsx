@@ -136,8 +136,8 @@ describe('CompactSelect', function () {
   });
 
   it('has separate, async self-contained select regions', async function () {
-    const region1Mock = jest.fn();
-    const region2Mock = jest.fn();
+    const region1Mock = vi.fn();
+    const region2Mock = vi.fn();
     render(
       <CompositeSelect>
         <CompositeSelect.Region
@@ -312,7 +312,7 @@ describe('CompactSelect', function () {
   });
 
   it('can use numbers as values', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <CompositeSelect>
         <CompositeSelect.Region

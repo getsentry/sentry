@@ -48,7 +48,7 @@ describe('TransactionThresholdButton', function () {
     team: ['myteams'],
     topEvents: undefined,
   });
-  const onChangeThreshold = jest.fn();
+  const onChangeThreshold = vi.fn();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

@@ -32,9 +32,9 @@ describe('MessagingIntegrationAlertRule', function () {
     msteams: msteamsIntegrations,
   };
 
-  const mockSetChannel = jest.fn();
-  const mockSetIntegration = jest.fn();
-  const mockSetProvider = jest.fn();
+  const mockSetChannel = vi.fn();
+  const mockSetIntegration = vi.fn();
+  const mockSetProvider = vi.fn();
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
@@ -44,7 +44,7 @@ describe('MessagingIntegrationAlertRule', function () {
     providersToIntegrations,
     querySuccess: true,
     shouldRenderSetupButton: false,
-    setActions: jest.fn(),
+    setActions: vi.fn(),
     setChannel: mockSetChannel,
     setIntegration: mockSetIntegration,
     setProvider: mockSetProvider,

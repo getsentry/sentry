@@ -6,13 +6,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('SpanOpSelector', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),

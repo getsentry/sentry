@@ -24,7 +24,7 @@ describe('SentryAppExternalIssueForm', () => {
   const sentryApp = SentryAppFixture();
   const sentryAppInstallation = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
-  let externalIssueRequest!: jest.Mock<any, any>;
+  let externalIssueRequest!: vi.Mock<any, any>;
 
   beforeEach(() => {
     externalIssueRequest = MockApiClient.addMockResponse({
@@ -47,7 +47,7 @@ describe('SentryAppExternalIssueForm', () => {
       render(
         <SentryAppExternalIssueForm
           event={EventFixture()}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
@@ -99,7 +99,7 @@ describe('SentryAppExternalIssueForm', () => {
       render(
         <SentryAppExternalIssueForm
           event={EventFixture()}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
@@ -123,7 +123,7 @@ describe('SentryAppExternalIssueForm', () => {
       render(
         <SentryAppExternalIssueForm
           event={EventFixture()}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
@@ -190,7 +190,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     render(
       <SentryAppExternalIssueForm
         event={EventFixture()}
-        onSubmitSuccess={jest.fn()}
+        onSubmitSuccess={vi.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}
         appName={sentryApp.name}
@@ -260,7 +260,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
     render(
       <SentryAppExternalIssueForm
         event={EventFixture()}
-        onSubmitSuccess={jest.fn()}
+        onSubmitSuccess={vi.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}
         appName={sentryApp.name}

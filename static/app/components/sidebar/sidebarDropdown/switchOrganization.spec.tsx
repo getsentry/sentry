@@ -24,11 +24,12 @@ describe('SwitchOrganization', function () {
       OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
     ]);
 
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -44,7 +45,7 @@ describe('SwitchOrganization', function () {
       '/organizations/org2/issues/'
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('uses sentryUrl when customer domain is disabled', async function () {
@@ -63,11 +64,12 @@ describe('SwitchOrganization', function () {
       }),
     ]);
 
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -78,11 +80,12 @@ describe('SwitchOrganization', function () {
     const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute('href', '/organizations/org2/issues/');
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('uses organizationUrl when customer domain enabled', async function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     const currentOrg = OrganizationFixture({
       name: 'Organization 2',
       slug: 'org2',
@@ -108,7 +111,7 @@ describe('SwitchOrganization', function () {
     });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -121,33 +124,35 @@ describe('SwitchOrganization', function () {
     const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io/issues/');
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('shows "Create an Org" if they have permission', async function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
 
     const createOrgLink = screen.getByRole('link', {name: 'Create a new organization'});
     expect(createOrgLink).toBeInTheDocument();
     expect(createOrgLink).toHaveAttribute('href', '/organizations/new/');
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('does not have "Create an Org" if they do not have permission', async function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.queryByTestId('sidebar-create-org')).not.toBeInTheDocument();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('uses sentry URL for "Create an Org"', async function () {
@@ -162,20 +167,21 @@ describe('SwitchOrganization', function () {
       },
     });
 
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization />, {
       organization: currentOrg,
     });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
 
     const createOrgLink = screen.getByRole('link', {name: 'Create a new organization'});
     expect(createOrgLink).toBeInTheDocument();
     expect(createOrgLink).toHaveAttribute('href', 'https://sentry.io/organizations/new/');
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('shows orgs pending deletion with a special icon', async function () {
@@ -186,14 +192,15 @@ describe('SwitchOrganization', function () {
 
     OrganizationsStore.load([OrganizationFixture(), orgPendingDeletion]);
 
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByTestId('pending-deletion-icon')).toBeInTheDocument();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('renders when there is no current organization', async function () {
@@ -203,16 +210,17 @@ describe('SwitchOrganization', function () {
     ]);
 
     // This can occur when disabled members of an organization will not have a current organization.
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
     expect(screen.getByText('Organization 1')).toBeInTheDocument();
     expect(screen.getByText('Organization 2')).toBeInTheDocument();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

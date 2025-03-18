@@ -25,14 +25,14 @@ describe('IssueAlertOptions', function () {
     providersToIntegrations: {},
     querySuccess: true,
     shouldRenderSetupButton: false,
-    setActions: jest.fn(),
-    setChannel: jest.fn(),
-    setIntegration: jest.fn(),
-    setProvider: jest.fn(),
+    setActions: vi.fn(),
+    setChannel: vi.fn(),
+    setIntegration: vi.fn(),
+    setProvider: vi.fn(),
   };
 
   const props = {
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     organization,
     notificationProps,
   };
@@ -46,7 +46,7 @@ describe('IssueAlertOptions', function () {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render only the `Default Rule` and `Create Later` option on empty response:[]', () => {

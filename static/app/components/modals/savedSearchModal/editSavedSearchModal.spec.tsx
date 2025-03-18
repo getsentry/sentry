@@ -35,10 +35,10 @@ describe('EditSavedSearchModal', function () {
 
   const defaultProps = {
     Body: ModalBody,
-    Header: makeClosableHeader(jest.fn()),
+    Header: makeClosableHeader(vi.fn()),
     Footer: ModalFooter,
-    CloseButton: makeCloseButton(jest.fn()),
-    closeModal: jest.fn(),
+    CloseButton: makeCloseButton(vi.fn()),
+    closeModal: vi.fn(),
     organization: OrganizationFixture(),
     savedSearch: {
       id: 'saved-search-id',

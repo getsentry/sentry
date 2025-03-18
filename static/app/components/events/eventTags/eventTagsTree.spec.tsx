@@ -63,7 +63,7 @@ describe('EventTagsTree', function () {
 
   const event = EventFixture({tags});
   const referrer = 'event-tags-table';
-  let mockDetailedProject: jest.Mock;
+  let mockDetailedProject: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

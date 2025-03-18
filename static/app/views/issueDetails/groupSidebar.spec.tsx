@@ -22,7 +22,7 @@ describe('GroupSidebar', function () {
   let group = GroupFixture();
   const {organization, project} = initializeOrg();
   const environment = 'production';
-  let tagsMock: jest.Mock;
+  let tagsMock: vi.Mock;
 
   beforeEach(function () {
     MemberListStore.loadInitialData([]);

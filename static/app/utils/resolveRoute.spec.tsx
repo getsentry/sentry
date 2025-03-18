@@ -5,10 +5,10 @@ import type {Config} from 'sentry/types/system';
 
 import {resolveRoute} from './resolveRoute';
 
-const mockDeployPreviewConfig = jest.fn();
+const mockDeployPreviewConfig = vi.fn();
 
-jest.mock('sentry/constants', () => {
-  const sentryConstants = jest.requireActual('sentry/constants');
+vi.mock('sentry/constants', () => {
+  const sentryConstants = vi.importActual('sentry/constants');
   return {
     ...sentryConstants,
     get DEPLOY_PREVIEW_CONFIG() {

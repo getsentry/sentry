@@ -11,7 +11,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.chonk';
 import {useThemeSwitcher} from './useThemeSwitcher';
 
-jest.mock('sentry/utils/removeBodyTheme');
+vi.mock('sentry/utils/removeBodyTheme');
 
 describe('useChonkTheme', () => {
   beforeEach(() => {

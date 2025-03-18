@@ -8,7 +8,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -21,7 +21,7 @@ const mockNumberTags: TagCollection = {
 };
 
 // Mock getBoundingClientRect for container
-jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
   this: HTMLElement
 ) {
   // Mock individual hint items
@@ -60,7 +60,7 @@ describe('SpansTabContent', function () {
     MockApiClient.clearMockResponses();
 
     // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation();
 
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -121,7 +121,7 @@ describe('SpansTabContent', function () {
       expect.objectContaining({result_mode: 'span samples'})
     );
 
-    (trackAnalytics as jest.Mock).mockClear();
+    (trackAnalytics as vi.Mock).mockClear();
     await userEvent.click(await screen.findByText('Trace Samples'));
 
     await screen.findByText(/No trace results found/);
@@ -131,7 +131,7 @@ describe('SpansTabContent', function () {
       expect.objectContaining({result_mode: 'trace samples'})
     );
 
-    (trackAnalytics as jest.Mock).mockClear();
+    (trackAnalytics as vi.Mock).mockClear();
     await userEvent.click(
       within(screen.getByTestId('section-mode')).getByRole('radio', {name: 'Aggregates'})
     );
@@ -145,7 +145,7 @@ describe('SpansTabContent', function () {
   });
 
   it('should show hints when the feature flag is enabled', function () {
-    jest.spyOn(spanTagsModule, 'useSpanTags').mockImplementation(type => {
+    vi.spyOn(spanTagsModule, 'useSpanTags').mockImplementation(type => {
       switch (type) {
         case 'number':
           return {tags: mockNumberTags, isLoading: false};
@@ -161,7 +161,7 @@ describe('SpansTabContent', function () {
     });
 
     // Mock clientWidth before rendering to display hints
-    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
 
     render(
       <SpansTabContent

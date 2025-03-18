@@ -106,7 +106,7 @@ describe('SentryAppRuleModal', function () {
         config={defaultConfig}
         onSubmitSuccess={() => {}}
         resetValues={resetValues}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         CloseButton={makeCloseButton(() => {})}
         Body={styledWrapper()}
         Footer={styledWrapper()}

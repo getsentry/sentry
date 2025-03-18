@@ -13,7 +13,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 
 import RelocationDetails from 'admin/views/relocationDetails';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('Relocation Details', function () {
   const api = new MockApiClient();

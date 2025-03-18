@@ -15,9 +15,9 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
 
-jest.mock('sentry/utils/localStorage');
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
+vi.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: vi.fn(),
 }));
 
 describe('TeamStatsHealth', () => {
@@ -159,7 +159,7 @@ describe('TeamStatsHealth', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   function createWrapper({
@@ -232,7 +232,7 @@ describe('TeamStatsHealth', () => {
   });
 
   it('superusers can switch to any team', async () => {
-    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+    vi.mocked(isActiveSuperuser).mockReturnValue(true);
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();

@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics', () => ({
-  trackAnalytics: jest.fn(),
+vi.mock('sentry/utils/analytics', () => ({
+  trackAnalytics: vi.fn(),
 }));
 
 import {
@@ -207,15 +207,15 @@ describe('Nav', function () {
   describe('mobile navigation', function () {
     beforeEach(() => {
       // Need useMedia() to return true for isMobile query
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = vi.fn().mockImplementation(query => ({
         matches: true,
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
       }));
     });
 

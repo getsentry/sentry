@@ -13,13 +13,13 @@ import {
 } from 'sentry/actionCreators/modal';
 import TeamMembers from 'sentry/views/settings/organizationTeams/teamMembers';
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openInviteMembersModal: jest.fn(),
-  openTeamAccessRequestModal: jest.fn(),
+vi.mock('sentry/actionCreators/modal', () => ({
+  openInviteMembersModal: vi.fn(),
+  openTeamAccessRequestModal: vi.fn(),
 }));
 
 describe('TeamMembers', function () {
-  let createMock: jest.Mock;
+  let createMock: vi.Mock;
 
   const organization = OrganizationFixture();
   const team = TeamFixture();

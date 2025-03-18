@@ -6,10 +6,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import ConfigStore from 'sentry/stores/configStore';
 
-const mockUsingCustomerDomain = jest.fn();
+const mockUsingCustomerDomain = vi.fn();
 
-jest.mock('sentry/constants', () => {
-  const sentryConstant = jest.requireActual('sentry/constants');
+vi.mock('sentry/constants', () => {
+  const sentryConstant = vi.importActual('sentry/constants');
   return {
     ...sentryConstant,
 

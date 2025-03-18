@@ -32,7 +32,7 @@ describe('IssueDetailsEventNavigation', () => {
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
@@ -41,7 +41,7 @@ describe('IssueDetailsEventNavigation', () => {
 
   describe('recommended event tabs', () => {
     it('can navigate to the oldest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<IssueDetailsEventNavigation {...defaultProps} />, {router});
 
@@ -54,7 +54,7 @@ describe('IssueDetailsEventNavigation', () => {
     });
 
     it('can navigate to the latest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<IssueDetailsEventNavigation {...defaultProps} />, {router});
 
@@ -67,7 +67,7 @@ describe('IssueDetailsEventNavigation', () => {
     });
 
     it('can navigate to the recommended event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      vi.spyOn(useMedia, 'default').mockReturnValue(true);
 
       const recommendedEventRouter = RouterFixture({
         params: {eventId: 'latest'},

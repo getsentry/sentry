@@ -83,7 +83,7 @@ describe('TagPanel', () => {
   });
 
   it('should show not found message when no tags are found', () => {
-    mockReplay!.getReplay = jest.fn().mockReturnValue({tags: {}});
+    mockReplay!.getReplay = vi.fn().mockReturnValue({tags: {}});
 
     renderComponent(mockReplay);
 

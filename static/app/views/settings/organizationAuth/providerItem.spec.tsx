@@ -23,7 +23,7 @@ describe('ProviderItem', function () {
   });
 
   it('calls configure callback', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
       organization: org,
     });

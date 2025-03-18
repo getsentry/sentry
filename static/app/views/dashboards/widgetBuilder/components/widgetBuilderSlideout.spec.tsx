@@ -20,21 +20,21 @@ import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/compone
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/utils/useParams');
+vi.mock('sentry/utils/useCustomMeasurements');
+vi.mock('sentry/views/explore/contexts/spanTagsContext');
+vi.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/utils/useParams');
 
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
+    vi.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
+    vi.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
-    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+    vi.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
     MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
 
@@ -47,7 +47,7 @@ describe('WidgetBuilderSlideout', () => {
 
   afterEach(() => {
     ModalStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should show the sort by step if the widget is a chart and there are fields selected', async () => {
@@ -57,13 +57,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -94,13 +94,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -128,13 +128,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -163,13 +163,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -192,13 +192,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -230,13 +230,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -271,13 +271,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -308,13 +308,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -352,13 +352,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
+          onSave={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -378,22 +378,22 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('calls the save method with the index if it is defined', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    vi.mocked(useParams).mockReturnValue({widgetIndex: '1'});
 
-    const onSave = jest.fn();
+    const onSave = vi.fn();
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
           onSave={onSave}
-          setIsPreviewDraggable={jest.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -405,9 +405,9 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('passes undefined as the index for onSave if the index is not defined', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+    vi.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
-    const onSave = jest.fn();
+    const onSave = vi.fn();
 
     // This is the case where we're adding a new widget
     render(
@@ -416,13 +416,13 @@ describe('WidgetBuilderSlideout', () => {
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
           isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
+          onClose={vi.fn()}
+          onQueryConditionChange={vi.fn()}
           onSave={onSave}
-          setIsPreviewDraggable={jest.fn()}
+          setIsPreviewDraggable={vi.fn()}
           isOpen
           openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}

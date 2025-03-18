@@ -108,7 +108,7 @@ describe('ErrorsConfig', function () {
   describe('getEventsRequest', function () {
     let api!: Client;
     let organization!: ReturnType<typeof OrganizationFixture>;
-    let mockEventsRequest!: jest.Mock;
+    let mockEventsRequest!: vi.Mock;
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -157,7 +157,7 @@ describe('ErrorsConfig', function () {
   describe('getSeriesRequest', function () {
     let api!: Client;
     let organization!: ReturnType<typeof OrganizationFixture>;
-    let mockEventsRequest!: jest.Mock;
+    let mockEventsRequest!: vi.Mock;
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();

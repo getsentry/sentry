@@ -4,7 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 const sampleInsights: AutofixInsight[] = [
   {
@@ -18,8 +18,8 @@ const sampleInsights: AutofixInsight[] = [
 ];
 
 beforeEach(() => {
-  (addSuccessMessage as jest.Mock).mockClear();
-  (addErrorMessage as jest.Mock).mockClear();
+  (addSuccessMessage as vi.Mock).mockClear();
+  (addErrorMessage as vi.Mock).mockClear();
   MockApiClient.clearMockResponses();
 });
 

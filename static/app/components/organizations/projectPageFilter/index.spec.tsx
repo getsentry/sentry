@@ -165,7 +165,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('handles reset', async function () {
-    const onReset = jest.fn();
+    const onReset = vi.fn();
     render(<ProjectPageFilter onReset={onReset} />, {
       router,
       organization,

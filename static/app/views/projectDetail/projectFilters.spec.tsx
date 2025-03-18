@@ -3,11 +3,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
 
 describe('ProjectDetail > ProjectFilters', () => {
-  const onSearch = jest.fn();
-  const tagValueLoader = jest.fn();
+  const onSearch = vi.fn();
+  const tagValueLoader = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     tagValueLoader.mockResolvedValue([
       {
         count: null,

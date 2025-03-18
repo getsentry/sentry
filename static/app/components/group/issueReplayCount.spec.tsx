@@ -6,15 +6,15 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 
-jest.mock('sentry/utils/replayCount/useReplayCountForIssues');
+vi.mock('sentry/utils/replayCount/useReplayCountForIssues');
 
 function mockCount(count: undefined | number) {
-  const getReplayCountForIssue = jest.fn().mockReturnValue(count);
-  jest.mocked(useReplayCountForIssues).mockReturnValue({
+  const getReplayCountForIssue = vi.fn().mockReturnValue(count);
+  vi.mocked(useReplayCountForIssues).mockReturnValue({
     getReplayCountForIssue,
-    getReplayCountForIssues: jest.fn(),
-    issueHasReplay: jest.fn(),
-    issuesHaveReplay: jest.fn(),
+    getReplayCountForIssues: vi.fn(),
+    issueHasReplay: vi.fn(),
+    issuesHaveReplay: vi.fn(),
   });
   return getReplayCountForIssue;
 }

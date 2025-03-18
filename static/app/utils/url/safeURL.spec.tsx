@@ -3,7 +3,7 @@ import {safeURL} from './safeURL';
 describe('safeURL', () => {
   const nativeConstructor = globalThis.URL;
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     globalThis.URL = nativeConstructor;
   });
 

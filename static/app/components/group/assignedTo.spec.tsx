@@ -66,7 +66,7 @@ describe('Group > AssignedTo', () => {
     ProjectsStore.loadInitialData([PROJECT_1]);
     GroupStore.loadInitialData([GROUP_1]);
 
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
+    vi.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -113,7 +113,7 @@ describe('Group > AssignedTo', () => {
   });
 
   it('can assign team', async () => {
-    const onAssign = jest.fn();
+    const onAssign = vi.fn();
     const assignedGroup: Group = {
       ...GROUP_1,
       assignedTo: {...TEAM_1, type: 'team'},
@@ -204,7 +204,7 @@ describe('Group > AssignedTo', () => {
   });
 
   it('displays suggested assignees from committers and owners', async () => {
-    const onAssign = jest.fn();
+    const onAssign = vi.fn();
     const author = CommitAuthorFixture({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,

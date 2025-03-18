@@ -16,7 +16,7 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
-jest.mock('sentry/components/lazyRender', () => ({
+vi.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
@@ -31,7 +31,7 @@ describe('MultiQueryModeContent', function () {
 
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation();
 
     MockApiClient.clearMockResponses();
 

@@ -14,7 +14,7 @@ describe('MultipleCheckbox', function () {
   });
 
   it('unselects a checked input', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
         <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
@@ -28,7 +28,7 @@ describe('MultipleCheckbox', function () {
   });
 
   it('selects an unchecked input', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
         <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>

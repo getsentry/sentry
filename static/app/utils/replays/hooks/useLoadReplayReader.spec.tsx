@@ -4,9 +4,9 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
+vi.mock('sentry/utils/replays/hooks/useReplayData', () => ({
   __esModule: true,
-  default: () => jest.fn().mockReturnValue({}),
+  default: () => vi.fn().mockReturnValue({}),
 }));
 
 const {organization, project} = initializeOrg();

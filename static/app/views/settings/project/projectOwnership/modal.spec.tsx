@@ -92,7 +92,7 @@ describe('Project Ownership', () => {
   });
 
   it('can cancel', async () => {
-    const onCancel = jest.fn();
+    const onCancel = vi.fn();
     render(
       <ProjectOwnershipModal
         issueId={issueId}

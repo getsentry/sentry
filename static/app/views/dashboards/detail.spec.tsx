@@ -37,8 +37,8 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('Dashboards > Detail', function () {
   const organization = OrganizationFixture({
@@ -191,7 +191,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', async () => {
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const openWidgetViewerModal = vi.spyOn(modals, 'openWidgetViewerModal');
 
       render(
         <CreateDashboard
@@ -236,11 +236,11 @@ describe('Dashboards > Detail', function () {
   describe('custom dashboards', function () {
     let initialData!: ReturnType<typeof initializeOrg>;
     let widgets!: Array<ReturnType<typeof WidgetFixture>>;
-    let mockVisit!: jest.Mock;
-    let mockPut!: jest.Mock;
+    let mockVisit!: vi.Mock;
+    let mockPut!: vi.Mock;
 
     beforeEach(function () {
-      window.confirm = jest.fn();
+      window.confirm = vi.fn();
       initialData = initializeOrg({
         organization,
         router: {
@@ -405,7 +405,7 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('can remove widgets', async function () {
@@ -822,7 +822,7 @@ describe('Dashboards > Detail', function () {
         location: {...initialData.router.location, pathname: '/widget/123/'},
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const openWidgetViewerModal = vi.spyOn(modals, 'openWidgetViewerModal');
       const widget = WidgetFixture({
         queries: [
           {
@@ -876,7 +876,7 @@ describe('Dashboards > Detail', function () {
         },
         params: {orgId: 'org-slug', dashboardId: '1', widgetId: '123'},
       });
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const openWidgetViewerModal = vi.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
@@ -1031,7 +1031,7 @@ describe('Dashboards > Detail', function () {
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
 
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const openWidgetViewerModal = vi.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(widgets, {
@@ -1071,7 +1071,7 @@ describe('Dashboards > Detail', function () {
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
 
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const openWidgetViewerModal = vi.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(widgets, {
@@ -1750,7 +1750,7 @@ describe('Dashboards > Detail', function () {
       render(
         <EditAccessSelector
           dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
-          onChangeEditAccess={jest.fn()}
+          onChangeEditAccess={vi.fn()}
         />,
         {
           router: initialData.router,
@@ -2212,7 +2212,7 @@ describe('Dashboards > Detail', function () {
     });
 
     describe('widget builder redesign', function () {
-      let mockUpdateDashboard!: jest.SpyInstance;
+      let mockUpdateDashboard!: vi.SpyInstance;
       beforeEach(function () {
         initialData = initializeOrg({
           organization: OrganizationFixture({
@@ -2228,14 +2228,14 @@ describe('Dashboards > Detail', function () {
         });
 
         // Mock just the updateDashboard function
-        mockUpdateDashboard = jest
+        mockUpdateDashboard = vi
           .spyOn(dashboardActions, 'updateDashboard')
           .mockResolvedValue({
             ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
           });
 
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
+        vi.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: vi.fn(),
           state: {},
         });
       });
@@ -2251,7 +2251,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2271,7 +2271,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2291,7 +2291,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2311,7 +2311,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2330,8 +2330,8 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
+        vi.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: vi.fn(),
           state: {
             title: 'Updated Widget',
           },
@@ -2342,7 +2342,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2374,8 +2374,8 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
+        vi.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: vi.fn(),
           state: {
             title: 'Totally new widget',
           },
@@ -2386,7 +2386,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2419,8 +2419,8 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
+        vi.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: vi.fn(),
           state: {
             title: 'Updated Widget Title',
           },
@@ -2431,7 +2431,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2472,8 +2472,8 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
+        vi.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: vi.fn(),
           state: {
             title: 'Totally new widget',
           },
@@ -2484,7 +2484,7 @@ describe('Dashboards > Detail', function () {
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
             dashboards={[]}
-            onDashboardUpdate={jest.fn()}
+            onDashboardUpdate={vi.fn()}
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
@@ -2551,8 +2551,8 @@ describe('Dashboards > Detail', function () {
           title: 'Custom Errors',
         });
 
-        const mockOnDashboardUpdate = jest.fn();
-        const mockStateSetter = jest
+        const mockOnDashboardUpdate = vi.fn();
+        const mockStateSetter = vi
           .fn()
           .mockImplementation(fn => fn({modifiedDashboard: mockModifiedDashboard}));
 

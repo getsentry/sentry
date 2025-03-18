@@ -18,22 +18,22 @@ import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
 
-jest.mocked(useProjects).mockReturnValue({
+vi.mocked(useProjects).mockReturnValue({
   fetching: false,
   projects: [project],
   fetchError: null,
   hasMore: false,
   initiallyLoaded: true,
   onSearch: () => Promise.resolve(),
-  reloadProjects: jest.fn(),
+  reloadProjects: vi.fn(),
   placeholders: [],
 });
 
-const mockInvalidateQueries = jest.fn();
+const mockInvalidateQueries = vi.fn();
 
 function wrapper({children}: {children?: ReactNode}) {
   const queryClient = makeTestQueryClient();

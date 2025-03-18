@@ -29,7 +29,7 @@ describe('tags table', function () {
       <TagsTable
         event={event}
         query="transaction.duration:<15m transaction.op:pageload"
-        generateUrl={jest.fn()}
+        generateUrl={vi.fn()}
       />
     );
 
@@ -67,7 +67,7 @@ describe('tags table', function () {
       <TagsTable
         event={event}
         query="transaction.duration:<15m transaction.op:pageload"
-        generateUrl={jest.fn()}
+        generateUrl={vi.fn()}
       />
     );
 

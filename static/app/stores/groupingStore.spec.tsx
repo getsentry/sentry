@@ -2,7 +2,7 @@ import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
-  let trigger!: jest.SpyInstance;
+  let trigger!: vi.SpyInstance;
 
   beforeAll(function () {
     MockApiClient.asyncDelay = 1;
@@ -14,7 +14,7 @@ describe('Grouping Store', function () {
 
   beforeEach(function () {
     GroupingStore.init();
-    trigger = jest.spyOn(GroupingStore, 'trigger');
+    trigger = vi.spyOn(GroupingStore, 'trigger');
     MockApiClient.addMockResponse({
       url: '/issues/groupId/hashes/',
       body: [
@@ -100,8 +100,8 @@ describe('Grouping Store', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('onFetch()', function () {
@@ -326,7 +326,7 @@ describe('Grouping Store', function () {
       });
 
       it('disables rows to be merged', async function () {
-        const mergeMock = jest.spyOn(GroupActionCreators, 'mergeGroups');
+        const mergeMock = vi.spyOn(GroupActionCreators, 'mergeGroups');
 
         trigger.mockReset();
         GroupingStore.onToggleMerge('1');

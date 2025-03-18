@@ -9,15 +9,15 @@ import {
   PerformanceScoreBreakdownChart,
 } from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('PerformanceScoreBreakdownChart', function () {
   const organization = OrganizationFixture();
-  let eventsStatsMock: jest.Mock;
+  let eventsStatsMock: vi.Mock;
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {},
@@ -26,7 +26,7 @@ describe('PerformanceScoreBreakdownChart', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -50,11 +50,11 @@ describe('PerformanceScoreBreakdownChart', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {},

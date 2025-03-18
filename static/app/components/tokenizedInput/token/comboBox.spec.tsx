@@ -19,8 +19,8 @@ function ComboBoxWrapper(props: Omit<ComponentProps<typeof ComboBox>, 'children'
 
 describe('ComboBox', function () {
   it('can click to select an option', async function () {
-    const onClick = jest.fn();
-    const onOptionSelected = jest.fn();
+    const onClick = vi.fn();
+    const onOptionSelected = vi.fn();
     render(
       <ComboBoxWrapper
         filterValue=""

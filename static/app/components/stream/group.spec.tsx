@@ -21,7 +21,7 @@ import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/grou
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('StreamGroup', function () {
   let group1!: Group;
@@ -55,7 +55,7 @@ describe('StreamGroup', function () {
   });
 
   afterEach(function () {
-    jest.mocked(trackAnalytics).mockClear();
+    vi.mocked(trackAnalytics).mockClear();
     GroupStore.reset();
   });
 

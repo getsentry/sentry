@@ -9,7 +9,7 @@ import * as useOrganization from 'sentry/utils/useOrganization';
 import {useExperiment} from 'getsentry/hooks/useExperiment';
 import * as logExperiment from 'getsentry/utils/logExperiment';
 
-jest.mock('sentry/data/experimentConfig', () => ({
+vi.mock('sentry/data/experimentConfig', () => ({
   experimentConfig: {
     orgExperiment: {
       key: 'orgExperiment',
@@ -36,9 +36,9 @@ describe('useExperiment', function () {
   });
 
   beforeEach(function () {
-    jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
-    jest.spyOn(logExperiment, 'default').mockResolvedValue();
+    vi.clearAllMocks();
+    vi.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    vi.spyOn(logExperiment, 'default').mockResolvedValue();
   });
 
   it('injects org experiment assignment', function () {
@@ -67,7 +67,7 @@ describe('useExperiment', function () {
   });
 
   it('logs experiment assignment', function () {
-    const logExperimentSpy = jest.spyOn(logExperiment, 'default').mockResolvedValue();
+    const logExperimentSpy = vi.spyOn(logExperiment, 'default').mockResolvedValue();
     renderHook(useExperiment, {
       initialProps: 'orgExperiment' as any,
     });
@@ -76,7 +76,7 @@ describe('useExperiment', function () {
   });
 
   it('defers logging when logExperimentOnMount is true', function () {
-    const logExperimentSpy = jest.spyOn(logExperiment, 'default').mockResolvedValue();
+    const logExperimentSpy = vi.spyOn(logExperiment, 'default').mockResolvedValue();
     const {result} = renderHook(
       (args: Parameters<typeof useExperiment>) => useExperiment(args[0], args[1]),
       {initialProps: ['orgExperiment' as any, {logExperimentOnMount: false}]}

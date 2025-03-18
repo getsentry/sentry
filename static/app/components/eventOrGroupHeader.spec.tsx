@@ -37,7 +37,7 @@ const event = EventFixture({
 
 describe('EventOrGroupHeader', function () {
   beforeEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   const {organization, router} = initializeOrg();
@@ -114,7 +114,8 @@ describe('EventOrGroupHeader', function () {
     });
 
     it('preloads group on hover', async function () {
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       const mockFetchGroup = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/`,
         body: group,
@@ -135,7 +136,7 @@ describe('EventOrGroupHeader', function () {
       expect(mockFetchGroup).not.toHaveBeenCalled();
 
       // Called after 300ms
-      jest.advanceTimersByTime(301);
+      vi.advanceTimersByTime(301);
       expect(mockFetchGroup).toHaveBeenCalled();
     });
   });

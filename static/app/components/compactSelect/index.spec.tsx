@@ -107,7 +107,7 @@ describe('CompactSelect', function () {
 
   describe('ListBox', function () {
     it('updates trigger label on selection', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           options={[
@@ -129,7 +129,7 @@ describe('CompactSelect', function () {
     });
 
     it('can select multiple options', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           multiple
@@ -156,7 +156,7 @@ describe('CompactSelect', function () {
     });
 
     it('can select options with values containing quotes', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           multiple
@@ -311,7 +311,7 @@ describe('CompactSelect', function () {
     });
 
     it('can toggle sections', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           multiple
@@ -420,7 +420,7 @@ describe('CompactSelect', function () {
     });
 
     it('triggers onClose when the menu is closed if provided', async function () {
-      const onCloseMock = jest.fn();
+      const onCloseMock = vi.fn();
       render(
         <CompactSelect
           onClose={onCloseMock}
@@ -445,7 +445,7 @@ describe('CompactSelect', function () {
 
   describe('GridList', function () {
     it('updates trigger label on selection', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           grid
@@ -468,7 +468,7 @@ describe('CompactSelect', function () {
     });
 
     it('can select multiple options', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           grid
@@ -496,7 +496,7 @@ describe('CompactSelect', function () {
     });
 
     it('can select options with values containing quotes', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           grid
@@ -608,7 +608,7 @@ describe('CompactSelect', function () {
     });
 
     it('can toggle sections', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <CompactSelect
           grid
@@ -718,7 +718,7 @@ describe('CompactSelect', function () {
     });
 
     it('triggers onClose when the menu is closed if provided', async function () {
-      const onCloseMock = jest.fn();
+      const onCloseMock = vi.fn();
       render(
         <CompactSelect
           grid
@@ -742,8 +742,8 @@ describe('CompactSelect', function () {
     });
 
     it('allows keyboard navigation to nested buttons', async function () {
-      const onPointerUpMock = jest.fn();
-      const onKeyUpMock = jest.fn();
+      const onPointerUpMock = vi.fn();
+      const onKeyUpMock = vi.fn();
 
       render(
         <CompactSelect

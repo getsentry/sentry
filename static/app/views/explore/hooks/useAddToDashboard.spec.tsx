@@ -11,7 +11,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('AddToDashboardButton', () => {
   let setMode: ReturnType<typeof useSetExploreMode>;
@@ -27,7 +27,7 @@ describe('AddToDashboardButton', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {

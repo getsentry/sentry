@@ -9,7 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ChangeARRAction from 'admin/components/changeARRAction';
 
 describe('ChangeARRAction', function () {
-  const onAction = jest.fn();
+  const onAction = vi.fn();
 
   it('renders empty', function () {
     render(<ChangeARRAction customer={{}} onAction={onAction} />);

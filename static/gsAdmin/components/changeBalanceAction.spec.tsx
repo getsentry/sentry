@@ -6,7 +6,7 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 
 describe('BalanceChangeAction', function () {
-  const onSuccess = jest.fn();
+  const onSuccess = vi.fn();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, accountBalance: 0});
 

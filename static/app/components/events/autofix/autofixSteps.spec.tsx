@@ -8,13 +8,13 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('AutofixSteps', () => {
   beforeEach(() => {
-    (addSuccessMessage as jest.Mock).mockClear();
+    (addSuccessMessage as vi.Mock).mockClear();
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const defaultProps = {
@@ -61,7 +61,7 @@ describe('AutofixSteps', () => {
     }),
     groupId: 'group1',
     runId: 'run1',
-    onRetry: jest.fn(),
+    onRetry: vi.fn(),
   };
 
   it('renders steps correctly', () => {

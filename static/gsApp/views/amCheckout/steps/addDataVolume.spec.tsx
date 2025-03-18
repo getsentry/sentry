@@ -27,9 +27,9 @@ describe('AddDataVolume', function () {
     subscription,
     isActive: true,
     stepNumber: 2,
-    onUpdate: jest.fn(),
-    onCompleteStep: jest.fn(),
-    onEdit: jest.fn(),
+    onUpdate: vi.fn(),
+    onCompleteStep: vi.fn(),
+    onEdit: vi.fn(),
     billingConfig,
     formData: {
       plan: billingConfig.defaultPlan,
@@ -70,7 +70,7 @@ describe('AddDataVolume', function () {
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />,
       {
@@ -92,7 +92,7 @@ describe('AddDataVolume', function () {
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />,
       {
@@ -231,7 +231,7 @@ describe('AddDataVolume', function () {
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />,
       {

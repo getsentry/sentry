@@ -13,9 +13,9 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 function WrapperComponent(props: React.ComponentProps<typeof TagExplorer>) {
   return (
@@ -58,7 +58,7 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
 
 describe('WrapperComponent', function () {
   const facetUrl = '/organizations/org-slug/events-facets-performance/';
-  let facetApiMock: jest.Mock;
+  let facetApiMock: vi.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})

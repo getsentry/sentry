@@ -17,7 +17,7 @@ describe('ColumnEditCollection', () => {
       <ColumnEditCollection
         columns={[]}
         fieldOptions={{}}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         organization={organization}
         supportsEquations={false}
       />
@@ -30,7 +30,7 @@ describe('ColumnEditCollection', () => {
       <ColumnEditCollection
         columns={[]}
         fieldOptions={{}}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         organization={organization}
         supportsEquations
       />

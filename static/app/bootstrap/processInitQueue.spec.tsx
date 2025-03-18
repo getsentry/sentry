@@ -188,7 +188,7 @@ describe('processInitQueue', function () {
   });
 
   it('processes queued up items', function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     const init = {
       name: 'onReady',
       onReady: mock,
@@ -208,7 +208,7 @@ describe('processInitQueue', function () {
 
   it('is called after `processInitQueue` has already run', function () {
     processInitQueue();
-    const mock = jest.fn();
+    const mock = vi.fn();
     const init = {
       name: 'onReady',
       onReady: mock,

@@ -18,7 +18,7 @@ describe('Resource Subscriptions', function () {
               Organization: 'admin',
               Member: 'admin',
             }}
-            onChange={jest.fn()}
+            onChange={vi.fn()}
           />
         </Form>
       );
@@ -42,7 +42,7 @@ describe('Resource Subscriptions', function () {
               Organization: 'admin',
               Member: 'admin',
             }}
-            onChange={jest.fn()}
+            onChange={vi.fn()}
           />
         </Form>
       );
@@ -67,7 +67,7 @@ describe('Resource Subscriptions', function () {
               Organization: 'admin',
               Member: 'admin',
             }}
-            onChange={jest.fn()}
+            onChange={vi.fn()}
           />
         </Form>
       );
@@ -90,7 +90,7 @@ describe('Resource Subscriptions', function () {
               Organization: 'admin',
               Member: 'admin',
             }}
-            onChange={jest.fn()}
+            onChange={vi.fn()}
           />
         </Form>
       );

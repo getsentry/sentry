@@ -5,7 +5,7 @@ import NavigateToExternalLinkModal from 'sentry/components/modals/navigateToExte
 
 describe('NavigateToExternalLinkModal', function () {
   it('closes on cancel button click', async function () {
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
     const linkText = 'http://test-url.com';
 
     renderGlobalModal();
@@ -38,11 +38,11 @@ describe('NavigateToExternalLinkModal', function () {
   });
 
   it('navigates on continue button click', async function () {
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
     const linkText = 'http://test-url.com';
 
     renderGlobalModal();
-    window.open = jest.fn().mockImplementation(() => true);
+    window.open = vi.fn().mockImplementation(() => true);
 
     act(() =>
       openModal(

@@ -20,7 +20,7 @@ import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
 
 describe('provisionSubscriptionAction', function () {
-  const onSuccess = jest.fn();
+  const onSuccess = vi.fn();
   const mockOrg = OrganizationFixture();
   const mockSub = SubscriptionFixture({organization: mockOrg});
 
@@ -1362,7 +1362,7 @@ describe('provisionSubscriptionAction', function () {
       orgId: am2Sub.slug,
       onSuccess,
     });
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     renderGlobalModal();
 

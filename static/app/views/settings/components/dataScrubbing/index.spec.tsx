@@ -28,7 +28,7 @@ describe('Data Scrubbing', function () {
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           organization={organization}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
         />
       );
 
@@ -68,7 +68,7 @@ describe('Data Scrubbing', function () {
           endpoint={endpoint}
           relayPiiConfig={undefined}
           organization={organization}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
         />
       );
 
@@ -82,7 +82,7 @@ describe('Data Scrubbing', function () {
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           organization={organization}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
           disabled
         />
       );
@@ -110,7 +110,7 @@ describe('Data Scrubbing', function () {
           endpoint={`/projects/${organization.slug}/foo/`}
           relayPiiConfig={relayPiiConfig}
           organization={organization}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
           project={project}
         />
       );
@@ -133,7 +133,7 @@ describe('Data Scrubbing', function () {
           endpoint={`/projects/${organization.slug}/foo/`}
           relayPiiConfig={relayPiiConfig}
           organization={organization}
-          onSubmitSuccess={jest.fn()}
+          onSubmitSuccess={vi.fn()}
           project={project}
         />,
         {organization}
@@ -155,7 +155,7 @@ describe('Data Scrubbing', function () {
             relayPiiConfig={relayPiiConfig}
             disabled={false}
             organization={organization}
-            onSubmitSuccess={jest.fn()}
+            onSubmitSuccess={vi.fn()}
           />
         </Fragment>
       );
@@ -179,7 +179,7 @@ describe('Data Scrubbing', function () {
             relayPiiConfig={relayPiiConfig}
             disabled={false}
             organization={organization}
-            onSubmitSuccess={jest.fn()}
+            onSubmitSuccess={vi.fn()}
           />
         </Fragment>
       );
@@ -203,7 +203,7 @@ describe('Data Scrubbing', function () {
             relayPiiConfig={relayPiiConfig}
             disabled={false}
             organization={organization}
-            onSubmitSuccess={jest.fn()}
+            onSubmitSuccess={vi.fn()}
           />
         </Fragment>,
         {router}

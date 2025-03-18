@@ -20,7 +20,7 @@ describe('loadOrganizationTags', () => {
 
   afterEach(() => {
     TagStore.reset();
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('should load tags into the store', async () => {
@@ -36,7 +36,7 @@ describe('loadOrganizationTags', () => {
   });
 
   it('should show an alert on failure', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    vi.spyOn(indicators, 'addErrorMessage');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       statusCode: 403,

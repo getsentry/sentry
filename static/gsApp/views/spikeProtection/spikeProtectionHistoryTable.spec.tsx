@@ -62,7 +62,7 @@ describe('SpikeProtectionHistoryTable', () => {
 
   it("renders a disabled state for projects that aren't enabled", async () => {
     project.options![SPIKE_PROTECTION_OPTION_DISABLED] = true;
-    const onEnableFunction = jest.fn();
+    const onEnableFunction = vi.fn();
 
     render(
       <SpikeProtectionHistoryTable

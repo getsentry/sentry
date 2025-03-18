@@ -15,8 +15,8 @@ import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStor
 
 import ExternalIssuesList from '.';
 
-jest.mock('sentry/utils/useSentryAppComponentsStore');
-const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
+vi.mock('sentry/utils/useSentryAppComponentsStore');
+const mockUseSentryAppComponentsStore = vi.mocked(useSentryAppComponentsStore);
 
 describe('ExternalIssuesList', () => {
   const event = EventFixture();
@@ -29,7 +29,7 @@ describe('ExternalIssuesList', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
 

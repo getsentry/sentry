@@ -13,23 +13,24 @@ import useWidgetBuilderState, {
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
-const mockedUsedLocation = jest.mocked(useLocation);
-const mockedUseNavigate = jest.mocked(useNavigate);
+const mockedUsedLocation = vi.mocked(useLocation);
+const mockedUseNavigate = vi.mocked(useNavigate);
 
 describe('useWidgetBuilderState', () => {
-  let mockNavigate!: jest.Mock;
+  let mockNavigate!: vi.Mock;
   beforeEach(() => {
-    mockNavigate = jest.fn();
+    mockNavigate = vi.fn();
     mockedUseNavigate.mockReturnValue(mockNavigate);
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.clearAllMocks();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it('returns the widget builder state from the query params', () => {
@@ -68,7 +69,7 @@ describe('useWidgetBuilderState', () => {
       });
     });
 
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -125,7 +126,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -829,7 +830,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({

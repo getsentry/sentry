@@ -20,8 +20,8 @@ const mockReplayUrl = '/organizations/org-slug/replays/';
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
-const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
+vi.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+const mockUseLoadReplayReader = vi.mocked(useLoadReplayReader);
 
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockEventTimestampMs = mockEventTimestamp.getTime();
@@ -55,7 +55,7 @@ mockUseLoadReplayReader.mockImplementation(() => {
     errors: [],
     fetchError: undefined,
     fetching: false,
-    onRetry: jest.fn(),
+    onRetry: vi.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: REPLAY_ID_1,
@@ -112,7 +112,7 @@ describe('GroupReplays', () => {
   });
   afterEach(() => {
     resetMockDate();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
 

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {vi} from 'vitest';
 
 import {unassignedValue} from 'sentry/data/experimentConfig';
 import ConfigStore from 'sentry/stores/configStore';
@@ -6,38 +7,43 @@ import localStorage from 'sentry/utils/localStorage';
 
 import logExperiment from 'getsentry/utils/logExperiment';
 
-jest.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/localStorage');
 
-jest.mock('sentry/data/experimentConfig', () => ({
-  experimentConfig: {
-    orgExperiment: {
-      key: 'orgExperiment',
-      type: 'organization',
-      parameter: 'exposed',
-      assignments: [1, 0, -1],
-    },
-    variantExperiment: {
-      key: 'variantExperiment',
-      type: 'organization',
-      parameter: 'variant',
-      assignments: [1, 0, -1],
-    },
-    userExperiment: {
-      key: 'userExperiment',
-      type: 'user',
-      parameter: 'exposed',
-      assignments: [1, 0, -1],
-    },
-  },
-}));
+vi.mock('sentry/data/experimentConfig', async () => {
+  const actual = await vi.importActual('sentry/data/experimentConfig');
 
-const mockedLocalStorageGetItem = localStorage.getItem as jest.MockedFunction<
+  return {
+    ...actual,
+    experimentConfig: {
+      orgExperiment: {
+        key: 'orgExperiment',
+        type: 'organization',
+        parameter: 'exposed',
+        assignments: [1, 0, -1],
+      },
+      variantExperiment: {
+        key: 'variantExperiment',
+        type: 'organization',
+        parameter: 'variant',
+        assignments: [1, 0, -1],
+      },
+      userExperiment: {
+        key: 'userExperiment',
+        type: 'user',
+        parameter: 'exposed',
+        assignments: [1, 0, -1],
+      },
+    },
+  };
+});
+
+const mockedLocalStorageGetItem = localStorage.getItem as vi.MockedFunction<
   typeof localStorage.getItem
 >;
 
 describe('logExperiment', function () {
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockedLocalStorageGetItem.mockClear();
   });
 

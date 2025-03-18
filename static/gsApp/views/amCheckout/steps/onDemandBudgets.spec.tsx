@@ -82,7 +82,7 @@ describe('OnDemandBudgets AM Checkout', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
   };

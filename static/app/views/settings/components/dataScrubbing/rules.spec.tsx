@@ -12,7 +12,7 @@ const relayPiiConfig = convertRelayPiiConfig(
 
 describe('Rules', function () {
   it('default render', function () {
-    render(<Rules rules={relayPiiConfig} onEditRule={jest.fn()} />);
+    render(<Rules rules={relayPiiConfig} onEditRule={vi.fn()} />);
 
     expect(screen.getAllByRole('button', {name: 'Edit Rule'})).toHaveLength(3);
 
@@ -38,7 +38,7 @@ describe('Rules', function () {
   });
 
   it('render edit button only', function () {
-    render(<Rules rules={relayPiiConfig} onEditRule={jest.fn()} />);
+    render(<Rules rules={relayPiiConfig} onEditRule={vi.fn()} />);
 
     expect(screen.getAllByRole('button', {name: 'Edit Rule'})).toHaveLength(3);
 
@@ -46,7 +46,7 @@ describe('Rules', function () {
   });
 
   it('render delete button only', function () {
-    render(<Rules rules={relayPiiConfig} onDeleteRule={jest.fn()} />);
+    render(<Rules rules={relayPiiConfig} onDeleteRule={vi.fn()} />);
 
     expect(screen.getAllByRole('button', {name: 'Delete Rule'})).toHaveLength(3);
 

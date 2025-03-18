@@ -9,9 +9,9 @@ import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import useProjects from 'sentry/utils/useProjects';
 
-jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/replays/hooks/useReplayOnboarding');
+vi.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+vi.mock('sentry/utils/useProjects');
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
@@ -19,13 +19,13 @@ describe('Breadcrumbs', () => {
   beforeEach(() => {
     const project = ProjectFixture({platform: 'javascript'});
 
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
-      reloadProjects: jest.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       projects: [project],
     });

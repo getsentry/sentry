@@ -11,7 +11,7 @@ function TestComponent({eventKey, eventName}: {eventKey: string; eventName: stri
 
 describe('useRouteAnalyticsEventNames', function () {
   it('disables analytics', function () {
-    const setEventNames = jest.fn();
+    const setEventNames = vi.fn();
     const getComponent = (
       eventKey: string,
       eventName: string,
@@ -19,9 +19,9 @@ describe('useRouteAnalyticsEventNames', function () {
     ) => (
       <RouteAnalyticsContext.Provider
         value={{
-          setDisableRouteAnalytics: jest.fn(),
-          setRouteAnalyticsParams: jest.fn(),
-          setOrganization: jest.fn(),
+          setDisableRouteAnalytics: vi.fn(),
+          setRouteAnalyticsParams: vi.fn(),
+          setOrganization: vi.fn(),
           setEventNames,
           previousUrl: '',
           ...extraContext,

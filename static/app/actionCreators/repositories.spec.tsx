@@ -7,7 +7,7 @@ describe('RepositoryActionCreator', function () {
 
   const api = new MockApiClient();
   const mockData = [{id: '1'}];
-  let mockResponse: jest.Mock;
+  let mockResponse: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -18,9 +18,9 @@ describe('RepositoryActionCreator', function () {
 
     RepositoryStore.resetRepositories();
 
-    jest.restoreAllMocks();
-    jest.spyOn(RepositoryStore, 'loadRepositories');
-    jest.spyOn(RepositoryStore, 'loadRepositoriesSuccess');
+    vi.restoreAllMocks();
+    vi.spyOn(RepositoryStore, 'loadRepositories');
+    vi.spyOn(RepositoryStore, 'loadRepositoriesSuccess');
 
     /**
      * XXX(leedongwei): We would want to ensure that Store methods are not
@@ -29,8 +29,8 @@ describe('RepositoryActionCreator', function () {
      * However, it seems like we cannot attach a listener to the method
      * See: https://github.com/reflux/refluxjs/issues/139#issuecomment-64495623
      */
-    // jest.spyOn(RepositoryStore, 'loadRepositories');
-    // jest.spyOn(RepositoryStore, 'loadRepositoriesSuccess');
+    // vi.spyOn(RepositoryStore, 'loadRepositories');
+    // vi.spyOn(RepositoryStore, 'loadRepositoriesSuccess');
   });
 
   /**

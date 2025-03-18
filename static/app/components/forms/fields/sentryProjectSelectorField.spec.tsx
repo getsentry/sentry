@@ -7,7 +7,7 @@ import SentryProjectSelectorField from './sentryProjectSelectorField';
 
 describe('SentryProjectSelectorField', () => {
   it('can change values', async () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
     const projects = [
       ProjectFixture(),
       ProjectFixture({
@@ -26,7 +26,7 @@ describe('SentryProjectSelectorField', () => {
   });
 
   it('can group values', async () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
     const projects = [
       ProjectFixture(),
       ProjectFixture({

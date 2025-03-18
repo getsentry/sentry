@@ -19,7 +19,7 @@ import {
 describe('Framework suggestion modal', function () {
   it('render default components', function () {
     const {organization} = initializeOrg();
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
 
     const selectedPlatform: OnboardingSelectedSDK = {
       key: 'javascript',
@@ -33,12 +33,12 @@ describe('Framework suggestion modal', function () {
     render(
       <FrameworkSuggestionModal
         Body={ModalBody}
-        Header={makeClosableHeader(jest.fn())}
+        Header={makeClosableHeader(vi.fn())}
         closeModal={closeModal}
-        CloseButton={makeCloseButton(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
         Footer={ModalFooter}
-        onConfigure={jest.fn()}
-        onSkip={jest.fn()}
+        onConfigure={vi.fn()}
+        onSkip={vi.fn()}
         organization={organization}
         selectedPlatform={selectedPlatform}
       />

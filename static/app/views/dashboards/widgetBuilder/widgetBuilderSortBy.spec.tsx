@@ -96,7 +96,7 @@ function renderTestComponent({
         filters: {},
         ...dashboard,
       }}
-      onSave={onSave ?? jest.fn()}
+      onSave={onSave ?? vi.fn()}
       params={{
         orgId: organization.slug,
         dashboardId: dashboard?.id ?? 'new',
@@ -134,8 +134,8 @@ describe('WidgetBuilder', function () {
     filters: {},
   };
 
-  let eventsStatsMock: jest.Mock | undefined;
-  let eventsMock: jest.Mock | undefined;
+  let eventsStatsMock: vi.Mock | undefined;
+  let eventsMock: vi.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -250,8 +250,8 @@ describe('WidgetBuilder', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
-    jest.useRealTimers();
+    vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   describe('with events > Sort by selectors', function () {
@@ -322,7 +322,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('can update selectors values', async function () {
-      const handleSave = jest.fn();
+      const handleSave = vi.fn();
 
       const widget: Widget = {
         id: '1',

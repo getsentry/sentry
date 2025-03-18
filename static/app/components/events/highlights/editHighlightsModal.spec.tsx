@@ -52,8 +52,8 @@ describe('EditHighlightsModal', function () {
     context: {presetType: ['presetKey']},
     tags: ['presetTag'],
   };
-  const closeModal = jest.fn();
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const closeModal = vi.fn();
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   function renderModal(editHighlightModalProps?: Partial<EditHighlightsModalProps>) {
     act(() => {
@@ -76,7 +76,7 @@ describe('EditHighlightsModal', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     ModalStore.reset();
   });
 
@@ -113,7 +113,7 @@ describe('EditHighlightsModal', function () {
     expect(closeModal).toHaveBeenCalled();
 
     // Reopen the modal to test cancel button
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     renderModal({highlightContext: {}, highlightTags: []});
     const saveButton = screen.getByRole('button', {name: 'Apply to Project'});
     await userEvent.click(saveButton);

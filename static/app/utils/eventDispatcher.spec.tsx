@@ -3,7 +3,7 @@ import EventDispatcher from 'sentry/utils/eventDispatcher';
 describe('EventDispatcher', () => {
   it('should allow adding event listeners, and triggering events', () => {
     const dispatch = new EventDispatcher();
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     dispatch.addEventListener('change', callback);
 
@@ -14,8 +14,8 @@ describe('EventDispatcher', () => {
 
   it('should allow adding multiple listeners, and triggering events', () => {
     const dispatch = new EventDispatcher();
-    const callback1 = jest.fn();
-    const callback2 = jest.fn();
+    const callback1 = vi.fn();
+    const callback2 = vi.fn();
 
     dispatch.addEventListener('change', callback1);
     dispatch.addEventListener('change', callback2);
@@ -28,8 +28,8 @@ describe('EventDispatcher', () => {
 
   it('should allow removing listeners, triggering events on whats registered', () => {
     const dispatch = new EventDispatcher();
-    const callback1 = jest.fn();
-    const callback2 = jest.fn();
+    const callback1 = vi.fn();
+    const callback2 = vi.fn();
 
     dispatch.addEventListener('change', callback1);
     dispatch.addEventListener('change', callback2);

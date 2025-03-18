@@ -17,7 +17,7 @@ describe('ProjectPlugins', function () {
           orgId: organization.slug,
         }}
         project={project}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         loading={false}
         error={undefined}
         plugins={PluginsFixture()}
@@ -40,7 +40,7 @@ describe('ProjectPlugins', function () {
           orgId: organization.slug,
         }}
         project={project}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         loading={false}
         error={new Error('An error')}
         plugins={[]}

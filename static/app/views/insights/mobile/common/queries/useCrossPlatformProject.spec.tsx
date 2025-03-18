@@ -9,12 +9,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useProjects');
 
 function mockPageFilters(projects: number[]) {
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -33,13 +33,13 @@ function mockPageFilters(projects: number[]) {
 }
 
 function mockProjects(projects: Project[]) {
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     fetchError: null,
     fetching: false,
     hasMore: false,
     initiallyLoaded: false,
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     projects,
   });
@@ -48,10 +48,10 @@ function mockProjects(projects: Project[]) {
 describe('useCrossPlatformProject', () => {
   let mockProject: Project;
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockProject = ProjectFixture({platform: 'flutter'});
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    vi.mocked(useLocation).mockReturnValue(LocationFixture());
     mockProjects([mockProject]);
   });
 

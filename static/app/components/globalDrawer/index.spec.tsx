@@ -32,7 +32,7 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
 describe('GlobalDrawer', function () {
   const ariaLabel = 'drawer-test-aria-label';
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('useDrawer hook can open and close the Drawer', async function () {
@@ -95,7 +95,7 @@ describe('GlobalDrawer', function () {
   });
 
   it('calls onClose handler when close button is clicked', async function () {
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     render(
       <GlobalDrawerTestComponent
@@ -123,7 +123,7 @@ describe('GlobalDrawer', function () {
   });
 
   it('calls onClose handler when clicking outside the drawer', async function () {
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     render(
       <GlobalDrawerTestComponent
@@ -150,7 +150,7 @@ describe('GlobalDrawer', function () {
   });
 
   it('calls onClose handler when closeDrawer prop is called', async function () {
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     render(
       <GlobalDrawerTestComponent
@@ -178,7 +178,7 @@ describe('GlobalDrawer', function () {
   });
 
   it('ignores some close events press when option is set', async function () {
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     render(
       <GlobalDrawerTestComponent
@@ -223,7 +223,7 @@ describe('GlobalDrawer', function () {
   });
 
   it('renders custom header content when specified', async function () {
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
     const customHeader = 'Look at my neat drawer header';
     render(
       <GlobalDrawerTestComponent

@@ -1,3 +1,5 @@
+import {vi} from 'vitest';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -7,7 +9,7 @@ import type {Commit, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 
-jest.mock('sentry/components/hovercard', () => {
+vi.mock('sentry/components/hovercard', () => {
   return {
     Header: ({children}: {children: React.ReactNode}) => children,
     Body: ({children}: {children: React.ReactNode}) => children,
@@ -17,10 +19,11 @@ jest.mock('sentry/components/hovercard', () => {
   };
 });
 
-jest.mock('sentry/actionCreators/modal', () => {
+vi.mock('sentry/actionCreators/modal', async () => {
+  const actual = await vi.importActual('sentry/actionCreators/modal');
   return {
-    ...jest.requireActual('sentry/actionCreators/modal'),
-    openInviteMembersModal: jest.fn(),
+    ...actual,
+    openInviteMembersModal: vi.fn(),
   };
 });
 
@@ -115,7 +118,7 @@ describe('commitRow', () => {
       },
     };
 
-    const handlePullRequestClick = jest.fn();
+    const handlePullRequestClick = vi.fn();
     render(<CommitRow commit={commit} onPullRequestClick={handlePullRequestClick} />);
 
     const pullRequestButton = screen.getByRole('button', {name: 'View Pull Request'});

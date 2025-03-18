@@ -27,9 +27,9 @@ describe('projectPerformance', function () {
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock: jest.Mock;
-  let postMock: jest.Mock;
-  let deleteMock: jest.Mock;
+  let getMock: vi.Mock;
+  let postMock: vi.Mock;
+  let deleteMock: vi.Mock;
 
   const router = RouterFixture();
   const routerProps = {
@@ -145,7 +145,7 @@ describe('projectPerformance', function () {
   });
 
   it('renders detector threshold configuration - admin ui', async function () {
-    jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
+    vi.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',

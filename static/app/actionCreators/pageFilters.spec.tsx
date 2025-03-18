@@ -15,7 +15,7 @@ import * as PageFilterPersistence from 'sentry/components/organizations/pageFilt
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import localStorage from 'sentry/utils/localStorage';
 
-jest.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/localStorage');
 
 const {organization, projects} = initializeOrg({
   projects: [
@@ -26,9 +26,9 @@ const {organization, projects} = initializeOrg({
 
 describe('PageFilters ActionCreators', function () {
   beforeEach(function () {
-    jest.spyOn(PageFiltersStore, 'updateProjects');
-    jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
-    jest.clearAllMocks();
+    vi.spyOn(PageFiltersStore, 'updateProjects');
+    vi.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
+    vi.clearAllMocks();
   });
 
   describe('initializeUrlState', function () {
@@ -86,7 +86,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('does not load from local storage when no query params and `skipLoadLastUsed` is true', function () {
-      jest.spyOn(localStorage, 'getItem');
+      vi.spyOn(localStorage, 'getItem');
       initializeUrlState({
         organization,
         queryParams: {},
@@ -101,8 +101,8 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('does not update local storage (persist) when `shouldPersist` is false', async function () {
-      jest.clearAllMocks();
-      jest.spyOn(localStorage, 'getItem').mockReturnValueOnce(
+      vi.clearAllMocks();
+      vi.spyOn(localStorage, 'getItem').mockReturnValueOnce(
         JSON.stringify({
           environments: [],
           projects: [],
@@ -363,7 +363,7 @@ describe('PageFilters ActionCreators', function () {
 
     it('does not add non-pinned filters to query for pages with new page filters', function () {
       // Mock storage to have a saved value
-      const pageFilterStorageMock = jest
+      const pageFilterStorageMock = vi
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
@@ -395,7 +395,7 @@ describe('PageFilters ActionCreators', function () {
 
     it('uses pinned filters for pages with new page filters', function () {
       // Mock storage to have a saved/pinned value
-      const pageFilterStorageMock = jest
+      const pageFilterStorageMock = vi
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
@@ -686,7 +686,7 @@ describe('PageFilters ActionCreators', function () {
         },
       });
       // Mock storage to have a saved value
-      const pageFilterStorageMock = jest
+      const pageFilterStorageMock = vi
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {

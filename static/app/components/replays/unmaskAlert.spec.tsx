@@ -8,10 +8,10 @@ import localStorage from 'sentry/utils/localStorage';
 
 import UnmaskAlert from './unmaskAlert';
 
-jest.mock('sentry/utils/localStorage');
-jest.mock('sentry/components/replays/useUserViewedReplays.tsx');
+vi.mock('sentry/utils/localStorage');
+vi.mock('sentry/components/replays/useUserViewedReplays.tsx');
 
-const mockGetItem = jest.mocked(localStorage.getItem);
+const mockGetItem = vi.mocked(localStorage.getItem);
 
 const now = new Date('2020-01-01');
 
@@ -25,7 +25,7 @@ describe('UnmaskAlert', () => {
   });
 
   it('should render the alert when local storage key is not set and user has viewed <= 3 replays', () => {
-    jest.mocked(useUserViewedReplays).mockReturnValue({
+    vi.mocked(useUserViewedReplays).mockReturnValue({
       isPending: false,
       isError: false,
       data: {data: [ReplayRecordFixture(), ReplayRecordFixture(), ReplayRecordFixture()]},
@@ -43,7 +43,7 @@ describe('UnmaskAlert', () => {
   });
 
   it('should not render the alert if the user has viewed > 3 replays', () => {
-    jest.mocked(useUserViewedReplays).mockReturnValue({
+    vi.mocked(useUserViewedReplays).mockReturnValue({
       isPending: false,
       isError: false,
       data: {
@@ -61,7 +61,7 @@ describe('UnmaskAlert', () => {
   });
 
   it('should be dismissable', async () => {
-    jest.mocked(useUserViewedReplays).mockReturnValue({
+    vi.mocked(useUserViewedReplays).mockReturnValue({
       isPending: false,
       isError: false,
       data: {

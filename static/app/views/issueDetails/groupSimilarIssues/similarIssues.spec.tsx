@@ -14,14 +14,14 @@ import {
 import ProjectsStore from 'sentry/stores/projectsStore';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
-const MockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
+const MockNavigate = vi.fn();
+vi.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => MockNavigate,
 }));
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('Issues Similar View', function () {
-  let mock: jest.Mock;
+  let mock: vi.Mock;
 
   const project = ProjectFixture({
     features: ['similarity-view'],
@@ -62,7 +62,7 @@ describe('Issues Similar View', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const selectNthSimilarItem = async (index: number) => {
@@ -150,7 +150,7 @@ describe('Issues Similar View', function () {
 });
 
 describe('Issues Similar Embeddings View', function () {
-  let mock: jest.Mock;
+  let mock: vi.Mock;
 
   const group = GroupFixture();
   const project = ProjectFixture({
@@ -194,7 +194,7 @@ describe('Issues Similar Embeddings View', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const selectNthSimilarItem = async (index: number) => {

@@ -11,7 +11,7 @@ describe('ShortIdBreadcrumb', function () {
 
   beforeEach(() => {
     Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
+      clipboard: {writeText: vi.fn().mockResolvedValue('')},
     });
   });
 

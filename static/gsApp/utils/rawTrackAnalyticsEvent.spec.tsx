@@ -11,10 +11,10 @@ import trackAmplitudeEvent from 'getsentry/utils/trackAmplitudeEvent';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import trackReloadEvent from 'getsentry/utils/trackReloadEvent';
 
-jest.mock('sentry/utils/guid');
-jest.mock('getsentry/utils/trackAmplitudeEvent');
-jest.mock('getsentry/utils/trackReloadEvent');
-jest.mock('getsentry/utils/trackMarketingEvent');
+vi.mock('sentry/utils/guid');
+vi.mock('getsentry/utils/trackAmplitudeEvent');
+vi.mock('getsentry/utils/trackReloadEvent');
+vi.mock('getsentry/utils/trackMarketingEvent');
 
 describe('rawTrackAnalyticsEvent', function () {
   const user = ConfigStore.get('user');
@@ -23,14 +23,14 @@ describe('rawTrackAnalyticsEvent', function () {
   const org_id = Number(organization.id);
 
   beforeEach(function () {
-    (uniqueId as jest.MockedFunction<typeof uniqueId>).mockReturnValue('345');
+    (uniqueId as vi.MockedFunction<typeof uniqueId>).mockReturnValue('345');
   });
 
   afterEach(function () {
-    (trackReloadEvent as jest.Mock).mockClear();
-    (trackAmplitudeEvent as jest.Mock).mockClear();
-    (trackMarketingEvent as jest.Mock).mockClear();
-    (uniqueId as jest.Mock).mockClear();
+    (trackReloadEvent as vi.Mock).mockClear();
+    (trackAmplitudeEvent as vi.Mock).mockClear();
+    (trackMarketingEvent as vi.Mock).mockClear();
+    (uniqueId as vi.Mock).mockClear();
   });
 
   it('tracks in reload but not amplitude with undefined organization', function () {

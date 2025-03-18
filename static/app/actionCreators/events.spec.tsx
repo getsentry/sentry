@@ -13,7 +13,7 @@ describe('Events ActionCreator', function () {
     environment: [],
   };
 
-  let mock: jest.Mock;
+  let mock: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

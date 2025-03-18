@@ -7,12 +7,12 @@ import ModalStore from 'sentry/stores/modalStore';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
-  let onChange: jest.Mock;
+  let onChange: vi.Mock;
   let model: FormModel;
 
   function renderForm() {
     model = new FormModel();
-    onChange = jest.fn();
+    onChange = vi.fn();
     render(
       <Form model={model}>
         <PermissionSelection

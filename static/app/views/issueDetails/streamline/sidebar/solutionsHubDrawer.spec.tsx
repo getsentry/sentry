@@ -264,9 +264,9 @@ describe('SolutionsHubDrawer', () => {
       body: {autofix: null},
     });
 
-    // Use jest.spyOn instead of jest.mock inside the test
+    // Use vi.spyOn instead of vi.mock inside the test
     const issueTypeConfigModule = require('sentry/utils/issueTypeConfig');
-    const spy = jest
+    const spy = vi
       .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
       .mockImplementation(() => ({
         autofix: false,

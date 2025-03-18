@@ -102,7 +102,7 @@ describe('FlamegraphWarnings', () => {
     });
 
     it('render flamegraph with filter reset button when filtering results in no frames', async () => {
-      const onResetFilter = jest.fn();
+      const onResetFilter = vi.fn();
       render(
         <FlamegraphWarnings
           flamegraph={onlySystemFramesFlamegraph}

@@ -2,13 +2,13 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 
-jest.unmock('getsentry/utils/trackMarketingEvent');
+vi.unmock('getsentry/utils/trackMarketingEvent');
 
 describe('trackMarketingEvent', function () {
   const eventName = 'my_event';
   beforeEach(function () {
     ConfigStore.set('enableAnalytics', true);
-    window.ga = jest.fn();
+    window.ga = vi.fn();
   });
   afterEach(function () {
     window.ga.mockClear();

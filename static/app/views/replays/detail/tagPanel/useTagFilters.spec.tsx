@@ -7,10 +7,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 const tags = ReplayRecordFixture().tags;
 

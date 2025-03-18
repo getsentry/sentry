@@ -16,7 +16,7 @@ describe('TagDistributionMeter', function () {
         tag="browser"
         name="Browser"
         topValues={[]}
-        onTagClick={jest.fn()}
+        onTagClick={vi.fn()}
         group={GroupFixture({id: '1337'})}
         organization={organization}
         projectId="456"
@@ -31,7 +31,7 @@ describe('TagDistributionMeter', function () {
       <GroupTagDistributionMeter
         tag="browser"
         name="Browser"
-        onTagClick={jest.fn()}
+        onTagClick={vi.fn()}
         group={GroupFixture({id: '1337'})}
         organization={organization}
         projectId="456"

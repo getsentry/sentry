@@ -21,10 +21,10 @@ describe('CreateSavedSearchModal', function () {
 
   const defaultProps = {
     Body: ModalBody,
-    Header: makeClosableHeader(jest.fn()),
+    Header: makeClosableHeader(vi.fn()),
     Footer: ModalFooter,
-    CloseButton: makeCloseButton(jest.fn()),
-    closeModal: jest.fn(),
+    CloseButton: makeCloseButton(vi.fn()),
+    closeModal: vi.fn(),
     organization,
     query: 'is:unresolved assigned:lyn@sentry.io',
     sort: IssueSortOptions.DATE,

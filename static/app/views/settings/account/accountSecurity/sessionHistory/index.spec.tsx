@@ -6,7 +6,7 @@ import SessionHistory from 'sentry/views/settings/account/accountSecurity/sessio
 
 const ENDPOINT = '/users/me/ips/';
 
-jest.mock('sentry/utils/demoMode');
+vi.mock('sentry/utils/demoMode');
 
 describe('AccountSecuritySessionHistory', function () {
   const {routerProps} = initializeOrg();
@@ -48,7 +48,7 @@ describe('AccountSecuritySessionHistory', function () {
   });
 
   it('renders empty in demo mode even if ips exist', async () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as vi.Mock).mockReturnValue(true);
 
     await render(<SessionHistory {...routerProps} />);
 
@@ -56,6 +56,6 @@ describe('AccountSecuritySessionHistory', function () {
     expect(screen.queryByText('192.168.0.1')).not.toBeInTheDocument();
     expect(screen.queryByText('US (CA)')).not.toBeInTheDocument();
 
-    (isDemoModeActive as jest.Mock).mockReset();
+    (isDemoModeActive as vi.Mock).mockReset();
   });
 });

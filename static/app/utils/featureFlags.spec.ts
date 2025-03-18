@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {vi} from 'vitest';
 
 import {
   addOrganizationFeaturesHandler,
@@ -16,7 +17,7 @@ describe('addOrganizationFeaturesHandler', () => {
   });
 
   it('should pass the flag name and result to the handler on each evaluation', () => {
-    const mockHandler = jest.fn();
+    const mockHandler = vi.fn();
     addOrganizationFeaturesHandler({organization, handler: mockHandler});
 
     organization.features.includes('enable-replay');
@@ -29,7 +30,7 @@ describe('addOrganizationFeaturesHandler', () => {
   });
 
   it('should not change the functionality of `includes`', () => {
-    const mockHandler = jest.fn();
+    const mockHandler = vi.fn();
     addOrganizationFeaturesHandler({organization, handler: mockHandler});
     expect(organization.features).toContain('enable-issues');
     expect(organization.features).toContain('enable-replay');
@@ -47,7 +48,7 @@ describe('addProjectFeaturesHandler', () => {
   });
 
   it('should pass the flag name and result to the handler on each evaluation', () => {
-    const mockHandler = jest.fn();
+    const mockHandler = vi.fn();
     addProjectFeaturesHandler({project, handler: mockHandler});
 
     project.features.includes('enable-replay');
@@ -60,7 +61,7 @@ describe('addProjectFeaturesHandler', () => {
   });
 
   it('should not change the functionality of `includes`', () => {
-    const mockHandler = jest.fn();
+    const mockHandler = vi.fn();
     addProjectFeaturesHandler({project, handler: mockHandler});
     expect(project.features).toContain('enable-issues');
     expect(project.features).toContain('enable-replay');

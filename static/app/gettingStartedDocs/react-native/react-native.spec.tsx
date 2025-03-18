@@ -65,9 +65,9 @@ describe('getting started with react-native', function () {
       },
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/))).toHaveLength(
+      2
+    );
   });
 
   it('renders profiling onboarding docs correctly', function () {
@@ -81,8 +81,8 @@ describe('getting started with react-native', function () {
       },
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(textWithMarkupMatcher(/profilesSampleRate/))).toHaveLength(
+      2
+    );
   });
 });

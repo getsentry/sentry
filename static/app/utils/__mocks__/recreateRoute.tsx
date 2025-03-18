@@ -1,3 +1,3 @@
-const mockFn = jest.fn((name: any) => name);
+const mockFn = vi.fn((name: any) => name);
 
 export default mockFn;

@@ -15,7 +15,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('catches component errors', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <ErrorBoundary>
@@ -32,7 +32,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders a custom error', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <ErrorBoundary customComponent={({error}) => <ErrorMessage error={error} />}>
@@ -49,7 +49,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders a mini error', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <ErrorBoundary mini>
@@ -65,7 +65,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders a null custom error', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <ErrorBoundary customComponent={null}>

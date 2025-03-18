@@ -46,7 +46,7 @@ describe('SelectCreatableField', function () {
   });
 
   it('with Form context', async function () {
-    const submitMock = jest.fn();
+    const submitMock = vi.fn();
     render(
       <Form onSubmit={submitMock}>
         <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />

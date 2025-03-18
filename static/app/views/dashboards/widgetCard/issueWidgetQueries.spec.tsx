@@ -45,7 +45,7 @@ describe('IssueWidgetQueries', function () {
   const api = new MockApiClient();
 
   it('does an issue query and passes correct tableResults to child component', async function () {
-    const mockFunction = jest.fn(() => {
+    const mockFunction = vi.fn(() => {
       return <div />;
     });
 

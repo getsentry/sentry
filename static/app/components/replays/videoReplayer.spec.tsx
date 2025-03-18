@@ -8,12 +8,13 @@ import {VideoReplayer} from './videoReplayer';
 // replays.
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
-jest.useFakeTimers();
-jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+vi.useRealTimers();
+vi.useFakeTimers();
+vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   const attachments = [
@@ -84,9 +85,9 @@ describe('VideoReplayer - no starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
@@ -94,7 +95,7 @@ describe('VideoReplayer - no starting gap', () => {
     expect(inst._currentIndex).toBe(0);
 
     const playPromise = inst.play(6500);
-    jest.advanceTimersByTime(10000);
+    vi.advanceTimersByTime(10000);
 
     await playPromise;
 
@@ -111,9 +112,9 @@ describe('VideoReplayer - no starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
@@ -124,7 +125,7 @@ describe('VideoReplayer - no starting gap', () => {
     fireEvent(video, createEvent.loadedData(video));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
-    jest.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2500);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(3);
@@ -141,16 +142,16 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       // Unfortunately, `video.play()` is not implemented in jsdom, so no events,
       // so can't check that onFinished is called
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(5);
@@ -165,14 +166,14 @@ describe('VideoReplayer - no starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(0);
-    jest.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2500);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(0);
@@ -186,15 +187,15 @@ describe('VideoReplayer - no starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 50000,
       config: {skipInactive: false, speed: 1.0},
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
-    jest.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2500);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(7);
@@ -222,15 +223,15 @@ describe('VideoReplayer - no starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 55000,
       config: {skipInactive: false, speed: 1.0},
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
-    jest.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2500);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(6);
@@ -252,7 +253,7 @@ describe('VideoReplayer - no starting gap', () => {
 
 describe('VideoReplayer - with starting gap', () => {
   beforeEach(() => {
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   const attachments = [
@@ -297,16 +298,16 @@ describe('VideoReplayer - with starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(0);
     const playPromise = inst.play(1500);
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     await playPromise;
 
     // @ts-expect-error accessing a private field
@@ -322,9 +323,9 @@ describe('VideoReplayer - with starting gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
@@ -335,7 +336,7 @@ describe('VideoReplayer - with starting gap', () => {
     fireEvent(video, createEvent.loadedData(video));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
-    jest.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2500);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(3);
@@ -352,16 +353,16 @@ describe('VideoReplayer - with starting gap', () => {
       start: 0,
       // Unfortunately, `video.play()` is not implemented in jsdom, so no events,
       // so can't check that onFinished is called
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 40000,
       config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
     await playPromise;
     // @ts-expect-error accessing a private field
     expect(inst._currentIndex).toBe(5);
@@ -373,7 +374,7 @@ describe('VideoReplayer - with starting gap', () => {
 
 describe('VideoReplayer - with ending gap', () => {
   beforeEach(() => {
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   const attachments = [
@@ -418,9 +419,9 @@ describe('VideoReplayer - with ending gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 50000,
       config: {skipInactive: false, speed: 1.0},
     });
@@ -430,7 +431,7 @@ describe('VideoReplayer - with ending gap', () => {
     // play at the last segment
     const playPromise = inst.play(36000);
     await playPromise;
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     // we're still within the last segment (5)
     // @ts-expect-error accessing a private field
@@ -439,13 +440,13 @@ describe('VideoReplayer - with ending gap', () => {
 
     // now we are in the gap
     // timer should still be going since the duration is 50s
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
     // @ts-expect-error accessing a private field
     expect(inst._isPlaying).toBe(true);
 
     // a long time passes
     // ensure the timer stops at the end duration (50s)
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
     expect(inst.getCurrentTime()).toBe(50000);
     // @ts-expect-error accessing a private field
     expect(inst._isPlaying).toBe(false);
@@ -457,9 +458,9 @@ describe('VideoReplayer - with ending gap', () => {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
-      onFinished: jest.fn(),
-      onLoaded: jest.fn(),
-      onBuffer: jest.fn(),
+      onFinished: vi.fn(),
+      onLoaded: vi.fn(),
+      onBuffer: vi.fn(),
       durationMs: 50000,
       config: {skipInactive: false, speed: 1.0},
     });
@@ -469,7 +470,7 @@ describe('VideoReplayer - with ending gap', () => {
     // play at the gap
     const playPromise = inst.play(40002);
     await playPromise;
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     // we should be still playing in the gap
     expect(inst.getCurrentTime()).toBe(44002);
@@ -478,7 +479,7 @@ describe('VideoReplayer - with ending gap', () => {
 
     // a long time passes
     // ensure the timer stops at the end duration (50s)
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
     expect(inst.getCurrentTime()).toBeLessThan(50100);
     // @ts-expect-error accessing a private field
     expect(inst._isPlaying).toBe(false);

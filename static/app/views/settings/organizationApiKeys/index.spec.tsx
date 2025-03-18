@@ -10,8 +10,8 @@ import {
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
 describe('OrganizationApiKeys', function () {
-  let getMock: jest.Mock;
-  let deleteMock: jest.Mock;
+  let getMock: vi.Mock;
+  let deleteMock: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

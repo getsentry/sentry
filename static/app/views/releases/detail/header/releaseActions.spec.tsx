@@ -68,7 +68,7 @@ describe('ReleaseActions', function () {
         organization={organization}
         projectSlug={release.projects[0]!.slug}
         release={release}
-        refetchData={jest.fn()}
+        refetchData={vi.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
@@ -110,7 +110,7 @@ describe('ReleaseActions', function () {
   });
 
   it('restores a release', async function () {
-    const refetchDataMock = jest.fn();
+    const refetchDataMock = vi.fn();
 
     render(
       <ReleaseActions
@@ -162,7 +162,7 @@ describe('ReleaseActions', function () {
         organization={organization}
         projectSlug={release.projects[0]!.slug}
         release={release}
-        refetchData={jest.fn()}
+        refetchData={vi.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
@@ -191,7 +191,7 @@ describe('ReleaseActions', function () {
         organization={organization}
         projectSlug={release.projects[0]!.slug}
         release={release}
-        refetchData={jest.fn()}
+        refetchData={vi.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={{
           ...location,

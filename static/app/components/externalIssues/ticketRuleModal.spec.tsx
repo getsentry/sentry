@@ -11,12 +11,12 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {IssueConfigField} from 'sentry/types/integrations';
 
-jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/actionCreators/onboardingTasks');
+vi.unmock('sentry/utils/recreateRoute');
+vi.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/onboardingTasks');
 
 describe('ProjectAlerts -> TicketRuleModal', function () {
-  const closeModal = jest.fn();
+  const closeModal = vi.fn();
   const modalElements = {
     Header: (p: PropsWithChildren) => p.children as ReactElement,
     Body: (p: PropsWithChildren) => p.children,

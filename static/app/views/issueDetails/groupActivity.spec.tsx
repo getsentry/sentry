@@ -38,7 +38,7 @@ describe('GroupActivity', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   function createWrapper({
@@ -397,7 +397,7 @@ describe('GroupActivity', function () {
   });
 
   describe('Delete', function () {
-    let deleteMock: jest.Mock;
+    let deleteMock: vi.Mock;
 
     beforeEach(function () {
       deleteMock = MockApiClient.addMockResponse({

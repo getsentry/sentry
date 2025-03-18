@@ -34,7 +34,7 @@ function renderReleasesSelect({
           }),
         ],
         loading: false,
-        onSearch: onSearch ?? jest.fn(),
+        onSearch: onSearch ?? vi.fn(),
       }}
     >
       <ReleasesSelectControl
@@ -77,7 +77,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
   });
 
   it('calls onSearch when filtering by releases', async function () {
-    const mockOnSearch = jest.fn();
+    const mockOnSearch = vi.fn();
     renderReleasesSelect({onSearch: mockOnSearch});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
   });
 
   it('resets search on close', async function () {
-    const mockOnSearch = jest.fn();
+    const mockOnSearch = vi.fn();
     renderReleasesSelect({onSearch: mockOnSearch});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
   });
 
   it('triggers handleChangeFilter with the release versions', async function () {
-    const mockHandleChangeFilter = jest.fn();
+    const mockHandleChangeFilter = vi.fn();
     renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
@@ -128,10 +128,10 @@ describe('Dashboards > ReleasesSelectControl', function () {
         value={{
           releases: [],
           loading: false,
-          onSearch: jest.fn(),
+          onSearch: vi.fn(),
         }}
       >
-        <ReleasesSelectControl selectedReleases={[]} handleChangeFilter={jest.fn()} />
+        <ReleasesSelectControl selectedReleases={[]} handleChangeFilter={vi.fn()} />
       </ReleasesContext.Provider>
     );
 

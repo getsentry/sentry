@@ -13,7 +13,7 @@ const exampleThresholdsConfig: ThresholdsConfig = {
 
 describe('Widget Builder > ThresholdsStep', function () {
   it('renders thresholds step', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <ThresholdsStep
         thresholdsConfig={exampleThresholdsConfig}

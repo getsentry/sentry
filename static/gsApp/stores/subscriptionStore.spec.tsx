@@ -39,7 +39,7 @@ describe('SubscriptionStore', () => {
       body: subscription,
     });
 
-    const callback = jest.fn();
+    const callback = vi.fn();
     await SubscriptionStore.loadData(organization.slug, callback, {
       markStartedTrial: true,
     });

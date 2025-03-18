@@ -2,11 +2,12 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useTimeout from './useTimeout';
 
-jest.useFakeTimers();
+vi.useRealTimers();
+vi.useFakeTimers();
 
 describe('useTimeout', () => {
   const timeMs = 500;
-  const onTimeout = jest.fn();
+  const onTimeout = vi.fn();
 
   beforeEach(() => {
     onTimeout.mockReset();
@@ -20,7 +21,7 @@ describe('useTimeout', () => {
     result.current.start();
     expect(onTimeout).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(timeMs + 10);
+    vi.advanceTimersByTime(timeMs + 10);
 
     expect(onTimeout).toHaveBeenCalled();
   });
@@ -84,7 +85,7 @@ describe('useTimeout', () => {
 
     const firstRender = {...result.current};
 
-    rerender({timeMs, onTimeout: jest.fn()});
+    rerender({timeMs, onTimeout: vi.fn()});
 
     expect(result.current.cancel).toBe(firstRender.cancel);
 
@@ -101,7 +102,7 @@ describe('useTimeout', () => {
 
     unmount();
 
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     expect(onTimeout).not.toHaveBeenCalled();
   });

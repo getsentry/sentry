@@ -6,18 +6,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PageOverview from 'sentry/views/insights/browser/webVitals/views/pageOverview';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {},
@@ -26,7 +26,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -67,7 +67,7 @@ describe('PageOverview', function () {
   });
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders', () => {
@@ -136,7 +136,7 @@ describe('PageOverview', function () {
     const organizationWithInp = OrganizationFixture({
       features: ['insights-initial-modules'],
     });
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {transaction: '/', type: 'interactions'},
@@ -181,7 +181,7 @@ describe('PageOverview', function () {
     const organizationWithInp = OrganizationFixture({
       features: ['insights-initial-modules'],
     });
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {

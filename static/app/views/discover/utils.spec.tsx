@@ -29,7 +29,7 @@ import {
   pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 const baseView: EventViewOptions = {
   display: undefined,
@@ -266,7 +266,7 @@ describe('pushEventViewToLocation', function () {
   });
 
   it('correct query string object pushed to history', function () {
-    const navigate = jest.fn();
+    const navigate = vi.fn();
     const eventView = new EventView({...baseView, ...state});
 
     pushEventViewToLocation({
@@ -296,7 +296,7 @@ describe('pushEventViewToLocation', function () {
   });
 
   it('extra query params', function () {
-    const navigate = jest.fn();
+    const navigate = vi.fn();
     const eventView = new EventView({...baseView, ...state});
 
     pushEventViewToLocation({
@@ -1034,12 +1034,12 @@ describe('handleAddQueryToDashboard', function () {
   let organization: Organization;
   let location: Location;
   let router: InjectedRouter;
-  let mockedOpenAddToDashboardModal: jest.Mock;
+  let mockedOpenAddToDashboardModal: vi.Mock;
   beforeEach(() => {
     organization = OrganizationFixture({});
     location = LocationFixture();
     router = RouterFixture();
-    mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);
+    mockedOpenAddToDashboardModal = vi.mocked(openAddToDashboardModal);
   });
 
   it('constructs the correct widget queries for the modal with single yAxis', function () {

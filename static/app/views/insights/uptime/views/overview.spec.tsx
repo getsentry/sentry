@@ -12,21 +12,21 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import UptimeOverview from 'sentry/views/insights/uptime/views/overview';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockNavigate = jest.fn();
+const mockUseNavigate = vi.mocked(useNavigate);
+const mockNavigate = vi.fn();
 mockUseNavigate.mockReturnValue(mockNavigate);
 
 describe('Uptime Overview', function () {
   const project = ProjectFixture();
   const team = TeamFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),

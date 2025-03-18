@@ -6,7 +6,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import Teams from 'sentry/utils/teams';
 
 describe('utils.teams', function () {
-  const renderer = jest.fn(() => null);
+  const renderer = vi.fn(() => null);
 
   beforeEach(function () {
     TeamStore.loadInitialData([

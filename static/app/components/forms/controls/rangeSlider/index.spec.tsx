@@ -30,7 +30,7 @@ describe('RangeSlider', function () {
   });
 
   it('calls onChange', function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<RangeSlider name="test" value={5} min={0} max={10} onChange={onChange} />);
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
@@ -39,7 +39,7 @@ describe('RangeSlider', function () {
   });
 
   it('can provide a list of allowedValues', function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <RangeSlider
         name="test"
@@ -66,7 +66,7 @@ describe('RangeSlider', function () {
   });
 
   it('handles invalid values', function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <RangeSlider
         name="test"

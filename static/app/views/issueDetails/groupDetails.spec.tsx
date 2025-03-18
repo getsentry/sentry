@@ -23,12 +23,12 @@ import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
 describe('groupDetails', () => {
-  let mockNavigate: jest.Mock;
+  let mockNavigate: vi.Mock;
   const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [TeamFixture()]});
@@ -93,11 +93,11 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
-    mockNavigate = jest.fn();
+    mockNavigate = vi.fn();
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
       url: `/assistant/`,

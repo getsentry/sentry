@@ -23,15 +23,15 @@ const {
 } = SpanMetricsField;
 const {SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
-const requestMocks: Record<string, jest.Mock> = {};
+const requestMocks: Record<string, vi.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
   const organization = OrganizationFixture({
@@ -44,7 +44,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders a list of resources', async () => {
@@ -136,8 +136,8 @@ describe('ResourcesLandingPage', function () {
 });
 
 const setupMocks = () => {
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(useOnboardingProject).mockReturnValue(undefined);
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -154,7 +154,7 @@ const setupMocks = () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d'},
@@ -164,17 +164,17 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     fetchError: null,
     fetching: false,
     hasMore: false,
     initiallyLoaded: true,
     projects: [ProjectFixture({hasInsightsAssets: true})],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
   });
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,

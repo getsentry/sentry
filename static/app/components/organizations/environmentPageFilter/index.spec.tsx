@@ -90,7 +90,7 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('handles reset', async function () {
-    const onReset = jest.fn();
+    const onReset = vi.fn();
     render(<EnvironmentPageFilter onReset={onReset} />, {
       router,
       organization,

@@ -8,12 +8,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
-jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
-  getTopNConvertedDefaultWidgets: jest.fn(() => [
+vi.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
+  getTopNConvertedDefaultWidgets: vi.fn(() => [
     {
       id: 'duration-distribution',
       title: 'Duration Distribution',
@@ -25,19 +25,19 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   ]),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseNavigate = vi.mocked(useNavigate);
 
 const router = RouterFixture({
   location: LocationFixture({query: {}}),
 });
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('WidgetTemplatesList', () => {
-  const onSave = jest.fn();
+  const onSave = vi.fn();
 
   beforeEach(() => {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
@@ -49,7 +49,7 @@ describe('WidgetTemplatesList', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render the widget templates list', async () => {
@@ -57,8 +57,8 @@ describe('WidgetTemplatesList', () => {
       <WidgetBuilderProvider>
         <WidgetTemplatesList
           onSave={onSave}
-          setOpenWidgetTemplates={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
         />
       </WidgetBuilderProvider>
     );
@@ -72,8 +72,8 @@ describe('WidgetTemplatesList', () => {
       <WidgetBuilderProvider>
         <WidgetTemplatesList
           onSave={onSave}
-          setOpenWidgetTemplates={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
         />
       </WidgetBuilderProvider>
     );
@@ -86,15 +86,15 @@ describe('WidgetTemplatesList', () => {
   });
 
   it('should put widget in url when clicking a template', async () => {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(
       <WidgetBuilderProvider>
         <WidgetTemplatesList
           onSave={onSave}
-          setOpenWidgetTemplates={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
         />
       </WidgetBuilderProvider>,
       {router}
@@ -122,8 +122,8 @@ describe('WidgetTemplatesList', () => {
       <WidgetBuilderProvider>
         <WidgetTemplatesList
           onSave={onSave}
-          setOpenWidgetTemplates={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
+          setOpenWidgetTemplates={vi.fn()}
+          setIsPreviewDraggable={vi.fn()}
         />
       </WidgetBuilderProvider>
     );

@@ -50,7 +50,7 @@ function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,
   event_id: string
-): jest.Mock<any, any> {
+): vi.Mock<any, any> {
   return MockApiClient.addMockResponse({
     url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',

@@ -30,7 +30,7 @@ describe('MetricIssueChart', () => {
       },
     },
   });
-  let mockIncidents: jest.Mock;
+  let mockIncidents: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

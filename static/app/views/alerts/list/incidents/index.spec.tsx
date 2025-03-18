@@ -238,7 +238,7 @@ describe('IncidentsList', () => {
         }),
       ],
     });
-    TeamStore.getById = jest.fn().mockReturnValue(team);
+    TeamStore.getById = vi.fn().mockReturnValue(team);
 
     renderComponent();
     expect(await screen.findByText(team.name)).toBeInTheDocument();

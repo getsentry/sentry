@@ -257,7 +257,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -306,7 +306,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -369,7 +369,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -406,7 +406,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -443,7 +443,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -479,7 +479,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -521,7 +521,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -557,7 +557,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -599,7 +599,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -636,7 +636,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -703,7 +703,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -741,7 +741,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -775,7 +775,7 @@ describe('Results', function () {
           }}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />
       );
 
@@ -818,7 +818,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -852,7 +852,7 @@ describe('Results', function () {
           }}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />
       );
 
@@ -895,7 +895,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -933,7 +933,7 @@ describe('Results', function () {
           }}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />
       );
 
@@ -976,7 +976,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1020,7 +1020,7 @@ describe('Results', function () {
 
       renderMockRequests();
 
-      jest.spyOn(PageFilterPersistence, 'getPageFilterStorage').mockReturnValue({
+      vi.spyOn(PageFilterPersistence, 'getPageFilterStorage').mockReturnValue({
         state: {
           project: [1],
           environment: [],
@@ -1040,7 +1040,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1083,7 +1083,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1115,7 +1115,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1152,7 +1152,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1193,7 +1193,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1256,7 +1256,7 @@ describe('Results', function () {
       const {rerender} = render(
         <Results
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
           organization={organization}
           location={router.location}
           router={router}
@@ -1283,7 +1283,7 @@ describe('Results', function () {
       rerender(
         <Results
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
           organization={organization}
           location={rerenderData.router.location}
           router={rerenderData.router}
@@ -1327,7 +1327,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1351,7 +1351,7 @@ describe('Results', function () {
           location={rerenderData.router.location}
           router={rerenderData.router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />
       );
       screen.getByText('Previous Period');
@@ -1379,7 +1379,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1413,7 +1413,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1457,7 +1457,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1495,7 +1495,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {router, organization}
       );
@@ -1533,7 +1533,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1611,7 +1611,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1703,7 +1703,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1826,7 +1826,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,
@@ -1946,7 +1946,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
           loading={false}
-          setSavedQuery={jest.fn()}
+          setSavedQuery={vi.fn()}
         />,
         {
           router,

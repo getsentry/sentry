@@ -11,10 +11,10 @@ import TeamStore from 'sentry/stores/teamStore';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
 
-jest.mocked(recreateRoute).mockReturnValue('');
+vi.mocked(recreateRoute).mockReturnValue('');
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openCreateTeamModal: jest.fn(),
+vi.mock('sentry/actionCreators/modal', () => ({
+  openCreateTeamModal: vi.fn(),
 }));
 
 describe('OrganizationTeams', function () {
@@ -242,7 +242,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('can approve', async function () {
-      const onUpdateRequestListMock = jest.fn();
+      const onUpdateRequestListMock = vi.fn();
       const approveMock = MockApiClient.addMockResponse({
         url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
         method: 'PUT',
@@ -267,7 +267,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('can deny', async function () {
-      const onUpdateRequestListMock = jest.fn();
+      const onUpdateRequestListMock = vi.fn();
       const denyMock = MockApiClient.addMockResponse({
         url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
         method: 'PUT',

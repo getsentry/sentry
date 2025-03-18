@@ -4,7 +4,7 @@ import RadioGroupPanel from 'sentry/views/alerts/wizard/radioPanelGroup';
 
 describe('RadioGroupPanel', function () {
   it('calls onChange when clicked', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     render(
       <RadioGroupPanel
@@ -25,7 +25,7 @@ describe('RadioGroupPanel', function () {
   });
 
   it('Renders extra content', function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     render(
       <RadioGroupPanel

@@ -8,8 +8,8 @@ import AccountSettingsLayout from 'sentry/views/settings/account/accountSettings
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 
 describe('AccountSettingsLayout', function () {
-  let spy: jest.SpyInstance;
-  let api: jest.Mock;
+  let spy: vi.SpyInstance;
+  let api: vi.Mock;
 
   const {routerProps} = initializeOrg();
 
@@ -21,7 +21,7 @@ describe('AccountSettingsLayout', function () {
   });
 
   beforeEach(function () {
-    spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
+    spy = vi.spyOn(OrgActions, 'fetchOrganizationDetails');
     api = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
     });

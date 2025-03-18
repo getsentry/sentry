@@ -13,7 +13,7 @@ describe('RadioGroup', function () {
           ['choice_two', 'Choice Two'],
           ['choice_three', 'Choice Three'],
         ]}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />
     );
   });
@@ -25,7 +25,7 @@ describe('RadioGroup', function () {
         value="choice_one"
         disabled
         choices={[['choice_one', 'Choice One']]}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />
     );
 
@@ -42,7 +42,7 @@ describe('RadioGroup', function () {
           ['choice_two', 'Choice Two'],
         ]}
         disabledChoices={[['choice_two', 'Reason why choice two is disabled']]}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />
     );
 
@@ -65,13 +65,13 @@ describe('RadioGroup', function () {
           ['choice_two', 'Choice Two'],
           ['choice_three', 'Choice Three'],
         ]}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />
     );
   });
 
   it('calls onChange when clicked', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     render(
       <RadioGroup

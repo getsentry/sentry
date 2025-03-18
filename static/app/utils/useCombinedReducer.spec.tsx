@@ -4,17 +4,17 @@ import {makeCombinedReducers, useCombinedReducer} from 'sentry/utils/useCombined
 
 describe('makeCombinedReducers', () => {
   it('calls reducer only with subset of state', () => {
-    const mockFirstReducer = jest.fn();
+    const mockFirstReducer = vi.fn();
 
-    const reducer = makeCombinedReducers({first: mockFirstReducer, second: jest.fn()});
+    const reducer = makeCombinedReducers({first: mockFirstReducer, second: vi.fn()});
     reducer({first: 'first', second: ''}, 'action');
 
     expect(mockFirstReducer).toHaveBeenCalledWith('first', 'action');
   });
 
   it('calls all reducers with action', () => {
-    const mockFirstReducer = jest.fn();
-    const mockSecondReducer = jest.fn();
+    const mockFirstReducer = vi.fn();
+    const mockSecondReducer = vi.fn();
 
     const reducer = makeCombinedReducers({
       first: mockFirstReducer,
@@ -32,7 +32,7 @@ describe('useCombinedReducer', () => {
     const {result} = renderHook(
       (args: Parameters<typeof useCombinedReducer>) =>
         useCombinedReducer(args[0], args[1]),
-      {initialProps: [{first: jest.fn()}, {first: 'initial'}]}
+      {initialProps: [{first: vi.fn()}, {first: 'initial'}]}
     );
 
     expect(result.current[0]).toEqual({first: 'initial'});

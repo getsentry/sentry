@@ -8,19 +8,17 @@ import {
 
 async function renderBreadcrumbDrawer() {
   // Needed to mock useVirtualizer lists.
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 30,
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      toJSON: jest.fn(),
-    }));
+  vi.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 30,
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    toJSON: vi.fn(),
+  }));
   render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
   await userEvent.click(screen.getByRole('button', {name: 'View All Breadcrumbs'}));
   return screen.getByRole('complementary', {name: 'breadcrumb drawer'});

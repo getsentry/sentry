@@ -45,8 +45,8 @@ describe('ScreenshotModal', function () {
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
         closeModal={() => undefined}
-        onDelete={jest.fn()}
-        onDownload={jest.fn()}
+        onDelete={vi.fn()}
+        onDownload={vi.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
         downloadUrl=""
@@ -76,8 +76,8 @@ describe('ScreenshotModal', function () {
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
         closeModal={() => undefined}
-        onDelete={jest.fn()}
-        onDownload={jest.fn()}
+        onDelete={vi.fn()}
+        onDownload={vi.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
         attachments={attachments}
@@ -107,8 +107,8 @@ describe('ScreenshotModal', function () {
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
         closeModal={() => undefined}
-        onDelete={jest.fn()}
-        onDownload={jest.fn()}
+        onDelete={vi.fn()}
+        onDownload={vi.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
         downloadUrl=""

@@ -65,7 +65,7 @@ describe('SetBudgetAndReserves', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();
@@ -90,7 +90,7 @@ describe('SetBudgetAndReserves', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel('Team');
@@ -130,7 +130,7 @@ describe('SetBudgetAndReserves', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();
@@ -169,7 +169,7 @@ describe('SetBudgetAndReserves', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();
@@ -209,7 +209,7 @@ describe('SetBudgetAndReserves', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel('Team');
@@ -249,7 +249,7 @@ describe('SetBudgetAndReserves', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();

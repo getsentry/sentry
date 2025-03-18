@@ -109,7 +109,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
   describe('removing', function () {
     it('allows to remove secrets', async function () {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      vi.spyOn(indicators, 'addSuccessMessage');
 
       const secrets: Secret[] = [
         SecretFixture(),

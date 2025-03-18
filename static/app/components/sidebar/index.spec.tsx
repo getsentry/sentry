@@ -19,11 +19,11 @@ import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
-jest.mock('sentry/actionCreators/account');
-jest.mock('sentry/utils/useServiceIncidents');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/actionCreators/account');
+vi.mock('sentry/utils/useServiceIncidents');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
@@ -39,7 +39,7 @@ const ALL_AVAILABLE_FEATURES = [
   'profiling',
 ];
 
-jest.mock('sentry/utils/demoMode');
+vi.mock('sentry/utils/demoMode');
 
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
@@ -49,9 +49,9 @@ describe('Sidebar', function () {
     options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
   });
   const apiMocks = {
-    broadcasts: jest.fn(),
-    broadcastsMarkAsSeen: jest.fn(),
-    sdkUpdates: jest.fn(),
+    broadcasts: vi.fn(),
+    broadcastsMarkAsSeen: vi.fn(),
+    sdkUpdates: vi.fn(),
   };
 
   const getElement = () => (
@@ -72,11 +72,9 @@ describe('Sidebar', function () {
   beforeEach(function () {
     ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
-    jest
-      .spyOn(incidentsHook, 'useServiceIncidents')
-      .mockImplementation(
-        () => ({data: [ServiceIncidentFixture()]}) as UseQueryResult<StatuspageIncident[]>
-      );
+    vi.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
+      () => ({data: [ServiceIncidentFixture()]}) as UseQueryResult<StatuspageIncident[]>
+    );
 
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
@@ -133,14 +131,14 @@ describe('Sidebar', function () {
   });
 
   it('does not render help center in demo mode', async () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as vi.Mock).mockReturnValue(true);
 
     renderSidebar({organization});
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.queryByText('Visit Help Center')).not.toBeInTheDocument();
 
-    (isDemoModeActive as jest.Mock).mockReset();
+    (isDemoModeActive as vi.Mock).mockReset();
   });
 
   describe('SidebarDropdown', function () {
@@ -167,10 +165,11 @@ describe('Sidebar', function () {
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
 
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       await userEvent.hover(screen.getByText('Switch organization'), {delay: null});
-      act(() => jest.advanceTimersByTime(500));
-      jest.useRealTimers();
+      act(() => vi.advanceTimersByTime(500));
+      vi.useRealTimers();
 
       const createOrg = screen.getByText('Create a new organization');
       expect(createOrg).toBeInTheDocument();
@@ -228,7 +227,8 @@ describe('Sidebar', function () {
     });
 
     it('can display Broadcasts panel and mark as seen', async function () {
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       renderSidebar({organization});
 
       expect(apiMocks.broadcasts).toHaveBeenCalled();
@@ -242,7 +242,7 @@ describe('Sidebar', function () {
       expect(broadcastTitle).toBeInTheDocument();
 
       // Should mark as seen after a delay
-      act(() => jest.advanceTimersByTime(2000));
+      act(() => vi.advanceTimersByTime(2000));
 
       await waitFor(() => {
         expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
@@ -250,7 +250,7 @@ describe('Sidebar', function () {
           expect.objectContaining({data: {hasSeen: '1'}, query: {id: ['8']}})
         );
       });
-      jest.useRealTimers();
+      vi.useRealTimers();
 
       // Close the sidebar
       await userEvent.click(screen.getByText("What's new"));
@@ -259,7 +259,8 @@ describe('Sidebar', function () {
     });
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
-      jest.useFakeTimers();
+      vi.useRealTimers();
+      vi.useFakeTimers();
       const {unmount} = renderSidebar({organization});
 
       // This will start timer to mark as seen
@@ -268,16 +269,16 @@ describe('Sidebar', function () {
       });
       expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
 
-      act(() => jest.advanceTimersByTime(500));
+      act(() => vi.advanceTimersByTime(500));
 
       // Unmounting will cancel timers
       unmount();
 
       // This advances timers enough so that mark as seen should be called if
       // it wasn't unmounted
-      act(() => jest.advanceTimersByTime(600));
+      act(() => vi.advanceTimersByTime(600));
       expect(apiMocks.broadcastsMarkAsSeen).not.toHaveBeenCalled();
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('can show Incidents in Sidebar Panel', async function () {

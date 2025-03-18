@@ -15,8 +15,8 @@ import ProjectReleaseTrackingContainer, {
   ProjectReleaseTracking,
 } from 'sentry/views/settings/project/projectReleaseTracking';
 
-jest.mock('sentry/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn().mockResolvedValue([]),
+vi.mock('sentry/actionCreators/plugins', () => ({
+  fetchPlugins: vi.fn().mockResolvedValue([]),
 }));
 
 describe('ProjectReleaseTracking', function () {
@@ -41,7 +41,7 @@ describe('ProjectReleaseTracking', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with token', async function () {
@@ -118,7 +118,7 @@ describe('ProjectReleaseTracking', function () {
       expect(fetchPlugins).toHaveBeenCalled();
     });
 
-    jest.mocked(fetchPlugins).mockClear();
+    vi.mocked(fetchPlugins).mockClear();
 
     // For example, this happens when we switch to a new project using settings breadcrumb
     rerender(<ProjectReleaseTrackingContainer organization={org} project={newProject} />);
@@ -130,7 +130,7 @@ describe('ProjectReleaseTracking', function () {
     );
 
     await waitFor(() => {
-      jest.mocked(fetchPlugins).mockClear();
+      vi.mocked(fetchPlugins).mockClear();
     });
 
     // Does not call fetchPlugins if slug is the same

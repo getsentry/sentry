@@ -22,7 +22,7 @@ describe('projectSelectControl', () => {
       <ProjectSelectControl
         disabled={false}
         filteredIdList={[]}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value=""
       />
     );
@@ -32,7 +32,7 @@ describe('projectSelectControl', () => {
       <ProjectSelectControl
         disabled={false}
         filteredIdList={[projects[0]!.id]}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value=""
       />
     );
@@ -40,7 +40,7 @@ describe('projectSelectControl', () => {
   });
 
   it('calls invokes onChange on select', async () => {
-    const mockCallback = jest.fn();
+    const mockCallback = vi.fn();
     render(
       <ProjectSelectControl
         disabled={false}

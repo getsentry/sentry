@@ -13,7 +13,7 @@ const theme = makeLightFlamegraphTheme(lightTheme);
 
 describe('UIFramesRenderer', () => {
   const canvas = makeCanvasMock({
-    getContext: jest.fn().mockReturnValue(makeContextMock()),
+    getContext: vi.fn().mockReturnValue(makeContextMock()),
   });
   const uiFrames = new UIFrames(
     {

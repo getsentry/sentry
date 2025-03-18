@@ -558,7 +558,7 @@ describe('EventCause', () => {
 });
 
 describe('Platform Integrations', () => {
-  let componentsRequest: jest.Mock;
+  let componentsRequest: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

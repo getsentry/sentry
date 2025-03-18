@@ -73,7 +73,7 @@ describe('clipped box', () => {
         mockGetBoundingClientRect({height: 100});
       }
 
-      const onSetRenderHeight = jest.fn();
+      const onSetRenderHeight = vi.fn();
       const {rerender} = render(
         <ClippedBox clipHeight={50} onSetRenderedHeight={onSetRenderHeight}>
           <Child height={100} />
@@ -109,7 +109,7 @@ describe('clipped box', () => {
         mockGetBoundingClientRect({height: 100});
       }
 
-      const onReveal = jest.fn();
+      const onReveal = vi.fn();
       const {container} = render(
         <ClippedBox clipHeight={50} clipFlex={15} onReveal={onReveal}>
           <Child height={100} />

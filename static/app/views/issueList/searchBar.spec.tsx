@@ -31,7 +31,7 @@ describe('IssueListSearchBar', function () {
       organization,
       query: '',
       statsPeriod: '7d',
-      onSearch: jest.fn(),
+      onSearch: vi.fn(),
     };
 
     it('displays the correct options for the is tag', async function () {
@@ -107,7 +107,7 @@ describe('IssueListSearchBar', function () {
       organization,
       query: '',
       statsPeriod: '7d',
-      onSearch: jest.fn(),
+      onSearch: vi.fn(),
     };
 
     it('displays the correct tag values for a key', async () => {

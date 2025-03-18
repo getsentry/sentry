@@ -10,19 +10,20 @@ import {UrlParamBatchProvider} from 'sentry/views/dashboards/widgetBuilder/conte
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
-const mockedUseLocation = jest.mocked(useLocation);
-const mockedUseNavigate = jest.mocked(useNavigate);
+const mockedUseLocation = vi.mocked(useLocation);
+const mockedUseNavigate = vi.mocked(useNavigate);
 
 describe('useQueryParamState', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should get the initial value from the query param', () => {
@@ -38,7 +39,7 @@ describe('useQueryParamState', () => {
   });
 
   it('should update the local state and the query param', () => {
-    const mockedNavigate = jest.fn();
+    const mockedNavigate = vi.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
     const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
@@ -62,7 +63,7 @@ describe('useQueryParamState', () => {
     );
 
     // Run the timers to trigger queued updates
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     // The query param should be updated
     expect(mockedNavigate).toHaveBeenCalledWith(
@@ -101,7 +102,7 @@ describe('useQueryParamState', () => {
       value: string;
     };
 
-    const mockedNavigate = jest.fn();
+    const mockedNavigate = vi.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
     const testSerializer = (value: TestType) =>
@@ -130,7 +131,7 @@ describe('useQueryParamState', () => {
   it('can decode and update sorts', () => {
     mockedUseLocation.mockReturnValue(LocationFixture({query: {sort: '-testField'}}));
 
-    const mockedNavigate = jest.fn();
+    const mockedNavigate = vi.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
     const {result} = renderHook(

@@ -7,7 +7,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import Projects from 'sentry/utils/projects';
 
 describe('utils.projects', function () {
-  const renderer = jest.fn(() => null);
+  const renderer = vi.fn(() => null);
 
   const createWrapper = (props = {}) =>
     // eslint-disable-next-line react/no-children-prop
@@ -398,7 +398,7 @@ describe('utils.projects', function () {
     });
 
     it('queries API for more projects and replaces results', async function () {
-      const myRenderer = jest.fn(({onSearch}) => (
+      const myRenderer = vi.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value)} />
       ));
 
@@ -463,7 +463,7 @@ describe('utils.projects', function () {
     });
 
     it('queries API for more projects and appends results', async function () {
-      const myRenderer = jest.fn(({onSearch}) => (
+      const myRenderer = vi.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value, {append: true})} />
       ));
 
@@ -582,7 +582,7 @@ describe('utils.projects', function () {
     });
 
     it('can query for a list of all projects and save it to the store', async function () {
-      const loadInitialData = jest.spyOn(ProjectsStore, 'loadInitialData');
+      const loadInitialData = vi.spyOn(ProjectsStore, 'loadInitialData');
       createWrapper({allProjects: true});
 
       // This is initial state
@@ -623,7 +623,7 @@ describe('utils.projects', function () {
 
     it('does not refetch projects that are already loaded in the store', async function () {
       act(() => ProjectsStore.loadInitialData(mockProjects));
-      const loadInitialData = jest.spyOn(ProjectsStore, 'loadInitialData');
+      const loadInitialData = vi.spyOn(ProjectsStore, 'loadInitialData');
 
       createWrapper({allProjects: true});
 

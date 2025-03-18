@@ -116,7 +116,7 @@ describe('CanvasView', () => {
   describe('getConfigSpaceCursor', () => {
     it('when view is not zoomed', () => {
       const canvas = makeCanvasMock({
-        getContext: jest
+        getContext: vi
           .fn()
           .mockReturnValue(
             makeContextMock({canvas: {width: 1000, height: 2000} as HTMLCanvasElement})

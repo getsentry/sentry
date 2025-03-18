@@ -9,9 +9,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/views/insights/common/utils/useModuleURL');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/views/insights/common/utils/useModuleURL');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('ScreensOverviewTable', () => {
   const organization = OrganizationFixture({
@@ -31,8 +31,8 @@ describe('ScreensOverviewTable', () => {
     state: undefined,
   } as Location;
 
-  jest.mocked(useLocation).mockReturnValue(location);
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue(location);
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),

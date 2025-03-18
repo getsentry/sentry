@@ -52,8 +52,8 @@ function WrappedComponent({data, ...rest}: any) {
 }
 
 describe('Performance > Widgets > Query Batching', function () {
-  let eventsMock: jest.Mock;
-  let eventStatsMock: jest.Mock;
+  let eventsMock: vi.Mock;
+  let eventStatsMock: vi.Mock;
 
   beforeEach(function () {
     eventsMock = MockApiClient.addMockResponse({

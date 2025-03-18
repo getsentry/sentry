@@ -56,7 +56,7 @@ describe('SavedIssueSearches', function () {
 
   const defaultProps: ComponentProps<typeof SavedIssueSearches> = {
     organization,
-    onSavedSearchSelect: jest.fn(),
+    onSavedSearchSelect: vi.fn(),
     query: 'is:unresolved',
     sort: 'date',
   };
@@ -64,7 +64,7 @@ describe('SavedIssueSearches', function () {
   beforeEach(() => {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],

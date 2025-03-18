@@ -2,7 +2,7 @@ import retryableImport from 'sentry/utils/retryableImport';
 
 describe('retryableImport', function () {
   it('can dynamically import successfully on first try', async function () {
-    const importMock = jest.fn();
+    const importMock = vi.fn();
 
     importMock.mockReturnValue(
       new Promise(resolve =>
@@ -25,7 +25,7 @@ describe('retryableImport', function () {
   });
 
   it('does not retry if error was not a webpack chunk loading error', async function () {
-    const importMock = jest.fn();
+    const importMock = vi.fn();
 
     importMock.mockReturnValueOnce(
       new Promise((_resolve, reject) => reject(new Error('Another error happened')))
@@ -40,7 +40,7 @@ describe('retryableImport', function () {
   });
 
   it('can fail 2 dynamic imports and succeed on 3rd try', async function () {
-    const importMock = jest.fn();
+    const importMock = vi.fn();
 
     importMock
       .mockReturnValueOnce(
@@ -70,7 +70,7 @@ describe('retryableImport', function () {
   });
 
   it('only retries 3 times', async function () {
-    const importMock = jest.fn(
+    const importMock = vi.fn(
       () =>
         new Promise<{default: unknown}>((_resolve, reject) =>
           reject(new Error('Loading chunk 123 failed'))

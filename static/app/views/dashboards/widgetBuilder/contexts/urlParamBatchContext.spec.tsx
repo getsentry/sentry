@@ -7,24 +7,25 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {UrlParamBatchProvider, useUrlBatchContext} from './urlParamBatchContext';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
 describe('UrlParamBatchProvider', () => {
-  let mockNavigate: jest.Mock;
+  let mockNavigate: vi.Mock;
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
-    jest.useFakeTimers();
+    mockNavigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+    vi.useRealTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
+    vi.clearAllMocks();
+    vi.clearAllTimers();
   });
 
   it('should batch updates to the URL query params', () => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    vi.mocked(useLocation).mockReturnValue(LocationFixture());
     const {result} = renderHook(() => useUrlBatchContext(), {
       wrapper: UrlParamBatchProvider,
     });
@@ -36,7 +37,7 @@ describe('UrlParamBatchProvider', () => {
     });
 
     act(() => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);

@@ -19,7 +19,7 @@ describe('ApiNewToken', function () {
 
   it('renames token to new name', async function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -57,7 +57,7 @@ describe('ApiNewToken', function () {
 
   it('removes token name', async function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -95,7 +95,7 @@ describe('ApiNewToken', function () {
 
   it('does not accept long name', async function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addErrorMessage');
+    vi.spyOn(indicators, 'addErrorMessage');
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',

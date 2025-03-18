@@ -10,12 +10,12 @@ import useCleanQueryParamsOnRouteLeave, {
 } from './useCleanQueryParamsOnRouteLeave';
 import {useLocation} from './useLocation';
 
-jest.mock('./useLocation');
+vi.mock('./useLocation');
 
-const MockBrowserHistoryListen = jest.mocked(browserHistory.listen);
-const MockBrowserHistoryReplace = jest.mocked(browserHistory.replace);
+const MockBrowserHistoryListen = vi.mocked(browserHistory.listen);
+const MockBrowserHistoryReplace = vi.mocked(browserHistory.replace);
 
-jest.mocked(useLocation).mockReturnValue({pathname: '/home'} as Location);
+vi.mocked(useLocation).mockReturnValue({pathname: '/home'} as Location);
 
 type QueryParams = {cursor: string; limit: number; project: string};
 
@@ -26,7 +26,7 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
   });
 
   it('should listen to browserHistory changes and stop on unmount', () => {
-    const unsubscriber = jest.fn();
+    const unsubscriber = vi.fn();
     MockBrowserHistoryListen.mockReturnValue(unsubscriber);
 
     const {unmount} = renderHook(useCleanQueryParamsOnRouteLeave, {

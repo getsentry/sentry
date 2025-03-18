@@ -29,8 +29,8 @@ describe('InviteRowControlNew', function () {
   });
 
   it('enables send button when there are emails', async function () {
-    const mockSetInviteStatus = jest.fn();
-    const mockSendInvites = jest.fn();
+    const mockSetInviteStatus = vi.fn();
+    const mockSendInvites = vi.fn();
     renderComponent({
       invites: [
         {

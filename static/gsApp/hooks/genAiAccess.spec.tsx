@@ -8,16 +8,16 @@ import {BillingType} from 'getsentry/types';
 import {useGenAiConsentButtonAccess} from './genAiAccess';
 
 // Mock the hooks that useGenAiConsentButtonAccess depends on
-jest.mock('sentry/utils/useOrganization');
-jest.mock('sentry/utils/useUser');
-jest.mock('sentry/utils/regions', () => ({
-  getRegionDataFromOrganization: jest.fn(),
+vi.mock('sentry/utils/useOrganization');
+vi.mock('sentry/utils/useUser');
+vi.mock('sentry/utils/regions', () => ({
+  getRegionDataFromOrganization: vi.fn(),
 }));
 
-const mockUseOrganization = jest.requireMock('sentry/utils/useOrganization').default;
-const mockUseUser = jest.requireMock('sentry/utils/useUser').useUser;
+const mockUseOrganization = vi.importMock('sentry/utils/useOrganization').default;
+const mockUseUser = vi.importMock('sentry/utils/useUser').useUser;
 const mockGetRegionData =
-  jest.requireMock('sentry/utils/regions').getRegionDataFromOrganization;
+  vi.importMock('sentry/utils/regions').getRegionDataFromOrganization;
 
 describe('useGenAiConsentButtonAccess', function () {
   // Reset all mocks before each test

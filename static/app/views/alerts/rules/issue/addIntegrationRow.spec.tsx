@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('AddIntegrationRow', function () {
   let org: any;
@@ -16,7 +16,7 @@ describe('AddIntegrationRow', function () {
 
   beforeEach(function () {
     org = OrganizationFixture();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const getComponent = () => (
@@ -32,7 +32,7 @@ describe('AddIntegrationRow', function () {
         modalParams: {project: project.id},
       }}
     >
-      <AddIntegrationRow onClick={jest.fn()} />
+      <AddIntegrationRow onClick={vi.fn()} />
     </IntegrationContext.Provider>
   );
 
@@ -44,8 +44,8 @@ describe('AddIntegrationRow', function () {
   });
 
   it('opens the setup dialog on click', async () => {
-    const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
+    const focus = vi.fn();
+    const open = vi.fn().mockReturnValue({focus, close: vi.fn()});
     // any is needed here because getSentry has different types for global
     (global as any).open = open;
 

@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
 
-jest.mock('scroll-to-element', () => {});
+vi.mock('scroll-to-element', () => {});
 
 const ENDPOINT = '/users/me/emails/';
 

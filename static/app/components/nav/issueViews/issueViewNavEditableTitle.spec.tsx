@@ -3,8 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import IssueViewNavEditableTitle from './issueViewNavEditableTitle';
 
 describe('IssueViewNavEditableTitle', () => {
-  const mockOnChange = jest.fn();
-  const mockSetIsEditing = jest.fn();
+  const mockOnChange = vi.fn();
+  const mockSetIsEditing = vi.fn();
   const defaultProps = {
     label: 'Test Label',
     onChange: mockOnChange,
@@ -15,7 +15,7 @@ describe('IssueViewNavEditableTitle', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the label correctly', () => {

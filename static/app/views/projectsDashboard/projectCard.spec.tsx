@@ -6,7 +6,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 
 // NOTE: Unmocking debounce so that the actionCreator never fires
-jest.unmock('lodash/debounce');
+vi.unmock('lodash/debounce');
 
 describe('ProjectCard', function () {
   const createWrapper = () =>

@@ -101,8 +101,8 @@ describe('InviteRequestRow', function () {
   });
 
   it('admin can approve invite request', async function () {
-    const mockApprove = jest.fn();
-    const mockDeny = jest.fn();
+    const mockApprove = vi.fn();
+    const mockDeny = vi.fn();
 
     render(
       <InviteRequestRow
@@ -126,8 +126,8 @@ describe('InviteRequestRow', function () {
   });
 
   it('admin can deny invite request', async function () {
-    const mockApprove = jest.fn();
-    const mockDeny = jest.fn();
+    const mockApprove = vi.fn();
+    const mockDeny = vi.fn();
 
     render(
       <InviteRequestRow
@@ -177,7 +177,7 @@ describe('InviteRequestRow', function () {
       TeamFixture({id: '1', slug: 'one'}),
       TeamFixture({id: '2', slug: 'two'}),
     ]);
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     render(
       <InviteRequestRow
@@ -211,7 +211,7 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     render(
       <InviteRequestRow

@@ -13,14 +13,14 @@ import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
-jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () =>
-  jest.fn(({id}) => <div data-test-id={id} />)
+vi.mock('sentry/views/issueList/filters', () => vi.fn(() => null));
+vi.mock('sentry/components/stream/group', () =>
+  vi.fn(({id}) => <div data-test-id={id} />)
 );
 
-jest.mock('js-cookie', () => ({
-  get: jest.fn(),
-  set: jest.fn(),
+vi.mock('js-cookie', () => ({
+  get: vi.fn(),
+  set: vi.fn(),
 }));
 
 const PREVIOUS_PAGE_CURSOR = '1443575731';
@@ -29,11 +29,11 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
 describe('IssueList -> Polling', function () {
-  let issuesRequest: jest.Mock;
-  let pollRequest: jest.Mock;
+  let issuesRequest: vi.Mock;
+  let pollRequest: vi.Mock;
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
     MockApiClient.clearMockResponses();
   });
 
@@ -73,16 +73,17 @@ describe('IssueList -> Polling', function () {
     });
 
     await Promise.resolve();
-    jest.runAllTimers();
+    vi.runAllTimers();
   };
 
   beforeEach(function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
 
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     MockApiClient.clearMockResponses();
 
@@ -152,7 +153,7 @@ describe('IssueList -> Polling', function () {
       },
     });
 
-    jest.mocked(StreamGroup).mockClear();
+    vi.mocked(StreamGroup).mockClear();
     TagStore.init();
   });
 
@@ -176,9 +177,9 @@ describe('IssueList -> Polling', function () {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    vi.advanceTimersByTime(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(6001);
+    vi.advanceTimersByTime(6001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
 
     // Pauses
@@ -186,7 +187,7 @@ describe('IssueList -> Polling', function () {
       delay: null,
     });
 
-    jest.advanceTimersByTime(12001);
+    vi.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
   });
 
@@ -211,7 +212,7 @@ describe('IssueList -> Polling', function () {
       {delay: null}
     );
 
-    jest.advanceTimersByTime(3001);
+    vi.advanceTimersByTime(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
 
     // We mock out the stream group component and only render the ID as a testid
@@ -236,9 +237,9 @@ describe('IssueList -> Polling', function () {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    vi.advanceTimersByTime(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(9001);
+    vi.advanceTimersByTime(9001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -258,9 +259,9 @@ describe('IssueList -> Polling', function () {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    vi.advanceTimersByTime(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(9001);
+    vi.advanceTimersByTime(9001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -280,9 +281,9 @@ describe('IssueList -> Polling', function () {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    jest.advanceTimersByTime(3001);
+    vi.advanceTimersByTime(3001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(9001);
+    vi.advanceTimersByTime(9001);
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 });

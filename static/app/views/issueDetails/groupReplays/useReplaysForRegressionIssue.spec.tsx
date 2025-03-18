@@ -10,7 +10,7 @@ import {IssueCategory} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useReplaysForRegressionIssue from 'sentry/views/issueDetails/groupReplays/useReplaysForRegressionIssue';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
 describe('useReplaysForRegressionIssue', () => {
   const location: Location = {
@@ -22,7 +22,7 @@ describe('useReplaysForRegressionIssue', () => {
     action: 'PUSH',
     key: '',
   };
-  jest.mocked(useLocation).mockReturnValue(location);
+  vi.mocked(useLocation).mockReturnValue(location);
 
   const organization = OrganizationFixture({
     features: ['session-replay'],

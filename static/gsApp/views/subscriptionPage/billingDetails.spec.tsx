@@ -18,10 +18,10 @@ import type {Subscription as TSubscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
 
-jest.mock('getsentry/utils/stripe', () => ({
+vi.mock('getsentry/utils/stripe', () => ({
   loadStripe: (cb: any) => {
     cb(() => ({
-      createToken: jest.fn(
+      createToken: vi.fn(
         () =>
           new Promise(resolve => {
             resolve({token: {id: 'STRIPE_TOKEN'}});
@@ -37,11 +37,11 @@ jest.mock('getsentry/utils/stripe', () => ({
           resolve({error: {message: 'card invalid'}});
         });
       },
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
+      elements: vi.fn(() => ({
+        create: vi.fn(() => ({
+          mount: vi.fn(),
+          on: vi.fn(),
+          update: vi.fn(),
         })),
       })),
     }));

@@ -22,7 +22,7 @@ describe('AnomalyDetectionFeedbackBanner', () => {
   const project = initialData.project;
   const mockIncident = IncidentFixture({projects: [project.slug]});
   const mockIncident2 = IncidentFixture({id: '6702'});
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   it('submits anomaly detection feedback (yes)', async () => {
     const {container} = render(

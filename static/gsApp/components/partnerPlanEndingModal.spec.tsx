@@ -42,7 +42,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />
@@ -61,7 +61,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />
@@ -78,7 +78,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />
@@ -96,7 +96,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />
@@ -119,7 +119,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />
@@ -141,7 +141,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />
@@ -157,7 +157,7 @@ describe('PartnerPlanEndingModal', function () {
 
     render(
       <PartnerPlanEndingModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         organization={org}
         subscription={sub}
       />

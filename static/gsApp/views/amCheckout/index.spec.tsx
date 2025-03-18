@@ -61,7 +61,7 @@ describe('AM1 Checkout', function () {
         checkoutTier={PlanTier.AM1}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />,
       {organization}
     );
@@ -88,7 +88,7 @@ describe('AM1 Checkout', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
         api={api}
         checkoutTier={PlanTier.AM1}
@@ -122,7 +122,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {organization}
@@ -148,7 +148,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {organization}
@@ -167,7 +167,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={subscription.planTier as PlanTier}
       />,
       {organization}
@@ -197,7 +197,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {organization}
@@ -221,7 +221,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {organization}
@@ -242,7 +242,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={subscription.planTier as PlanTier}
       />,
       {organization}
@@ -301,7 +301,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {
@@ -362,7 +362,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {
@@ -417,7 +417,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {
@@ -468,7 +468,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />
     );
@@ -516,7 +516,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {
@@ -567,7 +567,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={sub.planTier as PlanTier}
       />,
       {
@@ -611,7 +611,7 @@ describe('AM1 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {
@@ -674,7 +674,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -709,7 +709,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -757,7 +757,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -816,7 +816,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -875,7 +875,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -949,7 +949,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -990,7 +990,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1022,7 +1022,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1068,7 +1068,7 @@ describe('AM2 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1158,7 +1158,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1207,7 +1207,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1263,7 +1263,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1321,7 +1321,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1361,7 +1361,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -1398,7 +1398,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM1}
       />,
       {organization}
@@ -1452,7 +1452,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1510,7 +1510,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -1579,7 +1579,7 @@ describe('AM3 Checkout', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}

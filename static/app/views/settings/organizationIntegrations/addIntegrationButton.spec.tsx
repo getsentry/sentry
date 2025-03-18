@@ -10,15 +10,15 @@ describe('AddIntegrationButton', function () {
   const provider = GitHubIntegrationProviderFixture();
 
   it('Opens the setup dialog on click', async function () {
-    const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
+    const focus = vi.fn();
+    const open = vi.fn().mockReturnValue({focus, close: vi.fn()});
     // any is needed here because getSentry has different types for global
     (global as any).open = open;
 
     render(
       <AddIntegrationButton
         provider={provider}
-        onAddIntegration={jest.fn()}
+        onAddIntegration={vi.fn()}
         organization={OrganizationFixture()}
       />
     );

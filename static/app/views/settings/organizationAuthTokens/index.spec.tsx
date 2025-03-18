@@ -30,7 +30,7 @@ describe('OrganizationAuthTokensIndex', function () {
     routeParams: router.params,
   };
 
-  let projectsMock: jest.Mock<any>;
+  let projectsMock: vi.Mock<any>;
 
   beforeEach(function () {
     OrganizationsStore.addOrReplace(organization);
@@ -171,7 +171,7 @@ describe('OrganizationAuthTokensIndex', function () {
 
   describe('revoking', function () {
     it('allows to revoke tokens', async function () {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      vi.spyOn(indicators, 'addSuccessMessage');
 
       const tokens: OrgAuthToken[] = [
         {
@@ -233,7 +233,7 @@ describe('OrganizationAuthTokensIndex', function () {
     });
 
     it('handles API error when revoking token', async function () {
-      jest.spyOn(indicators, 'addErrorMessage');
+      vi.spyOn(indicators, 'addErrorMessage');
 
       const tokens: OrgAuthToken[] = [
         {

@@ -11,12 +11,14 @@ import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
-jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
+vi.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 function mockNeedsUpdate(needsUpdate: boolean) {
-  jest
-    .mocked(useProjectSdkNeedsUpdate)
-    .mockReturnValue({isError: false, isFetching: false, needsUpdate});
+  vi.mocked(useProjectSdkNeedsUpdate).mockReturnValue({
+    isError: false,
+    isFetching: false,
+    needsUpdate,
+  });
 }
 
 const [

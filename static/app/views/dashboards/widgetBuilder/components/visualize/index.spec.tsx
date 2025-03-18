@@ -12,25 +12,25 @@ import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualiz
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useCustomMeasurements');
+vi.mock('sentry/views/explore/contexts/spanTagsContext');
+vi.mock('sentry/utils/useNavigate');
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
-  let mockNavigate!: jest.Mock;
+  let mockNavigate!: vi.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['dashboards-widget-builder-redesign', 'performance-view'],
     });
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
+    vi.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
+    vi.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    mockNavigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
 
   it('renders basic aggregates correctly from the URL params', async () => {
@@ -1101,7 +1101,7 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+      vi.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
             tags: {
@@ -1258,7 +1258,7 @@ describe('Visualize', () => {
     });
 
     it('differentiates between function and column values in selection', async () => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+      vi.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
             tags: {

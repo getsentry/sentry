@@ -6,7 +6,28 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import trackAmplitudeEvent from 'getsentry/utils/trackAmplitudeEvent';
 
-jest.unmock('getsentry/utils/trackAmplitudeEvent');
+vi.mock('@amplitude/analytics-browser', () => {
+  const identifyInstance: any = {
+    set: vi.fn(() => identifyInstance),
+  };
+
+  const Identify = vi.fn(() => identifyInstance);
+  const setUserId = vi.fn();
+  const identify = vi.fn();
+  const init = vi.fn();
+  const track = vi.fn();
+  const setGroup = vi.fn();
+
+  return {
+    Identify,
+    setUserId,
+    identify,
+    init,
+    track,
+    setGroup,
+  };
+});
+vi.unmock('getsentry/utils/trackAmplitudeEvent');
 
 describe('trackAmplitudeEvent', function () {
   const user = UserFixture({});
@@ -22,9 +43,9 @@ describe('trackAmplitudeEvent', function () {
     );
   });
   afterEach(function () {
-    (Amplitude.setUserId as jest.Mock).mockClear();
-    (Amplitude.track as jest.Mock).mockClear();
-    (Amplitude.setGroup as jest.Mock).mockClear();
+    (Amplitude.setUserId as vi.Mock).mockClear();
+    (Amplitude.track as vi.Mock).mockClear();
+    (Amplitude.setGroup as vi.Mock).mockClear();
   });
 
   it('organization id is a number calls track', function () {

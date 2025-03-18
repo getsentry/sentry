@@ -68,7 +68,7 @@ describe('Doc Integration Details', function () {
   });
 
   it('can delete', async function () {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
     const {router} = initializeOrg({
       router: {
         params: {docIntegrationSlug: mockDocIntegration.slug},
@@ -122,7 +122,7 @@ describe('Doc Integration Details', function () {
   });
 
   it('handles API errors when deleting', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    vi.spyOn(indicators, 'addErrorMessage');
 
     const {router} = initializeOrg({
       router: {
@@ -180,7 +180,7 @@ describe('Doc Integration Details', function () {
   });
 
   it('can unpublish', async function () {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
     const {router} = initializeOrg({
       router: {
         params: {docIntegrationSlug: mockDocIntegration.slug},

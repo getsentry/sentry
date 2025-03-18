@@ -41,7 +41,7 @@ describe('Debug Meta - Image Details', function () {
           image={{...image, status: ImageStatus.FOUND}}
           projSlug={project.slug}
           event={event}
-          onReprocessEvent={jest.fn()}
+          onReprocessEvent={vi.fn()}
         />
       ))
     );

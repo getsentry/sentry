@@ -11,9 +11,9 @@ import TransactionTags from 'sentry/views/performance/transactionSummary/transac
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];

@@ -17,7 +17,7 @@ describe('CustomCommitsResolutionModal', function () {
   });
 
   it('can select a commit', async function () {
-    const onSelected = jest.fn();
+    const onSelected = vi.fn();
 
     const wrapper = styled((p: any) => p.children);
     render(
@@ -28,7 +28,7 @@ describe('CustomCommitsResolutionModal', function () {
         orgSlug="org-slug"
         projectSlug="project-slug"
         onSelected={onSelected}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         CloseButton={makeCloseButton(() => null)}
       />
     );

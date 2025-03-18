@@ -11,9 +11,9 @@ import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSide
 
 const userMock = UserFixture();
 
-jest.mock('framer-motion', () => ({
-  ...jest.requireActual('framer-motion'),
-  AnimatePresence: jest.fn(({children}) => children),
+vi.mock('framer-motion', () => ({
+  ...vi.importActual('framer-motion'),
+  AnimatePresence: vi.fn(({children}) => children),
 }));
 
 function renderMockRequests(organization: Organization) {
@@ -126,9 +126,9 @@ describe('Onboarding Status', function () {
 
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
-    const mockActivateSidebar = jest.fn();
+    const mockActivateSidebar = vi.fn();
 
-    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
+    vi.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
       activateSidebar: mockActivateSidebar,
     });
 
@@ -165,9 +165,9 @@ describe('Onboarding Status', function () {
 
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
-    const mockActivateSidebar = jest.fn();
+    const mockActivateSidebar = vi.fn();
 
-    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
+    vi.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
       activateSidebar: mockActivateSidebar,
     });
 

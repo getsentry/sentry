@@ -86,7 +86,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.all`),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     render(
       <ReleaseWidgetQueries
@@ -134,7 +134,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
     const queries = [
       {
         conditions: '',
@@ -194,7 +194,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/sessions/',
       body: MetricsFieldFixture(`count_unique(user)`),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
     const queries = [
       {
         conditions: '',
@@ -269,7 +269,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     const injectedOrderby = {
       title: 'Sessions',
@@ -469,7 +469,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     render(
       <ReleaseWidgetQueries
@@ -574,7 +574,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`count_unique(sentry.sessions.user)`),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     render(
       <ReleaseWidgetQueries
@@ -688,7 +688,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         }),
       ],
     });
-    const children = jest.fn(() => <div data-test-id="child" />);
+    const children = vi.fn(() => <div data-test-id="child" />);
 
     render(
       <ReleaseWidgetQueries
@@ -748,7 +748,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     const {rerender} = render(
       <ReleaseWidgetQueries
@@ -796,7 +796,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
     });
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     const {rerender} = render(
       <ReleaseWidgetQueries
@@ -863,7 +863,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       widgetType: WidgetType.RELEASE,
     };
 
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     const {rerender} = render(
       <ReleaseWidgetQueries

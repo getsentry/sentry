@@ -11,7 +11,7 @@ describe('OrgStatsBanner', function () {
   let wrapper: any;
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     if (wrapper) {
       wrapper.unmount();
     }

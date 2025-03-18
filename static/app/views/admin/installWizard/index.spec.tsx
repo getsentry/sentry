@@ -17,7 +17,7 @@ describe('InstallWizard', function () {
   });
 
   it('renders', function () {
-    render(<InstallWizard onConfigured={jest.fn()} />);
+    render(<InstallWizard onConfigured={vi.fn()} />);
   });
 
   it('has no option selected when beacon.anonymous is unset', async function () {
@@ -37,7 +37,7 @@ describe('InstallWizard', function () {
         },
       }),
     });
-    render(<InstallWizard onConfigured={jest.fn()} />);
+    render(<InstallWizard onConfigured={vi.fn()} />);
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       screen.getByRole('radio', {
@@ -68,7 +68,7 @@ describe('InstallWizard', function () {
         },
       }),
     });
-    render(<InstallWizard onConfigured={jest.fn()} />);
+    render(<InstallWizard onConfigured={vi.fn()} />);
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       screen.getByRole('radio', {

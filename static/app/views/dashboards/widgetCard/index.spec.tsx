@@ -27,8 +27,8 @@ import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
-jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
-jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
+vi.mock('sentry/components/charts/simpleTableChart', () => vi.fn(() => <div />));
+vi.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization} = initializeOrg({
@@ -83,7 +83,7 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new MockApiClient();
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location: LocationFixture(),
@@ -115,7 +115,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
-    const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
+    const spy = vi.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -296,7 +296,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -323,7 +323,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('does not add duplicate widgets if max widget is reached', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -350,7 +350,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('calls onEdit when Edit Widget is clicked', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -377,7 +377,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders delete widget option', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -410,7 +410,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('calls events with a limit of 20 items', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     renderWithProviders(
       <WidgetCard
@@ -446,7 +446,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('calls events with a default limit of 5 items', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -517,7 +517,7 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
     await waitFor(() =>
-      expect((SimpleTableChart as jest.Mock).mock.calls[0][0]).toEqual(
+      expect((SimpleTableChart as vi.Mock).mock.calls[0][0]).toEqual(
         expect.objectContaining({stickyHeaders: true})
       )
     );
@@ -584,7 +584,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
-    const spy = jest.spyOn(LineChart, 'LineChart');
+    const spy = vi.spyOn(LineChart, 'LineChart');
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
@@ -660,7 +660,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
-    const spy = jest.spyOn(LineChart, 'LineChart');
+    const spy = vi.spyOn(LineChart, 'LineChart');
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {

@@ -8,10 +8,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', function () {
-  let getMock!: jest.Mock;
-  let putMock!: jest.Mock;
-  let postMock!: jest.Mock;
-  let deleteMock!: jest.Mock;
+  let getMock!: vi.Mock;
+  let putMock!: vi.Mock;
+  let postMock!: vi.Mock;
+  let deleteMock!: vi.Mock;
 
   const team = TeamFixture({slug: 'team-slug'});
   const project = ProjectFixture({

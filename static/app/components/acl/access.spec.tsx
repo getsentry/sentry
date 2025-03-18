@@ -15,7 +15,7 @@ describe('Access', function () {
   });
 
   describe('as render prop', function () {
-    const childrenMock = jest.fn().mockReturnValue(null);
+    const childrenMock = vi.fn().mockReturnValue(null);
 
     beforeEach(function () {
       childrenMock.mockClear();

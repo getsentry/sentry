@@ -43,7 +43,7 @@ describe('OrganizationStats', function () {
     routeParams: {},
   };
 
-  let mockRequest: jest.Mock;
+  let mockRequest: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

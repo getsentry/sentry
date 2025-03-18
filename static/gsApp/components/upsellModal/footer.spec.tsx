@@ -30,7 +30,7 @@ describe('Business Landing Footer', function () {
           isTrial: false,
         }}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
     expect(await screen.findByText('Learn more and compare plans')).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe('Business Landing Footer', function () {
           isTrial: true,
         }}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
     expect(await screen.findByText('Learn more and compare plans')).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('Business Landing Footer', function () {
           isTrial: false,
         }}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
     const button = await screen.findByRole('button', {name: 'Upgrade now'});
@@ -91,7 +91,7 @@ describe('Business Landing Footer', function () {
           isTrial: false,
         }}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
     const button = await screen.findByRole('button', {name: 'Upgrade now'});
@@ -108,7 +108,7 @@ describe('Business Landing Footer', function () {
       body: {},
     });
 
-    const onCloseModal = jest.fn();
+    const onCloseModal = vi.fn();
 
     render(
       <Footer
@@ -147,7 +147,7 @@ describe('Business Landing Footer', function () {
       body: {},
     });
 
-    const onCloseModal = jest.fn();
+    const onCloseModal = vi.fn();
 
     render(
       <Footer

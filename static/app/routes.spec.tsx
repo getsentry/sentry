@@ -1,4 +1,5 @@
 import type {RouteObject} from 'react-router-dom';
+import {vi} from 'vitest';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';
@@ -7,8 +8,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.
-jest.mock('sentry/constants', () => {
-  const originalModule = jest.requireActual('sentry/constants');
+vi.mock('sentry/constants', async () => {
+  const originalModule = await vi.importActual('sentry/constants');
 
   return {
     __esModule: true,
@@ -71,7 +72,7 @@ describe('buildRoutes()', function () {
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
   test('orgId routes also have domain routes', function () {
-    const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
+    const spy = vi.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
     // Get routes for with customer domains off.
     spy.mockReturnValue(false);

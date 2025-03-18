@@ -212,7 +212,7 @@ describe('components/interfaces/utils', function () {
     });
 
     it('works with a Proxy', function () {
-      const spy = jest.spyOn(MetaProxy.prototype, 'get');
+      const spy = vi.spyOn(MetaProxy.prototype, 'get');
       const data = {
         apiTarget: null,
         fragment: '',

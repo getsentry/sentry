@@ -6,12 +6,12 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('latencyChart', () => {
   const organization = OrganizationFixture();
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -19,7 +19,7 @@ describe('latencyChart', () => {
     releases: [],
   });
 
-  let eventsStatsMock: jest.Mock;
+  let eventsStatsMock: vi.Mock;
 
   beforeEach(() => {
     eventsStatsMock = MockApiClient.addMockResponse({

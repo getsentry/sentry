@@ -25,7 +25,7 @@ describe('FeatureFeedback', function () {
   });
 
   it('shows the modal on click with custom "onClick" handler', async function () {
-    const mockOnClick = jest.fn();
+    const mockOnClick = vi.fn();
     render(
       <FeatureFeedback
         featureName="test"

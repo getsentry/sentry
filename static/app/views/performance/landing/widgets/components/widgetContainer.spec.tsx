@@ -63,11 +63,11 @@ const issuesPredicate = (url: string, options: any) =>
 describe('Performance > Widgets > WidgetContainer', function () {
   let wrapper: ReturnType<typeof render> | undefined;
 
-  let eventStatsMock: jest.Mock;
-  let eventsTrendsStats: jest.Mock;
-  let eventsMock: jest.Mock;
+  let eventStatsMock: vi.Mock;
+  let eventsTrendsStats: vi.Mock;
+  let eventsMock: vi.Mock;
 
-  let issuesListMock: jest.Mock;
+  let issuesListMock: vi.Mock;
 
   beforeEach(function () {
     ConfigStore.init();
@@ -1261,7 +1261,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Able to change widget type from menu', async function () {
     const data = initializeData();
 
-    const setRowChartSettings = jest.fn(() => {});
+    const setRowChartSettings = vi.fn(() => {});
 
     wrapper = render(
       <WrappedComponent
@@ -1291,7 +1291,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Chart settings passed from the row are disabled in the menu', async function () {
     const data = initializeData();
 
-    const setRowChartSettings = jest.fn(() => {});
+    const setRowChartSettings = vi.fn(() => {});
 
     wrapper = render(
       <WrappedComponent

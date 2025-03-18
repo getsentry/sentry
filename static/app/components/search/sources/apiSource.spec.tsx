@@ -15,12 +15,12 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('ApiSource', function () {
   const {organization, router} = initializeOrg();
-  let orgsMock: jest.Mock;
-  let projectsMock: jest.Mock;
-  let teamsMock: jest.Mock;
-  let membersMock: jest.Mock;
-  let shortIdMock: jest.Mock;
-  let eventIdMock: jest.Mock;
+  let orgsMock: vi.Mock;
+  let projectsMock: vi.Mock;
+  let teamsMock: vi.Mock;
+  let membersMock: vi.Mock;
+  let shortIdMock: vi.Mock;
+  let eventIdMock: vi.Mock;
   let configState: ReturnType<typeof ConfigStore.getState>;
 
   const defaultProps: ComponentProps<typeof ApiSource> = {
@@ -30,7 +30,7 @@ describe('ApiSource', function () {
     location: router.location,
     routes: [],
     params: {},
-    children: jest.fn().mockReturnValue(null),
+    children: vi.fn().mockReturnValue(null),
   };
 
   beforeEach(function () {
@@ -96,7 +96,7 @@ describe('ApiSource', function () {
   });
 
   it('queries all API endpoints', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} query="foo">
         {mock}
@@ -112,7 +112,7 @@ describe('ApiSource', function () {
   });
 
   it('queries multiple regions for organization lists', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     ConfigStore.loadInitialData({
       ...configState,
       memberRegions: [
@@ -139,7 +139,7 @@ describe('ApiSource', function () {
   });
 
   it('only queries for shortids when query matches shortid format', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     const {rerender} = render(
       <ApiSource {...defaultProps} query="test-">
         {mock}
@@ -185,7 +185,7 @@ describe('ApiSource', function () {
   });
 
   it('only queries for eventids when query matches eventid format of 32 chars', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     const {rerender} = render(
       <ApiSource {...defaultProps} query="1234567890123456789012345678901">
         {mock}
@@ -233,7 +233,7 @@ describe('ApiSource', function () {
   });
 
   it('only queries org endpoint if there is no org in context', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     render(
       <ApiSource {...omit(defaultProps, 'organization')} params={{orgId: ''}} query="foo">
         {mock}
@@ -247,7 +247,7 @@ describe('ApiSource', function () {
   });
 
   it('render function is called with correct results', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} organization={organization} query="foo">
         {mock}
@@ -340,7 +340,7 @@ describe('ApiSource', function () {
   });
 
   it('render function is called with correct results when API requests partially succeed', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -387,7 +387,7 @@ describe('ApiSource', function () {
   });
 
   it('render function is updated as query changes', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     const {rerender} = render(
       <ApiSource {...defaultProps} query="foo">
         {mock}

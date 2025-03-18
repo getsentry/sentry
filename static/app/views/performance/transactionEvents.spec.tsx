@@ -11,9 +11,9 @@ import TransactionEvents from 'sentry/views/performance/transactionSummary/trans
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 type Data = {
   features?: string[];

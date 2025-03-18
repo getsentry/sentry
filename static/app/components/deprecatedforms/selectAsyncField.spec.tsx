@@ -5,7 +5,7 @@ import Form from 'sentry/components/deprecatedforms/form';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 
 describe('SelectAsyncField', function () {
-  let api: jest.Mock;
+  let api: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -36,7 +36,7 @@ describe('SelectAsyncField', function () {
   });
 
   it('with Form context', async function () {
-    const submitMock = jest.fn();
+    const submitMock = vi.fn();
     render(
       <Form onSubmit={submitMock} aria-label="form">
         <SelectAsyncField {...defaultProps} />

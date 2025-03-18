@@ -14,7 +14,7 @@ import TableView from 'sentry/views/discover/table/tableView';
 describe('TableView > CellActions', function () {
   let initialData: ReturnType<typeof initializeOrg>;
   let rows: any;
-  let onChangeShowTags: jest.Mock;
+  let onChangeShowTags: vi.Mock;
 
   const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
@@ -89,7 +89,7 @@ describe('TableView > CellActions', function () {
       ]);
     });
 
-    onChangeShowTags = jest.fn();
+    onChangeShowTags = vi.fn();
 
     rows = {
       meta: {

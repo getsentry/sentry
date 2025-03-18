@@ -22,7 +22,7 @@ describe('withDomainRequired', function () {
     Object.defineProperty(window, 'location', {
       writable: true,
       value: {
-        replace: jest.fn(),
+        replace: vi.fn(),
         pathname: '/organizations/albertos-apples/issues/',
         search: '?q=123',
         hash: '#hash',

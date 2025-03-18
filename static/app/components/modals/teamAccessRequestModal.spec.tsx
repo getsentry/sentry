@@ -13,7 +13,7 @@ import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestMo
 describe('TeamAccessRequestModal', function () {
   let createMock: any;
 
-  const closeModal = jest.fn();
+  const closeModal = vi.fn();
   const orgId = OrganizationFixture().slug;
   const memberId = MemberFixture().id;
   const teamId = TeamFixture().slug;

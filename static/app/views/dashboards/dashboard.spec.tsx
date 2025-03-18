@@ -19,7 +19,7 @@ import {OrganizationContext} from '../organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
-jest.mock('sentry/components/lazyRender', () => ({
+vi.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
@@ -78,7 +78,7 @@ describe('Dashboards > Dashboard', () => {
   });
 
   let initialData: ReturnType<typeof initializeOrg>;
-  let tagsMock: jest.Mock;
+  let tagsMock: vi.Mock;
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, projects: []});
@@ -161,8 +161,8 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
+    const mockHandleAddCustomWidget = vi.fn();
+    const mockCallbackToUnsetNewWidget = vi.fn();
     render(
       <Dashboard
         paramDashboardId="1"
@@ -186,8 +186,8 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
+    const mockHandleAddCustomWidget = vi.fn();
+    const mockCallbackToUnsetNewWidget = vi.fn();
     const {rerender} = render(
       <Dashboard
         paramDashboardId="1"
@@ -231,8 +231,8 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('dashboard does not try to add new widget if no newWidget', () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
+    const mockHandleAddCustomWidget = vi.fn();
+    const mockCallbackToUnsetNewWidget = vi.fn();
     render(
       <Dashboard
         paramDashboardId="1"
@@ -263,8 +263,8 @@ describe('Dashboards > Dashboard', () => {
     const splitWidgets = [splitWidget];
     const dashboardWithOneWidget = {...mockDashboard, widgets: splitWidgets};
 
-    const mockOnUpdate = jest.fn();
-    const mockHandleUpdateWidgetList = jest.fn();
+    const mockOnUpdate = vi.fn();
+    const mockHandleUpdateWidgetList = vi.fn();
 
     render(
       <OrganizationContext.Provider value={initialData.organization}>
@@ -301,8 +301,8 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('handles duplicate widget in view mode', async () => {
-    const mockOnUpdate = jest.fn();
-    const mockHandleUpdateWidgetList = jest.fn();
+    const mockOnUpdate = vi.fn();
+    const mockHandleUpdateWidgetList = vi.fn();
 
     const dashboardWithOneWidget = {
       ...mockDashboard,

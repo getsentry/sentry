@@ -9,12 +9,12 @@ describe('Switch', () => {
   });
 
   it('checked', () => {
-    render(<Switch checked onChange={jest.fn()} />);
+    render(<Switch checked onChange={vi.fn()} />);
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
   it('disallows toggling a disabled switch', async () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
 
     render(<Switch disabled onChange={onClick} />);
 

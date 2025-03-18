@@ -17,15 +17,15 @@ describe('OrganizationActionCreator', function () {
   const api = new MockApiClient();
 
   beforeEach(function () {
-    jest.spyOn(TeamStore, 'loadInitialData');
-    jest.spyOn(ProjectsStore, 'loadInitialData');
-    jest.spyOn(OrganizationStore, 'onUpdate');
-    jest.spyOn(OrganizationStore, 'onFetchOrgError');
-    jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
+    vi.spyOn(TeamStore, 'loadInitialData');
+    vi.spyOn(ProjectsStore, 'loadInitialData');
+    vi.spyOn(OrganizationStore, 'onUpdate');
+    vi.spyOn(OrganizationStore, 'onFetchOrgError');
+    vi.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
   });
 
   afterEach(function () {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     MockApiClient.clearMockResponses();
   });
 

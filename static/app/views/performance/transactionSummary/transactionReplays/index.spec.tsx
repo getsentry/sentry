@@ -22,9 +22,9 @@ type InitializeOrgProps = {
   };
 };
 
-jest.mock('sentry/utils/useMedia', () => ({
+vi.mock('sentry/utils/useMedia', () => ({
   __esModule: true,
-  default: jest.fn(() => true),
+  default: vi.fn(() => true),
 }));
 
 const mockEventsUrl = '/organizations/org-slug/events/';
@@ -64,8 +64,8 @@ const renderComponent = ({
 };
 
 describe('TransactionReplays', () => {
-  let eventsMockApi: jest.Mock<any, any>;
-  let replaysMockApi: jest.Mock<any, any>;
+  let eventsMockApi: vi.Mock<any, any>;
+  let replaysMockApi: vi.Mock<any, any>;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',

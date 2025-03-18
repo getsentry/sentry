@@ -44,7 +44,7 @@ describe('StreamlinedActivitySection', function () {
   GroupStore.add([group]);
 
   beforeEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     MockApiClient.clearMockResponses();
   });
 
@@ -132,7 +132,7 @@ describe('StreamlinedActivitySection', function () {
   });
 
   it('renders note and allows for edit', async function () {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    vi.spyOn(indicators, 'addSuccessMessage');
 
     const editGroup = GroupFixture({
       id: '1123',

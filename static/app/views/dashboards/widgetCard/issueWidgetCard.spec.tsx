@@ -172,7 +172,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <WidgetCard
         api={api}
@@ -198,7 +198,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('disables the duplicate widget button if max widgets is reached', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <WidgetCard
         api={api}

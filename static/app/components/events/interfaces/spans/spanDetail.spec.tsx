@@ -40,8 +40,8 @@ describe('SpanDetail', function () {
       <SpanDetail
         organization={organization}
         event={event}
-        resetCellMeasureCache={jest.fn()}
-        scrollToHash={jest.fn()}
+        resetCellMeasureCache={vi.fn()}
+        scrollToHash={vi.fn()}
         isRoot={false}
         relatedErrors={[]}
         trace={trace}

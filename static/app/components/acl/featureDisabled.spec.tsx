@@ -42,7 +42,7 @@ describe('FeatureDisabled', function () {
   });
 
   it('renders with custom alert component', function () {
-    const customAlert = jest.fn().mockReturnValue(null);
+    const customAlert = vi.fn().mockReturnValue(null);
     render(
       <FeatureDisabled
         alert={customAlert}

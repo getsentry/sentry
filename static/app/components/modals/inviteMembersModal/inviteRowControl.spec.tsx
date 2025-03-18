@@ -87,7 +87,7 @@ describe('InviteRowControlNew', function () {
     {email: 'test-newline@example.com', delimiter: '{enter}'},
   ])('updates email addresses when new emails are inputted', ({email, delimiter}) => {
     it(`invokes the mock correctly with one using delimiter "${delimiter}"`, async () => {
-      const mockSetEmails = jest.fn();
+      const mockSetEmails = vi.fn();
       render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
       const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
       await userEvent.type(emailInput, `${email}${delimiter}`);
@@ -95,7 +95,7 @@ describe('InviteRowControlNew', function () {
     });
 
     it(`invokes the mock correctly with many using delimiter "${delimiter}"`, async () => {
-      const mockSetEmails = jest.fn();
+      const mockSetEmails = vi.fn();
       render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
       const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
       await userEvent.type(emailInput, `${email}${delimiter}`);
@@ -106,7 +106,7 @@ describe('InviteRowControlNew', function () {
   });
 
   it('updates email addresses when new emails are inputted and input is unfocussed', async function () {
-    const mockSetEmails = jest.fn();
+    const mockSetEmails = vi.fn();
     render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
     const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
     await userEvent.type(emailInput, 'test-unfocus@example.com');
@@ -115,7 +115,7 @@ describe('InviteRowControlNew', function () {
   });
 
   it('updates role value when new role is selected', async function () {
-    const mockSetRole = jest.fn();
+    const mockSetRole = vi.fn();
     render(getComponent({...defaultInviteProps, setRole: mockSetRole}));
     const roleInput = screen.getByRole('textbox', {name: 'Role'});
     await userEvent.click(roleInput);
@@ -138,7 +138,7 @@ describe('InviteRowControlNew', function () {
   });
 
   it('enables team selection when team roles are allowed', async function () {
-    const mockSetTeams = jest.fn();
+    const mockSetTeams = vi.fn();
     render(
       getComponent({
         ...defaultInviteProps,

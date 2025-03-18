@@ -31,7 +31,7 @@ describe('flamegraphRendererWebGL', () => {
   describe('colors', () => {
     it('generates new colors if none are set on the flamegraph', () => {
       const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(makeContextMock()),
+        getContext: vi.fn().mockReturnValue(makeContextMock()),
       });
 
       const flamegraph = makeFlamegraph();
@@ -72,7 +72,7 @@ describe('flamegraphRendererWebGL', () => {
 
   it('inits vertices', () => {
     const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(makeContextMock()),
+      getContext: vi.fn().mockReturnValue(makeContextMock()),
     });
 
     const flamegraph = makeFlamegraph();
@@ -111,10 +111,10 @@ describe('flamegraphRendererWebGL', () => {
     const FRAGMENT = `void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }`;
 
     const context = makeContextMock({
-      createShader: jest.fn().mockReturnValueOnce(VERTEX).mockReturnValueOnce(FRAGMENT),
+      createShader: vi.fn().mockReturnValueOnce(VERTEX).mockReturnValueOnce(FRAGMENT),
     });
     const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     });
 
     const flamegraph = makeFlamegraph();
@@ -133,7 +133,7 @@ describe('flamegraphRendererWebGL', () => {
 
   it('getColorForFrame', () => {
     const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(makeContextMock()),
+      getContext: vi.fn().mockReturnValue(makeContextMock()),
     });
 
     const flamegraph = makeFlamegraph();
@@ -190,7 +190,7 @@ describe('flamegraphRendererWebGL', () => {
     it('sets search results buffer', () => {
       const context = makeContextMock();
       const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(context),
+        getContext: vi.fn().mockReturnValue(context),
       });
 
       const flamegraph = makeFlamegraph(
@@ -253,7 +253,7 @@ describe('flamegraphRendererWebGL', () => {
     it('draws all frames', () => {
       const context = makeContextMock();
       const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(context),
+        getContext: vi.fn().mockReturnValue(context),
       });
 
       const flamegraph = makeFlamegraph(

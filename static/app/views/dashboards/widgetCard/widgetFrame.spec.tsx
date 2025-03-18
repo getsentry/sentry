@@ -5,11 +5,11 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 describe('WidgetFrame', () => {
   describe('Layout', () => {
     beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
+      vi.spyOn(console, 'error').mockImplementation();
     });
 
     afterEach(() => {
-      jest.resetAllMocks();
+      vi.resetAllMocks();
     });
 
     it('Renders the title and description', async () => {
@@ -71,7 +71,7 @@ describe('WidgetFrame', () => {
 
   describe('Action Menu', () => {
     it('Renders a single action as a button', async () => {
-      const onAction = jest.fn();
+      const onAction = vi.fn();
 
       render(
         <WidgetFrame
@@ -95,7 +95,7 @@ describe('WidgetFrame', () => {
     });
 
     it('Allows disabling a single action', async () => {
-      const onAction = jest.fn();
+      const onAction = vi.fn();
 
       render(
         <WidgetFrame
@@ -125,8 +125,8 @@ describe('WidgetFrame', () => {
     });
 
     it('Renders multiple actions in a dropdown menu', async () => {
-      const onAction1 = jest.fn();
-      const onAction2 = jest.fn();
+      const onAction1 = vi.fn();
+      const onAction2 = vi.fn();
 
       render(
         <WidgetFrame
@@ -187,7 +187,7 @@ describe('WidgetFrame', () => {
     });
 
     it('Shows actions even in error state', async () => {
-      const onAction = jest.fn();
+      const onAction = vi.fn();
       const error = new Error('Something is wrong');
 
       render(
@@ -213,7 +213,7 @@ describe('WidgetFrame', () => {
     });
 
     it('Shows a "Retry" action if a retry callback is provided', () => {
-      const onRetry = jest.fn();
+      const onRetry = vi.fn();
       const error = new Error('Something is wrong');
 
       render(<WidgetFrame title="EPS" error={error} onRetry={onRetry} />);
@@ -224,7 +224,7 @@ describe('WidgetFrame', () => {
 
   describe('Full Screen View Button', () => {
     it('Renders a full screen view button', async () => {
-      const onFullScreenViewClick = jest.fn();
+      const onFullScreenViewClick = vi.fn();
       const {rerender} = render(<WidgetFrame title="count()" />);
 
       expect(
@@ -243,7 +243,7 @@ describe('WidgetFrame', () => {
     });
 
     it('Hides full screen button if the widget has an error', () => {
-      const onFullScreenViewClick = jest.fn();
+      const onFullScreenViewClick = vi.fn();
 
       render(
         <WidgetFrame

@@ -18,8 +18,8 @@ describe('useOwners', () => {
   const mockUsers = [UserFixture()];
   const mockTeams = [TeamFixture()];
 
-  let teamsRequest: jest.Mock;
-  let membersRequest: jest.Mock;
+  let teamsRequest: vi.Mock;
+  let membersRequest: vi.Mock;
 
   const queryClient = makeTestQueryClient();
 

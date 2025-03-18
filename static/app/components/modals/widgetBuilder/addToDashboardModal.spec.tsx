@@ -15,7 +15,7 @@ import {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-jest.mock('sentry/components/lazyRender', () => ({
+vi.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
@@ -34,7 +34,7 @@ const mockWidgetAsQueryParams = {
 };
 
 describe('add to dashboard modal', () => {
-  let eventsStatsMock!: jest.Mock;
+  let eventsStatsMock!: vi.Mock;
   let initialData!: ReturnType<typeof initializeOrg>;
 
   const testDashboardListItem: DashboardListItem = {
@@ -110,7 +110,7 @@ describe('add to dashboard modal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with the widget title and description', async function () {

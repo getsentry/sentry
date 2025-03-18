@@ -16,7 +16,7 @@ function renderTestComponent(
     createdBy: UserFixture({id: '35478'}),
   })
 ) {
-  render(<EditAccessSelector dashboard={mockDashboard} onChangeEditAccess={jest.fn()} />);
+  render(<EditAccessSelector dashboard={mockDashboard} onChangeEditAccess={vi.fn()} />);
 }
 
 describe('When EditAccessSelector is rendered with no Teams', () => {
@@ -51,7 +51,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with creator and everyone options', async function () {
@@ -173,7 +173,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders all teams', async function () {

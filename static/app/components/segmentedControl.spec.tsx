@@ -4,7 +4,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 
 describe('SegmentedControl', function () {
   it('renders with uncontrolled value', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <SegmentedControl aria-label="Test" defaultValue="1" onChange={onChange}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
@@ -58,7 +58,7 @@ describe('SegmentedControl', function () {
   });
 
   it('responds to mouse and keyboard events', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <SegmentedControl aria-label="Test" defaultValue="1" onChange={onChange}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>

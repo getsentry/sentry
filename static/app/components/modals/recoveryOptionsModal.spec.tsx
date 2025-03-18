@@ -11,7 +11,7 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function () {
-  const closeModal = jest.fn();
+  const closeModal = vi.fn();
   const mockId = AuthenticatorsFixture().Recovery().authId;
 
   beforeEach(function () {

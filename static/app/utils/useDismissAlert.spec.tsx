@@ -4,10 +4,10 @@ import {setMockDate} from 'sentry-test/utils';
 import localStorage from 'sentry/utils/localStorage';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-jest.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/localStorage');
 
-const mockSetItem = jest.mocked(localStorage.setItem);
-const mockGetItem = jest.mocked(localStorage.getItem);
+const mockSetItem = vi.mocked(localStorage.setItem);
+const mockGetItem = vi.mocked(localStorage.getItem);
 
 const key = 'test_123';
 const now = new Date('2020-01-01');

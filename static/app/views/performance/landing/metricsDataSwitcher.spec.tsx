@@ -57,7 +57,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
@@ -114,7 +114,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();

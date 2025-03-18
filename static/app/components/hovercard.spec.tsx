@@ -4,7 +4,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 
 describe('Hovercard', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('Displays card', async () => {
@@ -75,18 +75,19 @@ describe('Hovercard', () => {
       </Hovercard>
     );
 
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
+    act(() => vi.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
 
-    act(() => jest.advanceTimersByTime(1));
+    act(() => vi.advanceTimersByTime(1));
 
     expect(await screen.findByText(/Hovercard Body/)).toBeInTheDocument();
     expect(await screen.findByText(/Hovercard Header/)).toBeInTheDocument();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('Doesnt leak timeout', async () => {
@@ -103,17 +104,18 @@ describe('Hovercard', () => {
       </Hovercard>
     );
 
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
+    act(() => vi.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
 
     await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
 
-    act(() => jest.advanceTimersByTime(1));
-    jest.useRealTimers();
+    act(() => vi.advanceTimersByTime(1));
+    vi.useRealTimers();
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();

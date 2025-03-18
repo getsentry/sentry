@@ -14,9 +14,9 @@ import {useTeams} from 'sentry/utils/useTeams';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
 import {ScheduleType} from 'sentry/views/monitors/types';
 
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/utils/useTeams');
-jest.mock('sentry/utils/useMembers');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/useTeams');
+vi.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
   const organization = OrganizationFixture();
@@ -26,34 +26,34 @@ describe('MonitorForm', function () {
   const {project, router} = initializeOrg({organization});
 
   beforeEach(() => {
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,
       initiallyLoaded: false,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       projects: [project],
     });
 
-    jest.mocked(useTeams).mockReturnValue({
+    vi.mocked(useTeams).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,
       initiallyLoaded: false,
-      loadMore: jest.fn(),
-      onSearch: jest.fn(),
+      loadMore: vi.fn(),
+      onSearch: vi.fn(),
       teams: [team],
     });
 
-    jest.mocked(useMembers).mockReturnValue({
+    vi.mocked(useMembers).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,
       initiallyLoaded: false,
-      loadMore: jest.fn(),
-      onSearch: jest.fn(),
+      loadMore: vi.fn(),
+      onSearch: vi.fn(),
       members: [member.user!],
     });
   });
@@ -63,7 +63,7 @@ describe('MonitorForm', function () {
       <MonitorForm
         apiMethod="POST"
         apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-        onSubmitSuccess={jest.fn()}
+        onSubmitSuccess={vi.fn()}
       />,
       {router, organization}
     );
@@ -76,7 +76,7 @@ describe('MonitorForm', function () {
   });
 
   it('submits a new monitor', async function () {
-    const mockHandleSubmitSuccess = jest.fn();
+    const mockHandleSubmitSuccess = vi.fn();
 
     const apiEndpont = `/organizations/${organization.slug}/monitors/`;
 
@@ -185,7 +185,7 @@ describe('MonitorForm', function () {
         monitor={monitor}
         apiMethod="POST"
         apiEndpoint={apiEndpont}
-        onSubmitSuccess={jest.fn()}
+        onSubmitSuccess={vi.fn()}
         submitLabel="Edit Monitor"
       />,
       {router, organization}

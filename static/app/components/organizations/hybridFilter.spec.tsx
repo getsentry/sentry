@@ -31,7 +31,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('handles both single and multiple selection', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     const {rerender} = render(
       <HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />
     );
@@ -55,7 +55,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('handles multiple selection', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     const {rerender} = render(
       <HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />
     );
@@ -105,7 +105,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can cancel', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />);
 
     // Open the menu, select Option One
@@ -123,8 +123,8 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can reset', async function () {
-    const onChange = jest.fn();
-    const onReset = jest.fn();
+    const onChange = vi.fn();
+    const onReset = vi.fn();
     render(
       <HybridFilter
         {...props}
@@ -156,7 +156,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('supports keyboard navigation', async function () {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />);
 
     // Open the menu, focus is on search input

@@ -21,7 +21,7 @@ import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData'
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
-jest.mock('getsentry/components/upgradeNowModal/usePreviewData');
+vi.mock('getsentry/components/upgradeNowModal/usePreviewData');
 
 function renderMockRequests({
   planTier,
@@ -338,7 +338,7 @@ describe('ProductSelectionAvailability', function () {
         },
       });
 
-      const MockUsePreviewData = usePreviewData as jest.MockedFunction<
+      const MockUsePreviewData = usePreviewData as vi.MockedFunction<
         typeof usePreviewData
       >;
       const mockReservations: Reservations = {

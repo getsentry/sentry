@@ -22,7 +22,7 @@ const DEFAULT_SELECTION: PageFilters = {
   projects: [],
 };
 
-jest.mock('sentry/utils/usePageFilters', () => {
+vi.mock('sentry/utils/usePageFilters', () => {
   return {
     __esModule: true,
     default: () => ({isReady: true, selection: DEFAULT_SELECTION}),

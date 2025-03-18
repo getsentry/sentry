@@ -9,16 +9,16 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 
-jest.mock('sentry/utils/useParams');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/useParams');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
 
 describe('SpanSummaryPage', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d', project: '1'},
@@ -28,10 +28,10 @@ describe('SpanSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects: [],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -39,7 +39,7 @@ describe('SpanSummaryPage', function () {
     initiallyLoaded: false,
   });
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -56,17 +56,17 @@ describe('SpanSummaryPage', function () {
     },
   });
 
-  let headerDataMock: jest.Mock;
-  let avgDurationChartMock: jest.Mock;
-  let spanThroughputChartMock: jest.Mock;
-  let transactionThroughputChartMock: jest.Mock;
+  let headerDataMock: vi.Mock;
+  let avgDurationChartMock: vi.Mock;
+  let spanThroughputChartMock: vi.Mock;
+  let transactionThroughputChartMock: vi.Mock;
 
   beforeEach(() => {
-    jest.mocked(useParams).mockReturnValue({
+    vi.mocked(useParams).mockReturnValue({
       spanSlug: 'db:aaaaaaaa',
     });
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     avgDurationChartMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',

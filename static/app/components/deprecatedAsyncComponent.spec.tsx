@@ -109,14 +109,13 @@ describe('DeprecatedAsyncComponent', function () {
     }
 
     it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', () => {
-      jest.useFakeTimers();
-      jest
-        .spyOn(MockApiClient.prototype, 'request')
-        .mockImplementation((url, options) => {
-          const timeout = url.includes('something') ? 100 : 50;
-          setTimeout(() => options?.success?.({message: 'good'}), timeout);
-        });
-      const mockOnAllEndpointsSuccess = jest.spyOn(
+      vi.useRealTimers();
+      vi.useFakeTimers();
+      vi.spyOn(MockApiClient.prototype, 'request').mockImplementation((url, options) => {
+        const timeout = url.includes('something') ? 100 : 50;
+        setTimeout(() => options?.success?.({message: 'good'}), timeout);
+      });
+      const mockOnAllEndpointsSuccess = vi.spyOn(
         MultiRouteComponent.prototype,
         'onLoadAllEndpointsSuccess'
       );
@@ -125,18 +124,18 @@ describe('DeprecatedAsyncComponent', function () {
 
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
-      act(() => jest.advanceTimersByTime(40));
+      act(() => vi.advanceTimersByTime(40));
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
-      act(() => jest.advanceTimersByTime(40));
+      act(() => vi.advanceTimersByTime(40));
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('1');
       expect(mockOnAllEndpointsSuccess).not.toHaveBeenCalled();
 
-      act(() => jest.advanceTimersByTime(40));
+      act(() => vi.advanceTimersByTime(40));
       expect(screen.queryByTestId('remaining-requests')).not.toBeInTheDocument();
       expect(mockOnAllEndpointsSuccess).toHaveBeenCalled();
 
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
   });
 });

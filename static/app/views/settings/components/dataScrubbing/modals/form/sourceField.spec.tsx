@@ -13,7 +13,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="$string"
       />
     );
@@ -26,7 +26,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value=""
       />
     );
@@ -44,7 +44,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="   "
       />
     );
@@ -62,7 +62,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="foo "
       />
     );
@@ -84,7 +84,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="foo && "
       />
     );
@@ -104,7 +104,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="foo && $string "
       />
     );
@@ -126,7 +126,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="foo && !$string "
       />
     );
@@ -148,7 +148,7 @@ describe('Source', function () {
       <SourceField
         isRegExMatchesSelected={false}
         suggestions={valueSuggestions}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value="foo && !"
       />
     );
@@ -167,7 +167,7 @@ describe('Source', function () {
   });
 
   it('click on a suggestion should be possible', async function () {
-    const handleOnChange = jest.fn();
+    const handleOnChange = vi.fn();
 
     render(
       <SourceField
@@ -188,8 +188,8 @@ describe('Source', function () {
   });
 
   it('suggestions keyDown and keyUp should work', async function () {
-    const handleOnChange = jest.fn();
-    Element.prototype.scrollIntoView = jest.fn();
+    const handleOnChange = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
 
     render(
       <SourceField

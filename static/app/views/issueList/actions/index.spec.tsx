@@ -32,13 +32,13 @@ const defaultProps = {
     datetime: {start: null, end: null, period: null, utc: true},
   },
   groupIds: ['1', '2', '3'],
-  onRealtimeChange: jest.fn(),
-  onSelectStatsPeriod: jest.fn(),
+  onRealtimeChange: vi.fn(),
+  onSelectStatsPeriod: vi.fn(),
   realtimeActive: false,
   statsPeriod: '24h',
-  onDelete: jest.fn(),
+  onDelete: vi.fn(),
   displayReprocessingActions: false,
-  onSortChange: jest.fn(),
+  onSortChange: vi.fn(),
   sort: '',
 };
 
@@ -53,7 +53,7 @@ function WrappedComponent(props: any) {
 
 describe('IssueListActions', function () {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   beforeEach(() => {
@@ -194,7 +194,7 @@ describe('IssueListActions', function () {
           method: 'PUT',
         });
 
-        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+        vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
         render(<WrappedComponent groupIds={['1', '2', '3', '6', '9']} />);
 
@@ -221,7 +221,7 @@ describe('IssueListActions', function () {
       url: '/organizations/org-slug/issues/',
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
     render(<WrappedComponent {...defaultProps} />);
 
@@ -241,12 +241,12 @@ describe('IssueListActions', function () {
   });
 
   it('can archive an issue until escalating', async () => {
-    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
     const apiMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
     render(<WrappedComponent {...defaultProps} />, {organization});
 
@@ -280,7 +280,7 @@ describe('IssueListActions', function () {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
     render(<WrappedComponent {...defaultProps} query="is:archived" />, {
       organization,
@@ -298,10 +298,10 @@ describe('IssueListActions', function () {
   });
 
   it('can resolve but not merge issues from different projects', async function () {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1', '2', '3']));
-    jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+    vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockImplementation(
+      () => new Set(['1', '2', '3'])
+    );
+    vi.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
           return GroupFixture({project: ProjectFixture({slug: 'project-1'})});
@@ -322,14 +322,12 @@ describe('IssueListActions', function () {
   });
 
   it('sets the project ID when My Projects is selected', async function () {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1']));
-    jest
-      .spyOn(GroupStore, 'get')
-      .mockImplementation(id =>
-        GroupFixture({id, project: ProjectFixture({id: '123', slug: 'project-1'})})
-      );
+    vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockImplementation(
+      () => new Set(['1'])
+    );
+    vi.spyOn(GroupStore, 'get').mockImplementation(id =>
+      GroupFixture({id, project: ProjectFixture({id: '123', slug: 'project-1'})})
+    );
 
     const apiMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -365,17 +363,17 @@ describe('IssueListActions', function () {
 
   describe('mark reviewed', function () {
     it('acknowledges group', async function () {
-      const mockOnActionTaken = jest.fn();
+      const mockOnActionTaken = vi.fn();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2', '3']));
-      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+      vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockImplementation(
+        () => new Set(['1', '2', '3'])
+      );
+      vi.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({
           id,
           inbox: {
@@ -410,7 +408,7 @@ describe('IssueListActions', function () {
 
   describe('sort', function () {
     it('calls onSortChange with new sort value', async function () {
-      const mockOnSortChange = jest.fn();
+      const mockOnSortChange = vi.fn();
       render(<WrappedComponent onSortChange={mockOnSortChange} />);
 
       await userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
@@ -423,10 +421,10 @@ describe('IssueListActions', function () {
 
   describe('performance issues', function () {
     it('disables options that are not supported for performance issues', async () => {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2']));
-      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+      vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockImplementation(
+        () => new Set(['1', '2'])
+      );
+      vi.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
             return GroupFixture({
@@ -467,10 +465,10 @@ describe('IssueListActions', function () {
     });
 
     it('disables delete if user does not have permission to delete issues', async () => {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2']));
-      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+      vi.spyOn(SelectedGroupStore, 'getSelectedIds').mockImplementation(
+        () => new Set(['1', '2'])
+      );
+      vi.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({id});
       });
 
@@ -542,9 +540,9 @@ describe('IssueListActions', function () {
         });
 
         // Ensure that all issues have the same project so we can merge
-        jest
-          .spyOn(GroupStore, 'get')
-          .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
+        vi.spyOn(GroupStore, 'get').mockReturnValue(
+          GroupFixture({project: ProjectFixture({slug: 'project-1'})})
+        );
 
         render(
           <Fragment>

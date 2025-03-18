@@ -8,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ExternalIssueForm from 'sentry/components/externalIssues/externalIssueForm';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 
-jest.mock('lodash/debounce', () => {
+vi.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
     (fn: (...args: any[]) => void, timeout: number) =>
@@ -31,7 +31,7 @@ describe('ExternalIssueForm', () => {
   let group!: ReturnType<typeof GroupFixture>;
   let integration!: ReturnType<typeof GitHubIntegrationFixture>;
   let formConfig!: any;
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     group = GroupFixture();
@@ -39,8 +39,8 @@ describe('ExternalIssueForm', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.clearAllMocks();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   const renderComponent = async (action = 'Create') => {
@@ -103,7 +103,7 @@ describe('ExternalIssueForm', () => {
   });
   describe('link', () => {
     let externalIssueField!: any;
-    let getFormConfigRequest!: jest.Mock;
+    let getFormConfigRequest!: vi.Mock;
     beforeEach(() => {
       externalIssueField = {
         name: 'externalIssue',
@@ -198,12 +198,13 @@ describe('ExternalIssueForm', () => {
         });
 
         await renderComponent('Link');
-        jest.useFakeTimers();
+        vi.useRealTimers();
+        vi.useFakeTimers();
         const textbox = screen.getByRole('textbox', {name: 'Issue'});
         await userEvent.click(textbox, {delay: null});
         await userEvent.type(textbox, 'faster', {delay: null});
         expect(searchResponse).not.toHaveBeenCalled();
-        jest.advanceTimersByTime(300);
+        vi.advanceTimersByTime(300);
         expect(searchResponse).toHaveBeenCalledTimes(1);
         expect(await screen.findByText('#2345 perf: Make it faster')).toBeInTheDocument();
       });

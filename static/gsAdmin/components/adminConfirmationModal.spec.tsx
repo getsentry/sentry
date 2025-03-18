@@ -12,12 +12,12 @@ import ModalStore from 'sentry/stores/modalStore';
 import AdminConfirmationModal from 'admin/components/adminConfirmationModal';
 
 describe('Admin confirmation modal', function () {
-  const mockOnConfirm = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnConfirm = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
     ModalStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const setTicketURL = async (url: string) => {
@@ -163,7 +163,7 @@ describe('Admin confirmation modal', function () {
   //   );
 
   //   const instance = wrapper.instance();
-  //   const spy = jest.spyOn(instance, 'handleConfirm');
+  //   const spy = vi.spyOn(instance, 'handleConfirm');
   //   instance.forceUpdate();
 
   //   wrapper.find('div[id="testing"]').simulate('click');

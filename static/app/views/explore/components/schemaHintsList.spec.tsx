@@ -16,15 +16,15 @@ const mockNumberTags: TagCollection = {
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
 
-jest.mock('sentry/utils/useNavigate', () => ({useNavigate: jest.fn()}));
+vi.mock('sentry/utils/useNavigate', () => ({useNavigate: vi.fn()}));
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
+const mockNavigate = vi.fn();
+vi.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
 
 // Mock getBoundingClientRect for container
-jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
   this: HTMLElement
 ) {
   // Mock individual hint items

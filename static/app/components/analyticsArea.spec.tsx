@@ -24,7 +24,7 @@ function TestButton({org}: {org: Organization}) {
 
 describe('AnalyticsAreaProvider', function () {
   const organization = OrganizationFixture();
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
 
   it('Appends names when nested', async function () {
     render(

@@ -69,13 +69,13 @@ describe('Onboarding Status', function () {
     const {mutateUserOptionsMock, getOnboardingTasksMock} =
       renderMockRequests(organization);
 
-    const handleShowPanel = jest.fn();
+    const handleShowPanel = vi.fn();
 
     render(
       <OnboardingStatus
         currentPanel=""
         onShowPanel={handleShowPanel}
-        hidePanel={jest.fn()}
+        hidePanel={vi.fn()}
         collapsed
         orientation="left"
       />,
@@ -117,12 +117,12 @@ describe('Onboarding Status', function () {
 
     const {getOnboardingTasksMock} = renderMockRequests(organization);
 
-    const handleHidePanel = jest.fn();
+    const handleHidePanel = vi.fn();
 
     render(
       <OnboardingStatus
         currentPanel={SidebarPanelKey.ONBOARDING_WIZARD}
-        onShowPanel={jest.fn()}
+        onShowPanel={vi.fn()}
         hidePanel={handleHidePanel}
         collapsed={false}
         orientation="left"
@@ -163,17 +163,17 @@ describe('Onboarding Status', function () {
 
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
-    const mockActivateSidebar = jest.fn();
+    const mockActivateSidebar = vi.fn();
 
-    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
+    vi.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
       activateSidebar: mockActivateSidebar,
     });
 
     render(
       <OnboardingStatus
         currentPanel=""
-        onShowPanel={jest.fn()}
-        hidePanel={jest.fn()}
+        onShowPanel={vi.fn()}
+        hidePanel={vi.fn()}
         collapsed
         orientation="left"
       />,
@@ -211,17 +211,17 @@ describe('Onboarding Status', function () {
 
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
-    const mockActivateSidebar = jest.fn();
+    const mockActivateSidebar = vi.fn();
 
-    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
+    vi.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
       activateSidebar: mockActivateSidebar,
     });
 
     render(
       <OnboardingStatus
         currentPanel=""
-        onShowPanel={jest.fn()}
-        hidePanel={jest.fn()}
+        onShowPanel={vi.fn()}
+        hidePanel={vi.fn()}
         collapsed
         orientation="left"
       />,
@@ -267,14 +267,14 @@ describe('Onboarding Status', function () {
       completionSeen: undefined,
     }));
 
-    jest.spyOn(useOnboardingTasks, 'useOnboardingTasks').mockReturnValue({
+    vi.spyOn(useOnboardingTasks, 'useOnboardingTasks').mockReturnValue({
       allTasks: doneTasks,
       beyondBasicsTasks: [],
       completeTasks: [],
       completeOrOverdueTasks: doneTasks.filter(findCompleteOrOverdueTasks),
       doneTasks,
       gettingStartedTasks: [],
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     });
 
     const {mutateOnboardingTasksMock} = renderMockRequests(organization);
@@ -282,8 +282,8 @@ describe('Onboarding Status', function () {
     render(
       <OnboardingStatus
         currentPanel=""
-        onShowPanel={jest.fn()}
-        hidePanel={jest.fn()}
+        onShowPanel={vi.fn()}
+        hidePanel={vi.fn()}
         collapsed
         orientation="left"
       />,

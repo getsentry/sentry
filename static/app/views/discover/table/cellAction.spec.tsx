@@ -30,7 +30,7 @@ const defaultData: TableDataRow = {
 
 function renderComponent({
   eventView,
-  handleCellAction = jest.fn(),
+  handleCellAction = vi.fn(),
   columnIndex = 0,
   data = defaultData,
 }: {
@@ -105,10 +105,10 @@ describe('Discover -> CellAction', function () {
   });
 
   describe('per cell actions', function () {
-    let handleCellAction!: jest.Mock;
+    let handleCellAction!: vi.Mock;
 
     beforeEach(function () {
-      handleCellAction = jest.fn();
+      handleCellAction = vi.fn();
     });
 
     it('add button appends condition', async function () {

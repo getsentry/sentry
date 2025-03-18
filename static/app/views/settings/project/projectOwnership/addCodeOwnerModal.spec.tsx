@@ -51,9 +51,9 @@ describe('AddCodeOwnerModal', function () {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         organization={org}
         project={project}
@@ -74,9 +74,9 @@ describe('AddCodeOwnerModal', function () {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         organization={org}
         project={project}
@@ -107,9 +107,9 @@ describe('AddCodeOwnerModal', function () {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         organization={org}
         project={project}
@@ -139,14 +139,14 @@ describe('AddCodeOwnerModal', function () {
       body: {},
     });
 
-    const handleCloseModal = jest.fn();
+    const handleCloseModal = vi.fn();
 
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
         closeModal={handleCloseModal}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         organization={org}
         project={project}

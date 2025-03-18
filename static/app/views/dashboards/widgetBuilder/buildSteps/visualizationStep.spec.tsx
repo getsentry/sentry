@@ -20,7 +20,7 @@ import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildStep
 import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
 import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
-jest.unmock('lodash/debounce');
+vi.unmock('lodash/debounce');
 
 function mockRequests(orgSlug: Organization['slug']) {
   const eventsMock = MockApiClient.addMockResponse({
@@ -139,7 +139,7 @@ describe('VisualizationStep', function () {
           projects: [],
           filters: {},
         }}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
         params={{
           orgId: organization.slug,
           dashboardId: 'new',
@@ -189,7 +189,7 @@ describe('VisualizationStep', function () {
           projects: [],
           filters: {},
         }}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
         params={{
           orgId: organization.slug,
           dashboardId: 'new',
@@ -232,7 +232,7 @@ describe('VisualizationStep', function () {
           projects: [],
           filters: {},
         }}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
         params={{
           orgId: organization.slug,
           dashboardId: 'new',
@@ -279,7 +279,7 @@ describe('VisualizationStep', function () {
           projects: [],
           filters: {},
         }}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
         params={{
           orgId: organization.slug,
           dashboardId: 'new',
@@ -324,7 +324,7 @@ describe('VisualizationStep', function () {
             pageFilters={PageFiltersFixture()}
             displayType={DisplayType.TABLE}
             error={undefined}
-            onChange={jest.fn()}
+            onChange={vi.fn()}
             widget={mockSpanWidget}
             isWidgetInvalid={false}
             location={router.location}

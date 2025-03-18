@@ -11,8 +11,8 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
-  let eventStatsMock: jest.Func;
-  let eventCountsMock: jest.Func;
+  let eventStatsMock: vi.Func;
+  let eventCountsMock: vi.Func;
   beforeEach(() => {
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',

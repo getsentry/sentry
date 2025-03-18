@@ -124,7 +124,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  let mockDetailedProject: jest.Mock;
+  let mockDetailedProject: vi.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

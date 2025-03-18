@@ -24,7 +24,7 @@ describe('ContractSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         organization={organization}
       />

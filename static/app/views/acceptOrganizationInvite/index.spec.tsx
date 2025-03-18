@@ -6,7 +6,7 @@ import {logout} from 'sentry/actionCreators/account';
 import ConfigStore from 'sentry/stores/configStore';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
-jest.mock('sentry/actionCreators/account');
+vi.mock('sentry/actionCreators/account');
 
 const addMock = (body: any) =>
   MockApiClient.addMockResponse({

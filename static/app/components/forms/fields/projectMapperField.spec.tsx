@@ -31,12 +31,12 @@ describe('ProjectMapperField', () => {
     type: 'project_mapper',
 
     value: [[23, 2]],
-    onChange: jest.fn(),
-    onBlur: jest.fn(),
+    onChange: vi.fn(),
+    onBlur: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('clicking add updates values with current dropdown values', async () => {

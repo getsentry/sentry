@@ -20,14 +20,14 @@ const relayPiiConfig = DataScrubbingRelayPiiConfigFixture();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
 const rules = convertRelayPiiConfig(stringRelayPiiConfig);
-const successfullySaved = jest.fn();
+const successfullySaved = vi.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
 describe('Add Modal', function () {
   it('open Add Rule Modal', async function () {
-    const handleCloseModal = jest.fn();
+    const handleCloseModal = vi.fn();
 
     render(
       <Add
@@ -108,11 +108,11 @@ describe('Add Modal', function () {
   it('Display placeholder field', async function () {
     render(
       <Add
-        Header={makeClosableHeader(jest.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Body={ModalBody}
         Footer={ModalFooter}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
         projectId={projectId}
         savedRules={rules}
         api={api}
@@ -142,11 +142,11 @@ describe('Add Modal', function () {
   it('Display regex field', async function () {
     render(
       <Add
-        Header={makeClosableHeader(jest.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Body={ModalBody}
         Footer={ModalFooter}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
         projectId={projectId}
         savedRules={rules}
         api={api}
@@ -190,11 +190,11 @@ describe('Add Modal', function () {
 
     render(
       <Add
-        Header={makeClosableHeader(jest.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Body={ModalBody}
         Footer={ModalFooter}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
         projectId={projectId}
         savedRules={rules}
         api={api}

@@ -17,9 +17,9 @@ describe('BreadcrumbItem', function () {
   const organization = OrganizationFixture();
 
   it('displays the breadcrumb item', async function () {
-    const mockClick = jest.fn();
-    const mockMouseEnter = jest.fn();
-    const mockMouseLeave = jest.fn();
+    const mockClick = vi.fn();
+    const mockMouseEnter = vi.fn();
+    const mockMouseLeave = vi.fn();
     render(
       <BreadcrumbItem
         frame={MOCK_FRAME!}

@@ -12,7 +12,7 @@ import IssueAlertNotificationOptions, {
 describe('MessagingIntegrationAlertRule', function () {
   const organization = OrganizationFixture();
   const integrations: OrganizationIntegration[] = [];
-  const mockSetAction = jest.fn();
+  const mockSetAction = vi.fn();
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
@@ -23,9 +23,9 @@ describe('MessagingIntegrationAlertRule', function () {
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: mockSetAction,
-    setChannel: jest.fn(),
-    setIntegration: jest.fn(),
-    setProvider: jest.fn(),
+    setChannel: vi.fn(),
+    setIntegration: vi.fn(),
+    setProvider: vi.fn(),
   };
 
   const getComponent = () => <IssueAlertNotificationOptions {...notificationProps} />;
@@ -35,7 +35,7 @@ describe('MessagingIntegrationAlertRule', function () {
       GitHubIntegrationProviderFixture({key: providerKey}),
     ];
     const providerKeys = ['slack', 'discord', 'msteams'];
-    const mockResponses: Array<jest.Mock<any>> = [];
+    const mockResponses: Array<vi.Mock<any>> = [];
     providerKeys.forEach(providerKey => {
       mockResponses.push(
         MockApiClient.addMockResponse({

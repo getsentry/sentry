@@ -10,8 +10,8 @@ import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import {useUserTeams} from './useUserTeams';
 
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
+vi.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: vi.fn(),
 }));
 
 const queryClient = new QueryClient({
@@ -75,7 +75,7 @@ describe('useUserTeams', () => {
   });
 
   it('superuser loads all teams', function () {
-    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+    vi.mocked(isActiveSuperuser).mockReturnValue(true);
 
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];

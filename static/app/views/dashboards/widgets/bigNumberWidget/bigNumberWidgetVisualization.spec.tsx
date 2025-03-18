@@ -9,11 +9,11 @@ import {Widget} from '../widget/widget';
 describe('BigNumberWidgetVisualization', () => {
   describe('Visualization', () => {
     beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
+      vi.spyOn(console, 'error').mockImplementation();
     });
 
     afterEach(() => {
-      jest.resetAllMocks();
+      vi.resetAllMocks();
     });
 
     it('Explains non-numeric data', () => {

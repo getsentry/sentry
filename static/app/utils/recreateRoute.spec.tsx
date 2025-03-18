@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import recreateRoute from 'sentry/utils/recreateRoute';
 
-jest.unmock('sentry/utils/recreateRoute');
+vi.unmock('sentry/utils/recreateRoute');
 
 const routes = [
   {path: '/', childRoutes: []},

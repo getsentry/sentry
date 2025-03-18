@@ -10,8 +10,8 @@ import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlig
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
-jest.mock('sentry/components/events/contexts/contextIcon', () => ({
-  ...jest.requireActual('sentry/components/events/contexts/contextIcon'),
+vi.mock('sentry/components/events/contexts/contextIcon', () => ({
+  ...vi.importActual('sentry/components/events/contexts/contextIcon'),
   getLogoImage: () => 'data:image/test',
 }));
 

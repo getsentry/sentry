@@ -19,8 +19,8 @@ export const nthCallee = (node: CallTreeNode, n: number) => {
 export const makeTestingBoilerplate = () => {
   const timings: Array<[Frame['name'], string]> = [];
 
-  const openSpy = jest.fn();
-  const closeSpy = jest.fn();
+  const openSpy = vi.fn();
+  const closeSpy = vi.fn();
 
   // We need to wrap the spy fn because they are not allowed to reference external variables
   const open = (node: CallTreeNode, value: number) => {

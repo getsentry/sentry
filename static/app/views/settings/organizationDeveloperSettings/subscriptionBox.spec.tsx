@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 describe('SubscriptionBox', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   let org = OrganizationFixture();
 
   beforeEach(() => {

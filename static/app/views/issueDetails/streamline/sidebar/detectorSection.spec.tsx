@@ -22,7 +22,7 @@ describe('DetectorSection', () => {
     isSidebarOpen: true,
     navScrollMargin: 0,
     eventCount: 0,
-    dispatch: jest.fn(),
+    dispatch: vi.fn(),
   };
 
   it('does not display detector details when no detector is found', () => {

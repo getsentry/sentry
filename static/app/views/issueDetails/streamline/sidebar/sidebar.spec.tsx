@@ -39,8 +39,8 @@ describe('StreamlinedSidebar', function () {
   });
   const event = EventFixture({group});
 
-  let mockFirstLastRelease: jest.Mock;
-  let mockExternalIssues: jest.Mock;
+  let mockFirstLastRelease: vi.Mock;
+  let mockExternalIssues: vi.Mock;
 
   beforeEach(function () {
     ProjectsStore.loadInitialData([project]);

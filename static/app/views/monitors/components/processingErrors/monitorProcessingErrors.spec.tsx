@@ -78,7 +78,7 @@ describe('MonitorProcessingErrors', () => {
   it('should show dismiss dialog when onDismiss is passed', async () => {
     const checkinErrors = [CheckinProcessingErrorFixture()];
 
-    const dismissFn = jest.fn();
+    const dismissFn = vi.fn();
     const children =
       'Errors were encountered while ingesting check-ins for the selected projects';
     render(

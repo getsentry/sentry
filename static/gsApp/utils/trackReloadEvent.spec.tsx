@@ -2,14 +2,14 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import trackReloadEvent from 'getsentry/utils/trackReloadEvent';
 
-jest.unmock('getsentry/utils/trackReloadEvent');
+vi.unmock('getsentry/utils/trackReloadEvent');
 
 describe('trackReloadEvent', function () {
   const eventName = 'my_event';
   const data = {foo: 'bar'};
   beforeEach(function () {
     ConfigStore.set('enableAnalytics', true);
-    window.ra = {event: jest.fn()};
+    window.ra = {event: vi.fn()};
   });
   afterEach(function () {
     window.ra.event.mockClear();

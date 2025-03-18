@@ -74,7 +74,7 @@ describe('Performance > Transaction Spans', function () {
 
     const initialData = initializeData();
 
-    const handleOpChange = jest.fn();
+    const handleOpChange = vi.fn();
 
     render(
       <OpsFilter
@@ -104,7 +104,7 @@ describe('Performance > Transaction Spans', function () {
 
     const initialData = initializeData({query: {spanOp: 'op1'}});
 
-    const handleOpChange = jest.fn();
+    const handleOpChange = vi.fn();
 
     render(
       <OpsFilter

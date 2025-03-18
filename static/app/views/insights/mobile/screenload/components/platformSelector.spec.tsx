@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import localStorage from 'sentry/utils/localStorage';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 
-jest.mock('sentry/utils/localStorage');
+vi.mock('sentry/utils/localStorage');
 
 describe('PlatformSelector', function () {
   it('renders with iOS and Android options', function () {

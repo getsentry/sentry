@@ -25,7 +25,7 @@ const model = {
 };
 
 export const chart = {
-  getModel: jest.fn(() => ({...model})),
+  getModel: vi.fn(() => ({...model})),
 };
 
 export const mockZoomRange = (startValue: number, endValue: number) => {

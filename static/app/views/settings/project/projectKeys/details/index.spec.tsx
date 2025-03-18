@@ -19,9 +19,9 @@ describe('ProjectKeyDetails', function () {
 
   let org: Organization;
   let project: Project;
-  let deleteMock: jest.Mock;
-  let statsMock: jest.Mock;
-  let putMock: jest.Mock;
+  let deleteMock: vi.Mock;
+  let statsMock: vi.Mock;
+  let putMock: vi.Mock;
   let projectKeys: ProjectKey[];
 
   function renderProjectKeyDetails() {

@@ -11,7 +11,7 @@ describe('PayAsYouGoBudgetEdit', function () {
           budgetMode: OnDemandBudgetMode.SHARED,
           sharedMaxBudget: 500_00,
         }}
-        setPayAsYouGoBudget={jest.fn()}
+        setPayAsYouGoBudget={vi.fn()}
       />
     );
 
@@ -25,7 +25,7 @@ describe('PayAsYouGoBudgetEdit', function () {
     render(
       <PayAsYouGoBudgetEdit
         payAsYouGoBudget={{budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 0}}
-        setPayAsYouGoBudget={jest.fn()}
+        setPayAsYouGoBudget={vi.fn()}
       />
     );
 
@@ -42,7 +42,7 @@ describe('PayAsYouGoBudgetEdit', function () {
     render(
       <PayAsYouGoBudgetEdit
         payAsYouGoBudget={{budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 0}}
-        setPayAsYouGoBudget={jest.fn()}
+        setPayAsYouGoBudget={vi.fn()}
       />
     );
 

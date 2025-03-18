@@ -12,7 +12,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from './eventNavigation';
 
-jest.mock('sentry/views/issueDetails/streamline/context');
+vi.mock('sentry/views/issueDetails/streamline/context');
 
 describe('EventNavigation', () => {
   const {organization} = initializeOrg();
@@ -36,8 +36,8 @@ describe('EventNavigation', () => {
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(useIssueDetails).mockReturnValue({
+    vi.resetAllMocks();
+    vi.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
         tags: {key: SectionKey.TAGS},
@@ -47,7 +47,7 @@ describe('EventNavigation', () => {
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
-      dispatch: jest.fn(),
+      dispatch: vi.fn(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,

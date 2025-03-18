@@ -4,9 +4,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
-jest.mocked(usePageFilters).mockReturnValue({
+vi.mocked(usePageFilters).mockReturnValue({
   isReady: true,
   desyncedFilters: new Set(),
   pinnedFilters: new Set(),

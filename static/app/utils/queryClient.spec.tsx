@@ -9,7 +9,7 @@ type ResponseData = {
 };
 
 beforeEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('queryClient', function () {

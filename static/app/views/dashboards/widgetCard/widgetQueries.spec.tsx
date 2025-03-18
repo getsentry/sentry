@@ -597,7 +597,7 @@ describe('Dashboards > WidgetQueries', function () {
       // Should be ignored for bars.
       interval: '5m',
     };
-    const child = jest.fn(() => <div data-test-id="child" />);
+    const child = vi.fn(() => <div data-test-id="child" />);
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -750,9 +750,9 @@ describe('Dashboards > WidgetQueries', function () {
         end: 2000,
       },
     });
-    const setIsMetricsMock = jest.fn();
+    const setIsMetricsMock = vi.fn();
 
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     renderWithProviders(
       <DashboardsMEPContext.Provider
@@ -796,9 +796,9 @@ describe('Dashboards > WidgetQueries', function () {
         data: [{title: 'ValueError'}],
       },
     });
-    const setIsMetricsMock = jest.fn();
+    const setIsMetricsMock = vi.fn();
 
-    const children = jest.fn(() => <div />);
+    const children = vi.fn(() => <div />);
 
     renderWithProviders(
       <DashboardsMEPContext.Provider

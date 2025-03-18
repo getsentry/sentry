@@ -143,7 +143,7 @@ describe('Renderers', function () {
 
   describe('SpanIdRenderer', function () {
     it('renders span id with link', function () {
-      const onClickHandler = jest.fn();
+      const onClickHandler = vi.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
       const span = makeSpan(projects[0]!);
@@ -175,7 +175,7 @@ describe('Renderers', function () {
 
   describe('TraceIdRenderer', function () {
     it('renders trace id with link', function () {
-      const onClickHandler = jest.fn();
+      const onClickHandler = vi.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 

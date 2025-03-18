@@ -5,8 +5,8 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import BaseChart from 'sentry/components/charts/baseChart';
 import theme from 'sentry/utils/theme';
 
-jest.mock('echarts-for-react/lib/core', () => {
-  return jest.fn(() => null);
+vi.mock('echarts-for-react/lib/core', () => {
+  return vi.fn(() => null);
 });
 
 describe('BaseChart', function () {

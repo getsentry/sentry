@@ -16,22 +16,22 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetailsPaymentForm from 'getsentry/views/invoiceDetails/paymentForm';
 
-jest.mock('getsentry/utils/stripe', () => ({
+vi.mock('getsentry/utils/stripe', () => ({
   loadStripe: (cb: any) => {
     cb(() => ({
-      confirmCardPayment: jest.fn(
+      confirmCardPayment: vi.fn(
         () =>
           new Promise(resolve => {
             resolve({error: undefined, paymentIntent: {id: 'pi_123abc'}});
           })
       ),
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
+      elements: vi.fn(() => ({
+        create: vi.fn(() => ({
+          mount: vi.fn(),
           on(_name: any, handler: any) {
             handler();
           },
-          update: jest.fn(),
+          update: vi.fn(),
         })),
       })),
     }));
@@ -82,8 +82,8 @@ describe('InvoiceDetails > Payment Form', function () {
         organization={organization}
         Header={modalDummy}
         Body={ModalBody}
-        closeModal={jest.fn()}
-        reloadInvoice={jest.fn()}
+        closeModal={vi.fn()}
+        reloadInvoice={vi.fn()}
         invoice={invoice}
       />
     );
@@ -99,7 +99,7 @@ describe('InvoiceDetails > Payment Form', function () {
   });
 
   it('renders an error when intent creation fails', async function () {
-    const reloadInvoice = jest.fn();
+    const reloadInvoice = vi.fn();
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
       method: 'GET',
@@ -111,7 +111,7 @@ describe('InvoiceDetails > Payment Form', function () {
         organization={organization}
         Header={modalDummy}
         Body={ModalBody}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         reloadInvoice={reloadInvoice}
         invoice={invoice}
       />
@@ -134,7 +134,7 @@ describe('InvoiceDetails > Payment Form', function () {
   });
 
   it('can submit the form', async function () {
-    const reloadInvoice = jest.fn();
+    const reloadInvoice = vi.fn();
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
       method: 'GET',
@@ -145,7 +145,7 @@ describe('InvoiceDetails > Payment Form', function () {
         organization={organization}
         Header={modalDummy}
         Body={ModalBody}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         reloadInvoice={reloadInvoice}
         invoice={invoice}
       />

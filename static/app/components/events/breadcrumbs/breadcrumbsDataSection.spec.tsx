@@ -17,7 +17,7 @@ import {
 import {EntryType} from 'sentry/types/event';
 
 // Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+vi.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
   x: 0,
   y: 0,
   width: 0,
@@ -26,7 +26,7 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
   top: 0,
   right: 0,
   bottom: 0,
-  toJSON: jest.fn(),
+  toJSON: vi.fn(),
 }));
 
 describe('BreadcrumbsDataSection', function () {

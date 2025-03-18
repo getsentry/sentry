@@ -7,7 +7,7 @@ import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/
 
 import {EventTitle} from './eventTitle';
 
-jest.mock('sentry/views/issueDetails/streamline/context');
+vi.mock('sentry/views/issueDetails/streamline/context');
 
 describe('EventNavigation', () => {
   const testEvent = EventFixture({
@@ -29,8 +29,8 @@ describe('EventNavigation', () => {
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(useIssueDetails).mockReturnValue({
+    vi.resetAllMocks();
+    vi.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
         tags: {key: SectionKey.TAGS},
@@ -40,12 +40,12 @@ describe('EventNavigation', () => {
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
-      dispatch: jest.fn(),
+      dispatch: vi.fn(),
     });
     Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
+      clipboard: {writeText: vi.fn().mockResolvedValue('')},
     });
-    window.open = jest.fn();
+    window.open = vi.fn();
 
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
@@ -57,13 +57,13 @@ describe('EventNavigation', () => {
   });
 
   it('does not show jump to sections by default', () => {
-    jest.mocked(useIssueDetails).mockReturnValue({
+    vi.mocked(useIssueDetails).mockReturnValue({
       sectionData: {},
       detectorDetails: {},
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
-      dispatch: jest.fn(),
+      dispatch: vi.fn(),
     });
     render(<EventTitle {...defaultProps} />);
     expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();

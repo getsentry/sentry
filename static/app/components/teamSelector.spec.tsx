@@ -11,11 +11,11 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-jest.mock('sentry/actionCreators/projects', () => ({
-  addTeamToProject: jest.fn(),
+vi.mock('sentry/actionCreators/projects', () => ({
+  addTeamToProject: vi.fn(),
 }));
-jest.mock('sentry/actionCreators/modal', () => ({
-  openCreateTeamModal: jest.fn(),
+vi.mock('sentry/actionCreators/modal', () => ({
+  openCreateTeamModal: vi.fn(),
 }));
 
 const teamData = [
@@ -70,7 +70,7 @@ describe('Team Selector', function () {
   });
 
   it('selects an option', async function () {
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     createWrapper({onChange: onChangeMock});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -132,7 +132,7 @@ describe('Team Selector', function () {
   });
 
   it('allows searching by slug with useId', async function () {
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     createWrapper({useId: true, onChange: onChangeMock});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -154,7 +154,7 @@ describe('Team Selector', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
     createWrapper({
@@ -173,7 +173,7 @@ describe('Team Selector', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
     createWrapper({
@@ -195,7 +195,7 @@ describe('Team Selector', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     const orgWithoutAccess = OrganizationFixture({access: ['project:write']});
 
     createWrapper({

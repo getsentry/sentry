@@ -9,24 +9,24 @@ import useProjects from 'sentry/utils/useProjects';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
 
   beforeEach(function () {
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useOnboardingProject).mockReturnValue(undefined);
+    vi.mocked(useProjects).mockReturnValue({
       projects: [ProjectFixture({hasInsightsVitals: true})],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -34,7 +34,7 @@ describe('WebVitalsLandingPage', function () {
       initiallyLoaded: false,
     });
 
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {},
@@ -43,7 +43,7 @@ describe('WebVitalsLandingPage', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -73,7 +73,7 @@ describe('WebVitalsLandingPage', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders', async () => {

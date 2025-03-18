@@ -5,7 +5,7 @@ import PluginsStore from 'sentry/stores/pluginsStore';
 
 describe('PluginsStore', function () {
   beforeEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('has correct initial state', function () {
@@ -24,7 +24,7 @@ describe('PluginsStore', function () {
     });
 
     it('has correct state when all plugins fetched successfully', function () {
-      const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
+      const triggerSpy = vi.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
       expect(triggerSpy).toHaveBeenCalledWith({
         loading: true,
@@ -44,7 +44,7 @@ describe('PluginsStore', function () {
     });
 
     it('has correct state when error in fetching all plugins', function () {
-      const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
+      const triggerSpy = vi.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
 
       expect(triggerSpy).toHaveBeenCalledWith({
@@ -65,7 +65,7 @@ describe('PluginsStore', function () {
     });
 
     it('does not reset loading state on consecutive fetches', function () {
-      const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
+      const triggerSpy = vi.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
       expect(triggerSpy).toHaveBeenCalledWith({
         loading: true,

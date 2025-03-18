@@ -14,20 +14,20 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('PagePerformanceTable', function () {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue(router.location);
+    vi.mocked(useLocation).mockReturnValue(router.location);
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -44,7 +44,7 @@ describe('PagePerformanceTable', function () {
       },
     });
 
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       projects: [
         ProjectFixture({
           id: '11276',
@@ -53,8 +53,8 @@ describe('PagePerformanceTable', function () {
           platform: 'python',
         }),
       ],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -104,11 +104,11 @@ describe('PagePerformanceTable', function () {
   });
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('escapes user input search filter', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       ...router.location,
       query: {query: '/issues/*'},
     });

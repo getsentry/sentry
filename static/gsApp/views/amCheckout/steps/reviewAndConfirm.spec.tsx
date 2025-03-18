@@ -22,9 +22,9 @@ import {getCheckoutAPIData} from '../utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
 
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('getsentry/utils/trackGetsentryAnalytics');
-jest.mock('getsentry/utils/stripe', () => ({
+vi.mock('sentry/actionCreators/indicator');
+vi.mock('getsentry/utils/trackGetsentryAnalytics');
+vi.mock('getsentry/utils/stripe', () => ({
   loadStripe: (cb: any) => {
     if (!cb) {
       return;
@@ -70,9 +70,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
   const stepProps = {
     stepNumber: 6,
-    onUpdate: jest.fn(),
-    onCompleteStep: jest.fn(),
-    onEdit: jest.fn(),
+    onUpdate: vi.fn(),
+    onCompleteStep: vi.fn(),
+    onEdit: vi.fn(),
     billingConfig,
     formData,
     activePlan: bizPlan,
@@ -153,7 +153,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={subscription.planTier as PlanTier}
       />
     );

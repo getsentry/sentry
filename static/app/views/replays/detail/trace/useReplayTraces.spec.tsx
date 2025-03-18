@@ -15,8 +15,8 @@ const replayRecord = ReplayRecordFixture();
 describe('useTraceMeta', () => {
   beforeEach(function () {
     queryClient.clear();
-    jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    vi.clearAllMocks();
+    vi.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Returns replay traces', async () => {

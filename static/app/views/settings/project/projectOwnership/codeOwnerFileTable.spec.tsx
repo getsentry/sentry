@@ -51,8 +51,8 @@ describe('CodeOwnerFileTable', () => {
       body: {},
     });
 
-    const onDelete = jest.fn();
-    const onUpdate = jest.fn();
+    const onDelete = vi.fn();
+    const onUpdate = vi.fn();
     render(
       <CodeOwnerFileTable
         project={project}

@@ -21,8 +21,8 @@ const steps = [
 ];
 
 describe('FeatureTourModal', function () {
-  let onAdvance!: jest.Mock;
-  let onCloseModal!: jest.Mock;
+  let onAdvance!: vi.Mock;
+  let onCloseModal!: vi.Mock;
 
   const createWrapper = (props = {}) =>
     render(
@@ -50,8 +50,8 @@ describe('FeatureTourModal', function () {
 
   beforeEach(function () {
     ModalStore.reset();
-    onAdvance = jest.fn();
-    onCloseModal = jest.fn();
+    onAdvance = vi.fn();
+    onCloseModal = vi.fn();
   });
 
   it('shows the modal on click', async function () {

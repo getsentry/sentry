@@ -38,7 +38,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('initializes with init fn', () => {
-    const initialize = jest.fn(() => 'default value');
+    const initialize = vi.fn(() => 'default value');
     const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
@@ -95,7 +95,7 @@ describe('useLocalStorageState', () => {
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', 'default value']}
     );
-    const spy = jest.spyOn(Storage.prototype, 'setItem');
+    const spy = vi.spyOn(Storage.prototype, 'setItem');
 
     act(() => {
       result.current[1]('new value');
@@ -113,7 +113,7 @@ describe('useLocalStorageState', () => {
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', 'default value']}
     );
-    const spy = jest.spyOn(Storage.prototype, 'setItem');
+    const spy = vi.spyOn(Storage.prototype, 'setItem');
 
     act(() => {
       result.current[1]((p: string) => `${p} + new value`);
@@ -129,7 +129,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when no value is present in storage, calls init with undefined and null', () => {
-    const initialize = jest.fn(() => 'default value');
+    const initialize = vi.fn(() => 'default value');
 
     renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -141,7 +141,7 @@ describe('useLocalStorageState', () => {
 
   it('when a value is present but cannot be parsed, calls init with undefined, null', () => {
     localStorageWrapper.setItem('key', JSON.stringify('invalid').slice(0, 5));
-    const initialize = jest.fn(() => 'default value');
+    const initialize = vi.fn(() => 'default value');
 
     renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -156,7 +156,7 @@ describe('useLocalStorageState', () => {
 
   it('when a value is present but cannot be parsed init can recover', () => {
     localStorageWrapper.setItem('key', JSON.stringify('invalid').slice(5, 9));
-    const initialize = jest.fn((_decodedValue, encodedValue) => {
+    const initialize = vi.fn((_decodedValue, encodedValue) => {
       const value = JSON.parse('"va' + encodedValue);
       return value;
     });
@@ -171,7 +171,7 @@ describe('useLocalStorageState', () => {
 
   it('when a value is present, init can transform it', () => {
     localStorageWrapper.setItem('key', JSON.stringify('valid json'));
-    const initialize = jest.fn((decodedValue, _encodedValue) => {
+    const initialize = vi.fn((decodedValue, _encodedValue) => {
       return 'super ' + decodedValue;
     });
 
@@ -185,7 +185,7 @@ describe('useLocalStorageState', () => {
 
   it('when a value is present and can be parsed, calls init with decoded and encoded value', () => {
     localStorageWrapper.setItem('key', JSON.stringify('valid json'));
-    const initialize = jest.fn(() => 'default value');
+    const initialize = vi.fn(() => 'default value');
 
     renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -199,7 +199,7 @@ describe('useLocalStorageState', () => {
     const recursiveReferenceMap = new Map();
     recursiveReferenceMap.set('key', recursiveReferenceMap);
 
-    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
+    vi.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
     const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -222,7 +222,7 @@ describe('useLocalStorageState', () => {
     const recursiveObject: Record<string, any> = {};
     recursiveObject.key = recursiveObject;
 
-    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
+    vi.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
     const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -258,7 +258,7 @@ describe('useLocalStorageState', () => {
     );
 
     // Immediately execute microtask so that the error is not thrown from the current execution stack and can be caught by a try/catch
-    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
+    vi.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
     try {
       result.current[1](value);

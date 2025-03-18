@@ -30,9 +30,9 @@ describe('ReprocessEventModal', function () {
     render(
       <ReprocessingEventModal
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         groupId="1337"
         organization={organization}
@@ -81,15 +81,15 @@ describe('ReprocessEventModal', function () {
       body: [],
     });
 
-    jest.spyOn(window.location, 'reload').mockImplementation(() => {});
-    const handleCloseModal = jest.fn();
+    vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+    const handleCloseModal = vi.fn();
 
     render(
       <ReprocessingEventModal
         Body={ModalBody}
         closeModal={handleCloseModal}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         groupId="1337"
         organization={organization}

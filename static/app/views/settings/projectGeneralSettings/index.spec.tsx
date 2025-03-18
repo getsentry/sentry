@@ -20,8 +20,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/components/organizations/pageFilters/persistence');
+vi.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/components/organizations/pageFilters/persistence');
 
 function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
@@ -39,7 +39,7 @@ describe('projectGeneralSettings', function () {
     verifySSL: true,
   });
   const groupingConfigs = GroupingConfigsFixture();
-  let putMock: jest.Mock;
+  let putMock: vi.Mock;
 
   const router = RouterFixture();
   const routerProps = {
@@ -51,7 +51,7 @@ describe('projectGeneralSettings', function () {
   };
 
   beforeEach(function () {
-    jest.spyOn(window.location, 'assign');
+    vi.spyOn(window.location, 'assign');
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -78,8 +78,8 @@ describe('projectGeneralSettings', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders form fields', function () {
@@ -201,7 +201,7 @@ describe('projectGeneralSettings', function () {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const {container} = render((addErrorMessage as vi.Mock).mock.calls[0][0]);
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );

@@ -13,9 +13,9 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 
 import ReplayClipPreview from './replayClipPreview';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+vi.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 
-const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
+const mockUseLoadReplayReader = vi.mocked(useLoadReplayReader);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -54,7 +54,7 @@ mockUseLoadReplayReader.mockImplementation(() => {
     errors: [],
     fetchError: undefined,
     fetching: false,
-    onRetry: jest.fn(),
+    onRetry: vi.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
@@ -84,17 +84,17 @@ const render = (children: React.ReactElement, orgParams: Partial<Organization> =
   });
 };
 
-const mockIsFullscreen = jest.fn();
+const mockIsFullscreen = vi.fn();
 
-jest.mock('screenfull', () => ({
+vi.mock('screenfull', () => ({
   enabled: true,
   get isFullscreen() {
     return mockIsFullscreen();
   },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
+  request: vi.fn(),
+  exit: vi.fn(),
+  on: vi.fn(),
+  off: vi.fn(),
 }));
 
 describe('ReplayClipPreview', () => {
@@ -126,7 +126,7 @@ describe('ReplayClipPreview', () => {
         errors: [],
         fetchError: undefined,
         fetching: true,
-        onRetry: jest.fn(),
+        onRetry: vi.fn(),
         projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
@@ -147,7 +147,7 @@ describe('ReplayClipPreview', () => {
         errors: [],
         fetchError: {status: 400} as RequestError,
         fetching: false,
-        onRetry: jest.fn(),
+        onRetry: vi.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
@@ -201,8 +201,8 @@ describe('ReplayClipPreview', () => {
     ).not.toBeInTheDocument();
   });
   it('Render the back and forward buttons when we pass in showNextAndPrevious', async () => {
-    const handleBackClick = jest.fn();
-    const handleForwardClick = jest.fn();
+    const handleBackClick = vi.fn();
+    const handleForwardClick = vi.fn();
     render(
       <ReplayClipPreview
         {...defaultProps}

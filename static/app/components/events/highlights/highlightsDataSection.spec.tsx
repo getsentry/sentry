@@ -29,13 +29,13 @@ describe('HighlightsDataSection', function () {
     browser: ['name', 'version'],
   };
   const highlightContextTitles = ['User: email', 'Browser: name', 'Browser: version'];
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-  const modalSpy = jest.spyOn(modal, 'openModal');
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
+  const modalSpy = vi.spyOn(modal, 'openModal');
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders an empty state', async function () {

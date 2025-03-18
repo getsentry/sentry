@@ -8,17 +8,17 @@ import useProjects from 'sentry/utils/useProjects';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import PageWithProviders from 'sentry/views/insights/queues/views/destinationSummaryPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('destinationSummaryPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-addon-modules'],
   });
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -35,7 +35,7 @@ describe('destinationSummaryPage', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d', project: '1'},
@@ -45,10 +45,10 @@ describe('destinationSummaryPage', () => {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects: [],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -56,7 +56,7 @@ describe('destinationSummaryPage', () => {
     initiallyLoaded: false,
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -64,8 +64,8 @@ describe('destinationSummaryPage', () => {
     releases: [],
   });
 
-  let eventsMock: jest.Mock;
-  let eventsStatsMock: jest.Mock;
+  let eventsMock: vi.Mock;
+  let eventsStatsMock: vi.Mock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({

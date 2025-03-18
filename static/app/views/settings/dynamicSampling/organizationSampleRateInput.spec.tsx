@@ -11,7 +11,7 @@ describe('OrganizationSampleRateInput', () => {
 
   const defaultProps = {
     value: '10',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     label: 'Sample Rate',
     help: 'Help text',
     previousValue: '20',
@@ -19,7 +19,7 @@ describe('OrganizationSampleRateInput', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with basic props', () => {
@@ -85,7 +85,7 @@ describe('OrganizationSampleRateInput', () => {
           {...defaultProps}
           isBulkEditEnabled
           isBulkEditActive={false}
-          onBulkEditChange={jest.fn()}
+          onBulkEditChange={vi.fn()}
         />,
         {organization}
       );
@@ -100,7 +100,7 @@ describe('OrganizationSampleRateInput', () => {
           {...defaultProps}
           isBulkEditEnabled
           isBulkEditActive
-          onBulkEditChange={jest.fn()}
+          onBulkEditChange={vi.fn()}
         />
       );
 
@@ -119,7 +119,7 @@ describe('OrganizationSampleRateInput', () => {
           {...defaultProps}
           isBulkEditEnabled
           isBulkEditActive={false}
-          onBulkEditChange={jest.fn()}
+          onBulkEditChange={vi.fn()}
         />,
         {organization: orgWithoutAccess}
       );
@@ -130,7 +130,7 @@ describe('OrganizationSampleRateInput', () => {
     });
 
     it('autofocuses input after bulk edit becomes active', async () => {
-      const onBulkEditChange = jest.fn();
+      const onBulkEditChange = vi.fn();
       const {rerender} = render(
         <OrganizationSampleRateInput
           {...defaultProps}

@@ -4,17 +4,17 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 import DisableInDemoMode from './demoModeDisabled'; // Adjust the import path as necessary
 
-jest.mock('sentry/utils/demoMode', () => ({
-  isDemoModeActive: jest.fn(),
+vi.mock('sentry/utils/demoMode', () => ({
+  isDemoModeActive: vi.fn(),
 }));
 
-jest.mock('sentry/locale', () => ({
-  t: jest.fn(key => key), // Mock translation function
+vi.mock('sentry/locale', () => ({
+  t: vi.fn(key => key), // Mock translation function
 }));
 
 describe('DisableInDemoMode', () => {
   it('renders children when demo mode is disabled', () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(false);
+    (isDemoModeActive as vi.Mock).mockReturnValue(false);
 
     render(
       <DisableInDemoMode>
@@ -27,7 +27,7 @@ describe('DisableInDemoMode', () => {
   });
 
   it('renders a tooltip when demo mode is enabled', () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as vi.Mock).mockReturnValue(true);
 
     render(
       <DisableInDemoMode>

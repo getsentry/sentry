@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
-  let sessionsApi: jest.Mock;
+  let sessionsApi: vi.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionsApi = MockApiClient.addMockResponse({

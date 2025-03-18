@@ -88,9 +88,9 @@ function TestComponent({
 }
 
 describe('Performance > TransactionSummary', function () {
-  let eventStatsMock: jest.Mock;
+  let eventStatsMock: vi.Mock;
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     // Small screen size will hide search bar trailing items like warning icon
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
@@ -522,13 +522,13 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
+    vi.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // @ts-expect-error Cleanup clientWidth mock
     delete HTMLElement.prototype.clientWidth;
@@ -710,7 +710,7 @@ describe('Performance > TransactionSummary', function () {
         replace: true,
       });
       const {organization, router} = initializeData({projects});
-      const spy = jest.spyOn(router, 'replace');
+      const spy = vi.spyOn(router, 'replace');
 
       // Ensure project id is not in path
       delete router.location.query.project;

@@ -15,15 +15,15 @@ import {
 
 import StartDurationWidget, {transformData} from './startDurationWidget';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
 
 describe('StartDurationWidget', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
   beforeEach(function () {
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -70,11 +70,11 @@ describe('StartDurationWidget', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders correct title for cold start duration', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       ...LocationFixture(),
       query: {
         app_start_type: 'cold',
@@ -86,7 +86,7 @@ describe('StartDurationWidget', () => {
   });
 
   it('renders correct title for warm start duration', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       ...LocationFixture(),
       query: {
         app_start_type: 'warm',

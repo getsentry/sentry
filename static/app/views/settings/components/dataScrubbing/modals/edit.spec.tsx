@@ -29,25 +29,25 @@ const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
-jest.mock('sentry/views/settings/components/dataScrubbing/submitRules');
+vi.mock('sentry/views/settings/components/dataScrubbing/submitRules');
 
 describe('Edit Modal', function () {
   it('open Edit Rule Modal', async function () {
-    const handleCloseModal = jest.fn();
+    const handleCloseModal = vi.fn();
 
     render(
       <Edit
         Body={ModalBody}
         closeModal={handleCloseModal}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         projectId={projectId}
         savedRules={rules}
         api={api}
         endpoint={endpoint}
         orgSlug={organizationSlug}
-        onSubmitSuccess={jest.fn()}
+        onSubmitSuccess={vi.fn()}
         rule={rule}
       />
     );
@@ -132,16 +132,16 @@ describe('Edit Modal', function () {
     render(
       <Edit
         Body={ModalBody}
-        closeModal={jest.fn()}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
+        closeModal={vi.fn()}
+        CloseButton={makeCloseButton(vi.fn())}
+        Header={makeClosableHeader(vi.fn())}
         Footer={ModalFooter}
         projectId={projectId}
         savedRules={rules}
         api={api}
         endpoint={endpoint}
         orgSlug={organizationSlug}
-        onSubmitSuccess={jest.fn()}
+        onSubmitSuccess={vi.fn()}
         rule={rule}
       />
     );

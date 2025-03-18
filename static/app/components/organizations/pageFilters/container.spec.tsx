@@ -52,9 +52,9 @@ describe('PageFiltersContainer', function () {
   });
 
   beforeAll(function () {
-    jest.spyOn(globalActions, 'updateDateTime');
-    jest.spyOn(globalActions, 'updateEnvironments');
-    jest.spyOn(globalActions, 'updateProjects');
+    vi.spyOn(globalActions, 'updateDateTime');
+    vi.spyOn(globalActions, 'updateEnvironments');
+    vi.spyOn(globalActions, 'updateProjects');
   });
 
   beforeEach(function () {
@@ -63,7 +63,7 @@ describe('PageFiltersContainer', function () {
     OrganizationStore.onUpdate(organization);
     OrganizationsStore.addOrReplace(organization);
 
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null);
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -72,7 +72,7 @@ describe('PageFiltersContainer', function () {
   });
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     PageFiltersStore.reset();
   });
 
@@ -217,9 +217,9 @@ describe('PageFiltersContainer', function () {
       organization
     );
 
-    jest.mocked(globalActions.updateDateTime).mockClear();
-    jest.mocked(globalActions.updateProjects).mockClear();
-    jest.mocked(globalActions.updateEnvironments).mockClear();
+    vi.mocked(globalActions.updateDateTime).mockClear();
+    vi.mocked(globalActions.updateProjects).mockClear();
+    vi.mocked(globalActions.updateEnvironments).mockClear();
 
     rerender(<PageFiltersContainer />);
 
@@ -248,7 +248,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('loads from local storage when no URL parameters and filters are pinned', function () {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [3],
         environments: ['staging'],
@@ -287,11 +287,9 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not load from local storage when there are URL params', function () {
-    jest
-      .spyOn(localStorage, 'getItem')
-      .mockImplementation(() =>
-        JSON.stringify({projects: [3], environments: ['staging']})
-      );
+    vi.spyOn(localStorage, 'getItem').mockImplementation(() =>
+      JSON.stringify({projects: [3], environments: ['staging']})
+    );
 
     const initializationObj = initializeOrg({
       organization: {
@@ -369,7 +367,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('updates store with desynced values when url params do not match local storage', async function () {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [1],
         pinnedFilters: ['projects'],
@@ -420,7 +418,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    const spy = jest.spyOn(Storage.prototype, 'setItem');
+    const spy = vi.spyOn(Storage.prototype, 'setItem');
 
     renderComponent(
       <PageFiltersContainer disablePersistence />,
@@ -778,8 +776,8 @@ describe('PageFiltersContainer', function () {
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
 
-        jest.mocked(initialData.router.push).mockClear();
-        jest.mocked(initialData.router.replace).mockClear();
+        vi.mocked(initialData.router.push).mockClear();
+        vi.mocked(initialData.router.replace).mockClear();
       });
 
       it('uses first project in org projects when mounting', function () {
@@ -852,8 +850,8 @@ describe('PageFiltersContainer', function () {
 
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
-        jest.mocked(initialData.router.push).mockClear();
-        jest.mocked(initialData.router.replace).mockClear();
+        vi.mocked(initialData.router.push).mockClear();
+        vi.mocked(initialData.router.replace).mockClear();
       });
 
       it('appends projectId to URL when mounted with `forceProject`', function () {
@@ -918,8 +916,8 @@ describe('PageFiltersContainer', function () {
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
 
-        jest.mocked(initialData.router.push).mockClear();
-        jest.mocked(initialData.router.replace).mockClear();
+        vi.mocked(initialData.router.push).mockClear();
+        vi.mocked(initialData.router.replace).mockClear();
       });
 
       it('does not use first project in org projects when mounting (and without localStorage data)', function () {

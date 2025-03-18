@@ -54,8 +54,8 @@ describe('SmartSearchBar', function () {
       organization,
       location,
       supportedTags,
-      onGetTagValues: jest.fn().mockResolvedValue([]),
-      onSearch: jest.fn(),
+      onGetTagValues: vi.fn().mockResolvedValue([]),
+      onSearch: vi.fn(),
     };
   });
 
@@ -64,9 +64,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('quotes in values with spaces when autocompleting', async function () {
-    const onGetTagValuesMock = jest
-      .fn()
-      .mockResolvedValue(['this is filled with spaces']);
+    const onGetTagValuesMock = vi.fn().mockResolvedValue(['this is filled with spaces']);
 
     render(
       <DeprecatedSmartSearchBar {...defaultProps} onGetTagValues={onGetTagValuesMock} />
@@ -84,7 +82,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('escapes quotes in values properly when autocompleting', async function () {
-    const onGetTagValuesMock = jest
+    const onGetTagValuesMock = vi
       .fn()
       .mockResolvedValue(['this " is " filled " with " quotes']);
 
@@ -104,7 +102,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('does not search when pressing enter on a tag without a value', async function () {
-    const onSearchMock = jest.fn();
+    const onSearchMock = vi.fn();
 
     render(<DeprecatedSmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
 
@@ -115,7 +113,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('autocompletes value with tab', async function () {
-    const onSearchMock = jest.fn();
+    const onSearchMock = vi.fn();
 
     render(<DeprecatedSmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
 
@@ -140,7 +138,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('autocompletes value with enter', async function () {
-    const onSearchMock = jest.fn();
+    const onSearchMock = vi.fn();
 
     render(<DeprecatedSmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
 
@@ -231,7 +229,7 @@ describe('SmartSearchBar', function () {
 
   describe('clear search', function () {
     it('clicking the clear search button clears the query and calls onSearch', async function () {
-      const mockOnSearch = jest.fn();
+      const mockOnSearch = vi.fn();
 
       render(
         <DeprecatedSmartSearchBar
@@ -306,7 +304,7 @@ describe('SmartSearchBar', function () {
 
   describe('pasting', function () {
     it('trims pasted content', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(<DeprecatedSmartSearchBar {...defaultProps} onChange={mockOnChange} />);
 
       const textbox = screen.getByRole('textbox');
@@ -321,7 +319,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('invokes onSearch() on enter', async function () {
-    const mockOnSearch = jest.fn();
+    const mockOnSearch = vi.fn();
     render(
       <DeprecatedSmartSearchBar {...defaultProps} query="test" onSearch={mockOnSearch} />
     );
@@ -338,7 +336,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('does not fetch tag values with environment tag and excludeEnvironment', async function () {
-    const getTagValuesMock = jest.fn().mockResolvedValue([]);
+    const getTagValuesMock = vi.fn().mockResolvedValue([]);
 
     render(
       <DeprecatedSmartSearchBar
@@ -355,7 +353,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('does not fetch tag values with timesSeen tag', async function () {
-    const getTagValuesMock = jest.fn().mockResolvedValue([]);
+    const getTagValuesMock = vi.fn().mockResolvedValue([]);
 
     render(
       <DeprecatedSmartSearchBar
@@ -372,7 +370,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('fetches and displays tag values with other tags', async function () {
-    const getTagValuesMock = jest.fn().mockResolvedValue([]);
+    const getTagValuesMock = vi.fn().mockResolvedValue([]);
 
     render(
       <DeprecatedSmartSearchBar
@@ -389,14 +387,14 @@ describe('SmartSearchBar', function () {
   });
 
   it('shows correct options on cursor changes for keys and values', async function () {
-    const getTagValuesMock = jest.fn().mockResolvedValue([]);
+    const getTagValuesMock = vi.fn().mockResolvedValue([]);
 
     render(
       <DeprecatedSmartSearchBar
         {...defaultProps}
         query="is:unresolved"
         onGetTagValues={getTagValuesMock}
-        onGetRecentSearches={jest.fn().mockReturnValue([])}
+        onGetRecentSearches={vi.fn().mockReturnValue([])}
       />
     );
 
@@ -506,10 +504,11 @@ describe('SmartSearchBar', function () {
   });
 
   it('handles autocomplete race conditions when cursor position changed', async function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     const user = userEvent.setup({delay: null});
 
-    const mockOnGetTagValues = jest.fn().mockImplementation(
+    const mockOnGetTagValues = vi.fn().mockImplementation(
       () =>
         new Promise(resolve => {
           setTimeout(() => {
@@ -531,23 +530,23 @@ describe('SmartSearchBar', function () {
     // Type key and start searching values
     await user.type(textbox, 'is:');
 
-    act(() => jest.advanceTimersByTime(200));
+    act(() => vi.advanceTimersByTime(200));
 
     // Before values have finished searching, clear the textbox
     await user.clear(textbox);
 
-    act(jest.runAllTimers);
+    act(vi.runAllTimers);
 
     // Should show keys, not values in dropdown
     expect(await screen.findByText('Keys')).toBeInTheDocument();
     expect(screen.queryByText('Values')).not.toBeInTheDocument();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('autocompletes tag values', async function () {
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
 
-    const getTagValuesMock = jest.fn().mockResolvedValue(['Chrome', 'Firefox']);
+    const getTagValuesMock = vi.fn().mockResolvedValue(['Chrome', 'Firefox']);
 
     render(
       <DeprecatedSmartSearchBar
@@ -574,9 +573,9 @@ describe('SmartSearchBar', function () {
   });
 
   it('autocompletes tag values when there are other tags', async function () {
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
 
-    const getTagValuesMock = jest.fn().mockResolvedValue(['Chrome', 'Firefox']);
+    const getTagValuesMock = vi.fn().mockResolvedValue(['Chrome', 'Firefox']);
 
     render(
       <DeprecatedSmartSearchBar
@@ -608,9 +607,10 @@ describe('SmartSearchBar', function () {
   });
 
   it('autocompletes tag values (user tag)', async function () {
-    jest.useFakeTimers();
-    const mockOnChange = jest.fn();
-    const getTagValuesMock = jest.fn().mockResolvedValue(['id:1']);
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    const mockOnChange = vi.fn();
+    const getTagValuesMock = vi.fn().mockResolvedValue(['id:1']);
 
     render(
       <DeprecatedSmartSearchBar
@@ -624,7 +624,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     await userEvent.type(textbox, 'user:', {delay: null});
 
-    act(jest.runOnlyPendingTimers);
+    act(vi.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /id:1/});
 
@@ -633,11 +633,11 @@ describe('SmartSearchBar', function () {
     await waitFor(() => {
       expect(mockOnChange).toHaveBeenLastCalledWith('user:"id:1" ', expect.anything());
     });
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('autocompletes assigned from string values', async function () {
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
 
     render(
       <DeprecatedSmartSearchBar
@@ -671,7 +671,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('autocompletes assigned from SearchGroup objects', async function () {
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
 
     render(
       <DeprecatedSmartSearchBar
@@ -736,8 +736,9 @@ describe('SmartSearchBar', function () {
   });
 
   it('autocompletes tag values (predefined values with spaces)', async function () {
-    jest.useFakeTimers();
-    const mockOnChange = jest.fn();
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    const mockOnChange = vi.fn();
 
     render(
       <DeprecatedSmartSearchBar
@@ -758,7 +759,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     await userEvent.type(textbox, 'predefined:', {delay: null});
 
-    act(jest.runOnlyPendingTimers);
+    act(vi.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {
       name: /predefined tag with spaces/,
@@ -773,12 +774,13 @@ describe('SmartSearchBar', function () {
       );
     });
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('autocompletes tag values (predefined values with quotes)', async function () {
-    jest.useFakeTimers();
-    const mockOnChange = jest.fn();
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    const mockOnChange = vi.fn();
 
     render(
       <DeprecatedSmartSearchBar
@@ -799,7 +801,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     await userEvent.type(textbox, 'predefined:', {delay: null});
 
-    act(jest.runOnlyPendingTimers);
+    act(vi.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {
       name: /quotes/,
@@ -814,7 +816,7 @@ describe('SmartSearchBar', function () {
       );
     });
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('quick actions', function () {
@@ -1141,7 +1143,7 @@ describe('SmartSearchBar', function () {
     };
 
     it('displays a default group with custom wrapper', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}

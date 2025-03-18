@@ -18,10 +18,10 @@ import UpsellProvider from 'getsentry/components/upsellProvider';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
-jest.mock('getsentry/actionCreators/modal');
+vi.mock('getsentry/actionCreators/modal');
 
 const createRenderer = () => {
-  return jest.fn(({onClick, defaultButtonText}) => (
+  return vi.fn(({onClick, defaultButtonText}) => (
     <div data-test-id="test-render" onClick={onClick}>
       {defaultButtonText}
     </div>
@@ -64,14 +64,14 @@ describe('UpsellProvider', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.push as jest.Mock).mockClear();
+    (browserHistory.push as vi.Mock).mockClear();
   });
 
   it('with billing scope starts a trial if available', async function () {
     populateOrg({access: ['org:billing']});
     const renderer = createRenderer();
 
-    const handleTrialStarted = jest.fn();
+    const handleTrialStarted = vi.fn();
 
     render(
       <UpsellProvider
@@ -186,7 +186,7 @@ describe('UpsellProvider', function () {
     );
 
     const renderer = createRenderer();
-    const handleTrialStarted = jest.fn();
+    const handleTrialStarted = vi.fn();
     const startTrialMock = MockApiClient.addMockResponse({
       url: `/customers/${org.slug}/`,
       method: 'PUT',

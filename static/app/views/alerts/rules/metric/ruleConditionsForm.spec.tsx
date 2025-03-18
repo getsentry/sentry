@@ -14,7 +14,7 @@ describe('RuleConditionsForm', () => {
   });
   ProjectsStore.loadInitialData(projects);
 
-  const mockSearch = jest.fn();
+  const mockSearch = vi.fn();
 
   const props = {
     aggregate: 'foo',
@@ -55,7 +55,7 @@ describe('RuleConditionsForm', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('searches with new searchbar (search-query-builder-alerts)', async () => {

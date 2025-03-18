@@ -10,9 +10,9 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
 describe('Screens Landing Page', function () {
   const organization = OrganizationFixture({
@@ -20,7 +20,7 @@ describe('Screens Landing Page', function () {
   });
   const project = ProjectFixture({platform: 'react-native'});
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -32,7 +32,7 @@ describe('Screens Landing Page', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -49,7 +49,7 @@ describe('Screens Landing Page', function () {
     },
   });
 
-  jest.mocked(useCrossPlatformProject).mockReturnValue({
+  vi.mocked(useCrossPlatformProject).mockReturnValue({
     project,
     selectedPlatform: 'Android',
     isProjectCrossPlatform: true,
@@ -69,7 +69,7 @@ describe('Screens Landing Page', function () {
 
     afterEach(() => {
       MockApiClient.clearMockResponses();
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('shows the platform selector for hybrid sdks', async function () {
@@ -78,7 +78,7 @@ describe('Screens Landing Page', function () {
     });
 
     it('renders all vital cards', async function () {
-      jest.mocked(useLocation).mockReturnValue({
+      vi.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
         key: '',

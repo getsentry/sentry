@@ -95,10 +95,10 @@ describe('useBootstrapOrganizationQuery', function () {
     localStorageWrapper.setItem('feature-flag-overrides', '{"enable-issues":true}');
 
     const mockScope = {
-      setTag: jest.fn(),
-      setContext: jest.fn(),
+      setTag: vi.fn(),
+      setContext: vi.fn(),
     } as unknown as Scope;
-    jest.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
+    vi.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/`,

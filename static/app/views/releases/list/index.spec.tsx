@@ -61,8 +61,8 @@ describe('ReleasesList', () => {
       },
     },
   };
-  let endpointMock: jest.Mock;
-  let sessionApiMock: jest.Mock;
+  let endpointMock: vi.Mock;
+  let sessionApiMock: vi.Mock;
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));

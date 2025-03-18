@@ -14,8 +14,8 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+vi.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...vi.importActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
 }));
 

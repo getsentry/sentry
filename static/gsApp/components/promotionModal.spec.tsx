@@ -9,8 +9,8 @@ import PromotionModal from 'getsentry/components/promotionModal';
 describe('Promotion Modal', function () {
   const organization = OrganizationFixture();
 
-  const acceptFn = jest.fn();
-  const closeModal = jest.fn();
+  const acceptFn = vi.fn();
+  const closeModal = vi.fn();
 
   const promotion = PromotionFixture({
     name: 'Test Promotion',
@@ -35,7 +35,7 @@ describe('Promotion Modal', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders modal', async function () {
@@ -108,7 +108,7 @@ describe('Promotion Modal', function () {
         promotion={promotion}
         price={100000}
         onAccept={() => acceptFn()}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         promptFeature=""
       />
     );

@@ -22,7 +22,7 @@ import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
-const searchHandlerMock = jest.fn();
+const searchHandlerMock = vi.fn();
 
 function WrappedComponent({data, withStaticFilters = false}: any) {
   const eventView = generatePerformanceEventView(
@@ -61,13 +61,13 @@ function WrappedComponent({data, withStaticFilters = false}: any) {
 }
 
 describe('Performance > Landing > Index', function () {
-  let eventStatsMock: jest.Mock;
-  let eventsMock: jest.Mock;
+  let eventStatsMock: vi.Mock;
+  let eventsMock: vi.Mock;
   let wrapper: any;
 
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
@@ -137,8 +137,8 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();

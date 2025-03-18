@@ -11,8 +11,8 @@ import {
 
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
+const mockNavigate = vi.fn();
+vi.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
 
@@ -21,7 +21,7 @@ describe('SentryAppDetailedView', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   async function renderSentryAppDetailedView({
@@ -38,9 +38,9 @@ describe('SentryAppDetailedView', function () {
   }
 
   describe('Published Sentry App', function () {
-    let createRequest: jest.Mock;
-    let deleteRequest: jest.Mock;
-    let sentryAppInteractionRequest: jest.Mock;
+    let createRequest: vi.Mock;
+    let deleteRequest: vi.Mock;
+    let sentryAppInteractionRequest: vi.Mock;
 
     beforeEach(() => {
       sentryAppInteractionRequest = MockApiClient.addMockResponse({
@@ -207,7 +207,7 @@ describe('SentryAppDetailedView', function () {
   });
 
   describe('Unpublished Sentry App without Redirect Url', function () {
-    let createRequest: jest.Mock;
+    let createRequest: vi.Mock;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -287,7 +287,7 @@ describe('SentryAppDetailedView', function () {
   });
 
   describe('Unpublished Sentry App with Redirect Url', function () {
-    let createRequest: jest.Mock;
+    let createRequest: vi.Mock;
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/go-to-google/interaction/`,
@@ -355,7 +355,7 @@ describe('SentryAppDetailedView', function () {
     });
     it('onClick: redirects url', async function () {
       await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
-      const locationAssignSpy = jest.spyOn(window.location, 'assign');
+      const locationAssignSpy = vi.spyOn(window.location, 'assign');
 
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 

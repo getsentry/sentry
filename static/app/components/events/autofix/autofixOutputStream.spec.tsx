@@ -4,17 +4,17 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 
 import {AutofixOutputStream} from './autofixOutputStream';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('AutofixOutputStream', () => {
   const mockApi = {
-    requestPromise: jest.fn(),
+    requestPromise: vi.fn(),
   };
 
   beforeEach(() => {
     mockApi.requestPromise.mockReset();
-    (addSuccessMessage as jest.Mock).mockClear();
-    (addErrorMessage as jest.Mock).mockClear();
+    (addSuccessMessage as vi.Mock).mockClear();
+    (addErrorMessage as vi.Mock).mockClear();
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/update/',
       method: 'POST',

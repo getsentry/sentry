@@ -103,7 +103,7 @@ function renderTestComponent({
         filters: {},
         ...dashboard,
       }}
-      onSave={onSave ?? jest.fn()}
+      onSave={onSave ?? vi.fn()}
       params={{
         orgId: organization.slug,
         dashboardId: dashboard?.id ?? 'new',
@@ -141,10 +141,10 @@ describe('WidgetBuilder', function () {
     filters: {},
   };
 
-  let eventsMock: jest.Mock | undefined;
-  let sessionsDataMock: jest.Mock | undefined;
-  let metricsDataMock: jest.Mock | undefined;
-  let measurementsMetaMock: jest.Mock | undefined;
+  let eventsMock: vi.Mock | undefined;
+  let sessionsDataMock: vi.Mock | undefined;
+  let metricsDataMock: vi.Mock | undefined;
+  let measurementsMetaMock: vi.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -290,7 +290,7 @@ describe('WidgetBuilder', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     resetMockDate();
   });
 
@@ -651,7 +651,7 @@ describe('WidgetBuilder', function () {
 
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
-      const handleSave = jest.fn();
+      const handleSave = vi.fn();
 
       renderTestComponent({onSave: handleSave});
 
@@ -807,7 +807,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('Update table header values (field alias)', async function () {
-      const handleSave = jest.fn();
+      const handleSave = vi.fn();
 
       renderTestComponent({
         onSave: handleSave,

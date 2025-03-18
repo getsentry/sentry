@@ -26,9 +26,9 @@ describe('OnDemandSpend', function () {
   const stepProps: StepProps = {
     isActive: true,
     stepNumber: 3,
-    onUpdate: jest.fn(),
-    onCompleteStep: jest.fn(),
-    onEdit: jest.fn(),
+    onUpdate: vi.fn(),
+    onCompleteStep: vi.fn(),
+    onEdit: vi.fn(),
     billingConfig,
     formData: {
       plan: billingConfig.defaultPlan,
@@ -78,7 +78,7 @@ describe('OnDemandSpend', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();
@@ -95,7 +95,7 @@ describe('OnDemandSpend', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();
@@ -116,7 +116,7 @@ describe('OnDemandSpend', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();
@@ -157,7 +157,7 @@ describe('OnDemandSpend', function () {
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
       />
     );
     await openPanel();

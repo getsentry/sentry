@@ -13,26 +13,26 @@ import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import ScreenLoadSpans from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
 
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
 
 function mockResponses(organization: Organization, project: Project) {
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  vi.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     fetchError: null,
     fetching: false,
     hasMore: false,
     initiallyLoaded: false,
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     projects: [project],
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -47,7 +47,7 @@ function mockResponses(organization: Organization, project: Project) {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -110,8 +110,8 @@ function mockResponses(organization: Organization, project: Project) {
 
 describe('Screen Summary', function () {
   describe('Cross Platform Project', function () {
-    let eventsMock: jest.Mock;
-    let eventsStatsMock: jest.Mock;
+    let eventsMock: vi.Mock;
+    let eventsStatsMock: vi.Mock;
     let organization: Organization;
     beforeEach(function () {
       const project = ProjectFixture({
@@ -133,7 +133,7 @@ describe('Screen Summary', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('appends os.name filter for react native projects', async function () {
@@ -207,8 +207,8 @@ describe('Screen Summary', function () {
   });
 
   describe('Native Project', function () {
-    let eventsMock: jest.Mock;
-    let eventsStatsMock: jest.Mock;
+    let eventsMock: vi.Mock;
+    let eventsStatsMock: vi.Mock;
     let organization: Organization;
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android', hasInsightsScreenLoad: true});
@@ -227,7 +227,7 @@ describe('Screen Summary', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('does not append os.name filter for native projects', async function () {

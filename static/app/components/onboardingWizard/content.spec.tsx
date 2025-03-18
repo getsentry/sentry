@@ -49,7 +49,7 @@ describe('OnboardingSidebarContent', function () {
   });
 
   it('should render the sidebar with the correct groups and tasks', async function () {
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+    render(<OnboardingSidebarContent onClose={vi.fn()} />, {organization});
 
     // Group 1
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
@@ -109,14 +109,14 @@ describe('OnboardingSidebarContent', function () {
       },
     });
 
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+    render(<OnboardingSidebarContent onClose={vi.fn()} />, {organization});
 
     expect(await screen.findByText('1 out of 6 tasks completed')).toBeInTheDocument();
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
   });
 
   it('if first group completed, second group should be expanded by default', async function () {
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {
+    render(<OnboardingSidebarContent onClose={vi.fn()} />, {
       organization: OrganizationFixture({
         onboardingTasks: DEFAULT_GETTING_STARTED_TASKS.map(task => ({
           task: task.task,
@@ -140,7 +140,7 @@ describe('OnboardingSidebarContent', function () {
       method: 'POST',
     });
 
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+    render(<OnboardingSidebarContent onClose={vi.fn()} />, {organization});
 
     // Click skip task
     await userEvent.click(

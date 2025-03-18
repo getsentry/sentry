@@ -104,7 +104,7 @@ describe('JsonForm', function () {
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      vi.spyOn(console, 'error').mockImplementation(vi.fn());
       try {
         render(<JsonForm forms={accountDetailsFields} />);
       } catch (error) {
@@ -181,7 +181,7 @@ describe('JsonForm', function () {
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      vi.spyOn(console, 'error').mockImplementation(vi.fn());
       try {
         render(
           <JsonForm

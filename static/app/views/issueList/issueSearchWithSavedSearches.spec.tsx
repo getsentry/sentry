@@ -7,7 +7,7 @@ import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWi
 describe('IssueSearchWithSavedSearches', () => {
   const defaultProps = {
     query: 'is:unresolved',
-    onSearch: jest.fn(),
+    onSearch: vi.fn(),
   };
 
   const savedSearch = SearchFixture({

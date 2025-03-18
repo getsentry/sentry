@@ -33,7 +33,7 @@ describe('TrialEndingModal', function () {
     const sub = SubscriptionFixture({organization: org});
     SubscriptionStore.set(org.slug, sub);
 
-    render(<TrialEndingModal closeModal={jest.fn()} organization={org} />);
+    render(<TrialEndingModal closeModal={vi.fn()} organization={org} />);
 
     expect(screen.getByTestId('trial-ending-modal')).toBeInTheDocument();
     expect(screen.getByLabelText('Request Upgrade')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('TrialEndingModal', function () {
     const sub = SubscriptionFixture({organization: org});
     SubscriptionStore.set(org.slug, sub);
 
-    render(<TrialEndingModal closeModal={jest.fn()} organization={org} />);
+    render(<TrialEndingModal closeModal={vi.fn()} organization={org} />);
 
     expect(screen.getByTestId('trial-ending-modal')).toBeInTheDocument();
     expect(screen.getByLabelText('Upgrade Now')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('TrialEndingModal', function () {
     const sub = SubscriptionFixture({organization: org, trialEnd: '2021-03-06'});
     SubscriptionStore.set(org.slug, sub);
 
-    render(<TrialEndingModal closeModal={jest.fn()} organization={org} />);
+    render(<TrialEndingModal closeModal={vi.fn()} organization={org} />);
 
     expect(screen.getByTestId('trial-ending-modal')).toBeInTheDocument();
     expect(screen.getByText('Trial Ends in 3 Days')).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('TrialEndingModal', function () {
     const sub = SubscriptionFixture({organization: org, trialEnd: '2021-03-04'});
     SubscriptionStore.set(org.slug, sub);
 
-    render(<TrialEndingModal closeModal={jest.fn()} organization={org} />);
+    render(<TrialEndingModal closeModal={vi.fn()} organization={org} />);
 
     expect(screen.getByText('Trial Ends in 1 Day')).toBeInTheDocument();
     expect(screen.getByText(/Developer Plan in 1 day/)).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('TrialEndingModal', function () {
     const sub = SubscriptionFixture({organization: org, trialEnd: '2021-03-01'});
     SubscriptionStore.set(org.slug, sub);
 
-    render(<TrialEndingModal closeModal={jest.fn()} organization={org} />);
+    render(<TrialEndingModal closeModal={vi.fn()} organization={org} />);
 
     expect(screen.queryByTestId('trial-ending-modal')).not.toBeInTheDocument();
   });

@@ -14,7 +14,7 @@ describe('MergedIssuesDrawer', function () {
   const project = ProjectFixture();
   const group = GroupFixture();
   const event = EventFixture();
-  let mockMergedIssues: jest.Mock;
+  let mockMergedIssues: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

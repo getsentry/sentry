@@ -9,8 +9,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ProjectLatestAlerts from './projectLatestAlerts';
 
 describe('ProjectDetail > ProjectLatestAlerts', function () {
-  let endpointMock: jest.Mock;
-  let rulesEndpointMock: jest.Mock;
+  let endpointMock: vi.Mock;
+  let rulesEndpointMock: vi.Mock;
   const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {

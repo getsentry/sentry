@@ -8,11 +8,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
@@ -20,7 +20,7 @@ describe('DatabaseSpanSummaryPage', function () {
   });
   const group = GroupFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -37,7 +37,7 @@ describe('DatabaseSpanSummaryPage', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d', transactionsCursor: '0:25:0'},
@@ -47,7 +47,7 @@ describe('DatabaseSpanSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -56,18 +56,18 @@ describe('DatabaseSpanSummaryPage', function () {
   });
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders', async function () {
     // Ignore known issue with jsdom used by jest when parsing nested CSS syntax (@container). See:
     // - https://github.com/jsdom/jsdom/issues/3236
     // - https://github.com/jsdom/jsdom/issues/2005
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation();
 
     const eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

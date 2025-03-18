@@ -8,7 +8,7 @@ import * as eventRequest from 'sentry/components/charts/eventsRequest';
 import EventView from 'sentry/utils/discover/eventView';
 import MiniGraph from 'sentry/views/discover/miniGraph';
 
-jest.mock('sentry/components/charts/eventsRequest');
+vi.mock('sentry/components/charts/eventsRequest');
 
 describe('Discover > MiniGraph', function () {
   const features = ['discover-basic'];

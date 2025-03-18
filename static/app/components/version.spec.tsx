@@ -9,7 +9,7 @@ const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 describe('Version', () => {
   const router = RouterFixture();
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders', () => {
@@ -36,7 +36,8 @@ describe('Version', () => {
   });
 
   it('shows raw version in tooltip', async () => {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<Version version={VERSION} tooltipRawVersion />, {
       router,
     });
@@ -44,7 +45,7 @@ describe('Version', () => {
 
     // Activate tooltip
     await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
-    act(() => jest.advanceTimersByTime(50));
+    act(() => vi.advanceTimersByTime(50));
 
     expect(await screen.findByText(VERSION)).toBeInTheDocument();
   });

@@ -13,8 +13,8 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
   SpanIndexedField;
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('SampleImages', function () {
   const organization = OrganizationFixture({
@@ -26,7 +26,7 @@ describe('SampleImages', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('When project setting is enabled', () => {
@@ -62,7 +62,7 @@ const setupMocks = () => {
   const mockProjects = [ProjectFixture()];
   ProjectsStore.loadInitialData(mockProjects);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -79,7 +79,7 @@ const setupMocks = () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d'},

@@ -57,7 +57,7 @@ describe('ContextCard', function () {
 
   it('renders with icons if able', function () {
     const event = EventFixture();
-    const iconSpy = jest
+    const iconSpy = vi
       .spyOn(iconTools, 'getLogoImage')
       .mockReturnValue('data:image/firefox');
 

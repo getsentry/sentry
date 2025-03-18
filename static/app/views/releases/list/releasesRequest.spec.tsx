@@ -31,9 +31,9 @@ describe('ReleasesRequest', () => {
     },
   };
 
-  let requestForAutoHealthStatsPeriodSessionHistogram: jest.Mock;
-  let requestForAutoTotalCountByProjectInPeriod: jest.Mock;
-  let requestForAutoTotalCountByReleaseInPeriod: jest.Mock;
+  let requestForAutoHealthStatsPeriodSessionHistogram: vi.Mock;
+  let requestForAutoTotalCountByProjectInPeriod: vi.Mock;
+  let requestForAutoTotalCountByReleaseInPeriod: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.addMockResponse({

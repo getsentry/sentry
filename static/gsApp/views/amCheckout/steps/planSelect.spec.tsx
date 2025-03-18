@@ -62,7 +62,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -86,7 +86,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization: org}
@@ -115,7 +115,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization: org}
@@ -141,7 +141,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -183,7 +183,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -202,7 +202,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -221,7 +221,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -245,7 +245,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -263,7 +263,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
@@ -293,7 +293,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -328,7 +328,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -362,7 +362,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -399,7 +399,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -437,7 +437,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -471,7 +471,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
         location={LocationFixture({
           query: {
@@ -511,7 +511,7 @@ describe('PlanSelect', function () {
         {...RouteComponentPropsFixture()}
         params={params}
         api={api}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         checkoutTier={PlanTier.AM2}
       />,
       {organization}

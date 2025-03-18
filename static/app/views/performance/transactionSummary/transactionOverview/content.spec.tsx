@@ -11,9 +11,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-jest.mocked(useLocation).mockReturnValue({
+vi.mocked(useLocation).mockReturnValue({
   action: 'POP',
   hash: '',
   key: 'abc123',

@@ -15,27 +15,27 @@ import useProjects from 'sentry/utils/useProjects';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 const requestMocks = {
-  missRateChart: jest.fn(),
-  cacheSamplesMissRateChart: jest.fn(),
-  throughputChart: jest.fn(),
-  spanTransactionList: jest.fn(),
-  transactionDurations: jest.fn(),
-  spanFields: jest.fn(),
+  missRateChart: vi.fn(),
+  cacheSamplesMissRateChart: vi.fn(),
+  throughputChart: vi.fn(),
+  spanTransactionList: vi.fn(),
+  transactionDurations: vi.fn(),
+  spanFields: vi.fn(),
 };
 
 describe('CacheLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -52,7 +52,7 @@ describe('CacheLandingPage', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d', project: '1'},
@@ -62,7 +62,7 @@ describe('CacheLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects: [
       ProjectFixture({
         id: '1',
@@ -73,8 +73,8 @@ describe('CacheLandingPage', function () {
         platform: 'javascript',
       }),
     ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -82,7 +82,7 @@ describe('CacheLandingPage', function () {
     initiallyLoaded: false,
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -91,12 +91,12 @@ describe('CacheLandingPage', function () {
   });
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     setRequestMocks(organization);
   });
 
   afterAll(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('fetches module data', async function () {
@@ -281,8 +281,8 @@ describe('CacheLandingPage', function () {
   });
 
   it('shows module onboarding', async function () {
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useOnboardingProject).mockReturnValue(undefined);
+    vi.mocked(useProjects).mockReturnValue({
       projects: [
         ProjectFixture({
           id: '1',
@@ -293,8 +293,8 @@ describe('CacheLandingPage', function () {
           platform: 'javascript',
         }),
       ],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
+      onSearch: vi.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,

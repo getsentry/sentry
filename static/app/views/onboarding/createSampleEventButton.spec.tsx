@@ -8,8 +8,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-jest.useFakeTimers();
-jest.mock('sentry/utils/analytics');
+vi.useRealTimers();
+vi.useFakeTimers();
+vi.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', function () {
   const router = RouterFixture();
@@ -61,7 +62,7 @@ describe('CreateSampleEventButton', function () {
 
     // There is a timeout before we check for the existence of the latest
     // event. Wait for it then wait for the request to complete
-    jest.runAllTimers();
+    vi.runAllTimers();
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     // Wait for the api request and latestEventAvailable to resolve
@@ -94,7 +95,7 @@ describe('CreateSampleEventButton', function () {
     });
 
     // Wait for the timeout once, the first request will 404
-    jest.runAllTimers();
+    vi.runAllTimers();
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     // Second request will be successful
@@ -105,7 +106,7 @@ describe('CreateSampleEventButton', function () {
       body: {},
     });
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     expect(router.push).toHaveBeenCalledWith(

@@ -9,9 +9,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 
-jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
 
 describe('ScreensOverview', () => {
   const organization = OrganizationFixture({
@@ -19,7 +19,7 @@ describe('ScreensOverview', () => {
   });
   const project = ProjectFixture();
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -31,7 +31,7 @@ describe('ScreensOverview', () => {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -48,7 +48,7 @@ describe('ScreensOverview', () => {
     },
   });
 
-  jest.mocked(useCrossPlatformProject).mockReturnValue({
+  vi.mocked(useCrossPlatformProject).mockReturnValue({
     project,
     isProjectCrossPlatform: true,
     selectedPlatform: 'Android',

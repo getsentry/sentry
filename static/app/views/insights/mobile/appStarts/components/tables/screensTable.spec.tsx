@@ -5,9 +5,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {AppStartScreens} from 'sentry/views/insights/mobile/appStarts/components/tables/screensTable';
 
-jest.mock('sentry/views/insights/common/queries/useReleases');
+vi.mock('sentry/views/insights/common/queries/useReleases');
 
-jest.mocked(useReleaseSelection).mockReturnValue({
+vi.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5',
   isLoading: false,
   secondaryRelease: 'com.example.vu.android@2.10.3+42',

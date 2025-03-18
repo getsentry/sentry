@@ -42,7 +42,7 @@ describe('flamegraphCanvas', () => {
     // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
     const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     });
 
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(10, 10));
@@ -57,7 +57,7 @@ describe('flamegraphCanvas', () => {
     // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
     const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     });
 
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(10, 10));

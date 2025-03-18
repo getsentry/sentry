@@ -9,29 +9,29 @@ import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules', 'insights-entry-points'],
   });
 
-  let throughputRequestMock!: jest.Mock;
-  let durationRequestMock!: jest.Mock;
-  let statusRequestMock!: jest.Mock;
+  let throughputRequestMock!: vi.Mock;
+  let durationRequestMock!: vi.Mock;
+  let statusRequestMock!: vi.Mock;
 
-  let spanListRequestMock!: jest.Mock;
-  let regionFilterRequestMock!: jest.Mock;
+  let spanListRequestMock!: vi.Mock;
+  let regionFilterRequestMock!: vi.Mock;
 
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  vi.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -48,7 +48,7 @@ describe('HTTPLandingPage', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '/insights/backend/http/',
     search: '',
     query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
@@ -58,7 +58,7 @@ describe('HTTPLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects: [
       ProjectFixture({
         id: '1',
@@ -69,8 +69,8 @@ describe('HTTPLandingPage', function () {
         hasInsightsHttp: true,
       }),
     ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -78,7 +78,7 @@ describe('HTTPLandingPage', function () {
     initiallyLoaded: false,
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -87,7 +87,7 @@ describe('HTTPLandingPage', function () {
   });
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -269,7 +269,7 @@ describe('HTTPLandingPage', function () {
   });
 
   afterAll(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('fetches module data', async function () {

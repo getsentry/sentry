@@ -7,7 +7,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 import IncidentRedirect from './incidentRedirect';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
   const params = {alertId: '123'};
@@ -27,7 +27,7 @@ describe('IncidentRedirect', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('redirects to alert details page', async () => {

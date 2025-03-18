@@ -8,18 +8,18 @@ import {EntryType} from 'sentry/types/event';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanDescription', function () {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const organization = OrganizationFixture();
 
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),

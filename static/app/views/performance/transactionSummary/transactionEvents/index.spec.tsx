@@ -13,9 +13,9 @@ import {
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseLocation = vi.mocked(useLocation);
 
 function WrappedComponent({data}: {data: ReturnType<typeof initializeData>}) {
   return (
@@ -163,7 +163,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should contain all transaction events', async () => {

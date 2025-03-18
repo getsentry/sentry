@@ -5,19 +5,19 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {AutofixChanges} from './autofixChanges';
 import {AutofixStatus, AutofixStepType} from './types';
 
-const mockUseAutofix = jest.fn();
-jest.mock('sentry/components/events/autofix/useAutofix', () => ({
-  ...jest.requireActual('sentry/components/events/autofix/useAutofix'),
+const mockUseAutofix = vi.fn();
+vi.mock('sentry/components/events/autofix/useAutofix', () => ({
+  ...vi.importActual('sentry/components/events/autofix/useAutofix'),
   useAutofixData: () => mockUseAutofix(),
 }));
 
-const mockUseAutofixSetup = jest.fn();
-jest.mock('sentry/components/events/autofix/useAutofixSetup', () => ({
+const mockUseAutofixSetup = vi.fn();
+vi.mock('sentry/components/events/autofix/useAutofixSetup', () => ({
   useAutofixSetup: () => mockUseAutofixSetup(),
 }));
 
-const mockUpdateInsightCard = jest.fn();
-jest.mock('sentry/components/events/autofix/autofixInsightCards', () => ({
+const mockUpdateInsightCard = vi.fn();
+vi.mock('sentry/components/events/autofix/autofixInsightCards', () => ({
   useUpdateInsightCard: () => ({
     mutate: mockUpdateInsightCard,
   }),

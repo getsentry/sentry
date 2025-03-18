@@ -29,7 +29,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', function () {
   const organization = OrganizationFixture({
@@ -38,7 +38,7 @@ describe('ExploreToolbar', function () {
 
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation();
 
     const project = ProjectFixture({
       id: '1',

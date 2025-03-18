@@ -13,12 +13,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('DomainSelector', function () {
   const organization = OrganizationFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),

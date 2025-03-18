@@ -6,9 +6,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
-  let projectsGetMock: jest.Mock;
-  let statsGetMock: jest.Mock;
-  let projectsPutMock: jest.Mock;
+  let projectsGetMock: vi.Mock;
+  let statsGetMock: vi.Mock;
+  let projectsPutMock: vi.Mock;
   const project = ProjectFixture();
   const router = RouterFixture();
 

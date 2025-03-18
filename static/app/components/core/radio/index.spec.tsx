@@ -9,12 +9,12 @@ describe('radio', () => {
   });
 
   it('checked', () => {
-    render(<Radio checked onChange={jest.fn()} />);
+    render(<Radio checked onChange={vi.fn()} />);
     expect(screen.getByRole('radio')).toBeChecked();
   });
 
   it('disallows toggling a disabled radio', async () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
 
     render(<Radio disabled onChange={onClick} />);
 

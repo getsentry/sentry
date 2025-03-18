@@ -15,10 +15,10 @@ import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLin
 describe('IntegrationOrganizationLink', () => {
   let org1: Organization;
   let org2: Organization;
-  let getOrgsMock: jest.Mock;
+  let getOrgsMock: vi.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    window.location.assign = jest.fn();
+    window.location.assign = vi.fn();
 
     org1 = OrganizationFixture({
       slug: 'org1',

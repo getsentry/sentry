@@ -7,11 +7,11 @@ import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-const mockUsingCustomerDomain = jest.fn();
-const mockCustomerDomain = jest.fn();
+const mockUsingCustomerDomain = vi.fn();
+const mockCustomerDomain = vi.fn();
 
-jest.mock('sentry/constants', () => {
-  const sentryConstant = jest.requireActual('sentry/constants');
+vi.mock('sentry/constants', () => {
+  const sentryConstant = vi.importActual('sentry/constants');
   return {
     ...sentryConstant,
 

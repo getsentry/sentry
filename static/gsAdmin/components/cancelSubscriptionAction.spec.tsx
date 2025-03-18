@@ -8,7 +8,7 @@ import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction'
 
 describe('Cancel Subscription', function () {
   it('cancels immediately', async function () {
-    const onConfirm = jest.fn();
+    const onConfirm = vi.fn();
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
 

@@ -13,11 +13,11 @@ import type {
 } from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseNavigate = vi.mocked(useNavigate);
+const mockUseLocation = vi.mocked(useLocation);
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
@@ -56,7 +56,7 @@ const {
 
 describe('useErrorFilters', () => {
   it('should update the url when setters are called', () => {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     const errorFrames = [
       ERROR_1_JS_RANGEERROR!,

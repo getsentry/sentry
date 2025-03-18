@@ -12,7 +12,7 @@ import {
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
-jest.mock('sentry/utils/demoMode');
+vi.mock('sentry/utils/demoMode');
 
 describe('ApiApplications', function () {
   const {routerProps, router} = initializeOrg({router: {params: {}}});
@@ -50,7 +50,7 @@ describe('ApiApplications', function () {
   });
 
   it('renders empty in demo mode even if there are applications', async function () {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as vi.Mock).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
       url: '/api-applications/',
@@ -63,7 +63,7 @@ describe('ApiApplications', function () {
       await screen.findByText("You haven't created any applications yet.")
     ).toBeInTheDocument();
 
-    (isDemoModeActive as jest.Mock).mockReset();
+    (isDemoModeActive as vi.Mock).mockReset();
   });
 
   it('creates application', async function () {

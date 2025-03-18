@@ -177,7 +177,7 @@ window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
-window.MockApiClient = jest.requireMock('sentry/api').Client;
+window.MockApiClient = jest.importMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
 

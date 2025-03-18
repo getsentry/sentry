@@ -54,13 +54,13 @@ describe('Loader Script Settings', function () {
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 
-    const updateData = jest.fn();
+    const updateData = vi.fn();
 
     render(
       <KeySettings
         data={data}
         updateData={updateData}
-        onRemove={jest.fn()}
+        onRemove={vi.fn()}
         organization={organization}
         project={project}
         params={params}
@@ -111,7 +111,7 @@ describe('Loader Script Settings', function () {
       params.keyId
     );
 
-    const updateData = jest.fn();
+    const updateData = vi.fn();
 
     render(
       <LoaderSettings
@@ -179,7 +179,7 @@ describe('Loader Script Settings', function () {
 
     render(
       <LoaderSettings
-        updateData={jest.fn()}
+        updateData={vi.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
@@ -226,7 +226,7 @@ describe('Loader Script Settings', function () {
 
     render(
       <LoaderSettings
-        updateData={jest.fn()}
+        updateData={vi.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
@@ -268,7 +268,7 @@ describe('Loader Script Settings', function () {
 
     const {rerender} = render(
       <LoaderSettings
-        updateData={jest.fn()}
+        updateData={vi.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
@@ -287,7 +287,7 @@ describe('Loader Script Settings', function () {
 
     rerender(
       <LoaderSettings
-        updateData={jest.fn()}
+        updateData={vi.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
@@ -317,7 +317,7 @@ describe('Loader Script Settings', function () {
 
     const {rerender} = render(
       <LoaderSettings
-        updateData={jest.fn()}
+        updateData={vi.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
@@ -341,7 +341,7 @@ describe('Loader Script Settings', function () {
 
     rerender(
       <LoaderSettings
-        updateData={jest.fn()}
+        updateData={vi.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}

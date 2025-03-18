@@ -9,7 +9,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 
-jest.mock(
+vi.mock(
   'sentry/components/sidebar',
   () =>
     function () {

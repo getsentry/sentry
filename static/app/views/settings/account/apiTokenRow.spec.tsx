@@ -32,7 +32,7 @@ describe('ApiTokenRow', () => {
   });
 
   it('calls onRemove callback when trash can is clicked', async () => {
-    const cb = jest.fn();
+    const cb = vi.fn();
     render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} canEdit />);
     renderGlobalModal();
 
@@ -45,7 +45,7 @@ describe('ApiTokenRow', () => {
     const token = ApiTokenFixture();
     token.tokenLastCharacters = 'a1b2c3d4';
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     render(<ApiTokenRow onRemove={cb} token={token} canEdit />);
     expect(screen.getByLabelText('Token preview')).toBeInTheDocument();
   });

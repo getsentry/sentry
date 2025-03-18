@@ -11,14 +11,14 @@ function TestComponent() {
 
 describe('useRouteAnalyticsParams', function () {
   it('calls setRouteAnalyticsParams', function () {
-    const setRouteAnalyticsParams = jest.fn();
+    const setRouteAnalyticsParams = vi.fn();
     const getComponent = (extraContext?: Record<string, any>) => (
       <RouteAnalyticsContext.Provider
         value={{
           setRouteAnalyticsParams,
-          setOrganization: jest.fn(),
-          setDisableRouteAnalytics: jest.fn(),
-          setEventNames: jest.fn(),
+          setOrganization: vi.fn(),
+          setDisableRouteAnalytics: vi.fn(),
+          setEventNames: vi.fn(),
           previousUrl: '',
           ...extraContext,
         }}

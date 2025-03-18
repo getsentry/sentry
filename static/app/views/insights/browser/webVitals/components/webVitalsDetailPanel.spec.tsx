@@ -6,16 +6,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalsDetailPanel', function () {
   const organization = OrganizationFixture();
-  let eventsMock: jest.Mock;
-  let eventsStatsMock: jest.Mock;
+  let eventsMock: vi.Mock;
+  let eventsStatsMock: vi.Mock;
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {},
@@ -24,7 +24,7 @@ describe('WebVitalsDetailPanel', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -54,7 +54,7 @@ describe('WebVitalsDetailPanel', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders correctly with empty results', async () => {

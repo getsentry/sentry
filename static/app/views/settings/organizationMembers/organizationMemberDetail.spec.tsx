@@ -22,8 +22,8 @@ import type {Member} from 'sentry/types/organization';
 
 import OrganizationMemberDetail from './organizationMemberDetail';
 
-jest.mock('sentry/actionCreators/members', () => ({
-  updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
+vi.mock('sentry/actionCreators/members', () => ({
+  updateMember: vi.fn().mockReturnValue(new Promise(() => {})),
 }));
 
 describe('OrganizationMemberDetail', function () {
@@ -110,7 +110,7 @@ describe('OrganizationMemberDetail', function () {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
 
-      jest.resetAllMocks();
+      vi.resetAllMocks();
 
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
@@ -279,7 +279,7 @@ describe('OrganizationMemberDetail', function () {
     beforeEach(function () {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
-      jest.resetAllMocks();
+      vi.resetAllMocks();
       MockApiClient.clearMockResponses();
 
       MockApiClient.addMockResponse({
@@ -326,7 +326,7 @@ describe('OrganizationMemberDetail', function () {
     beforeEach(function () {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
-      jest.resetAllMocks();
+      vi.resetAllMocks();
       MockApiClient.clearMockResponses();
 
       MockApiClient.addMockResponse({
@@ -386,7 +386,7 @@ describe('OrganizationMemberDetail', function () {
     beforeEach(function () {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
-      jest.resetAllMocks();
+      vi.resetAllMocks();
       MockApiClient.clearMockResponses();
 
       MockApiClient.addMockResponse({

@@ -7,13 +7,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import Thresholds from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useNavigate');
 describe('Thresholds', () => {
-  let mockNavigate!: jest.Mock;
+  let mockNavigate!: vi.Mock;
 
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    mockNavigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
 
   it('sets thresholds to undefined if the thresholds are fully wiped', async () => {

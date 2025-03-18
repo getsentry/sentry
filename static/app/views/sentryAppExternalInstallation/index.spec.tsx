@@ -154,7 +154,7 @@ describe('SentryAppExternalInstallation', () => {
         );
       });
 
-      jest.mocked(window.location.assign).mockClear();
+      vi.mocked(window.location.assign).mockClear();
     });
 
     it('installs and redirects with state', async () => {
@@ -201,7 +201,7 @@ describe('SentryAppExternalInstallation', () => {
         );
       });
 
-      jest.mocked(window.location.assign).mockClear();
+      vi.mocked(window.location.assign).mockClear();
     });
   });
 

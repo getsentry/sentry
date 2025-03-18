@@ -60,7 +60,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
@@ -92,7 +92,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
@@ -131,7 +131,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
@@ -171,7 +171,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
@@ -219,7 +219,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
@@ -250,7 +250,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
@@ -292,7 +292,7 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper>
           <AccountSecurityDetails
-            onRegenerateBackupCodes={jest.fn()}
+            onRegenerateBackupCodes={vi.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,

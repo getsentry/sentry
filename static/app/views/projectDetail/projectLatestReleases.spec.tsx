@@ -12,8 +12,8 @@ import {
 import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', function () {
-  let endpointMock: jest.Mock;
-  let endpointOlderReleasesMock: jest.Mock;
+  let endpointMock: vi.Mock;
+  let endpointOlderReleasesMock: vi.Mock;
   const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {

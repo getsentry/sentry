@@ -72,18 +72,19 @@ const makeSearchProps = (partial: Partial<SearchProps> = {}): SearchProps => {
 
 describe('Search', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders search results from source', async () => {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     render(<Search {...makeSearchProps()} />);
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'), {delay: null});
     await userEvent.keyboard('Export', {delay: null});
 
-    jest.advanceTimersByTime(500);
-    jest.useRealTimers();
+    vi.advanceTimersByTime(500);
+    vi.useRealTimers();
 
     expect(
       screen.getByText(textWithMarkupMatcher(/Vandelay Industries - Export/))
@@ -115,7 +116,7 @@ describe('Search', () => {
     const opener = {opener: 'Sentry.io', location: {href: null}};
 
     // @ts-expect-error this is a partial mock of the window object
-    const windowSpy = jest.spyOn(window, 'open').mockReturnValue(opener);
+    const windowSpy = vi.spyOn(window, 'open').mockReturnValue(opener);
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'));
     await userEvent.keyboard('Import');
@@ -151,7 +152,7 @@ describe('Search', () => {
     const opener = {opener: 'Sentry.io', location: {href: null}};
 
     // @ts-expect-error this is a partial mock of the window object
-    const windowSpy = jest.spyOn(window, 'open').mockReturnValue(opener);
+    const windowSpy = vi.spyOn(window, 'open').mockReturnValue(opener);
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'));
     await userEvent.keyboard('Import');

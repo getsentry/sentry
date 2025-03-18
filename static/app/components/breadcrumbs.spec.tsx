@@ -8,7 +8,7 @@ describe('Breadcrumbs', () => {
   const router = RouterFixture();
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   function createWrapper() {
@@ -58,7 +58,7 @@ describe('Breadcrumbs', () => {
   });
 
   it('renders a crumb dropdown', async () => {
-    const onSelect = jest.fn();
+    const onSelect = vi.fn();
     render(
       <Breadcrumbs
         crumbs={[

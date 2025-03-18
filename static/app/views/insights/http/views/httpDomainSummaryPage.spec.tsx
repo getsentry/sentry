@@ -11,24 +11,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomainSummaryPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let throughputRequestMock!: jest.Mock;
-  let durationRequestMock!: jest.Mock;
-  let statusRequestMock!: jest.Mock;
+  let throughputRequestMock!: vi.Mock;
+  let durationRequestMock!: vi.Mock;
+  let statusRequestMock!: vi.Mock;
 
-  let domainTransactionsListRequestMock: jest.Mock;
-  let domainMetricsRibbonRequestMock: jest.Mock;
-  let regionFilterRequestMock: jest.Mock;
+  let domainTransactionsListRequestMock: vi.Mock;
+  let domainMetricsRibbonRequestMock: vi.Mock;
+  let regionFilterRequestMock: vi.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -45,7 +45,7 @@ describe('HTTPSummaryPage', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {domain: '*.sentry.dev', statsPeriod: '10d', transactionsCursor: '0:20:0'},
@@ -55,7 +55,7 @@ describe('HTTPSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -64,7 +64,7 @@ describe('HTTPSummaryPage', function () {
   });
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     regionFilterRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/`,
@@ -200,7 +200,7 @@ describe('HTTPSummaryPage', function () {
   });
 
   afterAll(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('fetches module data', async function () {

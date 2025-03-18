@@ -11,7 +11,7 @@ import FormModel from 'sentry/components/forms/model';
 import TableField from './tableField';
 
 describe('TableField', function () {
-  const mockSubmit = jest.fn();
+  const mockSubmit = vi.fn();
   const model = new FormModel();
 
   const defaultProps = {

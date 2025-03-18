@@ -36,7 +36,7 @@ describe('SelectField', function () {
   });
 
   it('can change value and submit', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <Form onSubmit={mock}>
         <SelectField
@@ -59,7 +59,7 @@ describe('SelectField', function () {
   });
 
   it('can set the value to empty string via props with no options', async function () {
-    const mock = jest.fn();
+    const mock = vi.fn();
     const {rerender} = render(
       <SelectField
         options={[
@@ -85,7 +85,7 @@ describe('SelectField', function () {
 
   describe('Multiple', function () {
     it('selects multiple values and submits', async function () {
-      const mock = jest.fn();
+      const mock = vi.fn();
       render(
         <Form onSubmit={mock}>
           <SelectField

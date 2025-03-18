@@ -11,15 +11,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock: jest.Mock;
+  let eventsRequestMock: vi.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -36,7 +36,7 @@ describe('HTTPSamplesPanel', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {
@@ -53,7 +53,7 @@ describe('HTTPSamplesPanel', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -96,16 +96,16 @@ describe('HTTPSamplesPanel', () => {
   });
 
   afterAll(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('Status panel', () => {
-    let eventsStatsRequestMock: jest.Mock;
-    let samplesRequestMock: jest.Mock;
-    let spanFieldTagsMock: jest.Mock;
+    let eventsStatsRequestMock: vi.Mock;
+    let samplesRequestMock: vi.Mock;
+    let spanFieldTagsMock: vi.Mock;
 
     beforeEach(() => {
-      jest.mocked(useLocation).mockReturnValue({
+      vi.mocked(useLocation).mockReturnValue({
         pathname: '',
         search: '',
         query: {
@@ -314,12 +314,12 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Duration panel', () => {
-    let chartRequestMock: jest.Mock;
-    let samplesRequestMock: jest.Mock;
-    let spanFieldTagsMock: jest.Mock;
+    let chartRequestMock: vi.Mock;
+    let samplesRequestMock: vi.Mock;
+    let spanFieldTagsMock: vi.Mock;
 
     beforeEach(() => {
-      jest.mocked(useLocation).mockReturnValue({
+      vi.mocked(useLocation).mockReturnValue({
         pathname: '',
         search: '',
         query: {

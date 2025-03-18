@@ -61,8 +61,8 @@ describe('SettingsIndex', function () {
       features: [],
     } as unknown as Organization;
 
-    const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let orgApi: jest.Mock;
+    const spy = vi.spyOn(OrgActions, 'fetchOrganizationDetails');
+    let orgApi: vi.Mock;
 
     beforeEach(function () {
       ConfigStore.set('isSelfHosted', false);

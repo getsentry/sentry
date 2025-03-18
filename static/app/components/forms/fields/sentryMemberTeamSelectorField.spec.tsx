@@ -39,7 +39,7 @@ describe('SentryMemberTeamSelectorField', () => {
   });
 
   it('can select a team', async () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <SentryMemberTeamSelectorField
         label="Select Owner"
@@ -66,7 +66,7 @@ describe('SentryMemberTeamSelectorField', () => {
       TeamFixture({id: '2', slug: 'other-team', isMember: false}),
     ]);
 
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <SentryMemberTeamSelectorField
         label="Select Owner"
@@ -81,7 +81,7 @@ describe('SentryMemberTeamSelectorField', () => {
   });
 
   it('can select a member', async () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <SentryMemberTeamSelectorField
         label="Select Owner"
@@ -102,7 +102,7 @@ describe('SentryMemberTeamSelectorField', () => {
   });
 
   it('can multiselect a member', async () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <SentryMemberTeamSelectorField
         label="Select Owner"
@@ -134,7 +134,7 @@ describe('SentryMemberTeamSelectorField', () => {
     TeamStore.init();
     TeamStore.loadInitialData([teamWithProject, teamWithoutProject]);
 
-    const mock = jest.fn();
+    const mock = vi.fn();
     render(
       <SentryMemberTeamSelectorField
         label="Select Owner"

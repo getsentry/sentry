@@ -22,8 +22,8 @@ describe('Slider', function () {
   });
 
   it('calls onChange/onChangeEnd', async function () {
-    const onChangeMock = jest.fn();
-    const onChangeEndMock = jest.fn();
+    const onChangeMock = vi.fn();
+    const onChangeEndMock = vi.fn();
     render(
       <Slider
         label="Test"
@@ -50,7 +50,7 @@ describe('Slider', function () {
   });
 
   it('works with larger step size', async function () {
-    const onChangeEndMock = jest.fn();
+    const onChangeEndMock = vi.fn();
     render(
       <Slider
         label="Test"
@@ -74,7 +74,7 @@ describe('Slider', function () {
   });
 
   it('supports advanced keyboard navigation', async function () {
-    const onChangeEndMock = jest.fn();
+    const onChangeEndMock = vi.fn();
     render(
       <Slider
         label="Test"
@@ -118,7 +118,7 @@ describe('Slider', function () {
   });
 
   it('works with two thumbs', async function () {
-    const onChangeEndMock = jest.fn();
+    const onChangeEndMock = vi.fn();
     render(
       <Slider
         label="Test"

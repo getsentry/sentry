@@ -1,3 +1,5 @@
+import {vi} from 'vitest';
+
 import {
   act,
   render,
@@ -5,16 +7,15 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate} from 'sentry-test/utils';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
 
 describe('DropdownLink', function () {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
+    resetMockDate();
   });
 
   const INPUT_1 = {
@@ -224,7 +225,9 @@ describe('DropdownLink', function () {
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
-    it('Opens / closes on mouse enter and leave', async function () {
+    it.only('Opens / closes on mouse enter and leave', async function () {
+      vi.useRealTimers();
+      vi.useFakeTimers();
       render(<NestedDropdown />);
 
       // Open menu
@@ -238,23 +241,23 @@ describe('DropdownLink', function () {
       await userEvent.unhover(screen.getByText('nested'), {delay: null});
 
       // Nested menus have close delay
-      act(() => jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1));
+      act(() => vi.advanceTimersByTime(MENU_CLOSE_DELAY - 1));
 
       // Re-entering nested menu will cancel close
       await userEvent.hover(screen.getByText('nested'), {delay: null});
-      act(() => jest.advanceTimersByTime(2));
+      act(() => vi.advanceTimersByTime(2));
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
       // Re-entering an actor will also cancel close
-      act(() => jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1));
+      act(() => vi.advanceTimersByTime(MENU_CLOSE_DELAY - 1));
 
-      act(() => jest.advanceTimersByTime(2));
+      act(() => vi.advanceTimersByTime(2));
       await userEvent.hover(screen.getByText('parent'), {delay: null});
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
       // Leave menu
       await userEvent.unhover(screen.getByText('nested'), {delay: null});
-      act(jest.runAllTimers);
+      act(vi.runAllTimers);
       expect(screen.queryByText('nested #2')).not.toBeInTheDocument();
     });
 

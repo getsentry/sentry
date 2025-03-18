@@ -244,7 +244,7 @@ describe('StructuredEventData', function () {
     });
 
     it('invokes a callback whenever something is toggled open/closed for tracking', async () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       render(<StructuredEventData data={data} onToggleExpand={callback} />);
 
       expect(screen.queryByText('eins')).not.toBeInTheDocument();

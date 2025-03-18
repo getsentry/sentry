@@ -12,7 +12,7 @@ import ModalStore from 'sentry/stores/modalStore';
 
 describe('GlobalModal', function () {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     ModalStore.reset();
   });
 
@@ -31,7 +31,7 @@ describe('GlobalModal', function () {
 
   it('calls onClose handler when close button is clicked', async function () {
     renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(
@@ -51,7 +51,7 @@ describe('GlobalModal', function () {
 
   it('calls onClose handler when modal is clicked out of', async function () {
     renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(
@@ -71,7 +71,7 @@ describe('GlobalModal', function () {
 
   it('calls onClose handler when escape key is pressed', async function () {
     renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(
@@ -92,7 +92,7 @@ describe('GlobalModal', function () {
 
   it('calls onClose handler when closeModal prop is called', async function () {
     renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(({closeModal: cm}) => <button onClick={cm}>Yo</button>, {
@@ -107,7 +107,7 @@ describe('GlobalModal', function () {
 
   it("ignores click out with closeEvents: 'escape-key'", async function () {
     const {waitForModalToHide} = renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(
@@ -135,7 +135,7 @@ describe('GlobalModal', function () {
 
   it("ignores escape key with closeEvents: 'backdrop-click'", async function () {
     const {waitForModalToHide} = renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(
@@ -163,7 +163,7 @@ describe('GlobalModal', function () {
 
   it("ignores backdrop click and escape key when with closeEvents: 'none'", async function () {
     const {waitForModalToHide} = renderGlobalModal();
-    const closeSpy = jest.fn();
+    const closeSpy = vi.fn();
 
     act(() =>
       openModal(
@@ -195,7 +195,7 @@ describe('GlobalModal', function () {
   it('renders interactive tooltip inside the modal', async function () {
     renderGlobalModal();
 
-    const buttonClick = jest.fn();
+    const buttonClick = vi.fn();
 
     act(() =>
       openModal(({Body}) => (

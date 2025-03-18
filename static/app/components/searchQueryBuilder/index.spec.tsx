@@ -120,11 +120,11 @@ describe('SearchQueryBuilder', function () {
   });
 
   afterEach(function () {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const defaultProps: ComponentProps<typeof SearchQueryBuilder> = {
-    getTagValues: jest.fn(() => Promise.resolve([])),
+    getTagValues: vi.fn(() => Promise.resolve([])),
     initialQuery: '',
     filterKeySections: FITLER_KEY_SECTIONS,
     filterKeys: FILTER_KEYS,
@@ -139,9 +139,9 @@ describe('SearchQueryBuilder', function () {
 
   describe('callbacks', function () {
     it('calls onChange, onBlur, and onSearch with the query string', async function () {
-      const mockOnChange = jest.fn();
-      const mockOnBlur = jest.fn();
-      const mockOnSearch = jest.fn();
+      const mockOnChange = vi.fn();
+      const mockOnBlur = vi.fn();
+      const mockOnSearch = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -180,8 +180,8 @@ describe('SearchQueryBuilder', function () {
 
   describe('actions', function () {
     it('can clear the query', async function () {
-      const mockOnChange = jest.fn();
-      const mockOnSearch = jest.fn();
+      const mockOnChange = vi.fn();
+      const mockOnSearch = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -206,7 +206,7 @@ describe('SearchQueryBuilder', function () {
 
     it('is hidden at small sizes', async function () {
       Object.defineProperty(Element.prototype, 'clientWidth', {value: 100});
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -223,7 +223,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('is hidden if the prop is specified and text is empty', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
       await screen.findByRole('combobox', {name: 'Add a search term'});
 
@@ -245,7 +245,7 @@ describe('SearchQueryBuilder', function () {
 
   describe('disabled', function () {
     it('disables all interactable elements', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -282,7 +282,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can change the query by typing', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -550,7 +550,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('when selecting a recent search, should reset query and call onSearch', async function () {
-        const mockOnSearch = jest.fn();
+        const mockOnSearch = vi.fn();
         const mockCreateRecentSearch = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
           method: 'POST',
@@ -840,7 +840,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add free text by typing', async function () {
-      const mockOnSearch = jest.fn();
+      const mockOnSearch = vi.fn();
       render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
 
       await userEvent.click(getLastInput());
@@ -862,10 +862,10 @@ describe('SearchQueryBuilder', function () {
       // XXX(malwilley): SearchQueryBuilderInput updates state in the render
       // function which causes an act warning despite using userEvent.click.
       // Cannot find a way to avoid this warning.
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      vi.spyOn(console, 'error').mockImplementation(vi.fn());
       await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
 
       // Filter value should have focus
       expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
@@ -899,9 +899,9 @@ describe('SearchQueryBuilder', function () {
       // XXX(malwilley): SearchQueryBuilderInput updates state in the render
       // function which causes an act warning despite using userEvent.click.
       // Cannot find a way to avoid this warning.
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      vi.spyOn(console, 'error').mockImplementation(vi.fn());
       await userEvent.keyboard('a or b{enter}');
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
 
       const lastInput = (await screen.findAllByTestId('query-builder-input')).at(-1);
       expect(lastInput).toHaveFocus();
@@ -936,7 +936,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('will suggest a raw search when typing with a space', async function () {
-      const mockOnSearch = jest.fn();
+      const mockOnSearch = vi.fn();
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="" onSearch={mockOnSearch} />
       );
@@ -964,7 +964,7 @@ describe('SearchQueryBuilder', function () {
       // jsdom does not support clipboard API
       Object.assign(navigator, {
         clipboard: {
-          writeText: jest.fn().mockResolvedValue(''),
+          writeText: vi.fn().mockResolvedValue(''),
         },
       });
     });
@@ -1241,7 +1241,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('backspace focuses filter when input is empty', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -1263,7 +1263,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can select all and delete with ctrl+a', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -1319,7 +1319,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces selection when a key is pressed', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -1339,7 +1339,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces selection with pasted content with ctrl+v', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -1373,7 +1373,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can cut selection with ctrl-x', async function () {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -1481,7 +1481,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('fetches tag values', async function () {
-      const mockGetTagValues = jest.fn().mockResolvedValue(['tag_value_one']);
+      const mockGetTagValues = vi.fn().mockResolvedValue(['tag_value_one']);
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -1552,7 +1552,7 @@ describe('SearchQueryBuilder', function () {
 
     describe('has', function () {
       it('display has and does not have as options', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -1844,7 +1844,7 @@ describe('SearchQueryBuilder', function () {
         ['parens', 'foo()', '"foo()"'],
         ['commas', '"a,b"', '"a,b"'],
       ])('typed tag values escape %s', async (_, value, expected) => {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -1873,8 +1873,8 @@ describe('SearchQueryBuilder', function () {
         ['parens', 'foo()', '"foo()"'],
         ['commas', 'a,b', '"a,b"'],
       ])('selected tag value suggestions escape %s', async (_, value, expected) => {
-        const mockOnChange = jest.fn();
-        const mockGetTagValues = jest.fn().mockResolvedValue([value]);
+        const mockOnChange = vi.fn();
+        const mockGetTagValues = vi.fn().mockResolvedValue([value]);
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -1996,7 +1996,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('keeps previous value when confirming empty value', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2161,7 +2161,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('keeps previous value when confirming empty value', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...durationProps}
@@ -2294,7 +2294,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('keeps previous value when confirming empty value', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...sizeProps}
@@ -2403,7 +2403,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('keeps previous value when confirming empty value', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...percentageProps}
@@ -2453,7 +2453,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('keeps previous value when confirming empty value', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2539,7 +2539,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can switch from after an absolute date to a relative one', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2567,7 +2567,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can switch from before an absolute date to a relative one', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2595,7 +2595,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can set an absolute date', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2617,7 +2617,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can set an absolute date with time (UTC)', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2643,7 +2643,7 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can set an absolute date with time (local)', async function () {
-        const mockOnChange = jest.fn();
+        const mockOnChange = vi.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}

@@ -5,7 +5,7 @@ import SentryOrganizationRoleSelectorField from './sentryOrganizationRoleSelecto
 
 describe('SentryOrganizationRoleSelectorField', () => {
   it('can change role values', async () => {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     render(
       <SentryOrganizationRoleSelectorField onChange={mock} name="Role" label="role" />

@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {openModal} from 'sentry/actionCreators/modal';
 import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', () => {
   const {organization, project, routerProps} = initializeOrg();

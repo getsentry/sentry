@@ -15,7 +15,7 @@ import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/feature
 describe('OrganizationFeatureFlagsProviderRow', function () {
   const {organization, router} = initializeOrg();
 
-  const removeSecret = jest.fn();
+  const removeSecret = vi.fn();
 
   const secret: Secret = SecretFixture();
 

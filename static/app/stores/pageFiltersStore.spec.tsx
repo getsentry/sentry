@@ -9,9 +9,9 @@ import {
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
-jest.mock('sentry/utils/localStorage', () => ({
+vi.mock('sentry/utils/localStorage', () => ({
   getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
-  setItem: jest.fn(),
+  setItem: vi.fn(),
 }));
 
 describe('PageFiltersStore', function () {
@@ -50,7 +50,7 @@ describe('PageFiltersStore', function () {
   });
 
   it('does not update if projects has same value', async function () {
-    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    const triggerSpy = vi.spyOn(PageFiltersStore, 'trigger');
     PageFiltersStore.updateProjects([1], []);
 
     await waitFor(() => PageFiltersStore.getState().selection.projects[0] === 1);
@@ -109,7 +109,7 @@ describe('PageFiltersStore', function () {
     const start = new Date(now);
     const end = new Date(now + 1000);
 
-    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    const triggerSpy = vi.spyOn(PageFiltersStore, 'trigger');
     PageFiltersStore.updateDateTime({end, start, period: null, utc: null});
 
     await waitFor(() => PageFiltersStore.getState().selection.datetime.start === start);
@@ -134,7 +134,7 @@ describe('PageFiltersStore', function () {
 
   it('does not update if environments has same value', async function () {
     PageFiltersStore.updateEnvironments(['alpha']);
-    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    const triggerSpy = vi.spyOn(PageFiltersStore, 'trigger');
     await waitFor(
       () => PageFiltersStore.getState().selection.environments[0] === 'alpha'
     );

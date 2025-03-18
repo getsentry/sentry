@@ -6,13 +6,13 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 import {SampleDataAlert} from './sampleDataAlert';
 
-jest.mock('sentry/utils/useDismissAlert');
+vi.mock('sentry/utils/useDismissAlert');
 
-const mockUseDismissAlert = jest.mocked(useDismissAlert);
+const mockUseDismissAlert = vi.mocked(useDismissAlert);
 
 describe('SampleDataAlert', function () {
   it('renders if not dismissed', async function () {
-    const dismiss = jest.fn();
+    const dismiss = vi.fn();
     mockUseDismissAlert.mockImplementation(() => {
       return {
         dismiss,
@@ -28,7 +28,7 @@ describe('SampleDataAlert', function () {
   it("doesn't render when dismissed", function () {
     mockUseDismissAlert.mockImplementation(() => {
       return {
-        dismiss: jest.fn(),
+        dismiss: vi.fn(),
         isDismissed: true,
       };
     });
@@ -38,7 +38,7 @@ describe('SampleDataAlert', function () {
   });
 
   it("doesn't render when there's no dynamic sampling", function () {
-    const dismiss = jest.fn();
+    const dismiss = vi.fn();
     mockUseDismissAlert.mockImplementation(() => {
       return {
         dismiss,
@@ -53,7 +53,7 @@ describe('SampleDataAlert', function () {
   });
 
   it("doesn't render when event.type:error", function () {
-    const dismiss = jest.fn();
+    const dismiss = vi.fn();
     mockUseDismissAlert.mockImplementation(() => {
       return {
         dismiss,

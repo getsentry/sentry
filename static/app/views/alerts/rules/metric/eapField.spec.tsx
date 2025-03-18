@@ -40,7 +40,7 @@ describe('EAPField', () => {
   });
 
   it('should call onChange with the new aggregate string when switching aggregates', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(
       <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <EAPField aggregate={'count(span.duration)'} onChange={onChange} />

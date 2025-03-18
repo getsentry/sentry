@@ -7,14 +7,14 @@ import {createTeam} from 'sentry/actionCreators/teams';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
-jest.mock('sentry/actionCreators/teams', () => ({
-  createTeam: jest.fn((...args: any[]) => new Promise(resolve => resolve(args))),
+vi.mock('sentry/actionCreators/teams', () => ({
+  createTeam: vi.fn((...args: any[]) => new Promise(resolve => resolve(args))),
 }));
 
 describe('CreateTeamModal', function () {
   const org = OrganizationFixture();
-  const closeModal = jest.fn();
-  const onClose = jest.fn();
+  const closeModal = vi.fn();
+  const onClose = vi.fn();
 
   beforeEach(function () {
     onClose.mockReset();

@@ -12,8 +12,8 @@ describe('incremental trace fetch', () => {
   const organization = OrganizationFixture();
 
   beforeEach(function () {
-    jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    vi.clearAllMocks();
+    vi.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Fetches and updates tree with fetched trace', async () => {

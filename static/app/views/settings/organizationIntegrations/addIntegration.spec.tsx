@@ -50,10 +50,10 @@ describe('AddIntegration', function () {
   });
 
   it('Adds an integration on dialog completion', async function () {
-    const onAdd = jest.fn();
+    const onAdd = vi.fn();
 
-    const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus});
+    const focus = vi.fn();
+    const open = vi.fn().mockReturnValue({focus});
     global.open = open;
 
     render(

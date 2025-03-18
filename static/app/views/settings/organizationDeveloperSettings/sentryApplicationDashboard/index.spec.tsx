@@ -6,8 +6,8 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import SentryApplicationDashboard from './index';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div data-test-id="chart" />);
+vi.mock('sentry/components/charts/baseChart', () => {
+  return vi.fn().mockImplementation(() => <div data-test-id="chart" />);
 });
 
 describe('Sentry Application Dashboard', function () {

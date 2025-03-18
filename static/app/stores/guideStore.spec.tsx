@@ -6,13 +6,13 @@ import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('GuideStore', function () {
   let data!: Parameters<typeof GuideStore.fetchSucceeded>[0];
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
@@ -83,7 +83,7 @@ describe('GuideStore', function () {
   });
 
   it('should record analytics events when guide is cued', function () {
-    const spy = jest.spyOn(GuideStore, 'recordCue');
+    const spy = vi.spyOn(GuideStore, 'recordCue');
     GuideStore.fetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
 

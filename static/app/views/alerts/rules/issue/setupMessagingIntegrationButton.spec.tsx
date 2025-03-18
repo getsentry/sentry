@@ -10,7 +10,7 @@ import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('SetupAlertIntegrationButton', function () {
   const organization = OrganizationFixture();
@@ -19,12 +19,12 @@ describe('SetupAlertIntegrationButton', function () {
     GitHubIntegrationProviderFixture({key: providerKey}),
   ];
   const providerKeys = ['slack', 'discord', 'msteams'];
-  let mockResponses: Array<jest.Mock<any>> = [];
+  let mockResponses: Array<vi.Mock<any>> = [];
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
       projectId={project.id}
-      refetchConfigs={jest.fn()}
+      refetchConfigs={vi.fn()}
       analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
   );

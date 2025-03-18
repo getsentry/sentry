@@ -23,7 +23,7 @@ describe('EventGraph', () => {
   const persistantQuery = `issue:${group.shortId}`;
   const defaultProps = {group, event, project};
 
-  let mockEventStats: jest.Mock;
+  let mockEventStats: vi.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

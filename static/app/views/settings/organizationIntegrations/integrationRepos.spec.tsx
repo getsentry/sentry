@@ -10,12 +10,12 @@ import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/int
 describe('IntegrationRepos', function () {
   const org = OrganizationFixture();
   const integration = GitHubIntegrationFixture();
-  let resetReposSpy: jest.SpyInstance;
+  let resetReposSpy: vi.SpyInstance;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     RepositoryStore.init();
-    resetReposSpy = jest.spyOn(RepositoryStore, 'resetRepositories');
+    resetReposSpy = vi.spyOn(RepositoryStore, 'resetRepositories');
   });
 
   afterEach(() => {

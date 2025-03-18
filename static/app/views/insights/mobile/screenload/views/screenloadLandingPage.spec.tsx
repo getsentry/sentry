@@ -12,30 +12,30 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import PageloadModule from 'sentry/views/insights/mobile/screenload/views/screenloadLandingPage';
 
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
 
 describe('PageloadModule', function () {
   const project = ProjectFixture({platform: 'react-native', hasInsightsScreenLoad: true});
   const organization = OrganizationFixture({
     features: ['insights-initial-modules', 'insights-entry-points'],
   });
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  vi.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     fetchError: null,
     fetching: false,
     hasMore: false,
     initiallyLoaded: false,
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     projects: [project],
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -45,7 +45,7 @@ describe('PageloadModule', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -62,7 +62,7 @@ describe('PageloadModule', function () {
     },
   });
 
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
   beforeEach(function () {
     localStorage.clear();
     MockApiClient.addMockResponse({
@@ -114,7 +114,7 @@ describe('PageloadModule', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('defaults requests with android platform filter', async function () {

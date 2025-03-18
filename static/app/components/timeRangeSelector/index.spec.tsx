@@ -24,7 +24,7 @@ const {organization, router} = initializeOrg({
 });
 
 describe('TimeRangeSelector', function () {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
 
   function getComponent(props = {}) {
     return <TimeRangeSelector showAbsolute showRelative onChange={onChange} {...props} />;

@@ -7,7 +7,8 @@ describe('Projects ActionCreators', function () {
   const {organization, project} = initializeOrg();
 
   it('loadStatsForProject', function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
     });
@@ -31,7 +32,8 @@ describe('Projects ActionCreators', function () {
   });
 
   it('loadStatsForProjectFixture() with additional query', function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
     });

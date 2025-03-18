@@ -31,7 +31,7 @@ describe('Relocation Onboarding Container', function () {
     // library.
     //
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
   });
 
   it('should render if feature enabled', function () {

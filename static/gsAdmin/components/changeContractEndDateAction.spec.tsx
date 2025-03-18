@@ -8,7 +8,7 @@ import {
 import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
 
 describe('ChangeContractEndDateAction', function () {
-  const onAction = jest.fn();
+  const onAction = vi.fn();
 
   it('renders empty', function () {
     render(

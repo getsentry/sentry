@@ -8,10 +8,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useOrganization');
 
-const useLocationMock = jest.mocked(useLocation);
+const useLocationMock = vi.mocked(useLocation);
 
 describe('DomainViewHeader', function () {
   const organization = OrganizationFixture({
@@ -19,11 +19,11 @@ describe('DomainViewHeader', function () {
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     useLocationMock.mockReturnValue({
       pathname: '/organizations/org-slug/insights/frontend/',
     } as Location);
-    jest.mocked(useOrganization).mockReturnValue(organization);
+    vi.mocked(useOrganization).mockReturnValue(organization);
   });
 
   it('renders', () => {
@@ -75,7 +75,7 @@ describe('DomainViewHeader', function () {
   });
 
   it('does not show network requests without features', () => {
-    jest.mocked(useOrganization).mockReturnValue(OrganizationFixture());
+    vi.mocked(useOrganization).mockReturnValue(OrganizationFixture());
     render(
       <DomainViewHeader
         domainBaseUrl="domainBaseUrl"

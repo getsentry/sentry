@@ -9,9 +9,9 @@ import {
 import IgnoreActions from 'sentry/components/actions/ignore';
 
 describe('IgnoreActions', function () {
-  const spy = jest.fn();
+  const spy = vi.fn();
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('disabled', function () {

@@ -20,7 +20,7 @@ describe('Tag', () => {
   });
 
   it('with dismiss', async () => {
-    const mockCallback = jest.fn();
+    const mockCallback = vi.fn();
 
     render(
       <Tag type="highlight" onDismiss={mockCallback}>

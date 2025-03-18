@@ -9,7 +9,7 @@ describe('NoteInput', function () {
     });
 
     it('submits when meta + enter is pressed', async function () {
-      const onCreate = jest.fn();
+      const onCreate = vi.fn();
       render(<NoteInput onCreate={onCreate} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Meta>}{Enter}');
@@ -17,7 +17,7 @@ describe('NoteInput', function () {
     });
 
     it('submits when ctrl + enter is pressed', async function () {
-      const onCreate = jest.fn();
+      const onCreate = vi.fn();
       render(<NoteInput onCreate={onCreate} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{Enter}');
@@ -25,7 +25,7 @@ describe('NoteInput', function () {
     });
 
     it('does not submit when nothing is entered', async function () {
-      const onCreate = jest.fn();
+      const onCreate = vi.fn();
       render(<NoteInput onCreate={onCreate} />);
 
       const textbox = screen.getByRole('textbox');
@@ -62,7 +62,7 @@ describe('NoteInput', function () {
     };
 
     it('edits existing message', async function () {
-      const onUpdate = jest.fn();
+      const onUpdate = vi.fn();
       render(<NoteInput {...props} onUpdate={onUpdate} />);
 
       // Switch to preview
@@ -85,7 +85,7 @@ describe('NoteInput', function () {
     });
 
     it('canels editing and moves to preview mode', async function () {
-      const onEditFinish = jest.fn();
+      const onEditFinish = vi.fn();
       render(<NoteInput {...props} onEditFinish={onEditFinish} />);
 
       await userEvent.type(screen.getByRole('textbox'), ' new content');

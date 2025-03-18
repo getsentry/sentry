@@ -6,18 +6,18 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 describe('SelectedFrameRenderer', () => {
   it('draws rect in center', () => {
     const context: Partial<CanvasRenderingContext2D> = {
-      measureText: jest.fn().mockImplementation(n => {
+      measureText: vi.fn().mockImplementation(n => {
         return {width: n.length};
       }),
       strokeStyle: undefined,
       lineWidth: undefined,
-      beginPath: jest.fn(),
-      fillText: jest.fn(),
-      strokeRect: jest.fn(),
+      beginPath: vi.fn(),
+      fillText: vi.fn(),
+      strokeRect: vi.fn(),
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const renderer = new SelectedFrameRenderer(canvas as HTMLCanvasElement);

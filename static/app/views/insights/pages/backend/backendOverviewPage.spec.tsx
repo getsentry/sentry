@@ -11,13 +11,13 @@ import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOverviewPage';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useOrganization');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
-let useLocationMock: jest.Mock;
+let useLocationMock: vi.Mock;
 
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({
@@ -34,11 +34,11 @@ const projects = [
   ProjectFixture({id: '2', platform: undefined}),
 ];
 
-let mainTableApiCall: jest.Mock;
+let mainTableApiCall: vi.Mock;
 
 describe('BackendOverviewPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     setupMocks();
   });
 
@@ -169,7 +169,7 @@ const setupMocks = () => {
     body: [],
   });
 
-  useLocationMock = jest.mocked(useLocation);
+  useLocationMock = vi.mocked(useLocation);
   useLocationMock.mockReturnValue({
     pathname: '/insights/backend/http/',
     search: '',
@@ -180,23 +180,23 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(useOrganization).mockReturnValue(organization);
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
     shouldPersist: true,
     selection: pageFilterSelection,
   });
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects,
     fetchError: null,
     hasMore: false,
     initiallyLoaded: true,
     onSearch: () => Promise.resolve(),
-    reloadProjects: jest.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
   });
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  vi.mocked(useOnboardingProject).mockReturnValue(undefined);
 };

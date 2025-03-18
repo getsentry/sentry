@@ -16,12 +16,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider} from './organizationContext';
 
-jest.mock('sentry/actionCreators/sudoModal');
+vi.mock('sentry/actionCreators/sudoModal');
 
 describe('OrganizationContext', function () {
-  let getOrgMock: jest.Mock;
-  let getProjectsMock: jest.Mock;
-  let getTeamsMock: jest.Mock;
+  let getOrgMock: vi.Mock;
+  let getProjectsMock: vi.Mock;
+  let getTeamsMock: vi.Mock;
 
   const organization = OrganizationFixture();
   const project = ProjectFixture();
@@ -57,12 +57,12 @@ describe('OrganizationContext', function () {
     ConfigStore.init();
     OrganizationStore.reset();
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
   });
 
   afterEach(function () {
     // eslint-disable-next-line no-console
-    jest.mocked(console.error).mockRestore();
+    vi.mocked(console.error).mockRestore();
   });
 
   /**
@@ -113,7 +113,7 @@ describe('OrganizationContext', function () {
 
     const {orgMock, projectMock, teamMock} = setupOrgMocks(anotherOrg);
 
-    const switchOrganization = jest.spyOn(orgsActionCreators, 'switchOrganization');
+    const switchOrganization = vi.spyOn(orgsActionCreators, 'switchOrganization');
 
     // re-render with another-org
     testRouter.navigate(`/organizations/${anotherOrg.slug}/`);

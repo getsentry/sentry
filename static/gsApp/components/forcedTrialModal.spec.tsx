@@ -46,7 +46,7 @@ describe('ForcedTrialModal', function () {
     it('shows request upgrade when user does not have billing permissions', async function () {
       populateOrgAndSub({access: []});
 
-      render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
+      render(<ForcedTrialModal closeModal={vi.fn()} organization={org} />);
       expect(await screen.findByLabelText('Request Upgrade')).toBeInTheDocument();
       expect(
         screen.getByText('You may lose access to Sentry in 14 days')
@@ -55,7 +55,7 @@ describe('ForcedTrialModal', function () {
     it('shows upgrade now when user has billing permissions', async function () {
       populateOrgAndSub();
 
-      render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
+      render(<ForcedTrialModal closeModal={vi.fn()} organization={org} />);
       expect(await screen.findByLabelText('Upgrade')).toBeInTheDocument();
       expect(
         screen.getByText('Members may lose access to Sentry in 14 days')
@@ -83,7 +83,7 @@ describe('ForcedTrialModal', function () {
     it('shows upgrade button if has slack', async function () {
       populateOrgAndSub();
 
-      render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
+      render(<ForcedTrialModal closeModal={vi.fn()} organization={org} />);
       expect(await screen.findByLabelText('Upgrade')).toBeInTheDocument();
       expect(
         screen.getByText('Your Slack integration will stop working in 14 days')

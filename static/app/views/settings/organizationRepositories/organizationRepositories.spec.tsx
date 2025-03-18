@@ -16,7 +16,7 @@ describe('OrganizationRepositories', function () {
   it('renders without providers', function () {
     render(
       <OrganizationRepositories
-        onRepositoryChange={jest.fn()}
+        onRepositoryChange={vi.fn()}
         organization={org}
         itemList={[]}
         {...routerProps}
@@ -27,7 +27,7 @@ describe('OrganizationRepositories', function () {
   it('renders with a repository', function () {
     render(
       <OrganizationRepositories
-        onRepositoryChange={jest.fn()}
+        onRepositoryChange={vi.fn()}
         organization={org}
         itemList={[RepositoryFixture()]}
         {...routerProps}
@@ -38,7 +38,7 @@ describe('OrganizationRepositories', function () {
   it('renders with a repository and github provider', function () {
     render(
       <OrganizationRepositories
-        onRepositoryChange={jest.fn()}
+        onRepositoryChange={vi.fn()}
         organization={org}
         itemList={[
           RepositoryFixture({

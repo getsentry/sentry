@@ -16,11 +16,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
 import useNetworkFilters from './useNetworkFilters';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseNavigate = vi.mocked(useNavigate);
+const mockUseLocation = vi.mocked(useLocation);
 
 const [
   SPAN_0_NAVIGATE,
@@ -119,7 +119,7 @@ describe('useNetworkFilters', () => {
   ];
 
   it('should update the url when setters are called', () => {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
@@ -196,7 +196,7 @@ describe('useNetworkFilters', () => {
   });
 
   it('should clear details params when setters are called', () => {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const TYPE_OPTION: NetworkSelectOption = {

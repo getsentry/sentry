@@ -40,7 +40,7 @@ describe('Upsell Modal Details', function () {
         source="test"
         subscription={sub}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
 
@@ -65,7 +65,7 @@ describe('Upsell Modal Details', function () {
         source="event-volume"
         subscription={sub}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
 
@@ -92,7 +92,7 @@ describe('Upsell Modal Details', function () {
         source="event-volume"
         subscription={sub}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
 
@@ -119,7 +119,7 @@ describe('Upsell Modal Details', function () {
         source="sso"
         subscription={sub}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
     expect(await screen.findByText('Business Features Include')).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe('Upsell Modal Details', function () {
         source="tracing"
         subscription={sub}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
     expect(await screen.findByText('Features Include')).toBeInTheDocument();
@@ -154,7 +154,8 @@ describe('Upsell Modal Details', function () {
   });
 
   it('cycles the list on a timer when no section is clicked', async function () {
-    jest.useFakeTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_100k',
@@ -168,22 +169,22 @@ describe('Upsell Modal Details', function () {
         source="test"
         subscription={sub}
         organization={organization}
-        onCloseModal={jest.fn()}
+        onCloseModal={vi.fn()}
       />
     );
 
     // First timeout is waiting for it to cycle to a feature
-    act(() => jest.advanceTimersByTime(10000));
+    act(() => vi.advanceTimersByTime(10000));
 
     // First feature in the displayed list.
     const tracing = screen.getByTestId('tracing');
     expect(tracing).toHaveAttribute('aria-selected');
 
     // Next timeout is for it to cycle to the _next_ feature
-    act(() => jest.advanceTimersByTime(8000));
+    act(() => vi.advanceTimersByTime(8000));
 
     // Avoid act warning after state change
-    jest.useRealTimers();
+    vi.useRealTimers();
     await act(tick);
 
     // Tracing should now not be highlighted.

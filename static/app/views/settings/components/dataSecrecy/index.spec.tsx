@@ -3,7 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import DataSecrecy from 'sentry/views/settings/components/dataSecrecy';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('DataSecrecy', function () {
   const {organization} = initializeOrg({
@@ -12,7 +12,7 @@ describe('DataSecrecy', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders default state with no waiver', async function () {

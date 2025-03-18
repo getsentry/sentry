@@ -7,11 +7,11 @@ import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useLocation} from 'sentry/utils/useLocation';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/replays/fetchReplayClicks');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/replays/fetchReplayClicks');
 
-const MockUseLocation = jest.mocked(useLocation);
-const MockFetchReplayClicks = jest.mocked(fetchReplayClicks);
+const MockUseLocation = vi.mocked(useLocation);
+const MockFetchReplayClicks = vi.mocked(fetchReplayClicks);
 
 const {organization, project} = initializeOrg();
 const replay = ReplayRecordFixture();

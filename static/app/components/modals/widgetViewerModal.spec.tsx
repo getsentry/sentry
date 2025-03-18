@@ -22,15 +22,17 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
-jest.mock('echarts-for-react/lib/core', () => {
-  return jest.fn(({style}) => {
-    return <div style={{...style, background: 'green'}}>echarts mock</div>;
-  });
+vi.mock('echarts-for-react/lib/core', () => {
+  return {
+    default: vi.fn(({style}) => {
+      return <div style={{...style, background: 'green'}}>echarts mock</div>;
+    }),
+  };
 });
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-let eventsMetaMock: jest.Mock;
+let eventsMetaMock: vi.Mock;
 
 const waitForMetaToHaveBeenCalled = async () => {
   await waitFor(() => {
@@ -212,7 +214,7 @@ describe('Modals -> WidgetViewerModal', function () {
           queries: [mockQuery, additionalMockQuery],
           widgetType: WidgetType.DISCOVER,
         };
-        (ReactEchartsCore as jest.Mock).mockClear();
+        (ReactEchartsCore as vi.Mock).mockClear();
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           body: {
@@ -320,7 +322,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         act(() => {
           // Simulate dataZoom event on chart
-          (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
+          (ReactEchartsCore as vi.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
             getModel: () => {
               return {
                 _payload: {
@@ -412,7 +414,7 @@ describe('Modals -> WidgetViewerModal', function () {
         };
         await renderModal({initialData, widget: mockWidget});
 
-        const echartsMock = jest.mocked(ReactEchartsCore);
+        const echartsMock = vi.mocked(ReactEchartsCore);
         const lastCall = echartsMock.mock.calls[echartsMock.mock.calls.length - 1]![0];
         // TODO(react19): Can change this back to expect(ReactEchartsCore).toHaveBeenLastCalledWith()
         expect(lastCall).toEqual(
@@ -502,7 +504,7 @@ describe('Modals -> WidgetViewerModal', function () {
           seriesData: [],
           seriesResultsType: {'count()': 'duration', 'count_unique()': 'duration'},
         });
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+        const calls = (ReactEchartsCore as vi.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
         expect(yAxisFormatter(123)).toBe('123ms');
@@ -516,7 +518,7 @@ describe('Modals -> WidgetViewerModal', function () {
           seriesData: [],
           seriesResultsType: {'count()': 'duration', 'count_unique()': 'size'},
         });
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+        const calls = (ReactEchartsCore as vi.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
         expect(yAxisFormatter(123)).toBe('123');
@@ -1034,7 +1036,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Issue Table Widget', function () {
-    let issuesMock!: jest.Mock;
+    let issuesMock!: vi.Mock;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -1250,7 +1252,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Release Health Widgets', function () {
-    let metricsMock!: jest.Mock;
+    let metricsMock!: vi.Mock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(session)`],

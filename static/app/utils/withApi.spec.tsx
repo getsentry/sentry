@@ -13,7 +13,7 @@ describe('withApi', function () {
     api?: Client;
   };
 
-  const MyComponent = jest.fn((props: Props) => {
+  const MyComponent = vi.fn((props: Props) => {
     apiInstance = props.api;
     return <div />;
   });
@@ -35,7 +35,7 @@ describe('withApi', function () {
       throw new Error("apiInstance wasn't defined");
     }
 
-    jest.spyOn(apiInstance, 'clear');
+    vi.spyOn(apiInstance, 'clear');
 
     expect(apiInstance?.clear).not.toHaveBeenCalled();
     wrapper.unmount();

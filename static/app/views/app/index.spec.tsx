@@ -63,7 +63,7 @@ describe('App', function () {
   });
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders', async function () {

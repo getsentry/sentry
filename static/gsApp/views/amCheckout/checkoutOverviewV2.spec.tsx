@@ -49,7 +49,7 @@ describe('CheckoutOverviewV2', function () {
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
+        onToggleLegacy={vi.fn()}
         params={params}
       />
     );
@@ -84,7 +84,7 @@ describe('CheckoutOverviewV2', function () {
         activePlan={teamPlanAnnual}
         billingConfig={billingConfig}
         formData={formData}
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         organization={organization}
         subscription={subscription}
       />
@@ -139,7 +139,7 @@ describe('CheckoutOverviewV2', function () {
         activePlan={teamPlanAnnual}
         billingConfig={billingConfig}
         formData={formData}
-        onUpdate={jest.fn()}
+        onUpdate={vi.fn()}
         organization={organization}
         subscription={subscription}
       />

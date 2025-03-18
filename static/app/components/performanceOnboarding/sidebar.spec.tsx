@@ -19,7 +19,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import type {StatuspageIncident} from 'sentry/types/system';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
-jest.mock('sentry/utils/useServiceIncidents');
+vi.mock('sentry/utils/useServiceIncidents');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
   const {organization, router} = initializeOrg({
@@ -43,7 +43,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     render(getElement(), {organization: props.organization, router});
 
   beforeEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
@@ -76,11 +76,9 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
 
     const statusPageData: StatuspageIncident[] = [];
-    jest
-      .spyOn(incidentsHook, 'useServiceIncidents')
-      .mockImplementation(
-        () => ({data: statusPageData}) as UseQueryResult<StatuspageIncident[]>
-      );
+    vi.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
+      () => ({data: statusPageData}) as UseQueryResult<StatuspageIncident[]>
+    );
   });
 
   afterEach(() => {
@@ -127,7 +125,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       },
     });
 
-    window.open = jest.fn().mockImplementation(() => true);
+    window.open = vi.fn().mockImplementation(() => true);
 
     const quickStart = await screen.findByText('Onboarding');
 
@@ -159,7 +157,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
-    window.open = jest.fn().mockImplementation(() => true);
+    window.open = vi.fn().mockImplementation(() => true);
 
     const quickStart = await screen.findByText('Onboarding');
 
@@ -191,7 +189,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
-    window.open = jest.fn().mockImplementation(() => true);
+    window.open = vi.fn().mockImplementation(() => true);
 
     const quickStart = await screen.findByText('Onboarding');
 
@@ -225,7 +223,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       },
     });
 
-    window.open = jest.fn().mockImplementation(() => true);
+    window.open = vi.fn().mockImplementation(() => true);
 
     const quickStart = await screen.findByText('Onboarding');
 

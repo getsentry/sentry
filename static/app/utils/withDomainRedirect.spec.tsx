@@ -9,7 +9,7 @@ import type {Config} from 'sentry/types/system';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.unmock('sentry/utils/recreateRoute');
+vi.unmock('sentry/utils/recreateRoute');
 
 const originalLocation = window.location;
 
@@ -54,7 +54,7 @@ describe('withDomainRedirect', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     window.location = originalLocation;
     ConfigStore.loadInitialData(configState);
   });

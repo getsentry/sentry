@@ -99,7 +99,7 @@ describe('ComboBox', function () {
   });
 
   it('does not trigger onChange on closing the menu', async function () {
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     render(
       <ComboBox
         aria-label="Test Input"
@@ -130,7 +130,7 @@ describe('ComboBox', function () {
 
 describe('ListBox', function () {
   it('can select options with values containing quotes', async function () {
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     render(
       <ComboBox
         aria-label="Test Input"

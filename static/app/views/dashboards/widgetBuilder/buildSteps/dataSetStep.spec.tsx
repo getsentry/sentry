@@ -12,7 +12,7 @@ describe('DataSetStep', () => {
       <DataSetStep
         dataSet={DataSet.ISSUES}
         displayType={DisplayType.TABLE}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
       {
         organization: OrganizationFixture({

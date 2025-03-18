@@ -35,10 +35,10 @@ const organization = OrganizationFixture();
 
 describe('useTraceTree', () => {
   beforeEach(function () {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    vi.spyOn(useApi, 'default').mockReturnValue(api);
+    vi.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('returns tree for error case', async () => {

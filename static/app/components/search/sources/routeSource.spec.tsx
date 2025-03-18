@@ -6,7 +6,7 @@ import HookStore from 'sentry/stores/hookStore';
 
 describe('RouteSource', function () {
   it('can find a route', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
 
     const {organization, project, routerProps} = initializeOrg();
     render(
@@ -29,7 +29,7 @@ describe('RouteSource', function () {
   });
 
   it('can load links via hooks', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     const {organization, project, routerProps} = initializeOrg();
     HookStore.add('settings:organization-navigation-config', () => {
       return {
@@ -62,7 +62,7 @@ describe('RouteSource', function () {
   });
 
   it('does not find any form field', async function () {
-    const mock = jest.fn().mockReturnValue(null);
+    const mock = vi.fn().mockReturnValue(null);
     const {organization, project, routerProps} = initializeOrg();
     render(
       <RouteSource query="invalid" {...{organization, project}} {...routerProps}>

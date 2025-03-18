@@ -4,9 +4,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
 
-jest.mock('@sentry/core', () => ({
-  ...jest.requireActual('@sentry/core'),
-  generateSentryTraceHeader: jest.fn(() => 'sentry-trace-value'),
+vi.mock('@sentry/core', () => ({
+  ...vi.importActual('@sentry/core'),
+  generateSentryTraceHeader: vi.fn(() => 'sentry-trace-value'),
 }));
 
 describe('HTTPSnippet', function () {
@@ -21,7 +21,7 @@ describe('HTTPSnippet', function () {
       />
     );
 
-    expect(jest.mocked(generateSentryTraceHeader)).toHaveBeenCalledWith(
+    expect(vi.mocked(generateSentryTraceHeader)).toHaveBeenCalledWith(
       undefined,
       undefined,
       false

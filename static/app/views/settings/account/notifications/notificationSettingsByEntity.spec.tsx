@@ -9,7 +9,7 @@ import NotificationSettingsByEntity from 'sentry/views/settings/account/notifica
 describe('NotificationSettingsByEntity', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should default to the subdomain org', async function () {
@@ -34,9 +34,9 @@ describe('NotificationSettingsByEntity', function () {
         organizations={[organization, otherOrganization]}
         notificationType="alerts"
         notificationOptions={[]}
-        handleRemoveNotificationOption={jest.fn()}
-        handleAddNotificationOption={jest.fn()}
-        handleEditNotificationOption={jest.fn()}
+        handleRemoveNotificationOption={vi.fn()}
+        handleAddNotificationOption={vi.fn()}
+        handleEditNotificationOption={vi.fn()}
         entityType={'project' as const}
       />
     );
@@ -75,9 +75,9 @@ describe('NotificationSettingsByEntity', function () {
         organizations={[organization, deOrg]}
         notificationType="alerts"
         notificationOptions={[]}
-        handleRemoveNotificationOption={jest.fn()}
-        handleAddNotificationOption={jest.fn()}
-        handleEditNotificationOption={jest.fn()}
+        handleRemoveNotificationOption={vi.fn()}
+        handleAddNotificationOption={vi.fn()}
+        handleEditNotificationOption={vi.fn()}
         entityType={'project' as const}
       />
     );

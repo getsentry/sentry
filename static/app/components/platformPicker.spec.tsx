@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import PlatformPicker from 'sentry/components/platformPicker';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('PlatformPicker', function () {
   const baseProps = {
@@ -59,7 +59,7 @@ describe('PlatformPicker', function () {
     const props = {
       ...baseProps,
       platform: 'javascript-react',
-      setPlatform: jest.fn(),
+      setPlatform: vi.fn(),
     };
 
     render(<PlatformPicker noAutoFilter {...props} />);
@@ -69,7 +69,7 @@ describe('PlatformPicker', function () {
   });
 
   it('platforms shall be sorted alphabetically', function () {
-    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="browser" />);
+    render(<PlatformPicker setPlatform={vi.fn()} defaultCategory="browser" />);
 
     const alphabeticallyOrderedPlatformNames = [
       'Angular',
@@ -99,7 +99,7 @@ describe('PlatformPicker', function () {
   });
 
   it('"other" platform shall be rendered if filter contains it', async function () {
-    render(<PlatformPicker setPlatform={jest.fn()} />);
+    render(<PlatformPicker setPlatform={vi.fn()} />);
 
     expect(screen.queryByTestId('platform-other')).not.toBeInTheDocument();
 

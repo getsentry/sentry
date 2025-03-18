@@ -11,13 +11,13 @@ import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/replays/list/listContent';
 
-jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
-jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
-jest.mock('sentry/utils/replays/hooks/useReplayPageview');
-jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
-jest.mock('sentry/views/replays/detail/useAllMobileProj');
+vi.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
+vi.mock('sentry/utils/replays/hooks/useReplayOnboarding');
+vi.mock('sentry/utils/replays/hooks/useReplayPageview');
+vi.mock('sentry/utils/useProjectSdkNeedsUpdate');
+vi.mock('sentry/views/replays/detail/useAllMobileProj');
 
-const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
+const mockUseDeadRageSelectors = vi.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
   isLoading: false,
   isError: false,
@@ -25,15 +25,15 @@ mockUseDeadRageSelectors.mockReturnValue({
   pageLinks: undefined,
 });
 
-const mockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
+const mockUseHaveSelectedProjectsSentAnyReplayEvents = vi.mocked(
   useHaveSelectedProjectsSentAnyReplayEvents
 );
-const mockUseProjectSdkNeedsUpdate = jest.mocked(useProjectSdkNeedsUpdate);
+const mockUseProjectSdkNeedsUpdate = vi.mocked(useProjectSdkNeedsUpdate);
 
-const mockUseReplayOnboardingSidebarPanel = jest.mocked(useReplayOnboardingSidebarPanel);
-mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()});
+const mockUseReplayOnboardingSidebarPanel = vi.mocked(useReplayOnboardingSidebarPanel);
+mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: vi.fn()});
 
-const mockUseAllMobileProj = jest.mocked(useAllMobileProj);
+const mockUseAllMobileProj = vi.mocked(useAllMobileProj);
 mockUseAllMobileProj.mockReturnValue({allMobileProj: false});
 
 const AM1_FEATURES: string[] = [];
@@ -49,7 +49,7 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
 }
 
 describe('ReplayList', () => {
-  let mockFetchReplayListRequest: jest.Mock;
+  let mockFetchReplayListRequest: vi.Mock;
   beforeEach(() => {
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();

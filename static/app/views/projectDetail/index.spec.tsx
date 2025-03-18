@@ -14,7 +14,7 @@ describe('ProjectDetail', function () {
     PageFiltersStore.reset();
     ProjectsStore.reset();
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',

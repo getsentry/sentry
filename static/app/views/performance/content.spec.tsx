@@ -83,7 +83,7 @@ function initializeTrendsData(
 describe('Performance > Content', function () {
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([], false, null));
-    jest.spyOn(pageFilters, 'updateDateTime');
+    vi.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

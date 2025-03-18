@@ -19,7 +19,7 @@ import {
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 
-const mockHandleSearch = jest.fn();
+const mockHandleSearch = vi.fn();
 
 describe('EventSearch', () => {
   const organization = OrganizationFixture();
@@ -34,7 +34,7 @@ describe('EventSearch', () => {
     query: '',
   };
   const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-  let mockTagKeyQuery: jest.Mock;
+  let mockTagKeyQuery: vi.Mock;
 
   beforeEach(() => {
     OrganizationStore.onUpdate(organization, {replace: true});

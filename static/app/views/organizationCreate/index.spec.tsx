@@ -24,7 +24,7 @@ describe('OrganizationCreate', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     ConfigStore.loadInitialData(configstate);
   });
 

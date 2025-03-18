@@ -7,10 +7,10 @@ import selectEvent from 'sentry-test/selectEvent';
 import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
 describe('AwsLambdaCloudformation', () => {
-  let windowAssignMock!: jest.Mock;
+  let windowAssignMock!: vi.Mock;
 
   beforeEach(() => {
-    windowAssignMock = jest.fn();
+    windowAssignMock = vi.fn();
     window.location.assign = windowAssignMock;
     window.localStorage.setItem('AWS_EXTERNAL_ID', 'my-id');
   });

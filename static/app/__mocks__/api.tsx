@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import type * as ApiNamespace from 'sentry/api';
 import RequestError from 'sentry/utils/requestError/requestError';
 
-const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
+const RealApi: typeof ApiNamespace = await vi.importActual('sentry/api');
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
@@ -54,7 +54,7 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
   query?: Record<string, string | number | boolean | string[] | number[]>;
 }
 
-type MockResponse = [resp: ResponseType, mock: jest.Mock];
+type MockResponse = [resp: ResponseType, mock: vi.Mock];
 
 /**
  * Compare two records. `want` is all the entries we want to have the same value in `check`
@@ -138,7 +138,7 @@ class Client implements ApiNamespace.Client {
 
   // Returns a jest mock that represents Client.request calls
   static addMockResponse(response: Partial<ResponseType>) {
-    const mock = jest.fn();
+    const mock = vi.fn();
 
     Client.mockResponses.unshift([
       {

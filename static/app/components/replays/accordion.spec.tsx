@@ -16,7 +16,7 @@ describe('Accordion', function () {
   });
 
   it('invokes callback on header click', async function () {
-    const spy = jest.fn();
+    const spy = vi.fn();
     render(<Accordion expandedIndex={0} setExpandedIndex={spy} items={items} />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));

@@ -11,10 +11,13 @@ import {IssueCategory, PriorityLevel} from 'sentry/types/group';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
-  useIssueDetailsTour: () => mockTour(),
-}));
+vi.mock('sentry/views/issueDetails/issueDetailsTour', async () => {
+  const actual = await vi.importActual('sentry/views/issueDetails/issueDetailsTour');
+  return {
+    ...actual,
+    useIssueDetailsTour: () => mockTour(),
+  };
+});
 
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';

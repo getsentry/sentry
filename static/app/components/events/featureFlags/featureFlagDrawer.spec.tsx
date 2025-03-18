@@ -11,19 +11,17 @@ import {
 
 async function renderFlagDrawer() {
   // Needed to mock useVirtualizer lists.
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 30,
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      toJSON: jest.fn(),
-    }));
+  vi.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 30,
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    toJSON: vi.fn(),
+  }));
   render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
   await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
   return screen.getByRole('complementary', {name: 'Feature flags drawer'});

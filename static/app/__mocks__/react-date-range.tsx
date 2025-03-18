@@ -2,13 +2,13 @@ import type {CalendarProps, DateRangeProps, Range, RangeKeyDict} from 'react-dat
 import format from 'date-fns/format';
 
 /**
- * Auto-mock of the react-date-range library for jest
+ * Auto-mock of the react-date-range library for vi
  *
  * We mock out these components in tests because they are heavy (causes timeouts),
  * difficult to interact with, and we don't need to validate their behavior.
  *
  * If your test is dependent on this library's functionality, you may unmock with
- * jest.unmock('react-date-range')
+ * vi.unmock('react-date-range')
  */
 
 type DatePickerInputProps = {

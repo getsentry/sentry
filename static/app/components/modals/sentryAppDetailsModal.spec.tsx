@@ -30,9 +30,9 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled={false}
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={OrganizationFixture()}
         sentryApp={sentryApp}
       />
@@ -46,9 +46,9 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled={false}
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={OrganizationFixture()}
         sentryApp={sentryApp}
       />
@@ -70,9 +70,9 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled={false}
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={OrganizationFixture()}
         sentryApp={sentryApp}
       />
@@ -84,13 +84,13 @@ describe('SentryAppDetailsModal', function () {
   it('closes when Cancel is clicked', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
-    const handleCloseModal = jest.fn();
+    const handleCloseModal = vi.fn();
 
     render(
       <SentryAppDetailsModal
         closeModal={handleCloseModal}
         isInstalled={false}
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={OrganizationFixture()}
         sentryApp={sentryApp}
       />
@@ -104,11 +104,11 @@ describe('SentryAppDetailsModal', function () {
   it('installs the Integration when Install is clicked', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
-    const handleOnInstall = jest.fn();
+    const handleOnInstall = vi.fn();
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled={false}
         onInstall={handleOnInstall}
         organization={OrganizationFixture()}
@@ -128,9 +128,9 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled={false}
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={noAccessOrg}
         sentryApp={sentryApp}
       />,
@@ -147,9 +147,9 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={OrganizationFixture()}
         sentryApp={sentryApp}
       />
@@ -163,9 +163,9 @@ describe('SentryAppDetailsModal', function () {
 
     render(
       <SentryAppDetailsModal
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         isInstalled={false}
-        onInstall={jest.fn()}
+        onInstall={vi.fn()}
         organization={OrganizationFixture()}
         sentryApp={{...sentryApp, scopes: []}}
       />

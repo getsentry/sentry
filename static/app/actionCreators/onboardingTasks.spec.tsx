@@ -9,7 +9,7 @@ describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();
   const user = ConfigStore.get('user');
 
-  jest.spyOn(OrganizationStore, 'onUpdate');
+  vi.spyOn(OrganizationStore, 'onUpdate');
 
   describe('updateOnboardingTask', function () {
     it('Adds the task to the organization when task does not exists', async function () {

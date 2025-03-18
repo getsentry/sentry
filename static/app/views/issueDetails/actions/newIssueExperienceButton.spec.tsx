@@ -9,15 +9,15 @@ import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
-const mockFeedbackForm = jest.fn();
-jest.mock('sentry/utils/useFeedbackForm', () => ({
+const mockFeedbackForm = vi.fn();
+vi.mock('sentry/utils/useFeedbackForm', () => ({
   useFeedbackForm: () => mockFeedbackForm(),
 }));
 
-jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+vi.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...vi.importActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
 }));
 
@@ -29,7 +29,7 @@ describe('NewIssueExperienceButton', function () {
 
   beforeEach(() => {
     ConfigStore.init();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('appears correctly when organization has the single interface option', function () {
@@ -165,7 +165,7 @@ describe('NewIssueExperienceButton', function () {
   });
 
   it('can switch back to the old UI via dropdown', async function () {
-    const mockFormCallback = jest.fn();
+    const mockFormCallback = vi.fn();
     mockFeedbackForm.mockReturnValue(mockFormCallback);
     const mockChangeUserSettings = MockApiClient.addMockResponse({
       url: '/users/me/',

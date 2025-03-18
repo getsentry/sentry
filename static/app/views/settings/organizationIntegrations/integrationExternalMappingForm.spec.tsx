@@ -9,7 +9,7 @@ describe('IntegrationExternalMappingForm', function () {
   const baseProps = {
     integration: GitHubIntegrationFixture(),
     dataEndpoint,
-    getBaseFormEndpoint: jest.fn(_mapping => dataEndpoint),
+    getBaseFormEndpoint: vi.fn(_mapping => dataEndpoint),
     sentryNamesMapper: mappings => mappings,
   } satisfies Partial<React.ComponentProps<typeof IntegrationExternalMappingForm>>;
   const MOCK_USER_MAPPING = {
@@ -30,12 +30,12 @@ describe('IntegrationExternalMappingForm', function () {
     {id: '3', name: 'option3'},
   ];
 
-  let getResponse: jest.Mock;
-  let postResponse: jest.Mock;
-  let putResponse: jest.Mock;
+  let getResponse: vi.Mock;
+  let postResponse: vi.Mock;
+  let putResponse: vi.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
     getResponse = MockApiClient.addMockResponse({
       url: dataEndpoint,

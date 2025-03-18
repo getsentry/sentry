@@ -9,7 +9,7 @@ describe('GenericField', function () {
       <GenericField
         formState={FormState.READY}
         formData={{name: 'foo'}}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         config={{
           name: 'field-name',
           label: 'field label',
@@ -32,7 +32,7 @@ describe('GenericField', function () {
       <GenericField
         formState={FormState.READY}
         formData={{name: 'foo'}}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         config={{
           name: 'field-name',
           label: 'field label',

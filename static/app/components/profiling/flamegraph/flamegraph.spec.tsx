@@ -8,22 +8,22 @@ import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
 
-jest.mock('sentry/utils/useParams', () => ({
-  useParams: jest.fn(),
+vi.mock('sentry/utils/useParams', () => ({
+  useParams: vi.fn(),
 }));
 
 window.ResizeObserver =
   window.ResizeObserver ||
-  jest.fn().mockImplementation(() => ({
-    disconnect: jest.fn(),
-    observe: jest.fn(),
-    unobserve: jest.fn(),
+  vi.fn().mockImplementation(() => ({
+    disconnect: vi.fn(),
+    observe: vi.fn(),
+    unobserve: vi.fn(),
   }));
 
 Element.prototype.scrollTo = () => {};
 
 // Replace the webgl renderer with a dom renderer for tests
-jest.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', () => {
+vi.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', () => {
   const {
     FlamegraphRendererDOM,
   } = require('sentry/utils/profiling/renderers/flamegraphRendererDOM');
@@ -96,15 +96,15 @@ const flamechart = {
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // Deprecated
-    removeListener: jest.fn(), // Deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 });
 
@@ -119,7 +119,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
+    vi.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -150,7 +150,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
+    vi.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -182,7 +182,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
+    vi.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -219,7 +219,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    jest.mocked(useParams).mockReturnValue({
+    vi.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',

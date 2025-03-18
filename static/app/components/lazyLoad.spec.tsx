@@ -20,7 +20,7 @@ type ResolvedComponent = {default: React.ComponentType<TestProps>};
 
 describe('LazyLoad', function () {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders with a loading indicator when promise is not resolved yet', function () {
@@ -49,7 +49,7 @@ describe('LazyLoad', function () {
   });
 
   it('renders with error message when promise is rejected', async function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
     const getComponent = () => Promise.reject(new Error('Could not load component'));
 
     render(<LazyLoad LazyComponent={lazy(getComponent)} />);
@@ -91,7 +91,7 @@ describe('LazyLoad', function () {
     expect(await screen.findByText('my bar component')).toBeInTheDocument();
 
     // Update component prop to a mock to make sure it isn't re-called
-    const getComponent2 = jest.fn(() => new Promise<ResolvedComponent>(() => {}));
+    const getComponent2 = vi.fn(() => new Promise<ResolvedComponent>(() => {}));
     const LazyGet = lazy(getComponent2);
     rerender(<LazyLoad LazyComponent={LazyGet} />);
     expect(getComponent2).toHaveBeenCalledTimes(1);

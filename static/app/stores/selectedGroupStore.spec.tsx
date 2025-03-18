@@ -11,11 +11,11 @@ function setRecords(records: Record<string, boolean>) {
 }
 
 describe('SelectedGroupStore', function () {
-  let trigger: jest.SpyInstance;
+  let trigger: vi.SpyInstance;
 
   beforeEach(function () {
     SelectedGroupStore.init();
-    trigger = jest.spyOn(SelectedGroupStore, 'trigger').mockImplementation(() => {});
+    trigger = vi.spyOn(SelectedGroupStore, 'trigger').mockImplementation(() => {});
   });
 
   afterEach(function () {
@@ -24,14 +24,14 @@ describe('SelectedGroupStore', function () {
 
   describe('prune()', function () {
     it('removes records no longer in the GroupStore', function () {
-      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['3']);
+      vi.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['3']);
       setRecords({1: true, 2: true, 3: true});
       SelectedGroupStore.prune();
       expect([...SelectedGroupStore.getState().records.entries()]).toEqual([['3', true]]);
     });
 
     it("doesn't have any effect when already in sync", function () {
-      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['1', '2', '3']);
+      vi.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['1', '2', '3']);
       setRecords({1: true, 2: true, 3: true});
       SelectedGroupStore.prune();
       expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
@@ -64,12 +64,12 @@ describe('SelectedGroupStore', function () {
   });
 
   describe('onGroupChange()', function () {
-    let prune: jest.SpyInstance;
-    let add: jest.SpyInstance;
+    let prune: vi.SpyInstance;
+    let add: vi.SpyInstance;
 
     beforeEach(function () {
-      prune = jest.spyOn(SelectedGroupStore, 'prune');
-      add = jest.spyOn(SelectedGroupStore, 'add');
+      prune = vi.spyOn(SelectedGroupStore, 'prune');
+      add = vi.spyOn(SelectedGroupStore, 'add');
     });
 
     afterEach(function () {});
@@ -243,7 +243,7 @@ describe('SelectedGroupStore', function () {
   describe('shiftSelectItems()', function () {
     it('toggles all between last selected and new selection', function () {
       const ids = ['11', '12', '13', '14', '15'];
-      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
+      vi.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
       SelectedGroupStore.add(ids);
       SelectedGroupStore.toggleSelect('12');
       SelectedGroupStore.shiftToggleItems('14');
@@ -257,7 +257,7 @@ describe('SelectedGroupStore', function () {
     });
     it('toggles all between last selected and new selection backwards', function () {
       const ids = ['11', '12', '13', '14', '15'];
-      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
+      vi.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
       SelectedGroupStore.add(ids);
       SelectedGroupStore.toggleSelect('14');
       SelectedGroupStore.shiftToggleItems('12');
@@ -271,7 +271,7 @@ describe('SelectedGroupStore', function () {
     });
     it('deslects after selecting', function () {
       const ids = ['11', '12', '13', '14', '15'];
-      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
+      vi.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
       SelectedGroupStore.add(ids);
       SelectedGroupStore.toggleSelect('11');
 

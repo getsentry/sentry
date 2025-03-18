@@ -19,7 +19,7 @@ describe('useAggregatedQueryKeys', () => {
   let initialProps: any;
 
   beforeEach(() => {
-    responseReducer = jest.fn((prevState: any, response: ApiResult) => {
+    responseReducer = vi.fn((prevState: any, response: ApiResult) => {
       return {
         ...prevState,
         ...response[0],
@@ -163,13 +163,13 @@ describe('useAggregatedQueryKeys', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/api/test/`,
     });
-    const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
+    const responseReducer1 = vi.fn((prevState: any, response: ApiResult) => {
       return {
         ...prevState,
         ...response[0],
       };
     });
-    const responseReducer2 = jest.fn((prevState: any, response: ApiResult) => {
+    const responseReducer2 = vi.fn((prevState: any, response: ApiResult) => {
       return {
         ...prevState,
         ...response[0],

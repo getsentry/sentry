@@ -11,16 +11,16 @@ import {
   MobileSortKeys,
 } from 'sentry/views/insights/mobile/screenload/constants';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/queries/useReleases');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/views/insights/common/queries/useReleases');
 
 describe('ScreenLoadEventSamples', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  let mockEventsRequest: jest.Mock;
+  let mockEventsRequest: vi.Mock;
   beforeEach(function () {
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -36,7 +36,7 @@ describe('ScreenLoadEventSamples', function () {
         projects: [parseInt(project.id, 10)],
       },
     });
-    jest.mocked(useReleaseSelection).mockReturnValue({
+    vi.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: 'com.example.vu.android@2.10.5',
       isLoading: false,
       secondaryRelease: 'com.example.vu.android@2.10.3+42',

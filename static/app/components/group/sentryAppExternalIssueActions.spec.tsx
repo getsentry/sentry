@@ -47,7 +47,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders without an external issue linked', async () => {

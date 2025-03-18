@@ -29,11 +29,11 @@ const numberTags: TagCollection = {
 describe('ColumnEditorModal', function () {
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation();
   });
 
   it('allows closes modal on apply', async function () {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     renderGlobalModal();
 
@@ -58,7 +58,7 @@ describe('ColumnEditorModal', function () {
   });
 
   it('allows deleting a column', async function () {
-    const onColumnsChange = jest.fn();
+    const onColumnsChange = vi.fn();
 
     renderGlobalModal();
 
@@ -73,7 +73,7 @@ describe('ColumnEditorModal', function () {
             numberTags={numberTags}
           />
         ),
-        {onClose: jest.fn()}
+        {onClose: vi.fn()}
       );
     });
 
@@ -97,7 +97,7 @@ describe('ColumnEditorModal', function () {
   });
 
   it('allows adding a column', async function () {
-    const onColumnsChange = jest.fn();
+    const onColumnsChange = vi.fn();
 
     renderGlobalModal();
 
@@ -112,7 +112,7 @@ describe('ColumnEditorModal', function () {
             numberTags={numberTags}
           />
         ),
-        {onClose: jest.fn()}
+        {onClose: vi.fn()}
       );
     });
 
@@ -152,7 +152,7 @@ describe('ColumnEditorModal', function () {
   });
 
   it('allows changing a column', async function () {
-    const onColumnsChange = jest.fn();
+    const onColumnsChange = vi.fn();
 
     renderGlobalModal();
 
@@ -167,7 +167,7 @@ describe('ColumnEditorModal', function () {
             numberTags={numberTags}
           />
         ),
-        {onClose: jest.fn()}
+        {onClose: vi.fn()}
       );
     });
 

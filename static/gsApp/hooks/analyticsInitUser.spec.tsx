@@ -8,7 +8,30 @@ import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 import analyticsInitUser from 'getsentry/hooks/analyticsInitUser';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 
-jest.mock('getsentry/utils/trackMarketingEvent');
+vi.mock('@amplitude/analytics-browser', () => {
+  const identifyInstance: any = {
+    set: vi.fn(() => identifyInstance),
+  };
+
+  const Identify = vi.fn(() => identifyInstance);
+  const setUserId = vi.fn();
+  const identify = vi.fn();
+  const init = vi.fn();
+  const track = vi.fn();
+  const setGroup = vi.fn();
+
+  return {
+    Identify,
+    setUserId,
+    identify,
+    init,
+    track,
+    setGroup,
+  };
+});
+vi.mock('getsentry/utils/trackMarketingEvent');
+
+console.log({Amplitude});
 
 describe('analyticsInitUser', function () {
   const user = UserFixture({});
@@ -22,10 +45,10 @@ describe('analyticsInitUser', function () {
   afterEach(function () {
     window.location.search = '';
     sessionStorageWrapper.removeItem('marketing_event_recorded');
-    (trackMarketingEvent as jest.Mock).mockClear();
-    (Amplitude.setUserId as jest.Mock).mockClear();
-    (Amplitude.track as jest.Mock).mockClear();
-    (Amplitude.Identify as jest.Mock).mockClear();
+    (trackMarketingEvent as vi.Mock).mockClear();
+    (Amplitude.setUserId as vi.Mock).mockClear();
+    (Amplitude.track as vi.Mock).mockClear();
+    (Amplitude.Identify as vi.Mock).mockClear();
   });
   it('calls getInstance and initializes with user and user properties', function () {
     analyticsInitUser(user);
@@ -99,7 +122,7 @@ describe('analyticsInitUser', function () {
     window.location.search = qs.stringify({referrer: 'something'});
     // We need to spy on the prototype since this may not be a mocked class
     // https://stackoverflow.com/questions/32911630/how-do-i-deal-with-localstorage-in-jest-tests
-    const spy = jest.spyOn(Storage.prototype, 'setItem');
+    const spy = vi.spyOn(Storage.prototype, 'setItem');
     analyticsInitUser(user);
     expect(spy).toHaveBeenCalledWith('previous_referrer', 'something');
   });

@@ -63,7 +63,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   });
 
   it('handles API errors when creating token', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    vi.spyOn(indicators, 'addErrorMessage');
 
     render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
 
@@ -96,7 +96,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   });
 
   it('handles missing_system_url_prefix API error when creating token', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    vi.spyOn(indicators, 'addErrorMessage');
 
     render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
 

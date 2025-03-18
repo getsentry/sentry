@@ -12,10 +12,10 @@ import type {Organization as TOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
 
-jest.mock('sentry/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn().mockResolvedValue([]),
-  enablePlugin: jest.fn(),
-  disablePlugin: jest.fn(),
+vi.mock('sentry/actionCreators/plugins', () => ({
+  fetchPlugins: vi.fn().mockResolvedValue([]),
+  enablePlugin: vi.fn(),
+  disablePlugin: vi.fn(),
 }));
 
 describe('ProjectPluginsContainer', function () {

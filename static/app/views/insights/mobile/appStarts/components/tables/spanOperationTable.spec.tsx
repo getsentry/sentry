@@ -8,15 +8,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/appStarts/components/tables/spanOperationTable';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
 
 describe('SpanOpSelector', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  let mockEventsRequest: jest.Mock;
+  let mockEventsRequest: vi.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -33,7 +33,7 @@ describe('SpanOpSelector', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue(LocationFixture());
+  vi.mocked(useLocation).mockReturnValue(LocationFixture());
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -146,7 +146,7 @@ describe('SpanOpSelector', function () {
 
   it('modifies the request to events when a span operation is selected', async function () {
     // Mock useLocation to simulate the span op query param
-    jest.mocked(useLocation).mockReturnValue(
+    vi.mocked(useLocation).mockReturnValue(
       LocationFixture({
         query: {
           'span.op': 'app.start.cold',

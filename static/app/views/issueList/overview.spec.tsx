@@ -31,8 +31,12 @@ import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
 // Mock <IssueListActions>
-jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
+vi.mock('sentry/views/issueList/actions', () => ({
+  default: vi.fn(() => null),
+}));
+vi.mock('sentry/components/stream/group', () => ({
+  default: vi.fn(() => null),
+}));
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -94,14 +98,14 @@ describe('IssueList', function () {
     name: 'Unresolved TypeErrors',
   });
 
-  let fetchMembersRequest: jest.Mock;
-  const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
+  let fetchMembersRequest: vi.Mock;
+  const parseLinkHeaderSpy = vi.spyOn(parseLinkHeader, 'default');
 
   beforeEach(function () {
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
     MockApiClient.addMockResponse({
@@ -177,16 +181,16 @@ describe('IssueList', function () {
   });
 
   afterEach(function () {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
     localStorageWrapper.clear();
   });
 
   describe('withStores and feature flags', function () {
-    let issuesRequest: jest.Mock;
+    let issuesRequest: vi.Mock;
 
     beforeEach(function () {
-      jest.mocked(StreamGroup).mockClear();
+      vi.mocked(StreamGroup).mockClear();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
@@ -911,7 +915,7 @@ describe('IssueList', function () {
   });
 
   describe('componentDidUpdate fetching groups', function () {
-    let fetchDataMock: jest.Mock;
+    let fetchDataMock: vi.Mock;
 
     beforeEach(function () {
       fetchDataMock = MockApiClient.addMockResponse({

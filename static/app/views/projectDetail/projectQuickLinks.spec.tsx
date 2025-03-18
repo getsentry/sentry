@@ -11,7 +11,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders a list', async function () {

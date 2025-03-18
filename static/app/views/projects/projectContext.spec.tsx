@@ -5,9 +5,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectContextProvider} from 'sentry/views/projects/projectContext';
 
-jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/modal', () => ({
-  redirectToProject: jest.fn(),
+vi.unmock('sentry/utils/recreateRoute');
+vi.mock('sentry/actionCreators/modal', () => ({
+  redirectToProject: vi.fn(),
 }));
 
 describe('projectContext component', function () {

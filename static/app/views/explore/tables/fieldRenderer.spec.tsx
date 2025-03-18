@@ -34,11 +34,11 @@ describe('FieldRenderer tests', function () {
 
   beforeAll(() => {
     const mockTimestamp = new Date('2024-10-06T00:00:00').getTime();
-    jest.spyOn(global.Date, 'now').mockImplementation(() => mockTimestamp);
+    vi.spyOn(global.Date, 'now').mockImplementation(() => mockTimestamp);
   });
 
   afterAll(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders span.op', function () {

@@ -6,19 +6,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/transactionsTable';
 
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useLocation');
 
 describe('transactionsTable', () => {
   const organization = OrganizationFixture();
 
-  let eventsMock: jest.Mock;
+  let eventsMock: vi.Mock;
 
   const pageLinks =
     '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {statsPeriod: '10d', project: '1'},
@@ -115,7 +115,7 @@ describe('transactionsTable', () => {
   });
 
   it('sorts by processing time', async () => {
-    jest.mocked(useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
       query: {

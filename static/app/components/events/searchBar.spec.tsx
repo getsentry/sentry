@@ -143,8 +143,8 @@ describe('Events > SearchBar', function () {
   });
 
   it('if `useFormWrapper` is false, async pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
-    const onBlur = jest.fn();
-    const onSearch = jest.fn();
+    const onBlur = vi.fn();
+    const onSearch = vi.fn();
     render(
       <SearchBar {...props} useFormWrapper={false} onSearch={onSearch} onBlur={onBlur} />
     );

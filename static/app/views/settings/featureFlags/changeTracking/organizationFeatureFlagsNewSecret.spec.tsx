@@ -51,7 +51,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   });
 
   it('handles API errors when creating secret', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    vi.spyOn(indicators, 'addErrorMessage');
 
     render(<OrganizationFeatureFlagsNewSecet />);
 

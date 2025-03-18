@@ -38,9 +38,9 @@ describe('gcpfunctions onboarding docs', function () {
       ],
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/))).toHaveLength(
+      2
+    );
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
     ).toBeInTheDocument();

@@ -10,7 +10,7 @@ import * as useApi from 'sentry/utils/useApi';
 
 import ProjectDetail from './projectDetail';
 
-jest.mock('sentry/actionCreators/organization');
+vi.mock('sentry/actionCreators/organization');
 
 describe('ProjectDetail', function () {
   const {organization, router, projects} = initializeOrg();
@@ -27,7 +27,7 @@ describe('ProjectDetail', function () {
   it('Render an error if project not found', async function () {
     ProjectsStore.loadInitialData([{...project, slug: 'slug'}]);
     const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
+    vi.spyOn(useApi, 'default').mockReturnValue(api);
 
     render(
       <ProjectDetail
@@ -94,7 +94,7 @@ describe('ProjectDetail', function () {
 
   it('Sync project with slug', async function () {
     ProjectsStore.loadInitialData([project]);
-    jest.spyOn(pageFilters, 'updateProjects');
+    vi.spyOn(pageFilters, 'updateProjects');
 
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/`,

@@ -6,8 +6,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
 describe('AcceptProjectTransfer', function () {
-  let getMock: jest.Mock;
-  let postMock: jest.Mock;
+  let getMock: vi.Mock;
+  let postMock: vi.Mock;
   const endpoint = '/accept-transfer/';
 
   beforeEach(function () {

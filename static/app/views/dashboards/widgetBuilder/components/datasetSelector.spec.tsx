@@ -7,11 +7,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import DatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+vi.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: vi.fn(),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseNavigate = vi.mocked(useNavigate);
 
 describe('DatasetSelector', function () {
   let router!: ReturnType<typeof RouterFixture>;
@@ -22,7 +22,7 @@ describe('DatasetSelector', function () {
   });
 
   it('changes the dataset', async function () {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(

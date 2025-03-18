@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 
 describe('AutofixRootCause', function () {
-  let mockApi: jest.Mock<any, any, any>;
+  let mockApi: vi.Mock<any, any, any>;
 
   beforeEach(function () {
     mockApi = MockApiClient.addMockResponse({
@@ -17,7 +17,7 @@ describe('AutofixRootCause', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   const defaultProps = {

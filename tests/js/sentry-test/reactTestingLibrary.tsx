@@ -30,8 +30,7 @@ import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
-import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
-
+// import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 import {initializeOrg} from './initializeOrg';
 
 interface ProviderOptions {
@@ -130,9 +129,9 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
     goBack: router.goBack,
     push: router.push,
     replace: router.replace,
-    listen: jest.fn(() => {}),
-    listenBefore: jest.fn(),
-    getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
+    listen: vi.fn(() => {}),
+    listenBefore: vi.fn(),
+    getCurrentLocation: vi.fn(() => ({pathname: '', query: {}})),
   });
 }
 
@@ -388,9 +387,9 @@ function waitForDrawerToHide(ariaLabel: string) {
 /**
  * This cannot be implemented as a Sentry Integration because Jest creates an
  * isolated environment for each test suite. This means that if we were to apply
- * the monkey patching ahead of time, it would be shadowed by Jest.
+ * the monkey patching ahead of time, it would be shadowed by vi.
  */
-instrumentUserEvent();
+// instrumentUserEvent();
 
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';

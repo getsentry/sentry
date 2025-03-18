@@ -4,10 +4,10 @@ describe('TraceScheduler', () => {
   it('respects priority', () => {
     const scheduler = new TraceScheduler();
 
-    const highPriority = jest.fn().mockImplementation(() => {
+    const highPriority = vi.fn().mockImplementation(() => {
       expect(lowPriority).not.toHaveBeenCalled();
     });
-    const lowPriority = jest.fn().mockImplementation(() => {
+    const lowPriority = vi.fn().mockImplementation(() => {
       expect(highPriority).toHaveBeenCalled();
     });
 
@@ -19,7 +19,7 @@ describe('TraceScheduler', () => {
   it('once', () => {
     const scheduler = new TraceScheduler();
 
-    const cb = jest.fn();
+    const cb = vi.fn();
     scheduler.once('draw', cb);
 
     scheduler.dispatch('draw');
@@ -30,7 +30,7 @@ describe('TraceScheduler', () => {
 
   it('off', () => {
     const scheduler = new TraceScheduler();
-    const cb = jest.fn();
+    const cb = vi.fn();
 
     scheduler.on('draw', cb);
     scheduler.off('draw', cb);

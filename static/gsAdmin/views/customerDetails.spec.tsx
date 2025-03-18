@@ -598,7 +598,7 @@ function renderMocks(
 ) {
   // We mock the useOrganization hook here instead on the top level because we call renderMocks explicitly with different orgs
   // TODO(ogi): find a better way to do this
-  jest.spyOn(useOrganization, 'default').mockReturnValue(organization as Organization);
+  vi.spyOn(useOrganization, 'default').mockReturnValue(organization as Organization);
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/`,

@@ -2,7 +2,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import trackMetric from 'getsentry/utils/trackMetric';
 
-jest.unmock('getsentry/utils/trackMetric');
+vi.unmock('getsentry/utils/trackMetric');
 
 describe('trackMetric', function () {
   const eventName = 'my_event';
@@ -16,7 +16,7 @@ describe('trackMetric', function () {
       },
     };
     ConfigStore.set('enableAnalytics', true);
-    window.ra = {metric: jest.fn()};
+    window.ra = {metric: vi.fn()};
   });
   afterEach(function () {
     window.ra.metric.mockClear();

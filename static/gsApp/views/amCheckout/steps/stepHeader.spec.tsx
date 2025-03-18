@@ -9,7 +9,7 @@ describe('StepHeader', () => {
   const stepNumber = 1;
 
   beforeEach(function () {
-    onEdit = jest.fn();
+    onEdit = vi.fn();
   });
 
   it('renders active', function () {

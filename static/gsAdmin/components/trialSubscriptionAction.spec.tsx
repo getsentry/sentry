@@ -15,7 +15,7 @@ import {PlanTier} from 'getsentry/types';
 
 describe('TrialSubscriptionAction', function () {
   const organization = OrganizationFixture();
-  const onConfirm = jest.fn();
+  const onConfirm = vi.fn();
 
   const now = moment();
   const formattedNow = now.format('MMMM Do YYYY');
@@ -48,7 +48,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('can pass trialDays and enterprise plan onConfirm', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -80,7 +80,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('can pass trialDays and extend enterprise plan onConfirm', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -104,7 +104,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('can pass trialDays and trialPlanOverride onConfirm', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -139,7 +139,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('cannot use trialPlanOverride if disabled', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -165,7 +165,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays correct trial end date when starting trial', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -193,7 +193,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays correct trial end date when starting enterprise trial', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -222,7 +222,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays correct trial end date when extending trial', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -251,7 +251,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays correct trial end date when converting from trial to enterprise trial', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -281,7 +281,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays am3 trial tier option when free plan', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -308,7 +308,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays am3 trial tier option when am3 plan', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -335,7 +335,7 @@ describe('TrialSubscriptionAction', function () {
   });
 
   it('displays am3 trial tier option when am2 plan', async function () {
-    jest.mock('sentry/components/core/alert');
+    vi.mock('sentry/components/core/alert');
 
     openAdminConfirmModal({
       onConfirm,

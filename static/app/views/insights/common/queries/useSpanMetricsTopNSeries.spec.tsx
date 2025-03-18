@@ -12,8 +12,8 @@ import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/use
 import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 describe('useSpanMetricsTopNSeries', () => {
   const organization = OrganizationFixture();
@@ -28,7 +28,7 @@ describe('useSpanMetricsTopNSeries', () => {
     );
   }
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -45,7 +45,7 @@ describe('useSpanMetricsTopNSeries', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {},

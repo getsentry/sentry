@@ -8,13 +8,13 @@ import Indicators from 'sentry/components/indicators';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/utils/regions');
+vi.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', function () {
   const {organization, routerProps} = initializeOrg();
-  let putMock: jest.Mock;
-  const onSave = jest.fn();
+  let putMock: vi.Mock;
+  const onSave = vi.fn();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -51,7 +51,7 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Display Name'});
 
-    const saveOnBlur = jest.spyOn(indicatorActions, 'saveOnBlurUndoMessage');
+    const saveOnBlur = vi.spyOn(indicatorActions, 'saveOnBlurUndoMessage');
 
     await userEvent.clear(input);
     await userEvent.type(input, 'New Name');
@@ -207,7 +207,7 @@ describe('OrganizationSettingsForm', function () {
 
   it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
     // Mock the region util to return DE region
-    jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+    vi.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
       displayName: 'Europe (Frankfurt)',
       url: 'https://sentry.de.example.com',

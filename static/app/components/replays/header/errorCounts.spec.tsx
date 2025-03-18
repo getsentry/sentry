@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import useProjects from 'sentry/utils/useProjects';
 
-jest.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/useProjects');
 
 const replayRecord = ReplayRecordFixture();
 const organization = OrganizationFixture();
@@ -17,7 +17,7 @@ const baseErrorProps = {id: '1', issue: '', timestamp: new Date().toISOString()}
 
 describe('ErrorCounts', () => {
   beforeEach(() => {
-    jest.mocked(useProjects).mockReturnValue({
+    vi.mocked(useProjects).mockReturnValue({
       fetching: false,
       projects: [
         ProjectFixture({
@@ -40,7 +40,7 @@ describe('ErrorCounts', () => {
       hasMore: false,
       initiallyLoaded: true,
       onSearch: () => Promise.resolve(),
-      reloadProjects: jest.fn(),
+      reloadProjects: vi.fn(),
       placeholders: [],
     });
   });

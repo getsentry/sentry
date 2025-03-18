@@ -167,7 +167,7 @@ describe('importProfile', () => {
 
 describe('parseDroppedProfile', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
   it('throws if file has no string contents', async () => {
     // @ts-expect-error we are just setting null on the file, we are not actually reading it because our event is mocked
@@ -175,10 +175,10 @@ describe('parseDroppedProfile', () => {
 
     const reader = new FileReader();
 
-    const fileReaderMock = jest
+    const fileReaderMock = vi
       .spyOn(window, 'FileReader')
       .mockImplementation(() => reader);
-    const readAsTextMock = jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+    const readAsTextMock = vi.spyOn(reader, 'readAsText').mockImplementation(() => {
       const loadEvent = new CustomEvent('load', {
         detail: {target: {result: null}},
       });
@@ -199,10 +199,10 @@ describe('parseDroppedProfile', () => {
 
     const reader = new FileReader();
 
-    const fileReaderMock = jest
+    const fileReaderMock = vi
       .spyOn(window, 'FileReader')
       .mockImplementation(() => reader);
-    const readAsTextMock = jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+    const readAsTextMock = vi.spyOn(reader, 'readAsText').mockImplementation(() => {
       const loadEvent = new CustomEvent('error', {
         detail: {target: {result: null}},
       });

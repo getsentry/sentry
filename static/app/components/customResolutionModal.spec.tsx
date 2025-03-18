@@ -28,7 +28,7 @@ describe('CustomResolutionModal', () => {
   const wrapper = styled((p: any) => p.children);
 
   it('can select a version', async () => {
-    const onSelected = jest.fn();
+    const onSelected = vi.fn();
     render(
       <CustomResolutionModal
         Header={p => <span>{p.children}</span>}
@@ -37,7 +37,7 @@ describe('CustomResolutionModal', () => {
         organization={organization}
         projectSlug="project-slug"
         onSelected={onSelected}
-        closeModal={jest.fn()}
+        closeModal={vi.fn()}
         CloseButton={makeCloseButton(() => null)}
       />
     );
@@ -63,8 +63,8 @@ describe('CustomResolutionModal', () => {
         Footer={wrapper()}
         organization={organization}
         projectSlug="project-slug"
-        onSelected={jest.fn()}
-        closeModal={jest.fn()}
+        onSelected={vi.fn()}
+        closeModal={vi.fn()}
         CloseButton={makeCloseButton(() => null)}
       />
     );
@@ -114,8 +114,8 @@ describe('CustomResolutionModal', () => {
         Footer={wrapper()}
         organization={organization}
         projectSlug="project-slug"
-        onSelected={jest.fn()}
-        closeModal={jest.fn()}
+        onSelected={vi.fn()}
+        closeModal={vi.fn()}
         CloseButton={makeCloseButton(() => null)}
       />
     );

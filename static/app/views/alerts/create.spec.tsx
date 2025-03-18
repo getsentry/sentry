@@ -18,26 +18,26 @@ import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
-jest.unmock('sentry/utils/recreateRoute');
+vi.unmock('sentry/utils/recreateRoute');
 // updateOnboardingTask triggers an out of band state update
-jest.mock('sentry/actionCreators/onboardingTasks');
-jest.mock('sentry/actionCreators/members', () => ({
-  fetchOrgMembers: jest.fn(() => Promise.resolve([])),
-  indexMembersByProject: jest.fn(() => {
+vi.mock('sentry/actionCreators/onboardingTasks');
+vi.mock('sentry/actionCreators/members', () => ({
+  fetchOrgMembers: vi.fn(() => Promise.resolve([])),
+  indexMembersByProject: vi.fn(() => {
     return {};
   }),
 }));
-jest.mock('sentry/utils/analytics', () => ({
+vi.mock('sentry/utils/analytics', () => ({
   metric: {
-    startSpan: jest.fn(() => ({
-      setTag: jest.fn(),
-      setData: jest.fn(),
+    startSpan: vi.fn(() => ({
+      setTag: vi.fn(),
+      setData: vi.fn(),
     })),
-    endSpan: jest.fn(),
-    mark: jest.fn(),
-    measure: jest.fn(),
+    endSpan: vi.fn(),
+    mark: vi.fn(),
+    measure: vi.fn(),
   },
-  trackAnalytics: jest.fn(),
+  trackAnalytics: vi.fn(),
 }));
 
 describe('ProjectAlertsCreate', function () {
@@ -88,7 +88,7 @@ describe('ProjectAlertsCreate', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const createWrapper = (props = {}, location = {}) => {
@@ -314,7 +314,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       afterEach(function () {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
       });
 
       it('environment, async action and filter match', async function () {

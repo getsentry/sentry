@@ -6,7 +6,7 @@ import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/inves
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-jest.mock('sentry/actionCreators/indicator');
+vi.mock('sentry/actionCreators/indicator');
 
 describe('InvestigationRule', function () {
   let context: any;

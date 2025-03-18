@@ -3,7 +3,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
-jest.unmock('prismjs');
+vi.unmock('prismjs');
 
 const defaultProps = {
   contextLines: [

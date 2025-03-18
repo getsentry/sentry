@@ -8,18 +8,18 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useOrganization');
 
-const mockUseLocation = jest.mocked(useLocation);
-const mockUseOrganization = jest.mocked(useOrganization);
+const mockUseLocation = vi.mocked(useLocation);
+const mockUseOrganization = vi.mocked(useOrganization);
 
 const frontendBasePath = `/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}`;
 const backendBasePath = `/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}`;
 
 describe('useDomainViewFilters', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: `/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}`})
     );

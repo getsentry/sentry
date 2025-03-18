@@ -21,8 +21,8 @@ const location = LocationFixture();
 describe('Sentry Application Details', function () {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
   let token: ReturnType<typeof SentryAppTokenFixture>;
-  let createAppRequest: jest.Mock;
-  let editAppRequest: jest.Mock;
+  let createAppRequest: vi.Mock;
+  let editAppRequest: vi.Mock;
 
   const maskedValue = '************oken';
 

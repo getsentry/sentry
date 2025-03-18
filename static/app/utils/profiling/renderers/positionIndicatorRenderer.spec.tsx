@@ -13,17 +13,17 @@ describe('PositionIndicatorRenderer', () => {
     const configSpace = new Rect(0, 0, 100, 100);
 
     const context: Partial<CanvasRenderingContext2D> = {
-      beginPath: jest.fn(),
-      rect: jest.fn(),
-      fill: jest.fn(),
-      strokeRect: jest.fn(),
+      beginPath: vi.fn(),
+      rect: vi.fn(),
+      fill: vi.fn(),
+      strokeRect: vi.fn(),
       fillStyle: undefined,
       strokeStyle: undefined,
       lineWidth: undefined,
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const renderer = new PositionIndicatorRenderer(canvas as HTMLCanvasElement, theme);
@@ -37,17 +37,17 @@ describe('PositionIndicatorRenderer', () => {
     const configSpace = new Rect(0, 0, 100, 100);
 
     const context: Partial<CanvasRenderingContext2D> = {
-      beginPath: jest.fn(),
-      rect: jest.fn(),
-      fill: jest.fn(),
-      strokeRect: jest.fn(),
+      beginPath: vi.fn(),
+      rect: vi.fn(),
+      fill: vi.fn(),
+      strokeRect: vi.fn(),
       fillStyle: undefined,
       strokeStyle: undefined,
       lineWidth: undefined,
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const renderer = new PositionIndicatorRenderer(canvas as HTMLCanvasElement, theme);

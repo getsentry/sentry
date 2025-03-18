@@ -71,7 +71,7 @@ describe('Related Issues View', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with same root issues', async function () {

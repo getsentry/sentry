@@ -12,7 +12,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-jest.mock('sentry/utils/analytics');
+vi.mock('sentry/utils/analytics');
 
 describe('MetricAlertDetails', () => {
   const project = ProjectFixture({slug: 'earth', platform: 'javascript'});
@@ -38,7 +38,7 @@ describe('MetricAlertDetails', () => {
 
   afterEach(() => {
     act(() => ProjectsStore.reset());
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     MockApiClient.clearMockResponses();
   });
 

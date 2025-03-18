@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {vi} from 'vitest';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
@@ -31,16 +32,16 @@ import {
 import GSBanner from 'getsentry/components/gsBanner';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-jest.mock('getsentry/actionCreators/modal');
-const guideMock = jest.requireMock('sentry/stores/guideStore');
-jest.mock('sentry/stores/guideStore', () => ({
+vi.mock('getsentry/actionCreators/modal');
+const guideMock = await vi.importMock('sentry/stores/guideStore');
+vi.mock('sentry/stores/guideStore', () => ({
   state: {},
 }));
 
 describe('GSBanner', function () {
   beforeEach(() => {
     ModalStore.reset();
-    jest.clearAllMocks();
+    vi.resetAllMocks();
     delete window.pendo;
 
     MockApiClient.clearMockResponses();
@@ -1423,7 +1424,7 @@ describe('GSBanner', function () {
     });
 
     window.pendo = {
-      initialize: jest.fn(),
+      initialize: vi.fn(),
     };
 
     MockApiClient.addMockResponse({
@@ -1489,7 +1490,7 @@ describe('GSBanner', function () {
     });
 
     window.pendo = {
-      initialize: jest.fn(),
+      initialize: vi.fn(),
     };
 
     const now = moment();

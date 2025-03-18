@@ -7,7 +7,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
 describe('DropdownMenu', function () {
   it('renders a basic menu', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
 
     render(
       <DropdownMenu
@@ -55,7 +55,7 @@ describe('DropdownMenu', function () {
   });
 
   it('renders disabled items', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
 
     render(
       <DropdownMenu
@@ -132,7 +132,7 @@ describe('DropdownMenu', function () {
   });
 
   it('renders submenus', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
 
     render(
       <DropdownMenu
@@ -218,7 +218,7 @@ describe('DropdownMenu', function () {
   });
 
   it('renders disabled', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
 
     render(
       <DropdownMenu
@@ -282,7 +282,7 @@ describe('DropdownMenu', function () {
   });
 
   it('navigates to link on enter', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
     const router = RouterFixture();
     render(
       <DropdownMenu
@@ -307,11 +307,11 @@ describe('DropdownMenu', function () {
   });
 
   it('navigates to link on meta key', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
     const router = RouterFixture();
     const user = userEvent.setup();
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <DropdownMenu
@@ -338,7 +338,7 @@ describe('DropdownMenu', function () {
   });
 
   it('navigates to external link enter', async function () {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
     const router = RouterFixture();
     const user = userEvent.setup();
 

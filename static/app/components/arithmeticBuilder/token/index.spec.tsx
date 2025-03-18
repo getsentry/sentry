@@ -474,7 +474,7 @@ describe('token', function () {
 
   describe('ArithmeticTokenOperator', function () {
     it('renders addition operator', async function () {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       render(<Tokens expression="+" dispatch={dispatch} />);
 
       const operator = screen.getByTestId('icon-add');
@@ -498,7 +498,7 @@ describe('token', function () {
     });
 
     it('renders subtract operator', async function () {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       render(<Tokens expression="-" dispatch={dispatch} />);
 
       const operator = screen.getByTestId('icon-subtract');
@@ -522,7 +522,7 @@ describe('token', function () {
     });
 
     it('renders multiply operator', async function () {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       render(<Tokens expression="*" dispatch={dispatch} />);
 
       const operator = screen.getByTestId('icon-multiply');
@@ -546,7 +546,7 @@ describe('token', function () {
     });
 
     it('renders divide operator', async function () {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       render(<Tokens expression="/" dispatch={dispatch} />);
 
       const operator = screen.getByTestId('icon-divide');
@@ -572,7 +572,7 @@ describe('token', function () {
 
   describe('ArithmeticTokenParenthesis', function () {
     it('renders left parenthesis', async function () {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       render(<Tokens expression="(" dispatch={dispatch} />);
 
       const parenthesis = screen.getByTestId('icon-parenthesis');
@@ -597,7 +597,7 @@ describe('token', function () {
     });
 
     it('renders right parenthesis', async function () {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       render(<Tokens expression=")" dispatch={dispatch} />);
 
       const parenthesis = screen.getByTestId('icon-parenthesis');

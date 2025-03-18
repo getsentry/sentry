@@ -16,7 +16,7 @@ import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 describe('ProjectKeys', function () {
   const {organization, project} = initializeOrg();
   const projectKeys = ProjectKeysFixture();
-  let deleteMock: jest.Mock;
+  let deleteMock: vi.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

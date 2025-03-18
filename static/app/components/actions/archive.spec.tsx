@@ -9,9 +9,9 @@ import ArchiveActions from 'sentry/components/actions/archive';
 import {GroupStatus} from 'sentry/types/group';
 
 describe('ArchiveActions', () => {
-  const onUpdate = jest.fn();
+  const onUpdate = vi.fn();
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('archives the issue', async () => {

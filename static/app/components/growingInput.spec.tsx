@@ -18,7 +18,7 @@ describe('GrowingInput', () => {
   });
 
   it('can be uncontrolled', async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     render(
       <GrowingInput
         onChange={handleChange}

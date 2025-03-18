@@ -46,7 +46,7 @@ describe('AlertLink', () => {
   });
 
   it('fires onClick when clicked', async () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
 
     render(
       <AlertLink type="info" onClick={onClick}>

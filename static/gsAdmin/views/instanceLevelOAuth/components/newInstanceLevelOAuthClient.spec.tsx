@@ -8,7 +8,7 @@ import {
 import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
 describe('create instance level OAuth client', function () {
-  let mockPostRequest: jest.Mock;
+  let mockPostRequest: vi.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

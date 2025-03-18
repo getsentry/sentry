@@ -26,7 +26,7 @@ describe('Feature', function () {
   }
 
   describe('as render prop', function () {
-    const childrenMock = jest.fn().mockReturnValue(null);
+    const childrenMock = vi.fn().mockReturnValue(null);
     beforeEach(function () {
       childrenMock.mockClear();
     });
@@ -81,7 +81,7 @@ describe('Feature', function () {
     });
 
     it('calls render function when no features', function () {
-      const noFeatureRenderer = jest.fn(() => null);
+      const noFeatureRenderer = vi.fn(() => null);
       render(
         <WrappedFeature features="org-baz" renderDisabled={noFeatureRenderer}>
           {childrenMock}
@@ -263,7 +263,7 @@ describe('Feature', function () {
     });
 
     it('calls renderDisabled function when no features', function () {
-      const noFeatureRenderer = jest.fn(() => null);
+      const noFeatureRenderer = vi.fn(() => null);
       const children = <div>The Child</div>;
       render(
         <WrappedFeature features="org-baz" renderDisabled={noFeatureRenderer}>
@@ -285,10 +285,10 @@ describe('Feature', function () {
   });
 
   describe('using HookStore for renderDisabled', function () {
-    let hookFn: jest.Mock;
+    let hookFn: vi.Mock;
 
     beforeEach(function () {
-      hookFn = jest.fn(() => null);
+      hookFn = vi.fn(() => null);
       HookStore.add('feature-disabled:sso-basic', hookFn);
     });
 

@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling/samplingModeSwitchModal';
 
-jest.mock('sentry/views/settings/dynamicSampling/samplingModeSwitchModal');
+vi.mock('sentry/views/settings/dynamicSampling/samplingModeSwitchModal');
 
 describe('SamplingModeSwitch', function () {
   const organization = OrganizationFixture({

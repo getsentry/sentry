@@ -9,14 +9,14 @@ import {lightTheme} from 'sentry/utils/theme';
 describe('CursorRenderer', () => {
   it('renders cursor in center screen', () => {
     const context = {
-      beginPath: jest.fn(),
-      moveTo: jest.fn(),
-      lineTo: jest.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
       strokeStyle: undefined,
-      stroke: jest.fn(),
+      stroke: vi.fn(),
     };
     const canvasMock = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     } as unknown as HTMLCanvasElement;
 
     const renderer = new CursorRenderer(canvasMock, makeLightFlamegraphTheme(lightTheme));

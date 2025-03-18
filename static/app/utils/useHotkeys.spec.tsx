@@ -9,7 +9,7 @@ describe('useHotkeys', function () {
   function makeKeyEventFixture(keyCode: any, options: any) {
     return {
       keyCode: getKeyCode(keyCode),
-      preventDefault: jest.fn(),
+      preventDefault: vi.fn(),
       ...options,
     };
   }
@@ -19,17 +19,17 @@ describe('useHotkeys', function () {
     events = {};
 
     // Define the addEventListener method with a Jest mock function
-    document.addEventListener = jest.fn((event: string, callback: () => any) => {
+    document.addEventListener = vi.fn((event: string, callback: () => any) => {
       events[event] = callback;
     });
 
-    document.removeEventListener = jest.fn(event => {
+    document.removeEventListener = vi.fn(event => {
       delete events[event];
     });
   });
 
   it('handles a simple match', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: 'ctrl+s', callback}],
@@ -46,7 +46,7 @@ describe('useHotkeys', function () {
   });
 
   it('handles multiple matches', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['ctrl+s', 'command+m'], callback}],
@@ -66,7 +66,7 @@ describe('useHotkeys', function () {
   });
 
   it('handles a complex match', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['command+ctrl+alt+shift+x'], callback}],
@@ -88,7 +88,7 @@ describe('useHotkeys', function () {
   });
 
   it('does not match when extra modifiers are pressed', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['command+shift+x'], callback}],
@@ -110,7 +110,7 @@ describe('useHotkeys', function () {
   });
 
   it('updates with rerender', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     const {rerender} = renderHook(p => useHotkeys([{match: p.match, callback}]), {
       initialProps: {match: 'ctrl+s'},
@@ -134,7 +134,7 @@ describe('useHotkeys', function () {
   });
 
   it('skips input and textarea', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['/'], callback}],
@@ -146,7 +146,7 @@ describe('useHotkeys', function () {
   });
 
   it('does not skips input and textarea with includesInputs', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['/'], callback, includeInputs: true}],
@@ -158,7 +158,7 @@ describe('useHotkeys', function () {
   });
 
   it('skips preventDefault', function () {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: 'ctrl+s', callback, skipPreventDefault: true}],

@@ -29,12 +29,12 @@ describe('StacktraceBanners', () => {
   });
   const stacktrace = eventEntryStacktrace.data as Required<StacktraceType>;
 
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-  let promptActivity: jest.Mock;
-  let promptsUpdateMock: jest.Mock;
+  const analyticsSpy = vi.spyOn(analytics, 'trackAnalytics');
+  let promptActivity: vi.Mock;
+  let promptsUpdateMock: vi.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockApiClient.clearMockResponses();
     promptActivity = MockApiClient.addMockResponse({
       method: 'GET',

@@ -11,10 +11,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import ProjectEnvironments from 'sentry/views/settings/project/projectEnvironments';
 
-jest.mock('sentry/utils/recreateRoute');
-jest
-  .mocked(recreateRoute)
-  .mockReturnValue('/org-slug/project-slug/settings/environments/');
+vi.mock('sentry/utils/recreateRoute');
+vi.mocked(recreateRoute).mockReturnValue('/org-slug/project-slug/settings/environments/');
 
 function renderComponent(isHidden: boolean) {
   const {organization, project, routerProps} = initializeOrg();
@@ -100,8 +98,8 @@ describe('ProjectEnvironments', function () {
   });
 
   describe('toggle', function () {
-    let hideMock: jest.Mock;
-    let showMock: jest.Mock;
+    let hideMock: vi.Mock;
+    let showMock: vi.Mock;
     const baseUrl = '/projects/org-slug/project-slug/environments/';
     beforeEach(function () {
       hideMock = MockApiClient.addMockResponse({

@@ -36,7 +36,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
 describe('TextRenderer', () => {
   it('invalidates cache if cached measurements do not match new measurements', () => {
     const context: Partial<CanvasRenderingContext2D> = {
-      measureText: jest
+      measureText: vi
         .fn()
         .mockReturnValueOnce({width: 1}) // first call for test
         .mockReturnValueOnce({width: 10})
@@ -44,7 +44,7 @@ describe('TextRenderer', () => {
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const textRenderer = new FlamegraphTextRenderer(
@@ -67,11 +67,11 @@ describe('TextRenderer', () => {
   });
   it('caches measure text', () => {
     const context: Partial<CanvasRenderingContext2D> = {
-      measureText: jest.fn().mockReturnValue({width: 10}),
+      measureText: vi.fn().mockReturnValue({width: 10}),
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const textRenderer = new FlamegraphTextRenderer(
@@ -111,12 +111,12 @@ describe('TextRenderer', () => {
     const flamegraph = new Flamegraph(profile, {inverted: false, sort: 'call order'});
 
     const context: Partial<CanvasRenderingContext2D> = {
-      measureText: jest.fn().mockReturnValue({width: 10}),
-      fillText: jest.fn(),
+      measureText: vi.fn().mockReturnValue({width: 10}),
+      fillText: vi.fn(),
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const textRenderer = new FlamegraphTextRenderer(
@@ -152,14 +152,14 @@ describe('TextRenderer', () => {
     const flamegraph = new Flamegraph(profile, {inverted: false, sort: 'call order'});
 
     const context: Partial<CanvasRenderingContext2D> = {
-      measureText: jest.fn().mockImplementation(n => {
+      measureText: vi.fn().mockImplementation(n => {
         return {width: n.length - 1};
       }),
-      fillText: jest.fn(),
+      fillText: vi.fn(),
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const textRenderer = new FlamegraphTextRenderer(
@@ -207,14 +207,14 @@ describe('TextRenderer', () => {
     const flamegraph = new Flamegraph(profile, {inverted: false, sort: 'call order'});
 
     const context: Partial<CanvasRenderingContext2D> = {
-      measureText: jest.fn().mockImplementation(n => {
+      measureText: vi.fn().mockImplementation(n => {
         return {width: n.length - 1};
       }),
-      fillText: jest.fn(),
+      fillText: vi.fn(),
     };
 
     const canvas: Partial<HTMLCanvasElement> = {
-      getContext: jest.fn().mockReturnValue(context),
+      getContext: vi.fn().mockReturnValue(context),
     };
 
     const textRenderer = new FlamegraphTextRenderer(

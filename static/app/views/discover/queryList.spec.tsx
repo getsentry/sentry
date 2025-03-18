@@ -17,17 +17,17 @@ import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
 
-jest.mock('sentry/actionCreators/modal');
+vi.mock('sentry/actionCreators/modal');
 
 describe('Discover > QueryList', function () {
   let location: ReturnType<typeof LocationFixture>;
   let savedQueries: Array<ReturnType<typeof DiscoverSavedQueryFixture>>;
   let organization: ReturnType<typeof OrganizationFixture>;
-  let deleteMock: jest.Mock;
-  let duplicateMock: jest.Mock;
-  let queryChangeMock: jest.Mock;
-  let updateHomepageMock: jest.Mock;
-  let eventsStatsMock: jest.Mock;
+  let deleteMock: vi.Mock;
+  let duplicateMock: vi.Mock;
+  let queryChangeMock: vi.Mock;
+  let updateHomepageMock: vi.Mock;
+  let eventsStatsMock: vi.Mock;
 
   const {router} = initializeOrg();
 
@@ -77,11 +77,11 @@ describe('Discover > QueryList', function () {
       pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
     });
-    queryChangeMock = jest.fn();
+    queryChangeMock = vi.fn();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders an empty list', function () {

@@ -6,8 +6,8 @@ import {
 } from 'sentry/views/insights/mobile/screens/utils';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
 
 describe('Utils', function () {
   describe('Cold App Start', function () {

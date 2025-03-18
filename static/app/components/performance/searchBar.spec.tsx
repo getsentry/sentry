@@ -14,7 +14,7 @@ describe('SearchBar', () => {
   const organization = OrganizationFixture();
 
   const testProps: SearchBarProps = {
-    onSearch: jest.fn(),
+    onSearch: vi.fn(),
     organization,
     eventView: EventView.fromSavedQuery({
       id: '',
@@ -28,7 +28,7 @@ describe('SearchBar', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -65,7 +65,7 @@ describe('SearchBar', () => {
   });
 
   it('Responds to keyboard navigation', async () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -97,7 +97,7 @@ describe('SearchBar', () => {
   });
 
   it('Submits wildcard searches as raw text searches', async () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -121,7 +121,7 @@ describe('SearchBar', () => {
   });
 
   it('closes the search dropdown when clicked outside of', async () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -147,7 +147,7 @@ describe('SearchBar', () => {
   });
 
   it('properly formats transaction queries that include a space', async () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {

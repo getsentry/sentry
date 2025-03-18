@@ -11,11 +11,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {FilterFields} from 'sentry/views/replays/detail/console/useConsoleFilters';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/useNavigate');
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
+const mockUseNavigate = vi.mocked(useNavigate);
+const mockUseLocation = vi.mocked(useLocation);
 
 const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
   ReplayConsoleFrameFixture({
@@ -96,7 +96,7 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
 
 describe('useConsoleFilters', () => {
   it('should update the url when setters are called', () => {
-    const mockNavigate = jest.fn();
+    const mockNavigate = vi.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     const LOG_FILTER = ['error'];
     const SEARCH_FILTER = 'component';

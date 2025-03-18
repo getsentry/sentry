@@ -8,7 +8,7 @@ import {makeUndoableReducer, useUndoableReducer} from 'sentry/utils/useUndoableR
 
 describe('makeUndoableReducer', () => {
   it('does not overflow undo/redo', () => {
-    const mockFirstReducer = jest.fn().mockImplementation(v => ++v);
+    const mockFirstReducer = vi.fn().mockImplementation(v => ++v);
     const reducer = makeUndoableReducer(mockFirstReducer);
 
     expect(() =>
@@ -19,7 +19,7 @@ describe('makeUndoableReducer', () => {
     ).not.toThrow();
   });
   it('calls undo/redo if action matches', () => {
-    const mockFirstReducer = jest.fn().mockImplementation(v => {
+    const mockFirstReducer = vi.fn().mockImplementation(v => {
       return ++v;
     });
 
@@ -53,7 +53,7 @@ describe('makeUndoableReducer', () => {
 
   describe('useUndoableReducer', () => {
     it('initializes with init state', () => {
-      const reducer = jest
+      const reducer = vi
         .fn()
         .mockImplementation((state: number, action: 'add' | 'subtract') =>
           action === 'add' ? state + 1 : state - 1
@@ -71,7 +71,7 @@ describe('makeUndoableReducer', () => {
     });
 
     it('updates state', () => {
-      const reducer = jest
+      const reducer = vi
         .fn()
         .mockImplementation((state: number, action: 'add' | 'subtract') =>
           action === 'add' ? state + 1 : state - 1
@@ -97,7 +97,7 @@ describe('makeUndoableReducer', () => {
       const {result} = renderHook(
         (args: Parameters<typeof useUndoableReducer>) =>
           useUndoableReducer(args[0], args[1]),
-        {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
+        {initialProps: [vi.fn().mockImplementation(s => s + 1), 0]}
       );
 
       act(() => result.current[1](0));
@@ -111,7 +111,7 @@ describe('makeUndoableReducer', () => {
       const {result} = renderHook(
         (args: Parameters<typeof useUndoableReducer>) =>
           useUndoableReducer(args[0], args[1]),
-        {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
+        {initialProps: [vi.fn().mockImplementation(s => s + 1), 0]}
       );
 
       act(() => result.current[1](0)); // 0 + 1

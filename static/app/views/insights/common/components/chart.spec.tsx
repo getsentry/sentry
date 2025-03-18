@@ -1,3 +1,5 @@
+import {vi} from 'vitest';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
@@ -5,20 +7,24 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import type {Series} from 'sentry/types/echarts';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div />);
-});
-jest.mock('react', () => {
+vi.mock('sentry/components/charts/baseChart', () => {
   return {
-    ...jest.requireActual('react'),
-    useRef: jest.fn(),
+    default: vi.fn().mockImplementation(() => <div />),
+  };
+});
+vi.mock('react', async () => {
+  const actual = await vi.importActual('react');
+  return {
+    ...actual,
+    useRef: vi.fn(),
   };
 });
 // XXX: Mocking useRef throws an error for AnimatePrecense, so it must be mocked as well
-jest.mock('framer-motion', () => {
+vi.mock('framer-motion', async () => {
+  const actual = await vi.importActual('framer-motion');
   return {
-    ...jest.requireActual('framer-motion'),
-    AnimatePresence: jest.fn().mockImplementation(({children}) => <div>{children}</div>),
+    ...actual,
+    AnimatePresence: vi.fn().mockImplementation(({children}) => <div>{children}</div>),
   };
 });
 
@@ -61,10 +67,8 @@ describe('Chart', function () {
       // Mocked useRef breaks router
       disableRouterMocks: true,
     });
-    expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[0]).toHaveProperty(
-      'markLine'
-    );
-    expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[1]).not.toHaveProperty(
+    expect(vi.mocked(BaseChart).mock.calls[0]![0].series?.[0]).toHaveProperty('markLine');
+    expect(vi.mocked(BaseChart).mock.calls[0]![0].series?.[1]).not.toHaveProperty(
       'markLine'
     );
   });

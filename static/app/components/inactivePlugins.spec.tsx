@@ -17,7 +17,7 @@ describe('InactivePlugins', function () {
   });
 
   it('enables a plugin', async function () {
-    const enableFn = jest.fn();
+    const enableFn = vi.fn();
     const plugins = PluginsFixture();
     render(<InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />);
     await userEvent.click(screen.getByRole('button', {name: plugins[0]!.name}));

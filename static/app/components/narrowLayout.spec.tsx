@@ -4,10 +4,10 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 
 describe('NarrowLayout', function () {
   beforeAll(function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+    vi.spyOn(window.location, 'assign').mockImplementation(() => {});
   });
   afterAll(function () {
-    jest.mocked(window.location.assign).mockRestore();
+    vi.mocked(window.location.assign).mockRestore();
   });
 
   it('renders without logout', function () {

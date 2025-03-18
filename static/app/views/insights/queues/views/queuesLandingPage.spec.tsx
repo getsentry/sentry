@@ -9,10 +9,10 @@ import useProjects from 'sentry/utils/useProjects';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/utils/useReleaseStats');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useProjects');
+vi.mock('sentry/utils/useReleaseStats');
 
 describe('queuesLandingPage', () => {
   const organization = OrganizationFixture({
@@ -22,7 +22,7 @@ describe('queuesLandingPage', () => {
   project.firstTransactionEvent = true;
   project.hasInsightsQueues = true;
 
-  jest.mocked(usePageFilters).mockReturnValue({
+  vi.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
@@ -39,7 +39,7 @@ describe('queuesLandingPage', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
+  vi.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {statsPeriod: '10d', project: '1'},
@@ -49,10 +49,10 @@ describe('queuesLandingPage', () => {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
+  vi.mocked(useProjects).mockReturnValue({
     projects: [project],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
+    onSearch: vi.fn(),
+    reloadProjects: vi.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -60,7 +60,7 @@ describe('queuesLandingPage', () => {
     initiallyLoaded: false,
   });
 
-  jest.mocked(useReleaseStats).mockReturnValue({
+  vi.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
     isError: false,
@@ -68,8 +68,8 @@ describe('queuesLandingPage', () => {
     releases: [],
   });
 
-  let eventsMock: jest.Mock;
-  let eventsStatsMock: jest.Mock;
+  let eventsMock: vi.Mock;
+  let eventsStatsMock: vi.Mock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({

@@ -12,7 +12,7 @@ import {TestRouteContext} from 'sentry/views/routeContext';
 import useButtonTracking from 'getsentry/hooks/useButtonTracking';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 
-jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
+vi.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
 describe('buttonTracking', function () {
   const organization = OrganizationFixture();
@@ -40,7 +40,7 @@ describe('buttonTracking', function () {
   );
 
   afterEach(function () {
-    (rawTrackAnalyticsEvent as jest.Mock).mockClear();
+    (rawTrackAnalyticsEvent as vi.Mock).mockClear();
   });
 
   it('calls rawTrackAnalyticsEvent with default values', function () {

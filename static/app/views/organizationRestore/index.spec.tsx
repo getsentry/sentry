@@ -6,8 +6,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
 describe('OrganizationRestore', function () {
-  let mockUpdate!: jest.Mock;
-  let mockGet!: jest.Mock;
+  let mockUpdate!: vi.Mock;
+  let mockGet!: vi.Mock;
   const pendingDeleteOrg = OrganizationFixture({
     status: {id: 'pending_deletion', name: 'Pending Deletion'},
   });

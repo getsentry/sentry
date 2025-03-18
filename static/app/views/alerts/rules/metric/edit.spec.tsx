@@ -9,15 +9,15 @@ import {metric} from 'sentry/utils/analytics';
 import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
-jest.mock('sentry/utils/analytics', () => ({
+vi.mock('sentry/utils/analytics', () => ({
   metric: {
-    startSpan: jest.fn(() => ({
-      setTag: jest.fn(),
-      setData: jest.fn(),
+    startSpan: vi.fn(() => ({
+      setTag: vi.fn(),
+      setData: vi.fn(),
     })),
-    mark: jest.fn(),
-    measure: jest.fn(),
-    endSpan: jest.fn(),
+    mark: vi.fn(),
+    measure: vi.fn(),
+    endSpan: vi.fn(),
   },
 }));
 
@@ -62,13 +62,13 @@ describe('MetricRulesEdit', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders and edits trigger', async function () {
     const {organization, project} = initializeOrg();
     const rule = MetricRuleFixture();
-    const onChangeTitleMock = jest.fn();
+    const onChangeTitleMock = vi.fn();
     const req = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,

@@ -13,11 +13,11 @@ import {
 import BillingPlans, {type BillingPlansResponse} from './billingPlans';
 
 // Mock Sentry for error handling
-jest.mock('@sentry/react');
+vi.mock('@sentry/react');
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
-global.URL.createObjectURL = jest.fn(() => 'blob:http://localhost/fake-url');
-global.URL.revokeObjectURL = jest.fn();
+global.URL.createObjectURL = vi.fn(() => 'blob:http://localhost/fake-url');
+global.URL.revokeObjectURL = vi.fn();
 
 // We'll use this to hold a reference to the created <a> element
 let downloadLink: HTMLAnchorElement | null = null;
@@ -27,10 +27,10 @@ const originalCreateElement = document.createElement;
 
 beforeEach(() => {
   // Clear mocks before each test
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   // Spy on document.createElement
-  jest.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+  vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
     // Use the originally stored createElement function
     const element = originalCreateElement.call(document, tagName);
 
@@ -38,7 +38,7 @@ beforeEach(() => {
       downloadLink = element as HTMLAnchorElement;
 
       // Spy on the click method
-      jest.spyOn(downloadLink, 'click').mockImplementation(() => {
+      vi.spyOn(downloadLink, 'click').mockImplementation(() => {
         /* do nothing */
       });
     }
@@ -48,7 +48,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
   downloadLink = null;
 });
 
@@ -83,7 +83,7 @@ describe('BillingPlans Component', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders without crashing', async () => {
@@ -167,11 +167,11 @@ describe('BillingPlans Component', () => {
   });
 
   it('downloads CSV when the download button is clicked', async () => {
-    const TEST_BLOB_CONSTRUCTOR = jest.fn();
+    const TEST_BLOB_CONSTRUCTOR = vi.fn();
 
-    jest
-      .spyOn(global, 'Blob')
-      .mockImplementationOnce((...args) => TEST_BLOB_CONSTRUCTOR(...args));
+    vi.spyOn(global, 'Blob').mockImplementationOnce((...args) =>
+      TEST_BLOB_CONSTRUCTOR(...args)
+    );
 
     render(<BillingPlans />);
 

@@ -20,8 +20,8 @@ import {
 } from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+vi.mock('sentry/utils/useLocation');
+vi.mock('sentry/utils/usePageFilters');
 
 function Wrapper({children}: {children?: ReactNode}) {
   return (
@@ -37,7 +37,7 @@ describe('useDiscover', () => {
   describe('useSpanMetrics', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -54,7 +54,7 @@ describe('useDiscover', () => {
       },
     });
 
-    jest.mocked(useLocation).mockReturnValue(
+    vi.mocked(useLocation).mockReturnValue(
       LocationFixture({
         query: {statsPeriod: '10d'},
       })
@@ -161,7 +161,7 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
+    vi.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
@@ -178,14 +178,14 @@ describe('useDiscover', () => {
       },
     });
 
-    jest.mocked(useLocation).mockReturnValue(
+    vi.mocked(useLocation).mockReturnValue(
       LocationFixture({
         query: {statsPeriod: '10d'},
       })
     );
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('respects the `enabled` prop', () => {

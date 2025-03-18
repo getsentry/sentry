@@ -17,7 +17,7 @@ const usorg = OrganizationFixture({
 });
 
 describe('AccountSecurityEnroll', function () {
-  jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+  vi.spyOn(window.location, 'assign').mockImplementation(() => {});
 
   describe('Totp', function () {
     const authenticator = AuthenticatorsFixture().Totp({
@@ -157,7 +157,7 @@ describe('AccountSecurityEnroll', function () {
         statusCode: 400,
       });
 
-      const pushMock = jest.fn();
+      const pushMock = vi.fn();
       const routerWithMock = RouterFixture({
         push: pushMock,
         params: {authId: authenticator.authId},

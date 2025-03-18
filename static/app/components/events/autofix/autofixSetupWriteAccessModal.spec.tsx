@@ -32,7 +32,7 @@ describe('AutofixSetupWriteAccessModal', function () {
       },
     });
 
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
 
     renderGlobalModal();
 
@@ -82,7 +82,7 @@ describe('AutofixSetupWriteAccessModal', function () {
       },
     });
 
-    const closeModal = jest.fn();
+    const closeModal = vi.fn();
 
     renderGlobalModal();
 

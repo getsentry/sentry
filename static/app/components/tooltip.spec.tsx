@@ -22,7 +22,7 @@ describe('Tooltip', function () {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders', async function () {
