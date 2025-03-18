@@ -262,10 +262,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
+                  field: 'equation|spm() + 1',
                   meta: NULL_META,
                 }),
                 new Line({
                   ...sampleDurationTimeSeries,
+                  field: 'custom_aggregate()',
                   meta: NULL_META,
                 }),
               ]}
@@ -277,6 +279,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
+                  field: 'equation|spm() + 1',
                   meta: {
                     type: 'number',
                     unit: null,
@@ -284,6 +287,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                 }),
                 new Line({
                   ...sampleDurationTimeSeries,
+                  field: 'custom_aggregate()',
                   meta: NULL_META,
                 }),
               ]}
