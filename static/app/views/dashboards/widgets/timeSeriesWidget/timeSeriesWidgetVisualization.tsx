@@ -187,17 +187,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
 
   // Sort the field types by how many plottables use each one
-  const axisTypes = (
-    Object.keys(fieldTypeCounts).filter(key => {
-      // JavaScript objects cannot have `undefined` or `null` as keys. lodash
-      // `groupBy` casts those cases to strings. This is _very_ rare, since it
-      // indicates a backend failure to provide the correct data type, but it
-      // happens sometimes. Filter those out. It would be cleaner to use a type
-      // predicate here, but consistently enforcing plottable values is a lot of
-      // work
-      return !['undefined', 'null'].includes(key);
-    }) as AggregationOutputType[]
-  )
+  const axisTypes = Object.keys(fieldTypeCounts)
     .toSorted(
       // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
       (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!
