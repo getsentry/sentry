@@ -79,6 +79,7 @@ interface ObservableProps {
   help?: ObservedFnOrValue<FieldGroupProps['help']>;
   highlighted?: ObservedFnOrValue<FieldGroupProps['highlighted']>;
   inline?: ObservedFnOrValue<FieldGroupProps['inline']>;
+  placeholder?: ObservedFnOrValue<string>;
   visible?: ObservedFnOrValue<FieldGroupProps['visible']>;
 }
 
@@ -91,6 +92,7 @@ interface ResolvedObservableProps {
   help?: FieldGroupProps['help'];
   highlighted?: FieldGroupProps['highlighted'];
   inline?: FieldGroupProps['inline'];
+  placeholder?: string;
   visible?: FieldGroupProps['visible'];
 }
 
@@ -121,7 +123,6 @@ interface BaseProps {
   onBlur?: (value: any, event: any) => void;
   onChange?: (value: any, event: any) => void;
   onKeyDown?: (value: any, event: any) => void;
-  placeholder?: ObservedFnOrValue<React.ReactNode>;
 
   resetOnError?: boolean;
   /**
@@ -171,7 +172,9 @@ export interface FormFieldProps
  * ResolvedProps do NOT include props which may be given functions that are
  * reacted on. Resolved props are used inside of makeField.
  */
-type ResolvedProps = BaseProps & FieldGroupProps;
+interface ResolvedProps extends BaseProps, Omit<FieldGroupProps, 'children'> {
+  placeholder?: string;
+}
 
 type PassthroughProps = Omit<
   ResolvedProps,
@@ -370,10 +373,6 @@ function FormField(props: FormFieldProps) {
                       error,
                       initialData: model.initialData,
                       'aria-describedby': `${id}_help`,
-                      placeholder:
-                        typeof fieldProps.placeholder === 'function'
-                          ? fieldProps.placeholder({...props, model})
-                          : fieldProps.placeholder,
                     })}
                   </Fragment>
                 );
