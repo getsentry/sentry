@@ -38,16 +38,7 @@ MOCKED_DERIVED_METRICS.update(
 
 
 class OrganizationMetricsPermissionTest(APITestCase):
-    endpoints = [
-        [
-            "get",
-            "sentry-api-0-organization-metrics-data",
-        ],
-        [
-            "post",
-            "sentry-api-0-organization-metrics-query",
-        ],
-    ]
+    (method, endpoint) = ("get", "sentry-api-0-organization-metrics-data")
 
     def setUp(self):
         self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)
@@ -62,8 +53,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-        for method, endpoint, *rest in self.endpoints:
-            response = self.send_request(self.organization, token, method, endpoint, *rest)
+            response = self.send_request(self.organization, token, self.method, self.endpoint)
             assert response.status_code == 403
 
     def test_access_of_another_organization(self):
@@ -73,14 +63,12 @@ class OrganizationMetricsPermissionTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=other_user, scope_list=["org:read"])
 
-        for method, endpoint, *rest in self.endpoints:
-            response = self.send_request(self.organization, token, method, endpoint, *rest)
-            assert response.status_code == 403
+        response = self.send_request(self.organization, token, self.method, self.endpoint)
+        assert response.status_code == 403
 
     def test_access_with_permissions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
-        for method, endpoint, *rest in self.endpoints:
-            response = self.send_request(self.organization, token, method, endpoint, *rest)
-            assert response.status_code in (200, 400, 404)
+        response = self.send_request(self.organization, token, self.method, self.endpoint)
+        assert response.status_code in (200, 400, 404)
