@@ -61,7 +61,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     item_type = serializers.ChoiceField([e.value for e in TraceItemType], required=True)
     attribute_type = serializers.ChoiceField(["string", "number"], required=True)
-    prefix_match = serializers.CharField(required=False)
+    substring_match = serializers.CharField(required=False)
     query = serializers.CharField(required=False)
 
 
@@ -131,8 +131,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
         serialized = serializer.validated_data
-        prefix_match = serialized.get("prefix_match", "")
-        value_substring_match = translate_escape_sequences(prefix_match)
+        substring_match = serialized.get("substring_match", "")
+        value_substring_match = translate_escape_sequences(substring_match)
         query_string = serialized.get("query")
         attribute_type = serialized.get("attribute_type")
         item_type = serialized.get("item_type")
@@ -217,7 +217,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         serialized = serializer.validated_data
         item_type = serialized.get("item_type")
-        prefix_match = serialized.get("prefix_match", "")
+        substring_match = serialized.get("substring_match", "")
 
         definitions = (
             SPAN_DEFINITIONS if item_type == TraceItemType.SPANS.value else OURLOG_DEFINITIONS
@@ -227,7 +227,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             organization=organization,
             snuba_params=snuba_params,
             key=key,
-            query=prefix_match,
+            query=substring_match,
             max_span_tag_values=max_attribute_values,
             definitions=definitions,
         )

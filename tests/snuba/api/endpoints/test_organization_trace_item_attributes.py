@@ -44,7 +44,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_prefix_matching_logs(self):
+    def test_substring_matching_logs(self):
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -69,7 +69,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         self.store_ourlogs(logs)
 
         # Test with empty prefix (should return all attributes)
-        response = self.do_request(query={"prefix_match": ""})
+        response = self.do_request(query={"substring_match": ""})
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
@@ -82,7 +82,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "sentry.severity_text" in keys
 
         # With a prefix only match the attributes that start with "tes"
-        response = self.do_request(query={"prefix_match": "tes"})
+        response = self.do_request(query={"substring_match": "tes"})
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
         assert len(keys) == 3
