@@ -34,7 +34,23 @@ VALID_LAYOUTS = (
     "slashsymbols",
 )
 
-VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
+VALID_FILE_TYPES = (
+    "pe",
+    "pdb",
+    "portablepdb",
+    "mach_debug",
+    "mach_code",
+    "elf_debug",
+    "elf_code",
+    "wasm_debug",
+    "wasm_code",
+    "breakpad",
+    "sourcebundle",
+    "uuidmap",
+    "bcsymbolmap",
+    "il2cpp",
+    "proguard",
+)
 
 VALID_CASINGS = ("lowercase", "uppercase", "default")
 
@@ -48,11 +64,24 @@ LAYOUT_SCHEMA = {
     "additionalProperties": False,
 }
 
+FILTERS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
+        "path_patterns": {"type": "array", "items": {"type": "string"}},
+        "requires_checksum": {"type": "boolean"},
+    },
+    "additionalProperties": False,
+}
+
 COMMON_SOURCE_PROPERTIES = {
     "id": {"type": "string", "minLength": 1},
     "name": {"type": "string"},
     "layout": LAYOUT_SCHEMA,
+    "filters": FILTERS_SCHEMA,
+    # FIXME: This is temporarily included for backwards compatibility.
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
+    "is_public": {"type": "boolean"},
 }
 
 APP_STORE_CONNECT_SCHEMA = {
