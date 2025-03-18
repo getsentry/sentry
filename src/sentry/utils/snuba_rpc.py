@@ -161,6 +161,7 @@ def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttribu
 
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
+    print("Request", str(req))
     response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
     return response

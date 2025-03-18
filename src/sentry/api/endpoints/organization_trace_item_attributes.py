@@ -11,7 +11,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeValuesRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import (
-    RequestMeta,
     TraceItemType as ProtoTraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -30,6 +29,7 @@ from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.utils import translate_internal_to_public_alias
@@ -57,32 +57,32 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
-    feature_flag = "organizations:performance-trace-explorer"
+    feature_flag = "organizations:ourlogs-enabled"  # Can be changed to performance-trace-explorer once spans work.
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField([e.value for e in TraceItemType], required=True)
+    item_type = serializers.ChoiceField([e.value for e in TraceItemType], required=True)
     attribute_type = serializers.ChoiceField(["string", "number"], required=True)
     prefix_match = serializers.CharField(required=False)
     query = serializers.CharField(required=False)
 
 
-def is_valid_dataset(dataset: str) -> bool:
-    return dataset in [e.value for e in TraceItemType]
+def is_valid_item_type(item_type: str) -> bool:
+    return item_type in [e.value for e in TraceItemType]
 
 
-def resolve_attribute_referrer(dataset: str, attribute_type: str) -> Referrer:
+def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
     return (
         Referrer.API_SPANS_TAG_KEYS_RPC
-        if dataset == TraceItemType.SPANS.value
+        if item_type == TraceItemType.SPANS.value
         else Referrer.API_LOGS_TAG_KEYS_RPC
     )
 
 
-def resolve_attribute_values_referrer(dataset: str) -> Referrer:
+def resolve_attribute_values_referrer(item_type: str) -> Referrer:
     return (
         Referrer.API_SPANS_TAG_VALUES_RPC
-        if dataset == TraceItemType.SPANS.value
+        if item_type == TraceItemType.SPANS.value
         else Referrer.API_LOGS_TAG_VALUES_RPC
     )
 
@@ -137,18 +137,18 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         value_substring_match = translate_escape_sequences(prefix_match)
         query_string = serialized.get("query")
         attribute_type = serialized.get("attribute_type")
-        dataset = serialized.get("dataset")
+        item_type = serialized.get("item_type")
         max_attributes = options.get("performance.spans-tags-key.max")
 
-        dataset_type = TraceItemType(dataset)
-        referrer = resolve_attribute_referrer(dataset_type, attribute_type)
+        item_type_type = TraceItemType(item_type)
+        referrer = resolve_attribute_referrer(item_type_type, attribute_type)
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
         )
         filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
         meta.trace_item_type = TRACE_ITEM_TYPE_MAP.get(
-            dataset_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
+            item_type_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
         )
 
         adjusted_start_date, adjusted_end_date = adjust_start_end_window(
@@ -157,7 +157,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        filter = filter or empty_filter(dataset_type)
+        filter = filter or empty_filter(item_type_type)
         attr_type = (
             AttributeKey.Type.TYPE_DOUBLE
             if attribute_type == "number"
@@ -218,67 +218,23 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         max_attribute_values = options.get("performance.spans-tags-values.max")
 
         serialized = serializer.validated_data
+        item_type = serialized.get("item_type")
         prefix_match = serialized.get("prefix_match", "")
 
-        dataset_type = TraceItemType(serialized["dataset"])
-        referrer = resolve_attribute_values_referrer(dataset_type)
-
-        attribute_type = serialized.get("attribute_type")
-        attr_type = (
-            AttributeKey.Type.TYPE_DOUBLE
-            if attribute_type == "number"
-            else AttributeKey.Type.TYPE_STRING
+        definitions = (
+            SPAN_DEFINITIONS if item_type == TraceItemType.SPANS.value else OURLOG_DEFINITIONS
         )
 
-        start_timestamp = Timestamp()
-        end_timestamp = Timestamp()
-        adjusted_start_date, adjusted_end_date = adjust_start_end_window(
-            snuba_params.start_date, snuba_params.end_date
-        )
-        start_timestamp.FromDatetime(adjusted_start_date)
-        end_timestamp.FromDatetime(adjusted_end_date)
-
-        # Create the RequestMeta object
-        meta = RequestMeta(
-            organization_id=organization.id,
-            project_ids=snuba_params.project_ids,
-            start_timestamp=start_timestamp,
-            end_timestamp=end_timestamp,
-            trace_item_type=TRACE_ITEM_TYPE_MAP.get(
-                dataset_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
-            ),
-            referrer=referrer.value,
+        executor = TraceItemAttributeValuesAutocompletionExecutor(
+            organization=organization,
+            snuba_params=snuba_params,
+            key=key,
+            query=prefix_match,
+            max_span_tag_values=max_attribute_values,
+            definitions=definitions,
         )
 
-        value_substring_match = translate_escape_sequences(prefix_match)
-
-        # Create a basic attribute key
-        attribute_key_obj = AttributeKey(
-            name=key,
-            type=attr_type,
-        )
-
-        rpc_request = TraceItemAttributeValuesRequest(
-            meta=meta,
-            key=attribute_key_obj,
-            value_substring_match=value_substring_match,
-            limit=max_attribute_values,
-        )
-
-        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
-
-        tag_values = [
-            TagValue(
-                key=key,
-                value=value,
-                times_seen=None,
-                first_seen=None,
-                last_seen=None,
-            )
-            for value in rpc_response.values
-            if value
-        ]
-
+        tag_values = executor.execute()
         tag_values.sort(key=lambda tag: tag.value)
 
         paginator = ChainPaginator([tag_values], max_limit=max_attribute_values)
@@ -309,10 +265,10 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
 
     def resolve_attribute_key(
-        self, key: str, _: SnubaParams
+        self, key: str, snuba_params: SnubaParams
     ) -> tuple[constants.SearchType, AttributeKey]:
-        resolved = self.resolver.resolve_attribute(key)
-        return resolved.search_type, resolved.proto_definition
+        resolved_attr, _ = self.resolver.resolve_attribute(key)
+        return resolved_attr.search_type, resolved_attr.proto_definition
 
     def execute(self) -> list[TagValue]:
         if self.key in self.PROJECT_ID_KEYS:

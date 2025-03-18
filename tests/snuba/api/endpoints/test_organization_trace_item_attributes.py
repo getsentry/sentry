@@ -1,24 +1,26 @@
 import pytest
 
+from django.urls import reverse
 from sentry.api.endpoints.organization_trace_item_attributes import TraceItemType
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attributes"
+    item_type = TraceItemType.LOGS.value  # Can subclass this to test other item types
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
-            "organizations:performance-trace-explorer": True,
+            "organizations:ourlogs-enabled": True,
         }
 
     def do_request(self, query=None, features=None, **kwargs):
         if query is None:
             query = {}
-        if "dataset" not in query:
-            query["dataset"] = "logs"
+        if "item_type" not in query:
+            query["item_type"] = self.item_type
         if "attribute_type" not in query:
             query["attribute_type"] = "string"
         if features is None:
@@ -30,19 +32,19 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_dataset(self):
-        response = self.do_request(query={"dataset": "invalid"})
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"item_type": "invalid"})
         assert response.status_code == 400, response.content
-        assert "dataset" in response.data
-        assert response.data["dataset"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["dataset"][0])
+        assert "item_type" in response.data
+        assert response.data["item_type"][0].code == "invalid_choice"
+        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
 
     def test_no_projects(self):
-        response = self.do_request(query={"dataset": "logs"})
+        response = self.do_request(query={"item_type": TraceItemType.LOGS.value})
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_prefix_matching(self):
+    def test_prefix_matching_logs(self):
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -79,6 +81,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "different.attr" in keys
         assert "sentry.severity_text" in keys
 
+        # With a prefix only match the attributes that start with "tes"
         response = self.do_request(query={"prefix_match": "tes"})
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
@@ -92,8 +95,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
     @pytest.mark.skip(
         reason="This should eventually work once TraceItemAttributeNamesRequest is fixed"
     )
-    def test_get_attribute_names_logs(self):
-        # Create logs with attributes
+    def test_all_attributes(self):
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -115,6 +117,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
+    item_type = TraceItemType.LOGS.value
 
     def setUp(self):
         super().setUp()
@@ -123,24 +126,36 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
             "organizations:performance-trace-explorer": True,
         }
 
-    def do_request(self, query=None, features=None, **kwargs):
+    def reverse_url(self, key="test.attribute"):
+        return reverse(
+            self.viewname,
+            kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+        )
+
+    def do_request(
+        self,
+        key="test.attribute",
+        item_type=TraceItemType.LOGS.value,
+        query=None,
+        features=None,
+        **kwargs,
+    ):
         if query is None:
             query = {}
-        if "dataset" not in query:
-            query["dataset"] = "logs"
+        if "item_type" not in query:
+            query["item_type"] = item_type
         if "attribute_type" not in query:
             query["attribute_type"] = "string"
         if features is None:
             features = self.features
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
+            return self.client_get(self.reverse_url(key=key), query, format="json", **kwargs)
 
     def test_no_feature(self):
         response = self.do_request(key="test.attribute")
         assert response.status_code == 404, response.content
 
-    def test_get_attribute_values_logs(self):
-        # Create logs with attributes
+    def test_attribute_values_for_logs(self):
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -169,14 +184,3 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
         assert "value1" in values
         assert "value2" in values
         assert all(item["key"] == "test.attribute" for item in response.data)
-
-
-class TestTraceItemType:
-    def test_trace_item_type_enum(self):
-        # Test that the enum values are valid
-        assert TraceItemType.LOGS.value == "logs"
-        assert TraceItemType.SPANS.value == "spans"
-
-        # Test conversion from string to enum
-        assert TraceItemType("logs") == TraceItemType.LOGS
-        assert TraceItemType("spans") == TraceItemType.SPANS
