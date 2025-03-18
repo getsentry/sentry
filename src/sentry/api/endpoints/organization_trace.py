@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -16,29 +17,40 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_trace_query
 
+# 1 worker each for spans, errors, performance issues
+_query_thread_pool = ThreadPoolExecutor(max_workers=3)
+
 
 class SerializedEvent(TypedDict):
-    children: list["SerializedEvent"]
+    description: str
     event_id: str
-    parent_span_id: str | None
+    event_type: str
+    is_transaction: bool
     project_id: int
     project_slug: str
-    start_timestamp: datetime | None
-    end_timestamp: datetime | None
+    start_timestamp: datetime
     transaction: str
-    description: str
+
+
+class SerializedSpan(SerializedEvent):
+    children: list["SerializedEvent"]
+    errors: list["SerializedEvent"]
     duration: float
-    is_transaction: bool
+    end_timestamp: datetime
     op: str
-    event_type: str
+    parent_span_id: str | None
 
 
 @region_silo_endpoint
 class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
+    """Replaces OrganizationEventsTraceEndpoint"""
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -65,37 +77,103 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             include_all_accessible=True,
         )
 
-    def serialize_rpc_span(self, span: dict[str, Any]) -> SerializedEvent:
-        return SerializedEvent(
-            children=[self.serialize_rpc_span(child) for child in span["children"]],
-            event_id=span["id"],
-            project_id=span["project.id"],
-            project_slug=span["project.slug"],
-            parent_span_id=None if span["parent_span"] == "0" * 16 else span["parent_span"],
-            start_timestamp=span["precise.start_ts"],
-            end_timestamp=span["precise.finish_ts"],
-            duration=span["span.duration"],
-            transaction=span["transaction"],
-            is_transaction=span["is_transaction"],
-            description=span["description"],
-            op=span["span.op"],
-            event_type="span",
+    def serialize_rpc_event(self, event: dict[str, Any]) -> SerializedEvent:
+        if event.get("event_type") == "error":
+            return SerializedEvent(
+                event_id=event["id"],
+                project_id=event["project.id"],
+                project_slug=event["project.name"],
+                start_timestamp=event["timestamp"],
+                is_transaction=False,
+                transaction=event["transaction"],
+                description=event["message"],
+                event_type="error",
+            )
+        elif event.get("event_type") == "span":
+            return SerializedSpan(
+                children=[self.serialize_rpc_event(child) for child in event["children"]],
+                errors=[self.serialize_rpc_event(error) for error in event["errors"]],
+                event_id=event["id"],
+                project_id=event["project.id"],
+                project_slug=event["project.slug"],
+                parent_span_id=None if event["parent_span"] == "0" * 16 else event["parent_span"],
+                start_timestamp=event["precise.start_ts"],
+                end_timestamp=event["precise.finish_ts"],
+                duration=event["span.duration"],
+                transaction=event["transaction"],
+                is_transaction=event["is_transaction"],
+                description=event["description"],
+                op=event["span.op"],
+                event_type="span",
+            )
+        else:
+            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+
+    def run_errors_query(self, snuba_params: SnubaParams, trace_id: str):
+        """Run an error query, getting all the errors for a given trace id"""
+        # TODO: replace this with EAP calls, this query is copied from the old trace view
+        error_query = DiscoverQueryBuilder(
+            Dataset.Events,
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            selected_columns=[
+                "id",
+                "project.name",
+                "project.id",
+                "timestamp",
+                "trace.span",
+                "transaction",
+                "issue",
+                "title",
+                "message",
+                "tags[level]",
+            ],
+            # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
+            orderby=["id"],
+            limit=10_000,
+            config=QueryBuilderConfig(
+                auto_fields=True,
+            ),
         )
+        result = error_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+        error_data = error_query.process_results(result)["data"]
+        for event in error_data:
+            event["event_type"] = "error"
+        return error_data
 
     @sentry_sdk.tracing.trace
     def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
-        trace_data = run_trace_query(
-            trace_id, snuba_params, Referrer.API_TRACE_VIEW_GET_EVENTS.value, SearchResolverConfig()
+        """Queries span/error data for a given trace"""
+        # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
+        # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
+        # parallelizing the queries here, but ideally this parallelization lives in the spans_rpc module instead
+        spans_future = _query_thread_pool.submit(
+            run_trace_query,
+            trace_id,
+            snuba_params,
+            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            SearchResolverConfig(),
         )
+        errors_future = _query_thread_pool.submit(self.run_errors_query, snuba_params, trace_id)
+        spans_data = spans_future.result()
+        errors_data = errors_future.result()
+
         result = []
-        id_to_event = {event["id"]: event for event in trace_data}
-        for span in trace_data:
-            if span["parent_span"] in id_to_event:
-                parent = id_to_event[span["parent_span"]]
+        id_to_span = {event["id"]: event for event in spans_data}
+        id_to_error = {event["trace.span"]: event for event in errors_data}
+        for span in spans_data:
+            if span["parent_span"] in id_to_span:
+                parent = id_to_span[span["parent_span"]]
                 parent["children"].append(span)
             else:
                 result.append(span)
-        return [self.serialize_rpc_span(root) for root in result]
+            if span["id"] in id_to_error:
+                error = id_to_error[span["id"]]
+                span["errors"].append(error)
+            else:
+                result.append(error)
+        return [self.serialize_rpc_event(root) for root in result]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return bool(
