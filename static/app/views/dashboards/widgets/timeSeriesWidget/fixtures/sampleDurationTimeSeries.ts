@@ -1,6 +1,8 @@
 import {DurationUnit} from 'sentry/utils/discover/fields';
 
-export const sampleDurationTimeSeries = {
+import {TimeSeries} from '../../common/types';
+
+export const sampleDurationTimeSeries: TimeSeries = {
   field: 'p99(span.duration)',
   meta: {
     type: 'duration',
