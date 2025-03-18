@@ -127,7 +127,7 @@ describe('IssueTagsPreview', () => {
     );
 
     expect(await screen.findByText('Chrome')).toBeInTheDocument();
-    expect(await screen.findByText('66%')).toBeInTheDocument();
+    expect(await screen.findByText('67%')).toBeInTheDocument();
 
     await userEvent.hover(screen.getByText('Chrome'));
     expect(await screen.findByText('Firefox')).toBeInTheDocument(); // tooltip description
