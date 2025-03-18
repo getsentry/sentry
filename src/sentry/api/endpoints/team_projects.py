@@ -179,7 +179,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Create a new project bound to a team.
         """
-
         from sentry.api.endpoints.organization_projects_experiment import (
             DISABLED_FEATURE_ERROR_STRING,
         )
