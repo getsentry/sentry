@@ -477,7 +477,7 @@ describe('Release Health Session Term', function () {
       'apple-ios'
     );
     expect(anrRateSessionTerm).toBe(
-      'Percentage of unique users that experienced a fatal App Hang error.'
+      'Percentage of unique users that experienced a fatal App Hang.'
     );
   });
 
