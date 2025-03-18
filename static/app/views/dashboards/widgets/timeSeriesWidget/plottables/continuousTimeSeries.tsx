@@ -1,6 +1,5 @@
 import type {SeriesOption} from 'echarts';
 
-import type {DataUnit} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
@@ -103,7 +102,7 @@ export abstract class ContinuousTimeSeries<
     };
   }
 
-  scaleToUnit(destinationUnit: DataUnit): TimeSeries {
+  scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 
