@@ -326,33 +326,26 @@ export function GroupTagsDrawer({
                 </CrumbContainer>
               ),
             },
-            ...(tab === DrawerTab.TAGS
-              ? [
-                  {
-                    label: t('All Tags'),
-                    to: tagKey
-                      ? {
-                          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-                          query: location.query,
-                        }
-                      : undefined,
-                  },
-                  ...(tagKey ? [{label: tagKey}] : []),
-                ]
-              : tab === DrawerTab.FEATURE_FLAGS
-                ? [
-                    {
-                      label: t('All Feature Flags'),
-                      to: tagKey
-                        ? {
-                            pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-                            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
-                          }
-                        : undefined,
-                    },
-                    ...(tagKey ? [{label: tagKey}] : []),
-                  ]
-                : []),
+            tab === DrawerTab.TAGS
+              ? {
+                  label: t('All Tags'),
+                  to: tagKey
+                    ? {
+                        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                        query: {...location.query, tab: DrawerTab.TAGS},
+                      }
+                    : undefined,
+                }
+              : {
+                  label: t('All Feature Flags'),
+                  to: tagKey
+                    ? {
+                        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                        query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+                      }
+                    : undefined,
+                },
+            ...(tagKey ? [{label: tagKey}] : []),
           ]}
         />
       </EventDrawerHeader>
