@@ -364,9 +364,7 @@ class GitHubApiClientTest(TestCase):
             json=pull_requests,
         )
 
-        sha = self.github_client.get_merge_commit_sha_from_commit(
-            repo=self.repo.name, sha=commit_sha
-        )
+        sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha == merge_commit_sha
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -381,9 +379,7 @@ class GitHubApiClientTest(TestCase):
             json=pull_requests,
         )
 
-        sha = self.github_client.get_merge_commit_sha_from_commit(
-            repo=self.repo.name, sha=commit_sha
-        )
+        sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
 
     @responses.activate

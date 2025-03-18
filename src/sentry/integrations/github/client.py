@@ -227,11 +227,11 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
-    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+    def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         """
         Get the merge commit sha from a commit sha.
         """
-        response = self.get_pullrequest_from_commit(repo, sha)
+        response = self.get_pullrequest_from_commit(repo.name, sha)
         if not response or (isinstance(response, list) and len(response) != 1):
             # the response should return a single merged PR, return if multiple
             return None
