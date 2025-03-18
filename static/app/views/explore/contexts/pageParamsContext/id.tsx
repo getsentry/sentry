@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-export function defaultId(): string | undefined {
+export function defaultId(): undefined {
   return undefined;
 }
 

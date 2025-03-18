@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
@@ -7,7 +7,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 
-const TRACE_EXPLORER_DATASET = 'ourlogs';
+const TRACE_EXPLORER_DATASET = 'spans';
 
 export function useSaveQuery() {
   const {groupBys, sortBys, visualizes, fields, query, mode, id, title} =
@@ -25,78 +25,24 @@ export function useSaveQuery() {
     yAxes,
   }));
 
-  const saveQuery = useCallback(
-    async (newTitle: string) => {
-      const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/`,
-        {
-          method: 'POST',
-          data: {
-            name: newTitle,
-            dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
-            groupby: groupBys,
-            orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-            visualize,
-            fields,
-            query: query ?? '',
-            mode,
-            start,
-            end,
-            range: period,
-            interval,
-            projects,
-            environment: environments,
-          },
-        }
-      );
-      return response;
-    },
-    [
-      api,
-      organization.slug,
-      groupBys,
-      sortBys,
+  const data = useMemo(() => {
+    return {
+      name: title,
+      dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
+      groupby: groupBys,
+      orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
       visualize,
       fields,
-      query,
+      query: query ?? '',
       mode,
       start,
       end,
-      period,
+      range: period,
       interval,
       projects,
-      environments,
-    ]
-  );
-
-  const updateQuery = useCallback(async () => {
-    const response = await api.requestPromise(
-      `/organizations/${organization.slug}/explore/saved/${id}/`,
-      {
-        method: 'PUT',
-        data: {
-          name: title,
-          dataset: TRACE_EXPLORER_DATASET,
-          groupby: groupBys,
-          orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-          visualize,
-          fields,
-          query: query ?? '',
-          mode,
-          start,
-          end,
-          range: period,
-          interval,
-          projects,
-        },
-      }
-    );
-    return response;
+      environment: environments,
+    };
   }, [
-    api,
-    organization.slug,
-    id,
-    title,
     groupBys,
     sortBys,
     visualize,
@@ -108,7 +54,37 @@ export function useSaveQuery() {
     period,
     interval,
     projects,
+    environments,
+    title,
   ]);
+
+  const saveQuery = useCallback(
+    async (newTitle: string) => {
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/explore/saved/`,
+        {
+          method: 'POST',
+          data: {
+            ...data,
+            name: newTitle,
+          },
+        }
+      );
+      return response;
+    },
+    [api, organization.slug, data]
+  );
+
+  const updateQuery = useCallback(async () => {
+    const response = await api.requestPromise(
+      `/organizations/${organization.slug}/explore/saved/${id}/`,
+      {
+        method: 'PUT',
+        data,
+      }
+    );
+    return response;
+  }, [api, organization.slug, id, data]);
 
   return {saveQuery, updateQuery};
 }
