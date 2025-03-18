@@ -176,7 +176,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             user_id=request.user.id,
             group_search_view_id__in=[view.id for view in new_view_state],
         )
-        last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
+        last_visited_map = {lv.group_search_view_id: lv.last_visited for lv in last_visited_views}
 
         return self.paginate(
             request=request,

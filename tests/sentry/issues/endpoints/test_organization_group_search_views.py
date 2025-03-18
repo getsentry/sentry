@@ -287,6 +287,23 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
+    @freeze_time("2025-03-07T00:00:00Z")
+    def test_response_with_last_visited(self) -> None:
+        GroupSearchViewLastVisited.objects.create(
+            user_id=self.user.id,
+            organization=self.organization,
+            group_search_view=self.base_data["user_one_views"][0],
+            last_visited=timezone.now(),
+        )
+
+        views = self.client.get(self.url).data
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert response.data[0]["lastVisited"] == timezone.now()
+        assert response.data[1]["lastVisited"] is None
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
     def test_reorder_views(self) -> None:
         views = self.client.get(self.url).data
         view_one = views[0]
