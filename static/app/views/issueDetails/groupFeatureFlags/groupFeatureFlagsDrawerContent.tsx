@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
-import {shouldShowFeatureFlagCTA} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -68,7 +68,12 @@ export default function GroupFeatureFlagsDrawerContent({
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: group.project?.slug});
 
-  if (data.length === 0 && project && shouldShowFeatureFlagCTA(organization, project)) {
+  if (
+    data.length === 0 &&
+    project &&
+    !project.hasFlags &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other')
+  ) {
     return <FlagDrawerCTA />;
   }
 

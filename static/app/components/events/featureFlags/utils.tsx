@@ -1,8 +1,5 @@
 import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 export enum OrderBy {
   NEWEST = 'newest',
@@ -142,11 +139,3 @@ export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<WebhookProviderEnum, string> 
   [WebhookProviderEnum.UNLEASH]:
     'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
 };
-
-export function shouldShowFeatureFlagCTA(organization: Organization, project: Project) {
-  return (
-    !project.hasFlags &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta')
-  );
-}
