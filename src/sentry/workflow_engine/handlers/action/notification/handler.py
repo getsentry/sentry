@@ -1,5 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
+from enum import StrEnum
+from typing import ClassVar
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
@@ -42,20 +44,6 @@ class LegacyRegistryInvoker(ABC):
 group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 
 
-@action_handler_registry.register(Action.Type.DISCORD)
-@action_handler_registry.register(Action.Type.SLACK)
-@action_handler_registry.register(Action.Type.MSTEAMS)
-@action_handler_registry.register(Action.Type.PAGERDUTY)
-@action_handler_registry.register(Action.Type.OPSGENIE)
-@action_handler_registry.register(Action.Type.GITHUB)
-@action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
-@action_handler_registry.register(Action.Type.JIRA)
-@action_handler_registry.register(Action.Type.JIRA_SERVER)
-@action_handler_registry.register(Action.Type.AZURE_DEVOPS)
-@action_handler_registry.register(Action.Type.EMAIL)
-@action_handler_registry.register(Action.Type.SENTRY_APP)
-@action_handler_registry.register(Action.Type.WEBHOOK)
-@action_handler_registry.register(Action.Type.PLUGIN)
 class NotificationActionHandler(ActionHandler):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -77,6 +65,13 @@ class NotificationActionHandler(ActionHandler):
 
     data_schema = {}
 
+    class ActionGroup(StrEnum):
+        NOTIFICATION = "notification"
+        TICKET_CREATION = "ticket_creation"
+        OTHER = "other"
+
+    action_group = ClassVar[ActionGroup]
+
     @staticmethod
     def execute(
         job: WorkflowJob,
@@ -92,6 +87,33 @@ class NotificationActionHandler(ActionHandler):
                 detector.type,
                 extra={"detector_id": detector.id, "action_id": action.id},
             )
+
+
+@action_handler_registry.register(Action.Type.DISCORD)
+@action_handler_registry.register(Action.Type.SLACK)
+@action_handler_registry.register(Action.Type.MSTEAMS)
+@action_handler_registry.register(Action.Type.PAGERDUTY)
+@action_handler_registry.register(Action.Type.OPSGENIE)
+@action_handler_registry.register(Action.Type.EMAIL)
+@action_handler_registry.register(Action.Type.SENTRY_APP)
+@action_handler_registry.register(Action.Type.PLUGIN)
+class NotificationGroupActionHandler(NotificationActionHandler):
+    action_group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
+@action_handler_registry.register(Action.Type.GITHUB)
+@action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
+@action_handler_registry.register(Action.Type.JIRA)
+@action_handler_registry.register(Action.Type.JIRA_SERVER)
+@action_handler_registry.register(Action.Type.AZURE_DEVOPS)
+class TicketCreationGroupActionHandler(NotificationActionHandler):
+    action_group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+    # TODO(iamrajjoshi): Override `execute` method to handle the custom ticket creation logic since all detectors will flow through the rule registry.
+
+
+@action_handler_registry.register(Action.Type.WEBHOOK)
+class OtherGroupActionHandler(NotificationActionHandler):
+    action_group = NotificationActionHandler.ActionGroup.OTHER
 
 
 @group_type_notification_registry.register(ErrorGroupType.slug)
