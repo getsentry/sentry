@@ -29,7 +29,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         with assume_test_silo_mode_of(User):
             self.user = User.objects.create(email="test@sentry.io")
 
-        project_1 = self.create_project(organization=self.org)
+        self.project_1 = self.create_project(organization=self.org)
 
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.PERFORMANCE.value,
@@ -43,13 +43,13 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         self.alert_rule = AlertRule.objects.create(
             snuba_query=snuba_query,
             threshold_period=1,
-            organization=project_1.organization,
+            organization=self.project_1.organization,
         )
 
-        AlertRuleProjects.objects.create(alert_rule=self.alert_rule, project=project_1)
+        AlertRuleProjects.objects.create(alert_rule=self.alert_rule, project=self.project_1)
 
         self.double_write_segment(
-            project=project_1,
+            project=self.project_1,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -60,7 +60,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         )
 
         self.double_write_segment(
-            project=project_1,
+            project=self.project_1,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -142,5 +142,25 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         )
 
     def test_compare_simple(self):
-        mismatches = compare_timeseries_for_alert_rule(self.alert_rule)
-        assert mismatches == {}
+        result = compare_timeseries_for_alert_rule(self.alert_rule)
+        assert result["mismatches"] == {}
+
+    def test_compare_mri_alert(self):
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.PERFORMANCE.value,
+            dataset=Dataset.PerformanceMetrics.value,
+            query="",
+            aggregate="sum(c:spans/ai.total_cost@usd)",
+            time_window=3600,
+            resolution=60,
+        )
+
+        alert_rule = AlertRule.objects.create(
+            snuba_query=snuba_query,
+            threshold_period=1,
+            organization=self.project_1.organization,
+        )
+
+        AlertRuleProjects.objects.create(alert_rule=alert_rule, project=self.project_1)
+        result = compare_timeseries_for_alert_rule(alert_rule)
+        assert result["skipped"] is True
