@@ -84,25 +84,23 @@ function getHeaderTitle(
 }
 
 function DrawerContent({
-  data,
-  tagKey,
-  tab,
+  displayTags,
   group,
   environments,
   search,
-  isPending,
-  isHighlightsPending,
+  isLoading,
   isError,
   refetch,
-  displayTags,
+  tab,
+  tagKey,
+  data,
 }: {
   data: GroupTag[];
   displayTags: GroupTag[];
   environments: string[];
   group: Group;
   isError: boolean;
-  isHighlightsPending: boolean;
-  isPending: boolean;
+  isLoading: boolean;
   refetch: () => void;
   search: string;
   tab: DrawerTab;
@@ -126,7 +124,7 @@ function DrawerContent({
     );
   }
 
-  if (isPending || isHighlightsPending) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -368,17 +366,16 @@ export function GroupTagsDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <DrawerContent
-          data={data}
-          tagKey={tagKey}
-          tab={tab as DrawerTab}
+          displayTags={displayTags}
           group={group}
           environments={environments}
           search={search}
-          isPending={isPending}
-          isHighlightsPending={isHighlightsPending}
+          isLoading={isPending || isHighlightsPending}
           isError={isError}
           refetch={refetch}
-          displayTags={displayTags}
+          tab={tab as DrawerTab}
+          tagKey={tagKey}
+          data={data}
         />
       </EventDrawerBody>
     </EventDrawerContainer>
