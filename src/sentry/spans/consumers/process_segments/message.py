@@ -142,7 +142,7 @@ def _set_shared_tags(segment: Span, spans: list[Span]) -> None:
     ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
 
     for span in spans:
-        span_tags = span["sentry_tags"]
+        span_tags = cast(dict[str, Any], span["sentry_tags"])
 
         if is_mobile:
             if span_tags.get("thread.name") == MOBILE_MAIN_THREAD_NAME:
