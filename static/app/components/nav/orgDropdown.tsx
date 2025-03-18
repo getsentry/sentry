@@ -107,26 +107,26 @@ export function OrgDropdown({className}: {className?: string}) {
             {
               key: 'organization-settings',
               label: t('Organization Settings'),
-              to: `/settings/${organization.slug}/`,
+              to: `/organizations/${organization.slug}/settings/`,
               hidden: !hasOrgRead,
             },
             {
               key: 'members',
               label: t('Members'),
-              to: `/settings/${organization.slug}/members/`,
+              to: `/organizations/${organization.slug}/settings/members/`,
               hidden: !hasMemberRead,
             },
             {
               key: 'teams',
               label: t('Teams'),
-              to: `/settings/${organization.slug}/teams/`,
+              to: `/organizations/${organization.slug}/settings/teams/`,
               hidden: !hasTeamRead,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
-              to: `/settings/${organization.slug}/billing/`,
-              hidden: !hasBillingAccess,
+              to: `/organizations/${organization.slug}/settings/billing/`,
+              hidden: hasBillingAccess,
             },
             {
               key: 'switch-organization',
