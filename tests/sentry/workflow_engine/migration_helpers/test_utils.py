@@ -70,6 +70,7 @@ class WorkflowNameTest(APITestCase):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
+        assert self.rpc_user
         assert workflow.name == f"Email {self.rpc_user.email}"
 
     def test_warning_and_critical(self):
@@ -88,6 +89,7 @@ class WorkflowNameTest(APITestCase):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
+        assert self.rpc_user
         assert (
             workflow.name
             == f"Critical - Email {self.rpc_user.email}, Warning - Email {self.rpc_user.email}"
@@ -121,6 +123,7 @@ class WorkflowNameTest(APITestCase):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
+        assert self.rpc_user
         assert workflow.name == f"Email {self.rpc_user.email}, Email {user2.email}...(+2)"
 
     def test_with_integrations(self):
@@ -162,6 +165,8 @@ class WorkflowNameTest(APITestCase):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert self.rpc_user
         assert (
             workflow.name
             == f"Critical - Email {self.rpc_user.email}, Opsgenie to {self.og_team_table["team"]}, Warning - Email #{self.og_team.slug}, Notify {self.sentry_app.name}, Slack {slack_channel_name}"
