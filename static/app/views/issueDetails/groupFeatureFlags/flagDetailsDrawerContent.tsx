@@ -11,8 +11,6 @@ import Pagination from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -35,29 +33,17 @@ export function FlagDetailsDrawerContent() {
   const location = useLocation();
 
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
-  const locationQuery = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      flag: decodeScalar,
-      sort: (value: any) => decodeScalar(value, '-created_at'),
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
 
   const flagQuery = useMemo(() => {
-    const filteredFields = Object.fromEntries(
-      Object.entries(locationQuery).filter(([_key, val]) => val !== '')
-    );
     return {
-      ...filteredFields,
       flag: tagKey,
-      per_page: 15,
+      per_page: 50,
       queryReferrer: 'featureFlagDetailsDrawer',
+      statsPeriod: '90d',
+      sort: '-created_at',
+      cursor: location.query.flagDrawerCursor,
     };
-  }, [locationQuery, tagKey]);
+  }, [tagKey, location.query.flagDrawerCursor]);
 
   const {
     data: flagLog,
