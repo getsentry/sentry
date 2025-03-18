@@ -35,6 +35,7 @@ export function useGroupTagsDrawer({
                 ...location.query,
                 tagDrawerSort: undefined,
                 tab: undefined,
+                flagDrawerCursor: undefined,
               },
             },
             {replace: true}

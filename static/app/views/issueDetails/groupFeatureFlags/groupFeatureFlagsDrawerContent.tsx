@@ -4,12 +4,12 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {
   Container,
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
-import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -77,9 +77,9 @@ export default function GroupFeatureFlagsDrawerContent({
   ) : (
     <Container>
       {displayTags.map((tag, tagIdx) => (
-        <TagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
+        <FlagDetailsLink tag={tag} groupId={group.id} key={tagIdx}>
           <TagDistribution tag={tag} key={tagIdx} />
-        </TagDetailsLink>
+        </FlagDetailsLink>
       ))}
     </Container>
   );
