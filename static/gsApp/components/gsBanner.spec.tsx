@@ -567,8 +567,8 @@ describe('GSBanner', function () {
         replays: MetricHistoryFixture({usageExceeded: true}),
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
-        profileDurationUI: MetricHistoryFixture({sentUsageWarning: false}),
       },
+      canSelfServe: true,
       productTrials: [
         {
           category: 'replays',
