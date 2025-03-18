@@ -63,7 +63,9 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 class OrganizationDataCondiitonIndexBaseTest(OrganizationDataConditionAPITestCase):
     def test_group_filter(self):
         response = self.get_success_response(
-            self.organization.slug, group=DataConditionHandler.Group.WORKFLOW_TRIGGER
+            self.organization.slug,
+            group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            status_code=200,
         )
         assert len(response.data) == 1
         assert response.data[0] == {

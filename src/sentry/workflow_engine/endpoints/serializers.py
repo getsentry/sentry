@@ -142,9 +142,17 @@ class DataConditionHandlerResponse(TypedDict):
 @register(DataConditionHandler)
 class DataConditionHandlerSerializer(Serializer):
     def serialize(
-        self, obj: DataConditionHandler, *args, condition_type: str, **kwargs
+        self,
+        obj: DataConditionHandler,
+        attrs: Mapping[str, Any],
+        user: Any,
+        **kwargs: Any,
     ) -> DataConditionHandlerResponse:
-        result = {
+        if hasattr(kwargs, "condition_type"):
+            condition_type = kwargs["condition_type"]
+        else:
+            raise ValueError("condition_type is required")
+        result: DataConditionHandlerResponse = {
             "type": condition_type,
             "handler_group": obj.group.value,
             "comparison_json_schema": obj.comparison_json_schema,

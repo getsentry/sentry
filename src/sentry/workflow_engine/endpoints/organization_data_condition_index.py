@@ -58,13 +58,13 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
 
         data_conditions = []
 
-        for condition, handler in condition_handler_registry.registrations.items():
-            if condition not in LEGACY_CONDITIONS and handler.group == group:
+        for condition_type, handler in condition_handler_registry.registrations.items():
+            if condition_type not in LEGACY_CONDITIONS and handler.group == group:
                 serialized = serialize(
                     handler,
                     request.user,
                     DataConditionHandlerSerializer(),
-                    condition_type=condition,
+                    condition_type=condition_type,
                 )
                 data_conditions.append(serialized)
 
