@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {isEmptyTrace} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -32,8 +33,9 @@ function useIsTraceAvailable(traceLink?: SpanLink): {
     if (!traceLink) {
       return false;
     }
-    return Boolean(trace?.data?.transactions?.length);
-  }, [traceLink, trace?.data?.transactions]);
+
+    return Boolean(trace.data && !isEmptyTrace(trace.data));
+  }, [traceLink, trace]);
 
   return {
     isAvailable,
