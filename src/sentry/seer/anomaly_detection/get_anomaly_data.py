@@ -92,7 +92,7 @@ def get_anomaly_data_from_seer(
         return None
 
     if response.status > 400:
-        logger.error(
+        logger.info(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "response_data": response.data,
@@ -129,7 +129,7 @@ def get_anomaly_data_from_seer(
         return None
 
     if not results.get("success"):
-        logger.error(
+        logger.info(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "error_message": results.get("message", ""),
