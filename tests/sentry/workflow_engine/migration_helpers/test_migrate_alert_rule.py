@@ -1312,7 +1312,7 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         self.dual_written_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.dual_written_trigger
         )
-        # dual write him
+
         self.create_migrated_metric_alert_objects(self.dual_written_alert)
         self.detector_trigger, self.action_filter = (
             self.create_migrated_metric_alert_rule_trigger_objects(
@@ -1330,9 +1330,7 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         dual_write_alert_rule(self.metric_alert)
         assert_alert_rule_migrated(self.metric_alert, self.project.id)
         assert_alert_rule_trigger_migrated(self.alert_rule_trigger)
-        assert ActionAlertRuleTriggerAction.objects.filter(
-            alert_rule_trigger_action=self.alert_rule_trigger_action
-        ).exists()
+        assert_alert_rule_trigger_action_migrated(self.alert_rule_trigger_action, Action.Type.EMAIL)
         assert_alert_rule_resolve_trigger_migrated(self.metric_alert)
 
     def test_spe_update(self):
@@ -1361,6 +1359,4 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         dual_update_alert_rule(self.dual_written_alert)
 
         assert_alert_rule_trigger_migrated(new_trigger)
-        assert ActionAlertRuleTriggerAction.objects.filter(
-            alert_rule_trigger_action=new_trigger_action
-        ).exists()
+        assert_alert_rule_trigger_action_migrated(new_trigger_action, Action.Type.EMAIL)
