@@ -78,6 +78,15 @@ class FlagAction(EnhancementAction):
         )
 
     def _to_config_structure(self, version: int):
+        """
+        Convert the action into an integer by
+            - converting the combination of its boolean value (if it's a `+app/+group` rule or a
+              `-app/-group` rule) and its range (if it applies to this frame, frames above, or
+              frames below) into a number (see `ACTION_FLAGS`) and then multiplying that number by
+              2^ACTION_BITSIZE
+            - converting its type (app or group) into a number (using the index in `ACTIONS`)
+            - bitwise or-ing those two numbers
+        """
         return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
 
     def _slice_to_range(self, seq, idx):
