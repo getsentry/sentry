@@ -1,7 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from enum import StrEnum
-from typing import ClassVar
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
@@ -64,13 +62,6 @@ class NotificationActionHandler(ActionHandler):
     }
 
     data_schema = {}
-
-    class ActionGroup(StrEnum):
-        NOTIFICATION = "notification"
-        TICKET_CREATION = "ticket_creation"
-        OTHER = "other"
-
-    action_group = ClassVar[ActionGroup]
 
     @staticmethod
     def execute(

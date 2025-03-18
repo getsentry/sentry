@@ -49,6 +49,13 @@ class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
 
+    class ActionGroup(StrEnum):
+        NOTIFICATION = "notification"
+        TICKET_CREATION = "ticket_creation"
+        OTHER = "other"
+
+    action_group: ClassVar[ActionGroup]
+
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
         raise NotImplementedError
