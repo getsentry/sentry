@@ -39,7 +39,7 @@ export function IssueDetailsTourModal({
 
 const ImageContainer = styled('div')`
   width: 100%;
-  height: 226px;
+  height: 282.5px;
   background-image: url(${issueDetailsPreviewImage});
   background-size: cover;
   background-position: center;
@@ -79,5 +79,5 @@ const Footer = styled('div')`
 `;
 
 export const IssueDetailsTourModalCss = css`
-  width: 436px;
+  width: 545px;
 `;
