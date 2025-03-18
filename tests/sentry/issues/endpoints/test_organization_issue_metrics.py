@@ -209,3 +209,121 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         response = self.client.get(self.url + "?interval=0")
         assert response.status_code == 400
         assert response.json() == {"detail": "Interval must be greater than 1000 milliseconds."}
+
+    def test_other_grouping(self):
+        project1 = self.create_project(teams=[self.team], slug="foo")
+        project2 = self.create_project(teams=[self.team], slug="bar")
+        one = self.create_release(project1, version="1.0.0")
+        two = self.create_release(project2, version="1.1.0")
+        three = self.create_release(project2, version="1.2.0")
+        four = self.create_release(project2, version="1.3.0")
+        fifth = self.create_release(project2, version="1.4.0")
+        sixth = self.create_release(project2, version="1.5.0")
+
+        curr = datetime.now(tz=timezone.utc)
+        prev = curr - timedelta(hours=1)
+
+        # Release issues.
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=one, type=1)
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=two, type=1)
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=three, type=1)
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=four, type=1)
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=fifth, type=1)
+        self.create_group(project=project1, status=0, first_seen=curr, first_release=sixth, type=1)
+
+        response = self.client.get(
+            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
+        )
+        response_json = response.json()
+        assert response_json["timeseries"] == [
+            {
+                "axis": "new_issues_count",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 6},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": ["1.2.0"],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": ["1.3.0"],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 1,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": ["1.4.0"],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 2,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": ["1.5.0"],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 3,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": ["other"],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 4,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 2},
+                ],
+            },
+        ]

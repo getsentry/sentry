@@ -1,6 +1,7 @@
 import collections
 from collections.abc import Iterator
 from datetime import datetime, timedelta
+from heapq import nlargest
 from itertools import chain
 from typing import TypedDict
 
@@ -84,11 +85,36 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 end,
             )
 
+            grouped_counter: collections.defaultdict[str, int] = collections.defaultdict(int)
             grouped_series: dict[str, list[TimeSeries]] = collections.defaultdict(list)
             for row in qs:
                 grouping = [row[g] for g in group_by]
                 key = "||||".join(grouping)
+                grouped_counter[key] += row["value"]
                 grouped_series[key].append({"timestamp": row["timestamp"], "value": row["value"]})
+
+            # Group the smallest series into the "other" bucket.
+            if len(grouped_series) > 4:
+                keys = [v[0] for v in nlargest(4, grouped_counter.items(), key=lambda i: i[0])]
+
+                new_grouped_series: dict[str, list[TimeSeries]] = {}
+                other_series = collections.defaultdict(int)
+                for key, series in grouped_series.items():
+                    if key in keys:
+                        new_grouped_series[key] = series
+                    else:
+                        for s in series:
+                            other_series[s["timestamp"]] += s["value"]
+
+                if other_series:
+                    new_grouped_series["other"] = list(
+                        map(
+                            lambda i: {"timestamp": i[0], "value": i[1]},
+                            sorted(list(other_series.items()), key=lambda i: i[0]),
+                        )
+                    )
+            else:
+                new_grouped_series = grouped_series
 
             return [
                 make_timeseries_result(
@@ -100,7 +126,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     order=i,
                     values=series,
                 )
-                for i, (key, series) in enumerate(grouped_series.items())
+                for i, (key, series) in enumerate(new_grouped_series.items())
             ]
 
         return Response(
