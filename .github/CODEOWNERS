@@ -171,6 +171,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/alerts/rules/uptime                     @getsentry/crons
 /static/app/views/releases/                               @getsentry/alerts-notifications
+/static/app/views/releases/drawer/                        @getsentry/replay-frontend
+/static/app/views/releases/releaseBubbles/                @getsentry/replay-frontend
 /src/sentry/rules/processing/delayed_processing.py        @getsentry/alerts-notifications
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
@@ -329,12 +331,11 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Replays
-/static/app/views/releases/drawer/  @getsentry/replay-frontend
-/static/app/components/replays/     @getsentry/replay-frontend
-/static/app/utils/replays/          @getsentry/replay-frontend
-/static/app/views/replays/          @getsentry/replay-frontend
-/src/sentry/replays/                @getsentry/replay-backend
-/tests/sentry/replays/              @getsentry/replay-backend
+/static/app/components/replays/                             @getsentry/replay-frontend
+/static/app/utils/replays/                                  @getsentry/replay-frontend
+/static/app/views/replays/                                  @getsentry/replay-frontend
+/src/sentry/replays/                                        @getsentry/replay-backend
+/tests/sentry/replays/                                      @getsentry/replay-backend
 ## End of Replays
 
 

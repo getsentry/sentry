@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
@@ -13,11 +14,15 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
+from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import timeseries_query
 from sentry.snuba.models import SnubaQuery
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_timeseries_query
 from sentry.utils.snuba import SnubaTSResult
+
+logger = logging.getLogger(__name__)
 
 
 class TSResultForComparison(TypedDict):
@@ -40,7 +45,7 @@ def make_rpc_request(
         snuba_params,
         query_string=query_parts["query"],
         y_axes=query_parts["selected_columns"],
-        referrer="job-runner.compare-timeseries",
+        referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         granularity_secs=time_window,
         config=SearchResolverConfig(),
     )
@@ -62,7 +67,7 @@ def make_snql_request(
         query,
         snuba_params=snuba_params,
         rollup=time_window,
-        referrer="job-runner.compare-timeseries",
+        referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
         zerofill_results=True,
@@ -86,7 +91,7 @@ def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultFor
     return aligned_results
 
 
-def assert_timeseries_close(aligned_timeseries):
+def assert_timeseries_close(aligned_timeseries, alert_rule):
     mismatches: dict[int, dict[str, float]] = {}
     missing_buckets = 0
     for timestamp, values in aligned_timeseries.items():
@@ -116,12 +121,22 @@ def assert_timeseries_close(aligned_timeseries):
     if mismatches:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("mismatches", mismatches)
+            scope.set_extra("alert_id", alert_rule.id)
             sentry_sdk.capture_message("Timeseries mismatch", level="info")
+            logger.info("Alert %s has too many mismatches", alert_rule.id)
+
+            return False, mismatches
 
     if missing_buckets > 1:
-        sentry_sdk.capture_message("Multiple missing buckets!", level="info")
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_extra("alert_id", alert_rule.id)
+            sentry_sdk.capture_message("Multiple missing buckets", level="info")
+            logger.info("Alert %s has multiple missing buckets", alert_rule.id)
 
-    return mismatches
+            return False, mismatches
+
+    logger.info("Alert %s timeseries is close", alert_rule.id)
+    return True, mismatches
 
 
 def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
@@ -129,6 +144,22 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     project = alert_rule.projects.first()
     if not project:
         raise NoProjects
+
+    if snuba_query.aggregate in ["apdex()"]:
+        logger.info(
+            "Skipping alert %s, %s aggregate not yet supported by RPC",
+            alert_rule.id,
+            snuba_query.aggregate,
+        )
+        return {"skipped": True, "is_close": False}
+
+    if parse_mri_field(snuba_query.aggregate):
+        logger.info(
+            "Skipping alert %s, %s, MRI fields not supported in aggregates",
+            alert_rule.id,
+            snuba_query.aggregate,
+        )
+        return {"skipped": True, "is_close": False}
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -139,8 +170,13 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
 
     # Align time to the nearest hour because RPCs roll up on exact timestamps.
     now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+
+    environments = []
+    if snuba_query.environment:
+        environments = [snuba_query.environment]
+
     snuba_params = SnubaParams(
-        environments=[snuba_query.environment],
+        environments=environments,
         projects=[project],
         organization=organization,
         start=now - timedelta(days=1),
@@ -164,4 +200,6 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
 
     aligned_timeseries = align_timeseries(snql_result=snql_result, rpc_result=rpc_result)
 
-    return assert_timeseries_close(aligned_timeseries)
+    is_close, mismatches = assert_timeseries_close(aligned_timeseries, alert_rule)
+
+    return {"is_close": is_close, "skipped": False, "mismatches": mismatches}

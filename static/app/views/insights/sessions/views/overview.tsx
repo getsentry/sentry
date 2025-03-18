@@ -98,18 +98,18 @@ function ViewSpecificCharts({
             <ErrorFreeSessionsChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthCountChart view={view} />
+            <SessionHealthCountChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <UserHealthCountChart view={view} />
+            <UserHealthCountChart />
           </ModuleLayout.Third>
 
           <ModuleLayout.Third>Coming soon: New Issues over time</ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthRateChart view={view} />
+            <SessionHealthRateChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <UserHealthRateChart view={view} />
+            <UserHealthRateChart />
           </ModuleLayout.Third>
         </Fragment>
       );
@@ -126,20 +126,20 @@ function ViewSpecificCharts({
             <ReleaseSessionCountChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthCountChart view={view} />
+            <SessionHealthCountChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <UserHealthCountChart view={view} />
+            <UserHealthCountChart />
           </ModuleLayout.Third>
 
           <ModuleLayout.Third>
             <ReleaseSessionPercentageChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthRateChart view={view} />
+            <SessionHealthRateChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <UserHealthRateChart view={view} />
+            <UserHealthRateChart />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
