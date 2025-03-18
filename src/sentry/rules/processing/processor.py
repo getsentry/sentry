@@ -396,6 +396,21 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            rule.project.organization,
+        ):
+            logger.info(
+                "post_process.process_rules.triggered_rule",
+                extra={
+                    "rule_id": rule.id,
+                    "payload": state,
+                    "group_id": self.group.id,
+                    "event_id": self.event.event_id,
+                },
+            )
+
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
