@@ -152,7 +152,7 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
             return self.client_get(self.reverse_url(key=key), query, format="json", **kwargs)
 
     def test_no_feature(self):
-        response = self.do_request(key="test.attribute")
+        response = self.do_request(key="test.attribute", features={})
         assert response.status_code == 404, response.content
 
     def test_attribute_values(self):
@@ -162,8 +162,8 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "test.attribute1": {"string_value": "value1"},
-                    "another.attribute": {"string_value": "value3"},
+                    "test1": {"string_value": "value1"},
+                    "test2": {"string_value": "value2"},
                 },
             ),
             self.create_ourlog(
@@ -171,18 +171,18 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "test.attribute1": {"string_value": "value2"},
-                    "different.attr": {"string_value": "value5"},
+                    "test1": {"string_value": "value2"},
+                    "test2": {"string_value": "value3"},
                 },
             ),
         ]
         self.store_ourlogs(logs)
 
-        response = self.do_request(key="test.attribute1")
+        response = self.do_request(key="test1")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         values = {item["value"] for item in response.data}
         assert "value1" in values
         assert "value2" in values
-        assert all(item["key"] == "test.attribute1" for item in response.data)
+        assert all(item["key"] == "test1" for item in response.data)
