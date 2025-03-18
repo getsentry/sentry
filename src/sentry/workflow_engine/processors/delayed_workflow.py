@@ -46,6 +46,7 @@ from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflows_action_filters,
+    log_fired_workflows,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
@@ -421,6 +422,16 @@ def fire_actions_for_groups(
                 "workflow_engine.delayed_workflow.triggered_actions",
                 amount=len(filtered_actions),
                 tags={"event_type": group_event.group.type},
+            )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            organization,
+        ):
+            log_fired_workflows(
+                log_name="workflow_engine.delayed_workflow.fired_workflow",
+                actions=filtered_actions,
+                job=job,
             )
 
         if features.has(
