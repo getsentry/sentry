@@ -1287,3 +1287,97 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         data = response.data["data"]
         assert len(data) == 73
         assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_cache_miss_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "cache_miss_rate()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 1.0
+        assert data[2][1][0]["count"] == 0.25
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_count_op(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count_op(queue.publish)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 2.0
+        assert data[2][1][0]["count"] == 1.0
+        assert response.data["meta"]["dataset"] == self.dataset

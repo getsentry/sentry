@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -159,7 +160,7 @@ def query_selector_collection(
     limit: str | None,
     offset: str | None,
     environment: list[str],
-    search_filters: list[Condition],
+    search_filters: Sequence[QueryToken],
     organization: Organization,
 ) -> dict:
     """Query aggregated replay collection."""
@@ -187,7 +188,7 @@ def query_selector_dataset(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    search_filters: list[QueryToken],
+    search_filters: Sequence[QueryToken],
     environment: list[str],
     pagination: Paginators | None,
     sort: str | None,

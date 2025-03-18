@@ -207,6 +207,7 @@ export function IssueViewNavItemContent({
             });
           }
         }}
+        analyticsItemName="issues_view_starred"
       >
         <IssueViewNavEditableTitle
           label={view.label}

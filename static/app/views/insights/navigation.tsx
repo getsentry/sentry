@@ -85,7 +85,10 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
         </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}
+              analyticsItemName="insights_frontend"
+            >
               {FRONTEND_SIDEBAR_LABEL}
             </SecondaryNav.Item>
             <SecondaryNav.Item
@@ -98,14 +101,19 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
                 (!isStarredProjectSelected || !isLaravelInsightsEnabled)
               }
               to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}
+              analyticsItemName="insights_backend"
             >
               {BACKEND_SIDEBAR_LABEL}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}
+              analyticsItemName="insights_mobile"
+            >
               {MOBILE_SIDEBAR_LABEL}
             </SecondaryNav.Item>
             <SecondaryNav.Item
               to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+              analyticsItemName="insights_ai"
             >
               {AI_SIDEBAR_LABEL}
             </SecondaryNav.Item>
@@ -136,11 +144,16 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
                     projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 }
+                analyticsItemName="insights_project_starred"
               >
                 {project.slug}
               </SecondaryNav.Item>
             ))}
-            <SecondaryNav.Item to={`${baseUrl}/projects/`} end>
+            <SecondaryNav.Item
+              to={`${baseUrl}/projects/`}
+              end
+              analyticsItemName="insights_projects_all"
+            >
               {t('All Projects')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
