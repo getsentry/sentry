@@ -38,12 +38,12 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     get_action_filter,
     get_detector_trigger,
     get_resolve_threshold,
-    get_workflow_name,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_conditions,
 )
+from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
