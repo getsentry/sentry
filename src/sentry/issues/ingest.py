@@ -282,11 +282,18 @@ def save_issue_from_occurrence(
     for fingerprint_hash in additional_hashes:
         # Attempt to create the additional grouphash links. They shouldn't be linked to other groups, but guard against
         # that
-        _, created = GroupHash.objects.get_or_create(
+        group_hash, created = GroupHash.objects.get_or_create(
             project=project, hash=fingerprint_hash, defaults={"group": group_info.group}
         )
         if not created:
-            logger.warning("Failed to create additional grouphash for group")
+            logger.warning(
+                "Failed to create additional grouphash for group, grouphash associated with existing group",
+                extra={
+                    "new_group_id": group_info.group.id,
+                    "hash": fingerprint_hash,
+                    "existing_group_id": group_hash.group_id,
+                },
+            )
 
     return group_info
 
