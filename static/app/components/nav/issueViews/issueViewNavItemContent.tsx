@@ -130,6 +130,8 @@ export function IssueViewNavItemContent({
 
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
+  const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+
   return (
     <StyledReorderItem
       as="div"
@@ -149,12 +151,13 @@ export function IssueViewNavItemContent({
       dragListener={false}
       dragControls={controls}
       style={{
-        ...(isDragging
+        ...(isDragging || scrollPosition === 0
           ? {}
           : {
               originY: '0px',
             }),
       }}
+      grabbing={isDragging === view.id}
     >
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
@@ -345,9 +348,9 @@ const hasUnsavedChanges = (
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,
 // but we need to ensure the item is relatively positioned and has a background color for it to work
-const StyledReorderItem = styled(Reorder.Item)`
+const StyledReorderItem = styled(Reorder.Item)<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => p.theme.translucentSurface200};
+  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
