@@ -81,7 +81,7 @@ export default function ExternalIssueForm({
   Header,
   Body,
 }: ExternalIssueFormProps) {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const modelRef = useRef(new FormModel());
   const organization = useOrganization();
   const endpointString = makeIntegrationIssueConfigQueryKey({
