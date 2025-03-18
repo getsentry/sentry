@@ -265,7 +265,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             )
 
         assert mock_seer_request.call_count == 1
-        mock_logger.error.assert_called_with(
+        mock_logger.info.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "response_data": "Bad stuff",
@@ -301,7 +301,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             )
 
         assert mock_seer_request.call_count == 1
-        mock_logger.error.assert_called_with(
+        mock_logger.info.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "response_data": "I have revolted against my human overlords",

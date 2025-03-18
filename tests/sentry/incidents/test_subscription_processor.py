@@ -973,7 +973,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             last_update=processor.last_update.timestamp(),
             aggregation_value=10,
         )
-        mock_logger.error.assert_called_with(
+        mock_logger.info.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "subscription_id": self.sub.id,
