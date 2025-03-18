@@ -1880,7 +1880,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         roots: trace.value.filter(span => span.parent_span_id === null).length,
       };
     } else if (isTraceNode(trace)) {
-      traceStats = trace.value.transactions?.reduce<{
+      traceStats = trace.value.transactions.reduce<{
         javascriptRootTransactions: TraceTree.Transaction[];
         orphans: number;
         roots: number;

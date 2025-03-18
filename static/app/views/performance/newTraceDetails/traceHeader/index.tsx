@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -286,7 +286,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const isLoading =
     props.metaResults.status === 'pending' ||
-    props.rootEventResults.isPending ||
+    props.rootEventResults.isLoading ||
     props.tree.type === 'loading';
 
   if (isLoading) {
@@ -329,22 +329,24 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             representativeTransaction={representativeTransaction}
           />
         </HeaderRow>
-        <StyledBreak />
         {props.rootEventResults.data ? (
-          <HeaderRow>
-            <StyledWrapper>
-              <HighlightsIconSummary event={props.rootEventResults.data} />
-            </StyledWrapper>
-            <ProjectsRendererWrapper>
-              <ProjectsRenderer
-                disableLink
-                onProjectClick={onProjectClick}
-                projectSlugs={projectSlugs}
-                visibleAvatarSize={24}
-                maxVisibleProjects={3}
-              />
-            </ProjectsRendererWrapper>
-          </HeaderRow>
+          <Fragment>
+            <StyledBreak />
+            <HeaderRow>
+              <StyledWrapper>
+                <HighlightsIconSummary event={props.rootEventResults.data} />
+              </StyledWrapper>
+              <ProjectsRendererWrapper>
+                <ProjectsRenderer
+                  disableLink
+                  onProjectClick={onProjectClick}
+                  projectSlugs={projectSlugs}
+                  visibleAvatarSize={24}
+                  maxVisibleProjects={3}
+                />
+              </ProjectsRendererWrapper>
+            </HeaderRow>
+          </Fragment>
         ) : null}
       </HeaderContent>
     </HeaderLayout>
