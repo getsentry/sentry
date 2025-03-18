@@ -201,7 +201,9 @@ class FrameMatch(EnhancementMatch):
     def _to_config_structure(self, version):
         if self.key == "family":
             value_to_match = "".join(
-                _f for _f in [FAMILIES.get(family) for family in self.pattern.split(",")] if _f
+                abbreviation
+                for abbreviation in [FAMILIES.get(family) for family in self.pattern.split(",")]
+                if abbreviation
             )
         elif self.key == "app":
             boolified_pattern = bool_from_string(self.pattern)
