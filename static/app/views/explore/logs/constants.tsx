@@ -1,3 +1,4 @@
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -25,3 +26,17 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.ITEM_TYPE,
 ];
+
+const LOGS_FILTERS: FilterKeySection = {
+  value: 'logs_filters',
+  label: 'Logs',
+  children: [
+    OurLogKnownFieldKey.SEVERITY_TEXT,
+    OurLogKnownFieldKey.BODY,
+    OurLogKnownFieldKey.PROJECT_ID,
+    OurLogKnownFieldKey.ORGANIZATION_ID,
+    OurLogKnownFieldKey.ITEM_TYPE,
+  ],
+};
+
+export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];

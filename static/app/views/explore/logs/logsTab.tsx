@@ -8,17 +8,18 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -40,6 +41,10 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
   const tableData = useExploreLogsTable({});
+
+  const {attributes: stringTags} = useTraceItemAttributes('string');
+  const {attributes: numberTags} = useTraceItemAttributes('number');
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
@@ -47,13 +52,13 @@ export function LogsTabContent({
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          stringTags={[] as unknown as TagCollection}
-          numberTags={[] as unknown as TagCollection}
+          stringTags={stringTags}
+          numberTags={numberTags}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields]);
+  }, [fields, setFields, stringTags, numberTags]);
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -70,13 +75,13 @@ export function LogsTabContent({
               })}
             />
           </PageFilterBar>
-          <SearchQueryBuilder
+          <TraceItemSearchQueryBuilder
             placeholder={t('Search for logs')}
-            filterKeys={{}}
-            getTagValues={() => new Promise<string[]>(() => [])}
             initialQuery={logsSearch.formatString()}
             searchSource="ourlogs"
             onSearch={setLogsQuery}
+            numberAttributes={numberTags}
+            stringAttributes={stringTags}
           />
 
           <Button onClick={openColumnEditor} icon={<IconTable />}>

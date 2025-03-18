@@ -123,3 +123,8 @@ export const SPANS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   EVENT_FILTERS,
   USER_CONTEXT_FILTERS,
 ];
+
+export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
+];

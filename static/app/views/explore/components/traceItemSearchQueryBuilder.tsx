@@ -8,6 +8,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 import {useTraceItemAttributeValues} from '../hooks/useTraceItemAttributeValues';
@@ -18,9 +19,9 @@ interface TraceItemSearchQueryBuilderProps {
    * Required props
    */
   initialQuery: string;
-  numberTags: TagCollection;
+  numberAttributes: TagCollection;
   searchSource: string;
-  stringTags: TagCollection;
+  stringAttributes: TagCollection;
   /**
    * Optional props
    */
@@ -56,12 +57,16 @@ function getTraceItemFieldDefinitionFunction(tags: TagCollection) {
   };
 }
 
+/**
+ * This component should replace SpansSearchQueryBuilder in the future,
+ * once spans support has been added to the trace-items attribute endpoints.
+ */
 export function TraceItemSearchQueryBuilder({
   initialQuery,
-  numberTags,
+  numberAttributes,
   searchSource,
-  stringTags,
-  dataset = TraceItemDataset.LOGS,
+  stringAttributes,
+  dataset = TraceItemDataset.LOGS, // This should be include TraceItemDataset.SPANS in the future
   datetime: _datetime,
   getFilterTokenWarning,
   onBlur,
@@ -78,29 +83,33 @@ export function TraceItemSearchQueryBuilder({
   }, [supportedAggregates]);
 
   const filterTags: TagCollection = useMemo(() => {
-    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
-    tags.has = getHasTag({...stringTags}); // TODO: add number tags
+    const tags: TagCollection = {
+      ...functionTags,
+      ...numberAttributes,
+      ...stringAttributes,
+    };
+    tags.has = getHasTag({...stringAttributes});
     return tags;
-  }, [numberTags, stringTags, functionTags]);
+  }, [numberAttributes, stringAttributes, functionTags]);
 
   const filterKeySections = useMemo(() => {
     const predefined = new Set(
-      SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
+      datasetToFilterKeySections(dataset).flatMap(section => section.children)
     );
     return [
-      ...SPANS_FILTER_KEY_SECTIONS.map(section => {
+      ...datasetToFilterKeySections(dataset).map(section => {
         return {
           ...section,
-          children: section.children.filter(key => stringTags.hasOwnProperty(key)),
+          children: section.children.filter(key => stringAttributes.hasOwnProperty(key)),
         };
       }),
       {
         value: 'custom_fields',
         label: 'Custom Tags',
-        children: Object.keys(stringTags).filter(key => !predefined.has(key)),
+        children: Object.keys(stringAttributes).filter(key => !predefined.has(key)),
       },
     ];
-  }, [stringTags]);
+  }, [stringAttributes, dataset]);
 
   // Use the trace item attributes hook to fetch trace item attribute values
   const {getTraceItemAttributeValues} = useTraceItemAttributeValues({
@@ -111,7 +120,7 @@ export function TraceItemSearchQueryBuilder({
 
   const getTraceItemTagValues = useCallback(
     (tag: Tag, queryString: string) => {
-      if (tag.kind === 'function' || numberTags.hasOwnProperty(tag.key)) {
+      if (tag.kind === 'function' || numberAttributes.hasOwnProperty(tag.key)) {
         // We can't really auto suggest values for aggregate functions or numbers
         return Promise.resolve([]);
       }
@@ -119,7 +128,7 @@ export function TraceItemSearchQueryBuilder({
       // Use the trace item attributes endpoint
       return getTraceItemAttributeValues(tag, queryString);
     },
-    [getTraceItemAttributeValues, numberTags]
+    [getTraceItemAttributeValues, numberAttributes]
   );
 
   return (
@@ -140,4 +149,11 @@ export function TraceItemSearchQueryBuilder({
       portalTarget={portalTarget}
     />
   );
+}
+
+function datasetToFilterKeySections(dataset: TraceItemDataset) {
+  if (dataset === TraceItemDataset.SPANS) {
+    return SPANS_FILTER_KEY_SECTIONS;
+  }
+  return LOGS_FILTER_KEY_SECTIONS;
 }

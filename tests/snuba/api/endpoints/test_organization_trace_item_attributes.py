@@ -33,8 +33,9 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
     def test_invalid_dataset(self):
         response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
-        assert "detail" in response.data
-        assert response.data["detail"] == {"dataset": ['"invalid" is not a valid choice.']}
+        assert "dataset" in response.data
+        assert response.data["dataset"][0].code == "invalid_choice"
+        assert '"invalid" is not a valid choice.' in str(response.data["dataset"][0])
 
     def test_no_projects(self):
         response = self.do_request(query={"dataset": "logs"})
