@@ -7,8 +7,8 @@ from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-group-search-view-starred-order"
+class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-view-starred"
 
     def setUp(self):
         super().setUp()
@@ -192,7 +192,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
 
 
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase):
-    endpoint = "sentry-api-0-organization-group-search-view-starred-order"
+    endpoint = "sentry-api-0-organization-group-search-view-starred"
 
     def setUp(self):
         super().setUp()

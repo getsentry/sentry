@@ -19,32 +19,29 @@ class MemberPermission(OrganizationPermission):
     }
 
 
-class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
+class GroupSearchViewStarredSerializer(serializers.Serializer):
     view_ids = serializers.ListField(child=serializers.IntegerField(), required=True, min_length=0)
 
     def validate_view_ids(self, view_ids):
         if len(view_ids) != len(set(view_ids)):
             raise serializers.ValidationError("Single view cannot take up multiple positions")
 
-        try:
-            gsvs = GroupSearchView.objects.filter(
-                organization=self.context["organization"], id__in=view_ids
-            )
-            # This should never happen, but we can check just in case
-            if any(
-                gsv.user_id != self.context["user"].id
-                and gsv.visibility != GroupSearchViewVisibility.ORGANIZATION
-                for gsv in gsvs
-            ):
-                raise serializers.ValidationError("You do not have access to one or more views")
-        except IntegrityError as e:
-            raise serializers.ValidationError("One or more views do not exist") from e
+        gsvs = GroupSearchView.objects.filter(
+            organization=self.context["organization"], id__in=view_ids
+        )
+        # This should never happen, but we can check just in case
+        if any(
+            gsv.user_id != self.context["user"].id
+            and gsv.visibility != GroupSearchViewVisibility.ORGANIZATION
+            for gsv in gsvs
+        ):
+            raise serializers.ValidationError("You do not have access to one or more views")
 
         return view_ids
 
 
 @region_silo_endpoint
-class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
+class OrganizationGroupSearchViewStarredEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
@@ -53,7 +50,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
         if not features.has("organizations:issue-view-sharing", organization, actor=request.user):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = GroupSearchViewStarredOrderSerializer(
+        serializer = GroupSearchViewStarredSerializer(
             data=request.data, context={"organization": organization, "user": request.user}
         )
 
@@ -88,10 +85,9 @@ def _update_view_positions(organization: Organization, user_id: int, view_positi
             existing_starred_views_dict[view_id].position = idx
             existing_starred_views_dict[view_id].save()
         else:
-            try:
-                GroupSearchViewStarred.objects.create(
-                    organization=organization,
-                    user_id=user_id,
-                    group_search_view_id=view_id,
-                    position=idx,
-                )
+            GroupSearchViewStarred.objects.create(
+                organization=organization,
+                user_id=user_id,
+                group_search_view_id=view_id,
+                position=idx,
+            )

@@ -201,8 +201,8 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
-from sentry.issues.endpoints.organization_group_search_view_starred_order import (
-    OrganizationGroupSearchViewStarredOrderEndpoint,
+from sentry.issues.endpoints.organization_group_search_view_starred import (
+    OrganizationGroupSearchViewStarredEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
@@ -1791,9 +1791,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-search-view-visit",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred-order/$",
-        OrganizationGroupSearchViewStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-organization-group-search-view-starred-order",
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred/$",
+        OrganizationGroupSearchViewStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-starred",
     ),
     # Pinned and saved search
     re_path(
