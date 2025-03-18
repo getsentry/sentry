@@ -111,6 +111,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
             "is_error": is_error,
+            "is_current_project": event.project_id == project.id,
+            "project_slug": event.project.slug,
+            "project_id": event.project_id,
             "children": [],
         }
 
@@ -136,7 +139,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 {
                     "title": f"{op} - {transaction_title}" if op else transaction_title,
                     "platform": event.platform,
-                    "is_current_project": event.project_id == project.id,
                     "duration": duration_str,
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
@@ -162,7 +164,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 {
                     "title": error_title,
                     "platform": event.platform,
-                    "is_current_project": event.project_id == project.id,
                 }
             )
 
@@ -269,7 +270,11 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
     cleaned_tree = [cleanup_node(root) for root in sorted_tree]
 
-    return {"trace_id": event.trace_id, "events": cleaned_tree}
+    return {
+        "trace_id": event.trace_id,
+        "org_id": project.organization_id,
+        "events": cleaned_tree,
+    }
 
 
 def _get_profile_from_trace_tree(
