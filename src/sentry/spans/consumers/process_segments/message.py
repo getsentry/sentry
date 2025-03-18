@@ -39,6 +39,24 @@ class Span(SchemaSpan, total=False):
     hash: str | None  # Added in enrichment
 
 
+def process_segment(spans: list[Span]) -> list[Span]:
+    segment_span = _find_segment_span(spans)
+    if segment_span is None:
+        # TODO: Handle segments without a defined segment span once all
+        # functions are refactored to a span interface.
+        return spans
+
+    with metrics.timer("spans.consumers.process_segments.get_project"):
+        project = Project.objects.get_from_cache(id=segment_span["project_id"])
+
+    _enrich_spans(segment_span, spans)
+    _create_models(segment_span, project)
+    _detect_performance_problems(segment_span, spans, project)
+    _record_signals(segment_span, spans, project)
+
+    return spans
+
+
 def _find_segment_span(spans: list[Span]) -> Span | None:
     """
     Finds the segment in the span in the list that has ``is_segment`` set to
@@ -237,21 +255,3 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
     for module, is_module in INSIGHT_MODULE_FILTERS.items():
         if not get_project_insight_flag(project, module) and is_module(spans):
             record_first_insight_span(project, module)
-
-
-def process_segment(spans: list[Span]) -> list[Span]:
-    segment_span = _find_segment_span(spans)
-    if segment_span is None:
-        # TODO: Handle segments without a defined segment span once all
-        # functions are refactored to a span interface.
-        return spans
-
-    with metrics.timer("spans.consumers.process_segments.get_project"):
-        project = Project.objects.get_from_cache(id=segment_span["project_id"])
-
-    _enrich_spans(segment_span, spans)
-    _create_models(segment_span, project)
-    _detect_performance_problems(segment_span, spans, project)
-    _record_signals(segment_span, spans, project)
-
-    return spans

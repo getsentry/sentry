@@ -26,38 +26,6 @@ BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_topic_codec(Topic.BUFFERED
 logger = logging.getLogger(__name__)
 
 
-def process_message(message: Message[KafkaPayload]) -> list[Span]:
-    value = message.payload.value
-    segment = BUFFERED_SEGMENT_SCHEMA.decode(value)
-    return process_segment(cast(list[Span], segment["spans"]))
-
-
-def _process_message(message: Message[KafkaPayload]) -> list[Span]:
-    if not options.get("standalone-spans.process-segments-consumer.enable"):
-        return []
-
-    try:
-        return process_message(message)
-    except Exception:  # NOQA
-        raise
-        # TODO: Implement error handling
-        # sentry_sdk.capture_exception()
-        # assert isinstance(message.value, BrokerValue)
-        # raise InvalidMessage(message.value.partition, message.value.offset)
-
-
-def explode_segment(message: tuple[list[Span], Mapping[Partition, int]]):
-    spans, committable = message
-    last = len(spans) - 1
-    for i, span in enumerate(spans):
-        if span is not None:
-            yield Value(
-                payload=KafkaPayload(key=None, value=orjson.dumps(span), headers=[]),
-                committable=committable if i == last else {},
-                timestamp=None,
-            )
-
-
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
@@ -104,7 +72,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         # the generator function.
         zip_commit = RunTask(
             function=lambda m: (m.payload, m.committable),
-            next_step=Unfold(generator=explode_segment, next_step=produce_step),
+            next_step=Unfold(generator=_unfold_segment, next_step=produce_step),
         )
 
         return run_task_with_multiprocessing(
@@ -119,3 +87,31 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
 
     def shutdown(self):
         self.pool.close()
+
+
+def _process_message(message: Message[KafkaPayload]) -> list[Span]:
+    if not options.get("standalone-spans.process-segments-consumer.enable"):
+        return []
+
+    try:
+        value = message.payload.value
+        segment = BUFFERED_SEGMENT_SCHEMA.decode(value)
+        return process_segment(cast(list[Span], segment["spans"]))
+    except Exception:  # NOQA
+        raise
+        # TODO: Implement error handling
+        # sentry_sdk.capture_exception()
+        # assert isinstance(message.value, BrokerValue)
+        # raise InvalidMessage(message.value.partition, message.value.offset)
+
+
+def _unfold_segment(message: tuple[list[Span], Mapping[Partition, int]]):
+    spans, committable = message
+    last = len(spans) - 1
+    for i, span in enumerate(spans):
+        if span is not None:
+            yield Value(
+                payload=KafkaPayload(key=None, value=orjson.dumps(span), headers=[]),
+                committable=committable if i == last else {},
+                timestamp=None,
+            )
