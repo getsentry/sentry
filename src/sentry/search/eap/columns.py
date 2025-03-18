@@ -238,6 +238,10 @@ class FunctionDefinition:
 @dataclass(kw_only=True)
 class AggregateDefinition(FunctionDefinition):
     internal_function: Function.ValueType
+    """
+    An optional function that takes in the resolved argument and returns the attribute key to aggregate on.
+    If not provided, assumes the aggregate is on the first argument.
+    """
     attribute_resolver: Callable[[ResolvedArguments], AttributeKey] | None = None
 
     def resolve(
