@@ -111,7 +111,12 @@ class KeyStats extends Component<Props, State> {
         <PanelBody withPadding>
           {this.state.loading ? (
             <Placeholder height="150px" />
-          ) : !this.state.emptyStats ? (
+          ) : this.state.emptyStats ? (
+            <EmptyMessage
+              title={t('Nothing recorded in the last 30 days.')}
+              description={t('Total events captured using these credentials.')}
+            />
+          ) : (
             <MiniBarChart
               isGroupedByDate
               series={this.state.series}
@@ -119,11 +124,6 @@ class KeyStats extends Component<Props, State> {
               colors={[this.props.theme.gray200, this.props.theme.red300]}
               stacked
               labelYAxisExtents
-            />
-          ) : (
-            <EmptyMessage
-              title={t('Nothing recorded in the last 30 days.')}
-              description={t('Total events captured using these credentials.')}
             />
           )}
         </PanelBody>

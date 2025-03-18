@@ -6,9 +6,9 @@ import capitalize from 'lodash/capitalize';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {APIRequestMethod} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import type {ControlProps} from 'sentry/components/core/select';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -291,7 +291,7 @@ function AllocationForm({
             {/* TODO: calculate allocated target ids here */}
             <ProjectSelectControl
               filteredIdList={
-                !initializedData ? allocatedTargetIds[AllocationTargetTypes.PROJECT]! : []
+                initializedData ? [] : allocatedTargetIds[AllocationTargetTypes.PROJECT]!
               }
               value={targetId || ''}
               onChange={onTargetChange}

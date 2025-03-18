@@ -47,6 +47,7 @@ class WorkflowJob(EventJob, total=False):
 
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
+    data_schema: ClassVar[dict[str, Any]]
 
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
@@ -69,7 +70,13 @@ class DataConditionHandler(Generic[T]):
         WORKFLOW_TRIGGER = "workflow_trigger"
         ACTION_FILTER = "action_filter"
 
-    type: ClassVar[list[Type]]
+    class FilterGroup(StrEnum):
+        ISSUE_ATTRIBUTES = "issue_attributes"
+        FREQUENCY = "frequency"
+        EVENT_ATTRIBUTES = "event_attributes"
+
+    type: ClassVar[Type]
+    filter_group: ClassVar[FilterGroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod

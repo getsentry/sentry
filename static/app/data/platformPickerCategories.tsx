@@ -33,7 +33,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
 ]);
 
 const browser: Set<PlatformKey> = new Set([
-  'dart',
+  'flutter',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -49,6 +49,8 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
+  'javascript-nuxt',
+  'react-native',
   'unity',
 ]);
 
@@ -133,6 +135,7 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-wpf',
   'electron',
   'flutter',
+  'godot',
   'java',
   'kotlin',
   'minidump',

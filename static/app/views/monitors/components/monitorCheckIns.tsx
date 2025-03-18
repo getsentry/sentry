@@ -113,7 +113,9 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                   />
                   <Text>{statusToText[checkIn.status]}</Text>
                 </Status>
-                {checkIn.status !== CheckInStatus.MISSED ? (
+                {checkIn.status === CheckInStatus.MISSED ? (
+                  emptyCell
+                ) : (
                   <div>
                     <Tooltip
                       disabled={!customTimezone}
@@ -129,8 +131,6 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                       <DateTime date={checkIn.dateCreated} timeZone seconds />
                     </Tooltip>
                   </div>
-                ) : (
-                  emptyCell
                 )}
                 {defined(checkIn.duration) ? (
                   <div>
@@ -170,7 +170,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                 ) : (
                   emptyCell
                 )}
-                {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
+                {hasMultiEnv ? <div>{checkIn.environment}</div> : null}
                 <div>
                   {checkIn.expectedTime ? (
                     <Tooltip

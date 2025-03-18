@@ -53,7 +53,7 @@ export default function useMutateActivity({
   onMutate,
   onSettled,
 }: Props) {
-  const mutation = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
       const url =
@@ -74,23 +74,23 @@ export default function useMutateActivity({
 
   const handleUpdate = useCallback<UpdateCommentCallback>(
     (note, noteId, activity, options) => {
-      mutation.mutate([{note, noteId, activity}, 'PUT'], options);
+      mutate([{note, noteId, activity}, 'PUT'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   const handleCreate = useCallback<CreateCommentCallback>(
     (note, activity, options) => {
-      mutation.mutate([{note, activity}, 'POST'], options);
+      mutate([{note, activity}, 'POST'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   const handleDelete = useCallback<DeleteCommentCallback>(
     (noteId, activity, options) => {
-      mutation.mutate([{noteId, activity}, 'DELETE'], options);
+      mutate([{noteId, activity}, 'DELETE'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   return {

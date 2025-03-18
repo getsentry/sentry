@@ -12,10 +12,10 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';

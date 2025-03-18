@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';

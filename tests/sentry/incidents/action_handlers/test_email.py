@@ -52,7 +52,13 @@ class EmailActionHandlerTest(FireTest):
         )
         handler = EmailActionHandler()
         with self.tasks():
-            handler.fire(action, incident, self.project, 1000, IncidentStatus(incident.status))
+            handler.fire(
+                action=action,
+                incident=incident,
+                project=self.project,
+                metric_value=1000,
+                new_status=IncidentStatus(incident.status),
+            )
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == "[{}] {} - {}".format(
@@ -512,7 +518,10 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             query_type=SnubaQuery.Type.PERFORMANCE, dataset=Dataset.PerformanceMetrics
         )
         incident = self.create_incident(alert_rule=alert_rule)
-        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
 
         with self.feature(
             [

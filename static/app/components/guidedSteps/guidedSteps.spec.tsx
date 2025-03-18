@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 
 describe('GuidedSteps', function () {

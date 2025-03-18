@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';

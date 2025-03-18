@@ -218,18 +218,7 @@ function TrendChart({
                 ? {start: transactionEvent.start * 1000, end: transactionEvent.end * 1000}
                 : undefined;
 
-            return data.length !== 0 ? (
-              <Content
-                series={timeSeriesMetricsData}
-                errored={!trendsData && !isLoading}
-                loading={isLoading || isCardinalityCheckLoading}
-                reloading={isLoading}
-                timeFrame={metricsTimeFrame}
-                withBreakpoint
-                transaction={selectedTransaction}
-                {...contentCommonProps}
-              />
-            ) : (
+            return data.length === 0 ? (
               // queries events-stats for trend data if metrics trend data not found
               <EventsRequest
                 {...requestCommonProps}
@@ -257,6 +246,17 @@ function TrendChart({
                   );
                 }}
               </EventsRequest>
+            ) : (
+              <Content
+                series={timeSeriesMetricsData}
+                errored={!trendsData && !isLoading}
+                loading={isLoading || isCardinalityCheckLoading}
+                reloading={isLoading}
+                timeFrame={metricsTimeFrame}
+                withBreakpoint
+                transaction={selectedTransaction}
+                {...contentCommonProps}
+              />
             );
           }}
         </TrendsDiscoverQuery>

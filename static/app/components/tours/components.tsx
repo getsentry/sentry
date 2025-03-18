@@ -1,10 +1,11 @@
 import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {createPortal} from 'react-dom';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   type TourContextType,
@@ -19,6 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
@@ -190,9 +192,9 @@ function TourElementContent<T extends TourEnumType>({
     () => (
       <ButtonBar gap={1}>
         {hasPreviousStep && (
-          <TourAction size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
+          <TextTourAction size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
             {t('Previous')}
-          </TourAction>
+          </TextTourAction>
         )}
         {hasNextStep ? (
           <TourAction size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
@@ -278,13 +280,9 @@ export function TourGuide({
     offset,
   });
 
-  // Scroll the overlay into view when it opens
   useEffect(() => {
     if (isOpen) {
       trackAnalytics('tour-guide.open', {organization, id});
-      document
-        ?.getElementById(id ?? '')
-        ?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
     }
   }, [isOpen, id, organization]);
 
@@ -299,39 +297,57 @@ export function TourGuide({
       >
         {children}
       </Wrapper>
-      {isOpen ? (
-        <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-          <TourOverlay
-            animated
-            arrowProps={{...arrowProps, background: 'lightModeBlack'}}
-          >
-            <TourBody id={id}>
-              {isTopRowVisible && (
-                <TopRow>
-                  <div>{countText}</div>
-                  {isDismissVisible && (
-                    <TourCloseButton
-                      onClick={e => {
-                        trackAnalytics('tour-guide.close', {organization, id});
-                        handleDismiss(e);
-                      }}
-                      icon={<IconClose style={{color: theme.inverted.textColor}} />}
-                      aria-label={t('Close')}
-                      borderless
-                      size="sm"
-                    />
-                  )}
-                </TopRow>
-              )}
-              {title && <TitleRow>{title}</TitleRow>}
-              {description && <DescriptionRow>{description}</DescriptionRow>}
-              {actions && <Flex justify="flex-end">{actions}</Flex>}
-            </TourBody>
-          </TourOverlay>
-        </PositionWrapper>
-      ) : null}
+      {isOpen
+        ? createPortal(
+            <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
+              <ClassNames>
+                {({css}) => (
+                  <TourOverlay
+                    animated
+                    arrowProps={{
+                      ...arrowProps,
+                      className: css`
+                        path.fill {
+                          fill: ${darkTheme.backgroundElevated} !important;
+                        }
+                      `,
+                    }}
+                  >
+                    <TourBody ref={scrollToElement}>
+                      {isTopRowVisible && (
+                        <TopRow>
+                          <div>{countText}</div>
+                          {isDismissVisible && (
+                            <TourCloseButton
+                              onClick={e => {
+                                trackAnalytics('tour-guide.close', {organization, id});
+                                handleDismiss(e);
+                              }}
+                              icon={<IconClose style={{color: darkTheme.textColor}} />}
+                              aria-label={t('Close')}
+                              borderless
+                              size="sm"
+                            />
+                          )}
+                        </TopRow>
+                      )}
+                      {title && <TitleRow>{title}</TitleRow>}
+                      {description && <DescriptionRow>{description}</DescriptionRow>}
+                      {actions && <Flex justify="flex-end">{actions}</Flex>}
+                    </TourBody>
+                  </TourOverlay>
+                )}
+              </ClassNames>
+            </PositionWrapper>,
+            document.body
+          )
+        : null}
     </Fragment>
   );
+}
+
+function scrollToElement(element: HTMLDivElement | null) {
+  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
@@ -339,13 +355,13 @@ const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.75)};
-  background: ${p => p.theme.inverted.surface400};
+  background: ${darkTheme.backgroundElevated};
   padding: ${space(1.5)} ${space(2)};
-  color: ${p => p.theme.inverted.textColor};
+  color: ${darkTheme.textColor};
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${p => p.theme.inverted.textColor};
+    color: ${darkTheme.textColor};
     text-decoration: underline;
   }
 `;
@@ -366,7 +382,7 @@ const TopRow = styled('div')`
   grid-template-columns: 1fr 15px;
   align-items: start;
   height: 18px;
-  color: ${p => p.theme.inverted.textColor};
+  color: ${darkTheme.headingColor};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   opacity: 0.6;
@@ -380,7 +396,7 @@ const TitleRow = styled('div')`
 `;
 
 const DescriptionRow = styled('div')`
-  color: ${p => p.theme.inverted.textColor};
+  color: ${darkTheme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.4;
@@ -389,10 +405,25 @@ const DescriptionRow = styled('div')`
 `;
 
 export const TourAction = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.textColor};
-  background: ${p => p.theme.surface400};
   border: 0;
+  background: ${lightTheme.backgroundElevated};
+  color: ${lightTheme.textColor};
+  &:hover,
+  &:active,
+  &:focus {
+    color: ${lightTheme.textColor};
+  }
+`;
+
+export const TextTourAction = styled(Button)`
+  border: 0;
+  background: transparent;
+  color: ${darkTheme.textColor};
+  &:hover,
+  &:active,
+  &:focus {
+    color: ${darkTheme.textColor};
+  }
 `;
 
 const BlurWindow = styled('div')`
@@ -405,6 +436,9 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
+// The box-shadow is the only color that references the user's theme.
+// This is to ensure it stands out against the rest of the app, though the guides are opinionated
+// as dark mode.
 const TourTriggerWrapper = styled('div')`
   &[aria-expanded='true'] {
     position: relative;
@@ -417,6 +451,7 @@ const TourTriggerWrapper = styled('div')`
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
+
       box-shadow: inset 0 0 0 3px ${p => p.theme.subText};
     }
   }

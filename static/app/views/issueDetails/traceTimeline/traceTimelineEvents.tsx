@@ -168,10 +168,10 @@ function NodeGroup({
                 groupEvents
                   .slice(0, 5)
                   .map(groupEvent =>
-                    groupEvent['event.type'] !== '' ? (
-                      <IconNode key={groupEvent.id} />
-                    ) : (
+                    groupEvent['event.type'] === '' ? (
                       <PerformanceIconNode key={groupEvent.id} />
+                    ) : (
+                      <IconNode key={groupEvent.id} />
                     )
                   )
               )}

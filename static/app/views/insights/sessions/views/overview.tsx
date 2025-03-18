@@ -1,14 +1,12 @@
 import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -18,14 +16,17 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
+import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
+import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
 import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
+import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
@@ -33,8 +34,13 @@ export function SessionsOverview() {
     module: ModuleName.SESSIONS,
   };
 
-  const {view} = useDomainViewFilters();
+  const {view = ''} = useDomainViewFilters();
+
   const [filters, setFilters] = useState<string[]>(['']);
+
+  // only show onboarding if the project does not have session data
+  const hasSessionData = useProjectHasSessions();
+  const showOnboarding = !hasSessionData;
 
   const SESSION_HEALTH_CHARTS = (
     <Fragment>
@@ -44,21 +50,22 @@ export function SessionsOverview() {
         </ModuleLayout.Third>
       ) : view === MOBILE_LANDING_SUB_PATH ? (
         <ModuleLayout.Third>
-          <CrashFreeSessionChart />
+          <CrashFreeSessionsChart />
         </ModuleLayout.Third>
       ) : undefined}
       <ModuleLayout.Third>
-        <SessionHealthCountChart />
+        <SessionHealthCountChart view={view} />
       </ModuleLayout.Third>
       <ModuleLayout.Third>
-        <SessionHealthRateChart />
+        <UserHealthCountChart view={view} />
       </ModuleLayout.Third>
-      <ModuleLayout.Half>
-        <UserHealthCountChart />
-      </ModuleLayout.Half>
-      <ModuleLayout.Half>
-        <UserHealthRateChart />
-      </ModuleLayout.Half>
+      <ModuleLayout.Third />
+      <ModuleLayout.Third>
+        <SessionHealthRateChart view={view} />
+      </ModuleLayout.Third>
+      <ModuleLayout.Third>
+        <UserHealthRateChart view={view} />
+      </ModuleLayout.Third>
     </Fragment>
   );
 
@@ -79,25 +86,37 @@ export function SessionsOverview() {
                     setFilters(['']);
                   }}
                 />
-                <Alert type="info" icon={<IconInfo />} showIcon>
-                  {t(
-                    `This page is a temporary spot to put experimental release charts and tables currently in development. We will move things around eventually, but for now, it's a spot where we can put everything and get quick feedback.`
-                  )}
-                </Alert>
               </ToolRibbon>
             </ModuleLayout.Full>
-            {view === MOBILE_LANDING_SUB_PATH && (
+            {showOnboarding ? (
+              <ModuleLayout.Full>
+                <ModulesOnboardingPanel moduleName={ModuleName.SESSIONS} />
+              </ModuleLayout.Full>
+            ) : (
               <Fragment>
-                {SESSION_HEALTH_CHARTS}
-                <ModuleLayout.Full>
-                  <FilterWrapper>
-                    <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
-                  </FilterWrapper>
-                  <ReleaseHealth filters={filters} />
-                </ModuleLayout.Full>
+                {view === MOBILE_LANDING_SUB_PATH && (
+                  <Fragment>
+                    {SESSION_HEALTH_CHARTS}
+                    <ModuleLayout.Half>
+                      <ReleaseSessionCountChart />
+                    </ModuleLayout.Half>
+                    <ModuleLayout.Half>
+                      <ReleaseSessionPercentageChart />
+                    </ModuleLayout.Half>
+                    <ModuleLayout.Full>
+                      <FilterWrapper>
+                        <FilterReleaseDropdown
+                          filters={filters}
+                          setFilters={setFilters}
+                        />
+                      </FilterWrapper>
+                      <ReleaseHealth filters={filters} />
+                    </ModuleLayout.Full>
+                  </Fragment>
+                )}
+                {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
               </Fragment>
             )}
-            {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

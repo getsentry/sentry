@@ -2,7 +2,7 @@ import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
@@ -64,9 +64,9 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all'
-        ? filterFlamegraphTree(props.rootNodes, skipFunction)
-        : props.rootNodes;
+      treeType === 'all'
+        ? props.rootNodes
+        : filterFlamegraphTree(props.rootNodes, skipFunction);
 
     if (tab === 'top down') {
       return maybeFilteredRoots;

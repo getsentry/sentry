@@ -21,6 +21,7 @@ from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
     SentryAppDataBlob,
+    SentryAppIdentifier,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_registry,
@@ -170,14 +171,17 @@ class TestNotificationActionMigrationUtils(TestCase):
             if compare_val in ["None", None, ""]:
                 assert action.config.get("target_identifier") is None
             else:
-                assert action.config.get("target_identifier") == compare_val
+                assert action.config.get("target_identifier") == str(compare_val)
 
         # Assert target_display matches if specified
         if target_display_key:
             assert action.config.get("target_display") == compare_dict.get(target_display_key)
 
         # Assert target_type matches
-        assert action.config.get("target_type") == translator.target_type
+        if translator.target_type is not None:
+            assert action.config.get("target_type") == translator.target_type.value
+        else:
+            assert action.config.get("target_type") is None
 
     def assert_actions_migrated_correctly(
         self,
@@ -1096,6 +1100,10 @@ class TestNotificationActionMigrationUtils(TestCase):
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
             assert action.config.get("target_identifier") == install.uuid
+            assert (
+                action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            )
 
     def test_dry_run_flag(self):
         """Test that the dry_run flag prevents database writes."""

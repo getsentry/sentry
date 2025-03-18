@@ -127,10 +127,20 @@ describe('processInitQueue', function () {
         body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
       });
 
+      MockApiClient.addMockResponse({
+        url: '/organizations/organization-1/teams/',
+        body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
+      });
+
       render(<div id="setup-wizard-container" />);
       processInitQueue();
 
-      expect(await screen.findByText('Select your Sentry project')).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByText('Select your Sentry project')).toBeInTheDocument();
+        },
+        {timeout: 5000}
+      );
     });
     it('renders u2f sign', async () => {
       window.__onSentryInit = [

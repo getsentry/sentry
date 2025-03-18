@@ -46,7 +46,7 @@ interface Props {
 type Column = GridColumnHeader<keyof ReleaseHealthItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
-  {key: 'release', name: 'version'},
+  {key: 'release', name: 'release'},
   {key: 'project', name: 'project'},
   {key: 'date', name: 'date created'},
   {key: 'adoption', name: 'adoption'},
@@ -93,7 +93,10 @@ export default function ReleaseHealthTable({
       const value = dataRow[column.key];
 
       if (column.key === 'lifespan') {
-        return value !== undefined ? (
+        return value === undefined ? (
+          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
+          '--'
+        ) : (
           <CellWrapper>
             <Duration
               precision="hours"
@@ -101,9 +104,6 @@ export default function ReleaseHealthTable({
               seconds={(value as number) * (1 / 1000)}
             />
           </CellWrapper>
-        ) : (
-          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
-          '--'
         );
       }
 

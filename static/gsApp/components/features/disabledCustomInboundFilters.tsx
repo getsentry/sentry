@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,7 +24,11 @@ function DisabledAlert({organization, features}: Props) {
       {({plan}) => (
         <StyledPanelAlert type="muted" showIcon>
           <Container>
-            {plan !== null ? (
+            {plan === null ? (
+              t(
+                'Custom Release and Error Message filtering is not available on your plan.'
+              )
+            ) : (
               <span>
                 {tct(
                   'Custom Release and Error Message filtering is available to [planRequirement] and above.',
@@ -35,10 +39,6 @@ function DisabledAlert({organization, features}: Props) {
                   }
                 )}
               </span>
-            ) : (
-              t(
-                'Custom Release and Error Message filtering is not available on your plan.'
-              )
             )}
             <Button
               size="sm"
