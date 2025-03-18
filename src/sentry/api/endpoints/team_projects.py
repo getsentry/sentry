@@ -1,6 +1,7 @@
 import time
 from typing import TypedDict
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -178,85 +179,90 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Create a new project bound to a team.
         """
+
         from sentry.api.endpoints.organization_projects_experiment import (
             DISABLED_FEATURE_ERROR_STRING,
         )
 
-        serializer = ProjectPostSerializer(data=request.data)
+        # temporarily sample this endpoint at 100% for debugging
+        with sentry_sdk.start_transaction(name="POST /team_projects/", sampled=True):
+            serializer = ProjectPostSerializer(data=request.data)
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if team.organization.flags.disable_member_project_creation and not (
-            request.access.has_scope("org:write")
-        ):
-            requester_admin_teams = set(
-                OrganizationMemberTeam.objects.filter(
-                    organizationmember__user_id=request.user.id,
-                    organizationmember__organization=team.organization,
-                    role="admin",
-                ).values_list("team__id", flat=True)
-            )
-            # Only allow project creation if the user is an admin of the team
-            if team.id not in requester_admin_teams:
-                return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
+            if team.organization.flags.disable_member_project_creation and not (
+                request.access.has_scope("org:write")
+            ):
+                requester_admin_teams = set(
+                    OrganizationMemberTeam.objects.filter(
+                        organizationmember__user_id=request.user.id,
+                        organizationmember__organization=team.organization,
+                        role="admin",
+                    ).values_list("team__id", flat=True)
+                )
+                # Only allow project creation if the user is an admin of the team
+                if team.id not in requester_admin_teams:
+                    return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
-        result = serializer.validated_data
-        with transaction.atomic(router.db_for_write(Project)):
-            try:
-                with transaction.atomic(router.db_for_write(Project)):
-                    project = Project.objects.create(
-                        name=result["name"],
-                        slug=result.get("slug"),
-                        organization=team.organization,
-                        platform=result.get("platform"),
+            result = serializer.validated_data
+            with transaction.atomic(router.db_for_write(Project)):
+                try:
+                    with transaction.atomic(router.db_for_write(Project)):
+                        project = Project.objects.create(
+                            name=result["name"],
+                            slug=result.get("slug"),
+                            organization=team.organization,
+                            platform=result.get("platform"),
+                        )
+                except (IntegrityError, MaxSnowflakeRetryError):
+                    return Response(
+                        {"detail": "A project with this slug already exists."}, status=409
                     )
-            except (IntegrityError, MaxSnowflakeRetryError):
-                return Response({"detail": "A project with this slug already exists."}, status=409)
-            else:
-                project.add_team(team)
+                else:
+                    project.add_team(team)
 
-            # XXX: create sample event?
+                # XXX: create sample event?
 
-            # Turns on some inbound filters by default for new Javascript platform projects
-            if project.platform and project.platform.startswith("javascript"):
-                set_default_inbound_filters(project, team.organization)
+                # Turns on some inbound filters by default for new Javascript platform projects
+                if project.platform and project.platform.startswith("javascript"):
+                    set_default_inbound_filters(project, team.organization)
 
-            set_default_symbol_sources(project)
+                set_default_symbol_sources(project)
 
-            common_audit_data: AuditData = {
-                "request": request,
-                "organization": team.organization,
-                "target_object": project.id,
-            }
+                common_audit_data: AuditData = {
+                    "request": request,
+                    "organization": team.organization,
+                    "target_object": project.id,
+                }
 
-            origin = request.data.get("origin")
-            if origin:
-                self.create_audit_entry(
-                    **common_audit_data,
-                    event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
-                    data={
-                        **project.get_audit_log_data(),
-                        "origin": origin,
-                    },
+                origin = request.data.get("origin")
+                if origin:
+                    self.create_audit_entry(
+                        **common_audit_data,
+                        event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
+                        data={
+                            **project.get_audit_log_data(),
+                            "origin": origin,
+                        },
+                    )
+                else:
+                    self.create_audit_entry(
+                        **common_audit_data,
+                        event=audit_log.get_event_id("PROJECT_ADD"),
+                        data={**project.get_audit_log_data()},
+                    )
+
+                project_created.send(
+                    project=project,
+                    user=request.user,
+                    default_rules=result.get("default_rules", True),
+                    origin=origin,
+                    sender=self,
                 )
-            else:
-                self.create_audit_entry(
-                    **common_audit_data,
-                    event=audit_log.get_event_id("PROJECT_ADD"),
-                    data={**project.get_audit_log_data()},
-                )
 
-            project_created.send(
-                project=project,
-                user=request.user,
-                default_rules=result.get("default_rules", True),
-                origin=origin,
-                sender=self,
-            )
-
-            # Create project option to turn on ML similarity feature for new EA projects
-            if project_is_seer_eligible(project):
-                project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+                # Create project option to turn on ML similarity feature for new EA projects
+                if project_is_seer_eligible(project):
+                    project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
         return Response(serialize(project, request.user), status=201)
