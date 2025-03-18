@@ -30,6 +30,8 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
+export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
+
 interface SchemaHintsListProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
@@ -165,7 +167,7 @@ function SchemaHintsList({
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
-              drawerWidth: '35vw',
+              drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
               shouldCloseOnLocationChange: newLocation => {
                 return (
                   location.pathname !== newLocation.pathname ||
