@@ -8,8 +8,8 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.ISSUE_OCCURRENCES)
 class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.ISSUE_ATTRIBUTES
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
