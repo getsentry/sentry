@@ -30,7 +30,7 @@ export default function FlagDrawerCTA() {
 
   return (
     <BannerWrapper>
-      <CardContent>
+      <BannerContent>
         <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
         <BannerDescription>
           {t(
@@ -49,11 +49,16 @@ export default function FlagDrawerCTA() {
             {t('Read More')}
           </LinkButton>
         </ActionButton>
-      </CardContent>
+      </BannerContent>
       <BannerIllustration src={onboardingInstall} alt="Install" />
     </BannerWrapper>
   );
 }
+
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
@@ -66,9 +71,21 @@ const BannerDescription = styled('div')`
   max-width: 340px;
 `;
 
-const ActionButton = styled('div')`
+const BannerContent = styled('div')`
+  padding: ${space(2)};
+
   display: flex;
-  gap: ${space(1)};
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const BannerIllustration = styled('img')`
+  height: 100%;
+  object-fit: contain;
+  max-width: 30%;
+  margin-right: 10px;
+  margin-bottom: -${space(2)};
+  padding: ${space(2)};
 `;
 
 const BannerWrapper = styled('div')`
@@ -87,21 +104,4 @@ const BannerWrapper = styled('div')`
   align-items: flex-end;
   justify-content: space-between;
   gap: ${space(1)};
-`;
-
-const BannerIllustration = styled('img')`
-  height: 100%;
-  object-fit: contain;
-  max-width: 30%;
-  margin-right: 10px;
-  margin-bottom: -${space(2)};
-  padding: ${space(2)};
-`;
-
-const CardContent = styled('div')`
-  padding: ${space(2)};
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
