@@ -11,7 +11,7 @@ describe('getReasonGroupName', function () {
   // Which will convert: 'too_large_attachment' -> 'Too Large Attachment'
   it('handles all new too_large reasons', function () {
     const testCases: Array<[string, string]> = [
-      // ['too_large:unknown', 'too_large'],
+      ['too_large:unknown', 'too_large'],
       ['too_large:event', 'too_large_event'],
       ['too_large:transaction', 'too_large_transaction'],
       ['too_large:security', 'too_large_security'],
