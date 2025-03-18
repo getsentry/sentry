@@ -39,7 +39,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_time: int,
         num_processes: int,
         max_flush_segments: int,
-        enable_multiprocessing: bool,
         input_block_size: int | None,
         output_block_size: int | None,
     ):
@@ -51,8 +50,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_flush_segments = max_flush_segments
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        self.enable_multiprocessing = enable_multiprocessing
-        if self.enable_multiprocessing:
+        self.num_processes = num_processes
+
+        if self.num_processes != 1:
             self.__pool = MultiprocessingPool(num_processes)
 
         cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
@@ -83,7 +83,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=committer,
         )
 
-        if self.enable_multiprocessing:
+        if self.num_processes != 1:
             run_task = run_task_with_multiprocessing(
                 function=partial(process_batch, buffer),
                 next_step=flusher,
@@ -125,7 +125,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def shutdown(self) -> None:
         self.producer.close()
-        if self.enable_multiprocessing:
+        if self.num_processes != 1:
             self.__pool.close()
 
 

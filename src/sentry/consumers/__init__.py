@@ -424,11 +424,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 default=100,
                 help="The number of segments to download from redis at once. Defaults to 100.",
             ),
-            click.Option(
-                ["--enable-multiprocessing"],
-                is_flag=True,
-                default=False,
-            ),
             *multiprocessing_options(default_max_batch_size=100),
         ],
     },
