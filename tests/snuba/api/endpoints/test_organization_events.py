@@ -5056,8 +5056,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["measurements.frames_slow_rate"] == "percentage"
         assert meta["measurements.frames_frozen_rate"] == "percentage"
         assert meta["measurements.stall_count"] == "number"
-        assert meta["measurements.stall_total_time"] == "number"
-        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_total_time"] == "duration"
+        assert meta["measurements.stall_longest_time"] == "duration"
         assert meta["measurements.stall_percentage"] == "percentage"
 
         query = {

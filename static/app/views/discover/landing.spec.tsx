@@ -1,12 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DiscoverLanding} from 'sentry/views/discover/landing';
+import DiscoverLanding from 'sentry/views/discover/landing';
+
+import {OrganizationContext} from '../organizationContext';
 
 describe('Discover > Landing', function () {
   const eventTitle = 'Oh no something bad';
@@ -73,12 +74,7 @@ describe('Discover > Landing', function () {
   });
 
   it('denies access on missing feature', function () {
-    render(
-      <DiscoverLanding
-        organization={OrganizationFixture()}
-        {...RouteComponentPropsFixture()}
-      />
-    );
+    render(<DiscoverLanding />);
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
@@ -86,7 +82,11 @@ describe('Discover > Landing', function () {
   it('has the right sorts', async function () {
     const org = OrganizationFixture({features});
 
-    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
+    render(
+      <OrganizationContext.Provider value={org}>
+        <DiscoverLanding />
+      </OrganizationContext.Provider>
+    );
 
     const expectedSorts = [
       'My Queries',
@@ -111,7 +111,11 @@ describe('Discover > Landing', function () {
   it('links back to the homepage', async () => {
     const org = OrganizationFixture({features});
 
-    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
+    render(
+      <OrganizationContext.Provider value={org}>
+        <DiscoverLanding />
+      </OrganizationContext.Provider>
+    );
 
     expect(await screen.findByText('Discover')).toHaveAttribute(
       'href',

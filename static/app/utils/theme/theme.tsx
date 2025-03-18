@@ -250,12 +250,12 @@ type AlertColors = {
 
 export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
-    textDecoration: `underline dotted ${
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      colors[underlineColor] ?? aliases[underlineColor]
-    }`,
+    textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
     display: block;
@@ -825,6 +825,9 @@ export type FormTheme = {
       borderRadius: string;
     };
   };
+  formSpacing: {
+    [key in FormSize]: string;
+  };
 };
 
 const formTheme: FormTheme = {
@@ -888,6 +891,11 @@ const formTheme: FormTheme = {
       borderRadius: '6px',
     },
   },
+  formSpacing: {
+    md: '8px',
+    sm: '6px',
+    xs: '4px',
+  },
 };
 
 const iconSizes: Sizes = {
@@ -903,7 +911,13 @@ const iconSizes: Sizes = {
 const dataCategory: Record<
   Exclude<
     DataCategory,
-    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
+    | 'profiles'
+    | 'profileChunks'
+    | 'profileDuration'
+    | 'profileDurationUI'
+    | 'spans'
+    | 'spansIndexed'
+    | 'uptime'
   >,
   string
 > = {

@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
@@ -45,10 +46,13 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
   const organization = useOrganization();
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
 
   const {projects} = useProjects();
 
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const [starredProjects, nonStarredProjects] = useMemo(() => {
+    return partition(projects, project => project.isBookmarked);
+  }, [projects]);
 
   const isSingleProjectSelected =
     typeof location.query.project === 'string' && location.query.project !== '-1';
@@ -67,6 +71,11 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
 
   const isStarredProjectSelected =
     location.query.starred === '1' && isSingleProjectSelected;
+
+  const displayStarredProjects = starredProjects.length > 0;
+  const projectsToDisplay = displayStarredProjects
+    ? starredProjects.slice(0, 8)
+    : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
 
   return (
     <Fragment>
@@ -101,36 +110,36 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
               {AI_SIDEBAR_LABEL}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          <SecondaryNav.Section title={t('Starred Projects')}>
-            {projects
-              .filter(project => project.isBookmarked)
-              .map(project => (
-                <SecondaryNav.Item
-                  key={project.id}
-                  to={
-                    isUsingOverviewAsProjectDetails(project)
-                      ? {
-                          pathname: `${baseUrl}/backend/`,
-                          search: `?project=${project.id}&starred=1`,
-                        }
-                      : `${baseUrl}/projects/${project.slug}/`
-                  }
-                  isActive={
-                    isUsingOverviewAsProjectDetails(project)
-                      ? isLinkActive(`${baseUrl}/backend/`, location.pathname) &&
-                        isProjectSelectedExclusively(project) &&
-                        isStarredProjectSelected
-                      : undefined
-                  }
-                  leadingItems={
-                    <StyledProjectIcon
-                      projectPlatforms={project.platform ? [project.platform] : []}
-                    />
-                  }
-                >
-                  {project.slug}
-                </SecondaryNav.Item>
-              ))}
+          <SecondaryNav.Section
+            title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
+          >
+            {projectsToDisplay.map(project => (
+              <SecondaryNav.Item
+                key={project.id}
+                to={
+                  isUsingOverviewAsProjectDetails(project)
+                    ? {
+                        pathname: `${baseUrl}/backend/`,
+                        search: `?project=${project.id}&starred=1`,
+                      }
+                    : `${baseUrl}/projects/${project.slug}/`
+                }
+                isActive={
+                  isUsingOverviewAsProjectDetails(project)
+                    ? isLinkActive(`${baseUrl}/backend/`, location.pathname) &&
+                      isProjectSelectedExclusively(project) &&
+                      isStarredProjectSelected
+                    : undefined
+                }
+                leadingItems={
+                  <StyledProjectIcon
+                    projectPlatforms={project.platform ? [project.platform] : ['default']}
+                  />
+                }
+              >
+                {project.slug}
+              </SecondaryNav.Item>
+            ))}
             <SecondaryNav.Item to={`${baseUrl}/projects/`} end>
               {t('All Projects')}
             </SecondaryNav.Item>

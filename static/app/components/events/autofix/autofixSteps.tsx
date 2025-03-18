@@ -12,6 +12,7 @@ import {
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixData,
+  type AutofixFeedback,
   type AutofixProgressItem,
   type AutofixRepository,
   AutofixStatus,
@@ -37,6 +38,7 @@ interface StepProps {
   repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   shouldCollapseByDefault?: boolean;
@@ -65,6 +67,7 @@ export function Step({
   shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
+  feedback,
 }: StepProps) {
   return (
     <StepCard>
@@ -99,6 +102,7 @@ export function Step({
                   repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
+                  feedback={feedback}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -222,6 +226,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
               }
               previousInsightCount={previousInsightCount}
+              feedback={data.feedback}
             />
           </div>
         );
@@ -233,7 +238,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           groupId={groupId}
           runId={runId}
           responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-          isProcessing={lastStep!.status === 'PROCESSING'}
         />
       )}
     </StepsContainer>
