@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -134,7 +135,7 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const {data: groupSummaryData} = useGroupSummaryData(group, event);
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
-  const copyIssueDetails = () => {
+  const copyIssueDetails = useCallback(() => {
     if (!event) {
       addErrorMessage(t('Could not copy issue to clipboard'));
       return;
@@ -151,16 +152,16 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
         Sentry.captureException(err);
         addErrorMessage(t('Could not copy issue to clipboard'));
       });
-  };
+  }, [group, event, groupSummaryData, autofixData]);
 
   useHotkeys([
     {
       match: 'command+alt+c',
-      callback: () => copyIssueDetails(),
+      callback: copyIssueDetails,
     },
     {
       match: 'ctrl+alt+c',
-      callback: () => copyIssueDetails(),
+      callback: copyIssueDetails,
     },
   ]);
 
