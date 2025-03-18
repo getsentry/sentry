@@ -293,7 +293,7 @@ class Enhancements:
         return [
             self.version,
             self.bases,
-            [x._to_config_structure(self.version) for x in self.rules],
+            [rule._to_config_structure(self.version) for rule in self.rules],
         ]
 
     def dumps(self) -> str:
@@ -307,7 +307,7 @@ class Enhancements:
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(rule, version=version) for rule in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
