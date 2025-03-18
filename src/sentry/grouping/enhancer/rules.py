@@ -81,7 +81,7 @@ class EnhancementRule:
 
     def _to_config_structure(self, version):
         return [
-            [x._to_config_structure(version) for x in self.matchers],
+            [matcher._to_config_structure(version) for matcher in self.matchers],
             [x._to_config_structure(version) for x in self.actions],
         ]
 
