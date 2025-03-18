@@ -33,9 +33,10 @@ const ALL_PROJECTS_KEY = 'all';
 export function useIsLaravelInsightsEnabled() {
   const organization = useOrganization();
   const user = useUser();
+  const isAvailable = useIsLaravelInsightsAvailable();
 
   const isEnabled = Boolean(
-    hasLaravelInsightsFeature(organization) &&
+    isAvailable &&
       (user.options.prefersSpecializedProjectOverview[ALL_PROJECTS_KEY] ?? true)
   );
 
