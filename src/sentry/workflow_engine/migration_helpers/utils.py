@@ -1,4 +1,8 @@
+from typing import cast
+
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.models.team import Team
+from sentry.users.services.user import RpcUser
 
 MAX_CHARS = 248  # (256 minus space for '...(+3_)')
 
@@ -17,15 +21,18 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
     if action.type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action.target:
             if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                return "Email " + action.target.email
+                action_target_user = cast(RpcUser, action.target)
+                return "Email " + action_target_user.email
             elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                return "Email #" + action.target.slug
+                action_target_team = cast(Team, action.target)
+                return "Email #" + action_target_team.slug
     elif action.type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         return f"Opsgenie to {action.target_display}"
     elif action.type == AlertRuleTriggerAction.Type.DISCORD.value:
         return f"Discord to {action.target_display}"
     else:
         return action_type_to_string[action.type]
+    return ""
 
 
 def get_workflow_name(alert_rule: AlertRule) -> str:
