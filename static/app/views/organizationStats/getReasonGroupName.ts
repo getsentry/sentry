@@ -107,13 +107,13 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
 };
 
 function getInvalidReasonGroupName(reason: string): string {
-  // The reason for too large will be of the form too_large:<reason> this we want to convert to too_large_reason
-  // unless the reason is unknown in which case we just want too_large
+  // The reason for too large will be of the form too_large:<reason> this unless
+  // it is too_large:unknown in which case we just want too_large.
   if (reason.startsWith('too_large:')) {
     if (reason === 'too_large:unknown') {
       return DiscardReason.TOO_LARGE;
     }
-    return reason.replace(':', '_');
+    return reason.replace(':', ':_');
   }
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
     if (reasons.includes(reason as DiscardReason)) {
