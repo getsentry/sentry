@@ -2,6 +2,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
@@ -135,12 +136,7 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data[0]["id"] == str(objs["user_one_views"][0].id)
-        assert response.data[0]["position"] == 0
-        assert response.data[1]["id"] == str(objs["user_one_views"][1].id)
-        assert response.data[1]["position"] == 1
-        assert response.data[2]["id"] == str(objs["user_one_views"][2].id)
-        assert response.data[2]["position"] == 2
+        assert response.data == serialize(objs["user_one_views"])
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -173,10 +169,7 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         self.login_as(user=self.user_2)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data[0]["id"] == str(objs["user_two_views"][0].id)
-        assert response.data[0]["position"] == 0
-        assert response.data[1]["id"] == str(objs["user_two_views"][1].id)
-        assert response.data[1]["position"] == 1
+        assert response.data == serialize(objs["user_two_views"])
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
