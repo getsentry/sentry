@@ -148,9 +148,8 @@ class DataConditionHandlerSerializer(Serializer):
         user: Any,
         **kwargs: Any,
     ) -> DataConditionHandlerResponse:
-        if hasattr(kwargs, "condition_type"):
-            condition_type = kwargs["condition_type"]
-        else:
+        condition_type = kwargs.get("condition_type")
+        if condition_type is None:
             raise ValueError("condition_type is required")
         result: DataConditionHandlerResponse = {
             "type": condition_type,

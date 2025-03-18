@@ -47,7 +47,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
             group = DataConditionHandler.Group.DETECTOR_TRIGGER
             comparison_json_schema = {"type": "boolean"}
 
-        # This condition should not be included in the response
+        # This legacy condition should not be included in the response
         @self.registry.register(Condition.EVERY_EVENT)
         @dataclass(frozen=True)
         class TestIgnoredCondition(DataConditionHandler):
