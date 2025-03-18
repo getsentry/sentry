@@ -314,8 +314,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
         expected_repo = {
@@ -324,16 +324,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_args[2]
+        assert expected_repo in call_kwargs["repos"]
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -387,20 +387,20 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter is an empty list (no code mappings)
-        assert call_args[2] == []
+        assert call_kwargs["repos"] == []
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -460,8 +460,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
         expected_repo = {
@@ -470,16 +470,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_args[2]
+        assert expected_repo in call_kwargs["repos"]
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -539,8 +539,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
         expected_repo = {
@@ -549,16 +549,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_args[2]
+        assert expected_repo in call_kwargs["repos"]
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
