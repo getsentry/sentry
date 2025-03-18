@@ -112,8 +112,8 @@ class EnhancementMatch:
         raise NotImplementedError()
 
     @staticmethod
-    def _from_config_structure(obj, version):
-        val = obj
+    def _from_config_structure(config_structure, version):
+        val = config_structure
         if val.startswith("|[") and val.endswith("]"):
             return CalleeMatch(EnhancementMatch._from_config_structure(val[2:-1], version))
         if val.startswith("[") and val.endswith("]|"):
