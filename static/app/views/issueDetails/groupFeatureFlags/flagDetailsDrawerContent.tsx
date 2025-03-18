@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -13,21 +14,27 @@ import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {DrawerTab} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 import {
   getFlagActionLabel,
   type RawFlag,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function FlagDetailsDrawerContent() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
 
+  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
   const locationQuery = useLocationQuery({
     fields: {
       cursor: decodeScalar,
@@ -75,9 +82,20 @@ export function FlagDetailsDrawerContent() {
 
   if (!flagLog.data.length) {
     return (
-      <EmptyStateWarning withIcon={false} small>
-        {t('No audit logs were found for this feature flag.')}
-      </EmptyStateWarning>
+      <EmptyStateContainer>
+        <StyledEmptyStateWarning withIcon={false} small>
+          {t('No audit logs were found for this feature flag.')}
+        </StyledEmptyStateWarning>
+        <LinkButton
+          size="sm"
+          to={{
+            pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+          }}
+        >
+          {t('See all flags')}
+        </LinkButton>
+      </EmptyStateContainer>
     );
   }
 
@@ -229,4 +247,14 @@ const Row = styled(Body)`
 
 const LeftAlignedValue = styled('div')`
   text-align: left;
+`;
+
+const EmptyStateContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  padding: ${space(3)};
 `;

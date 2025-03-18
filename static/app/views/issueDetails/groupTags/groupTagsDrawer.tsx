@@ -46,14 +46,15 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 // Used for `tab` state and URL param.
-const TAGS_TAB = 'tags';
-const FEATURE_FLAGS_TAB = 'featureFlags';
-type DrawerTab = 'tags' | 'featureFlags';
+export enum DrawerTab {
+  TAGS = 'tags',
+  FEATURE_FLAGS = 'featureFlags',
+}
 
 function useDrawerTab({enabled}: {enabled: boolean}) {
   const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams('tab');
   const [tab, setTab] = useState<DrawerTab>(
-    getTabParam() === FEATURE_FLAGS_TAB ? FEATURE_FLAGS_TAB : TAGS_TAB
+    getTabParam() === DrawerTab.FEATURE_FLAGS ? DrawerTab.FEATURE_FLAGS : DrawerTab.TAGS
   );
 
   useEffect(() => {
@@ -63,7 +64,7 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
   }, [tab, setTabParam, enabled]);
 
   if (!enabled) {
-    return {tab: TAGS_TAB, setTab: (_tab: string) => {}};
+    return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
   }
   return {tab, setTab};
 }
@@ -74,7 +75,7 @@ function getHeaderTitle(
   includeFeatureFlagsTab: boolean
 ) {
   if (tagKey) {
-    return tab === TAGS_TAB
+    return tab === DrawerTab.TAGS
       ? tct('Tag Details - [tagKey]', {tagKey})
       : tct('Feature Flag Details - [tagKey]', {tagKey});
   }
@@ -108,14 +109,14 @@ function DrawerContent({
   tagKey: string | undefined;
 }) {
   if (tagKey) {
-    return tab === TAGS_TAB ? (
+    return tab === DrawerTab.TAGS ? (
       <TagDetailsDrawerContent group={group} />
     ) : (
       <FlagDetailsDrawerContent />
     );
   }
 
-  if (tab === FEATURE_FLAGS_TAB) {
+  if (tab === DrawerTab.FEATURE_FLAGS) {
     return (
       <GroupFeatureFlagsDrawerContent
         group={group}
@@ -305,8 +306,10 @@ export function GroupTagsDrawer({
             setSearch('');
           }}
         >
-          <SegmentedControl.Item key={TAGS_TAB}>{t('All Tags')}</SegmentedControl.Item>
-          <SegmentedControl.Item key={FEATURE_FLAGS_TAB}>
+          <SegmentedControl.Item key={DrawerTab.TAGS}>
+            {t('All Tags')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
             {t('All Feature Flags')}
           </SegmentedControl.Item>
         </SegmentedControl>
@@ -327,7 +330,7 @@ export function GroupTagsDrawer({
                 </CrumbContainer>
               ),
             },
-            ...(tab === TAGS_TAB
+            ...(tab === DrawerTab.TAGS
               ? [
                   {
                     label: t('All Tags'),
@@ -340,14 +343,14 @@ export function GroupTagsDrawer({
                   },
                   ...(tagKey ? [{label: tagKey}] : []),
                 ]
-              : tab === FEATURE_FLAGS_TAB
+              : tab === DrawerTab.FEATURE_FLAGS
                 ? [
                     {
                       label: t('All Feature Flags'),
                       to: tagKey
                         ? {
                             pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-                            query: {...location.query, tab: FEATURE_FLAGS_TAB},
+                            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
                           }
                         : undefined,
                     },
