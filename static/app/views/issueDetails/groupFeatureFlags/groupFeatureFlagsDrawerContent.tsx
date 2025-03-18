@@ -1,9 +1,13 @@
 import {useMemo} from 'react';
 
+import {shouldShowFeatureFlagCTA} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {
   Container,
@@ -60,6 +64,13 @@ export default function GroupFeatureFlagsDrawerContent({
     );
     return searchedTags;
   }, [data, search, tagValues]);
+
+  const organization = useOrganization();
+  const project = useProjectFromSlug({organization, projectSlug: group.project?.slug});
+
+  if (data.length === 0 && project && shouldShowFeatureFlagCTA(organization, project)) {
+    return <FlagDrawerCTA />;
+  }
 
   return isPending ? (
     <LoadingIndicator />

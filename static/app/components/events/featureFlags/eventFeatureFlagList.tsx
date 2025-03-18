@@ -14,12 +14,12 @@ import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSo
 import {
   FlagControlOptions,
   OrderBy,
+  shouldShowFeatureFlagCTA,
   SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -219,11 +219,8 @@ export function EventFeatureFlagList({
   }
 
   // contexts.flags is not set and project has not ingested flags
-  if (!hasFlagContext && !project.hasFlags) {
-    const showCTA =
-      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-      organization.features.includes('feature-flag-cta');
-    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
+  if (!hasFlagContext && shouldShowFeatureFlagCTA(organization, project)) {
+    return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
   const actions = (

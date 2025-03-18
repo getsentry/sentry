@@ -19,7 +19,7 @@ const DrawerContentContext = createContext<DrawerContentContextType>({
   ariaLabel: 'slide out drawer',
 });
 
-function useDrawerContentContext() {
+export function useDrawerContentContext() {
   return useContext(DrawerContentContext);
 }
 
