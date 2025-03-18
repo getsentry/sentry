@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreviewImage from 'sentry-images/spot/issue-details-preview.svg';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {darkTheme} from 'sentry/utils/theme';
 
-interface IssueDetailsTourModalProps extends ModalRenderProps {
+interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
   handleStartTour: () => void;
 }
