@@ -145,7 +145,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     if not project:
         raise NoProjects
 
-    if snuba_query.aggregate in ["failure_rate()", "apdex()"]:
+    if snuba_query.aggregate in ["apdex()"]:
         logger.info(
             "Skipping alert %s, %s aggregate not yet supported by RPC",
             alert_rule.id,
