@@ -42,7 +42,24 @@ class LegacyRegistryInvoker(ABC):
 group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 
 
-class NotificationActionHandler(ActionHandler):
+def execute_via_group_type_registry(job: WorkflowJob, action: Action, detector: Detector) -> None:
+    try:
+        handler = group_type_notification_registry.get(detector.type)
+        handler.handle_workflow_action(job, action, detector)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No notification handler found for detector type: %s",
+            detector.type,
+            extra={"detector_id": detector.id, "action_id": action.id},
+        )
+
+
+def execute_via_metric_alert_handler(job: WorkflowJob, action: Action, detector: Detector) -> None:
+    # TODO(iamrajjoshi): Implement this, it should be used for the ticketing actions
+    pass
+
+
+class NotificationActionHandler(ActionHandler, ABC):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The configuration schema for a Notification Action",
@@ -69,42 +86,77 @@ class NotificationActionHandler(ActionHandler):
         action: Action,
         detector: Detector,
     ) -> None:
-        try:
-            handler = group_type_notification_registry.get(detector.type)
-            handler.handle_workflow_action(job, action, detector)
-        except NoRegistrationExistsError:
-            logger.exception(
-                "No notification handler found for detector type: %s",
-                detector.type,
-                extra={"detector_id": detector.id, "action_id": action.id},
-            )
+        execute_via_group_type_registry(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.DISCORD)
+class DiscordActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.SLACK)
+class SlackActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.MSTEAMS)
+class MsteamsActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.PAGERDUTY)
+class PagerdutyActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.OPSGENIE)
+class OpsgenieActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.EMAIL)
+class EmailActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.SENTRY_APP)
+class SentryAppActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+
+
 @action_handler_registry.register(Action.Type.PLUGIN)
-class NotificationGroupActionHandler(NotificationActionHandler):
-    action_group = NotificationActionHandler.ActionGroup.NOTIFICATION
+class PluginActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.GITHUB)
+class GithubActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+
+
 @action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
+class GithubEnterpriseActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+
+
 @action_handler_registry.register(Action.Type.JIRA)
+class JiraActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+
+
 @action_handler_registry.register(Action.Type.JIRA_SERVER)
+class JiraServerActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+
+
 @action_handler_registry.register(Action.Type.AZURE_DEVOPS)
-class TicketCreationGroupActionHandler(NotificationActionHandler):
-    action_group = NotificationActionHandler.ActionGroup.TICKET_CREATION
-    # TODO(iamrajjoshi): Override `execute` method to handle the custom ticket creation logic since all detectors will flow through the rule registry.
+class AzureDevopsActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.WEBHOOK)
-class OtherGroupActionHandler(NotificationActionHandler):
-    action_group = NotificationActionHandler.ActionGroup.OTHER
+class WebhookActionHandler(NotificationActionHandler):
+    group = NotificationActionHandler.ActionGroup.OTHER
 
 
 @group_type_notification_registry.register(ErrorGroupType.slug)

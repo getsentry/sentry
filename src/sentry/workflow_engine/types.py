@@ -54,7 +54,7 @@ class ActionHandler:
         TICKET_CREATION = "ticket_creation"
         OTHER = "other"
 
-    action_group: ClassVar[ActionGroup]
+    group: ClassVar[ActionGroup]
 
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
