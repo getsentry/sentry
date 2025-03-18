@@ -304,7 +304,9 @@ def configure_sdk():
     """
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
-        sdk_options["spotlight"] = settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith('http') else True
+        sdk_options["spotlight"] = (
+            settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
+        )
 
     internal_project_key = get_project_key()
 

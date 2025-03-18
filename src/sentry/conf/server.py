@@ -98,7 +98,7 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
 IS_DEV = ENVIRONMENT == "development"
 SPOTLIGHT_ENV_VAR = os.environ.get("SENTRY_SPOTLIGHT", "")
-SPOTLIGHT = IS_DEV and SPOTLIGHT_ENV_VAR.lower() not in ('0', 'false', 'n', 'no')
+SPOTLIGHT = IS_DEV and SPOTLIGHT_ENV_VAR.lower() not in ("0", "false", "n", "no")
 
 DEBUG = IS_DEV
 # override the settings dumped in the debug view
