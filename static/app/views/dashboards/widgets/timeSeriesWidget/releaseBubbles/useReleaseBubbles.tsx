@@ -24,6 +24,7 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {getFormat} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {
   BUBBLE_AREA_SERIES_ID,
@@ -76,7 +77,7 @@ function createReleaseBubbleMouseListeners({
         () => (
           <ReleasesDrawer
             startTs={data.start}
-            endTs={data.end}
+            endTs={data.final ?? data.end}
             releases={data.releases}
             buckets={buckets}
             chartRenderer={chartRenderer}
@@ -143,7 +144,7 @@ function createReleaseBubbleMouseListeners({
 }
 
 interface ReleaseBubbleSeriesProps {
-  bubblePadding: {x: number; y: number};
+  bubblePadding: number;
   bubbleSize: number;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
@@ -230,34 +231,24 @@ function ReleaseBubbleSeries({
       //  ----------------  ----------------
       //                 ^  ^
       //                 |--|
-      //                 bubblePadding.x
+      //                 bubblePadding
 
-      // No left-padding on first bubble
-      x: bubbleStartX + (params.dataIndex === 0 ? 0 : bubblePadding.x),
-
-      // No right-padding on last bubble
-      // We don't decrease width on first bubble to make up for lack of
-      // left-padding
-      width:
-        width -
-        (params.dataIndex === 0 || params.dataIndex === data.length - 1
-          ? 0
-          : bubblePadding.x),
-
+      x: bubbleStartX + bubblePadding / 2,
+      width: width - bubblePadding,
       // We configure base chart's grid and xAxis to create a gap size of
       // `bubbleSize`. We then have to configure `y` and `height` to fit within this
       //
       // ----------------- grid bottom
-      //   | bubblePadding.y
+      //   | bubblePadding
       //   | bubbleSize
-      //   | bubblePadding.y
+      //   | bubblePadding
       // ----------------- = xAxis offset
 
       // idk exactly what's happening but we need a 1 pixel buffer to make it
       // properly centered. I want to guess because we are drawing below the
       // xAxis, and we have to account for the pixel being drawn in the other
       // direction. You can see this if you set the x-axis offset to 0 and compare.
-      y: bubbleStartY + bubblePadding.y + 1,
+      y: bubbleStartY + bubblePadding,
       height: bubbleSize,
 
       // border radius
@@ -269,13 +260,19 @@ function ReleaseBubbleSeries({
       transition: ['shape'],
       shape,
       style: {
+        // Use lineWidth to "fake" padding so that mouse events are triggered
+        // in the "padding" areas (i.e. so tooltips open)
+        lineWidth: bubblePadding,
+        stroke: 'transparent',
         fill: theme.blue400,
         // TODO: figure out correct opacity calculations
         opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
       emphasis: {
         style: {
-          stroke: theme.blue300,
+          opacity: 1,
+          stroke: 'transparent',
+          fill: theme.blue400,
         },
       },
     } satisfies CustomSeriesRenderItemReturn;
@@ -306,7 +303,7 @@ function ReleaseBubbleSeries({
 ${tn('%s Release', '%s Releases', numberReleases)}
 </div>
 <div class="tooltip-release-timerange">
-${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.end)}
+${formatBucketTimestamp(bucket.start)} - ${formatBucketTimestamp(bucket.final ?? bucket.end)}
 </div>
 </div>
 
@@ -326,7 +323,7 @@ ${t('Click to expand')}
 
 interface UseReleaseBubblesParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
-  bubblePadding?: {x: number; y: number};
+  bubblePadding?: number;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
     end: Date;
@@ -344,19 +341,27 @@ export function useReleaseBubbles({
   minTime,
   maxTime,
   bubbleSize = 4,
-  bubblePadding = {x: 2, y: 1},
+  bubblePadding = 2,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
   const theme = useTheme();
   const {options} = useUser();
+  const {selection} = usePageFilters();
+  // `maxTime` refers to the max time on x-axis for charts.
+  // There may be the need to include releases that are > maxTime (e.g. in the
+  // case of relative date selection). This is used for the tooltip to show the
+  // proper timestamp for releases.
+  const releasesMaxTime = defined(selection.datetime.end)
+    ? new Date(selection.datetime.end).getTime()
+    : Date.now();
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const buckets =
     (hasReleaseBubbles &&
       releases?.length &&
       minTime &&
       maxTime &&
-      createReleaseBuckets(minTime, maxTime, releases)) ||
+      createReleaseBuckets(minTime, maxTime, releasesMaxTime, releases)) ||
     [];
 
   if (!releases || !buckets.length) {
@@ -369,8 +374,7 @@ export function useReleaseBubbles({
     };
   }
 
-  // Read comments in `renderReleaseBubble()` regarding the +1
-  const totalBubblePaddingY = 1 + bubblePadding.y * 2;
+  const totalBubblePaddingY = bubblePadding * 2;
 
   return {
     createReleaseBubbleHighlighter,
@@ -407,7 +411,7 @@ export function useReleaseBubbles({
       // configure `axisLine` and `offset` to move axis line below 0 so that
       // bubbles sit between bottom of the main chart and the axis line
       axisLine: {onZero: false},
-      offset: bubbleSize + totalBubblePaddingY,
+      offset: bubbleSize + totalBubblePaddingY - 1,
     },
 
     /**
@@ -416,7 +420,7 @@ export function useReleaseBubbles({
     releaseBubbleGrid: {
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
       // drawn below grid (but above x axis label)
-      bottom: bubbleSize + totalBubblePaddingY,
+      bottom: bubbleSize + totalBubblePaddingY + 1,
     },
   };
 }

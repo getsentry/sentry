@@ -133,7 +133,7 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
                 }
                 leadingItems={
                   <StyledProjectIcon
-                    projectPlatforms={project.platform ? [project.platform] : []}
+                    projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 }
               >
