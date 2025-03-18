@@ -42,10 +42,9 @@ def categorize_aggregate(
     column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
 ) -> Expression:
     if isinstance(column, ResolvedFormula):
+        # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
         return Expression(
-            formula=transform_binary_formula_to_expression(
-                column.proto_definition
-            ),  # Remove transformation when https://github.com/getsentry/eap-planning/issues/206 is merged
+            formula=transform_binary_formula_to_expression(column.proto_definition),
             label=column.public_alias,
         )
     if isinstance(column, ResolvedAggregate):
@@ -324,7 +323,7 @@ def run_top_events_timeseries_query(
         params,
         query_string,
         y_axes,
-        [],  # in the other series, we want eveything in a single group, so remove the group by
+        [],  # in the other series, we want eveything in a single group, so the group by
         referrer,
         config,
         granularity_secs,

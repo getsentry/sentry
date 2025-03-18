@@ -8,6 +8,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 
 from sentry.exceptions import InvalidSearchQuery
 
+# TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
 BINARY_FORMULA_OPERATOR_MAP = {
     Column.BinaryFormula.OP_ADD: Expression.BinaryFormula.OP_ADD,
     Column.BinaryFormula.OP_SUBTRACT: Expression.BinaryFormula.OP_SUBTRACT,
@@ -39,10 +40,10 @@ def add_start_end_conditions(
     return in_msg
 
 
-# Remove when https://github.com/getsentry/eap-planning/issues/206 is merged
 def transform_binary_formula_to_expression(
     column: Column.BinaryFormula,
 ) -> Expression.BinaryFormula:
+    """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
     return Expression.BinaryFormula(
         left=transform_column_to_expression(column.left),
         right=transform_column_to_expression(column.right),
@@ -52,6 +53,7 @@ def transform_binary_formula_to_expression(
 
 # Remove when https://github.com/getsentry/eap-planning/issues/206 is merged
 def transform_column_to_expression(column: Column) -> Expression:
+    """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
     if column.formula.op != Column.BinaryFormula.OP_UNSPECIFIED:
         return Expression(
             formula=transform_binary_formula_to_expression(column.formula),
