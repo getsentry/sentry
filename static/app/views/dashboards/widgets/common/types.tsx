@@ -7,6 +7,7 @@ export type TimeSeriesValueType =
   | 'number'
   | 'integer'
   | 'date'
+  | 'boolean'
   | 'duration'
   | 'percentage'
   | 'percent_change'
