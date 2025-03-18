@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import re
-from collections import namedtuple
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -358,16 +357,16 @@ def get_operator_value(operator):
     return operator
 
 
-class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")):
+class SearchBoolean:
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
 
     @staticmethod
-    def is_or_operator(value):
+    def is_or_operator(value: object) -> TypeIs[Literal["OR"]]:
         return value == SearchBoolean.BOOLEAN_OR
 
     @staticmethod
-    def is_operator(value):
+    def is_operator(value: object) -> TypeIs[QueryOp]:
         return value == SearchBoolean.BOOLEAN_AND or SearchBoolean.is_or_operator(value)
 
 
