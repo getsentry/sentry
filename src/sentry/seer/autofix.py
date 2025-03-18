@@ -227,7 +227,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                     "duration": duration_str,
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
-                    "spans": selected_spans_tree,  # Add the spans tree to the event node
+                    "spans": selected_spans_tree,
                 }
             )
 
