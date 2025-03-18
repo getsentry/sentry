@@ -128,7 +128,7 @@ pillow==11.0.0
 pip-tools==7.1.0
 platformdirs==4.2.0
 pluggy==1.5.0
-pre-commit==4.0.0
+pre-commit==4.2.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.25.0

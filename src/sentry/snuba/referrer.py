@@ -984,6 +984,8 @@ class Referrer(StrEnum):
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
 
+    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
+
 
 VALUES = {referrer.value for referrer in Referrer}
 
