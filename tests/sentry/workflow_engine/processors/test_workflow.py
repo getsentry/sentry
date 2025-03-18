@@ -91,14 +91,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_error_event__logger(self, mock_logger):
         self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
 
-        rule = Rule.objects.filter(project=self.project).first()
+        rule = Rule.objects.get(project=self.project)
         AlertRuleWorkflow.objects.create(workflow=self.error_workflow, rule=rule)
 
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow}
 
         mock_logger.info.assert_called_with(
-            "workflow_engine.process_workflows.fired_workflows",
+            "workflow_engine.process_workflows.fired_workflow",
             extra={
                 "workflow_id": self.error_workflow.id,
                 "rule_id": rule.id,

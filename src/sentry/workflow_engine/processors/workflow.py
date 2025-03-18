@@ -112,7 +112,7 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_workflow_actions(filtered_action_groups, job["event"].group)
 
 
-def log_fired_workflows(log_name: str, actions: BaseQuerySet[Action], job: WorkflowJob) -> None:
+def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) -> None:
     # go from actions to workflows
     action_ids = {action.id for action in actions}
     action_conditions = DataConditionGroup.objects.filter(
@@ -206,7 +206,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         ):
             log_fired_workflows(
                 log_name="workflow_engine.process_workflows.fired_workflow",
-                actions=actions,
+                actions=list(actions),
                 job=job,
             )
 
