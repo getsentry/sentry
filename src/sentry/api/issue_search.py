@@ -273,6 +273,18 @@ def convert_query_values(
 ) -> list[SearchFilter]: ...
 
 
+# maintain a specific subtype of QueryToken union
+@overload
+def convert_query_values(
+    search_filters: Sequence[AggregateFilter | SearchFilter],
+    projects: Sequence[Project],
+    user: User | RpcUser | AnonymousUser | None,
+    environments: Sequence[Environment] | None,
+    value_converters=value_converters,
+    allow_aggregate_filters=False,
+) -> Sequence[AggregateFilter | SearchFilter]: ...
+
+
 @overload
 def convert_query_values(
     search_filters: Sequence[QueryToken],
