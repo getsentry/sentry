@@ -350,14 +350,14 @@ class Enhancements:
 def _load_configs() -> dict[str, Enhancements]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
-    for fn in os.listdir(configs_dir):
-        if fn.endswith(".txt"):
-            with open(os.path.join(configs_dir, fn), encoding="utf-8") as f:
+    for filename in os.listdir(configs_dir):
+        if filename.endswith(".txt"):
+            with open(os.path.join(configs_dir, filename), encoding="utf-8") as f:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
-                fn = fn.replace("@", ":")
-                enhancements = Enhancements.from_config_string(f.read(), id=fn[:-4])
-                enhancement_bases[fn[:-4]] = enhancements
+                filename = filename.replace("@", ":")
+                enhancements = Enhancements.from_config_string(f.read(), id=filename[:-4])
+                enhancement_bases[filename[:-4]] = enhancements
     return enhancement_bases
 
 
