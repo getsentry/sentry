@@ -195,7 +195,7 @@ class FrameMatch(EnhancementMatch):
         return rv
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        # Implement is subclasses
+        # Implement in subclasses
         raise NotImplementedError
 
     def _to_config_structure(self, version):
