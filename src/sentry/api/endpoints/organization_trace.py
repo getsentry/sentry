@@ -31,7 +31,6 @@ class SerializedEvent(TypedDict):
     description: str
     event_id: str
     event_type: str
-    is_transaction: bool
     project_id: int
     project_slug: str
     start_timestamp: datetime
@@ -45,6 +44,7 @@ class SerializedSpan(SerializedEvent):
     end_timestamp: datetime
     op: str
     parent_span_id: str | None
+    is_transaction: bool
 
 
 @region_silo_endpoint
@@ -84,7 +84,6 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 project_id=event["project.id"],
                 project_slug=event["project.name"],
                 start_timestamp=event["timestamp"],
-                is_transaction=False,
                 transaction=event["transaction"],
                 description=event["message"],
                 event_type="error",
