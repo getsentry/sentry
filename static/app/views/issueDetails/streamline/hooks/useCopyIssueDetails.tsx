@@ -132,7 +132,7 @@ const issueAndEventToMarkdown = (
 
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
-  const {data: groupSummaryData} = useGroupSummaryData(group, event);
+  const {data: groupSummaryData} = useGroupSummaryData(group);
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const copyIssueDetails = useCallback(() => {

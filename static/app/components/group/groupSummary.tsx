@@ -53,17 +53,9 @@ export const makeGroupSummaryQueryKey = (
 /**
  * Gets the data for group summary if it exists but doesn't fetch it.
  */
-export function useGroupSummaryData(
-  group: Group,
-  event: Event | null | undefined,
-  forceEvent = false
-) {
+export function useGroupSummaryData(group: Group) {
   const organization = useOrganization();
-  const queryKey = makeGroupSummaryQueryKey(
-    organization.slug,
-    group.id,
-    forceEvent ? event?.id : undefined
-  );
+  const queryKey = makeGroupSummaryQueryKey(organization.slug, group.id);
 
   const {data, isPending} = useApiQuery<GroupSummaryData>(queryKey, {
     staleTime: Infinity,
