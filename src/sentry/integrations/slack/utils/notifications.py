@@ -203,18 +203,6 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
-    alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
-    notification_context = NotificationContext.from_alert_rule_trigger_action(action)
-    incident_context = MetricIssueContext.from_legacy_models(
-        incident=incident,
-        new_status=new_status,
-        metric_value=metric_value,
-    )
-    open_period_context = OpenPeriodContext.from_incident(incident)
-
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
-
     # Make sure organization integration is still active:
     result = integration_service.organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
@@ -224,6 +212,18 @@ def send_incident_alert_notification(
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         # Integration removed, but rule is still active.
         return False
+
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
+    alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+    notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+    incident_context = MetricIssueContext.from_legacy_models(
+        incident=incident,
+        new_status=new_status,
+        metric_value=metric_value,
+    )
+    open_period_context = OpenPeriodContext.from_incident(incident)
 
     organization = incident.organization
 
