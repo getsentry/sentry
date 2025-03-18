@@ -9,6 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -38,6 +39,8 @@ export interface InsightsTimeSeriesWidgetProps {
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  legendSelection?: LegendSelection | undefined;
+  onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   stacked?: boolean;
 }
 
@@ -115,6 +118,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {...(organization.features.includes('release-bubbles-ui')
               ? {releases, showReleaseAs: 'bubble'}
               : {})}
+            legendSelection={props.legendSelection}
+            onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
           />
         }
@@ -135,6 +140,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
                         {...visualizationProps}
+                        legendSelection={props.legendSelection}
+                        onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
                       />
                     </ModalChartContainer>

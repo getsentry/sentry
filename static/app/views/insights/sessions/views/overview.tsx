@@ -54,17 +54,17 @@ export function SessionsOverview() {
         </ModuleLayout.Third>
       ) : undefined}
       <ModuleLayout.Third>
-        <SessionHealthCountChart view={view} />
+        <SessionHealthCountChart />
       </ModuleLayout.Third>
       <ModuleLayout.Third>
-        <UserHealthCountChart view={view} />
+        <UserHealthCountChart />
       </ModuleLayout.Third>
       <ModuleLayout.Third />
       <ModuleLayout.Third>
-        <SessionHealthRateChart view={view} />
+        <SessionHealthRateChart />
       </ModuleLayout.Third>
       <ModuleLayout.Third>
-        <UserHealthRateChart view={view} />
+        <UserHealthRateChart />
       </ModuleLayout.Third>
     </Fragment>
   );

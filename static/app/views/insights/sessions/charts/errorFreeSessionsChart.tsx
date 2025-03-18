@@ -7,7 +7,7 @@ export default function ErrorFreeSessionsChart() {
   const {series, isPending, error} = useErrorFreeSessions();
 
   const aliases = {
-    successful_session_rate: t('Error free session rate'),
+    successful_session_rate: t('crash_free_rate(session)'),
   };
 
   return (
