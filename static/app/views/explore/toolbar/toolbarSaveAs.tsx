@@ -87,6 +87,53 @@ export function ToolbarSaveAs() {
 
   const items: MenuItemProps[] = [];
 
+  if (organization.features.includes('performance-saved-queries')) {
+    if (defined(id)) {
+      items.push({
+        key: 'update-query',
+        label: (
+          <span>
+            {t('Existing Query')}
+            <FeatureBadge type="alpha" />
+          </span>
+        ),
+        onAction: async () => {
+          try {
+            addLoadingMessage(t('Updating query...'));
+            await updateQuery();
+            addSuccessMessage(t('Query updated successfully'));
+            trackAnalytics('trace_explorer.save_as', {
+              save_type: 'update_query',
+              ui_source: 'toolbar',
+              organization,
+            });
+          } catch (error) {
+            addErrorMessage(t('Failed to update query'));
+            Sentry.captureException(error);
+          }
+        },
+      });
+    }
+    items.push({
+      key: 'save-query',
+      label: (
+        <span>
+          {t('A New Query')}
+          <FeatureBadge type="alpha" />
+        </span>
+      ),
+      onAction: () => {
+        openSaveQueryModal({
+          organization,
+          query,
+          groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+          visualizes,
+          saveQuery,
+        });
+      },
+    });
+  }
+
   if (organization.features.includes('alerts-eap')) {
     items.push({
       key: 'create-alert',
@@ -152,54 +199,6 @@ export function ToolbarSaveAs() {
         return addToDashboard(0);
       },
     });
-  }
-
-  if (organization.features.includes('performance-saved-queries')) {
-    items.push({
-      key: 'save-query',
-      label: (
-        <span>
-          {t('A New Query')}
-          <FeatureBadge type="alpha" />
-        </span>
-      ),
-      onAction: () => {
-        openSaveQueryModal({
-          organization,
-          query,
-          groupBys: mode === Mode.AGGREGATE ? groupBys : [],
-          visualizes,
-          saveQuery,
-        });
-      },
-    });
-
-    if (defined(id)) {
-      items.push({
-        key: 'update-query',
-        label: (
-          <span>
-            {t('Existing Query')}
-            <FeatureBadge type="alpha" />
-          </span>
-        ),
-        onAction: async () => {
-          try {
-            addLoadingMessage(t('Updating query...'));
-            await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
-            trackAnalytics('trace_explorer.save_as', {
-              save_type: 'update_query',
-              ui_source: 'toolbar',
-              organization,
-            });
-          } catch (error) {
-            addErrorMessage(t('Failed to update query'));
-            Sentry.captureException(error);
-          }
-        },
-      });
-    }
   }
 
   if (items.length === 0) {
