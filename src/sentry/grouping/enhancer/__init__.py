@@ -348,7 +348,7 @@ class Enhancements:
 
 
 def _load_configs() -> dict[str, Enhancements]:
-    rv = {}
+    enhancement_bases = {}
     base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for fn in os.listdir(base):
         if fn.endswith(".txt"):
@@ -357,8 +357,8 @@ def _load_configs() -> dict[str, Enhancements]:
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")
                 enhancements = Enhancements.from_config_string(f.read(), id=fn[:-4])
-                rv[fn[:-4]] = enhancements
-    return rv
+                enhancement_bases[fn[:-4]] = enhancements
+    return enhancement_bases
 
 
 ENHANCEMENT_BASES = _load_configs()
