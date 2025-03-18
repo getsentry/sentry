@@ -24,7 +24,7 @@ class EnhancementRule:
 
     @property
     def matcher_description(self):
-        rv = " ".join(x.description for x in self.matchers)
+        rv = " ".join(matcher.description for matcher in self.matchers)
         for action in self.actions:
             rv = f"{rv} {action}"
         return rv
