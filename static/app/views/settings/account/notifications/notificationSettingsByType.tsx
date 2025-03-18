@@ -219,7 +219,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             if (field.name === 'quotaTransactions' && excludeTransactions) {
               return false;
             }
-            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
+            if (
+              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+              !includeProfileDuration
+            ) {
               return false;
             }
             return true;
@@ -246,7 +249,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             if (field.name === 'quotaTransactions' && excludeTransactions) {
               return false;
             }
-            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
+            if (
+              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+              !includeProfileDuration
+            ) {
               return false;
             }
             return true;
