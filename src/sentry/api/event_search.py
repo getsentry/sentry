@@ -795,14 +795,11 @@ class SearchVisitor(NodeVisitor):
     def _handle_numeric_filter(self, search_key, operator, search_value):
         operator = get_operator_value(operator)
 
-        if self.is_numeric_key(search_key.name):
-            try:
-                search_value = SearchValue(parse_numeric_value(*search_value))
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, search_value)
-
-        return self._handle_text_filter(search_key, operator, SearchValue("".join(search_value)))
+        try:
+            search_value = SearchValue(parse_numeric_value(*search_value))
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+        return SearchFilter(search_key, operator, search_value)
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
