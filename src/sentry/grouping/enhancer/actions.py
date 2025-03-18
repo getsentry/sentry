@@ -63,6 +63,12 @@ class EnhancementAction:
 
 
 class FlagAction(EnhancementAction):
+    """
+    An action which sets either a frame's `contributes` value or its `in_app` value.
+
+    May optionally set the value for all frames above or below it in the stacktrace as well.
+    """
+
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key  # The type of change (`app` or `group`)
         self._is_updater = key in {"group", "app"}
