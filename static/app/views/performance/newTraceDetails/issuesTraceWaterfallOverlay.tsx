@@ -160,22 +160,19 @@ export function getTraceLinkForIssue(
     return traceTarget;
   }
 
-  const searchParams = new URLSearchParams();
+  const searchParams: Record<string, string | string[]> = {};
   for (const key in traceTarget.query) {
-    if (key === 'node' && pathToNode) {
-      continue;
-    }
     if (defined(traceTarget.query[key])) {
-      searchParams.append(key, traceTarget.query[key]);
+      searchParams[key] = traceTarget.query[key];
     }
   }
 
-  let pathSearchParams = '';
   if (pathToNode) {
-    pathSearchParams = `&${qs.stringify({node: pathToNode})}`;
+    // Override the node query param from traceTarget.query
+    searchParams.node = pathToNode;
   }
 
-  return `${traceTarget.pathname}?${searchParams.toString()}${pathSearchParams}`;
+  return `${traceTarget.pathname}?${qs.stringify(searchParams)}`;
 }
 
 const OverlayWrapper = styled(Link)`
@@ -191,6 +188,6 @@ const IssuesTraceOverlayContainer = styled(Link)`
   pointer-events: auto;
 
   &:hover {
-    background: ${p => Color(p.theme.backgroundSecondary).alpha(0.3).toString()};
+    background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
   }
 `;
