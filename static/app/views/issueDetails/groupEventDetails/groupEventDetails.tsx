@@ -28,6 +28,7 @@ import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetail
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
@@ -78,6 +79,7 @@ function GroupEventDetails() {
     [event]
   );
   const hasStreamlinedUI = useHasStreamlinedUI();
+  useCopyIssueDetails(group, eventWithMeta);
 
   // load the data
   useSentryAppComponentsData({projectId: project?.id});
