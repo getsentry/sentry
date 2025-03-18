@@ -155,7 +155,7 @@ export function useTraceItemAttributeValues({
       try {
         // Trigger a new query with the search string
         const result = await api.requestPromise(
-          `/organizations/${organization.slug}/trace-item-attributes/${tag.key}/values/`,
+          `/organizations/${organization.slug}/trace-item/attributes/${tag.key}/values/`,
           {
             query: {
               dataset,

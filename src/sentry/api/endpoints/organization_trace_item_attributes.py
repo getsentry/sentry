@@ -57,6 +57,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+    feature_flag = "organizations:performance-trace-explorer"
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
@@ -116,9 +117,7 @@ def empty_filter(trace_item_type: TraceItemType):
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
-        ):
+        if not features.has(self.feature_flag, organization, actor=request.user):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
@@ -199,9 +198,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 @region_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, attribute_key: str) -> Response:
-        if not features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
-        ):
+        print("GOT A REQUEST", attribute_key)
+        if not features.has(self.feature_flag, organization, actor=request.user):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
@@ -314,7 +312,9 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
     def resolve_attribute_key(
         self, key: str, _: SnubaParams
     ) -> tuple[constants.SearchType, AttributeKey]:
-        resolved, _ = self.resolver.resolve_attribute(key)
+        resolved = self.resolver.resolve_attribute(key)
+        if resolved is None:
+            raise ValueError(f"Attribute key {key} not found")
         return resolved.search_type, resolved.proto_definition
 
     def execute(self) -> list[TagValue]:
