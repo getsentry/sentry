@@ -123,7 +123,7 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
-            "organizations:performance-trace-explorer": True,
+            "organizations:ourlogs-enabled": True,
         }
 
     def reverse_url(self, key="test.attribute"):
@@ -155,6 +155,7 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
         response = self.do_request(key="test.attribute", features={})
         assert response.status_code == 404, response.content
 
+    @pytest.mark.skip(reason="This should work once snuba #6970 lands")
     def test_attribute_values(self):
         logs = [
             self.create_ourlog(
