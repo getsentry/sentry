@@ -23,8 +23,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
         max_length=200,
-        help_text="Name of the uptime monitor",
+        help_text="Name of the detector",
     )
+    # description = serializers.CharField(
+    #     required=False,
+    #     help_text="Description of the detector"
+    # )
+    # owner_user_id = serializers.IntegerField(required=False)
+    # owner_team_id = serializers.IntegerField(required=False)
     detector_type = serializers.CharField()
 
     def validate_detector_type(self, value: str) -> type[GroupType]:
@@ -71,9 +77,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             detector = Detector.objects.create(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
+                description=validated_data["description"],
                 workflow_condition_group=condition_group,
                 type=validated_data["detector_type"].slug,
                 config=validated_data.get("config", {}),
+                # owner_user_id=validated_data.get("owner_user_id"),
             )
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 

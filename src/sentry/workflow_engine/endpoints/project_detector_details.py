@@ -108,7 +108,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         Update an existing detector for a project.
         """
         group_type = request.data.get("detector_type") or detector.group_type.slug
-        validator = get_detector_validator(request, project, group_type, detector)
+        validator = get_detector_validator(project, group_type, request.data, request, detector)
 
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -20,6 +20,7 @@ from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.endpoints.project_detector_index import get_detector_validator
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
@@ -476,12 +477,29 @@ def get_detector_field_values(
     project_id: int | None = None,
     user: RpcUser | None = None,
 ) -> DetectorFieldValues:
+    snuba_query = alert_rule.snuba_query
+    # print("alert rule user: ", alert_rule.user_id)
     detector_field_values: DetectorFieldValues = {
         "name": alert_rule.name,
+        "detector_type": MetricAlertFire.slug,
+        "data_source": {
+            "query_type": snuba_query.type,
+            "dataset": snuba_query.dataset,
+            "query": "updated query",
+            "aggregate": snuba_query.aggregate,
+            "time_window": snuba_query.time_window,
+            "environment": snuba_query.environment.name if snuba_query.environment else None,
+            "event_types": [event_type.name for event_type in snuba_query.event_types],
+        },
         "description": alert_rule.description,
-        "workflow_condition_group": data_condition_group,
+        "condition_group": {
+            "id": data_condition_group.id,
+            "organizationId": alert_rule.organization.id,
+            "logicType": data_condition_group.logic_type,
+            "conditions": [],
+        },
         "owner_user_id": alert_rule.user_id,
-        "owner_team": alert_rule.team,
+        "owner_team_id": alert_rule.team,
         "config": {
             "threshold_period": alert_rule.threshold_period,
             "sensitivity": alert_rule.sensitivity,
@@ -521,8 +539,22 @@ def update_detector(
 ) -> Detector:
     if detector.workflow_condition_group is None:
         raise MissingDataConditionGroup
+
     detector_field_values = get_detector_field_values(alert_rule, detector.workflow_condition_group)
-    detector.update(**detector_field_values)
+    validator = get_detector_validator(
+        project=detector.project,
+        detector_type_slug="metric_alert_fire",
+        data=detector_field_values,
+        request=None,
+        instance=detector,
+    )
+    # print("validator: ", validator)
+    if not validator.is_valid():
+        # print(validator.errors)
+        # TODO make this more descriptive
+        raise Exception()
+
+    validator.save()
     return detector
 
 

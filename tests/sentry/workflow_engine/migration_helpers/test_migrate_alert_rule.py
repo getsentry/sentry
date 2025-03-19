@@ -587,7 +587,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
     def setUp(self):
-        self.metric_alert = self.create_alert_rule()
+        with self.tasks():
+            self.metric_alert = self.create_alert_rule()
         (
             self.data_source,
             self.detector_data_condition_group,

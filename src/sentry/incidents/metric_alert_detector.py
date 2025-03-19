@@ -3,11 +3,12 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry import audit_log
+# from sentry import audit_log
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
-from sentry.utils.audit import create_audit_entry
+
+# from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
@@ -38,6 +39,11 @@ class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
 class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True)
     condition_group = MetricAlertConditionGroupValidator(required=True)
+    # description = serializers.CharField(
+    #     help_text="Description of the detector"
+    # )
+    owner_user_id = serializers.IntegerField(required=False)
+    # owner_team_id = serializers.IntegerField(required=False)
 
     def validate(self, attrs):
         """
@@ -45,6 +51,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         we have for conditions, query validation, etc in
         https://github.com/getsentry/sentry/blob/837d5c1e13a8dc71b622aafec5191d84d0e827c7/src/sentry/incidents/serializers/alert_rule.py#L65
         """
+        # print("validating: ", attrs)
         attrs = super().validate(attrs)
         conditions = attrs.get("condition_group", {}).get("conditions")
         if len(conditions) > 2:
@@ -119,8 +126,12 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
 
     # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
     def update(self, instance: Detector, validated_data: dict[str, Any]):
+        # print("validated data: ", validated_data)
         instance.name = validated_data.get("name", instance.name)
+        instance.description = validated_data.get("description", instance.description)
         instance.type = validated_data.get("detector_type", instance.group_type).slug
+        instance.owner_user_id = validated_data.get("owner_user_id", instance.owner_user_id)
+        instance.owner_team = validated_data.get("owner_team", instance.owner_team_id)
         condition_group = validated_data.pop("condition_group")
         data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
@@ -133,11 +144,11 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
 
         instance.save()
 
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=instance.id,
-            event=audit_log.get_event_id("DETECTOR_EDIT"),
-            data=instance.get_audit_log_data(),
-        )
+        # create_audit_entry(
+        #     request=self.context["request"],
+        #     organization=self.context["organization"],
+        #     target_object=instance.id,
+        #     event=audit_log.get_event_id("DETECTOR_EDIT"),
+        #     data=instance.get_audit_log_data(),
+        # )
         return instance

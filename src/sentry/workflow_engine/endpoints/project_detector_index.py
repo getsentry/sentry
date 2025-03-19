@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -23,7 +25,11 @@ from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
+    project: Project,
+    detector_type_slug: str,
+    data: dict[str, Any],
+    request: Request | None = None,
+    instance=None,
 ):
     detector_type = grouptype.registry.get_by_slug(detector_type_slug)
     if detector_type is None:
@@ -32,15 +38,18 @@ def get_detector_validator(
     if detector_type.detector_validator is None:
         raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
 
+    context = {
+        "project": project,
+        "organization": project.organization,
+    }
+    if request:
+        context["request"] = request
+        context["access"] = (request.access,)
+
     return detector_type.detector_validator(
         instance=instance,
-        context={
-            "project": project,
-            "organization": project.organization,
-            "request": request,
-            "access": request.access,
-        },
-        data=request.data,
+        context=context,
+        data=data,
     )
 
 
@@ -124,7 +133,8 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         if not detector_type:
             raise ValidationError({"detectorType": ["This field is required."]})
 
-        validator = get_detector_validator(request, project, detector_type)
+        validator = get_detector_validator(project, detector_type, request.data, request)
+
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
