@@ -72,7 +72,6 @@ jobs:
 
       - name: tsc
         id: tsc
-        if: steps.dependencies.outcome == 'success'
         run: yarn tsc -p config/tsconfig.ci.json
 
   frontend-jest-tests:
