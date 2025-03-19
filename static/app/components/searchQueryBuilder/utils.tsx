@@ -208,6 +208,8 @@ export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
       return 'sessions';
     case SavedSearchType.SPAN:
       return 'spans';
+    case SavedSearchType.LOG:
+      return 'logs';
     default:
       return 'none';
   }

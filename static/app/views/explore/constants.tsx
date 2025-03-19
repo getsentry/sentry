@@ -1,3 +1,5 @@
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
 import {SpanIndexedField} from '../insights/types';
 
 export const SENTRY_SPAN_STRING_TAGS: string[] = [
@@ -42,3 +44,18 @@ export const SENTRY_SPAN_NUMBER_TAGS: string[] = [
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
 ];
+
+export const SENTRY_LOG_STRING_TAGS: string[] = [
+  OurLogKnownFieldKey.TRACE_ID,
+  OurLogKnownFieldKey.ID,
+  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.PROJECT_ID,
+  OurLogKnownFieldKey.SENTRY_PROJECT_ID,
+  OurLogKnownFieldKey.SPAN_ID,
+  OurLogKnownFieldKey.TIMESTAMP,
+  OurLogKnownFieldKey.ITEM_TYPE,
+];
+
+export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];

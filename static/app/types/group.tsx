@@ -59,6 +59,7 @@ export enum SavedSearchType {
   SPAN = 5,
   ERROR = 6,
   TRANSACTION = 7,
+  LOG = 8,
 }
 
 export enum IssueCategory {
