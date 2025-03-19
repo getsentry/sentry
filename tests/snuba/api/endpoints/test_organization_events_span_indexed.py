@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 import urllib3
 
+from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -3055,6 +3056,59 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         meta = response.data["meta"]
         assert len(data) == 1
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
+        assert meta["dataset"] == self.dataset
+
+    def test_opportunity_score(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.1},
+                            "score.ratio.fcp": {"value": 0.57142857142},
+                            "score.total": {"value": 0.43},
+                        }
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 1.0},
+                            "score.total": {"value": 1.0},
+                        }
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.total": {"value": 0.0},
+                        }
+                    }
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        lcp_score = (
+            0.27 / WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["lcp"]
+        )  # TODO: we should multiplying by the weight in the formula, but we can't until https://github.com/getsentry/eap-planning/issues/202
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], lcp_score)
+        assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
         assert meta["dataset"] == self.dataset
 
     @pytest.mark.skip(reason="replay id alias not migrated over")
