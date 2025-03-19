@@ -39,7 +39,6 @@ from sentry.notifications.models.notificationaction import (
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -468,7 +467,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         db_table = "sentry_alertruletriggeraction"
 
     @property
-    def target(self) -> RpcUser | Team | str | None:
+    def target(self) -> OrganizationMember | Team | str | None:
         if self.target_identifier is None:
             return None
 

@@ -191,7 +191,9 @@ class EmailActionHandler(ActionHandler):
             ):
                 return set()
 
-            return {target.user_id}
+            if target.user_id:
+                return {target.user_id}
+            return set()
 
         elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             assert isinstance(target, Team)
