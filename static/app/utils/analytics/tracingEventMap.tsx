@@ -132,7 +132,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
-    save_type: 'alert' | 'dashboard';
+    save_type: 'alert' | 'dashboard' | 'saved_query' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
