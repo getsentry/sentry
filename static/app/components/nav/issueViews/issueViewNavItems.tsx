@@ -1,11 +1,14 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {AnimatePresence, Reorder} from 'framer-motion';
+import styled from '@emotion/styled';
+import {Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {IssueViewAddViewButton} from 'sentry/components/nav/issueViews/issueViewAddViewButton';
 import {IssueViewNavItemContent} from 'sentry/components/nav/issueViews/issueViewNavItemContent';
+import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -256,17 +259,25 @@ export function IssueViewNavItems({
   );
 
   return (
-    <Reorder.Group
-      as="div"
-      axis="y"
-      values={views}
-      onReorder={newOrder => setViews(newOrder)}
-      initial={false}
-      ref={sectionRef}
+    <SecondaryNav.Section
+      title={
+        <TitleWrapper>
+          {t('Starred Views')}
+          <IssueViewAddViewButton baseUrl={baseUrl} />
+        </TitleWrapper>
+      }
     >
-      {views.map(view => (
-        <AnimatePresence key={view.id} mode="sync">
+      <Reorder.Group
+        as="div"
+        axis="y"
+        values={views}
+        onReorder={newOrder => setViews(newOrder)}
+        initial={false}
+        ref={sectionRef}
+      >
+        {views.map(view => (
           <IssueViewNavItemContent
+            key={view.id}
             view={view}
             sectionRef={sectionRef}
             isActive={view.id === viewId}
@@ -278,10 +289,9 @@ export function IssueViewNavItems({
             isDragging={isDragging}
             setIsDragging={setIsDragging}
           />
-        </AnimatePresence>
-      ))}
-      <IssueViewAddViewButton baseUrl={baseUrl} />
-    </Reorder.Group>
+        ))}
+      </Reorder.Group>
+    </SecondaryNav.Section>
   );
 }
 
@@ -299,3 +309,9 @@ export const constructViewLink = (baseUrl: string, view: IssueView) => {
     },
   });
 };
+
+const TitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
