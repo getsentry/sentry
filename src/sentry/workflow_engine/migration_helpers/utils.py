@@ -1,8 +1,10 @@
-from typing import cast
+import logging
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.users.services.user import RpcUser
+
+logger = logging.getLogger(__name__)
 
 MAX_ACTIONS = 3
 
@@ -20,13 +22,26 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
     """
 
     if action.type == AlertRuleTriggerAction.Type.EMAIL.value:
-        if action.target:
-            if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                action_target_user = cast(RpcUser, action.target)
-                return "Email " + action_target_user.email
-            elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                action_target_team = cast(Team, action.target)
-                return "Email #" + action_target_team.slug
+        if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            try:
+                org_member = OrganizationMember.objects.get(
+                    user_id=action.target_identifier,
+                    organization=action.alert_rule_trigger.alert_rule.organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                logger.info(
+                    "Organization member not found", extra={"user_id": action.target_identifier}
+                )
+                return "Email missing user"
+            return "Email " + org_member.user_email
+        elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
+            try:
+                team = Team.objects.get(id=int(action.target_identifier))
+            except Team.DoesNotExist:
+                logger.info("Team not found", extra={"team_id": action.target_identifier})
+                return "Email missing team"
+            return "Email #" + team.slug
+
     elif action.type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
         return f"Notify {action.target_display}"
 

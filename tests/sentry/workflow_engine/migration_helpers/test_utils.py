@@ -27,7 +27,7 @@ class WorkflowNameTest(APITestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger_critical,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=str(self.rpc_user.id),
         )
         self.slack_integration = install_slack(self.organization)
         self.opsgenie_integration = self.create_provider_integration(
@@ -81,7 +81,7 @@ class WorkflowNameTest(APITestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger_warning,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=str(self.rpc_user.id),
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
@@ -100,6 +100,9 @@ class WorkflowNameTest(APITestCase):
         user2 = self.create_user(email="meow@woof.com")
         user3 = self.create_user(email="bark@meow.com")
         user4 = self.create_user(email="idk@lol.com")
+        self.create_member(user=user2, organization=self.organization, role="admin", teams=[])
+        self.create_member(user=user3, organization=self.organization, role="admin", teams=[])
+        self.create_member(user=user4, organization=self.organization, role="admin", teams=[])
 
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger_critical,
