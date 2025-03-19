@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from django.forms import ValidationError
@@ -16,6 +16,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
+from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
@@ -447,13 +448,34 @@ def create_workflow(
     )
 
 
+class DetectorConfig(TypedDict):
+    threshold_period: int
+    sensitivity: str | None
+    seasonality: str | None
+    comparison_delta: int | None
+    detection_type: str
+
+
+class DetectorFieldValues(TypedDict):
+    name: str
+    description: str | None
+    workflow_condition_group: DataConditionGroup
+    owner_user_id: int | None
+    owner_team: Team | None
+    config: DetectorConfig
+    project_id: NotRequired[int]
+    enabled: NotRequired[bool]
+    created_by_id: NotRequired[int | None]
+    type: NotRequired[str]
+
+
 def get_detector_field_values(
     alert_rule: AlertRule,
     data_condition_group: DataConditionGroup,
     project_id: int | None = None,
     user: RpcUser | None = None,
-) -> dict[str, Any]:
-    detector_field_values = {
+) -> DetectorFieldValues:
+    detector_field_values: DetectorFieldValues = {
         "name": alert_rule.name,
         "description": alert_rule.description,
         "workflow_condition_group": data_condition_group,
@@ -495,7 +517,7 @@ def create_detector(
 def update_detector(
     alert_rule: AlertRule,
     detector: Detector,
-):
+) -> Detector:
     if detector.workflow_condition_group is None:
         raise MissingDataConditionGroup
     detector_field_values = get_detector_field_values(alert_rule, detector.workflow_condition_group)
@@ -668,11 +690,11 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
         if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
         else Condition.GREATER_OR_EQUAL
     )
-    for dc in data_conditions:
-        if dc.condition_result == DetectorPriorityLevel.OK:
-            dc.update(type=resolve_threshold_type)
+    for data_condition in data_conditions:
+        if data_condition.condition_result == DetectorPriorityLevel.OK:
+            data_condition.update(type=resolve_threshold_type)
         else:
-            dc.update(type=threshold_type)
+            data_condition.update(type=threshold_type)
 
     # update the resolution data condition threshold in case the resolve threshold was updated
     resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
