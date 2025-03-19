@@ -223,7 +223,8 @@ function SetPayAsYouGo({
               />
             </PayAsYouGoInputContainer>
             <AnimatePresence>
-              {(currentBudget === suggestedBudgetForPlan || currentBudget === 0) && (
+              {(currentBudget === suggestedBudgetForPlan ||
+                (currentBudget === 0 && paygOnlyCategories.length > 0)) && (
                 <motion.div
                   initial={{opacity: 0}}
                   animate={{opacity: 1}}
@@ -312,12 +313,6 @@ const StepFooter = styled(PanelFooter)`
   justify-content: end;
 `;
 
-const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
-  margin: 0;
-`;
-
 const Currency = styled('div')`
   &::before {
     position: absolute;
@@ -362,8 +357,16 @@ const TwoColumnContainer = styled('div')<{
   justify-content: ${p => p.justifyContent || 'normal'};
 `;
 
-const CategoryInfoDescription = styled(Description)`
-  font-size: ${p => p.theme.fontSizeSmall};
+const Column = styled('div')`
+  display: grid;
+  grid-template-columns: auto;
+  gap: ${space(1)};
+`;
+
+const Box = styled('div')<{padding?: string}>`
+  border: 1px solid ${p => p.theme.border};
+  padding: ${p => p.padding || space(2)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const Title = styled('label')`
@@ -372,10 +375,10 @@ const Title = styled('label')`
   margin: 0;
 `;
 
-const Column = styled('div')`
-  display: grid;
-  grid-template-columns: auto;
-  gap: ${space(1)};
+const Description = styled(TextBlock)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
+  margin: 0;
 `;
 
 const SuggestedAmountTag = styled(Tag)`
@@ -386,10 +389,8 @@ const SuggestedAmountTag = styled(Tag)`
   line-height: normal;
 `;
 
-const Box = styled('div')<{padding?: string}>`
-  border: 1px solid ${p => p.theme.border};
-  padding: ${p => p.padding || space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+const CategoryInfoDescription = styled(Description)`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const CategoryInfoList = styled('ul')`
