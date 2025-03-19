@@ -888,11 +888,8 @@ class SearchVisitor(NodeVisitor):
             operator = get_operator_value(operator)
 
         if self.is_size_key(search_key.name):
-            try:
-                search_value = parse_size(*search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, SearchValue(search_value))
+            search_value_f = parse_size(*search_value)
+            return SearchFilter(search_key, operator, SearchValue(search_value_f))
 
         search_value = "".join(search_value)
         search_value = operator + search_value if operator not in ("=", "!=") else search_value
@@ -986,33 +983,18 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        try:
-            aggregate_value = parse_size(*search_value)
-        except ValueError:
-            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
+        aggregate_value = parse_size(*search_value)
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_percentage_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        aggregate_value = None
-
-        try:
-            # Even if the search value matches percentage format, only act as
-            # percentage for certain columns
-            result_type = self.get_function_result_type(search_key.name)
-            if result_type == "percentage":
-                aggregate_value = parse_percentage(search_value)
-        except ValueError:
-            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
-        if aggregate_value is not None:
+        # Even if the search value matches percentage format, only act as
+        # percentage for certain columns
+        result_type = self.get_function_result_type(search_key.name)
+        if result_type == "percentage":
+            aggregate_value = parse_percentage(search_value)
             return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
         # Invalid formats fall back to text match
