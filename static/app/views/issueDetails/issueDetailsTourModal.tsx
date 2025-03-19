@@ -54,7 +54,7 @@ const ImageContainer = styled('div')<{prefersDarkMode: boolean}>`
       : `url(${issueDetailsPreviewDark})`};
   background-size: cover;
   background-position: center;
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border: 1px solid ${p => p.theme.inverted.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
