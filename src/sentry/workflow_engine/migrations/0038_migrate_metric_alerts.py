@@ -73,6 +73,23 @@ class AlertRuleActivityType(Enum):
     DEACTIVATED = 8
 
 
+class ActionTarget(IntEnum):
+    """
+    Explains the contents of target_identifier
+    """
+
+    # The target_identifier is a direct reference used by the service (e.g. email address, slack channel id)
+    SPECIFIC = 0
+    # The target_identifier is an id from the User model in Sentry
+    USER = 1
+    # The target_identifier is an id from the Team model in Sentry
+    TEAM = 2
+    # The target_identifier is an id from the SentryApp model in Sentry
+    SENTRY_APP = 3
+    # There is no target_identifier, but we want to send notifications to the issue owners
+    ISSUE_OWNERS = 4
+
+
 class ActionType(StrEnum):
     SLACK = "slack"
     MSTEAMS = "msteams"
@@ -92,6 +109,16 @@ class ActionType(StrEnum):
 
     PLUGIN = "plugin"
     WEBHOOK = "webhook"
+
+
+class SentryAppIdentifier(StrEnum):
+    """
+    SentryAppIdentifier is an enum that represents the identifier for a Sentry app.
+    """
+
+    SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
+    SENTRY_APP_SLUG = "sentry_app_slug"
+    SENTRY_APP_ID = "sentry_app_id"
 
 
 FIELDS_TO_DETECTOR_FIELDS = {
@@ -249,11 +276,7 @@ def _migrate_trigger_action(apps: Apps, trigger_action: Any, condition_group_id:
                 priority = config.get("priority", default_priority)
                 data = dataclasses.asdict(OnCallDataBlob(priority=priority))
     else:
-        data = {
-            "type": trigger_action.type,
-            "sentry_app_id": trigger_action.sentry_app_id,
-            "sentry_app_config": trigger_action.sentry_app_config,
-        }
+        data = {}
 
     # get target identifier
     if action_type == ActionType.SENTRY_APP:
@@ -267,16 +290,22 @@ def _migrate_trigger_action(apps: Apps, trigger_action: Any, condition_group_id:
     else:
         target_identifier = trigger_action.target_identifier
 
+    # build config
+    target_type = trigger_action.target_type
+    config = {
+        "target_display": trigger_action.target_display,
+        "target_identifier": target_identifier,
+        "target_type": target_type,
+    }
+    if target_type == ActionTarget.SENTRY_APP.value:
+        config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
+
     # create the models
     action = Action.objects.create(
         type=action_type,
         data=data,
         integration_id=trigger_action.integration_id,
-        config={
-            "target_display": trigger_action.target_display,
-            "target_identifier": target_identifier,
-            "target_type": trigger_action.target_type,
-        },
+        config=config,
     )
     DataConditionGroupAction.objects.create(
         condition_group_id=condition_group_id,
