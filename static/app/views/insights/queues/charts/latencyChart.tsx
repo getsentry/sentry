@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 
@@ -20,6 +21,28 @@ export function LatencyChart({error, destination, referrer}: Props) {
     destination,
     referrer,
   });
+
+  const latencySeries = {
+    ...data['avg(messaging.message.receive.latency)'],
+  };
+
+  if (
+    !isPending &&
+    !error &&
+    defined(latencySeries.data) &&
+    defined(latencySeries.meta) &&
+    !defined(latencySeries.meta?.fields['avg(messaging.message.receive.latency)'])
+  ) {
+    // This is a tricky data issue. If Snuba doesn't find any data for a field,
+    // it doesn't return a unit. If Discover can't guess the type based on the
+    // unit, there's no entry in the meta for the field. If there's no field,
+    // `TimeSeriesWidgetVisualization` dumps that data onto its own "number"
+    // axis, which looks weird. This is a rare case, and I'm hoping that in the
+    // future, backend will be able to determine types most of the time. For
+    // now, backfill the type, since we know it.
+    latencySeries.meta.fields['avg(messaging.message.receive.latency)'] = 'duration';
+    latencySeries.meta.units['avg(messaging.message.receive.latency)'] = 'millisecond';
+  }
 
   return (
     <InsightsAreaChartWidget
