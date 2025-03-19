@@ -214,6 +214,7 @@ class FrameMatch(EnhancementMatch):
         if self.key == "family":
             family_abbreviations = [FAMILIES.get(family) for family in self.pattern.split(",")]
             value_to_match = "".join(
+                # Filter out Nones (which come from unrecognized families)
                 [abbreviation for abbreviation in family_abbreviations if abbreviation]
             )
         elif self.key == "app":
