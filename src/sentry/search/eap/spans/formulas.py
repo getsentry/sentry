@@ -18,6 +18,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.search.eap import constants
 from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition, ResolvedArguments
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
@@ -35,6 +36,55 @@ TOTAL_SPAN_COUNT = Column(
         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     )
 )
+
+
+def avg_compare(args: ResolvedArguments) -> Column.BinaryFormula:
+    attribute = cast(AttributeKey, args[0])
+    comparison_attribute = cast(AttributeKey, args[1])
+    first_value = cast(str, args[2])
+    second_value = cast(str, args[3])
+
+    avg_first = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_AVG,
+            key=attribute,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=comparison_attribute,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=first_value),
+                )
+            ),
+        )
+    )
+
+    avg_second = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_AVG,
+            key=attribute,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=comparison_attribute,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=second_value),
+                )
+            ),
+        )
+    )
+
+    percentage_change = Column.BinaryFormula(
+        left=Column(
+            formula=Column.BinaryFormula(
+                left=avg_second,
+                op=Column.BinaryFormula.OP_SUBTRACT,
+                right=avg_first,
+            )
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=avg_first,
+    )
+
+    return percentage_change
 
 
 def failure_rate(_: ResolvedArguments) -> Column.BinaryFormula:
@@ -318,6 +368,39 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=opportunity_score,
+        is_aggregate=True,
+    ),
+    "avg_compare": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={
+                    "string",
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={
+                    "string",
+                },
+                is_attribute=False,
+            ),
+            ArgumentDefinition(
+                argument_types={
+                    "string",
+                },
+                is_attribute=False,
+            ),
+        ],
+        formula_resolver=avg_compare,
         is_aggregate=True,
     ),
 }
