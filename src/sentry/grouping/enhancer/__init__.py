@@ -190,14 +190,14 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
+        rust_frame_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
         # Modify the rust components by applying +group/-group rules and getting hints for both
         # those changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, make_rust_exception_data(exception_data), rust_components
+            match_frames, make_rust_exception_data(exception_data), rust_frame_components
         )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
@@ -206,7 +206,7 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for py_component, rust_component in zip(frame_components, rust_components):
+        for py_component, rust_component in zip(frame_components, rust_frame_components):
             # TODO: Remove the first condition once we get rid of the legacy config
             if (
                 not (self.bases and self.bases[0].startswith("legacy"))
@@ -293,7 +293,7 @@ class Enhancements:
         return [
             self.version,
             self.bases,
-            [x._to_config_structure(self.version) for x in self.rules],
+            [rule._to_config_structure(self.version) for rule in self.rules],
         ]
 
     def dumps(self) -> str:
@@ -307,7 +307,7 @@ class Enhancements:
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(rule, version=version) for rule in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
@@ -348,17 +348,17 @@ class Enhancements:
 
 
 def _load_configs() -> dict[str, Enhancements]:
-    rv = {}
-    base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
-    for fn in os.listdir(base):
-        if fn.endswith(".txt"):
-            with open(os.path.join(base, fn), encoding="utf-8") as f:
+    enhancement_bases = {}
+    configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
+    for filename in os.listdir(configs_dir):
+        if filename.endswith(".txt"):
+            with open(os.path.join(configs_dir, filename), encoding="utf-8") as f:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
-                fn = fn.replace("@", ":")
-                enhancements = Enhancements.from_config_string(f.read(), id=fn[:-4])
-                rv[fn[:-4]] = enhancements
-    return rv
+                filename = filename.replace("@", ":")
+                enhancements = Enhancements.from_config_string(f.read(), id=filename[:-4])
+                enhancement_bases[filename[:-4]] = enhancements
+    return enhancement_bases
 
 
 ENHANCEMENT_BASES = _load_configs()

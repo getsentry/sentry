@@ -123,6 +123,9 @@ function getTermDescriptions(platform: PlatformKey | null) {
         ...commonTermsDescription,
         ...mobileTermsDescription,
         [SessionTerm.CRASHED]: t('An error that resulted in the application crashing'),
+        [SessionTerm.ANR_RATE]: t(
+          'Percentage of unique users that experienced a fatal App Hang.'
+        ),
       };
     }
     case 'node':

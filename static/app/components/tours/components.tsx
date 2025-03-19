@@ -4,7 +4,6 @@ import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
@@ -17,6 +16,8 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -67,6 +68,7 @@ export function TourContextProvider<T extends TourEnumType>({
   omitBlur,
   orderedStepIds,
 }: TourContextProviderProps<T>) {
+  const organization = useOrganization();
   const {mutate} = useMutateAssistant();
   const tourContextValue = useTourReducer<T>({
     isAvailable,
@@ -91,13 +93,14 @@ export function TourContextProvider<T extends TourEnumType>({
           if (tourKey) {
             mutate({guide: tourKey, status: 'dismissed'});
           }
+          trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
           dispatch({type: 'END_TOUR'});
         },
       },
       {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
       {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
     ];
-  }, [dispatch, mutate, tourKey, isTourActive]);
+  }, [dispatch, mutate, tourKey, isTourActive, organization, currentStepId]);
 
   useHotkeys(tourHotkeys);
 
@@ -237,6 +240,11 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
   children: React.ReactNode;
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
+  /**
+   * The <TourGuide /> component is very opinionated on styles. It uses a black background on light
+   * mode and purple on dark mode. For best results, use `<TourAction />` and `<TourTextAction/>`
+   * instead of regular buttons, since it may cause readibility issues if we use the user's theme.
+   */
   actions?: React.ReactNode;
   handleDismiss?: (e: React.MouseEvent) => void;
   id?: string;
@@ -249,6 +257,7 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
     'aria-expanded': React.AriaAttributes['aria-expanded'];
     children: React.ReactNode;
     ref: React.RefAttributes<HTMLElement>['ref'];
+    prefersDarkMode?: boolean;
   }>;
 }
 
@@ -267,6 +276,9 @@ export function TourGuide({
   stepTotal,
   offset,
 }: TourGuideProps) {
+  const config = useLegacyStore(ConfigStore);
+  const prefersDarkMode = config.theme === 'dark';
+
   const theme = useTheme();
   const organization = useOrganization();
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
@@ -294,6 +306,7 @@ export function TourGuide({
         className={className}
         ref={triggerProps.ref}
         aria-expanded={triggerProps['aria-expanded']}
+        prefersDarkMode={prefersDarkMode}
       >
         {children}
       </Wrapper>
@@ -306,21 +319,27 @@ export function TourGuide({
                     animated
                     arrowProps={{
                       ...arrowProps,
+                      strokeWidth: 0,
                       className: css`
                         path.fill {
-                          fill: ${darkTheme.backgroundElevated} !important;
+                          fill: ${prefersDarkMode
+                            ? darkTheme.purple300
+                            : darkTheme.surface400};
+                        }
+                        path.stroke {
+                          stroke: transparent;
                         }
                       `,
                     }}
                   >
-                    <TourBody ref={scrollToElement}>
+                    <TourBody ref={scrollToElement} prefersDarkMode={prefersDarkMode}>
                       {isTopRowVisible && (
                         <TopRow>
                           <div>{countText}</div>
                           {isDismissVisible && (
                             <TourCloseButton
                               onClick={e => {
-                                trackAnalytics('tour-guide.close', {organization, id});
+                                trackAnalytics('tour-guide.dismiss', {organization, id});
                                 handleDismiss(e);
                               }}
                               icon={<IconClose style={{color: darkTheme.textColor}} />}
@@ -333,7 +352,7 @@ export function TourGuide({
                       )}
                       {title && <TitleRow>{title}</TitleRow>}
                       {description && <DescriptionRow>{description}</DescriptionRow>}
-                      {actions && <Flex justify="flex-end">{actions}</Flex>}
+                      {actions && <ActionRow>{actions}</ActionRow>}
                     </TourBody>
                   </TourOverlay>
                 )}
@@ -351,11 +370,10 @@ function scrollToElement(element: HTMLDivElement | null) {
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled('div')`
+const TourBody = styled('div')<{prefersDarkMode: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
-  background: ${darkTheme.backgroundElevated};
+  background: ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
   padding: ${space(1.5)} ${space(2)};
   color: ${darkTheme.textColor};
   border-radius: ${p => p.theme.borderRadius};
@@ -375,6 +393,7 @@ const TourCloseButton = styled(Button)`
 
 const TourOverlay = styled(Overlay)`
   width: 360px;
+  box-shadow: none;
 `;
 
 const TopRow = styled('div')`
@@ -382,13 +401,14 @@ const TopRow = styled('div')`
   grid-template-columns: 1fr 15px;
   align-items: start;
   height: 18px;
-  color: ${darkTheme.headingColor};
+  color: ${lightTheme.white};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
+  color: ${darkTheme.headingColor};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.4;
@@ -404,25 +424,32 @@ const DescriptionRow = styled('div')`
   opacity: 0.9;
 `;
 
+const ActionRow = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: ${space(1)};
+`;
+
 export const TourAction = styled(Button)`
   border: 0;
-  background: ${lightTheme.backgroundElevated};
-  color: ${lightTheme.textColor};
+  background: ${lightTheme.white};
+  color: ${lightTheme.headingColor};
   &:hover,
   &:active,
   &:focus {
-    color: ${lightTheme.textColor};
+    color: ${lightTheme.headingColor};
   }
 `;
 
 export const TextTourAction = styled(Button)`
   border: 0;
+  box-shadow: none;
   background: transparent;
-  color: ${darkTheme.textColor};
+  color: ${lightTheme.white};
   &:hover,
   &:active,
   &:focus {
-    color: ${darkTheme.textColor};
+    color: ${lightTheme.white};
   }
 `;
 
@@ -436,10 +463,7 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
-// The box-shadow is the only color that references the user's theme.
-// This is to ensure it stands out against the rest of the app, though the guides are opinionated
-// as dark mode.
-const TourTriggerWrapper = styled('div')`
+const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
   &[aria-expanded='true'] {
     position: relative;
     z-index: ${p => p.theme.zIndex.tour.element};
@@ -447,12 +471,13 @@ const TourTriggerWrapper = styled('div')`
     pointer-events: none;
     &:after {
       content: '';
+      opacity: 0.5;
       position: absolute;
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
-
-      box-shadow: inset 0 0 0 3px ${p => p.theme.subText};
+      box-shadow: inset 0 0 0 3px
+        ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
     }
   }
 `;
