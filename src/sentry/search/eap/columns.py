@@ -27,7 +27,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 
 class ResolverSettings(TypedDict):
-    extrapolation_mode: ExtrapolationMode
+    extrapolation_mode: ExtrapolationMode.ValueType
 
 
 @dataclass(frozen=True, kw_only=True)
