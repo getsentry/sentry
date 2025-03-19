@@ -14,16 +14,8 @@ from sentry.search.eap.columns import (
     ConditionalAggregateDefinition,
     ResolvedArguments,
 )
+from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
-
-WEB_VITALS_MEASUREMENTS = [
-    "measurements.score.total",
-    "measurements.score.lcp",
-    "measurements.score.fcp",
-    "measurements.score.cls",
-    "measurements.score.ttfb",
-    "measurements.score.inp",
-]
 
 
 def count_processor(count_value: int | None) -> int:
@@ -71,16 +63,6 @@ def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
 
     return (ratio_attribute, filter)
-
-
-def transform_vital_score_to_ratio(args: ResolvedArguments) -> AttributeKey:
-    score_attribute = cast(AttributeKey, args[0])
-    score_name = score_attribute.name
-
-    ratio_score_name = score_name.replace("score", "score.ratio")
-    if ratio_score_name == "score.ratio.total":
-        ratio_score_name = "score.total"
-    return AttributeKey(name=ratio_score_name, type=AttributeKey.TYPE_DOUBLE)
 
 
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
