@@ -135,6 +135,10 @@ const PageFilterBar = withChonk(
     display: flex;
     position: relative;
 
+    & > div > button {
+      width: 100%;
+    }
+
     /* Disabled InteractionStateLayer */
     & > div > button > span:first-child {
       display: none;
