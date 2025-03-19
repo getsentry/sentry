@@ -207,7 +207,7 @@ def _set_exclusive_time(spans: list[Span]) -> None:
     of all time intervals where no child span was active.
     """
 
-    span_map: dict[str, list[tuple[float, float]]] = {}
+    span_map: dict[str, list[tuple[int, int]]] = {}
     for span in spans:
         if parent_span_id := span.get("parent_span_id"):
             interval = (_us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"]))
