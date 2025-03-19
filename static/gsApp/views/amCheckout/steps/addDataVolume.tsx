@@ -70,6 +70,7 @@ function AddDataVolume({
         onUpdate={onUpdate}
         formData={formData}
         subscription={subscription}
+        isLegacy={isLegacy}
       />
     </PanelBody>
   );

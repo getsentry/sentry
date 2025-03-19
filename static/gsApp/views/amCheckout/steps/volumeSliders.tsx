@@ -31,6 +31,7 @@ function VolumeSliders({
   onUpdate,
   formData,
   subscription,
+  isLegacy,
 }: Pick<
   StepProps,
   | 'activePlan'
@@ -39,7 +40,9 @@ function VolumeSliders({
   | 'onUpdate'
   | 'formData'
   | 'subscription'
->) {
+> & {
+  isLegacy: boolean;
+}) {
   const handleReservedChange = (value: number, category: string) => {
     onUpdate({reserved: {...formData.reserved, [category]: value}});
 
@@ -179,7 +182,7 @@ function VolumeSliders({
                       />
                     )}
                   </Title>
-                  <Events checkoutTier={checkoutTier ?? PlanTier.AM3}>
+                  <Events isLegacy={isLegacy}>
                     {
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       formatReservedWithUnits(formData.reserved[category], category)
@@ -281,11 +284,10 @@ const Description = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
-const Events = styled('div')<{checkoutTier: PlanTier}>`
+const Events = styled('div')<{isLegacy: boolean}>`
   font-size: ${p => p.theme.headerFontSize};
   margin: 0;
-  font-weight: ${p =>
-    [PlanTier.AM1, PlanTier.AM2].includes(p.checkoutTier) ? 'normal' : '600'};
+  font-weight: ${p => (p.isLegacy ? 'normal' : '600')};
 `;
 
 const MinMax = styled(Description)`
