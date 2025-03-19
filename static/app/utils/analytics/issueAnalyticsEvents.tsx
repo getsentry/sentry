@@ -182,6 +182,9 @@ export type IssueEventParameters = {
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
+  'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
+  'issue_details.tour.skipped': Record<string, unknown>;
+  'issue_details.tour.started': {method: 'dropdown' | 'modal'};
   'issue_details.view_full_trace_waterfall_clicked': Record<string, unknown>;
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
@@ -422,6 +425,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
+  'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
+  'issue_details.tour.started': 'Issue Details: Tour Started',
+  'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',

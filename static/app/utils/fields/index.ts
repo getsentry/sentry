@@ -1849,6 +1849,8 @@ const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...SPAN_HTTP_FIELD_DEFINITIONS,
 };
 
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
+
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,
@@ -2459,7 +2461,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event',
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
@@ -2512,6 +2514,21 @@ export const getFieldDefinition = (
       }
 
       return null;
+
+    case 'log':
+      if (key in LOG_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.STRING,
+        };
+      }
+      return null;
+
     case 'event':
     default:
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
