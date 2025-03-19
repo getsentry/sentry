@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PlanTier} from 'getsentry/types';
+import {isAmPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
@@ -34,9 +35,10 @@ function AddDataVolume({
     });
   }
 
-  const isLegacy = [PlanTier.MM1, PlanTier.MM2, PlanTier.AM2, PlanTier.AM1].includes(
-    checkoutTier ?? PlanTier.AM3
-  );
+  const isLegacy =
+    !checkoutTier ||
+    !isAmPlan(checkoutTier) ||
+    [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
 
   const title = isLegacy ? t('Reserved Volumes') : t('Set Reserved Volumes (optional)');
   const testId = 'reserved-volumes';
