@@ -227,6 +227,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data={"exclude": "shared"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
+        assert response.data[0]["name"] == "Test query"
 
     def test_get_shared_queries(self):
         query = {"fields": ["span.op"], "mode": "samples"}
@@ -242,6 +243,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data={"exclude": "owned"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
+        assert response.data[0]["name"] == "Shared query"
 
     def test_post_require_mode(self):
         with self.feature(self.feature_name):
