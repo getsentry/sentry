@@ -20,9 +20,6 @@ interface TraceItemSearchQueryBuilderProps {
   numberAttributes: TagCollection;
   searchSource: string;
   stringAttributes: TagCollection;
-  /**
-   * Optional props
-   */
   datetime?: PageFilters['datetime'];
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onBlur?: (query: string, state: CallbackSearchState) => void;
