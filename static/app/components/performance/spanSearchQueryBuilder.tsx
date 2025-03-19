@@ -152,7 +152,7 @@ export function SpanSearchQueryBuilder({
   );
 }
 
-interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
