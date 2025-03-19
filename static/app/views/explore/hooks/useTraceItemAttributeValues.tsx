@@ -143,7 +143,7 @@ export function useTraceItemAttributeValues({
   // Create a function that can be used as getTagValues
   const getTraceItemAttributeValues = useCallback(
     async (tag: Tag, queryString: string): Promise<string[]> => {
-      if (tag.kind === 'function' || type === 'number') {
+      if (tag.kind === FieldKind.FUNCTION || type === 'number') {
         // We can't really auto suggest values for aggregate functions or numbers
         return Promise.resolve([]);
       }
