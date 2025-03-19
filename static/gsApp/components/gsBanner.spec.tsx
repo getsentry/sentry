@@ -331,6 +331,7 @@ describe('GSBanner', function () {
         attachments: MetricHistoryFixture({usageExceeded: false}),
         monitorSeats: MetricHistoryFixture({usageExceeded: false}),
         profileDuration: MetricHistoryFixture({usageExceeded: false}),
+        profileDurationUI: MetricHistoryFixture({usageExceeded: false}),
       },
       canSelfServe: true,
       productTrials: [
@@ -367,6 +368,7 @@ describe('GSBanner', function () {
         attachments: MetricHistoryFixture({usageExceeded: false}),
         monitorSeats: MetricHistoryFixture({usageExceeded: false}),
         profileDuration: MetricHistoryFixture({usageExceeded: false}),
+        profileDurationUI: MetricHistoryFixture({usageExceeded: false}),
       },
       canSelfServe: true,
       productTrials: [
@@ -528,6 +530,7 @@ describe('GSBanner', function () {
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
         profileDuration: MetricHistoryFixture({sentUsageWarning: false}),
+        profileDurationUI: MetricHistoryFixture({sentUsageWarning: false}),
       },
       canSelfServe: true,
       productTrials: [
@@ -2112,11 +2115,40 @@ describe('GSBanner', function () {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am1_team',
+      plan: 'am3_team',
       categories: {
         errors: MetricHistoryFixture({sentUsageWarning: false}),
         spans: MetricHistoryFixture({sentUsageWarning: false}),
         profileDuration: MetricHistoryFixture({sentUsageWarning: true}), // Warning sent
+        profileDurationUI: MetricHistoryFixture({sentUsageWarning: false}),
+        replays: MetricHistoryFixture({usageExceeded: false}),
+        attachments: MetricHistoryFixture({sentUsageWarning: false}),
+        monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
+      },
+      canSelfServe: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {organization});
+
+    expect(
+      await screen.findByRole('button', {name: /increase reserved limits/i})
+    ).toBeInTheDocument();
+  });
+
+  it('shows overage warning banner for profileDurationUI', async function () {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+      slug: 'another-slug-1',
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      categories: {
+        errors: MetricHistoryFixture({sentUsageWarning: false}),
+        spans: MetricHistoryFixture({sentUsageWarning: false}),
+        profileDuration: MetricHistoryFixture({sentUsageWarning: false}),
+        profileDurationUI: MetricHistoryFixture({sentUsageWarning: true}),
         replays: MetricHistoryFixture({usageExceeded: false}),
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
