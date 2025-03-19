@@ -366,7 +366,6 @@ export function useReleaseBubbles({
         maxTime,
         finalTime: releasesMaxTime,
         releases,
-        desiredBuckets,
       })) ||
     [];
 
