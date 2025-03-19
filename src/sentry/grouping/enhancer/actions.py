@@ -81,7 +81,7 @@ class FlagAction(EnhancementAction):
     def __str__(self) -> str:
         return "{}{}{}".format(
             {"up": "^", "down": "v", None: ""}.get(self.range),
-            self.flag and "+" or "-",
+            "+" if self.flag else "-",
             self.key,
         )
 
