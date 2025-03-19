@@ -394,15 +394,27 @@ def create_result_key(
     result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
 ) -> str:
     """Create the string key to be used in the top events result dictionary"""
-    values = []
+    groupby = create_groupby_dict(result_row, fields, issues)
+    result = ",".join(groupby.values())
+    # If the result would be identical to the other key, include the field name
+    # only need the first field since this would only happen with a single field
+    if result == OTHER_KEY:
+        result = f"{result} ({fields[0]})"
+    return result
+
+
+def create_groupby_dict(
+    result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
+) -> dict[str, str]:
+    values = {}
     for field in fields:
         if field == "issue.id":
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values.append(issue_id)
+            values[field] = issue_id
         elif field == "transaction.status":
-            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
+            values[field] = SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -410,13 +422,8 @@ def create_result_key(
                     value = value[-1]
                 else:
                     value = ""
-            values.append(str(value))
-    result = ",".join(values)
-    # If the result would be identical to the other key, include the field name
-    # only need the first field since this would only happen with a single field
-    if result == OTHER_KEY:
-        result = f"{result} ({fields[0]})"
-    return result
+            values[field] = str(value)
+    return values
 
 
 def top_events_timeseries(
@@ -558,7 +565,7 @@ def top_events_timeseries(
         translated_groupby = top_events_builder.translated_groupby
 
         results = (
-            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+            {OTHER_KEY: {"order": limit, "data": other_result["data"], "is_other": True}}
             if len(other_result.get("data", []))
             else {}
         )
@@ -570,6 +577,9 @@ def top_events_timeseries(
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
                 results[result_key]["data"].append(row)
+                results[result_key]["groupby"] = create_groupby_dict(
+                    row, translated_groupby, issues
+                )
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
@@ -591,6 +601,7 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "groupby": item.get("groupby", []),
                     "meta": result["meta"],
                     "order": item["order"],
                 },
