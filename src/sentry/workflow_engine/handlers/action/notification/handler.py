@@ -91,72 +91,72 @@ class NotificationActionHandler(ActionHandler, ABC):
 
 @action_handler_registry.register(Action.Type.DISCORD)
 class DiscordActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = NotificationActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.SLACK)
 class SlackActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.MSTEAMS)
 class MsteamsActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.PAGERDUTY)
 class PagerdutyActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = NotificationActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.OPSGENIE)
 class OpsgenieActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.EMAIL)
 class EmailActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.SENTRY_APP)
 class SentryAppActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.PLUGIN)
 class PluginActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.NOTIFICATION
+    group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.GITHUB)
 class GithubActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+    group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
 class GithubEnterpriseActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+    group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.JIRA)
 class JiraActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+    group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.JIRA_SERVER)
 class JiraServerActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+    group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.AZURE_DEVOPS)
 class AzureDevopsActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.TICKET_CREATION
+    group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.WEBHOOK)
 class WebhookActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.ActionGroup.OTHER
+    group = ActionHandler.Group.OTHER
 
 
 @group_type_notification_registry.register(ErrorGroupType.slug)

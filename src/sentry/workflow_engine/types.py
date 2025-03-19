@@ -49,12 +49,12 @@ class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
 
-    class ActionGroup(StrEnum):
+    class Group(StrEnum):
         NOTIFICATION = "notification"
         TICKET_CREATION = "ticket_creation"
         OTHER = "other"
 
-    group: ClassVar[ActionGroup]
+    group: ClassVar[Group]
 
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
