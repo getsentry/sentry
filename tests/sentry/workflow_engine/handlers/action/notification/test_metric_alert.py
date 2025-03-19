@@ -18,7 +18,7 @@ from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.action.notification.metric_alert import (
     BaseMetricAlertHandler,
@@ -80,6 +80,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sentry_app_id: str | None = None,
     ):
         assert asdict(notification_context) == {
+            "id": notification_context.id,
             "integration_id": integration_id,
             "target_identifier": target_identifier,
             "target_display": target_display,
@@ -111,10 +112,13 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
         metric_value: float | None = None,
+        subscription: QuerySubscription | None = None,
     ):
         assert asdict(metric_issue_context) == {
+            "id": metric_issue_context.id,
             "open_period_identifier": open_period_identifier,
             "snuba_query": snuba_query,
+            "subscription": subscription,
             "new_status": new_status,
             "metric_value": metric_value,
         }
