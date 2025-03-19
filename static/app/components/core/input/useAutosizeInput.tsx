@@ -10,11 +10,14 @@ import {useCallback, useLayoutEffect, useRef} from 'react';
  * @param options.value - The value of the input, use when the input is controlled.
  * @returns A ref callback for the input element.
  */
+
+export interface UseAutosizeInputOptions {
+  disabled?: boolean;
+  value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
+}
+
 export function useAutosizeInput(
-  options: {
-    disabled?: boolean;
-    value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
-  } = {}
+  options: UseAutosizeInputOptions = {}
 ): React.RefCallback<HTMLInputElement> {
   const sourceRef = useRef<HTMLInputElement | null>(null);
 
@@ -39,9 +42,7 @@ export function useAutosizeInput(
   const autosizingCallbackRef: React.RefCallback<HTMLInputElement> = useCallback(
     (element: HTMLInputElement | null) => {
       if (options.disabled || !element) {
-        if (sourceRef.current) {
-          sourceRef.current.removeEventListener('input', onInputChange);
-        }
+        sourceRef.current?.removeEventListener('input', onInputChange);
       } else {
         resize(element);
         element.addEventListener('input', onInputChange);
