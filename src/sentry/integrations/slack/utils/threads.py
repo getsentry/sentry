@@ -1,14 +1,15 @@
 import logging
 from datetime import datetime
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_notification_action_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
+    NotificationActionNotificationMessage,
     NotificationActionNotificationMessageRepository,
 )
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models.action import Action
@@ -46,16 +47,15 @@ class NotificationActionThreadUtils:
             pass
 
     @classmethod
-    def _get_notification_action_thread_ts(
+    def _get_notification_action_for_notification_action(
         cls,
         organization: Organization,
         lifecycle: EventLifecycle,
         action: Action,
-        event: GroupEvent,
+        group: Group,
         open_period_start: datetime | None,
-        new_notification_message_object: NewNotificationActionNotificationMessage,
         thread_option_default: bool,
-    ) -> str | None:
+    ) -> NotificationActionNotificationMessage | None:
         """Find the thread in which to post a notification action notification as a reply.
 
         Return None to post the notification as a top-level message.
@@ -69,23 +69,18 @@ class NotificationActionThreadUtils:
         ):
             return None
 
+        parent_notification_message: NotificationActionNotificationMessage | None = None
         try:
             action_repository: NotificationActionNotificationMessageRepository = (
                 get_default_notification_action_repository()
             )
             parent_notification_message = action_repository.get_parent_notification_message(
                 action=action,
-                group=event.group,
+                group=group,
                 open_period_start=open_period_start,
             )
         except Exception as e:
             lifecycle.record_halt(e)
             return None
 
-        if parent_notification_message is None:
-            return None
-
-        new_notification_message_object.parent_notification_message_id = (
-            parent_notification_message.id
-        )
-        return parent_notification_message.message_identifier
+        return parent_notification_message
