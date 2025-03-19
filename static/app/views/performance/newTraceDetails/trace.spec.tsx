@@ -889,7 +889,9 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
   it('renders error state if meta fails to load', async () => {
@@ -906,7 +908,9 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
   it('renders empty state for successfully ingested trace', async () => {
@@ -931,7 +935,7 @@ describe('trace view', () => {
       router,
     });
     expect(
-      await screen.findByText(/trace does not contain any data/i)
+      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
     ).toBeInTheDocument();
   });
 
@@ -958,7 +962,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We could still be ingesting this trace. Please wait a few seconds and refresh./i
+        /We're still processing this trace. In a few seconds, refresh/i
       )
     ).toBeInTheDocument();
   });
