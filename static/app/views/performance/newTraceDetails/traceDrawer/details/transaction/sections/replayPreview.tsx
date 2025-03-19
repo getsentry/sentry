@@ -77,7 +77,7 @@ function ReplayPreview({
     <InterimSection
       title={t('Session Replay')}
       type="trace_session_replay"
-      initialCollapse
+      disableCollapsePersistence
     >
       <ReplaySection event={event} organization={organization} />
     </InterimSection>

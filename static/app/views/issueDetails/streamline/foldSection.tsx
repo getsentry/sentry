@@ -47,6 +47,10 @@ export interface FoldSectionProps {
   actions?: React.ReactNode;
   className?: string;
   /**
+   * Disable persisting collapse state to localStorage
+   */
+  disableCollapsePersistence?: boolean;
+  /**
    * Should this section be initially open, gets overridden by user preferences
    */
   initialCollapse?: boolean;
@@ -66,15 +70,28 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     className,
     initialCollapse = false,
     preventCollapse = false,
+    disableCollapsePersistence = false,
   },
   forwardedRef
 ) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
-  const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+
+  const [localState, setLocalState] = useState(initialCollapse);
+  const [persistedState, setPersistedState] = useSyncedLocalStorageState(
     getFoldSectionKey(sectionKey),
     initialCollapse
   );
+
+  const isCollapsed = disableCollapsePersistence ? localState : persistedState;
+  const setIsCollapsed = useCallback(
+    (value: boolean) => {
+      setLocalState(value);
+      setPersistedState(value);
+    },
+    [setLocalState, setPersistedState]
+  );
+
   const hasAttemptedScroll = useRef(false);
 
   // If the section is prevented from collapsing, we need to update the local storage state and open
