@@ -14,8 +14,16 @@ export function hasLaravelInsightsFeature(organization: Organization) {
 
 export function useIsLaravelInsightsAvailable() {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
 
-  return hasLaravelInsightsFeature(organization);
+  const selectedProjects = getSelectedProjectList(selection.projects, projects);
+
+  const isOnlyLaravelSelected = selectedProjects.every(
+    project => project.platform === 'php-laravel'
+  );
+
+  return hasLaravelInsightsFeature(organization) && isOnlyLaravelSelected;
 }
 
 // It started out as a dictionary of project IDs, but as we now want a global toggle we use a special key
@@ -24,20 +32,12 @@ const ALL_PROJECTS_KEY = 'all';
 
 export function useIsLaravelInsightsEnabled() {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
   const user = useUser();
-
-  const selectedProjects = getSelectedProjectList(selection.projects, projects);
-
-  // The new experience is enabled by default for Laravel projects
-  const defaultValue = Boolean(
-    selectedProjects.every(project => project.platform === 'php-laravel')
-  );
+  const isAvailable = useIsLaravelInsightsAvailable();
 
   const isEnabled = Boolean(
-    hasLaravelInsightsFeature(organization) &&
-      (user.options.prefersSpecializedProjectOverview[ALL_PROJECTS_KEY] ?? defaultValue)
+    isAvailable &&
+      (user.options.prefersSpecializedProjectOverview[ALL_PROJECTS_KEY] ?? true)
   );
 
   const {mutate: mutateUserOptions} = useMutateUserOptions();
