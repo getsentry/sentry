@@ -1,10 +1,13 @@
 import type {SeriesOption} from 'echarts';
 
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
-import type {TimeSeries} from '../../common/types';
+import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
+import type {TimeSeries, TimeSeriesValueUnit} from '../../common/types';
 import {formatSeriesName} from '../formatters/formatSeriesName';
+import {FALLBACK_TYPE} from '../settings';
+
+import type {PlottableTimeSeriesValueType} from './plottable';
 
 export type ContinuousTimeSeriesConfig = {
   /**
@@ -29,7 +32,7 @@ export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
-  unit: DataUnit;
+  unit: TimeSeriesValueUnit;
   /**
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
@@ -65,12 +68,13 @@ export abstract class ContinuousTimeSeries<
     return !this.config?.color;
   }
 
-  get dataType(): AggregationOutputType {
-    // TODO: Remove the `as` cast. `TimeSeries` meta should use `AggregationOutputType` instead of `string`
-    return this.timeSeries.meta.type as AggregationOutputType;
+  get dataType(): PlottableTimeSeriesValueType {
+    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.type)
+      ? this.timeSeries.meta.type
+      : FALLBACK_TYPE;
   }
 
-  get dataUnit(): DataUnit {
+  get dataUnit(): TimeSeriesValueUnit {
     return this.timeSeries.meta.unit;
   }
 
@@ -98,7 +102,7 @@ export abstract class ContinuousTimeSeries<
     };
   }
 
-  scaleToUnit(destinationUnit: DataUnit): TimeSeries {
+  scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 
