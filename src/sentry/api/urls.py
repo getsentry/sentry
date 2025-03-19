@@ -524,7 +524,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
-from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
     OrganizationOnDemandMetricsEstimationStatsEndpoint,
 )
@@ -2118,11 +2117,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/data/$",
         OrganizationReleaseHealthDataEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-data",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/query/$",
-        OrganizationMetricsQueryEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-query",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",
