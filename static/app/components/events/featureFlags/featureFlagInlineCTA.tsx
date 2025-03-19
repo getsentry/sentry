@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Button, LinkButton} from 'sentry/components/core/button';
@@ -77,7 +79,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
       actions={actions}
     >
       <BannerWrapper>
-        <div>
+        <BannerContent>
           <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
           <BannerDescription>
             {t(
@@ -96,7 +98,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
               {t('Read More')}
             </LinkButton>
           </ActionButton>
-        </div>
+        </BannerContent>
         <CloseDropdownMenu
           position="bottom-end"
           triggerProps={{
@@ -130,6 +132,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
             },
           ]}
         />
+        <BannerIllustration src={onboardingInstall} alt="Install" />
       </BannerWrapper>
     </InterimSection>
   );
@@ -144,6 +147,22 @@ const BannerTitle = styled('div')`
 const BannerDescription = styled('div')`
   margin-bottom: ${space(1.5)};
   max-width: 340px;
+`;
+
+const BannerContent = styled('div')`
+  padding: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const BannerIllustration = styled('img')`
+  height: 100%;
+  object-fit: contain;
+  max-width: 30%;
+  margin-right: 10px;
+  margin-bottom: -${space(2)};
+  padding: ${space(2)};
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
@@ -173,4 +192,9 @@ const BannerWrapper = styled('div')`
     ${p => p.theme.backgroundSecondary}FF 70%,
     ${p => p.theme.backgroundSecondary}FF 100%
   );
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: ${space(1)};
 `;

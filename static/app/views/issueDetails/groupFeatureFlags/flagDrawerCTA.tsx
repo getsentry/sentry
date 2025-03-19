@@ -34,7 +34,7 @@ export default function FlagDrawerCTA() {
         <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
         <BannerDescription>
           {t(
-            'Want to know which feature flags were associated with this error? Set up your feature flag integration.'
+            'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
           )}
         </BannerDescription>
         <ActionButton>
