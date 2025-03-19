@@ -8,7 +8,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.logs-paginated': {
     direction: 'next' | 'prev';
-    surface: 'settings';
+    surface: 'settings' | 'flag_drawer';
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {

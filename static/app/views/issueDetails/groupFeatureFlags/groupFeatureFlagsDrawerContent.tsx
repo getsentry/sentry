@@ -4,11 +4,11 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {
   Container,
   StyledEmptyStateWarning,
-  Wrapper,
 } from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -75,12 +75,14 @@ export default function GroupFeatureFlagsDrawerContent({
         : t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Wrapper>
-      <Container>
-        {displayTags.map((tag, tagIdx) => (
-          <TagDistribution tag={tag} key={tagIdx} />
-        ))}
-      </Container>
-    </Wrapper>
+    <Container>
+      {displayTags.map(tag => (
+        <div key={tag.name}>
+          <FlagDetailsLink tag={tag} key={tag.name}>
+            <TagDistribution tag={tag} key={tag.name} />
+          </FlagDetailsLink>
+        </div>
+      ))}
+    </Container>
   );
 }

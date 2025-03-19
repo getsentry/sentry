@@ -345,9 +345,6 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
   margin: 0 ${space(1)};
 `;
