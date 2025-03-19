@@ -8,6 +8,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {Flex} from 'sentry/components/container/flex';
+import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -120,6 +121,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}
             timeWindowConfig={timeWindowConfig}
+            makeUnit={count => tn('check', 'checks', count)}
           />
         )}
       </TimelineContainer>
