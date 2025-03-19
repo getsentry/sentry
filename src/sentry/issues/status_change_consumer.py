@@ -137,7 +137,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         )
 
 
-def get_groups_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> Group | None:
+def get_group_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> Group | None:
     results = bulk_get_groups_from_fingerprints([(project_id, fingerprint)])
     return results.get((project_id, tuple(fingerprint)))
 
@@ -228,7 +228,7 @@ def process_status_change_message(
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
         fingerprint = status_change_data["fingerprint"]
-        group = get_groups_from_fingerprint(project.id, fingerprint)
+        group = get_group_from_fingerprint(project.id, fingerprint)
         if not group:
             logger.info(
                 "status_change.dropped_group_not_found",
