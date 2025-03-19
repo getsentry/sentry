@@ -1,10 +1,9 @@
-import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
+import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import useRouter from 'sentry/utils/useRouter';
 
 type Project = {
   id: string;
@@ -15,7 +14,9 @@ type Props = {
   /**
    * Path used on the redirect router if the user did select a project
    */
-  nextPath: LocationDescriptor;
+  nextPath: Pick<LocationDescriptorObject, 'query'> & {
+    pathname: NonNullable<LocationDescriptorObject['pathname']>;
+  };
   /**
    * Path used on the redirect router if the user did not select a project
    */
@@ -30,10 +31,10 @@ function PickProjectToContinue({
   projects,
   allowAllProjectsSelection = false,
 }: Props) {
-  const navigating = useRef(false);
-  const navigate = useNavigate();
-  const nextPathQuery = typeof nextPath === 'string' ? {} : nextPath.query;
-  let path = `${typeof nextPath === 'string' ? nextPath : nextPath.pathname}?project=`;
+  const router = useRouter();
+  const nextPathQuery = nextPath.query;
+  let navigating = false;
+  let path = `${nextPath.pathname}?project=`;
 
   if (nextPathQuery) {
     const filteredQuery = Object.entries(nextPathQuery)
@@ -42,60 +43,42 @@ function PickProjectToContinue({
 
     const newPathQuery = [...filteredQuery, 'project='].join('&');
 
-    path = `${typeof nextPath === 'string' ? nextPath : nextPath.pathname}?${newPathQuery}`;
+    path = `${nextPath.pathname}?${newPathQuery}`;
   }
-
-  useEffect(() => {
-    if (projects.length === 1) {
-      return;
-    }
-
-    openModal(
-      modalProps => (
-        <ContextPickerModal
-          {...modalProps}
-          needOrg={false}
-          needProject
-          nextPath={`${path}:project`}
-          onFinish={to => {
-            navigating.current = true;
-            navigate(to, {replace: true});
-            modalProps.closeModal();
-          }}
-          projectSlugs={projects.map(p => p.slug)}
-          allowAllProjectsSelection={allowAllProjectsSelection}
-        />
-      ),
-      {
-        onClose() {
-          // this callback is fired when the user selects a project, or not. we
-          // want this to be executed only if the user didn't select any
-          // project (closed modal either via button, Esc, clicking outside,
-          // ...)
-          if (!navigating.current) {
-            navigate(noProjectRedirectPath);
-            navigating.current = false;
-          }
-        },
-      }
-    );
-    // We only ever want to call `openModal` once. As long as `projects.length`
-    // is > 1, we should open the modal. We rely on the user selecting a project
-    // and `<GlobalModal>` will close the modal when `location.pathname` changes.
-    //
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {
-    navigate(path + projects[0]!.id, {replace: true});
+    router.replace(path + projects[0]!.id);
     return null;
   }
 
-<<<<<<< HEAD
+  openModal(
+    modalProps => (
+      <ContextPickerModal
+        {...modalProps}
+        needOrg={false}
+        needProject
+        nextPath={`${path}:project`}
+        onFinish={to => {
+          navigating = true;
+          router.replace(to);
+          modalProps.closeModal();
+        }}
+        projectSlugs={projects.map(p => p.slug)}
+        allowAllProjectsSelection={allowAllProjectsSelection}
+      />
+    ),
+    {
+      onClose() {
+        // we want this to be executed only if the user didn't select any project
+        // (closed modal either via button, Esc, clicking outside, ...)
+        if (!navigating) {
+          router.push(noProjectRedirectPath);
+        }
+      },
+    }
+  );
 
-=======
->>>>>>> a0495df3ad1 (ref(ui): Remove `router` prop from `<PickProjectToContinue>`)
   return <ContextPickerBackground />;
 }
 
