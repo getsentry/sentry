@@ -3,7 +3,6 @@ import {Component} from 'react';
 import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {
   SidebarButton,
-  SidebarItem as NavSidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -45,19 +44,17 @@ function TryBusinessNavigationItem({
   const showIsNew = isNew && !tryBusinessSeen;
 
   return (
-    <NavSidebarItem>
-      <SidebarButton
-        label={t('Try Business')}
-        onClick={() => {
-          setTryBusinessSeen(true);
-          onClick();
-        }}
-        analyticsKey="try-business"
-      >
-        <IconBusiness size="md" />
-        {showIsNew && <SidebarItemUnreadIndicator />}
-      </SidebarButton>
-    </NavSidebarItem>
+    <SidebarButton
+      label={t('Try Business')}
+      onClick={() => {
+        setTryBusinessSeen(true);
+        onClick();
+      }}
+      analyticsKey="try-business"
+    >
+      <IconBusiness size="md" />
+      {showIsNew && <SidebarItemUnreadIndicator />}
+    </SidebarButton>
   );
 }
 
