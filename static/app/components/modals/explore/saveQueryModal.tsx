@@ -172,19 +172,18 @@ const ExploreParamSection = styled('span')`
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-  align-items: center;
+  overflow: hidden;
 `;
 
 const ExploreParamTitle = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
   color: ${p => p.theme.gray300};
+  white-space: nowrap;
+  padding-top: 3px;
 `;
 
 const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
   background: ${p => p.theme.background};
   padding: ${space(0.25)} ${space(0.5)};
   border: 1px solid ${p => p.theme.innerBorder};
@@ -192,6 +191,7 @@ const ExploreVisualizes = styled('span')`
   height: 24px;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ExploreGroupBys = ExploreVisualizes;
