@@ -21,6 +21,7 @@ export type EventType =
   | 'monitorSeat'
   | 'span'
   | 'profileDuration'
+  | 'profileDurationUI'
   | 'uptime';
 
 type Props = {
