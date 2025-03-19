@@ -552,7 +552,7 @@ class MockDetectorValidator(BaseDetectorTypeValidator):
 class MockActionHandler(ActionHandler):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Action Configuration",
+        "description": "The configuration schema for a Action.config",
         "type": "object",
         "properties": {
             "foo": {
@@ -565,7 +565,7 @@ class MockActionHandler(ActionHandler):
 
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Action Data",
+        "description": "The configuration schema for a Action.data",
         "type": "object",
         "properties": {
             "baz": {
