@@ -157,7 +157,6 @@ export function getChonkButtonStyles(
     // Link buttons do not have interaction state layer
     ...(p.priority === 'link' && {
       '> span:first-child': {
-        display: 'block',
         transform: 'translateY(0px)',
       },
 
