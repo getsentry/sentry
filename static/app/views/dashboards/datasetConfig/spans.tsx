@@ -2,7 +2,6 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
-import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -282,7 +281,6 @@ function getSeriesRequest(
   );
 
   requestData.useRpc = true;
-  requestData.interval = getInterval(pageFilters.datetime, 'spans');
 
   // Filtering out all spans with op like 'ui.interaction*' which aren't
   // embedded under transactions. The trace view does not support rendering
