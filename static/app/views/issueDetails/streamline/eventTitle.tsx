@@ -229,11 +229,12 @@ const EventInfoJumpToWrapper = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(2)} 0 ${space(0.5)};
-  flex-wrap: wrap;
+  padding: 0 ${space(2)};
+  flex-wrap: nowrap;
   min-height: ${MIN_NAV_HEIGHT}px;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-wrap: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-wrap: wrap;
+    gap: 0;
   }
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
 `;
@@ -244,6 +245,10 @@ const EventInfo = styled('div')`
   flex-direction: row;
   align-items: center;
   line-height: 1.2;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    padding-top: ${space(1)};
+  }
 `;
 
 const JumpTo = styled('div')`
@@ -290,7 +295,6 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${space(0.25)};
   align-items: center;
-  margin-left: ${space(1.5)};
   font-weight: ${p => p.theme.fontWeightBold};
 
   button {
