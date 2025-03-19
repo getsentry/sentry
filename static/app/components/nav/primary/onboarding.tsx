@@ -105,12 +105,12 @@ function OnboardingItem({
             <SidebarItemUnreadIndicator data-test-id="pending-seen-indicator" />
           )}
         </NavButton>
-        {isOpen && (
-          <PrimaryButtonOverlay overlayProps={overlayProps}>
-            <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
-          </PrimaryButtonOverlay>
-        )}
       </SidebarItem>
+      {isOpen && (
+        <PrimaryButtonOverlay overlayProps={overlayProps}>
+          <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
+        </PrimaryButtonOverlay>
+      )}
     </GuideAnchor>
   );
 }
