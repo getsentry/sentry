@@ -111,10 +111,7 @@ class BaseIssueAlertHandler(ABC):
         :param job: WorkflowJob
         :return: Rule instance
         """
-        workflow = job.get("workflow")
-        environment_id = None
-        if workflow and workflow.environment:
-            environment_id = workflow.environment.id
+        environment = job.get("workflow_env")
 
         # TODO(iamrajjoshi): Remove the project null check once https://github.com/getsentry/sentry/pull/85240/files is merged
         if detector.project is None:
@@ -123,7 +120,7 @@ class BaseIssueAlertHandler(ABC):
         rule = Rule(
             id=action.id,
             project=detector.project,
-            environment_id=environment_id,
+            environment_id=environment.id if environment else None,
             label=detector.name,
             data={
                 "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)]
