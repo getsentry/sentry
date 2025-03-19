@@ -27,6 +27,7 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
+    SentryAppWebhookHaltReason,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -184,6 +185,7 @@ def send_alert_webhook(
         if not installations:
             # when someone deletes an installation we don't clean up the rule actions
             # so we can have missing installations here
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_INSTALLATION)
             return
         (install,) = installations
 
