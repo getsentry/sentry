@@ -1,19 +1,12 @@
 import {lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
-import Link from 'sentry/components/links/link';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
   loadTraceViewPreferences,
   type TracePreferencesState,
@@ -27,21 +20,6 @@ const LazyIssuesTraceWaterfall = lazy(() =>
     module => ({default: module.IssuesTraceWaterfall})
   )
 );
-
-function getHrefFromTraceTarget(traceTarget: LocationDescriptor) {
-  if (typeof traceTarget === 'string') {
-    return traceTarget;
-  }
-
-  const searchParams = new URLSearchParams();
-  for (const key in traceTarget.query) {
-    if (defined(traceTarget.query[key])) {
-      searchParams.append(key, traceTarget.query[key]);
-    }
-  }
-
-  return `${traceTarget.pathname}?${searchParams.toString()}`;
-}
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -78,7 +56,6 @@ export function SpanEvidenceTraceView({
 }: SpanEvidenceTraceViewProps) {
   const timestamp = new Date(event.dateReceived).getTime() / 1e3;
 
-  const location = useLocation();
   const trace = useTrace({
     timestamp,
     traceSlug: traceId,
@@ -104,19 +81,6 @@ export function SpanEvidenceTraceView({
     return null;
   }
 
-  const traceTarget = generateTraceTarget(
-    event,
-    organization,
-    {
-      ...location,
-      query: {
-        ...location.query,
-        groupId: event.groupID,
-      },
-    },
-    TraceViewSources.ISSUE_DETAILS
-  );
-
   return (
     <TraceStateProvider
       initialPreferences={preferences}
@@ -137,14 +101,6 @@ export function SpanEvidenceTraceView({
             event={event}
           />
         </Suspense>
-        <IssuesTraceOverlayContainer
-          to={getHrefFromTraceTarget(traceTarget)}
-          onClick={() => {
-            trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
-              organization,
-            });
-          }}
-        />
       </IssuesTraceContainer>
     </TraceStateProvider>
   );
@@ -152,10 +108,4 @@ export function SpanEvidenceTraceView({
 
 const IssuesTraceContainer = styled('div')`
   position: relative;
-`;
-
-const IssuesTraceOverlayContainer = styled(Link)`
-  position: absolute;
-  inset: 0;
-  z-index: 10;
 `;

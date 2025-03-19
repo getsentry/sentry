@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   Fragment,
   useCallback,
@@ -16,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {
   isSpanNode,
   isTraceErrorNode,
@@ -58,6 +58,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
@@ -318,21 +319,32 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             : 8
         }
       >
-        <IssuesPointerDisabled>
-          <Trace
-            metaQueryResults={props.meta}
-            trace={props.tree}
-            rerender={rerender}
-            trace_id={props.traceSlug}
-            onRowClick={onRowClick}
-            onTraceSearch={noopTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            scheduler={traceScheduler}
-            forceRerender={forceRender}
-            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
+        <IssuesTraceContainer ref={containerRef}>
+          <IssuesPointerDisabled>
+            <Trace
+              metaQueryResults={props.meta}
+              trace={props.tree}
+              rerender={rerender}
+              trace_id={props.traceSlug}
+              onRowClick={onRowClick}
+              onTraceSearch={noopTraceSearch}
+              previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+              manager={viewManager}
+              scheduler={traceScheduler}
+              forceRerender={forceRender}
+              isLoading={
+                props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+              }
+            />
+          </IssuesPointerDisabled>
+          <IssueTraceWaterfallOverlay
+            containerRef={containerRef}
+            event={props.event}
+            groupId={props.event.groupID}
+            tree={props.tree}
+            viewManager={viewManager}
           />
-        </IssuesPointerDisabled>
+        </IssuesTraceContainer>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
           <TraceWaterfallState.Loading />
@@ -369,4 +381,10 @@ const IssuesTraceGrid = styled(TraceGrid)<{
   height: ${p =>
     Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
     HEADER_HEIGHT}px;
+`;
+
+const IssuesTraceContainer = styled('div')`
+  position: relative;
+  height: 100%;
+  width: 100%;
 `;
