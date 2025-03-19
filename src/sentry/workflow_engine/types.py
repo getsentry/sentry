@@ -9,8 +9,9 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
-    from sentry.workflow_engine.models import Action, Detector, Workflow
+    from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
 
 T = TypeVar("T")
@@ -42,7 +43,7 @@ class WorkflowJob(EventJob, total=False):
     has_reappeared: bool
     has_alert: bool
     has_escalated: bool
-    workflow: Workflow
+    workflow_env: Environment | None
 
 
 class ActionHandler:
