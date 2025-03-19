@@ -42,14 +42,10 @@ describe('python onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/sentry_sdk.profiler.start_profile_session\(\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/sentry_sdk.profiler.stop_profile_session\(\)/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -78,14 +74,10 @@ describe('python onboarding docs', function () {
 
     // Does render continuous profiling config
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/sentry_sdk.profiler.start_profile_session\(\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/sentry_sdk.profiler.stop_profile_session\(\)/)
-      )
+      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
     ).toBeInTheDocument();
   });
 });

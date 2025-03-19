@@ -44,14 +44,14 @@ sentry_sdk.init(
   params.profilingOptions?.defaultProfilingMode === 'continuous'
     ? `
 
-# Manually call start_profile_session and stop_profile_session
+# Manually call start_profiler and stop_profiler
 # to profile the code in between
-sentry_sdk.profiler.start_profile_session()
+sentry_sdk.profiler.start_profiler()
 # this code will be profiled
 #
-# Calls to stop_profile_session are optional - if you don't stop the profiler, it will keep profiling
-# your application until the process exits or stop_profile_session is called.
-sentry_sdk.profiler.stop_profile_session()`
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
 
