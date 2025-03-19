@@ -227,6 +227,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
+            # TODO: attach correct env to job. consider refactoring
             for action in actions:
                 action.trigger(job, detector)
 

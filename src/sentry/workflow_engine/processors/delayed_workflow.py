@@ -438,6 +438,7 @@ def fire_actions_for_groups(
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
+            # TODO: attach correct env to job. consider refactoring
             for action in filtered_actions:
                 action.trigger(job, detector)
 
