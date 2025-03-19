@@ -175,7 +175,8 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SavedSearchType.SPAN;
   }
-  return SavedSearchType.LOG;
+  // TODO: Add logs recent searches
+  return SavedSearchType.SPAN;
 }
 
 function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
