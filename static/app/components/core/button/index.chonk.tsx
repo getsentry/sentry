@@ -4,7 +4,14 @@ import type {ButtonProps} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 
-type ChonkButtonType = 'default' | 'transparent' | 'accent' | 'warning' | 'danger';
+// @TODO: remove Link type in the future
+type ChonkButtonType =
+  | 'default'
+  | 'transparent'
+  | 'accent'
+  | 'warning'
+  | 'danger'
+  | 'link';
 type ChonkButtonSize = 'mini' | 'small' | 'medium' | 'large';
 
 function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType {
@@ -21,6 +28,8 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
     // forward it so that we can write the stories for it
     case 'transparent':
       return 'transparent';
+    case 'link':
+      return 'link';
     default:
       return 'default';
   }
@@ -63,6 +72,17 @@ export function getChonkButtonStyles(
     borderTopWidth: `3px`,
     background: 'none',
 
+    minHeight:
+      size === 'large'
+        ? '37px'
+        : size === 'medium'
+          ? '30px'
+          : size === 'small'
+            ? '25px'
+            : '20px',
+
+    fontSize: size === 'small' || size === 'mini' ? '12px' : '14px',
+
     '&::before': {
       content: '""',
       display: 'block',
@@ -70,7 +90,6 @@ export function getChonkButtonStyles(
       inset: '-1px',
       bottom: '2px',
       boxShadow: `0 3px 0 0px ${getChonkButtonTheme(type, p.theme).background}, inset 0px -1px 0 0px ${getChonkButtonTheme(type, p.theme).background}`,
-      // background: getChonkButtonTheme(type, p.theme).background,
       borderRadius: 'inherit',
     },
 
@@ -89,8 +108,8 @@ export function getChonkButtonStyles(
       transition: 'transform 0.1s ease-in-out',
     },
 
-    '> span:first-child': {
-      display: 'none',
+    '&:focus-visible': {
+      ...p.theme.focusRing,
     },
 
     '> span:last-child': {
@@ -127,25 +146,77 @@ export function getChonkButtonStyles(
       '&::after': {
         transform: 'translateY(0px)',
       },
+      '&::before': {
+        transform: 'translateY(0px)',
+      },
       '> span:last-child': {
         transform: 'translateY(0px)',
       },
     },
 
-    ...(p.borderless && {
-      border: 'none',
+    // Link buttons do not have interaction state layer
+    ...(p.priority === 'link' && {
+      '> span:first-child': {
+        display: 'block',
+        transform: 'translateY(0px)',
+      },
+
+      '&::before': {
+        display: 'none',
+      },
+
+      '&::after': {
+        display: 'none',
+      },
     }),
 
-    '&:focus': {
-      outline: 'none',
-    },
+    // Borderdless buttons are not chonky
+    ...((p.borderless || type === 'transparent' || type === 'link') && {
+      border: 'none',
+
+      '&::before': {
+        display: 'none',
+      },
+      '&::after': {
+        display: 'none',
+      },
+
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+
+      '&:hover': {
+        '> span:last-child': {
+          transform: 'translateY(0px)',
+        },
+
+        backgroundColor: p.theme.colors.gray100,
+      },
+
+      '&:active': {
+        '> span:last-child': {
+          transform: 'translateY(0px)',
+        },
+
+        backgroundColor: p.theme.colors.gray200,
+      },
+    }),
 
     ...(p.priority === 'link' && {
-      fontSize: 'inherit',
-      fontWeight: 'inherit',
-      padding: 0,
+      padding: '0',
       height: 'auto',
       minHeight: 'auto',
+      border: 'none',
+
+      '> span:last-child': {
+        color: 'inherit',
+      },
+
+      '&:hover': {
+        '> span:last-child': {
+          transform: 'translateY(0px)',
+        },
+      },
     }),
 
     ...(p.size === 'zero' && {
@@ -153,21 +224,6 @@ export function getChonkButtonStyles(
       minHeight: 'auto',
       padding: space(0.25),
     }),
-  };
-}
-
-export function getChonkButtonLabelStyles(
-  p: ButtonProps & {theme: DO_NOT_USE_ChonkTheme}
-): StrictCSSObject {
-  const type = chonkPriorityToType(p.priority);
-  const size = chonkSizeMapping(p.size);
-
-  return {
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    whiteSpace: 'nowrap',
   };
 }
 
@@ -202,6 +258,12 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
         surface: 'transparent',
         background: 'transparent',
         color: theme.colors.gray800,
+      };
+    case 'link':
+      return {
+        surface: 'transparent',
+        background: 'transparent',
+        color: theme.linkColor,
       };
     default:
       return {};
