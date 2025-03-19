@@ -909,7 +909,12 @@ describe('trace view', () => {
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
   });
 
-  it('renders empty state', async () => {
+  it('renders empty state for successfully ingested trace', async () => {
+    // set timestamp to 3 minutes ago
+    const threeMinutesAgoInSeconds = Math.floor(
+      new Date(Date.now() - 3 * 60 * 1000).getTime() / 1000
+    );
+
     mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({
       body: {
@@ -921,9 +926,40 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    window.location.search = `?timestamp=${threeMinutesAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
     expect(
       await screen.findByText(/trace does not contain any data/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders empty state for yet to be ingested trace', async () => {
+    // set timestamp to 1 minute ago
+    const oneMinuteAgoInSeconds = Math.floor(
+      new Date(Date.now() - 1 * 60 * 1000).getTime() / 1000
+    );
+
+    mockPerformanceSubscriptionDetailsResponse();
+    mockTraceResponse({
+      body: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    });
+    mockTraceMetaResponse();
+    mockTraceTagsResponse();
+    mockEventsResponse();
+
+    window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
+    expect(
+      await screen.findByText(
+        /We could still be ingesting this trace. Please wait a few seconds and refresh./i
+      )
     ).toBeInTheDocument();
   });
 

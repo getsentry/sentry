@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 function TraceLoading() {
   return (
@@ -43,9 +44,22 @@ function TraceEmpty() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
 
+  const traceQueryParams = useTraceQueryParams();
+  const timestamp = traceQueryParams.timestamp;
+
+  // Traces take longer to ingest than spans, we could click on the id of a span
+  // and be navigated to a trace that doesn't contain any data yet. We add a 2
+  // minute buffer to account for this.
+  const message =
+    timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - 2 * 60 * 1000)
+      ? t(
+          'We could still be ingesting this trace. Please wait a few seconds and refresh.'
+        )
+      : t('This trace does not contain any data.');
+
   return (
     <LoadingContainer animate>
-      <div>{t('This trace does not contain any data?!')}</div>
+      <div>{message}</div>
       <div>
         {t('Seeing this often? Send us ')}
         {feedback ? (
