@@ -24,7 +24,6 @@ interface TraceItemSearchQueryBuilderProps {
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string, state: CallbackSearchState) => void;
-  placeholder?: string;
   portalTarget?: HTMLElement | null;
   projects?: PageFilters['projects'];
   supportedAggregates?: AggregationKey[];
@@ -65,12 +64,11 @@ export function TraceItemSearchQueryBuilder({
   getFilterTokenWarning,
   onBlur,
   onSearch,
-  placeholder,
   portalTarget,
   projects: _projects,
   supportedAggregates = [],
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);

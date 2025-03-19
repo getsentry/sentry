@@ -76,7 +76,6 @@ export function LogsTabContent({
             />
           </PageFilterBar>
           <TraceItemSearchQueryBuilder
-            placeholder={t('Search for logs')}
             initialQuery={logsSearch.formatString()}
             searchSource="ourlogs"
             onSearch={setLogsQuery}
