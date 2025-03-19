@@ -1,4 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
@@ -78,6 +80,9 @@ describe('Uptime Overview', function () {
           'uptime',
         ],
       },
+      router: RouterFixture({
+        location: LocationFixture({pathname: '/insights/backend/uptime'}),
+      }),
     });
     OrganizationStore.onUpdate(organization);
 

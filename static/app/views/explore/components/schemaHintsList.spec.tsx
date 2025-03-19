@@ -229,4 +229,28 @@ describe('SchemaHintsList', () => {
 
     expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
   });
+
+  it('should show correct search results when query is updated', async () => {
+    render(
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>,
+      {organization, router}
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    const searchInput = screen.getByLabelText('Search attributes');
+    await userEvent.type(searchInput, 'stringTag');
+
+    expect(screen.getByText('stringTag1')).toBeInTheDocument();
+    expect(screen.getByText('stringTag2')).toBeInTheDocument();
+    expect(screen.queryByText('numberTag1')).not.toBeInTheDocument();
+    expect(screen.queryByText('numberTag2')).not.toBeInTheDocument();
+  });
 });

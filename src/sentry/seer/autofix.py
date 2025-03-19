@@ -31,6 +31,77 @@ logger = logging.getLogger(__name__)
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
+def build_spans_tree(spans_data: list[dict]) -> list[dict]:
+    """
+    Builds a hierarchical tree structure from a flat list of spans.
+
+    Handles multiple potential roots and preserves parent-child relationships.
+    A span is considered a root if:
+    1. It has no parent_span_id, or
+    2. Its parent_span_id doesn't match any span_id in the provided data
+
+    Each node in the tree contains the span data and a list of children.
+    The tree is sorted by duration (longest spans first) at each level.
+    """
+    # Maps for quick lookup
+    spans_by_id: dict[str, dict] = {}
+    children_by_parent_id: dict[str, list[dict]] = {}
+    root_spans: list[dict] = []
+
+    # First pass: organize spans by ID and parent_id
+    for span in spans_data:
+        span_id = span.get("span_id")
+        if not span_id:
+            continue
+
+        # Deep copy the span to avoid modifying the original
+        span_with_children = span.copy()
+        span_with_children["children"] = []
+        spans_by_id[span_id] = span_with_children
+
+        parent_id = span.get("parent_span_id")
+        if parent_id:
+            if parent_id not in children_by_parent_id:
+                children_by_parent_id[parent_id] = []
+            children_by_parent_id[parent_id].append(span_with_children)
+
+    # Second pass: identify root spans
+    # A root span is either:
+    # 1. A span without a parent_span_id
+    # 2. A span whose parent_span_id doesn't match any span_id in our data
+    for span_id, span in spans_by_id.items():
+        parent_id = span.get("parent_span_id")
+        if not parent_id or parent_id not in spans_by_id:
+            root_spans.append(span)
+
+    # Third pass: build the tree by connecting children to parents
+    for parent_id, children in children_by_parent_id.items():
+        if parent_id in spans_by_id:
+            parent = spans_by_id[parent_id]
+            for child in children:
+                # Only add if not already a child
+                if child not in parent["children"]:
+                    parent["children"].append(child)
+
+    # Function to sort children in each node by duration
+    def sort_span_tree(node):
+        if node["children"]:
+            # Sort children by duration (in descending order to show longest spans first)
+            node["children"].sort(
+                key=lambda x: float(x.get("duration", "0").split("s")[0]), reverse=True
+            )
+            # Recursively sort each child's children
+            for child in node["children"]:
+                sort_span_tree(child)
+        del node["parent_span_id"]
+        return node
+
+    # Sort the root spans by duration
+    root_spans.sort(key=lambda x: float(x.get("duration", "0").split("s")[0]), reverse=True)
+    # Apply sorting to the whole tree
+    return [sort_span_tree(root) for root in root_spans]
+
+
 def _get_serialized_event(
     event_id: str, group: Group, user: User | RpcUser | AnonymousUser
 ) -> tuple[dict[str, Any] | None, Event | GroupEvent | None]:
@@ -58,21 +129,34 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             ).values_list("id", "slug")
         ).keys()
     )
-    event_filter = eventstore.Filter(
+    start = event.datetime - timedelta(days=1)
+    end = event.datetime + timedelta(days=1)
+    transaction_event_filter = eventstore.Filter(
         project_ids=project_ids,
         conditions=[
             ["trace_id", "=", trace_id],
         ],
+        organization_id=project.organization_id,
+        start=start,
+        end=end,
     )
     transactions = eventstore.backend.get_events(
-        filter=event_filter,
+        filter=transaction_event_filter,
         dataset=Dataset.Transactions,
         referrer=Referrer.API_GROUP_AI_AUTOFIX,
         tenant_ids={"organization_id": project.organization_id},
     )
+    error_event_filter = eventstore.Filter(
+        project_ids=project_ids,
+        conditions=[
+            ["trace", "=", trace_id],
+        ],
+        organization_id=project.organization_id,
+        start=start,
+        end=end,
+    )
     errors = eventstore.backend.get_events(
-        filter=event_filter,
-        dataset=Dataset.Events,
+        filter=error_event_filter,
         referrer=Referrer.API_GROUP_AI_AUTOFIX,
         tenant_ids={"organization_id": project.organization_id},
     )
@@ -82,10 +166,12 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
         return None
 
     events_by_span_id: dict[str, dict] = {}
-    children_by_parent_span_id: dict[str, list[dict]] = {}
+    events_by_parent_span_id: dict[str, list[dict]] = {}
+    span_to_transaction: dict[str, dict] = {}  # Maps span IDs to their parent transaction events
     root_events: list[dict] = []
+    all_events: list[dict] = []  # Track all events for orphan detection
 
-    # First pass: collect all events and their relationships
+    # First pass: collect all events and their metadata
     for event in results:
         event_data = event.data
         is_transaction = event_data.get("spans") is not None
@@ -98,8 +184,14 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
             "is_error": is_error,
+            "is_current_project": event.project_id == project.id,
+            "project_slug": event.project.slug,
+            "project_id": event.project_id,
             "children": [],
         }
+
+        # Add to all_events for later orphan detection
+        all_events.append(event_node)
 
         if is_transaction:
             op = event_data.get("contexts", {}).get("trace", {}).get("op")
@@ -111,75 +203,132 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
             )
             profile_id = event_data.get("contexts", {}).get("profile", {}).get("profile_id")
+
+            # Store all span IDs from this transaction for later relationship building
+            spans = event_data.get("spans", [])
+            span_ids = [span.get("span_id") for span in spans if span.get("span_id")]
+
+            spans_selected_data = [
+                {
+                    "span_id": span.get("span_id"),
+                    "parent_span_id": span.get("parent_span_id"),
+                    "title": f"{span.get('op', '')} - {span.get('description', '')}",
+                    "data": span.get("data"),
+                    "duration": f"{span.get('timestamp', 0) - span.get('start_timestamp', 0)}s",
+                }
+                for span in spans
+            ]
+            selected_spans_tree = build_spans_tree(spans_selected_data)
+
             event_node.update(
                 {
                     "title": f"{op} - {transaction_title}" if op else transaction_title,
                     "platform": event.platform,
-                    "is_current_project": event.project_id == project.id,
                     "duration": duration_str,
                     "profile_id": profile_id,
-                    "children_span_ids": [
-                        span.get("span_id") for span in event_data.get("spans", [])
-                    ],
+                    "span_ids": span_ids,  # Store for later use
+                    "spans": selected_spans_tree,
                 }
             )
+
+            # Register this transaction as the parent for all its spans
+            for span_id in span_ids:
+                if span_id:
+                    span_to_transaction[span_id] = event_node
         else:
+            title = event.title
+            message = event.message if event.message != event.title else None
+            transaction_name = event.transaction
+
+            error_title = message or ""
+            if title:
+                error_title += f"{' - ' if error_title else ''}{title}"
+            if transaction_name:
+                error_title += f"{' - ' if error_title else ''}occurred in {transaction_name}"
+
             event_node.update(
                 {
-                    "title": event.title,
+                    "title": error_title,
                     "platform": event.platform,
-                    "is_current_project": event.project_id == project.id,
                 }
             )
 
         span_id = event_node["span_id"]
         parent_span_id = event_node["parent_span_id"]
 
+        # Index events by their span_id
         if span_id:
             events_by_span_id[span_id] = event_node
 
-        # Add to children list of parent
+        # Index events by their parent_span_id for easier lookup
         if parent_span_id:
-            if parent_span_id not in children_by_parent_span_id:
-                children_by_parent_span_id[parent_span_id] = []
-            children_by_parent_span_id[parent_span_id].append(event_node)
+            if parent_span_id not in events_by_parent_span_id:
+                events_by_parent_span_id[parent_span_id] = []
+            events_by_parent_span_id[parent_span_id].append(event_node)
         else:
-            # This is a root node (no parent)
+            # This is a potential root node (no parent)
             root_events.append(event_node)
 
-        # Handle case where this event's span is a parent for events we've already seen
-        if span_id and span_id in children_by_parent_span_id:
-            event_node["children"].extend(children_by_parent_span_id[span_id])
-            children_by_parent_span_id[span_id] = event_node["children"]
+    # Second pass: establish parent-child relationships based on the three rules
+    for event_node in list(events_by_span_id.values()):
+        span_id = event_node["span_id"]
+        parent_span_id = event_node["parent_span_id"]
 
-    # Second pass: add children from spans to parent events
-    for span_id, event_node in events_by_span_id.items():
-        if event_node["is_transaction"] and "children_span_ids" in event_node:
-            for child_span_id in event_node["children_span_ids"]:
-                # If this span ID belongs to another event, establish parent-child relationship
-                if (
-                    child_span_id in events_by_span_id
-                    and events_by_span_id[child_span_id] not in event_node["children"]
-                ):
-                    event_node["children"].append(events_by_span_id[child_span_id])
+        # Rule 1: An event whose span_id is X is a parent of an event whose parent_span_id is X
+        if span_id and span_id in events_by_parent_span_id:
+            for child_event in events_by_parent_span_id[span_id]:
+                if child_event not in event_node["children"]:
+                    event_node["children"].append(child_event)
+                    # If this child was previously considered a root, remove it
+                    if child_event in root_events:
+                        root_events.remove(child_event)
 
-    # Third pass: connect any remaining children to their parents
-    for parent_span_id, children in children_by_parent_span_id.items():
-        if parent_span_id in events_by_span_id:
-            parent_node = events_by_span_id[parent_span_id]
-            for child in children:
-                if child not in parent_node["children"]:
-                    parent_node["children"].append(child)
+        # Handle case where this event has a parent based on parent_span_id
+        if parent_span_id:
+            # Rule 1 (other direction): This event's parent_span_id matches another event's span_id
+            if parent_span_id in events_by_span_id:
+                parent_event = events_by_span_id[parent_span_id]
+                if event_node not in parent_event["children"]:
+                    parent_event["children"].append(event_node)
+                    # If this event was previously considered a root, remove it
+                    if event_node in root_events:
+                        root_events.remove(event_node)
 
-    # Fourth pass: find orphaned events (events with parent_span_id but no actual parent) and add them to root_events
-    all_event_nodes = list(events_by_span_id.values())
-    for event_node in all_event_nodes:
-        parent_span_id = event_node.get("parent_span_id")
-        if (
-            parent_span_id
-            and parent_span_id not in events_by_span_id
-            and event_node not in root_events
-        ):
+            # Rule 2: A transaction event that contains a span with span_id X is a parent
+            # of an event whose parent_span_id is X
+            elif parent_span_id in span_to_transaction:
+                parent_event = span_to_transaction[parent_span_id]
+                if event_node not in parent_event["children"]:
+                    parent_event["children"].append(event_node)
+                    # If this event was previously considered a root, remove it
+                    if event_node in root_events:
+                        root_events.remove(event_node)
+
+        # Rule 3: A transaction event that contains a span with span_id X is a parent
+        # of an event whose span_id is X
+        if span_id and span_id in span_to_transaction:
+            parent_event = span_to_transaction[span_id]
+            # Only establish this relationship if there's no more direct relationship
+            # (i.e., the event doesn't already have a parent through rules 1 or 2)
+            if event_node in root_events:
+                if event_node not in parent_event["children"]:
+                    parent_event["children"].append(event_node)
+                    # Remove from root events since it now has a parent
+                    root_events.remove(event_node)
+
+    # Third pass: find orphaned events and add them to root_events
+    # These are events with parent_span_id that don't match any span_id
+    # and didn't get connected through any of our relationship rules
+    for event_node in all_events:
+        has_parent = False
+        # Check if this event is already a child of any other event
+        for other_event in all_events:
+            if event_node in other_event["children"]:
+                has_parent = True
+                break
+
+        # If not a child of any event and not already in root_events, add it
+        if not has_parent and event_node not in root_events:
             root_events.append(event_node)
 
     # Function to recursively sort children by datetime
@@ -199,15 +348,19 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
     # Clean up temporary fields before returning
     def cleanup_node(node):
-        if "children_span_ids" in node:
-            del node["children_span_ids"]
+        if "span_ids" in node:
+            del node["span_ids"]
         for child in node["children"]:
             cleanup_node(child)
         return node
 
     cleaned_tree = [cleanup_node(root) for root in sorted_tree]
 
-    return {"trace_id": event.trace_id, "events": cleaned_tree}
+    return {
+        "trace_id": event.trace_id,
+        "org_id": project.organization_id,
+        "events": cleaned_tree,
+    }
 
 
 def _get_profile_from_trace_tree(
@@ -424,6 +577,7 @@ def _respond_with_error(reason: str, status: int):
 
 
 def _call_autofix(
+    *,
     user: User | AnonymousUser,
     group: Group,
     repos: list[dict],
@@ -433,6 +587,7 @@ def _call_autofix(
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
+    auto_run_source: str | None = None,
 ):
     path = "/v1/automation/autofix/start"
     body = orjson.dumps(
@@ -461,6 +616,7 @@ def _call_autofix(
             ),
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
+                "auto_run_source": auto_run_source,
             },
         },
         option=orjson.OPT_NON_STR_KEYS,
@@ -487,6 +643,7 @@ def trigger_autofix(
     user: User | AnonymousUser,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
+    auto_run_source: str | None = None,
 ):
     if event_id is None:
         event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
@@ -540,15 +697,16 @@ def trigger_autofix(
 
     try:
         run_id = _call_autofix(
-            user,
-            group,
-            repos,
-            serialized_event,
-            profile,
-            trace_tree,
-            instruction,
-            TIMEOUT_SECONDS,
-            pr_to_comment_on_url,
+            user=user,
+            group=group,
+            repos=repos,
+            serialized_event=serialized_event,
+            profile=profile,
+            trace_tree=trace_tree,
+            instruction=instruction,
+            timeout_secs=TIMEOUT_SECONDS,
+            pr_to_comment_on_url=pr_to_comment_on_url,
+            auto_run_source=auto_run_source,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")

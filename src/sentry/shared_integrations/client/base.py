@@ -335,10 +335,15 @@ class BaseApiClient:
     def delete(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("DELETE", *args, **kwargs)
 
-    def get_cache_key(self, path: str, query: str = "", data: str | None = "") -> str:
+    def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
         if not data:
-            return self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
-        return self.get_cache_prefix() + md5_text(self.build_url(path), query, data).hexdigest()
+            return (
+                self.get_cache_prefix() + md5_text(self.build_url(path), method, query).hexdigest()
+            )
+        return (
+            self.get_cache_prefix()
+            + md5_text(self.build_url(path), method, query, data).hexdigest()
+        )
 
     def check_cache(self, cache_key: str) -> Any | None:
         return cache.get(cache_key)
@@ -352,7 +357,7 @@ class BaseApiClient:
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"))
 
-        key = self.get_cache_key(path, query, data)
+        key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
         if result is None:
             cache_time = kwargs.pop("cache_time", None) or self.cache_time

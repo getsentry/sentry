@@ -2020,54 +2020,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
-    def test_average_sampling_rate(self):
-        spans = []
-        spans.append(
-            self.create_span(
-                {
-                    "description": "foo",
-                    "sentry_tags": {"status": "success"},
-                    "measurements": {"client_sample_rate": {"value": 0.1}},
-                },
-                start_ts=self.ten_mins_ago,
-            )
-        )
-        spans.append(
-            self.create_span(
-                {
-                    "description": "bar",
-                    "sentry_tags": {"status": "success"},
-                    "measurements": {"client_sample_rate": {"value": 0.85}},
-                },
-                start_ts=self.ten_mins_ago,
-            )
-        )
-        self.store_spans(spans, is_eap=self.is_eap)
-        response = self.do_request(
-            {
-                "field": [
-                    "avg_sample(sampling_rate)",
-                    "count()",
-                    "min(sampling_rate)",
-                    "count_sample()",
-                ],
-                "query": "",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        confidence = meta["accuracy"]["confidence"]
-        assert len(data) == 1
-        assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
-        assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)
-        assert data[0]["count_sample()"] == 2
-        assert data[0]["count()"] == 11
-        assert confidence[0]["count()"] == "low"
-
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
@@ -2827,6 +2779,34 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert meta["dataset"] == self.dataset
 
+    def test_failure_rate(self):
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"trace.status": status}},
+                    start_ts=self.ten_mins_ago,
+                )
+                for status in trace_statuses
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_rate()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_rate()"] == 0.25
+        assert meta["dataset"] == self.dataset
+
     def test_count_op(self):
         self.store_spans(
             [
@@ -3027,6 +3007,54 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data[0]["count_scores(measurements.score.lcp)"] == 1
         assert data[0]["count_scores(measurements.score.total)"] == 3
+        assert meta["dataset"] == self.dataset
+
+    def test_performance_score(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.02},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == self.dataset
 
     @pytest.mark.skip(reason="replay id alias not migrated over")

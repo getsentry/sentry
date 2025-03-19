@@ -15,6 +15,7 @@ class SdkConfig(TypedDict):
     send_default_pii: bool
     auto_enabling_integrations: bool
     keep_alive: NotRequired[bool]
+    spotlight: NotRequired[str | bool | None]
 
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
