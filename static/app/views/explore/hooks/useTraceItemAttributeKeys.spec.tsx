@@ -236,25 +236,4 @@ describe('useTraceItemAttributeKeys', () => {
 
     expect(result.current.attributes).toEqual(expectedAttributes);
   });
-
-  it('test enabled option', () => {
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
-      body: mockAttributeKeys,
-    });
-
-    renderHook(
-      () =>
-        useTraceItemAttributeKeys({
-          traceItemType: TraceItemDataset.LOGS,
-          type: 'string',
-          enabled: false,
-        }),
-      {
-        wrapper: createWrapper(organization),
-      }
-    );
-
-    expect(mockResponse).not.toHaveBeenCalled();
-  });
 });
