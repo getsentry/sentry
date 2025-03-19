@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import styled from '@emotion/styled';
 
 import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {
@@ -28,11 +29,13 @@ type Props = Parameters<Hooks['sidebar:bottom-items']>[0] & {
 const TRY_BUSINESS_SEEN_KEY = `sidebar-new-seen:try-business-v1`;
 
 function TryBusinessNavigationItem({
+  organization,
   subscription,
   onClick,
 }: {
   label: string;
   onClick: () => void;
+  organization: Organization;
   subscription: Subscription;
 }) {
   const [tryBusinessSeen, setTryBusinessSeen] = useLocalStorageState(
@@ -44,17 +47,19 @@ function TryBusinessNavigationItem({
   const showIsNew = isNew && !tryBusinessSeen;
 
   return (
-    <SidebarButton
-      label={t('Try Business')}
-      onClick={() => {
-        setTryBusinessSeen(true);
-        onClick();
-      }}
-      analyticsKey="try-business"
-    >
-      <IconBusiness size="md" />
-      {showIsNew && <SidebarItemUnreadIndicator />}
-    </SidebarButton>
+    <StackedNavTrialStartedSidebarItem {...{organization, subscription}}>
+      <SidebarButton
+        label={t('Try Business')}
+        onClick={() => {
+          setTryBusinessSeen(true);
+          onClick();
+        }}
+        analyticsKey="try-business"
+      >
+        <IconBusiness size="md" />
+        {showIsNew && <SidebarItemUnreadIndicator />}
+      </SidebarButton>
+    </StackedNavTrialStartedSidebarItem>
   );
 }
 
@@ -118,30 +123,39 @@ class TryBusinessSidebarItem extends Component<Props> {
       return null;
     }
 
+    if (prefersStackedNav()) {
+      return (
+        <TryBusinessNavigationItem
+          organization={organization}
+          subscription={subscription}
+          label={this.labelText}
+          onClick={this.openModal}
+        />
+      );
+    }
+
     return (
       <TrialStartedSidebarItem {...{organization, subscription}}>
-        {prefersStackedNav() ? (
-          <TryBusinessNavigationItem
-            subscription={subscription}
-            label={this.labelText}
-            onClick={this.openModal}
-          />
-        ) : (
-          <SidebarItem
-            {...sidebarItemProps}
-            id="try-business"
-            icon={<IconBusiness size="md" />}
-            label={this.labelText}
-            onClick={this.openModal}
-            key="gs-try-business"
-            data-test-id="try-business-sidebar"
-            isNewSeenKeySuffix="-v1"
-            isNew={!subscription.isTrial && subscription.canTrial}
-          />
-        )}
+        <SidebarItem
+          {...sidebarItemProps}
+          id="try-business"
+          icon={<IconBusiness size="md" />}
+          label={this.labelText}
+          onClick={this.openModal}
+          key="gs-try-business"
+          data-test-id="try-business-sidebar"
+          isNewSeenKeySuffix="-v1"
+          isNew={!subscription.isTrial && subscription.canTrial}
+        />
       </TrialStartedSidebarItem>
     );
   }
 }
+
+const StackedNavTrialStartedSidebarItem = styled(TrialStartedSidebarItem)`
+  margin: 0;
+  padding: 0;
+  border-radius: ${p => p.theme.borderRadius};
+`;
 
 export default withSubscription(TryBusinessSidebarItem, {noLoader: true});

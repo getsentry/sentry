@@ -51,7 +51,7 @@ export function PrimaryButtonOverlay({
 const ScrollableOverlay = styled(Overlay)<{
   isMobile: boolean;
 }>`
-  min-height: 300px;
+  min-height: 150px;
   max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
   overflow-y: auto;
   width: ${p => (p.isMobile ? `calc(100vw - ${space(4)})` : '400px')};
