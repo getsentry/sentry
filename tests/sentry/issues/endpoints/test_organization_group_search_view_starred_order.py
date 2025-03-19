@@ -7,8 +7,8 @@ from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-group-search-view-starred"
+class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
     def setUp(self):
         super().setUp()
@@ -31,13 +31,6 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
                 visibility=GroupSearchViewVisibility.OWNER,
             )
             self.views.append(view)
-            # Create starred entries for the views
-            GroupSearchViewStarred.objects.create(
-                organization=self.organization,
-                user_id=self.user.id,
-                group_search_view=view,
-                position=i,
-            )
 
         self.non_starred_view = GroupSearchView.objects.create(
             name="Non Starred View",
@@ -66,11 +59,22 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
             visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
+    def star_views(self, view_ids: list[int]):
+        for idx, view_id in enumerate(view_ids):
+            GroupSearchViewStarred.objects.create(
+                organization=self.organization,
+                user_id=self.user.id,
+                group_search_view_id=view_id,
+                position=idx,
+            )
+
     @with_feature("organizations:issue-view-sharing")
     def test_simple_reordering(self):
-        view_ids = [self.views[2].id, self.views[0].id, self.views[1].id]
+        self.star_views([self.views[0].id, self.views[1].id, self.views[2].id])
 
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
+        new_order = [self.views[2].id, self.views[0].id, self.views[1].id]
+
+        response = self.client.put(self.url, data={"view_ids": new_order}, format="json")
 
         assert response.status_code == 204
 
@@ -89,10 +93,12 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
         assert starred_views[2].position == 2
 
     @with_feature("organizations:issue-view-sharing")
-    def test_remove_view_from_starred(self):
-        view_ids = [self.views[0].id, self.views[2].id]
+    def test_same_order_reordering(self):
+        original_order = [self.views[0].id, self.views[1].id, self.views[2].id]
 
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
+        self.star_views(original_order)
+
+        response = self.client.put(self.url, data={"view_ids": original_order}, format="json")
 
         assert response.status_code == 204
 
@@ -101,57 +107,41 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
             user_id=self.user.id,
         ).order_by("position")
 
-        assert len(starred_views) == 2
         assert starred_views[0].group_search_view_id == self.views[0].id
+        assert starred_views[0].position == 0
+
+        assert starred_views[1].group_search_view_id == self.views[1].id
+        assert starred_views[1].position == 1
+
+        assert starred_views[2].group_search_view_id == self.views[2].id
+        assert starred_views[2].position == 2
+
+    @with_feature("organizations:issue-view-sharing")
+    def reordering_with_shared_views(self):
+        self.star_views([self.views[0].id, self.views[1].id, self.views[2].id, self.shared_view.id])
+
+        new_order = [self.shared_view.id, self.views[2].id, self.views[0].id, self.views[1].id]
+
+        response = self.client.put(self.url, data={"view_ids": new_order}, format="json")
+
+        assert response.status_code == 204
+
+        starred_views = GroupSearchViewStarred.objects.filter(
+            organization=self.organization,
+            user_id=self.user.id,
+        ).order_by("position")
+
+        assert starred_views[0].group_search_view_id == self.shared_view.id
         assert starred_views[0].position == 0
 
         assert starred_views[1].group_search_view_id == self.views[2].id
         assert starred_views[1].position == 1
 
-        assert not GroupSearchViewStarred.objects.filter(
-            organization=self.organization,
-            user_id=self.user.id,
-            group_search_view_id=self.views[1].id,
-        ).exists()
+        assert starred_views[2].group_search_view_id == self.views[0].id
+        assert starred_views[2].position == 2
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_star_new_personal_view(self):
-        view_ids = [self.views[0].id, self.non_starred_view.id, self.views[1].id, self.views[2].id]
-
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
-
-        assert response.status_code == 204
-
-        # Verify the new positions
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=self.organization,
-            user_id=self.user.id,
-        ).order_by("position")
-
-        assert len(starred_views) == 4
-        assert starred_views[0].group_search_view_id == self.views[0].id
-        assert starred_views[1].group_search_view_id == self.non_starred_view.id
-        assert starred_views[2].group_search_view_id == self.views[1].id
-        assert starred_views[3].group_search_view_id == self.views[2].id
-
-    @with_feature("organizations:issue-view-sharing")
-    def test_star_new_shared_view(self):
-        view_ids = [self.views[0].id, self.shared_view.id, self.views[1].id, self.views[2].id]
-
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
-
-        assert response.status_code == 204
-
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=self.organization,
-            user_id=self.user.id,
-        ).order_by("position")
-
-        assert len(starred_views) == 4
-        assert starred_views[0].group_search_view_id == self.views[0].id
-        assert starred_views[1].group_search_view_id == self.shared_view.id
-        assert starred_views[2].group_search_view_id == self.views[1].id
-        assert starred_views[3].group_search_view_id == self.views[2].id
+        assert starred_views[3].group_search_view_id == self.views[1].id
+        assert starred_views[3].position == 3
 
     @with_feature("organizations:issue-view-sharing")
     def test_empty_starred_list(self):
@@ -165,7 +155,29 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
         ).exists()
 
     @with_feature("organizations:issue-view-sharing")
-    def test_duplicate_view_ids(self):
+    def test_error_on_fewer_views_than_starred_views(self):
+        self.star_views([self.views[0].id, self.views[1].id, self.views[2].id])
+
+        response = self.client.put(
+            self.url, data={"view_ids": [self.views[0].id, self.views[1].id]}, format="json"
+        )
+
+        assert response.status_code == 400
+
+    @with_feature("organizations:issue-view-sharing")
+    def test_error_on_more_views_than_starred_views(self):
+        self.star_views([self.views[0].id, self.views[1].id])
+
+        response = self.client.put(
+            self.url,
+            data={"view_ids": [self.views[0].id, self.views[1].id, self.views[2].id]},
+            format="json",
+        )
+
+        assert response.status_code == 400
+
+    @with_feature("organizations:issue-view-sharing")
+    def test_error_on_duplicate_view_ids(self):
         view_ids = [self.views[0].id, self.views[1].id, self.views[1].id]
 
         response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
@@ -178,7 +190,7 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
         }
 
     @with_feature("organizations:issue-view-sharing")
-    def test_inaccessible_view(self):
+    def test_error_on_inaccessible_views(self):
         view_ids = [self.views[0].id, self.user_2_view.id]
 
         response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
@@ -192,7 +204,7 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
 
 
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase):
-    endpoint = "sentry-api-0-organization-group-search-view-starred"
+    endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
     def setUp(self):
         super().setUp()

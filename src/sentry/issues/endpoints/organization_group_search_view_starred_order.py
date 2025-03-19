@@ -19,7 +19,7 @@ class MemberPermission(OrganizationPermission):
     }
 
 
-class GroupSearchViewStarredSerializer(serializers.Serializer):
+class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
     view_ids = serializers.ListField(child=serializers.IntegerField(), required=True, min_length=0)
 
     def validate_view_ids(self, view_ids):
@@ -41,7 +41,7 @@ class GroupSearchViewStarredSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationGroupSearchViewStarredEndpoint(OrganizationEndpoint):
+class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
@@ -50,7 +50,7 @@ class OrganizationGroupSearchViewStarredEndpoint(OrganizationEndpoint):
         if not features.has("organizations:issue-view-sharing", organization, actor=request.user):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = GroupSearchViewStarredSerializer(
+        serializer = GroupSearchViewStarredOrderSerializer(
             data=request.data, context={"organization": organization, "user": request.user}
         )
 
@@ -61,33 +61,14 @@ class OrganizationGroupSearchViewStarredEndpoint(OrganizationEndpoint):
 
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchViewStarred)):
-                _update_view_positions(organization, request.user.id, view_ids)
+                GroupSearchViewStarred.objects.reorder_starred_views(
+                    organization=organization,
+                    user_id=request.user.id,
+                    new_view_positions=view_ids,
+                )
         except IntegrityError as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
+        except ValueError as e:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-def _update_view_positions(organization: Organization, user_id: int, view_positions: list[int]):
-    GroupSearchViewStarred.objects.filter(organization=organization, user_id=user_id).exclude(
-        group_search_view_id__in=view_positions
-    ).delete()
-
-    existing_starred_views = GroupSearchViewStarred.objects.filter(
-        organization=organization, user_id=user_id, group_search_view_id__in=view_positions
-    )
-    existing_starred_views_dict = {
-        starred_view.group_search_view_id: starred_view for starred_view in existing_starred_views
-    }
-
-    for idx, view_id in enumerate(view_positions):
-        if view_id in existing_starred_views_dict:
-            existing_starred_views_dict[view_id].position = idx
-            existing_starred_views_dict[view_id].save()
-        else:
-            GroupSearchViewStarred.objects.create(
-                organization=organization,
-                user_id=user_id,
-                group_search_view_id=view_id,
-                position=idx,
-            )
