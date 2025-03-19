@@ -61,30 +61,20 @@ class OrganizationGroupSearchViewStarredEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if is_starred:
-            try:
-                insert_position = (
-                    serializer.validated_data["position"]
-                    if "position" in serializer.validated_data
-                    else GroupSearchViewStarred.objects.num_starred_views(
-                        organization, request.user.id
-                    )
-                )
+            insert_position = (
+                serializer.validated_data["position"]
+                if "position" in serializer.validated_data
+                else GroupSearchViewStarred.objects.num_starred_views(organization, request.user.id)
+            )
 
-                GroupSearchViewStarred.objects.insert_starred_view(
-                    organization, request.user.id, view, insert_position
-                )
-
+            if GroupSearchViewStarred.objects.insert_starred_view(
+                organization, request.user.id, view, insert_position
+            ):
                 return Response(status=status.HTTP_200_OK)
-            except ValueError:
-                pass  # View is already starred, so no need to update anything
         else:
-            try:
-                GroupSearchViewStarred.objects.delete_starred_view(
-                    organization, request.user.id, view
-                )
-
+            if GroupSearchViewStarred.objects.delete_starred_view(
+                organization, request.user.id, view
+            ):
                 return Response(status=status.HTTP_200_OK)
-            except ValueError:
-                pass  # View is already not starred, so no need to update anything
 
         return Response(status=status.HTTP_204_NO_CONTENT)

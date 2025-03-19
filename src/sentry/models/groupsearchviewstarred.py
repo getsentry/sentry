@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import ClassVar
 
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
@@ -21,7 +23,7 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
 
     def get_starred_view(
         self, organization: Organization, user_id: int, view: GroupSearchView
-    ) -> "GroupSearchViewStarred | None":
+    ) -> GroupSearchViewStarred | None:
         """
         Returns the starred view if it exists, otherwise None.
         """
@@ -71,7 +73,7 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
         user_id: int,
         view: GroupSearchView,
         position: int | None = None,
-    ) -> None:
+    ) -> bool:
         """
         Inserts a new starred view into the list at a specific position and
         increments the position of all views after the insertion point.
@@ -87,33 +89,35 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
             view: The view to insert
             position: The position to insert the view at
 
-        Raises:
-            ValueError: If the view is already starred
+        Returns:
+            True if the view was starred, False if the view was already starred
         """
-        if self.get_starred_view(organization, user_id, view):
-            raise ValueError("View is already starred.")
+        with transaction.atomic(using=router.db_for_write(GroupSearchViewStarred)):
+            if self.get_starred_view(organization, user_id, view):
+                return False
 
-        highest_position = self.num_starred_views(organization, user_id)
+            highest_position = self.num_starred_views(organization, user_id)
 
-        if position is None or position > highest_position:
-            position = highest_position
+            if position is None or position > highest_position:
+                position = highest_position
 
-        self.filter(
-            organization=organization,
-            user_id=user_id,
-            position__gte=position,
-        ).update(position=models.F("position") + 1)
+            self.filter(
+                organization=organization,
+                user_id=user_id,
+                position__gte=position,
+            ).update(position=models.F("position") + 1)
 
-        self.create(
-            organization=organization,
-            user_id=user_id,
-            group_search_view=view,
-            position=position,
-        )
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                group_search_view=view,
+                position=position,
+            )
+            return True
 
     def delete_starred_view(
         self, organization: Organization, user_id: int, view: GroupSearchView
-    ) -> None:
+    ) -> bool:
         """
         Deletes a starred view from the list.
         Decrements the position of all views after the deletion point.
@@ -123,18 +127,20 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
             user_id: The ID of the user whose starred views are being updated
             view: The view to delete
 
-        Raises:
-            ValueError: If the view is not starred
+        Returns:
+            True if the view was unstarred, False if the view was already unstarred
         """
-        if not (starred_view := self.get_starred_view(organization, user_id, view)):
-            raise ValueError("View is not starred.")
+        with transaction.atomic(using=router.db_for_write(GroupSearchViewStarred)):
+            if not (starred_view := self.get_starred_view(organization, user_id, view)):
+                return False
 
-        deleted_position = starred_view.position
-        starred_view.delete()
+            deleted_position = starred_view.position
+            starred_view.delete()
 
-        self.filter(
-            organization=organization, user_id=user_id, position__gt=deleted_position
-        ).update(position=models.F("position") - 1)
+            self.filter(
+                organization=organization, user_id=user_id, position__gt=deleted_position
+            ).update(position=models.F("position") - 1)
+            return True
 
 
 @region_silo_model
