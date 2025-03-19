@@ -662,7 +662,7 @@ describe('spanDetailsRouteWithQuery', function () {
     expect(target).toEqual(
       expect.objectContaining({
         pathname:
-          '/organizations/org-slug/performance/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
+          '/organizations/org-slug/insights/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
       })
     );
   });

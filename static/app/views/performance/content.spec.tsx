@@ -372,7 +372,7 @@ describe('Performance > Content', function () {
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/trends/',
+        pathname: '/organizations/org-slug/insights/backend/trends/',
         query: {
           query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           statsPeriod: '24h',
@@ -419,7 +419,7 @@ describe('Performance > Content', function () {
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/trends/',
+        pathname: '/organizations/org-slug/insights/backend/trends/',
         query: {
           query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
         },

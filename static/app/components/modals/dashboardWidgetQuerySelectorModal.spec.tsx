@@ -44,7 +44,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   beforeEach(function () {
     mockQuery = {
-      conditions: 'title:/organizations/:orgId/performance/summary/',
+      conditions: 'title:/organizations/:orgId/insights/summary/',
       fields: ['count()', 'failure_count()'],
       aggregates: ['count()', 'failure_count()'],
       columns: [],
@@ -90,7 +90,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     renderModal({initialData, widget: mockWidget});
 
     expect(
-      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+      screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
@@ -109,7 +109,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(queryFields).toHaveLength(3);
 
     expect(
-      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+      screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
     expect(
       screen.getByDisplayValue('title:/organizations/:orgId/performance/')
@@ -121,7 +121,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     renderModal({initialData, widget: mockWidget});
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 });

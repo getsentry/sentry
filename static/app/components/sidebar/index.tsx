@@ -232,10 +232,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const hasPerfLandingRemovalFlag = organization?.features.includes(
-    'insights-performance-landing-removal'
-  );
-
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -372,11 +368,7 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
-        active={
-          hasPerfLandingRemovalFlag
-            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
-            : undefined
-        }
+        active={location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem

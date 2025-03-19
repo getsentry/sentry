@@ -90,7 +90,6 @@ describe('TraceMetaDataHeader', () => {
         })
       );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      organization.features.push('insights-performance-landing-removal');
       render(<TraceMetaDataHeader {...props} organization={organization} />);
 
       const breadcrumbs = screen.getByTestId('breadcrumb-list');
@@ -110,7 +109,7 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsItems[1]).toHaveTextContent('Trace View');
     });
 
-    it('should show performance from transaction summary', () => {
+    it('should show insights from transaction summary', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({
           pathname: '/organizations/org-slug/traces/trace/123',
@@ -129,19 +128,15 @@ describe('TraceMetaDataHeader', () => {
 
       expect(breadcrumbs.childElementCount).toBe(5);
 
-      expect(breadcrumbsLinks).toHaveLength(2);
-      expect(breadcrumbsLinks[0]).toHaveTextContent('Performance');
+      expect(breadcrumbsLinks).toHaveLength(1);
+      expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[0]).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance?source=performance_transaction_summary&transaction=transaction-name'
+        '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
       );
-      expect(breadcrumbsLinks[1]).toHaveTextContent('Transaction Summary');
-      expect(breadcrumbsLinks[1]).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/performance/summary?source=performance_transaction_summary&transaction=transaction-name'
-      );
-      expect(breadcrumbsItems).toHaveLength(1);
-      expect(breadcrumbsItems[0]).toHaveTextContent('Trace View');
+      expect(breadcrumbsItems).toHaveLength(2);
+      expect(breadcrumbsItems[0]).toHaveTextContent('Insights');
+      expect(breadcrumbsItems[1]).toHaveTextContent('Trace View');
     });
 
     it('should render domain overview breadcrumbs', () => {

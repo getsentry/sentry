@@ -141,7 +141,7 @@ const setupMockApiResponeses = () => {
 
 const setupMocks = () => {
   mockUseLocation.mockReturnValue(
-    LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
   );
 };
 

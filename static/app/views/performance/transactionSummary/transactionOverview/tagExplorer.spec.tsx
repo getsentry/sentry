@@ -61,7 +61,7 @@ describe('WrapperComponent', function () {
   let facetApiMock: jest.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     facetApiMock = MockApiClient.addMockResponse({
       url: facetUrl,
@@ -200,7 +200,7 @@ describe('WrapperComponent', function () {
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/tags/?project=123&transaction=example-transaction'
+      '/organizations/org-slug/insights/summary/tags/?project=123&transaction=example-transaction'
     );
   });
 

@@ -101,7 +101,7 @@ const vitals = [
 describe('Performance > Web Vitals', function () {
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
@@ -226,7 +226,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     expect(screen.getByRole('navigation')).toHaveTextContent(
-      'PerformanceTransaction Summary'
+      'InsightsTransaction Summary'
     );
   });
 
