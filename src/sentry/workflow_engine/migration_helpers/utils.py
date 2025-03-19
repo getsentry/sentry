@@ -23,6 +23,7 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
 
     if action.type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            missing_user_text = "Email [missing user]"
             try:
                 org_member = OrganizationMember.objects.get(
                     user_id=action.target_identifier,
@@ -32,15 +33,24 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
                 logger.info(
                     "Organization member not found", extra={"user_id": action.target_identifier}
                 )
-                return "Email missing user"
-            return "Email " + org_member.user_email
+                return missing_user_text
+
+            if org_member.user_email:
+                return "Email " + org_member.user_email
+
+            return missing_user_text
+
         elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-            try:
-                team = Team.objects.get(id=int(action.target_identifier))
-            except Team.DoesNotExist:
-                logger.info("Team not found", extra={"team_id": action.target_identifier})
-                return "Email missing team"
-            return "Email #" + team.slug
+            missing_team_text = "Email [missing team]"
+            if action.target_identifier:
+                try:
+                    team = Team.objects.get(id=int(action.target_identifier))
+                except Team.DoesNotExist:
+                    logger.info("Team not found", extra={"team_id": action.target_identifier})
+                    return missing_team_text
+                if team:
+                    return "Email #" + team.slug
+            return missing_team_text
 
     elif action.type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
         return f"Notify {action.target_display}"

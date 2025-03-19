@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -70,6 +72,51 @@ class WorkflowNameTest(APITestCase):
 
         assert self.rpc_user
         assert workflow.name == f"Email {self.rpc_user.email}"
+
+    @mock.patch("sentry.workflow_engine.migration_helpers.utils.logger")
+    def test_missing_user(self, mock_logger):
+        user2 = self.create_user(email="meow@woof.com")
+        fake_user_id = 55
+
+        metric_alert = self.create_alert_rule()
+        alert_rule_trigger_critical = self.create_alert_rule_trigger(
+            alert_rule=metric_alert, label="critical"
+        )
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger_critical,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(fake_user_id),
+        )
+        migrate_alert_rule(metric_alert, user2)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=metric_alert)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        assert workflow.name == "Email [missing user]"
+        mock_logger.info.assert_called_with(
+            "Organization member not found",
+            extra={"user_id": str(fake_user_id)},
+        )
+
+    @mock.patch("sentry.workflow_engine.migration_helpers.utils.logger")
+    def test_missing_team(self, mock_logger):
+        fake_team_id = 55
+
+        metric_alert = self.create_alert_rule()
+        alert_rule_trigger_critical = self.create_alert_rule_trigger(
+            alert_rule=metric_alert, label="critical"
+        )
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger_critical,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(fake_team_id),
+        )
+        migrate_alert_rule(metric_alert, self.rpc_user)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=metric_alert)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        assert workflow.name == "Email [missing team]"
+        mock_logger.info.assert_called_with(
+            "Team not found",
+            extra={"team_id": str(fake_team_id)},
+        )
 
     def test_warning_and_critical(self):
         """
