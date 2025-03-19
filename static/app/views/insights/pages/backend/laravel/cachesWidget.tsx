@@ -76,9 +76,11 @@ export function CachesWidget({query}: {query?: string}) {
           dataset: 'spans',
           field: ['transaction', 'cache_miss_rate()'],
           yAxis: 'cache_miss_rate()',
-          query: `span.op:[cache.get_item,cache.get] transaction:[${
-            cachesRequest.data?.data.map(item => `"${item.transaction}"`).join(', ') || ''
-          }] ${query}`,
+          query:
+            cachesRequest.data &&
+            `transaction:[${cachesRequest.data.data
+              .map(item => `"${item.transaction}"`)
+              .join(', ')}]`,
           sort: '-cache_miss_rate()',
           useRpc: 1,
           topEvents: 4,
