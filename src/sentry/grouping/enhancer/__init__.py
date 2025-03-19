@@ -137,14 +137,10 @@ class Enhancements:
     ):
         self.id = id
         self.rules = rules
-        if version is None:
-            version = LATEST_VERSION
-        self.version = version
-        if bases is None:
-            bases = []
-        self.bases = bases
+        self.version = version or LATEST_VERSION
+        self.bases = bases or []
 
-        self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
+        self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
 
     def apply_category_and_updated_in_app_to_frames(
         self,
