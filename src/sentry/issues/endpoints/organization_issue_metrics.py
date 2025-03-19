@@ -95,7 +95,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
             # Group the smallest series into the "other" bucket.
             if len(grouped_series) > 4:
-                keys = [v[0] for v in nlargest(4, grouped_counter.items(), key=lambda i: i[0])]
+                keys = [v[0] for v in nlargest(5, grouped_counter.items(), key=lambda i: i[0])]
 
                 new_grouped_series: dict[str, list[TimeSeries]] = {}
                 other_series = collections.defaultdict(int)
@@ -123,6 +123,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     start=start,
                     end=end,
                     interval=interval,
+                    is_other=key == "other",
                     order=i,
                     values=series,
                 )
@@ -239,6 +240,7 @@ def make_timeseries_result(
     start: datetime,
     end: datetime,
     interval: timedelta,
+    is_other: bool,
     order: int,
     values: list[TimeSeries],
 ) -> TimeSeriesResult:
@@ -247,7 +249,7 @@ def make_timeseries_result(
         "groupBy": group,
         "meta": {
             "interval": interval.seconds * 1000,
-            "isOther": False,
+            "isOther": is_other,
             "order": order,
             "valueType": "integer",
             "valueUnit": None,

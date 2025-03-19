@@ -253,7 +253,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
-                "groupBy": ["1.2.0"],
+                "groupBy": ["1.1.0"],
                 "meta": {
                     "interval": 3600000,
                     "isOther": False,
@@ -268,7 +268,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
-                "groupBy": ["1.3.0"],
+                "groupBy": ["1.2.0"],
                 "meta": {
                     "interval": 3600000,
                     "isOther": False,
@@ -283,7 +283,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
-                "groupBy": ["1.4.0"],
+                "groupBy": ["1.3.0"],
                 "meta": {
                     "interval": 3600000,
                     "isOther": False,
@@ -298,7 +298,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
-                "groupBy": ["1.5.0"],
+                "groupBy": ["1.4.0"],
                 "meta": {
                     "interval": 3600000,
                     "isOther": False,
@@ -313,7 +313,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
             {
                 "axis": "new_issues_count_by_release",
-                "groupBy": ["other"],
+                "groupBy": ["1.5.0"],
                 "meta": {
                     "interval": 3600000,
                     "isOther": False,
@@ -323,7 +323,22 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                 },
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 0},
-                    {"timestamp": int(curr.timestamp()), "value": 2},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": ["other"],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": True,
+                    "order": 5,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 1},
                 ],
             },
         ]
