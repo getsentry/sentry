@@ -378,9 +378,7 @@ function ReleaseOverview({children}: {children: ReactNode}) {
       project.id,
       selection,
       // technically our query params can be an array
-      Array.isArray(location.query.showTransactions)
-        ? (location.query.showTransactions.at(0) ?? '')
-        : (location.query.showTransactions ?? '')
+      (location.query.showTransactions as string|undefined) ?? ''
     ),
   };
 
