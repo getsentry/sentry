@@ -86,6 +86,16 @@ func application(_ application: UIApplication,
         // We recommend adjusting this value in production.
         options.profilesSampleRate = 1.0`
             : ''
+        }${
+          params.isReplaySelected
+            ? `
+
+        // Record Session Replays for 100% of Errors and 10% of Sessions
+        options.sessionReplay.onErrorSampleRate = 1.0
+        options.sessionReplay.sessionSampleRate = 0.1
+        // We recommend the ~5x more performant experimental view renderer
+        options.sessionReplay.enableExperimentalViewRenderer = true`
+            : ''
         }
     }${
       params.isProfilingSelected &&
@@ -134,6 +144,16 @@ struct SwiftUIApp: App {
             // Sample rate for profiling, applied on top of TracesSampleRate.
             // We recommend adjusting this value in production.
             options.profilesSampleRate = 1.0`
+                : ''
+            }${
+              params.isReplaySelected
+                ? `
+
+            // Record Session Replays for 100% of Errors and 10% of Sessions
+            options.sessionReplay.onErrorSampleRate = 1.0
+            options.sessionReplay.sessionSampleRate = 0.1
+            // We recommend the ~5x more performant experimental view renderer
+            options.sessionReplay.enableExperimentalViewRenderer = true`
                 : ''
             }
         }${

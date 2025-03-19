@@ -76,8 +76,16 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  android: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'apple-ios': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -191,7 +199,11 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -395,18 +407,6 @@ export function ProductSelection({
           checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
         />
       )}
-      {products.includes(ProductSolution.SESSION_REPLAY) && (
-        <Product
-          label={t('Session Replay')}
-          description={t(
-            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-          )}
-          docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
-          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
-        />
-      )}
       {products.includes(ProductSolution.PROFILING) && (
         <Product
           label={t('Profiling')}
@@ -420,6 +420,18 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
           checked={urlProducts.includes(ProductSolution.PROFILING)}
+        />
+      )}
+      {products.includes(ProductSolution.SESSION_REPLAY) && (
+        <Product
+          label={t('Session Replay')}
+          description={t(
+            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+          )}
+          docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
+          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
         />
       )}
     </Products>
