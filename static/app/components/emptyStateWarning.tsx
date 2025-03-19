@@ -21,7 +21,7 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch legacySize="54px" />}
+      {withIcon && <IconSearch color="gray300" legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
@@ -41,7 +41,7 @@ export const EmptyStreamWrapper = styled('div')`
   }
 
   > svg {
-    fill: ${p => p.theme.gray200};
+    fill: ${p => p.theme.gray300};
     margin-bottom: ${space(2)};
   }
 `;
