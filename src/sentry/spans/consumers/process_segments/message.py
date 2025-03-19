@@ -127,10 +127,11 @@ def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     for span in spans:
         sentry_tags = span.setdefault("sentry_tags", {})
         span["op"] = sentry_tags.get("op") or DEFAULT_SPAN_OP
-        # TODO: port set_span_exclusive_time
 
     if segment:
         _set_shared_tags(segment, spans)
+
+    _set_exclusive_time(spans)
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
@@ -196,6 +197,43 @@ def _timestamp_by_op(spans: list[Span], op: str) -> float | None:
         if span["op"] == op:
             return span["end_timestamp_precise"]
     return None
+
+
+def _set_exclusive_time(spans: list[Span]) -> None:
+    """
+    Sets the exclusive time on all spans in the list.
+
+    The exclusive time is the time spent in a span's own code. This is the sum
+    of all time intervals where no child span was active.
+    """
+
+    span_map: dict[str, list[tuple[float, float]]] = {}
+    for span in spans:
+        if parent_span_id := span.get("parent_span_id"):
+            interval = (span["start_timestamp_precise"], span["end_timestamp_precise"])
+            span_map.setdefault(parent_span_id, []).append(interval)
+
+    for span in spans:
+        intervals = span_map.get(span["span_id"], [])
+        # Sort by start ASC, end DESC to skip over nested intervals efficiently
+        intervals.sort(key=lambda x: (x[0], -x[1]))
+
+        exclusive_time: float = 0
+        start, end = span["end_timestamp_precise"], span["start_timestamp_precise"]
+
+        # Progressively add time gaps before the next span and then skip to its end.
+        for child_start, child_end in intervals:
+            if child_start > start:
+                exclusive_time += child_start - start
+            start = max(start, child_end)
+
+        # Add any remaining time not covered by children
+        exclusive_time += max(end - start, 0)
+
+        # Note: Event protocol spans expect `exclusive_time` while EAP expects
+        # `exclusive_time_ms`. Both are the same value in milliseconds
+        span["exclusive_time"] = exclusive_time * 1000  # type: ignore[typeddict-unknown-key]
+        span["exclusive_time_ms"] = exclusive_time * 1000  # type: ignore[typeddict-unknown-key]
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
