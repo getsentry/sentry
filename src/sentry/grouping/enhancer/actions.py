@@ -106,7 +106,7 @@ class FlagAction(EnhancementAction):
             return seq[idx + 1 :]
         return []
 
-    def _in_app_changed(self, frame: dict[str, Any], component) -> bool:
+    def _in_app_changed(self, frame: dict[str, Any]) -> bool:
         orig_in_app = get_path(frame, "data", "orig_in_app")
 
         if orig_in_app is not None:
@@ -114,10 +114,7 @@ class FlagAction(EnhancementAction):
                 orig_in_app = None
             return orig_in_app != frame.get("in_app")
         else:
-            # FIXME: I don't fully understand this. The `group` Action is the only
-            # one I can find that actually sets the `contributes` flag to `True`.
-            # And `orig_in_app` is only `None` if the `app` Action was never applied.
-            return self.flag == component.contributes
+            return False
 
     def apply_modifications_to_frame(
         self,
@@ -148,7 +145,7 @@ class FlagAction(EnhancementAction):
                 )
             # The in app flag was set by `apply_modifications_to_frame`
             # but we want to add a hint if there is none yet.
-            elif self.key == "app" and self._in_app_changed(frame, component):
+            elif self.key == "app" and self._in_app_changed(frame):
                 component.update(
                     hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
                 )
