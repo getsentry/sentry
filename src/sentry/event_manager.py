@@ -2496,7 +2496,7 @@ def save_grouphash_and_group(
     event: Event,
     new_grouphash: str,
     **group_kwargs: Any,
-) -> tuple[Group, bool]:
+) -> tuple[Group, bool, GroupHash]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
@@ -2510,7 +2510,7 @@ def save_grouphash_and_group(
         # Group, we can guarantee that the Group will exist at this point and
         # fetch it via GroupHash
         group = Group.objects.get(grouphash__project=project, grouphash__hash=new_grouphash)
-    return group, created
+    return group, created, group_hash
 
 
 @sentry_sdk.tracing.trace
