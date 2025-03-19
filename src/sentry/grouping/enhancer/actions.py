@@ -57,7 +57,8 @@ class EnhancementAction:
     @classmethod
     def _from_config_structure(cls, val, version: int):
         if isinstance(val, list):  # This is a `VarAction`
-            return VarAction(val[0], val[1])
+            variable, value = val
+            return VarAction(variable, value)
         # Otherwise, assume it's a `FlagAction`, since those are the only two types we currently have
         flag, range_direction = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
         return FlagAction(ACTIONS[val & 0xF], flag, range_direction)
