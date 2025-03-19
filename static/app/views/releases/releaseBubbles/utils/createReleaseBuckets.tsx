@@ -19,13 +19,21 @@ import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 //
 // where only the first bucket's starting timestamp is inclusive.
 //
-export function createReleaseBuckets(
-  minTime: number | undefined,
-  maxTime: number | undefined,
-  finalTime: number,
-  releases: ReleaseMetaBasic[],
-  desiredBuckets = 10
-): Bucket[] {
+interface CreateReleaseBucketsParams {
+  finalTime: number;
+  maxTime: number | undefined;
+  minTime: number | undefined;
+  releases: ReleaseMetaBasic[];
+  desiredBuckets?: number;
+}
+
+export function createReleaseBuckets({
+  minTime,
+  maxTime,
+  finalTime,
+  releases,
+  desiredBuckets = 10,
+}: CreateReleaseBucketsParams): Bucket[] {
   const buckets: Bucket[] = [];
 
   if (!minTime || !maxTime) {
