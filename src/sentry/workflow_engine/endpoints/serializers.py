@@ -134,9 +134,9 @@ class DataConditionGroupSerializer(Serializer):
 
 class DataConditionHandlerResponse(TypedDict):
     type: str
-    handler_group: str
-    handler_subgroup: NotRequired[str]
-    comparison_json_schema: dict
+    handlerGroup: str
+    handlerSubgroup: NotRequired[str]
+    comparisonJsonSchema: dict
 
 
 @register(DataConditionHandler)
@@ -153,11 +153,11 @@ class DataConditionHandlerSerializer(Serializer):
             raise ValueError("condition_type is required")
         result: DataConditionHandlerResponse = {
             "type": condition_type,
-            "handler_group": obj.group.value,
-            "comparison_json_schema": obj.comparison_json_schema,
+            "handlerGroup": obj.group.value,
+            "comparisonJsonSchema": obj.comparison_json_schema,
         }
         if hasattr(obj, "subgroup"):
-            result["handler_subgroup"] = obj.subgroup.value
+            result["handlerSubgroup"] = obj.subgroup.value
         return result
 
 

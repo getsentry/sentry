@@ -70,8 +70,8 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
         assert len(response.data) == 1
         assert response.data[0] == {
             "type": Condition.REAPPEARED_EVENT.value,
-            "handler_group": DataConditionHandler.Group.WORKFLOW_TRIGGER.value,
-            "comparison_json_schema": {"type": "boolean"},
+            "handlerGroup": DataConditionHandler.Group.WORKFLOW_TRIGGER.value,
+            "comparisonJsonSchema": {"type": "boolean"},
         }
 
         response = self.get_success_response(
@@ -80,9 +80,9 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
         assert len(response.data) == 1
         assert response.data[0] == {
             "type": Condition.AGE_COMPARISON.value,
-            "handler_group": DataConditionHandler.Group.ACTION_FILTER.value,
-            "handler_subgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
-            "comparison_json_schema": {
+            "handlerGroup": DataConditionHandler.Group.ACTION_FILTER.value,
+            "handlerSubgroup": DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES.value,
+            "comparisonJsonSchema": {
                 "type": "object",
                 "properties": {
                     "value": {"type": "integer", "minimum": 0},

@@ -42,7 +42,7 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-workflow-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/data_conditions/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/data-conditions/$",
         OrganizationDataConditionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-data-condition-index",
     ),
