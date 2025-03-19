@@ -140,6 +140,7 @@ class SetBudgetAndReserves extends Component<Props, State> {
           onUpdate={onUpdate}
           formData={formData}
           subscription={subscription}
+          isLegacy={false}
         />
       </PanelBody>
     );
