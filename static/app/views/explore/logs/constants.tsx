@@ -33,7 +33,7 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
 
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',
-  label: 'Logs',
+  label: t('Logs'),
   children: [...SENTRY_LOG_STRING_TAGS, ...SENTRY_LOG_NUMBER_TAGS],
 };
 
