@@ -76,12 +76,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   android: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
