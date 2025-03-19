@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {GrowingInput} from 'sentry/components/growingInput';
+import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/tooltip';
 
 interface IssueViewNavEditableTitleProps {
@@ -94,7 +94,8 @@ function IssueViewNavEditableTitle({
     >
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isEditing ? (
-          <StyledGrowingInput
+          <StyledInput
+            autosize
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
@@ -154,7 +155,7 @@ const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
   line-height: 1.5;
 `;
 
-const StyledGrowingInput = styled(GrowingInput)<{
+const StyledInput = styled(Input)<{
   isEditing: boolean;
 }>`
   position: relative;
