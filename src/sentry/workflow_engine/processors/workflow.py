@@ -16,6 +16,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -82,14 +83,25 @@ def evaluate_workflows_action_filters(
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids = {workflow.id for workflow in workflows}
+    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
+    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
 
     action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=workflow_ids
+        workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
     ).distinct()
 
+    workflow_to_dcg = dict(
+        WorkflowDataConditionGroup.objects.filter(
+            condition_group_id__in=action_conditions
+        ).values_list("condition_group_id", "workflow")
+    )
+
     for action_condition in action_conditions:
+        # Populate the workflow environment in the job for the action_condition evaluation
+        workflow_id = workflow_to_dcg.get(action_condition.id)
+        if workflow_id:
+            job["workflow_env"] = workflow_ids_to_envs[workflow_id]
+
         (evaluation, result), remaining_conditions = process_data_condition_group(
             action_condition.id, job
         )
