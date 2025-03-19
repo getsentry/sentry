@@ -75,7 +75,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
       onClick={handleOnAddView}
       disabled={isLoading}
       title={!isLoading && t('Add View')}
-      aria-label={t('Add View Button')}
+      aria-label={t('Add View')}
       tooltipProps={{
         delay: 500,
       }}
