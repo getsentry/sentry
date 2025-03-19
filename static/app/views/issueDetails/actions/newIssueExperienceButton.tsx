@@ -42,10 +42,16 @@ export function NewIssueExperienceButton() {
   const [isReminderVisible, setIsReminderVisible] = useState(false);
   useEffect(() => {
     // If the tour becomes completed, and started off incomplete, show the reminder.
+    let timeout: NodeJS.Timeout | undefined;
     if (isTourCompleted && !isTourCompletedRef.current) {
       setIsReminderVisible(true);
+      // Auto-dismiss after 5 seconds
+      timeout = setTimeout(() => {
+        setIsReminderVisible(false);
+      }, 5000);
     }
     isTourCompletedRef.current = isTourCompleted;
+    return () => clearTimeout(timeout);
   }, [isTourCompleted]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
