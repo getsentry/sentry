@@ -256,7 +256,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
 };
 
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
-export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
+export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
