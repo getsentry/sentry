@@ -60,7 +60,14 @@ SHARED_TAG_KEYS = (
     "thread.name",
 )
 
+# The name of the main thread used to infer the `main_thread` flag in spans from
+# mobile applications.
 MOBILE_MAIN_THREAD_NAME = "main"
+
+# The default span.op to assume if it is missing on the span. This should be
+# normalized by Relay, but we defensively apply the same fallback as the op is
+# not guaranteed in typing.
+DEFAULT_SPAN_OP = "default"
 
 
 class Span(SchemaSpan, total=False):
@@ -70,6 +77,7 @@ class Span(SchemaSpan, total=False):
     hash: str | None  # Added in enrichment
 
 
+@metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(spans: list[Span]) -> list[Span]:
     segment_span = _find_segment_span(spans)
     _enrich_spans(segment_span, spans)
@@ -106,16 +114,17 @@ def _find_segment_span(spans: list[Span]) -> Span | None:
     return None
 
 
-# The default span.op to assume if it is missing on the span. This should be
-# normalized by Relay, but we defensively apply the same fallback as the op is
-# not guaranteed in typing.
-DEFAULT_SPAN_OP = "default"
-
-
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
 def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
+    """
+    Enriches all spans with data derived from the span tree and the segment.
+
+    This includes normalizations that need access to the spans' children, such
+    as inferring `exclusive_time`, as well as normalizations that need access to
+    the segment, such as extracting shared or conditional attributes.
+    """
+
     for span in spans:
-        # TODO: TEST THAT THIS RUNS WITHOUT A SEGMENT SPAN!
         sentry_tags = span.setdefault("sentry_tags", {})
         span["op"] = sentry_tags.get("op") or DEFAULT_SPAN_OP
         # TODO: port set_span_exclusive_time
@@ -130,6 +139,10 @@ def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
 
 
 def _set_shared_tags(segment: Span, spans: list[Span]) -> None:
+    """
+    Extracts tags from the segment span and materializes them into all spans.
+    """
+
     # Assume that Relay has extracted the shared tags into `sentry_tags` on the
     # root span. Once `sentry_tags` is removed, the logic from
     # `extract_shared_tags` should be moved here.
@@ -145,6 +158,9 @@ def _set_shared_tags(segment: Span, spans: list[Span]) -> None:
         span_tags = cast(dict[str, Any], span["sentry_tags"])
 
         if is_mobile:
+            # NOTE: Like in Relay's implementation, shared tags are added at the
+            # very end. This does not have access to the shared tag value. We
+            # keep behavior consistent, although this should be revisited.
             if span_tags.get("thread.name") == MOBILE_MAIN_THREAD_NAME:
                 span_tags["main_thread"] = "true"
             if not span_tags.get("app_start_type") and mobile_start_type:
