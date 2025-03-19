@@ -1,8 +1,10 @@
 import GroupList from 'sentry/components/issues/groupList';
+import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
@@ -32,8 +34,9 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       'is:unresolved',
     ]).formatString(),
   };
+
   const renderEmptyMessage = () => {
-    return null;
+    return <EmptyState>{t('No new issues in this release.')}</EmptyState>;
   };
 
   return (

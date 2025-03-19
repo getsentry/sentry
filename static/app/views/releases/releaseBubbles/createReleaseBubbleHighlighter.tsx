@@ -4,8 +4,8 @@ import debounce from 'lodash/debounce';
 
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {BUBBLE_SERIES_ID} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
-import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
+import {BUBBLE_SERIES_ID} from 'sentry/views/releases/releaseBubbles/constants';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 
 interface LegendSelectChangedParams {
   name: string;

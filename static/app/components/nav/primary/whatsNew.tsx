@@ -3,7 +3,6 @@ import {Fragment, useEffect, useMemo} from 'react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   SidebarButton,
-  SidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
 import {
@@ -127,7 +126,7 @@ export function PrimaryNavigationWhatsNew() {
   } = usePrimaryButtonOverlay();
 
   return (
-    <SidebarItem>
+    <Fragment>
       <SidebarButton
         analyticsKey="broadcasts"
         label={t("What's New")}
@@ -143,6 +142,6 @@ export function PrimaryNavigationWhatsNew() {
           <WhatsNewContent unseenPostIds={unseenPostIds} />
         </PrimaryButtonOverlay>
       )}
-    </SidebarItem>
+    </Fragment>
   );
 }

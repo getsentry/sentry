@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreviewImage from 'sentry-images/spot/issue-details-preview.svg';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {darkTheme} from 'sentry/utils/theme';
 
-interface IssueDetailsTourModalProps extends ModalRenderProps {
+interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
   handleStartTour: () => void;
 }
@@ -39,7 +38,7 @@ export function IssueDetailsTourModal({
 
 const ImageContainer = styled('div')`
   width: 100%;
-  height: 226px;
+  height: 282.5px;
   background-image: url(${issueDetailsPreviewImage});
   background-size: cover;
   background-position: center;
@@ -79,5 +78,5 @@ const Footer = styled('div')`
 `;
 
 export const IssueDetailsTourModalCss = css`
-  width: 436px;
+  width: 545px;
 `;
