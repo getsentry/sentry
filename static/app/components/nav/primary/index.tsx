@@ -32,7 +32,7 @@ function SidebarBody({children}: {children: React.ReactNode}) {
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
-    <SidebarFooterWrapper>
+    <SidebarFooterWrapper isMobile={layout === NavLayout.MOBILE}>
       <SidebarItemList
         isMobile={layout === NavLayout.MOBILE}
         compact={layout === NavLayout.SIDEBAR}
@@ -75,7 +75,7 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/dashboards/`}
             activeTo={`/${prefix}/dashboard`}
-            analyticsKey="customizable-dashboards"
+            analyticsKey="dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
           >
             <IconDashboard />
@@ -86,7 +86,7 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
             activeTo={`/${prefix}/insights`}
-            analyticsKey="insights-domains"
+            analyticsKey="insights"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
           >
             <IconGraph type="area" />
@@ -149,10 +149,11 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
     `}
 `;
 
-const SidebarFooterWrapper = styled('div')`
+const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
   position: relative;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   margin-top: auto;
+  margin-bottom: ${p => (p.isMobile ? space(1) : 0)};
 `;
