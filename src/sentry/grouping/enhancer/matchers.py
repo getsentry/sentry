@@ -64,7 +64,7 @@ MATCHERS = {
     "value": "value",
     "mechanism": "mechanism",
     "category": "category",
-    # fingerprinting specific fields
+    # fingerprinting-specific fields
     "family": "family",
     "app": "app",
 }
@@ -112,8 +112,8 @@ class EnhancementMatch:
         raise NotImplementedError()
 
     @staticmethod
-    def _from_config_structure(obj, version):
-        val = obj
+    def _from_config_structure(config_structure, version):
+        val = config_structure
         if val.startswith("|[") and val.endswith("]"):
             return CalleeMatch(EnhancementMatch._from_config_structure(val[2:-1], version))
         if val.startswith("[") and val.endswith("]|"):
@@ -195,18 +195,36 @@ class FrameMatch(EnhancementMatch):
         return rv
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        # Implement is subclasses
+        # Implement in subclasses
         raise NotImplementedError
 
     def _to_config_structure(self, version):
+        """
+        Convert the matcher into a string of the form
+            <match_type><match_pattern>
+        where
+            match_type is a single letter code for the match type (see MATCH_KEYS)
+            match_pattern is the value to match against
+
+        This will be preceded by a `!` if the match is negated. Families against which to match are
+        also converted to single-letter abbreviations, and in-app booleans are converted to 0 or 1.
+        """
+        # Convert the families to match into a string of single letter abbreviations (so
+        # `javascript,native` becomes `JN`, for example)
         if self.key == "family":
-            arg = "".join(_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f)
+            value_to_match = "".join(
+                abbreviation
+                for abbreviation in [FAMILIES.get(family) for family in self.pattern.split(",")]
+                if abbreviation
+            )
         elif self.key == "app":
             boolified_pattern = bool_from_string(self.pattern)
-            arg = "1" if boolified_pattern is True else "0" if boolified_pattern is False else ""
+            value_to_match = (
+                "1" if boolified_pattern is True else "0" if boolified_pattern is False else ""
+            )
         else:
-            arg = self.pattern
-        return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
+            value_to_match = self.pattern
+        return ("!" if self.negated else "") + MATCH_KEYS[self.key] + value_to_match
 
 
 def path_like_match(pattern, value):
@@ -268,13 +286,13 @@ class InAppMatch(FrameMatch):
 
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        field = match_frame[self.field]
-        if field is None:
+        value = match_frame[self.field]
+        if value is None:
             return False
-        if field == self._encoded_pattern:
+        if value == self._encoded_pattern:
             return True
 
-        return _cached(cache, glob_match, field, self._encoded_pattern)
+        return _cached(cache, glob_match, value, self._encoded_pattern)
 
 
 class FunctionMatch(FrameFieldMatch):
