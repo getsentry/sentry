@@ -355,6 +355,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/',
   },
   {
+    id: 'javascript-tanstackstart-react',
+    name: 'TanStack Start React',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/',
+  },
+  {
     id: 'javascript-vue',
     name: 'Vue',
     type: 'framework',
