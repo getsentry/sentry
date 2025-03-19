@@ -383,6 +383,7 @@ const SuggestedAmountTag = styled(Tag)`
   justify-self: center;
   display: flex;
   align-items: center;
+  line-height: normal;
 `;
 
 const Box = styled('div')<{padding?: string}>`

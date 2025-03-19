@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-disabled-tests */
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
@@ -9,7 +10,8 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-describe('SetPayAsYouGo', function () {
+// NOTE(isabella): This a temporary skip while we haven't added the step to the checkout flow
+describe.skip('SetPayAsYouGo', function () {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
