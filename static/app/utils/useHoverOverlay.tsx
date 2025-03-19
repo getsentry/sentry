@@ -10,6 +10,7 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -266,35 +267,16 @@ function useHoverOverlay(
    */
   const wrapTrigger = useCallback(
     (triggerChildren: React.ReactNode) => {
-      const makeProps = (
-        componentProps: Partial<
-          Pick<
-            React.HTMLAttributes<any>,
-            'onFocus' | 'onBlur' | 'onPointerEnter' | 'onPointerLeave'
-          >
-        >
-      ) => ({
+      const providedProps = {
         // !!These props are always overriden!!
         'aria-describedby': describeById,
         ref: setTriggerElement,
         // The following props are composed from the componentProps trigger props
-        onFocus: (e: React.FocusEvent<any>) => {
-          handleMouseEnter();
-          componentProps.onFocus?.(e);
-        },
-        onBlur: (e: React.FocusEvent<any>) => {
-          handleMouseLeave();
-          componentProps.onBlur?.(e);
-        },
-        onPointerEnter: (e: React.PointerEvent<any>) => {
-          handleMouseEnter();
-          componentProps.onPointerEnter?.(e);
-        },
-        onPointerLeave: (e: React.PointerEvent<any>) => {
-          handleMouseLeave();
-          componentProps.onPointerLeave?.(e);
-        },
-      });
+        onFocus: handleMouseEnter,
+        onBlur: handleMouseLeave,
+        onPointerEnter: handleMouseEnter,
+        onPointerLeave: handleMouseLeave,
+      };
 
       // Use the `type` property of the react instance to detect whether we have
       // a basic element (type=string) or a class/function component
@@ -312,27 +294,22 @@ function useHoverOverlay(
 
           return cloneElement<any>(
             triggerChildren,
-            Object.assign(makeProps(triggerChildren.props), {style: triggerStyle})
+            Object.assign(mergeProps(triggerChildren.props, providedProps), {
+              style: triggerStyle,
+            })
           );
         }
 
         // Basic DOM nodes can be cloned and have more props applied.
         return cloneElement<any>(
           triggerChildren,
-          Object.assign(makeProps(triggerChildren.props), {
+          Object.assign(mergeProps(triggerChildren.props, providedProps), {
             style: triggerChildren.props.style,
           })
         );
       }
 
-      const props =
-        isValidElement(triggerChildren) && 'props' in triggerChildren
-          ? triggerChildren.props
-          : {};
-
-      // @ts-expect-error props is of type unknown at this point,
-      // and we cant infer signature what they could be
-      const containerProps = Object.assign(makeProps(props), {
+      const containerProps = Object.assign(providedProps, {
         style: {
           ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
