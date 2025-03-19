@@ -60,7 +60,7 @@ def execute_via_metric_alert_handler(
     job: WorkflowEventData, action: Action, detector: Detector
 ) -> None:
     """
-    This exists so that all ticketing actions can use the same handler as issue alerts since thats the only way we can
+    This exists so that all ticketing actions can use the same handler as issue alerts since that's the only way we can
     ensure that the same thread is used for the notification action.
     """
     IssueAlertRegistryInvoker.handle_workflow_action(job, action, detector)
