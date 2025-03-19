@@ -1,4 +1,4 @@
-import {type ComponentProps, Fragment, useEffect, useState} from 'react';
+import {type ComponentProps, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -95,26 +95,30 @@ export function ModulePageFilterBar({
   }
 
   return (
-    <Fragment>
-      <PageFilterBar condensed>
-        <Tooltip
-          title={CHANGE_PROJECT_TEXT}
-          forceVisible
-          position="bottom-start"
-          disabled={!showTooltip}
-        >
-          {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
+    <PageFilterBarContainer>
+      <Tooltip
+        title={CHANGE_PROJECT_TEXT}
+        forceVisible
+        position="bottom-start"
+        disabled={!showTooltip}
+      >
+        {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
           otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
-          <div style={{width: '100px', position: 'absolute', height: '100%'}} />
-        </Tooltip>
+        <div style={{width: '100px', position: 'absolute', height: '100%'}} />
+      </Tooltip>
+      <PageFilterBar condensed>
         {!disableProjectFilter && <ProjectPageFilter onChange={onProjectChange} />}
         <EnvironmentPageFilter />
         <DatePageFilter {...dateFilterProps} />
       </PageFilterBar>
       {hasDataWithSelectedProjects && extraFilters}
-    </Fragment>
+    </PageFilterBarContainer>
   );
 }
+
+const PageFilterBarContainer = styled('div')`
+  position: relative;
+`;
 
 function DisabledDateOption({value}: {value: string}) {
   return (
