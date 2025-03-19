@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {ModalTypes} from 'sentry/components/globalModal';
@@ -109,6 +110,7 @@ type CreateOwnershipRuleModalOptions = {
    * The project to create a rules for
    */
   project: Project;
+  theme: Theme;
   /**
    * Suggestions will be created from the current event
    */
@@ -124,7 +126,9 @@ export async function openIssueOwnershipRuleModal(
   const mod = await import('sentry/components/modals/issueOwnershipRuleModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalCss: modalCss(options.theme),
+  });
 }
 
 export type EditOwnershipRulesModalOptions = {
@@ -132,6 +136,7 @@ export type EditOwnershipRulesModalOptions = {
   organization: Organization;
   ownership: IssueOwnership;
   project: Project;
+  theme: Theme;
 };
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
@@ -140,7 +145,7 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
-    modalCss,
+    modalCss: modalCss(options.theme),
   });
 }
 
