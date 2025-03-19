@@ -62,6 +62,7 @@ def _fetch_parent_notification_message_for_incident(
     alert_context: AlertContext,
     notification_context: NotificationContext,
     metric_issue_context: MetricIssueContext,
+    repository: MetricAlertNotificationMessageRepository,
 ) -> MetricAlertNotificationMessage | None:
     parent_notification_message = None
 
@@ -69,7 +70,6 @@ def _fetch_parent_notification_message_for_incident(
         interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
         spec=SlackMessagingSpec(),
     ).capture() as lifecycle:
-        repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
         # Only grab the parent notification message for thread use if the feature is on
         # Otherwise, leave it empty, and it will not create a thread
         if OrganizationOption.objects.get_value(
@@ -139,6 +139,7 @@ def _send_notification(
     thread_ts: str | None,
     reply_broadcast: bool,
     notification_message_object: NewMetricAlertNotificationMessage,
+    repository: MetricAlertNotificationMessageRepository,
 ) -> bool:
     with MessagingInteractionEvent(
         interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
@@ -182,12 +183,13 @@ def _send_notification(
 
             notification_message_object.message_identifier = str(ts) if ts is not None else None
 
-    _save_notification_message(notification_message_object)
+    _save_notification_message(notification_message_object, repository)
     return True
 
 
 def _save_notification_message(
     notification_message_object: NewMetricAlertNotificationMessage,
+    repository: MetricAlertNotificationMessageRepository,
 ) -> None:
     try:
         repository = get_default_metric_alert_repository()
@@ -248,11 +250,14 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
     )
 
+    repository = get_default_metric_alert_repository()
+
     parent_notification_message = _fetch_parent_notification_message_for_incident(
         organization=organization,
         alert_context=alert_context,
         notification_context=notification_context,
         metric_issue_context=incident_context,
+        repository=repository,
     )
 
     new_notification_message_object = NewMetricAlertNotificationMessage(
@@ -285,6 +290,7 @@ def send_incident_alert_notification(
         thread_ts=thread_ts,
         reply_broadcast=reply_broadcast,
         notification_message_object=new_notification_message_object,
+        repository=repository,
     )
 
     return success
