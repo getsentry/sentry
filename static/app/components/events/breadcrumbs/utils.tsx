@@ -68,7 +68,12 @@ export function getSummaryBreadcrumbs(
   sort: BreadcrumbSort
 ) {
   const sortedCrumbs = sort === BreadcrumbSort.OLDEST ? crumbs : crumbs.toReversed();
-  return sortedCrumbs.slice(0, BREADCRUMB_SUMMARY_COUNT);
+  return sortedCrumbs.slice(
+    0,
+    crumbs.length <= BREADCRUMB_SUMMARY_COUNT + 1
+      ? BREADCRUMB_SUMMARY_COUNT + 1
+      : BREADCRUMB_SUMMARY_COUNT
+  );
 }
 
 export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {

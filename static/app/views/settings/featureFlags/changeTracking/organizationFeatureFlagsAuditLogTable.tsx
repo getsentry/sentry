@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -12,7 +11,10 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
+import {
+  getFlagActionLabel,
+  type RawFlag,
+} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -22,7 +24,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
   {key: 'flag', name: t('Feature Flag'), width: 600},
   {key: 'action', name: t('Action')},
-  {key: 'createdAt', name: t('Created')},
+  {key: 'createdAt', name: t('Date')},
 ];
 
 export function OrganizationFeatureFlagsAuditLogTable({
@@ -83,19 +85,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       case 'createdAt':
         return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
       case 'action': {
-        const type =
-          dataRow.action === 'created'
-            ? 'info'
-            : dataRow.action === 'deleted'
-              ? 'error'
-              : undefined;
-        const capitalized =
-          dataRow.action.charAt(0).toUpperCase() + dataRow.action.slice(1);
-        return (
-          <div style={{alignSelf: 'flex-start'}}>
-            <Tag type={type}>{capitalized}</Tag>
-          </div>
-        );
+        return getFlagActionLabel(dataRow.action);
       }
       default:
         return dataRow[column.key!];

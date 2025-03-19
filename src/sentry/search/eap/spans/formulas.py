@@ -12,10 +12,15 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     StrArray,
 )
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    ExistsFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition, ResolvedArguments
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
+from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
 
 """
@@ -30,6 +35,66 @@ TOTAL_SPAN_COUNT = Column(
         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     )
 )
+
+
+def failure_rate(_: ResolvedArguments) -> Column.BinaryFormula:
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.trace.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.trace.status",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_NOT_IN,
+                        value=AttributeValue(
+                            val_str_array=StrArray(
+                                values=["ok", "cancelled", "unknown"],
+                            ),
+                        ),
+                    )
+                ),
+                label="trace_status_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=TOTAL_SPAN_COUNT,
+    )
+
+
+def opportunity_score(args: ResolvedArguments) -> Column.BinaryFormula:
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+
+    # TODO: We should be multiplying by the weight in the formula, but we can't until https://github.com/getsentry/eap-planning/issues/202
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                filter=TraceItemFilter(
+                    exists_filter=ExistsFilter(key=ratio_attribute),
+                ),
+                key=ratio_attribute,
+            )
+        ),
+        op=Column.BinaryFormula.OP_SUBTRACT,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                filter=TraceItemFilter(
+                    exists_filter=ExistsFilter(key=ratio_attribute),
+                ),
+                key=ratio_attribute,
+            )
+        ),
+    )
 
 
 def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
@@ -223,6 +288,12 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=trace_status_rate,
     ),
+    "failure_rate": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[],
+        formula_resolver=failure_rate,
+        is_aggregate=True,
+    ),
     "ttfd_contribution_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
@@ -233,6 +304,20 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         arguments=[],
         formula_resolver=ttid_contribution_rate,
+        is_aggregate=True,
+    ),
+    "opportunity_score": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        formula_resolver=opportunity_score,
         is_aggregate=True,
     ),
 }
