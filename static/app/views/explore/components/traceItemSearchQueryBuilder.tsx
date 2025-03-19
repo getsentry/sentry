@@ -1,10 +1,10 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
@@ -34,9 +34,17 @@ export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-function getTraceItemFieldDefinitionFunction(tags: TagCollection) {
+const typeMap: Record<TraceItemDataset, 'span' | 'log'> = {
+  [TraceItemDataset.SPANS]: 'span',
+  [TraceItemDataset.LOGS]: 'log',
+};
+
+function getTraceItemFieldDefinitionFunction(
+  itemType: TraceItemDataset,
+  tags: TagCollection
+) {
   return (key: string) => {
-    return getFieldDefinition(key, 'span', tags[key]?.kind);
+    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
   };
 }
 
@@ -60,41 +68,28 @@ export function TraceItemSearchQueryBuilder({
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
-  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
+  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
 
-  const {getTraceItemAttributeValues} = useTraceItemAttributeValues({
+  const getTraceItemAttributeValues = useTraceItemAttributeValues({
     traceItemType: itemType,
     attributeKey: '', // Empty as we're only using the callback function
     enabled: true,
     type: 'string', // Only string attributes are supported for now
   });
 
-  const getTraceItemTagValues = useCallback(
-    (tag: Tag, queryString: string) => {
-      if (tag.kind === 'function' || numberAttributes.hasOwnProperty(tag.key)) {
-        // We can't really auto suggest values for aggregate functions or numbers
-        return Promise.resolve([]);
-      }
-
-      // Use the trace item attributes endpoint
-      return getTraceItemAttributeValues(tag, queryString);
-    },
-    [getTraceItemAttributeValues, numberAttributes]
-  );
-
   return (
     <SearchQueryBuilder
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getTraceItemFieldDefinitionFunction(filterTags)}
+      fieldDefinitionGetter={getTraceItemFieldDefinitionFunction(itemType, filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
       getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
-      getTagValues={getTraceItemTagValues}
+      getTagValues={getTraceItemAttributeValues}
       disallowUnsupportedFilters
       recentSearches={itemTypeToRecentSearches(itemType)}
       showUnsubmittedIndicator

@@ -54,13 +54,7 @@ export function useTraceItemAttributeKeys({
     const allAttributes: TagCollection = {};
 
     for (const attribute of result.data ?? []) {
-      // For now, skip all the sentry. prefixed attributes as they
-      // should be covered by the static attributes that will be
-      // merged with these results.
-      if (
-        attribute.key.startsWith('sentry.') ||
-        attribute.key.startsWith('tags[sentry.')
-      ) {
+      if (isKnownAttribute(attribute)) {
         continue;
       }
 
@@ -89,4 +83,20 @@ export function useTraceItemAttributeKeys({
     attributes: result.isLoading ? previousAttributes : attributes,
     isLoading: result.isLoading,
   };
+}
+
+function isKnownAttribute(attribute: Tag) {
+  // For now, skip all the sentry. prefixed attributes as they
+  // should be covered by the static attributes that will be
+  // merged with these results.
+
+  // For logs we include sentry.message.* since it contains params etc.
+  if (
+    attribute.key.startsWith('sentry.message.') ||
+    attribute.key.startsWith('tags[sentry.message.')
+  ) {
+    return false;
+  }
+
+  return attribute.key.startsWith('sentry.') || attribute.key.startsWith('tags[sentry.');
 }
