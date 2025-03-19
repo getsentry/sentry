@@ -179,7 +179,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
         event_node = {
             "event_id": event.event_id,
-            "datetime": event.datetime,
+            "datetime": event_data.get("start_timestamp", float("inf")),
             "span_id": event_data.get("contexts", {}).get("trace", {}).get("span_id"),
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
@@ -187,6 +187,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "is_current_project": event.project_id == project.id,
             "project_slug": event.project.slug,
             "project_id": event.project_id,
+            "platform": event.platform,
             "children": [],
         }
 
@@ -223,7 +224,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             event_node.update(
                 {
                     "title": f"{op} - {transaction_title}" if op else transaction_title,
-                    "platform": event.platform,
                     "duration": duration_str,
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
@@ -249,7 +249,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             event_node.update(
                 {
                     "title": error_title,
-                    "platform": event.platform,
                 }
             )
 
@@ -346,20 +345,10 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
     # Sort children at each level
     sorted_tree = [sort_tree(root) for root in root_events]
 
-    # Clean up temporary fields before returning
-    def cleanup_node(node):
-        if "span_ids" in node:
-            del node["span_ids"]
-        for child in node["children"]:
-            cleanup_node(child)
-        return node
-
-    cleaned_tree = [cleanup_node(root) for root in sorted_tree]
-
     return {
         "trace_id": event.trace_id,
         "org_id": project.organization_id,
-        "events": cleaned_tree,
+        "events": sorted_tree,
     }
 
 
@@ -367,70 +356,47 @@ def _get_profile_from_trace_tree(
     trace_tree: dict[str, Any] | None, event: Event | GroupEvent | None, project: Project
 ) -> dict[str, Any] | None:
     """
-    Finds the profile for the transaction that is a parent of our error event.
+    Finds the profile for the transaction that contains our error event.
     """
     if not trace_tree or not event:
         return None
 
     events = trace_tree.get("events", [])
-    event_id = event.event_id
+    event_span_id = event.data.get("contexts", {}).get("trace", {}).get("span_id")
 
-    # First, find our error event in the tree and track parent transactions
-    # 1. Find the error event node and also build a map of parent-child relationships
-    # 2. Walk up from the error event to find a transaction with a profile
-
-    child_to_parent = {}
-
-    def build_parent_map(node, parent=None):
-        node_id = node.get("event_id")
-
-        if parent:
-            child_to_parent[node_id] = parent
-
-        for child in node.get("children", []):
-            build_parent_map(child, node)
-
-    # Build the parent-child map for the entire tree
-    for root_node in events:
-        build_parent_map(root_node)
-
-    # Find our error node in the flattened tree
-    error_node = None
-    all_nodes = []
-
-    def collect_all_nodes(node):
-        all_nodes.append(node)
-        for child in node.get("children", []):
-            collect_all_nodes(child)
-
-    for root_node in events:
-        collect_all_nodes(root_node)
-
-    for node in all_nodes:
-        if node.get("event_id") == event_id:
-            error_node = node
-            break
-
-    if not error_node:
+    if not event_span_id:
         return None
 
-    # Now walk up the tree to find a transaction with a profile
-    profile_id = None
-    current_node = error_node
-    while current_node:
-        if current_node.get("profile_id"):
-            profile_id = current_node.get("profile_id")
-            break
+    # Flatten all events in the tree for easier traversal
+    all_events = []
 
-        # Move up to parent - child_to_parent maps child event IDs to parent node objects
-        parent_node = child_to_parent.get(current_node.get("event_id"))
-        if not parent_node:
-            # Reached the root without finding a suitable transaction
-            return None
-        current_node = parent_node
+    def collect_all_events(node):
+        all_events.append(node)
+        for child in node.get("children", []):
+            collect_all_events(child)
 
-    if not profile_id:
+    for root_node in events:
+        collect_all_events(root_node)
+
+    # Find the first transaction that contains the event's span ID
+    # or has a span_id matching the event's span_id
+    matching_transaction = None
+    for node in all_events:
+        if node.get("is_transaction", False):
+            # Check if this transaction's span_id matches the event_span_id
+            if node.get("span_id") == event_span_id:
+                matching_transaction = node
+                break
+
+            # Check if this transaction contains the event_span_id in its span_ids
+            if event_span_id in node.get("span_ids", []):
+                matching_transaction = node
+                break
+
+    if not matching_transaction or not matching_transaction.get("profile_id"):
         return None
+
+    profile_id = matching_transaction.get("profile_id")
 
     # Fetch the profile data
     response = get_from_profiling_service(
