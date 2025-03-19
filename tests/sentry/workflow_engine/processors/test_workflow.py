@@ -281,7 +281,9 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert triggered_workflows == {self.workflow}
 
     def test_workflow_trigger__no_conditions(self):
+        assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
+
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
 
