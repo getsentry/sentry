@@ -7,37 +7,15 @@ describe('getReasonGroupName', function () {
     expect(getReasonGroupName(Outcome.INVALID, 'too_large')).toBe('too_large');
   });
 
-  // We apply the following to all the reasons: startCase(reason.replace(/-|_/g, ' '))
-  // Which will convert: 'too_large_attachment' -> 'Too Large Attachment'
-  it('handles all new too_large reasons', function () {
+  it('handles all edge cases for reasons', function () {
     const testCases: Array<[string, string]> = [
       ['too_large:unknown', 'too_large'],
-      ['too_large:event', 'too_large_event'],
-      ['too_large:transaction', 'too_large_transaction'],
-      ['too_large:security', 'too_large_security'],
+      ['too_large', 'too_large'],
       ['too_large:attachment', 'too_large_attachment'],
-      ['too_large:form_data', 'too_large_form_data'],
-      ['too_large:raw_security', 'too_large_raw_security'],
-      ['too_large:nel', 'too_large_nel'],
-      ['too_large:unreal_report', 'too_large_unreal_report'],
-      ['too_large:user_report', 'too_large_user_report'],
-      ['too_large:session', 'too_large_session'],
-      ['too_large:sessions', 'too_large_sessions'],
-      ['too_large:statsd', 'too_large_statsd'],
-      ['too_large:metric_buckets', 'too_large_metric_buckets'],
-      ['too_large:client_report', 'too_large_client_report'],
-      ['too_large:profile', 'too_large_profile'],
-      ['too_large:replay_event', 'too_large_replay_event'],
-      ['too_large:replay_recording', 'too_large_replay_recording'],
-      ['too_large:replay_video', 'too_large_replay_video'],
-      ['too_large:check_in', 'too_large_check_in'],
-      ['too_large:otel_log', 'too_large_otel_log'],
-      ['too_large:log', 'too_large_log'],
-      ['too_large:span', 'too_large_span'],
-      ['too_large:otel_span', 'too_large_otel_span'],
-      ['too_large:otel_traces_data', 'too_large_otel_traces_data'],
-      ['too_large:user_report_v2', 'too_large_user_report_v2'],
-      ['too_large:profile_chunk', 'too_large_profile_chunk'],
+      ['too_large:strange:reason', 'too_large_strange:reason'],
+      ['to_large:raw_security', 'internal'],
+      [':attachment', 'internal'],
+      ['', 'internal'],
     ];
 
     testCases.forEach(([input, expected]) => {
