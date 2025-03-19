@@ -4,6 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {FieldKind} from 'sentry/utils/fields';
 import {
   type ApiQueryKey,
   useApiQuery,
