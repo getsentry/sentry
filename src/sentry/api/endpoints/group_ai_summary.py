@@ -230,7 +230,10 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                 filtered_connected_issues.append(issue)
 
         issue_summary = self._call_seer(
-            group, serialized_event, filtered_connected_issues, serialized_events_for_connected_issues
+            group,
+            serialized_event,
+            filtered_connected_issues,
+            serialized_events_for_connected_issues,
         )
 
         if features.has(
